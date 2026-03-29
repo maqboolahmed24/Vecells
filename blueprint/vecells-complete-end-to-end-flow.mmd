@@ -1,0 +1,491 @@
+flowchart TB
+
+%% =========================
+%% ENTRY CHANNELS
+%% =========================
+subgraph ENTRY[All User Entry Channels]
+  P_WEB[Patient uses web portal]
+  P_PHONE[Patient calls phone or IVR]
+  P_NHS[NHS App web jump-off path
+  deferred channel]
+end
+
+%% =========================
+%% IDENTITY + INTAKE
+%% =========================
+subgraph INTAKE[Unified Intake, Identity, Evidence, and Safety]
+  I_AUTH[Authenticate or redeem AccessGrant]
+  I_ID[Resolve identity, access scope, and claim
+  anonymous, partial_match, matched, claimed]
+  I_REPAIR[IdentityRepairCase
+  wrong-patient correction, grant rotation,
+  lineage-level identity hold until verified]
+  I_ENVELOPE[Durable SubmissionEnvelope or call-session shell
+  stable lineage, grants, and public IDs]
+  I_CAPTURE[Capture details
+  web form, live call, continuation flow]
+  I_ATTACH[Quarantine uploads or audio
+  scan, transcribe, classify evidence]
+  I_QUAR[Artifact quarantine
+  malware, unreadable, or unsupported evidence]
+  I_READY{Evidence safety-usable
+  urgent-live, or manual fallback?}
+  I_CONTINUE[SMS continuation, challenge,
+  or manual audio review]
+  I_SUBMIT[Governed promotion and submit
+  resolve idempotency, freeze immutable EvidenceSnapshot]
+  I_DUP[Retry, continuation, same-episode,
+  or DuplicateCluster control]
+  I_PRIOR[Return prior accepted result]
+  I_NORM[New lineage Request
+  submitted to intake_normalized]
+  I_SAFETY[Run versioned safety engine
+  screen clear, residual risk, or urgent]
+  I_URGENT_REQ[Urgent diversion required
+  or urgent-live preemption]
+  I_URGENT_DONE[Urgent advice or escalation
+  durably issued]
+  I_FAIL[FallbackReviewCase
+  degraded receipt, manual safety review, SLA anchor]
+  I_TASK[Create one TriageTask
+  request enters triage_ready]
+  I_RECEIPT[Issue single receipt
+  ETA, status, and tracking]
+end
+
+%% Architectural correction: wrong-patient signals must enter a governed `IdentityRepairCase`
+%% and attach lineage-level identity-hold metadata; they may not silently mutate patient binding in place.
+P_WEB --> I_AUTH
+P_NHS --> I_AUTH
+I_AUTH --> I_ID
+P_PHONE --> I_ID
+I_ID -->|Wrong-patient suspicion or bind dispute| I_REPAIR
+I_ID --> I_ENVELOPE --> I_CAPTURE
+I_CAPTURE --> I_ATTACH --> I_READY
+I_READY -->|Need more evidence| I_CONTINUE --> I_ATTACH
+I_READY -->|Unsafe or unreadable evidence| I_QUAR --> I_FAIL
+I_READY -->|Urgent-live| I_URGENT_REQ
+I_READY -->|Ready to promote| I_SUBMIT --> I_DUP
+I_DUP -->|Accepted retry| I_PRIOR
+I_DUP -->|Existing lineage continuation| T_RESPONSE
+I_DUP -->|New lineage| I_NORM --> I_SAFETY
+I_DUP -.->|Review-required cluster| X_DUP
+X_DUP -.-> T_QUEUE
+I_SAFETY -->|Urgent| I_URGENT_REQ
+I_URGENT_REQ --> I_URGENT_DONE
+I_SAFETY -->|Screen clear or residual risk| I_TASK --> I_RECEIPT
+I_SAFETY -->|Engine or ingest failure| I_FAIL --> I_RECEIPT
+
+%% =========================
+%% TRIAGE + HUMAN CHECKPOINT
+%% =========================
+subgraph TRIAGE[Triage, Review, and Reopen]
+  T_QUEUE[Deterministic queue ranking
+  SLA, fairness, residual risk, vulnerability]
+  T_CLAIM[Claim task and acquire lease
+  fenced operational ownership]
+  T_REVIEW[Human review in clinical workspace
+  same request lineage preserved]
+  T_AI[Optional assistive sidecar
+  artifact-backed suggestions only]
+  T_MOREINFO[More-info cycle
+  reply TTL and reminders]
+  T_RESPONSE[Patient reply, external evidence,
+  or return signal]
+  T_RESAFETY[Canonical re-safety and preemption
+  material deltas rerun safety]
+  T_EXCEPTION[FallbackReviewCase or exception case
+  recovery, replay, reconciliation,
+  and bounded manual follow-through]
+  T_DECISION[Persist EndpointDecision
+  rationale, rule IDs, provenance]
+  T_APPROVAL{Irreversible clinical action?}
+  T_SIGNOFF[Human approval
+  override and audit capture]
+  T_ROUTE{Direct outcome
+  or downstream case?}
+  T_OUTCOME[Compose direct outcome
+  request moves to outcome_recorded]
+  T_HANDOFF[Create downstream case
+  request moves to handoff_active]
+  T_URGENT[Urgent escalation queue]
+end
+
+%% Architectural correction: ingest failures, dispatch ambiguity, and stale external states
+%% open `FallbackReviewCase` or an exception case; they must not vanish or masquerade as routine bounce-back.
+I_RECEIPT --> T_QUEUE --> T_CLAIM --> T_REVIEW
+I_URGENT_DONE --> T_URGENT --> T_CLAIM
+I_FAIL --> T_EXCEPTION
+T_REVIEW -.-> T_AI
+T_AI -.-> T_DECISION
+T_REVIEW -->|Need more info| T_MOREINFO
+T_MOREINFO -->|Reply within TTL| T_RESPONSE --> T_RESAFETY --> I_SAFETY
+T_MOREINFO -->|Expired or no reply| T_DECISION
+T_RESPONSE -->|Wrong-patient or bind dispute| I_REPAIR
+I_REPAIR -->|Identity repaired and hold released| T_QUEUE
+T_EXCEPTION -->|Recovered or reopened| T_QUEUE
+T_REVIEW --> T_DECISION
+T_DECISION --> T_APPROVAL
+T_APPROVAL -->|Yes| T_SIGNOFF --> T_ROUTE
+T_APPROVAL -->|No| T_ROUTE
+T_ROUTE -->|Direct outcome| T_OUTCOME
+T_ROUTE -->|Downstream case| T_HANDOFF
+
+%% =========================
+%% ENDPOINTS
+%% =========================
+subgraph ENDPOINTS[Resolution and Handoff Paths]
+
+  E_SELFCARE[Self-care advice
+  safety net and instructions]
+  E_ADMIN[Admin resolution case]
+
+  E_MSG[ClinicianMessageThread]
+  E_MSG_DELIV[Delivery, receipts, bounce handling
+  and controlled resend]
+  E_MSG_OUTCOME[Thread review, reply outcome,
+  close, or escalation recorded]
+
+  E_CALLBACK[CallbackCase]
+  E_CALLBACK_TRY[Attempt windows, voicemail policy,
+  retry limits, escalation]
+  E_CALLBACK_OUTCOME[Attempt outcome, repair,
+  retry, or escalation recorded]
+
+  E_BOOK_GATE[Provider capability matrix
+  patient self-service vs staff assist]
+  E_BOOK_SEARCH[Availability snapshot
+  ranking, source version, expiry]
+  E_BOOK_OFFER[OfferSession via ReservationAuthority
+  soft select or real hold]
+  E_BOOK_CONFIRM[Revalidate live state
+  and full policy envelope]
+  E_BOOK_PENDING[Confirmation pending, disputed,
+  or reconciliation required]
+  E_APPT[AppointmentRecord created]
+  E_MANAGE[Manage appointment
+  cancel, reschedule, reminders]
+  E_WAIT[Transactional waitlist
+  truthful one-offer-per-capacity unit]
+
+  E_HUB_CASE[HubCoordinationCase]
+  E_HUB_RANK[Cross-site ranking
+  patient choice, org boundaries, freshness]
+  E_HUB_ALT[Patient reviews network
+  alternatives or callback fallback]
+  E_HUB_PENDING[Hub confirmation or practice-ack pending
+  patient and practice visibility]
+
+  E_PHARM_ELIG[Versioned Pharmacy First
+  eligibility policy]
+  E_PHARM_FIND[Directory snapshot
+  opening hours and patient choice]
+  E_PHARM_CONSENT[Referral consent gate
+  script version, scope, expiry]
+  E_PHARM_SEND[Consent-gated dispatch
+  ack, retry, expiry]
+  E_PHARM_TRACK[Live referral, outcome ingest,
+  and reconciliation]
+  E_PHARM_DONE[Pharmacy outcome recorded]
+  E_PHARM_BOUNCE[Routine bounce-back reopen]
+  E_PHARM_URGENT[Urgent pharmacy return]
+
+end
+
+T_OUTCOME -->|Self-care| E_SELFCARE
+T_OUTCOME -->|Admin| E_ADMIN
+T_HANDOFF -->|Clinician message| E_MSG
+T_HANDOFF -->|Callback| E_CALLBACK
+T_HANDOFF -->|Local booking| E_BOOK_GATE
+T_HANDOFF -->|Hub booking| E_HUB_CASE
+T_HANDOFF -->|Pharmacy First| E_PHARM_ELIG
+
+E_MSG --> E_MSG_DELIV
+E_MSG_DELIV -->|Reply, closure, or routine thread work| E_MSG_OUTCOME
+E_MSG_DELIV -->|Delivery failure or invalid route| X_CONTACT
+E_MSG_OUTCOME -->|New clinical evidence or contact-risk delta| T_RESPONSE
+
+E_CALLBACK --> E_CALLBACK_TRY
+E_CALLBACK_TRY -->|Availability update, repair, or attempt result| E_CALLBACK_OUTCOME
+E_CALLBACK_TRY -->|Route invalid or dependency failure| X_CONTACT
+E_CALLBACK_OUTCOME -->|Retry or reschedule| E_CALLBACK
+E_CALLBACK_OUTCOME -->|New clinical evidence or reachability risk| T_RESPONSE
+X_CONTACT -->|Repaired with material delta| T_RESPONSE
+X_CONTACT -->|Repaired with non-clinical delta| PV_COMMS
+X_CONTACT -->|Needs recovery action| PV_RECOVER
+
+E_BOOK_GATE -->|Unsupported or degraded| E_HUB_CASE
+E_BOOK_GATE -->|Supported| E_BOOK_SEARCH --> E_BOOK_OFFER --> E_BOOK_CONFIRM
+E_BOOK_CONFIRM -->|Confirmed| E_APPT --> E_MANAGE
+E_BOOK_CONFIRM -->|Ambiguous| E_BOOK_PENDING
+E_BOOK_CONFIRM -->|No slot but deadline safe| E_WAIT
+E_BOOK_CONFIRM -->|No local option or unsafe to defer| E_HUB_CASE
+E_BOOK_PENDING -->|Confirmed| E_APPT
+E_BOOK_PENDING -->|Recovered local supply| E_WAIT
+E_BOOK_PENDING -->|Disputed or stale| T_EXCEPTION
+E_WAIT -->|Accepted and revalidated| E_APPT
+E_WAIT -->|Deadline risk or no offer| E_HUB_CASE
+
+%% Architectural correction: hub alternative expiry stays within hub ownership;
+%% it must not drop a live network case back into generic triage by default.
+E_HUB_CASE --> E_HUB_RANK
+E_HUB_RANK -->|Direct coordinator commit| E_HUB_PENDING
+E_HUB_RANK -->|Alternative offer| E_HUB_ALT
+E_HUB_ALT -->|Accepted option| E_HUB_PENDING
+E_HUB_ALT -->|Callback requested| E_CALLBACK
+E_HUB_ALT -->|Declined or expired| E_HUB_CASE
+E_HUB_ALT -->|New clinical or reachability risk| T_RESPONSE
+E_HUB_PENDING -->|Confirmed| E_APPT
+E_HUB_PENDING -->|Urgent or clinically material return| T_RESPONSE
+E_HUB_PENDING -->|Disputed, stale, or degraded no-ack path| T_EXCEPTION
+
+%% Architectural correction: pharmacy choice is insufficient on its own.
+%% A live referral exists only after explicit consent plus durable dispatch proof.
+E_PHARM_ELIG -->|Eligible| E_PHARM_FIND --> E_PHARM_CONSENT --> E_PHARM_SEND --> E_PHARM_TRACK
+E_PHARM_ELIG -->|Not eligible or choice no longer valid| T_DECISION
+E_PHARM_CONSENT -->|Consent missing, refused, or expired| PV_RECOVER
+E_PHARM_SEND -->|Dispatch failure or no durable ack| T_EXCEPTION
+E_PHARM_TRACK -->|Resolved| E_PHARM_DONE
+E_PHARM_TRACK -->|Weak match or no contact| T_EXCEPTION
+E_PHARM_TRACK -->|Routine bounce-back| E_PHARM_BOUNCE --> T_RESPONSE
+E_PHARM_TRACK -->|Urgent return| E_PHARM_URGENT --> T_URGENT
+E_PHARM_BOUNCE --> T_RESPONSE
+
+%% =========================
+%% ACTION + EXCEPTION GUARDS
+%% =========================
+subgraph ACTION_GATES[Access, Action, and Continuity Guards]
+  A_CONTEXT[Acting context and minimum scope
+  role, step-up, break-glass, visibility]
+  A_RATE[Replay, abuse, and resend guard
+  rate limit, expiry, supersession]
+  A_ROUTE[Canonical mutation gate
+  actionScope, idempotency, fence epoch]
+  A_FRESH[Command-following re-check
+  stale projections blocked or recovered]
+end
+
+subgraph EXCEPTIONS[Duplicate and Reachability Repair]
+  X_DUP[DuplicateCluster review_required
+  no auto-attach while unresolved]
+  X_CONTACT[ReachabilityDependency repair
+  minimal recovery scope and route repair]
+end
+
+%% =========================
+%% PATIENT ACCOUNT + COMMS
+%% =========================
+subgraph PATIENT_VIEW[Patient Account and Communications]
+  PV_HOME[Patient home
+  active requests, next action, freshness state]
+  PV_DETAIL[Request timeline
+  receipts, diffs, and outcomes]
+  PV_COMMS[Secure thread, callback, booking,
+  pharmacy, consent, and delivery status]
+  PV_ACTIONS[Signed-in or grant-scoped actions
+  typed commands: reply, callback, booking,
+  offers, consent, contact repair, and recovery]
+  PV_RECOVER[Recovery and identity hold
+  expired actions, consent renewal,
+  wrong-patient and secure re-entry]
+end
+
+%% Architectural correction: expired links, consent blocks, and identity holds
+%% recover inside the same request shell rather than dumping the user to dead ends.
+I_RECEIPT --> PV_HOME
+I_PRIOR --> PV_HOME
+I_FAIL --> PV_DETAIL
+I_URGENT_DONE --> PV_DETAIL
+E_SELFCARE --> PV_DETAIL
+E_ADMIN --> PV_DETAIL
+E_APPT --> PV_DETAIL
+E_MANAGE --> PV_DETAIL
+E_PHARM_DONE --> PV_DETAIL
+I_REPAIR --> PV_RECOVER
+E_MSG_DELIV --> PV_COMMS
+E_CALLBACK_TRY --> PV_COMMS
+E_BOOK_PENDING --> PV_COMMS
+E_HUB_PENDING --> PV_COMMS
+E_PHARM_CONSENT --> PV_COMMS
+E_PHARM_TRACK --> PV_COMMS
+PV_HOME --> PV_DETAIL --> PV_COMMS --> PV_ACTIONS
+PV_ACTIONS --> A_CONTEXT --> A_RATE --> A_ROUTE --> A_FRESH
+A_FRESH -->|Respond more-info or clinically material update| T_RESPONSE
+A_FRESH -->|Message reply| E_MSG_OUTCOME
+A_FRESH -->|Callback response or contact delta| E_CALLBACK_OUTCOME
+A_FRESH -->|Manage appointment| E_MANAGE
+A_FRESH -->|Waitlist offer| E_WAIT
+A_FRESH -->|Hub alternative offer| E_HUB_ALT
+A_FRESH -->|Pharmacy choice or status| E_PHARM_FIND
+A_FRESH -->|Pharmacy consent| E_PHARM_CONSENT
+A_FRESH -->|Contact-route repair| X_CONTACT
+A_FRESH -->|Expired, superseded, consent-blocked, or identity-held| PV_RECOVER
+A_FRESH -->|Identity correction or recovery| I_REPAIR
+PV_RECOVER -->|Recover access, renew consent, or rebind identity| I_AUTH
+T_EXCEPTION -->|Need patient recovery action| PV_RECOVER
+
+%% =========================
+%% STAFF + OPERATIONS USERS
+%% =========================
+subgraph STAFF_USERS[Staff and Operations Users]
+  SU_CLIN[Clinician or practice staff
+  clinical workspace]
+  SU_HUB[Hub coordinator
+  hub desk]
+  SU_OPS[Operations team
+  queues, breach risk, freshness]
+  SU_SUPPORT[Support desk
+  bounded replay and resend]
+end
+
+SU_CLIN --> T_REVIEW
+SU_HUB --> E_HUB_RANK
+SU_OPS --> T_QUEUE
+SU_OPS --> T_EXCEPTION
+SU_SUPPORT --> PV_COMMS
+T_REVIEW -.->|Clinical mutation| A_CONTEXT
+T_QUEUE -.->|Claim or recovery action| A_CONTEXT
+E_HUB_RANK -.->|Hub mutation| A_CONTEXT
+PV_COMMS -.->|Support resend or replay| A_CONTEXT
+A_FRESH -->|Controlled resend or replay| E_MSG_DELIV
+A_FRESH -->|Claim or queue mutation| T_CLAIM
+A_FRESH -->|Hub decision or commit| E_HUB_RANK
+A_FRESH -->|Clinical signoff or route mutation| T_DECISION
+
+%% =========================
+%% ADMIN + GOVERNANCE USERS
+%% =========================
+subgraph ADMIN_USERS[Admin and Governance Users]
+  AU_CONFIG[Config admin
+  compiled policy bundles and approvals]
+  AU_COMMS[Comms admin
+  template versions and channel policy]
+  AU_ACCESS[Access admin
+  grants, acting context, break-glass rules]
+  AU_GOV[Governance and safety leads
+  audit, incidents, assurance]
+end
+
+%% =========================
+%% PLATFORM + ASSURANCE
+%% =========================
+subgraph PLATFORM[Platform Data, Policy, and Assurance Spine]
+  PL_WRITE[FHIR and domain write model
+  SubmissionEnvelope, Request, Task, ServiceRequest, cases]
+  PL_OBJ[Governed object store
+  files, audio, transcripts]
+  PL_PROMOTE[Policy promotion gate
+  effective-at, canary, rollback]
+  PL_POLICY[Compiled policy and config registry
+  active and future-effective bundles]
+  PL_BUS[Outbox and event bus
+  causal tokens and correlation IDs]
+  PL_READ[Scope-aware read projections
+  patient, queue, hub, operations]
+  PL_AUDIT[WORM audit ledger
+  immutable evidence and traceability]
+  PL_ANALYTICS[Freshness, delivery, SLO,
+  breach risk, and replay health]
+  PL_QUAR[Scoped producer quarantine
+  replay lane and restore proof]
+  PL_ASSURE[Fail-closed assurance ingestion
+  packs, incidents, restore proof]
+  PL_CLOSE[LifecycleCoordinator
+  no close while leases, duplicate review,
+  preemption, reconciliation, identity hold,
+  degraded promises, or PHI-bearing grants remain]
+end
+
+I_ENVELOPE --> PL_WRITE
+I_ATTACH --> PL_OBJ
+I_SUBMIT --> PL_WRITE
+I_FAIL --> PL_WRITE
+I_REPAIR --> PL_WRITE
+T_EXCEPTION --> PL_WRITE
+T_DECISION --> PL_WRITE
+T_OUTCOME --> PL_WRITE
+E_MSG_OUTCOME --> PL_WRITE
+E_CALLBACK_OUTCOME --> PL_WRITE
+E_APPT --> PL_WRITE
+E_PHARM_CONSENT --> PL_WRITE
+E_PHARM_DONE --> PL_WRITE
+PL_POLICY --> I_AUTH
+PL_POLICY --> I_SAFETY
+PL_POLICY --> I_REPAIR
+PL_POLICY --> T_QUEUE
+PL_POLICY --> E_MSG
+PL_POLICY --> E_BOOK_GATE
+PL_POLICY --> E_PHARM_ELIG
+PL_POLICY --> E_PHARM_CONSENT
+PL_POLICY --> A_CONTEXT
+PL_POLICY --> A_ROUTE
+PL_WRITE --> PL_BUS --> PL_READ
+PL_OBJ --> PL_BUS
+PL_POLICY --> PL_BUS
+PL_BUS --> PL_AUDIT
+PL_BUS --> PL_QUAR --> PL_ASSURE
+PL_READ --> PV_HOME
+PL_READ --> PV_RECOVER
+PL_READ --> T_QUEUE
+PL_READ --> E_HUB_RANK
+PL_READ --> PL_ANALYTICS --> SU_OPS
+PL_AUDIT --> PL_ASSURE --> AU_GOV
+
+AU_CONFIG --> PL_PROMOTE
+AU_COMMS --> PL_PROMOTE
+AU_ACCESS --> PL_PROMOTE
+PL_PROMOTE --> PL_POLICY
+PL_QUAR --> SU_OPS
+
+%% =========================
+%% INTEGRATION RAILS
+%% =========================
+subgraph RAILS[External Integration Rails]
+  R_ID[NHS login and identity rail]
+  R_GP[GP system adapters
+  IM1-first and local gateways]
+  R_MSG[Messaging adapters
+  SMS, email, push]
+  R_TEL[Telephony adapters]
+  R_DIR[Directory and service discovery]
+  R_REF[Referral transport
+  partner inbox or secure rail]
+end
+
+R_ID --> I_AUTH
+R_TEL --> I_CAPTURE
+E_CALLBACK_TRY --> R_TEL
+E_BOOK_SEARCH --> R_GP
+E_BOOK_CONFIRM --> R_GP
+E_BOOK_PENDING --> R_GP
+E_HUB_PENDING --> R_GP
+E_MANAGE --> R_GP
+T_MOREINFO --> R_MSG
+E_MSG_DELIV --> R_MSG
+E_WAIT --> R_MSG
+E_HUB_ALT --> R_MSG
+E_PHARM_FIND --> R_DIR
+E_PHARM_SEND --> R_REF
+R_GP --> PL_BUS
+R_MSG --> PL_BUS
+R_TEL --> PL_BUS
+R_REF --> PL_BUS
+PL_BUS -.->|Exception, timeout, or bad ack| T_EXCEPTION
+PL_BUS -.->|Binding anomaly or wrong-patient signal| I_REPAIR
+
+%% =========================
+%% CLOSURE
+%% =========================
+CLOSE[Request closes only after outcome is recorded,
+audit is durable, command-following reads have settled,
+no open lease, duplicate review, preemption,
+reconciliation, identity hold, degraded exception,
+or active PHI-bearing grant remains]
+
+E_SELFCARE --> PL_CLOSE
+E_ADMIN --> PL_CLOSE
+E_MSG_OUTCOME --> PL_CLOSE
+E_CALLBACK_OUTCOME --> PL_CLOSE
+E_APPT --> PL_CLOSE
+E_PHARM_DONE --> PL_CLOSE
+PL_CLOSE --> CLOSE
