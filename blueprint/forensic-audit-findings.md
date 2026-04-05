@@ -200,13 +200,13 @@ Each finding below gives a concise diagnosis with root cause and systemic impact
 
 **Diagnosis.** The baseline waitlist could implicitly oversell a single released slot and offered no explicit deadline-based escalation to hub or callback fallback.
 
-**Patch response.** Added `E_WAIT` with truthful one-offer-per-capacity-unit semantics and deadline-risk routing.
+**Patch response.** Added `E_WAIT` with truthful-by-default offer semantics, bounded truthful-nonexclusive exceptions only under audited policy, and one authoritative waitlist-continuation chain: `WaitlistDeadlineEvaluation`, `WaitlistFallbackObligation`, and `WaitlistContinuationTruthProjection` now decide whether local waitlist may continue, when callback or hub fallback must take over, and prevent accepted, expired, or superseded offers from silently clearing fallback debt or leaving false-hope patient copy live.
 
-## Finding 34 - Hub coordination lacked ranked patient choice and pending confirmation
+## Finding 34 - Hub coordination lacked ranked patient choice, authoritative confirmation, and practice-visibility debt
 
-**Diagnosis.** The network path treated the hub as a simple review then confirm step, hiding cross-site ranking, patient choice, and async confirmation risk.
+**Diagnosis.** The network path treated the hub as a simple review then confirm step, hiding cross-site ranking, patient choice, async confirmation risk, and the later generation-bound practice-visibility obligation that now blocks calm booked posture.
 
-**Patch response.** Expanded hub handling into `E_HUB_CASE`, `E_HUB_RANK`, and `E_HUB_PENDING`.
+**Patch response.** Expanded hub handling into `E_HUB_CASE`, `E_HUB_RANK`, and `E_HUB_PENDING`, then bound `AlternativeOfferSession`, selected candidate, commit attempt, confirmation gate, appointment truth, fallback linkage, and practice-visibility debt into one monotone `HubOfferToConfirmationTruthProjection`. Hub, patient, practice, and operations surfaces now have to read that same projection, so stale offers, stale selections, weak booking evidence, or old acknowledgement generations can remain auditable but cannot silently advance calm booked posture or closure.
 
 ## Finding 35 - Pharmacy eligibility was binary and unversioned
 
@@ -224,7 +224,7 @@ Each finding below gives a concise diagnosis with root cause and systemic impact
 
 **Diagnosis.** Sending a referral pack without transport state invites silent delivery failure and dangling cases.
 
-**Patch response.** Added `E_PHARM_SEND` with acknowledgement, retry, and expiry semantics.
+**Patch response.** Hardened `E_PHARM_SEND` into a proof-backed dispatch chain: frozen package hash, stable outbound reference set, replay-safe `PharmacyDispatchAttempt`, explicit proof deadlines, and distinct transport-acceptance, provider-acceptance, and authoritative-proof lanes. Patient, pharmacy-console, and operations surfaces now have to read from the same dispatch-truth projection instead of inferring confirmation from weak acknowledgements or mailbox delivery alone.
 
 ## Finding 38 - Resolved pharmacy outcomes were collapsed into self-care
 
@@ -309,7 +309,7 @@ Each finding below gives a concise diagnosis with root cause and systemic impact
 
 **Diagnosis.** Without authoritative references to the latest snapshot, task, and handoff, recovery logic must infer state from projections or event history, which is brittle under failure.
 
-**Patch response.** Added `currentEvidenceSnapshotRef`, `currentTriageTaskRef`, and `currentHandoffRef` to `Request`.
+**Patch response.** Added `currentEvidenceSnapshotRef` and `currentTriageTaskRef`, then later strengthened the old singleton handoff pointer into canonical `RequestLineage` plus `LineageCaseLink` joins so child workflow ownership can branch without losing request or episode meaning.
 
 ## Finding 52 - The concrete `Request` schema had no first-class confirmation-gate or closure-blocker references
 
@@ -381,7 +381,7 @@ Each finding below gives a concise diagnosis with root cause and systemic impact
 
 **Diagnosis.** `FallbackReviewCase` existed as an object but not as a first-class event stream participant, so exception recovery could disappear from event-driven consumers.
 
-**Patch response.** Added `fallback.review_case.opened` and `fallback.review_case.recovered`.
+**Patch response.** Added `exception.review_case.opened` and `exception.review_case.recovered`, and required any legacy `fallback.review_case.*` producer names to normalize into that canonical namespace before downstream consumption.
 
 ## Finding 64 - The event catalogue lacked identity-repair lifecycle events
 
@@ -405,7 +405,7 @@ Each finding below gives a concise diagnosis with root cause and systemic impact
 
 **Diagnosis.** Ambiguous provider truth is central to booking and referral safety, but there were no explicit events for gate creation or resolution.
 
-**Patch response.** Added `external.confirmation.gate.created`, `external.confirmation.gate.confirmed`, and `external.confirmation.gate.disputed`.
+**Patch response.** Added `confirmation.gate.created`, `confirmation.gate.confirmed`, and `confirmation.gate.disputed`, and required any legacy `external.confirmation.gate.*` producer names to normalize into that canonical namespace before downstream consumption.
 
 ## Finding 68 - The event catalogue lacked closure-blocker change events
 
@@ -447,37 +447,37 @@ Each finding below gives a concise diagnosis with root cause and systemic impact
 
 **Diagnosis.** Direct cross-domain writes bypass the coordinator that Phase 0 says owns milestone derivation and closure control.
 
-**Patch response.** Changed booking success to emit an outcome milestone that `LifecycleCoordinator` derives into canonical request state.
+**Patch response.** Changed booking success to emit `BookingOutcomeMilestone` plus any required `ExternalConfirmationGate` refresh, with `LifecycleCoordinator` alone deriving request-level milestone change from that evidence. Phase 4 now treats authoritative supplier success or same-commit read-after-write proof as case-local truth first, canonical request change second, so booking code may settle `BookingCase` but may not write `Request.workflowState`, closure meaning, or patient-final reassurance directly.
 
 ## Finding 75 - Phase 3 let triage-domain logic write canonical request state directly
 
 **Diagnosis.** Triage is the busiest domain in the system; letting it write canonical request state directly multiplies race windows and weakens the control-plane model.
 
-**Patch response.** Reframed Phase 3 so active leases and emitted milestones drive coordinator-owned request-state derivation.
+**Patch response.** Reframed Phase 3 so `TriageTask` owns only review-local truth, emitting `TriageMilestoneSignal`, `TriageLeaseSignal`, and `DecisionRecorded` evidence for coordinator consumption. Canonical request state is now derived from those emitted signals by `LifecycleCoordinator`, which closes the race where triage-side reopen, more-info expiry, and handoff creation could otherwise write competing request milestones directly.
 
 ## Finding 76 - Phase 5 let hub-domain logic write canonical request state directly on booked and return paths
 
 **Diagnosis.** Hub coordination is cross-organisation and especially sensitive to stale external truth, so direct canonical writes here are high-risk.
 
-**Patch response.** Converted those updates into milestone or lease signals that `LifecycleCoordinator` interprets.
+**Patch response.** Converted hub booked and return paths into `HubCoordinationMilestone`, `HubReturnSignal`, and `HubContinuationLease` outputs that `LifecycleCoordinator` interprets. Phase 5 now records hub-native booking, confirmation-pending state, current-generation practice-visibility debt, and practice-return evidence on `HubCoordinationCase` only, while request-level milestone and closure blockers remain coordinator-owned until the hub signals settle and any confirmation gates clear.
 
 ## Finding 77 - Phase 6 let pharmacy-domain logic write canonical request state directly on resolve and reopen paths
 
 **Diagnosis.** Pharmacy outcomes can arrive weakly correlated or asynchronously, so direct canonical writes create a serious audit and safety hazard.
 
-**Patch response.** Converted pharmacy resolution and reopen paths into milestone or lease signals consumed by `LifecycleCoordinator`.
+**Patch response.** Converted pharmacy resolve and reopen paths into `PharmacyOutcomeMilestone`, `PharmacyReopenSignal`, and `PharmacyContinuationLease` events consumed by `LifecycleCoordinator`. Phase 6 now keeps dispatch, outcome, bounce-back, and reopen truth on `PharmacyCase`, with the coordinator deriving request-level milestone change only after source correlation, blocker evaluation, and any required re-safety or repair signals are materialized.
 
 ## Finding 78 - Phase 6 used the generic term `reconciliation_required` for pharmacy outcome ambiguity
 
 **Diagnosis.** As with booking, the generic term blurred local case review with canonical request workflow.
 
-**Patch response.** Renamed the case-local pharmacy state to `outcome_reconciliation_pending`.
+**Patch response.** Renamed the case-local pharmacy state to `outcome_reconciliation_pending` and bound it to a first-class `PharmacyOutcomeReconciliationGate`. That gate is explicitly case-local, holds weakly correlated or conflicting pharmacy evidence for review, blocks closure plus patient and practice calmness until resolved, and is forbidden from mapping itself into `Request.workflowState` or any generic canonical reconciliation label.
 
 ## Finding 79 - Phase 6 weak-source matching did not clearly stop at a case-local review state
 
 **Diagnosis.** The earlier wording implied a weak source could advance the live case to an ambiguously named reconciliation state without clearly fencing off canonical request progress.
 
-**Patch response.** Clarified that weak sources may advance only to `outcome_reconciliation_pending` and must not mutate canonical workflow.
+**Patch response.** Clarified that weak sources may advance only to `outcome_reconciliation_pending`, must not mutate canonical workflow, and may not bypass, silently resolve, or downgrade the active `PharmacyOutcomeReconciliationGate`.
 
 ## Finding 80 - The top-level Mermaid source lagged behind the audited markdown baseline
 
@@ -514,3 +514,213 @@ Each finding below gives a concise diagnosis with root cause and systemic impact
 **Diagnosis.** Even with better internals, the summary notes still phrased repair as a state transition rather than a lineage-level repair hold, perpetuating the same misunderstanding for readers.
 
 **Patch response.** Reworded the summary flow and source comments to describe a lineage-level identity hold instead of a workflow-state mutation.
+
+## Finding 86 - The audit still lacked a non-negotiable patient-shell continuity invariant
+
+**Diagnosis.** The earlier fixes corrected lineage and state ownership, but the audit never made it explicit that patient-facing transitions must stay inside one continuity-preserving shell. That omission leaves room for hard reloads, detached success pages, and contradictory stale screens across request, booking, record, and messaging routes.
+
+**Patch response.** Added an explicit audit rule that adjacent patient states for the same `entityContinuityKey` must reuse one `PersistentShell` with stable `CasePulse`, `StateBraid`, `DecisionDock`, and one shared status strip implemented through `AmbientStateRibbon` plus `FreshnessChip`.
+
+## Finding 87 - The audit did not bind patient projections to a single visibility and consistency envelope
+
+**Diagnosis.** The top-level audit fixed canonical write ownership, but it still left read-side assembly under-specified. Without a shared projection envelope, headers, timelines, and action surfaces can drift across `bundleVersion`, audience tier, or governing-object version and still appear authoritative.
+
+**Patch response.** Added an explicit correction that patient-facing reads must materialize under `VisibilityProjectionPolicy` and assemble beneath `PatientShellConsistencyProjection`, with stale or divergent bundles freezing mutating CTAs until the shell reconverges.
+
+## Finding 88 - The audit omitted governed placeholder rules for partial visibility
+
+**Diagnosis.** Delayed-release records, step-up-gated messages, wrong-patient recovery holds, and other partially visible objects were still implied to be either fully shown or absent. That gap invites PHI leakage in lightweight shells or silent omission of clinically relevant items.
+
+**Patch response.** Added placeholder discipline requiring `releaseState`, `visibilityTier`, `summarySafetyTier`, and `placeholderContractRef` for patient-visible items that can contribute urgency without granting full detail.
+
+## Finding 89 - Reachability, delivery, and consent blockers remained operational facts rather than dominant patient actions
+
+**Diagnosis.** The audit added blocker refs and lifecycle events, but it still did not require patient action routing to surface those blockers as the current next step. That leaves a dangerous gap where reply, booking, callback, or pharmacy continuation can appear live while contact repair, delivery dispute, or consent renewal is actually the gating dependency.
+
+**Patch response.** Added an explicit patient-surface correction that blocked actions must morph in place to `PatientReachabilitySummaryProjection`, `PatientContactRepairProjection`, or `PatientConsentCheckpointProjection`, and no success or mutation CTA may remain live while those dependencies are unresolved.
+
+## Finding 90 - The audit still omitted the hardened NHS App embedded-channel control plane
+
+**Diagnosis.** The top-level audit treated embedded access as ordinary web continuation, even though the hardened channel design requires manifest-pinned routes, trusted context resolution, negotiated bridge capabilities, and safe downgrade behavior. Without that contract, unsupported or unauthorized embedded actions can slip through under the same route label as normal web.
+
+**Patch response.** Added an explicit audit correction binding NHS App entry to approved `manifestVersion`, trusted `ChannelContext`, route-level `minimumBridgeCapabilitiesRef`, and governed downgrade to supported browser or read-only posture when embedded guarantees do not hold.
+
+## Finding 91 - The audit still treated route, settlement, release, and trust controls as phase-local conventions
+
+**Diagnosis.** The audited top-level flow showed policy checks, action binding, and same-shell results, but it still did not name the canonical primitives that make those controls enforceable across phases. Without explicit Phase 0 grounding for route intent, authoritative command settlement, release freeze, and assurance-slice trust, downstream teams could still implement those behaviors as ad hoc per-feature conventions and drift apart.
+
+**Patch response.** Added explicit baseline references to `RouteIntentBinding`, `CommandActionRecord`, `CommandSettlementRecord`, `ReleaseApprovalFreeze`, `ChannelReleaseFreezeRecord`, and `AssuranceSliceTrustRecord`, and synced the Phase 0, phase-card, and bootstrap summaries so these controls are now treated as shared foundation contracts rather than optional local hardening.
+
+## Finding 92 - The audit still lacked a canonical staff-workspace consistency and trust envelope
+
+**Diagnosis.** The forensic pass corrected queue ranking, claim, and pathway ownership, but it still did not require queue, task, interruption, status, and dock surfaces to assemble under one operator truth envelope. Without explicit `StaffWorkspaceConsistencyProjection` and `WorkspaceSliceTrustProjection`, degraded or divergent queue, attachment, assistive, or dependency slices can still appear actionable inside the same review shell.
+
+**Patch response.** Added an explicit audit correction that staff work must materialize beneath `StaffWorkspaceConsistencyProjection` and `WorkspaceSliceTrustProjection`, freezing mutating controls when bundle, audience, governing-object version, or trust posture diverges and keeping degraded or quarantined slices visible instead of flattening them into healthy workspace chrome.
+
+## Finding 93 - The audit did not require live review and focus leases for staff mutations
+
+**Diagnosis.** The top-level audit named task claim and queue ownership, but it still stopped short of the stronger rule that every operator mutation must bind to the exact review context currently on screen. That omission leaves start-review, compose, send, decide, and next-task actions vulnerable to stale queue rank, review-version drift, lineage-fence advance, or disruptive deltas arriving mid-decision.
+
+**Patch response.** Added an explicit audit correction that staff mutations must hold a live `ReviewActionLease`, and composition, compare, confirm, and highlighted-delta moments must open `WorkspaceFocusProtectionLease` plus `ProtectedCompositionState`, preserving draft, compare-target, selected-anchor, and quiet-return context while disruptive updates buffer through `DeferredUIDelta` or `QueueChangeBatch` until the protected action settles or the user reacquires context.
+
+## Finding 94 - The audit still treated assistive output as a generic sidecar instead of a trust-bound same-shell capability
+
+**Diagnosis.** The earlier audit fixed AI overreach by making assistance optional, but it still did not state that visible assistive artifacts must stay bound to the active shell, selected anchor, and capability trust posture. Without explicit assistive bindings, suggestions and generated drafts can survive review drift, jump route families, or remain writable while the capability is degraded, quarantined, or frozen.
+
+**Patch response.** Added an explicit audit correction binding visible assistive artifacts to `AssistiveSurfaceBinding`, `SuggestionDraftInsertionLease`, and `AssistiveWorkProtectionLease`, with capability state governed by `AssistiveCapabilityWatchTuple` and `AssistiveFreezeDisposition` so degraded or frozen assistive slices fall back to provenance, placeholder, or hidden posture in the same shell instead of leaving stale accept or insert actions live.
+
+## Finding 95 - The audit still omitted governance watch-tuple parity and recovery posture from release oversight
+
+**Diagnosis.** The audit now names release freezes and assurance trust, but it still did not require governance oversight surfaces to serialize the same guardrail tuple, runtime publication state, and audience recovery posture that runtime and operations consumers actually enforce. That gap allows release review or post-promotion watch screens to look healthier or more writable than the live wave, especially when channel freezes, route-contract publication drift, or bounded recovery modes are active.
+
+**Patch response.** Added an explicit audit correction that governance release oversight must assemble beneath `GovernanceShellConsistencyProjection` and expose `ReleaseFreezeTupleCard`, `WaveGuardrailSnapshotProjection`, `ReleaseRecoveryDispositionProjection`, and `WaveActionDecisionCommand`, ensuring promotion and watch decisions operate on the exact tuple enforced by runtime and release control.
+
+## Finding 96 - The audit still under-specified operations-console trust and guardrail posture
+
+**Diagnosis.** The forensic pass already introduced projection freshness and scope-aware reads, but it still did not require the operations console to render essential-function trust, active rollout freezes, and bounded mitigation posture directly in health and intervention surfaces. Without that explicit rule, `/ops/*` views can still present cells greener than the least-trusted input or leave mitigation actions writable while diagnostics are the only safe posture.
+
+**Patch response.** Added an explicit audit correction requiring `ServiceHealthCellProjection` and `HealthActionPosture` to serialize the governing `AssuranceSliceTrustRecord`, active `ChannelReleaseFreezeRecord`, and fallback sufficiency state into board snapshots, return tokens, and route intents so operators preserve context while affected cells degrade to bounded diagnostic or governance-handoff posture rather than generic healthy actionability.
+
+## Finding 97 - The audit still let patient-home actionability float above authoritative settlement
+
+**Diagnosis.** Even after the patient-shell and route hardening passes, the audited top-level flow still showed `PV_HOME` as a simple summary surface with a next action, not as a governed digest tied to current settlement and same-shell return posture. That gap leaves room for home and request-list CTAs to remain live after pending review, stale recovery, or read-only downgrade should already have frozen them.
+
+**Patch response.** Added `PV_NAV` and bound patient-entry actionability to `PatientNavUrgencyDigest` plus `PatientNavReturnContract`, with same-shell refresh returning through that digest before live CTAs can reappear.
+
+## Finding 98 - Record-origin follow-up still lacked a continuation-safe patient anchor
+
+**Diagnosis.** The previous audit improved record visibility and placeholders, but it still did not show how a patient leaves a result or document view for booking, messaging, or recovery without losing the current record anchor when release, step-up, or session posture drifts. That omission risks reopening child routes as if the original record context were still valid.
+
+**Patch response.** Added `PV_RECORD` and explicit `RecordActionContextToken` plus `RecoveryContinuationToken` semantics so record-origin follow-up returns to the same record anchor when downstream child routes stale or recover.
+
+## Finding 99 - Conversation state could still collapse local acknowledgement into final reassurance
+
+**Diagnosis.** The audited flow already showed message delivery and callback work, but it still lacked a distinct patient-visible digest or receipt chain separating local acknowledgement, delivery evidence truth, and authoritative outcome. Without that split, unread, reply-needed, reviewed, or settled states can still advance from transport acceptance or draft-local feedback rather than from real domain settlement.
+
+**Patch response.** Added `PV_THREAD` and bound conversation status to `PatientConversationPreviewDigest`, `PatientReceiptEnvelope`, and `ConversationCommandSettlement`, with same-shell settlement returning through that chain instead of toast-only or delivery-only cues.
+
+## Finding 100 - Support replay and observe return still had no authoritative restore gate
+
+**Diagnosis.** The earlier audit bounded support replay conceptually, but it still did not show how replay or observe exit proves ticket freshness, mask scope, lease posture, and awaiting-external confirmation evidence before reopening live work. That omission lets browser return or replay exit masquerade as safe restore.
+
+**Patch response.** Added `SU_REPLAY` and `SU_RESTORE`, with `SupportReplayRestoreSettlement` as the explicit authority for `live_restored`, awaiting-external hold, stale reacquire, or read-only recovery before support actions become live again.
+
+## Finding 101 - Same-shell confirmation still understated settlement, return, and continuation posture
+
+**Diagnosis.** The earlier `A_CONFIRM` node described command receipt and recovery guidance, but it still behaved like a generic same-shell acknowledgement point. That left the top-level audit under-specific about the need to preserve settlement contracts, same-shell return bindings, and continuation posture across patient and support recoveries.
+
+**Patch response.** Recast `A_CONFIRM` as a settlement, return, and continuation record, and rewired patient-home refresh, patient-thread refresh, and support replay restore paths through that stronger same-shell contract.
+
+## Finding 102 - Operations diagnosis still lacked first-class continuity evidence
+
+**Diagnosis.** The operations shell already serialized trust, freezes, and return tokens, but it still had no dedicated slice for the continuity controls that now govern patient-home CTA state, record follow-up recovery, thread settlement, or support replay restore. That gap meant `/ops/*` could explain producer or queue health without proving why a user-facing shell was read-only, stale, or recovery-bound.
+
+**Patch response.** Added `OpsContinuityEvidenceProjection`, `OpsContinuityEvidenceSlice`, and `ContinuityEvidenceDrillPath`, and bound `OpsBoardStateSnapshot`, `OpsReturnToken`, `OpsRouteIntent`, and intervention posture to visible `ExperienceContinuityControlEvidence` so diagnostics preserve the same continuity question across assurance, audit, and handoff pivots.
+
+## Finding 103 - Governance compliance review still omitted continuity-evidence bundles
+
+**Diagnosis.** Governance and compliance surfaces already showed assurance trust, release tuples, and watch state, but they still did not package the new continuity controls into one approval-visible evidence set. Without that bundle, reviewers could approve or stabilize changes affecting patient or support shells without seeing the exact proof for navigation, continuation, conversation settlement, or replay restore behavior.
+
+**Patch response.** Added `GovernanceContinuityEvidenceBundle`, wired it into `GovernanceShell`, `GovernanceShellConsistencyProjection`, compliance review, and promotion/watch flows, and required affected drafts or releases to surface those continuity proofs before approval or stabilization can advance.
+
+## Finding 104 - The admin control plane still treated continuity proof as optional release commentary
+
+**Diagnosis.** The domain-level admin blueprint already froze bundles, schemas, and guardrails, but it still did not state that continuity controls themselves are promotion-critical compatibility inputs. That omission let a candidate pass as long as generic simulation and release proof existed, even if the affected patient-nav, record, thread, or replay-restore controls lacked fresh evidence.
+
+**Patch response.** Added `ContinuityControlImpactDigest`, extended `ConfigSimulationEnvelope` with continuity evidence references, and made production promotion fail closed when affected continuity controls lack complete and trusted `ExperienceContinuityControlEvidence`.
+
+## Finding 105 - The audited top-level flow still had no explicit continuity-evidence spine
+
+**Diagnosis.** The top-level flow now showed the continuity contracts themselves, but it still did not show how those visible shell decisions become evidence inside the platform and assurance spine. That gap made the audited system picture stop one step short of the new Phase 9 assurance contract.
+
+**Patch response.** Added an explicit platform node for `ExperienceContinuityControlEvidence`, routed patient and support shells into it, and connected operations and governance consumers to that evidence lane so the end-to-end baseline now shows continuity proof, not just continuity behavior.
+
+## Finding 106 - Ops and governance watch surfaces still lacked a shared continuity-proof loop
+
+**Diagnosis.** Even after the shell-level fixes, the audit still did not state that operations diagnosis and governance watch must consume the same continuity-proof feed when a release or incident changes patient or support behavior. That omission risks split-brain review, where ops sees a degraded experience symptom and governance sees only release guardrails or approval artifacts.
+
+**Patch response.** Bound the audited flow and supporting shell docs to one shared continuity-evidence loop, so `/ops/assurance`, `/ops/audit`, compliance review, promotion watch, and rollback posture all reference the same evidence family before they can claim stabilization or safe mitigation.
+
+## Finding 107 - The foundation protocol still omitted the newer continuity-control families
+
+**Diagnosis.** The feature and control-plane blueprints now define `intake_resume`, `booking_manage`, `assistive_session`, `workspace_task_completion`, and `pharmacy_console_settlement`, but the canonical Phase 0 catalogue still named only the older patient and support continuity controls. That made the newer families look phase-local instead of platform obligations.
+
+**Patch response.** Added continuity-update events, named the five newer continuity producers directly beside the existing patient and support producers, and extended the Phase 0 invariants so local autosave, booking-manage calmness, assistive posture, workspace completion, and pharmacy-console settlement can no longer masquerade as authoritative without continuity proof.
+
+## Finding 108 - Programme phase cards still summarized only the older continuity-proof loop
+
+**Diagnosis.** The delivery cards already reflected the first continuity-evidence spine, but they still summarized only patient-home, record, thread, and replay-restore proof. That lagged the actual blueprint set and understated the newer cross-phase controls teams now need to deliver.
+
+**Patch response.** Extended `phase-cards.md` so the programme summary now names the five newer continuity families and ties them back to the relevant phase summaries and the audited `PL_CONT` spine.
+
+## Finding 109 - The bootstrap summary still scoped continuity proof too narrowly
+
+**Diagnosis.** `blueprint-init.md` already routed patient and support continuity into assurance, ops, governance, and release control, but it still did not state that draft resume, booking manage, assistive session, workspace completion, and pharmacy-console settlement are governed by the same proof model. That left the repo bootstrap one abstraction layer behind the actual architecture.
+
+**Patch response.** Expanded the bootstrap summary so those five newer families are now explicitly described as authoritative shell-level producers and are no longer treated as local UX detail.
+
+## Finding 110 - The audited markdown baseline still routed only patient/support continuity sources into `PL_CONT`
+
+**Diagnosis.** The top-level audited flow showed the continuity-proof spine, but only patient-nav, record, thread, and support replay visibly fed it. The newer continuity-sensitive workflow families therefore remained invisible in the system-level diagram even after the control plane had promoted them.
+
+**Patch response.** Added explicit continuity-source nodes for intake resume, booking manage, assistive session, workspace task completion, and pharmacy-console settlement, then routed them into `PL_CONT` in the audited markdown baseline.
+
+## Finding 111 - The standalone Mermaid source still risked drifting from the audited continuity baseline
+
+**Diagnosis.** Even when the markdown baseline was correct, the repository still carried a separate Mermaid source file that could drift back to the older continuity taxonomy. That would recreate the exact summary-versus-source mismatch the audit is meant to prevent.
+
+**Patch response.** Synced `vecells-complete-end-to-end-flow.mmd` with the audited markdown baseline so the standalone source now carries the same expanded continuity-source set and `PL_CONT` semantics.
+
+## Finding 112 - Resilience restore authority still depended on loose runbooks and dashboards
+
+**Diagnosis.** The Phase 9 and release blueprints already named restore proof, runbook bindings, and readiness snapshots, but they still left restore-control authority fragmented across separate dashboards, runbook links, and operational history. That gap meant `/ops/resilience` or release handoff could look ready because artifacts existed, even when the current publication tuple, latest rehearsal proof, or live recovery posture had drifted away from one another.
+
+**Patch response.** Added a canonical restore-control system across the foundation, Phase 9, runtime-release, and operations shell: `OperationalReadinessSnapshot`, `RunbookBindingRecord`, `ResilienceSurfaceRuntimeBinding`, `RecoveryControlPosture`, tuple-bound `RestoreRun`/`FailoverRun`/`ChaosRun`, authoritative `ResilienceActionSettlement`, and governed `RecoveryEvidenceArtifact` now share one runtime truth model so stale runbooks, superseded exercises, or detached evidence can no longer masquerade as live recovery authority.
+
+## Finding 113 - Assurance evidence could still exist without one authoritative graph proving admissibility
+
+**Diagnosis.** The assurance ledger already named ledger entries, evidence artifacts, control links, continuity sections, incidents, CAPA items, retention artifacts, and exports, but those pieces still stopped short of one shared graph-completeness contract. That gap left room for pack generation, replay, deletion, archive, or governance export to reuse technically present evidence even when the relationship set was stale, cross-scope, or missing required edges.
+
+**Patch response.** Added `AssuranceEvidenceGraphSnapshot` and `AssuranceGraphCompletenessVerdict` as the canonical admissibility layer, bound control status, pack generation, replay, retention, governance evidence artifacts, config simulation, and recovery evidence to that same graph, and made sign-off, export, replay, deletion, and archive actions fail closed whenever the current graph is incomplete, orphaned, or drifted.
+
+## Finding 114 - Tenant and acting context could still drift between governance scope and live cross-organisation work
+
+**Diagnosis.** Governance review had a local `GovernanceScopeToken`, and hub or support work had local `ActingContext`, but the architecture still lacked one shared tuple proving tenant scope, organisation scope, environment, purpose-of-use, elevation, break-glass posture, visibility coverage, and blast radius together. That left room for approvals, access review, release watch, or cross-organisation coordination to stay writable after organisation switching, purpose change, or multi-tenant blast-radius drift.
+
+**Patch response.** Added the shared `ActingScopeTuple` and `ActingContextDriftRecord` contracts in Phase 0, made governance scope tokens and config workspaces derive from that tuple, threaded the same tuple through access preview, hub cross-organisation visibility, support coverage, and release watch blast radius, and required organisation-switch, purpose-of-use, elevation, or scope drift to freeze work in place until revalidated under a fresh tuple.
+
+## Finding 115 - Artifact preview and handoff still lacked one live mode-truth contract for constrained channels
+
+**Diagnosis.** The artifact model already named presentation contracts, transfer settlement, and fallback, but it still left preview, byte delivery, print, and browser or app handoff too dependent on static contract permission and route-local channel logic. That gap meant a patient, governance, or recovery artifact surface could still look richer than current parity, bridge capability, byte-grant viability, masking scope, or return-safe continuity actually allowed, especially inside the NHS App webview.
+
+**Patch response.** Added the shared `ArtifactModeTruthProjection` as the single live artifact-mode authority, then threaded it through Phase 0, the platform frontend, Phase 7 embedded delivery, patient record artifacts, governance evidence packs, runtime readiness artifacts, and recovery evidence artifacts. Preview, download, print, and handoff now stay live only while the same truth tuple still validates parity, channel viability, masking posture, grants, and return-safe continuity; otherwise every surface degrades in place to governed summary, secure-send-later, placeholder, or bounded recovery instead of probing browser behavior or relying on raw URLs.
+
+## Finding 116 - Accessibility announcements could still spam, replay stale cues, or blur provisional and authoritative meaning
+
+**Diagnosis.** The accessibility contract already required bounded live regions, but the platform still lacked one typed announcement-truth layer joining surface summary, status acknowledgement scope, focus restore, freshness actionability, timeout repair, form errors, and `UIEventEmissionCheckpoint` order. That left room for autosave churn, queue flush, reconnect, bridge return, local acknowledgement, transport acceptance, and authoritative settlement to emit duplicate wording, wrong urgency, or replayed cues that sounded like fresh user activity.
+
+**Patch response.** Added `AssistiveAnnouncementIntent` plus `AssistiveAnnouncementTruthProjection` as the shared arbitration layer, expanded `AssistiveAnnouncementContract` to carry settlement class, scope, anchor, dominant action, and emission-checkpoint binding, and threaded that same contract through Phase 0, the platform frontend, patient communications, workspace, operations, governance, and embedded NHS App surfaces. Live narration now deduplicates on causal tuple rather than text alone, restore and replay emit only one current-state summary, timeout and validation surfaces batch correctly, and local acknowledgement, processing acceptance, blocker, recovery, and authoritative settlement remain semantically distinct.
+
+## Finding 117 - Visualizations could still carry meaning that the table fallback and summary sentence did not prove
+
+**Diagnosis.** The accessibility and patient-portal layers already required charts to have tables, but the architecture still lacked one parity truth proving that visual, summary, and tabular views shared the same row set, units, filter context, sort state, selection, and freshness posture. That left room for patient result trends, operations heat surfaces, and governance matrices to preserve extra meaning in color, hover, intensity, or layout even when the fallback table, summary sentence, or degraded-state posture no longer matched.
+
+**Patch response.** Expanded `VisualizationFallbackContract`, added `VisualizationTableContract` plus `VisualizationParityProjection`, and threaded them through Phase 0, the platform frontend, patient record visualization, operations boards, governance matrices, and embedded NHS App surfaces. Chart, matrix, and heat-surface views now fail closed into `table_only`, `summary_only`, or placeholder posture whenever release, visibility, masking, trust, or freshness drift breaks parity, and the downgraded view becomes the authoritative meaning surface instead of the visual.
+
+## Finding 118 - Token export and design-contract conformance could still drift outside the published runtime tuple
+
+**Diagnosis.** The platform already named canonical token, state, automation, telemetry, and artifact contracts, but those layers still stopped short of one machine-readable publication bundle and one fail-closed lint verdict binding them together. That left room for route families to consume the right token graph while still shipping route-local px or hex overrides, bespoke marker aliases, stale telemetry names, or snapshot-only proof that never entered the release tuple.
+
+**Patch response.** Added `DesignTokenExportArtifact`, `DesignContractVocabularyTuple`, `DesignContractPublicationBundle`, and `DesignContractLintVerdict`, then threaded them through the canonical UI kernel, platform frontend registry, Phase 0 runtime publication spine, release verification ladder, and summary-layer audit. Token export, state semantics, automation anchors, telemetry vocabulary, and artifact posture now publish as one contract bundle, structural snapshot evidence is part of the lint verdict, and runtime publication or writable posture fails closed whenever the bundle, digest, or lint result drifts.
+
+## Finding 119 - Operations continuity incidents could still be diagnosed from generic symptoms and silently rebase to fresher proof
+
+**Diagnosis.** The assurance layer already named `ExperienceContinuityControlEvidence`, `ContinuityControlHealthProjection`, and `InvestigationDrawerSession`, and the operations shell already exposed a continuity-evidence slice. But the handoff between them was still weak: board snapshots and return tokens preserved raw evidence refs without one stable continuity question, generic queue or delivery metrics could still dominate the operator's explanation path, and open investigation drawers could silently rebase to fresher continuity proof instead of showing delta against the preserved base. That left room for `InterventionWorkbench` to look calmer than the actual continuity proof basis when trust, settlement, or restore posture had already drifted.
+
+**Patch response.** Hardened the continuity-proof diagnostic path across Phase 0, Phase 9, and the operations console. `ContinuityControlHealthProjection` now carries required trust rows, `continuitySetHash`, and supporting symptoms explicitly; `InvestigationDrawerSession` now binds the preserved continuity question, continuity set, trust basis, and base settlement chain; and `OpsBoardStateSnapshot`, `OpsReturnToken`, `OpsDrillContextAnchor`, and `OpsContinuityEvidenceSlice` now preserve the same continuity question and proof basis across drill-down, child-route pivots, and return. Operations diagnosis must now surface continuity proof as a first-class lens, render newer proof as diff against the preserved base, and downgrade intervention posture immediately when the continuity question or proof basis drifts.
+
+## Finding 120 - Patient-facing degraded mode could still fragment across entry, section, recovery, embedded, and artifact shells
+
+**Diagnosis.** The patient platform already named `ReleaseRecoveryDisposition`, `RouteFreezeDisposition`, `PatientActionRecoveryProjection`, `PatientIdentityHoldProjection`, `PatientEmbeddedSessionProjection`, `PatientSectionSurfaceState`, `PatientPortalEntryProjection`, `PatientExperienceContinuityEvidenceProjection`, `WritableEligibilityFence`, and `ArtifactFallbackDisposition`, but those contracts still composed degraded posture locally. That left room for one route to preserve the last safe summary while another fell to a generic error, for embedded or artifact routes to keep stale CTAs or browser handoffs visible after the writable fence had fallen, and for recovery, identity hold, section entry, and quiet-home copy to describe the same failure class in contradictory ways.
+
+**Patch response.** Added `PatientDegradedModeProjection` in Phase 0 as the single patient-facing degraded-mode authority, then threaded it through patient portal entry and section posture, patient account recovery and identity-hold shells, and NHS App embedded and artifact fallback flows. Patient entry, section, repair, identity hold, embedded mismatch, and artifact fallback now normalize to one governed set of modes, preserve the same anchor and last safe summary, and withdraw stale writable or reassuring posture the moment continuity evidence, release or channel posture, binding lineage, or artifact viability drifts.
