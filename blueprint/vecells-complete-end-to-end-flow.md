@@ -3,10 +3,31 @@
 This flowchart represents the **audited system baseline** for this repository after reconciling the previous simplified top-level diagram with the canonical phase contracts:
 - Core delivery covers Phases 0 to 6, Phase 8, and Phase 9.
 - NHS App embedded channel (Phase 7) remains shown as a deferred expansion path.
-- The baseline now includes the previously missing execution invariants: durable `SubmissionEnvelope` lineage shells, immutable evidence snapshots, idempotent submit handling, duplicate clustering, telephony evidence-readiness plus urgent-live preemption, re-safety on materially new evidence, typed patient transaction routing, scoped mutation gating, fallback-review and repair lanes, optional rather than blocking AI assistance, compiled policy bundles with promotion control, real reservation authority, delivery and reconciliation states, freshness-aware projections, and `LifecycleCoordinator`-gated closure.
+- The baseline now includes the previously missing execution invariants: durable `SubmissionEnvelope` lineage shells, immutable evidence snapshots, canonical `RequestLineage` plus `LineageCaseLink` joins for child workflows, idempotent submit handling, duplicate clustering, telephony evidence-readiness plus urgent-live preemption, re-safety on materially new evidence, typed patient transaction routing, scoped mutation gating, fallback-review and repair lanes, optional rather than blocking AI assistance, compiled policy bundles with promotion control, real reservation authority, delivery and reconciliation states, freshness-aware projections, and `LifecycleCoordinator`-gated closure.
 - It now also makes the remaining cross-phase recovery contracts operationally visible: wrong-patient correction enters a lineage-level identity hold through `IdentityRepairCase`; expired, superseded, or consent-blocked patient actions recover inside the same request shell; accepted progress that later fails opens `FallbackReviewCase` or an exception case rather than disappearing; pharmacy referral consent is explicit before dispatch; and local-booking or hub ambiguity can degrade honestly into recovery without pretending routine success.
+- The baseline now also names the hardened control-plane tuple directly: writable routes bind `RouteIntentBinding`, mutations emit `CommandActionRecord` and `CommandSettlementRecord`, embedded or channel-specific write posture is frozen through `ReleaseApprovalFreeze` plus `ChannelReleaseFreezeRecord`, and degraded or quarantined operational truth is fenced through `AssuranceSliceTrustRecord`.
+- The baseline now also treats artifact mode as live truth rather than static permission: `ArtifactPresentationContract` still governs what is allowed in principle, but `ArtifactModeTruthProjection`, `BinaryArtifactDelivery`, `ArtifactByteGrant`, `ArtifactTransferSettlement`, and `ArtifactFallbackDisposition` now decide whether preview, byte delivery, print, or handoff may remain live under current parity, channel capability, masking posture, and return-safe continuity.
+- The baseline now also serializes patient-facing actionability and re-entry through `PatientNavUrgencyDigest`, `PatientNavReturnContract`, `RecordActionContextToken`, `RecoveryContinuationToken`, `PatientConversationPreviewDigest`, `PatientReceiptEnvelope`, and `ConversationCommandSettlement`, while support replay or observe return stays fail-closed behind `SupportReplayRestoreSettlement`.
+- The baseline now also binds governance and cross-organisation staff work to one shared scope tuple: `StaffIdentityContext`, `ActingContext`, `ActingScopeTuple`, and `GovernanceScopeToken` now hold tenant scope, organisation scope, purpose-of-use, elevation, break-glass, and blast radius together so organisation switching or scope drift cannot quietly widen live authority.
+- The baseline now also treats local waitlist as a governed continuation, not a hopeful side lane: `WaitlistDeadlineEvaluation`, `WaitlistFallbackObligation`, and `WaitlistContinuationTruthProjection` now decide when local waitlist may remain active and when callback or hub fallback must take over, so accepted, expired, or superseded offers cannot silently clear fallback debt.
+- The baseline now also carries continuity proof into the platform spine: `ExperienceContinuityControlEvidence` records how patient navigation, record follow-up, more-info reply, thread settlement, support replay restore, intake resume, booking manage, hub booking manage, assistive session, workspace task completion, and pharmacy-console settlement actually behaved, and both operations diagnosis and governance watch consume that same evidence before they claim safe stabilization or mitigation.
+- The baseline now also keeps continuity-rooted operations diagnosis on one preserved proof basis: `ContinuityControlHealthProjection`, `OpsContinuityEvidenceSlice`, `InvestigationDrawerSession`, `OpsBoardStateSnapshot`, and `OpsReturnToken` preserve the same continuity question and show newer proof as delta against the frozen base before any live mitigation posture can return.
+- The baseline now also binds assistive narration to one causal contract: `AssistiveAnnouncementIntent`, `AssistiveAnnouncementTruthProjection`, `AssistiveAnnouncementContract`, `StatusAcknowledgementScope`, and `UIEventEmissionCheckpoint` now decide when a surface may speak, what urgency it may use, and when replay must collapse to one current-state summary instead of re-emitting historical acknowledgements or stale batch chatter.
+- The baseline now also binds visualization meaning to one parity contract: `VisualizationFallbackContract`, `VisualizationTableContract`, and `VisualizationParityProjection` now decide whether a chart, matrix, or heat surface may stay visual-first, or must degrade to table-only, summary-only, or placeholder posture when selection, units, filter context, visibility, or freshness parity can no longer be proved.
+- The baseline now also normalizes patient degraded mode to one shared shell contract: `PatientDegradedModeProjection` binds `PatientPortalEntryProjection`, `PatientSectionSurfaceState`, `PatientExperienceContinuityEvidenceProjection`, `ReleaseRecoveryDisposition`, `RouteFreezeDisposition`, `PatientActionRecoveryProjection`, `PatientIdentityHoldProjection`, `WritableEligibilityFence`, `PatientEmbeddedSessionProjection`, and `ArtifactFallbackDisposition`, so patient entry, section, repair, embedded, and artifact routes preserve the same anchor, last safe summary, and next safe action instead of falling into generic errors or stale writable posture.
+- The baseline now also binds token export and UI conformance to one publication contract: `DesignTokenExportArtifact`, `DesignContractVocabularyTuple`, `DesignContractPublicationBundle`, and `DesignContractLintVerdict` now join the token graph, state semantics, automation markers, telemetry vocabulary, artifact posture, and structural snapshot evidence into the same runtime tuple, so route-local styling, marker, or event-name drift cannot hide outside release publication.
+- The baseline now also binds assurance admissibility to one graph contract: `AssuranceEvidenceGraphSnapshot` plus `AssuranceGraphCompletenessVerdict` tie standards rows, control status, continuity sections, incidents, CAPA, replay, retention, export, and recovery proof into one deterministic evidence graph, so physically present artifacts cannot masquerade as authoritative when their joins drift.
+- The baseline now also carries resilience control into the same spine: restore, failover, and chaos authority resolve through one tuple-bound `OperationalReadinessSnapshot`, `RunbookBindingRecord`, `RecoveryControlPosture`, `BackupSetManifest`, `RecoveryEvidencePack`, and authoritative recovery settlement, so runbooks, old game-day evidence, and dashboards cannot advertise stale recovery authority after publication or rehearsal drift.
 - If this summary flow and a phase blueprint ever disagree, the canonical algorithm in `phase-0-the-foundation-protocol.md` and the relevant phase file wins.
 - Detailed defect diagnoses and patch rationale live in `forensic-audit-findings.md`.
+
+The expanded continuity-proof taxonomy around those shell-sensitive workflows requires six corrections:
+1. the audited baseline now treats intake resume as a first-class `ExperienceContinuityControlEvidence` source instead of leaving draft calmness implicit.
+2. booking manage posture now feeds the same continuity-proof lane as patient navigation and thread-settlement behavior.
+3. assistive-session and workspace-task-completion posture now appear as explicit staff-side proof sources in the end-to-end baseline.
+4. pharmacy-console settlement posture now feeds the same continuity-proof lane as the rest of the platform rather than sitting outside the assurance taxonomy.
+5. the audited markdown baseline and standalone Mermaid source now stay synchronized on that expanded continuity-proof set.
+6. assurance, replay, retention, export, and recovery proof now consume one shared evidence-graph completeness contract instead of parallel local evidence lists.
 
 ```mermaid
 flowchart TB
@@ -45,10 +66,10 @@ subgraph INTAKE[Unified Intake, Identity, Evidence, and Safety]
   or manual audio review]
   I_SUBMIT[Governed promotion and submit
   resolve idempotency, freeze immutable EvidenceSnapshot]
-  I_DUP[Retry, continuation, same-episode,
-  or DuplicateCluster control]
+  I_DUP[Replay, same-request attach,
+  same-episode review, or DuplicateCluster control]
   I_PRIOR[Return prior accepted result]
-  I_NORM[New lineage Request
+  I_NORM[New Request plus RequestLineage
   submitted to intake_normalized]
   I_SAFETY[Run versioned safety engine
   screen clear, residual risk, or urgent]
@@ -95,14 +116,23 @@ subgraph TRIAGE[Triage, Review, and Reopen]
   SLA, fairness, residual risk, vulnerability]
   T_CLAIM[Claim task and acquire lease
   fenced operational ownership]
+  T_BASELINE[Freeze ReviewBaselineSnapshot
+  and ReviewSessionLease
+  projection version, policy bundle, anchor]
   T_REVIEW[Human review in clinical workspace
   same request lineage preserved]
   T_AI[Optional assistive sidecar
   artifact-backed suggestions only]
+  T_WINDOW[InformationRequestWindow
+  recipient scope, TTL, supersession,
+  and return target]
   T_MOREINFO[More-info cycle
   reply TTL and reminders]
   T_RESPONSE[Patient reply, external evidence,
   or return signal]
+  T_ASSIM[ResponseAssimilationRecord
+  dedupe, correlate, classify
+  and compute delta severity]
   T_RESAFETY[Canonical re-safety and preemption
   material deltas rerun safety]
   T_EXCEPTION[FallbackReviewCase or exception case
@@ -110,34 +140,42 @@ subgraph TRIAGE[Triage, Review, and Reopen]
   and bounded manual follow-through]
   T_DECISION[Persist EndpointDecision
   rationale, rule IDs, provenance]
+  T_DECISION_FENCE[DecisionEpoch and route fence
+  supersede stale decisions
+  before downstream launch]
   T_APPROVAL{Irreversible clinical action?}
+  T_APPROVAL_PACK[ApprovalEvidenceBundle
+  baseline, decision epoch,
+  drift and policy re-check]
   T_SIGNOFF[Human approval
   override and audit capture]
   T_ROUTE{Direct outcome
   or downstream case?}
   T_OUTCOME[Compose direct outcome
   request moves to outcome_recorded]
-  T_HANDOFF[Create downstream case
+  T_HANDOFF[Create child case plus LineageCaseLink
   request moves to handoff_active]
   T_URGENT[Urgent escalation queue]
 end
 
 %% Architectural correction: ingest failures, dispatch ambiguity, and stale external states
 %% open `FallbackReviewCase` or an exception case; they must not vanish or masquerade as routine bounce-back.
-I_RECEIPT --> T_QUEUE --> T_CLAIM --> T_REVIEW
+I_RECEIPT --> T_QUEUE --> T_CLAIM --> T_BASELINE --> T_REVIEW
 I_URGENT_DONE --> T_URGENT --> T_CLAIM
 I_FAIL --> T_EXCEPTION
 T_REVIEW -.-> T_AI
 T_AI -.-> T_DECISION
-T_REVIEW -->|Need more info| T_MOREINFO
-T_MOREINFO -->|Reply within TTL| T_RESPONSE --> T_RESAFETY --> I_SAFETY
-T_MOREINFO -->|Expired or no reply| T_DECISION
+T_REVIEW -->|Need more info| T_WINDOW --> T_MOREINFO
+T_MOREINFO -->|Reply within TTL| T_RESPONSE --> T_ASSIM --> T_RESAFETY --> I_SAFETY
+T_MOREINFO -->|Late, duplicate, or superseded reply| T_EXCEPTION
+T_MOREINFO -->|Expired or no reply| T_DECISION_FENCE
 T_RESPONSE -->|Wrong-patient or bind dispute| I_REPAIR
 I_REPAIR -->|Identity repaired and hold released| T_QUEUE
 T_EXCEPTION -->|Recovered or reopened| T_QUEUE
-T_REVIEW --> T_DECISION
-T_DECISION --> T_APPROVAL
-T_APPROVAL -->|Yes| T_SIGNOFF --> T_ROUTE
+T_REVIEW --> T_DECISION --> T_DECISION_FENCE
+T_DECISION_FENCE --> T_APPROVAL
+T_APPROVAL -->|Yes| T_APPROVAL_PACK --> T_SIGNOFF --> T_ROUTE
+T_APPROVAL_PACK -->|Baseline, policy, or epoch drift| T_REVIEW
 T_APPROVAL -->|No| T_ROUTE
 T_ROUTE -->|Direct outcome| T_OUTCOME
 T_ROUTE -->|Downstream case| T_HANDOFF
@@ -153,7 +191,8 @@ subgraph ENDPOINTS[Resolution and Handoff Paths]
 
   E_MSG[ClinicianMessageThread]
   E_MSG_DELIV[Delivery, receipts, bounce handling
-  and controlled resend]
+  and controlled resend via one
+  dispatch and evidence chain]
   E_MSG_OUTCOME[Thread review, reply outcome,
   close, or escalation recorded]
 
@@ -168,24 +207,27 @@ subgraph ENDPOINTS[Resolution and Handoff Paths]
   E_BOOK_SEARCH[Availability snapshot
   ranking, source version, expiry]
   E_BOOK_OFFER[OfferSession via ReservationAuthority
-  soft select or real hold]
+  focused soft selection or real hold]
   E_BOOK_CONFIRM[Revalidate live state
   and full policy envelope]
   E_BOOK_PENDING[Confirmation pending, disputed,
   or reconciliation required]
-  E_APPT[AppointmentRecord created]
+  E_APPT[AppointmentRecord created only after
+  durable provider reference or read-after-write proof]
   E_MANAGE[Manage appointment
   cancel, reschedule, reminders]
   E_WAIT[Transactional waitlist
-  truthful one-offer-per-capacity unit]
+  truthful by default, deadline-governed,
+  bounded nonexclusive only if audited]
 
   E_HUB_CASE[HubCoordinationCase]
   E_HUB_RANK[Cross-site ranking
   patient choice, org boundaries, freshness]
   E_HUB_ALT[Patient reviews network
   alternatives or callback fallback]
-  E_HUB_PENDING[Hub confirmation or practice-ack pending
-  patient and practice visibility]
+  E_HUB_PENDING[Hub offer-to-confirmation truth
+  selection, commit, confirmation,
+  and generation-bound practice visibility]
 
   E_PHARM_ELIG[Versioned Pharmacy First
   eligibility policy]
@@ -194,7 +236,8 @@ subgraph ENDPOINTS[Resolution and Handoff Paths]
   E_PHARM_CONSENT[Referral consent gate
   script version, scope, expiry]
   E_PHARM_SEND[Consent-gated dispatch
-  ack, retry, expiry]
+  frozen package, proof chain,
+  retry, expiry]
   E_PHARM_TRACK[Live referral, outcome ingest,
   and reconciliation]
   E_PHARM_DONE[Pharmacy outcome recorded]
@@ -229,13 +272,14 @@ E_BOOK_GATE -->|Unsupported or degraded| E_HUB_CASE
 E_BOOK_GATE -->|Supported| E_BOOK_SEARCH --> E_BOOK_OFFER --> E_BOOK_CONFIRM
 E_BOOK_CONFIRM -->|Confirmed| E_APPT --> E_MANAGE
 E_BOOK_CONFIRM -->|Ambiguous| E_BOOK_PENDING
-E_BOOK_CONFIRM -->|No slot but deadline safe| E_WAIT
+E_BOOK_CONFIRM -->|No slot and local continuation safe| E_WAIT
 E_BOOK_CONFIRM -->|No local option or unsafe to defer| E_HUB_CASE
 E_BOOK_PENDING -->|Confirmed| E_APPT
 E_BOOK_PENDING -->|Recovered local supply| E_WAIT
 E_BOOK_PENDING -->|Disputed or stale| T_EXCEPTION
 E_WAIT -->|Accepted and revalidated| E_APPT
-E_WAIT -->|Deadline risk or no offer| E_HUB_CASE
+E_WAIT -->|Callback fallback due| E_CALLBACK
+E_WAIT -->|Hub fallback due or no useful local offer| E_HUB_CASE
 
 %% Architectural correction: hub alternative expiry stays within hub ownership;
 %% it must not drop a live network case back into generic triage by default.
@@ -255,9 +299,9 @@ E_HUB_PENDING -->|Disputed, stale, or degraded no-ack path| T_EXCEPTION
 E_PHARM_ELIG -->|Eligible| E_PHARM_FIND --> E_PHARM_CONSENT --> E_PHARM_SEND --> E_PHARM_TRACK
 E_PHARM_ELIG -->|Not eligible or choice no longer valid| T_DECISION
 E_PHARM_CONSENT -->|Consent missing, refused, or expired| PV_RECOVER
-E_PHARM_SEND -->|Dispatch failure or no durable ack| T_EXCEPTION
+E_PHARM_SEND -->|Dispatch failure, contradiction, or no authoritative proof| T_EXCEPTION
 E_PHARM_TRACK -->|Resolved| E_PHARM_DONE
-E_PHARM_TRACK -->|Weak match or no contact| T_EXCEPTION
+E_PHARM_TRACK -->|Weak match or unmatched outcome| T_EXCEPTION
 E_PHARM_TRACK -->|Routine bounce-back| E_PHARM_BOUNCE --> T_RESPONSE
 E_PHARM_TRACK -->|Urgent return| E_PHARM_URGENT --> T_URGENT
 E_PHARM_BOUNCE --> T_RESPONSE
@@ -267,18 +311,39 @@ E_PHARM_BOUNCE --> T_RESPONSE
 %% =========================
 subgraph ACTION_GATES[Access, Action, and Continuity Guards]
   A_CONTEXT[Acting context and minimum scope
-  role, step-up, break-glass, visibility]
-  A_RATE[Replay, abuse, and resend guard
-  rate limit, expiry, supersession]
-  A_ROUTE[Canonical mutation gate
-  actionScope, idempotency, fence epoch]
-  A_FRESH[Command-following re-check
-  stale projections blocked or recovered]
+  audience tier, route family,
+  route intent, step-up, visibility]
+  A_POLICY[Compiled policy and release-freeze check
+  effective window, channel freeze,
+  route-family allow-list]
+  A_RATE[Grant, replay, abuse, and trust guard
+  grant namespace, expiry, supersession,
+  replay policy, assurance-slice trust,
+  and rate limit]
+  A_SUPPORT[High-risk operator control
+  reason code, just-in-time scope,
+  and dual control where required]
+  A_BIND[Single governing-object and route-intent bind
+  lineage scope, dependency owner,
+  and current fence epoch]
+  A_FRESH[Pre-dispatch freshness check
+  stale projections or causal gaps
+  force re-read or recovery]
+  A_PREEMPT[Safety preemption bridge
+  immutable snapshot and preemption record
+  before routine continuation]
+  A_ROUTE[Scoped mutation dispatch
+  actionScope, idempotency key,
+  correlation ID, and actor reason]
+  A_CONFIRM[Same-shell settlement, return,
+  and continuation record
+  causal wait, command receipt,
+  restore or recovery guidance]
 end
 
 subgraph EXCEPTIONS[Duplicate and Reachability Repair]
   X_DUP[DuplicateCluster review_required
-  no auto-attach while unresolved]
+  no auto-attach or merge while unresolved]
   X_CONTACT[ReachabilityDependency repair
   minimal recovery scope and route repair]
 end
@@ -287,12 +352,24 @@ end
 %% PATIENT ACCOUNT + COMMS
 %% =========================
 subgraph PATIENT_VIEW[Patient Account and Communications]
+  PV_NAV[Home and navigation digest
+  PatientNavUrgencyDigest and
+  PatientNavReturnContract]
   PV_HOME[Patient home
-  active requests, next action, freshness state]
+  active requests, next action,
+  freshness state and settled spotlight]
   PV_DETAIL[Request timeline
   receipts, diffs, and outcomes]
+  PV_RECORD[Record follow-up continuity
+  RecordActionContextToken and
+  RecoveryContinuationToken]
   PV_COMMS[Secure thread, callback, booking,
   pharmacy, consent, and delivery status]
+  PV_THREAD[Conversation digest, receipt,
+  and settlement chain
+  PatientConversationPreviewDigest,
+  PatientReceiptEnvelope,
+  ConversationCommandSettlement]
   PV_ACTIONS[Signed-in or grant-scoped actions
   typed commands: reply, callback, booking,
   offers, consent, contact repair, and recovery]
@@ -303,8 +380,8 @@ end
 
 %% Architectural correction: expired links, consent blocks, and identity holds
 %% recover inside the same request shell rather than dumping the user to dead ends.
-I_RECEIPT --> PV_HOME
-I_PRIOR --> PV_HOME
+I_RECEIPT --> PV_NAV --> PV_HOME
+I_PRIOR --> PV_NAV
 I_FAIL --> PV_DETAIL
 I_URGENT_DONE --> PV_DETAIL
 E_SELFCARE --> PV_DETAIL
@@ -313,25 +390,43 @@ E_APPT --> PV_DETAIL
 E_MANAGE --> PV_DETAIL
 E_PHARM_DONE --> PV_DETAIL
 I_REPAIR --> PV_RECOVER
-E_MSG_DELIV --> PV_COMMS
-E_CALLBACK_TRY --> PV_COMMS
-E_BOOK_PENDING --> PV_COMMS
-E_HUB_PENDING --> PV_COMMS
-E_PHARM_CONSENT --> PV_COMMS
-E_PHARM_TRACK --> PV_COMMS
-PV_HOME --> PV_DETAIL --> PV_COMMS --> PV_ACTIONS
-PV_ACTIONS --> A_CONTEXT --> A_RATE --> A_ROUTE --> A_FRESH
-A_FRESH -->|Respond more-info or clinically material update| T_RESPONSE
-A_FRESH -->|Message reply| E_MSG_OUTCOME
-A_FRESH -->|Callback response or contact delta| E_CALLBACK_OUTCOME
-A_FRESH -->|Manage appointment| E_MANAGE
-A_FRESH -->|Waitlist offer| E_WAIT
-A_FRESH -->|Hub alternative offer| E_HUB_ALT
-A_FRESH -->|Pharmacy choice or status| E_PHARM_FIND
-A_FRESH -->|Pharmacy consent| E_PHARM_CONSENT
-A_FRESH -->|Contact-route repair| X_CONTACT
+E_MSG_DELIV --> PV_THREAD
+E_CALLBACK_TRY --> PV_THREAD
+E_BOOK_PENDING --> PV_THREAD
+E_HUB_PENDING --> PV_THREAD
+E_PHARM_CONSENT --> PV_THREAD
+E_PHARM_TRACK --> PV_THREAD
+PV_HOME --> PV_DETAIL
+PV_DETAIL --> PV_RECORD
+PV_DETAIL --> PV_COMMS --> PV_THREAD --> PV_ACTIONS
+PV_RECORD --> PV_ACTIONS
+PV_ACTIONS --> A_CONTEXT --> A_POLICY
+A_POLICY -->|Policy valid and route allowed| A_RATE
+A_POLICY -->|Unsupported, disabled, or wrong route family| PV_RECOVER
+A_RATE -->|Standard mutation| A_BIND
+A_RATE -->|Access or identity-affecting support action| A_SUPPORT --> A_BIND
+A_RATE -->|Grant invalid, replayed, or blocked| PV_RECOVER
+A_BIND --> A_FRESH
+A_FRESH -->|Fresh and routine mutation| A_ROUTE
+A_FRESH -->|Potentially clinical or contact-safety relevant payload| A_PREEMPT
 A_FRESH -->|Expired, superseded, consent-blocked, or identity-held| PV_RECOVER
 A_FRESH -->|Identity correction or recovery| I_REPAIR
+A_PREEMPT -->|Same-shell pending or review state| A_CONFIRM
+A_PREEMPT -->|Snapshot and preemption record| T_RESPONSE
+A_ROUTE --> A_CONFIRM
+A_ROUTE -->|Respond more-info or clinically material update| T_RESPONSE
+A_ROUTE -->|Message reply| E_MSG_OUTCOME
+A_ROUTE -->|Callback response or contact delta| E_CALLBACK_OUTCOME
+A_ROUTE -->|Manage appointment| E_MANAGE
+A_ROUTE -->|Waitlist offer| E_WAIT
+A_ROUTE -->|Hub alternative offer| E_HUB_ALT
+A_ROUTE -->|Pharmacy choice or status| E_PHARM_FIND
+A_ROUTE -->|Pharmacy consent| E_PHARM_CONSENT
+A_ROUTE -->|Contact-route repair| X_CONTACT
+A_CONFIRM -->|Patient home or nav digest refresh| PV_NAV
+A_CONFIRM -->|Patient request or record shell refresh| PV_DETAIL
+A_CONFIRM -->|Patient comms or recovery shell| PV_THREAD
+A_CONFIRM -->|Blocked or stale-result guidance| PV_RECOVER
 PV_RECOVER -->|Recover access, renew consent, or rebind identity| I_AUTH
 T_EXCEPTION -->|Need patient recovery action| PV_RECOVER
 
@@ -344,9 +439,19 @@ subgraph STAFF_USERS[Staff and Operations Users]
   SU_HUB[Hub coordinator
   hub desk]
   SU_OPS[Operations team
-  queues, breach risk, freshness]
+  queues, breach risk, freshness,
+  continuity evidence, and
+  resilience posture]
   SU_SUPPORT[Support desk
-  bounded replay and resend]
+  in-context knowledge,
+  bounded replay, resend,
+  and evidence-bound repair]
+  SU_REPLAY[Replay or observe session
+  checkpoint, mask scope,
+  route intent and action lease]
+  SU_RESTORE[Support replay restore
+  SupportReplayRestoreSettlement,
+  pending hold or stale reacquire]
 end
 
 SU_CLIN --> T_REVIEW
@@ -354,14 +459,46 @@ SU_HUB --> E_HUB_RANK
 SU_OPS --> T_QUEUE
 SU_OPS --> T_EXCEPTION
 SU_SUPPORT --> PV_COMMS
+SU_SUPPORT --> SU_REPLAY
 T_REVIEW -.->|Clinical mutation| A_CONTEXT
 T_QUEUE -.->|Claim or recovery action| A_CONTEXT
 E_HUB_RANK -.->|Hub mutation| A_CONTEXT
-PV_COMMS -.->|Support resend or replay| A_CONTEXT
-A_FRESH -->|Controlled resend or replay| E_MSG_DELIV
-A_FRESH -->|Claim or queue mutation| T_CLAIM
-A_FRESH -->|Hub decision or commit| E_HUB_RANK
-A_FRESH -->|Clinical signoff or route mutation| T_DECISION
+PV_THREAD -.->|Support resend or replay| SU_REPLAY
+SU_REPLAY -.->|Governed resend, replay, or restore| A_CONTEXT
+A_ROUTE -->|Controlled resend or replay| E_MSG_DELIV
+A_ROUTE -->|Claim or queue mutation| T_CLAIM
+A_ROUTE -->|Hub decision or commit| E_HUB_RANK
+A_ROUTE -->|Clinical signoff or route mutation| T_DECISION
+A_CONFIRM -->|Support replay or restore shell| SU_RESTORE
+SU_RESTORE -->|Live work restored| SU_REPLAY
+SU_RESTORE -->|Pending confirmation or read-only recovery| T_EXCEPTION
+
+%% =========================
+%% CONTINUITY PROOF SOURCES
+%% =========================
+subgraph CONTINUITY_SOURCES[Continuity-Sensitive Shell Proof Sources]
+  CT_MORE_INFO[More-info reply continuity
+  PatientExperienceContinuityEvidenceProjection,
+  more_info_reply]
+  CT_INTAKE[Draft resume continuity
+  DraftContinuityEvidenceProjection,
+  intake_resume]
+  CT_BOOK[Booking manage continuity
+  BookingContinuityEvidenceProjection,
+  booking_manage]
+  CT_HUB[Hub booking-manage continuity
+  HubContinuityEvidenceProjection,
+  hub_booking_manage]
+  CT_ASSIST[Assistive session continuity
+  AssistiveContinuityEvidenceProjection,
+  assistive_session]
+  CT_TASK[Workspace completion continuity
+  WorkspaceContinuityEvidenceProjection,
+  workspace_task_completion]
+  CT_PHARM[Pharmacy-console settlement continuity
+  PharmacyConsoleContinuityEvidenceProjection,
+  pharmacy_console_settlement]
+end
 
 %% =========================
 %% ADMIN + GOVERNANCE USERS
@@ -372,17 +509,19 @@ subgraph ADMIN_USERS[Admin and Governance Users]
   AU_COMMS[Comms admin
   template versions and channel policy]
   AU_ACCESS[Access admin
-  grants, acting context, break-glass rules]
+  grants, scope tuples,
+  acting context, break-glass rules]
   AU_GOV[Governance and safety leads
-  audit, incidents, assurance]
+  audit, incidents, assurance,
+  and continuity evidence]
 end
 
 %% =========================
 %% PLATFORM + ASSURANCE
 %% =========================
 subgraph PLATFORM[Platform Data, Policy, and Assurance Spine]
-  PL_WRITE[FHIR and domain write model
-  SubmissionEnvelope, Request, Task, ServiceRequest, cases]
+  PL_WRITE[Domain aggregates plus FHIR representation ledger
+  SubmissionEnvelope, Request, cases, mapped Task and ServiceRequest]
   PL_OBJ[Governed object store
   files, audio, transcripts]
   PL_PROMOTE[Policy promotion gate
@@ -395,12 +534,23 @@ subgraph PLATFORM[Platform Data, Policy, and Assurance Spine]
   patient, queue, hub, operations]
   PL_AUDIT[WORM audit ledger
   immutable evidence and traceability]
+  PL_CONT[Experience continuity evidence
+  ExperienceContinuityControlEvidence,
+  patient-nav, record, thread, replay,
+  intake, booking-manage, assistive,
+  workspace-completion, and pharmacy proof]
   PL_ANALYTICS[Freshness, delivery, SLO,
   breach risk, and replay health]
   PL_QUAR[Scoped producer quarantine
   replay lane and restore proof]
-  PL_ASSURE[Fail-closed assurance ingestion
-  packs, incidents, restore proof]
+  PL_ASSURE[Fail-closed assurance graph
+  graph completeness, packs,
+  incidents, replay, retention,
+  export, and restore proof]
+  PL_READY[Tuple-bound recovery control
+  OperationalReadinessSnapshot,
+  RunbookBindingRecord, and
+  RecoveryControlPosture]
   PL_CLOSE[LifecycleCoordinator
   no close while leases, duplicate review,
   preemption, reconciliation, identity hold,
@@ -429,12 +579,36 @@ PL_POLICY --> E_BOOK_GATE
 PL_POLICY --> E_PHARM_ELIG
 PL_POLICY --> E_PHARM_CONSENT
 PL_POLICY --> A_CONTEXT
+PL_POLICY --> A_POLICY
 PL_POLICY --> A_ROUTE
 PL_WRITE --> PL_BUS --> PL_READ
 PL_OBJ --> PL_BUS
 PL_POLICY --> PL_BUS
 PL_BUS --> PL_AUDIT
+I_ENVELOPE --> CT_INTAKE
+E_MANAGE --> CT_BOOK
+T_AI -.-> CT_ASSIST
+A_CONFIRM --> CT_TASK
+E_PHARM_TRACK --> CT_PHARM
+PV_NAV --> PL_CONT
+PV_RECORD --> PL_CONT
+PV_THREAD --> PL_CONT
+SU_RESTORE --> PL_CONT
+CT_INTAKE --> PL_CONT
+CT_BOOK --> PL_CONT
+CT_ASSIST --> PL_CONT
+CT_TASK --> PL_CONT
+CT_PHARM --> PL_CONT
+PL_CONT --> PL_AUDIT
+PL_CONT --> PL_ASSURE
+PL_CONT --> SU_OPS
+PL_CONT --> AU_GOV
 PL_BUS --> PL_QUAR --> PL_ASSURE
+PL_PROMOTE --> PL_READY
+PL_READY --> PL_AUDIT
+PL_READY --> PL_ASSURE
+PL_READY --> SU_OPS
+PL_READY --> AU_GOV
 PL_READ --> PV_HOME
 PL_READ --> PV_RECOVER
 PL_READ --> T_QUEUE
