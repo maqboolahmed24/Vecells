@@ -1,0 +1,2057 @@
+export const nhsLoginCapturePack = {
+  "task_id": "seq_025",
+  "visual_mode": "Bluewoven_Identity_Simulator",
+  "mission": "Create the NHS login credentials, redirect-URI, scopes, environment-profile, and client-registration execution pack in two explicit parts: a high-fidelity local mock NHS login service plus admin console now, and a gated real-provider credential-capture strategy later.",
+  "captured_at": "2026-04-09T18:27:42",
+  "phase0_verdict": "withheld",
+  "source_precedence": [
+    "prompt/025.md",
+    "prompt/shared_operating_contract_021_to_025.md",
+    "blueprint/blueprint-init.md",
+    "blueprint/phase-0-the-foundation-protocol.md",
+    "blueprint/phase-2-identity-and-echoes.md",
+    "blueprint/phase-7-inside-the-nhs-app.md",
+    "blueprint/platform-runtime-and-release-blueprint.md",
+    "blueprint/platform-frontend-blueprint.md",
+    "blueprint/patient-portal-experience-architecture-blueprint.md",
+    "blueprint/accessibility-and-content-system-contract.md",
+    "blueprint/ux-quiet-clarity-redesign.md",
+    "blueprint/forensic-audit-findings.md",
+    "docs/external/21_mock_first_vs_actual_later_strategy.md",
+    "docs/external/23_secret_ownership_and_rotation_model.md",
+    "docs/external/24_nhs_login_actual_onboarding_strategy.md",
+    "data/analysis/nhs_login_application_field_map.json",
+    "data/analysis/nhs_login_live_gate_conditions.json",
+    "https://nhsconnect.github.io/nhslogin/",
+    "https://digital.nhs.uk/services/nhs-login/nhs-login-for-partners-and-developers/nhs-login-integration-toolkit/how-nhs-login-works",
+    "https://nhsconnect.github.io/nhslogin/integrating-to-sandpit/",
+    "https://nhsconnect.github.io/nhslogin/compare-environments/",
+    "https://nhsconnect.github.io/nhslogin/test-data/",
+    "https://nhsconnect.github.io/nhslogin/multiple-redirect-uris/",
+    "https://nhsconnect.github.io/nhslogin/technical-conformance/",
+    "https://nhsconnect.github.io/nhslogin/gp-credentials/",
+    "https://nhsconnect.github.io/nhslogin/scopes-and-claims/",
+    "https://nhsconnect.github.io/nhslogin/vectors-of-trust/"
+  ],
+  "official_guidance": [
+    {
+      "source_id": "official_what_is_nhs_login",
+      "title": "What is NHS login?",
+      "url": "https://nhsconnect.github.io/nhslogin/",
+      "captured_on": "2026-04-09",
+      "summary": "NHS login is an OpenID Connect-based identity rail for health and care services. It is not a one-off GP-credential retrieval tool.",
+      "grounding": [
+        "NHS login is how people prove who they are online for health and care websites or apps.",
+        "Partners choose the required verification and authentication combination for access.",
+        "The service must not be used as a one-off linkage-key retrieval path."
+      ]
+    },
+    {
+      "source_id": "official_how_nhs_login_works",
+      "title": "How NHS login works",
+      "url": "https://digital.nhs.uk/services/nhs-login/nhs-login-for-partners-and-developers/nhs-login-integration-toolkit/how-nhs-login-works",
+      "captured_on": "2026-04-09",
+      "summary": "NHS login authenticates and verifies the user, but partner services own session management, logout, age controls, and post-auth product authorization.",
+      "grounding": [
+        "Consent denial must return to the partner with an explicit code and bounded handling.",
+        "Session management and logout remain partner responsibilities.",
+        "PDS checks and GP credentials refresh happen over repeated use; NHS login does not replace PDS."
+      ]
+    },
+    {
+      "source_id": "official_integrating_to_sandpit",
+      "title": "How do I integrate to the sandpit?",
+      "url": "https://nhsconnect.github.io/nhslogin/integrating-to-sandpit/",
+      "captured_on": "2026-04-09",
+      "summary": "Sandpit registration requires a friendly name, redirect URI, public key, and scope list. Sandpit is for proof of concept and login-flow rehearsal.",
+      "grounding": [
+        "Partners submit a sandpit environment request form.",
+        "Required setup data is the friendly name, redirect URI, public key, and scopes.",
+        "Partners should complete login flow testing across token and userinfo before attempting registration journeys."
+      ]
+    },
+    {
+      "source_id": "official_compare_environments",
+      "title": "Compare NHS login environments",
+      "url": "https://nhsconnect.github.io/nhslogin/compare-environments/",
+      "captured_on": "2026-04-09",
+      "summary": "Sandpit has no formal requirements, integration requires sandpit completion plus ODS and DSPT posture, and live needs readiness activity plus a signed agreement.",
+      "grounding": [
+        "Sandpit allows proof-of-concept login rehearsal but not real ID or load testing.",
+        "Integration is where technical conformance and production-like testing occur.",
+        "Live provides only bounded smoke-test coverage, not general experimentation."
+      ]
+    },
+    {
+      "source_id": "official_test_data",
+      "title": "Test data",
+      "url": "https://nhsconnect.github.io/nhslogin/test-data/",
+      "captured_on": "2026-04-09",
+      "summary": "Sandpit provides dummy accounts and a static OTP; integration supports PDS-backed end-to-end test data and optional IM1 linkage details; live can provide a smoke-test user only.",
+      "grounding": [
+        "Sandpit accounts use dummy details and a static OTP for rehearsals.",
+        "Integration provides test accounts for full end-to-end journeys and can support IM1 linkage details.",
+        "Supplier test-data requests have required fields and explicit GP IM1 optional sections."
+      ]
+    },
+    {
+      "source_id": "official_multiple_redirect_uris",
+      "title": "Multiple redirect URIs",
+      "url": "https://nhsconnect.github.io/nhslogin/multiple-redirect-uris/",
+      "captured_on": "2026-04-09",
+      "summary": "NHS login supports up to 10 redirect URIs and recommends using opaque state-based fan-out when more destinations are needed.",
+      "grounding": [
+        "The state parameter should carry the partner-side routing identifier.",
+        "The callback returns state as-is to the partner.",
+        "Callback sprawl beyond 10 URIs must be handled by partner-side fan-out."
+      ]
+    },
+    {
+      "source_id": "official_technical_conformance",
+      "title": "Technical Conformance",
+      "url": "https://nhsconnect.github.io/nhslogin/technical-conformance/",
+      "captured_on": "2026-04-09",
+      "summary": "Integration environment testing covers production-like setup and technical conformance; IM1 and non-IM1 suppliers have distinct test-data expectations.",
+      "grounding": [
+        "IM1 suppliers create local GP-system records and share linkage details with NHS login for integration testing.",
+        "Non-IM1 suppliers can still test online identity verification and GP Online journeys in integration.",
+        "Integration is the correct place for production-like conformance evidence, not sandpit."
+      ]
+    },
+    {
+      "source_id": "official_gp_credentials",
+      "title": "Using NHS login to create or retrieve GP credentials",
+      "url": "https://nhsconnect.github.io/nhslogin/gp-credentials/",
+      "captured_on": "2026-04-09",
+      "summary": "The `gp_integration_credentials` scope returns linkage key, ODS code, and account ID for IM1-enabled relying parties only, and only as part of NHS login authentication.",
+      "grounding": [
+        "The feature must be used as part of NHS login authentication, not as a standalone retrieval flow.",
+        "IM1-enabled production posture is required before the scope is allowed in live environments.",
+        "Relying parties must avoid endless retry loops when GP credentials cannot be refreshed."
+      ]
+    },
+    {
+      "source_id": "official_scopes_claims",
+      "title": "Scopes and claims",
+      "url": "https://nhsconnect.github.io/nhslogin/scopes-and-claims/",
+      "captured_on": "2026-04-09",
+      "summary": "Scopes are not automatically available: they must be requested and approved. `openid` is mandatory, `profile` and `basic_demographics` are mutually exclusive, and `gp_integration_credentials` is high-assurance and IM1-gated.",
+      "grounding": [
+        "Claims are retrieved through the userinfo endpoint after approval.",
+        "The `openid` scope is mandatory for all partners.",
+        "`gp_integration_credentials` is available only to IM1-enabled partners or approved third-party pairings."
+      ]
+    },
+    {
+      "source_id": "official_vectors_of_trust",
+      "title": "Introduction to Vectors of Trust",
+      "url": "https://nhsconnect.github.io/nhslogin/vectors-of-trust/",
+      "captured_on": "2026-04-09",
+      "summary": "The `vtr` claim requests acceptable verification and authentication combinations. Returned `vot` and `vtm` claims bind the achieved trust level to the token.",
+      "grounding": [
+        "VoT selection must be included during OIDC initialisation.",
+        "The default NHS login vector set assumes high verification unless a partner specifies otherwise.",
+        "Services with mixed-sensitivity features should step up from medium to high only when needed."
+      ]
+    }
+  ],
+  "environment_profiles": [
+    {
+      "environment_profile_id": "env_local_mock",
+      "label": "Local mock",
+      "lane": "Mock_now_execution",
+      "kind": "simulator_local",
+      "base_url": "http://127.0.0.1:4174",
+      "issuer": "https://mock.vecells.local/nhs-login",
+      "jwks_path": "/.well-known/jwks.json",
+      "test_data_posture": "Synthetic aliases, static OTP, deterministic callback-race and stale-code fault injection.",
+      "technical_conformance_posture": "Simulator only; validates contract seams, never claims NHS conformance.",
+      "gp_integration_posture": "Disabled by default; can simulate `gp_integration_credentials` only when IM1 flag is enabled on the client.",
+      "official_alignment": "Local-only rehearsal substrate that mirrors the control seams later exercised in sandpit and integration.",
+      "source_refs": [
+        "prompt/025.md",
+        "official_compare_environments",
+        "official_test_data"
+      ]
+    },
+    {
+      "environment_profile_id": "env_sandpit_like",
+      "label": "Sandpit-like",
+      "lane": "Mock_now_execution",
+      "kind": "simulator_partner_rehearsal",
+      "base_url": "https://sandpit-like.vecells.local",
+      "issuer": "https://auth.sandpit.signin.nhs.uk/",
+      "jwks_path": "/.well-known/jwks.json",
+      "test_data_posture": "Prepared dummy accounts plus static OTP rehearsal; no real ID or full PDS-backed registration.",
+      "technical_conformance_posture": "No technical conformance claims; mirrors sandpit restrictions and form requirements only.",
+      "gp_integration_posture": "IM1 registration flow stays disabled, matching sandpit restrictions on GP Online testing.",
+      "official_alignment": "Matches sandpit request fields and login-flow rehearsal posture from current guidance.",
+      "source_refs": [
+        "official_integrating_to_sandpit",
+        "official_compare_environments",
+        "official_test_data"
+      ]
+    },
+    {
+      "environment_profile_id": "env_integration_like",
+      "label": "Integration-like",
+      "lane": "Mock_now_execution",
+      "kind": "simulator_conformance_rehearsal",
+      "base_url": "https://integration-like.vecells.local",
+      "issuer": "https://auth.integration.signin.nhs.uk/",
+      "jwks_path": "/.well-known/jwks.json",
+      "test_data_posture": "Synthetic PDS-matched and IM1-ready aliases mirror integration test-pack structure.",
+      "technical_conformance_posture": "Exercises conformance-era callback, userinfo, and IM1 refresh rules without touching a real portal.",
+      "gp_integration_posture": "Available only when client and test user both carry IM1 enablement.",
+      "official_alignment": "Mirrors the integration environment\u2019s conformance and test-data expectations.",
+      "source_refs": [
+        "official_compare_environments",
+        "official_test_data",
+        "official_technical_conformance"
+      ]
+    },
+    {
+      "environment_profile_id": "env_actual_sandpit",
+      "label": "Actual sandpit later",
+      "lane": "Actual_provider_strategy_later",
+      "kind": "provider_target",
+      "base_url": "https://sandpit.patient.vecells.example",
+      "issuer": "https://auth.sandpit.signin.nhs.uk/",
+      "jwks_path": "/.well-known/jwks.json",
+      "test_data_posture": "Provider-issued sandpit client plus supplied test pack after request approval.",
+      "technical_conformance_posture": "No conformance sign-off here; sandpit remains a proof-of-concept environment.",
+      "gp_integration_posture": "Do not assume GP Online or IM1 testing is available; keep it disabled until integration.",
+      "official_alignment": "Requires friendly name, redirect URI, public key, and scope list on the sandpit request form.",
+      "source_refs": [
+        "official_integrating_to_sandpit",
+        "official_compare_environments"
+      ]
+    },
+    {
+      "environment_profile_id": "env_actual_integration",
+      "label": "Actual integration later",
+      "lane": "Actual_provider_strategy_later",
+      "kind": "provider_target",
+      "base_url": "https://integration.patient.vecells.example",
+      "issuer": "https://auth.integration.signin.nhs.uk/",
+      "jwks_path": "/.well-known/jwks.json",
+      "test_data_posture": "Provider integration pack plus optional IM1 linkage details after approval.",
+      "technical_conformance_posture": "Formal technical conformance, SCAL evidence, and environment review belong here.",
+      "gp_integration_posture": "IM1 pathways are allowed only with approved pairings and explicit high-assurance scope approval.",
+      "official_alignment": "Requires completed sandpit work, ODS code, DSPT posture, and conformance testing.",
+      "source_refs": [
+        "official_compare_environments",
+        "official_test_data",
+        "official_technical_conformance"
+      ]
+    },
+    {
+      "environment_profile_id": "env_actual_production",
+      "label": "Actual production later",
+      "lane": "Actual_provider_strategy_later",
+      "kind": "provider_target",
+      "base_url": "https://patient.vecells.example",
+      "issuer": "https://auth.login.nhs.uk/",
+      "jwks_path": "/.well-known/jwks.json",
+      "test_data_posture": "Smoke-test user only, no exploratory testing, and no load testing.",
+      "technical_conformance_posture": "Permitted only after readiness activity, agreement, and provider approval.",
+      "gp_integration_posture": "Production `gp_integration_credentials` remains blocked until live IM1 enablement is approved.",
+      "official_alignment": "Live environment requires completed readiness activity and signed agreement.",
+      "source_refs": [
+        "official_compare_environments",
+        "official_test_data",
+        "official_gp_credentials"
+      ]
+    }
+  ],
+  "vot_profiles": [
+    {
+      "vot_profile_id": "vot_p0_basic",
+      "label": "Low : Basic",
+      "vtr": "[\"P0.Cp\"]",
+      "returned_vot_examples": [
+        "P0.Cp"
+      ],
+      "suitable_for": "Low-trust sign-in upgrades, public-to-authenticated transitions, and controlled claim-precheck flows.",
+      "local_session_ceiling": "auth_read_only",
+      "source_refs": [
+        "official_vectors_of_trust",
+        "blueprint/phase-2-the-identity-and-echoes.md"
+      ]
+    },
+    {
+      "vot_profile_id": "vot_p5_strong",
+      "label": "Medium : Strong",
+      "vtr": "[\"P5.Cp.Cd\",\"P5.Cp.Ck\",\"P5.Cm\"]",
+      "returned_vot_examples": [
+        "P5.Cp.Cd",
+        "P5.Cm"
+      ],
+      "suitable_for": "Messages, callback continuity, and basic self-service features that do not grant sensitive-record mutation.",
+      "local_session_ceiling": "auth_read_only",
+      "source_refs": [
+        "official_vectors_of_trust",
+        "official_how_nhs_login_works"
+      ]
+    },
+    {
+      "vot_profile_id": "vot_p9_strong",
+      "label": "High : Strong",
+      "vtr": "[\"P9.Cp.Cd\",\"P9.Cp.Ck\",\"P9.Cm\"]",
+      "returned_vot_examples": [
+        "P9.Cp.Cd",
+        "P9.Cm"
+      ],
+      "suitable_for": "Sensitive records, appointments management, and any path that needs high verification before local capability can widen.",
+      "local_session_ceiling": "writable_if_local_capability_allows",
+      "source_refs": [
+        "official_vectors_of_trust",
+        "blueprint/phase-0-the-foundation-protocol.md"
+      ]
+    },
+    {
+      "vot_profile_id": "vot_step_up_mix",
+      "label": "Medium plus step-up to high",
+      "vtr": "[\"P5.Cp.Cd\",\"P5.Cm\",\"P9.Cp.Cd\",\"P9.Cm\"]",
+      "returned_vot_examples": [
+        "P5.Cp.Cd",
+        "P9.Cp.Cd"
+      ],
+      "suitable_for": "Mixed-sensitivity portals where health records or IM1 pairing need a later step-up journey instead of universal high friction.",
+      "local_session_ceiling": "claim_pending_or_step_up",
+      "source_refs": [
+        "official_vectors_of_trust",
+        "blueprint/phase-2-the-identity-and-echoes.md"
+      ]
+    }
+  ],
+  "scope_bundles": [
+    {
+      "bundle_id": "sb_auth_contact_minimum",
+      "bundle_name": "Auth contact minimum",
+      "scopes": [
+        "openid",
+        "email",
+        "phone"
+      ],
+      "claims": [
+        "sub",
+        "iss",
+        "aud",
+        "email",
+        "email_verified",
+        "phone_number",
+        "phone_number_verified"
+      ],
+      "mutual_exclusion_note": "Does not request `profile`; keeps the first sign-in uplift narrow.",
+      "im1_enabled_required": false,
+      "notes": "For sign-in uplift from intake or settings-link recovery where local capability still decides whether the shell becomes read-only or claim-pending.",
+      "source_refs": [
+        "official_scopes_claims",
+        "official_how_nhs_login_works"
+      ]
+    },
+    {
+      "bundle_id": "sb_patient_profile",
+      "bundle_name": "Patient profile",
+      "scopes": [
+        "openid",
+        "profile",
+        "email",
+        "phone"
+      ],
+      "claims": [
+        "sub",
+        "nhs_number",
+        "family_name",
+        "birthdate",
+        "identity_proofing_level",
+        "email",
+        "phone_number",
+        "phone_number_verified"
+      ],
+      "mutual_exclusion_note": "`profile` is used instead of `basic_demographics`.",
+      "im1_enabled_required": false,
+      "notes": "Default bundle for signed-in home, requests, appointments, messages, and record access.",
+      "source_refs": [
+        "official_scopes_claims",
+        "official_what_is_nhs_login"
+      ]
+    },
+    {
+      "bundle_id": "sb_patient_profile_extended",
+      "bundle_name": "Patient profile extended",
+      "scopes": [
+        "openid",
+        "profile",
+        "profile_extended",
+        "email",
+        "phone"
+      ],
+      "claims": [
+        "sub",
+        "nhs_number",
+        "family_name",
+        "given_name",
+        "birthdate",
+        "identity_proofing_level",
+        "email",
+        "phone_number"
+      ],
+      "mutual_exclusion_note": "Use only where the later environment and business case permit `profile_extended`.",
+      "im1_enabled_required": false,
+      "notes": "Kept available for integration-like rehearsal but not widened by default in sandpit-like or public intake flows.",
+      "source_refs": [
+        "official_scopes_claims",
+        "official_integrating_to_sandpit"
+      ]
+    },
+    {
+      "bundle_id": "sb_gp_im1_pairing",
+      "bundle_name": "IM1 GP pairing",
+      "scopes": [
+        "openid",
+        "profile",
+        "email",
+        "phone",
+        "gp_integration_credentials"
+      ],
+      "claims": [
+        "sub",
+        "nhs_number",
+        "family_name",
+        "birthdate",
+        "identity_proofing_level",
+        "email",
+        "phone_number",
+        "gp_linkage_key",
+        "gp_ods_code",
+        "gp_user_id"
+      ],
+      "mutual_exclusion_note": "`gp_integration_credentials` is high-assurance and IM1-gated.",
+      "im1_enabled_required": true,
+      "notes": "Disabled unless the client is IM1-enabled and the route policy explicitly allows GP credential pairing as part of sign-in.",
+      "source_refs": [
+        "official_gp_credentials",
+        "official_scopes_claims",
+        "official_technical_conformance"
+      ]
+    }
+  ],
+  "route_bindings": [
+    {
+      "route_binding_id": "rb_patient_intake_upgrade",
+      "route_family_id": "rf_intake_self_service",
+      "display_name": "Public intake sign-in upgrade",
+      "callback_slug": "intake",
+      "return_intent_key": "patient.intake.upgrade",
+      "gateway_surface_id": "gws_patient_intake_web",
+      "acting_scope_profile_id": "ACT_PATIENT_PUBLIC_INTAKE",
+      "scope_bundle_id": "sb_auth_contact_minimum",
+      "vot_profile_id": "vot_p0_basic",
+      "local_session_ceiling": "auth_read_only",
+      "notes": "Auth success may only upgrade the public intake shell into an authenticated or claim-pending posture; it never grants clinical writability by itself."
+    },
+    {
+      "route_binding_id": "rb_secure_link_recovery",
+      "route_family_id": "rf_patient_secure_link_recovery",
+      "display_name": "Secure-link recovery and claim resume",
+      "callback_slug": "recovery",
+      "return_intent_key": "patient.recovery.resume",
+      "gateway_surface_id": "gws_patient_secure_link_recovery",
+      "acting_scope_profile_id": "ACT_PATIENT_GRANT_RECOVERY",
+      "scope_bundle_id": "sb_patient_profile",
+      "vot_profile_id": "vot_step_up_mix",
+      "local_session_ceiling": "claim_pending_or_step_up",
+      "notes": "Keeps grant-scoped recovery narrow and bound to the current route intent and subject lineage."
+    },
+    {
+      "route_binding_id": "rb_patient_home",
+      "route_family_id": "rf_patient_home",
+      "display_name": "Patient home and spotlight",
+      "callback_slug": "home",
+      "return_intent_key": "patient.home.entry",
+      "gateway_surface_id": "gws_patient_home",
+      "acting_scope_profile_id": "ACT_PATIENT_AUTHENTICATED",
+      "scope_bundle_id": "sb_patient_profile",
+      "vot_profile_id": "vot_p5_strong",
+      "local_session_ceiling": "auth_read_only",
+      "notes": "Home remains projection-only after auth until local capability law admits wider actions."
+    },
+    {
+      "route_binding_id": "rb_patient_requests",
+      "route_family_id": "rf_patient_requests",
+      "display_name": "Requests and status detail",
+      "callback_slug": "requests",
+      "return_intent_key": "patient.requests.detail",
+      "gateway_surface_id": "gws_patient_requests",
+      "acting_scope_profile_id": "ACT_PATIENT_AUTHENTICATED",
+      "scope_bundle_id": "sb_patient_profile",
+      "vot_profile_id": "vot_step_up_mix",
+      "local_session_ceiling": "auth_read_only_or_writable_after_local_capability",
+      "notes": "Reply, claim, and recovery actions remain route-bound after local session establishment."
+    },
+    {
+      "route_binding_id": "rb_patient_appointments",
+      "route_family_id": "rf_patient_appointments",
+      "display_name": "Appointments and manage",
+      "callback_slug": "appointments",
+      "return_intent_key": "patient.appointments.manage",
+      "gateway_surface_id": "gws_patient_appointments",
+      "acting_scope_profile_id": "ACT_PATIENT_AUTHENTICATED",
+      "scope_bundle_id": "sb_patient_profile_extended",
+      "vot_profile_id": "vot_p9_strong",
+      "local_session_ceiling": "writable_if_local_capability_allows",
+      "notes": "Booking truth, waitlist, and manage posture require high verification before local capability can widen."
+    },
+    {
+      "route_binding_id": "rb_patient_health_record",
+      "route_family_id": "rf_patient_health_record",
+      "display_name": "Health record and documents",
+      "callback_slug": "health-record",
+      "return_intent_key": "patient.record.entry",
+      "gateway_surface_id": "gws_patient_health_record",
+      "acting_scope_profile_id": "ACT_PATIENT_AUTHENTICATED",
+      "scope_bundle_id": "sb_patient_profile_extended",
+      "vot_profile_id": "vot_p9_strong",
+      "local_session_ceiling": "auth_read_only_or_writable_after_local_capability",
+      "notes": "Sensitive-record access needs high verification, but the local shell still controls artifact visibility and actionability."
+    },
+    {
+      "route_binding_id": "rb_patient_messages",
+      "route_family_id": "rf_patient_messages",
+      "display_name": "Messages and callback thread",
+      "callback_slug": "messages",
+      "return_intent_key": "patient.messages.thread",
+      "gateway_surface_id": "gws_patient_messages",
+      "acting_scope_profile_id": "ACT_PATIENT_AUTHENTICATED",
+      "scope_bundle_id": "sb_patient_profile",
+      "vot_profile_id": "vot_p5_strong",
+      "local_session_ceiling": "auth_read_only_or_writable_after_local_capability",
+      "notes": "Messaging reply and callback repair stay bound to reachability and current thread tuples after auth."
+    },
+    {
+      "route_binding_id": "rb_patient_settings_link",
+      "route_family_id": "rf_patient_home",
+      "display_name": "Settings-link simulator",
+      "callback_slug": "settings-link",
+      "return_intent_key": "patient.settings.return",
+      "gateway_surface_id": "gws_patient_home",
+      "acting_scope_profile_id": "ACT_PATIENT_AUTHENTICATED",
+      "scope_bundle_id": "sb_auth_contact_minimum",
+      "vot_profile_id": "vot_p0_basic",
+      "local_session_ceiling": "auth_read_only",
+      "notes": "Settings-link simulations never imply broader record access; they only prove safe return handling."
+    },
+    {
+      "route_binding_id": "rb_gp_im1_pairing",
+      "route_family_id": "rf_patient_home",
+      "display_name": "IM1 GP pairing",
+      "callback_slug": "gp-pairing",
+      "return_intent_key": "patient.gp.im1.pairing",
+      "gateway_surface_id": "gws_patient_home",
+      "acting_scope_profile_id": "ACT_PATIENT_AUTHENTICATED",
+      "scope_bundle_id": "sb_gp_im1_pairing",
+      "vot_profile_id": "vot_p9_strong",
+      "local_session_ceiling": "claim_pending_or_step_up",
+      "notes": "Explicitly gated behind IM1 enablement and never available as a one-off retrieval shortcut."
+    },
+    {
+      "route_binding_id": "rb_embedded_channel_future",
+      "route_family_id": "rf_patient_embedded_channel",
+      "display_name": "Embedded channel future parity",
+      "callback_slug": "embedded",
+      "return_intent_key": "patient.embedded.return",
+      "gateway_surface_id": "gws_patient_embedded_shell",
+      "acting_scope_profile_id": "ACT_PATIENT_EMBEDDED",
+      "scope_bundle_id": "sb_patient_profile",
+      "vot_profile_id": "vot_step_up_mix",
+      "local_session_ceiling": "deferred_channel_only",
+      "notes": "Future-only route binding kept in the pack so Phase 7 cannot silently widen current callback posture."
+    }
+  ],
+  "redirect_uri_rows": [
+    {
+      "redirect_id": "redir_001",
+      "environment_profile_id": "env_local_mock",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_home",
+      "route_family_id": "rf_patient_home",
+      "route_family": "Home",
+      "callback_uri": "http://127.0.0.1:4174/auth/callback/home",
+      "route_intent_key": "patient.home.entry",
+      "session_ceiling": "auth_read_only",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Home remains projection-only after auth until local capability law admits wider actions.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_002",
+      "environment_profile_id": "env_local_mock",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_requests",
+      "route_family_id": "rf_patient_requests",
+      "route_family": "Requests",
+      "callback_uri": "http://127.0.0.1:4174/auth/callback/requests",
+      "route_intent_key": "patient.requests.detail",
+      "session_ceiling": "auth_read_only_or_writable_after_local_capability",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Reply, claim, and recovery actions remain route-bound after local session establishment.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_003",
+      "environment_profile_id": "env_local_mock",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_appointments",
+      "route_family_id": "rf_patient_appointments",
+      "route_family": "Appointments",
+      "callback_uri": "http://127.0.0.1:4174/auth/callback/appointments",
+      "route_intent_key": "patient.appointments.manage",
+      "session_ceiling": "writable_if_local_capability_allows",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Booking truth, waitlist, and manage posture require high verification before local capability can widen.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_004",
+      "environment_profile_id": "env_local_mock",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_health_record",
+      "route_family_id": "rf_patient_health_record",
+      "route_family": "Health record",
+      "callback_uri": "http://127.0.0.1:4174/auth/callback/health-record",
+      "route_intent_key": "patient.record.entry",
+      "session_ceiling": "auth_read_only_or_writable_after_local_capability",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Sensitive-record access needs high verification, but the local shell still controls artifact visibility and actionability.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_005",
+      "environment_profile_id": "env_local_mock",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_messages",
+      "route_family_id": "rf_patient_messages",
+      "route_family": "Messages",
+      "callback_uri": "http://127.0.0.1:4174/auth/callback/messages",
+      "route_intent_key": "patient.messages.thread",
+      "session_ceiling": "auth_read_only_or_writable_after_local_capability",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Messaging reply and callback repair stay bound to reachability and current thread tuples after auth.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_006",
+      "environment_profile_id": "env_sandpit_like",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_home",
+      "route_family_id": "rf_patient_home",
+      "route_family": "Home",
+      "callback_uri": "https://sandpit-like.vecells.local/auth/callback/home",
+      "route_intent_key": "patient.home.entry",
+      "session_ceiling": "auth_read_only",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Home remains projection-only after auth until local capability law admits wider actions.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_007",
+      "environment_profile_id": "env_sandpit_like",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_requests",
+      "route_family_id": "rf_patient_requests",
+      "route_family": "Requests",
+      "callback_uri": "https://sandpit-like.vecells.local/auth/callback/requests",
+      "route_intent_key": "patient.requests.detail",
+      "session_ceiling": "auth_read_only_or_writable_after_local_capability",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Reply, claim, and recovery actions remain route-bound after local session establishment.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_008",
+      "environment_profile_id": "env_sandpit_like",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_appointments",
+      "route_family_id": "rf_patient_appointments",
+      "route_family": "Appointments",
+      "callback_uri": "https://sandpit-like.vecells.local/auth/callback/appointments",
+      "route_intent_key": "patient.appointments.manage",
+      "session_ceiling": "writable_if_local_capability_allows",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Booking truth, waitlist, and manage posture require high verification before local capability can widen.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_009",
+      "environment_profile_id": "env_sandpit_like",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_health_record",
+      "route_family_id": "rf_patient_health_record",
+      "route_family": "Health record",
+      "callback_uri": "https://sandpit-like.vecells.local/auth/callback/health-record",
+      "route_intent_key": "patient.record.entry",
+      "session_ceiling": "auth_read_only_or_writable_after_local_capability",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Sensitive-record access needs high verification, but the local shell still controls artifact visibility and actionability.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_010",
+      "environment_profile_id": "env_sandpit_like",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_messages",
+      "route_family_id": "rf_patient_messages",
+      "route_family": "Messages",
+      "callback_uri": "https://sandpit-like.vecells.local/auth/callback/messages",
+      "route_intent_key": "patient.messages.thread",
+      "session_ceiling": "auth_read_only_or_writable_after_local_capability",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Messaging reply and callback repair stay bound to reachability and current thread tuples after auth.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_011",
+      "environment_profile_id": "env_integration_like",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_home",
+      "route_family_id": "rf_patient_home",
+      "route_family": "Home",
+      "callback_uri": "https://integration-like.vecells.local/auth/callback/home",
+      "route_intent_key": "patient.home.entry",
+      "session_ceiling": "auth_read_only",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Home remains projection-only after auth until local capability law admits wider actions.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_012",
+      "environment_profile_id": "env_integration_like",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_requests",
+      "route_family_id": "rf_patient_requests",
+      "route_family": "Requests",
+      "callback_uri": "https://integration-like.vecells.local/auth/callback/requests",
+      "route_intent_key": "patient.requests.detail",
+      "session_ceiling": "auth_read_only_or_writable_after_local_capability",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Reply, claim, and recovery actions remain route-bound after local session establishment.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_013",
+      "environment_profile_id": "env_integration_like",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_appointments",
+      "route_family_id": "rf_patient_appointments",
+      "route_family": "Appointments",
+      "callback_uri": "https://integration-like.vecells.local/auth/callback/appointments",
+      "route_intent_key": "patient.appointments.manage",
+      "session_ceiling": "writable_if_local_capability_allows",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Booking truth, waitlist, and manage posture require high verification before local capability can widen.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_014",
+      "environment_profile_id": "env_integration_like",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_health_record",
+      "route_family_id": "rf_patient_health_record",
+      "route_family": "Health record",
+      "callback_uri": "https://integration-like.vecells.local/auth/callback/health-record",
+      "route_intent_key": "patient.record.entry",
+      "session_ceiling": "auth_read_only_or_writable_after_local_capability",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Sensitive-record access needs high verification, but the local shell still controls artifact visibility and actionability.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_015",
+      "environment_profile_id": "env_integration_like",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_messages",
+      "route_family_id": "rf_patient_messages",
+      "route_family": "Messages",
+      "callback_uri": "https://integration-like.vecells.local/auth/callback/messages",
+      "route_intent_key": "patient.messages.thread",
+      "session_ceiling": "auth_read_only_or_writable_after_local_capability",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Messaging reply and callback repair stay bound to reachability and current thread tuples after auth.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_016",
+      "environment_profile_id": "env_actual_sandpit",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_home",
+      "route_family_id": "rf_patient_home",
+      "route_family": "Home",
+      "callback_uri": "https://sandpit.patient.vecells.example/auth/callback/home",
+      "route_intent_key": "patient.home.entry",
+      "session_ceiling": "auth_read_only",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Home remains projection-only after auth until local capability law admits wider actions.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_017",
+      "environment_profile_id": "env_actual_sandpit",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_requests",
+      "route_family_id": "rf_patient_requests",
+      "route_family": "Requests",
+      "callback_uri": "https://sandpit.patient.vecells.example/auth/callback/requests",
+      "route_intent_key": "patient.requests.detail",
+      "session_ceiling": "auth_read_only_or_writable_after_local_capability",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Reply, claim, and recovery actions remain route-bound after local session establishment.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_018",
+      "environment_profile_id": "env_actual_sandpit",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_appointments",
+      "route_family_id": "rf_patient_appointments",
+      "route_family": "Appointments",
+      "callback_uri": "https://sandpit.patient.vecells.example/auth/callback/appointments",
+      "route_intent_key": "patient.appointments.manage",
+      "session_ceiling": "writable_if_local_capability_allows",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Booking truth, waitlist, and manage posture require high verification before local capability can widen.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_019",
+      "environment_profile_id": "env_actual_sandpit",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_health_record",
+      "route_family_id": "rf_patient_health_record",
+      "route_family": "Health record",
+      "callback_uri": "https://sandpit.patient.vecells.example/auth/callback/health-record",
+      "route_intent_key": "patient.record.entry",
+      "session_ceiling": "auth_read_only_or_writable_after_local_capability",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Sensitive-record access needs high verification, but the local shell still controls artifact visibility and actionability.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_020",
+      "environment_profile_id": "env_actual_sandpit",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_messages",
+      "route_family_id": "rf_patient_messages",
+      "route_family": "Messages",
+      "callback_uri": "https://sandpit.patient.vecells.example/auth/callback/messages",
+      "route_intent_key": "patient.messages.thread",
+      "session_ceiling": "auth_read_only_or_writable_after_local_capability",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Messaging reply and callback repair stay bound to reachability and current thread tuples after auth.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_021",
+      "environment_profile_id": "env_actual_integration",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_home",
+      "route_family_id": "rf_patient_home",
+      "route_family": "Home",
+      "callback_uri": "https://integration.patient.vecells.example/auth/callback/home",
+      "route_intent_key": "patient.home.entry",
+      "session_ceiling": "auth_read_only",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Home remains projection-only after auth until local capability law admits wider actions.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_022",
+      "environment_profile_id": "env_actual_integration",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_requests",
+      "route_family_id": "rf_patient_requests",
+      "route_family": "Requests",
+      "callback_uri": "https://integration.patient.vecells.example/auth/callback/requests",
+      "route_intent_key": "patient.requests.detail",
+      "session_ceiling": "auth_read_only_or_writable_after_local_capability",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Reply, claim, and recovery actions remain route-bound after local session establishment.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_023",
+      "environment_profile_id": "env_actual_integration",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_appointments",
+      "route_family_id": "rf_patient_appointments",
+      "route_family": "Appointments",
+      "callback_uri": "https://integration.patient.vecells.example/auth/callback/appointments",
+      "route_intent_key": "patient.appointments.manage",
+      "session_ceiling": "writable_if_local_capability_allows",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Booking truth, waitlist, and manage posture require high verification before local capability can widen.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_024",
+      "environment_profile_id": "env_actual_integration",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_health_record",
+      "route_family_id": "rf_patient_health_record",
+      "route_family": "Health record",
+      "callback_uri": "https://integration.patient.vecells.example/auth/callback/health-record",
+      "route_intent_key": "patient.record.entry",
+      "session_ceiling": "auth_read_only_or_writable_after_local_capability",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Sensitive-record access needs high verification, but the local shell still controls artifact visibility and actionability.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_025",
+      "environment_profile_id": "env_actual_integration",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_messages",
+      "route_family_id": "rf_patient_messages",
+      "route_family": "Messages",
+      "callback_uri": "https://integration.patient.vecells.example/auth/callback/messages",
+      "route_intent_key": "patient.messages.thread",
+      "session_ceiling": "auth_read_only_or_writable_after_local_capability",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Messaging reply and callback repair stay bound to reachability and current thread tuples after auth.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_026",
+      "environment_profile_id": "env_actual_production",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_home",
+      "route_family_id": "rf_patient_home",
+      "route_family": "Home",
+      "callback_uri": "https://patient.vecells.example/auth/callback/home",
+      "route_intent_key": "patient.home.entry",
+      "session_ceiling": "auth_read_only",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Home remains projection-only after auth until local capability law admits wider actions.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_027",
+      "environment_profile_id": "env_actual_production",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_requests",
+      "route_family_id": "rf_patient_requests",
+      "route_family": "Requests",
+      "callback_uri": "https://patient.vecells.example/auth/callback/requests",
+      "route_intent_key": "patient.requests.detail",
+      "session_ceiling": "auth_read_only_or_writable_after_local_capability",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Reply, claim, and recovery actions remain route-bound after local session establishment.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_028",
+      "environment_profile_id": "env_actual_production",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_appointments",
+      "route_family_id": "rf_patient_appointments",
+      "route_family": "Appointments",
+      "callback_uri": "https://patient.vecells.example/auth/callback/appointments",
+      "route_intent_key": "patient.appointments.manage",
+      "session_ceiling": "writable_if_local_capability_allows",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Booking truth, waitlist, and manage posture require high verification before local capability can widen.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_029",
+      "environment_profile_id": "env_actual_production",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_health_record",
+      "route_family_id": "rf_patient_health_record",
+      "route_family": "Health record",
+      "callback_uri": "https://patient.vecells.example/auth/callback/health-record",
+      "route_intent_key": "patient.record.entry",
+      "session_ceiling": "auth_read_only_or_writable_after_local_capability",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Sensitive-record access needs high verification, but the local shell still controls artifact visibility and actionability.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_030",
+      "environment_profile_id": "env_actual_production",
+      "client_id": "mc_patient_portal",
+      "route_binding_id": "rb_patient_messages",
+      "route_family_id": "rf_patient_messages",
+      "route_family": "Messages",
+      "callback_uri": "https://patient.vecells.example/auth/callback/messages",
+      "route_intent_key": "patient.messages.thread",
+      "session_ceiling": "auth_read_only_or_writable_after_local_capability",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Messaging reply and callback repair stay bound to reachability and current thread tuples after auth.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_031",
+      "environment_profile_id": "env_local_mock",
+      "client_id": "mc_recovery_bridge",
+      "route_binding_id": "rb_patient_intake_upgrade",
+      "route_family_id": "rf_intake_self_service",
+      "route_family": "Intake / self-service form (derived)",
+      "callback_uri": "http://127.0.0.1:4174/auth/callback/intake",
+      "route_intent_key": "patient.intake.upgrade",
+      "session_ceiling": "auth_read_only",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Auth success may only upgrade the public intake shell into an authenticated or claim-pending posture; it never grants clinical writability by itself.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_032",
+      "environment_profile_id": "env_local_mock",
+      "client_id": "mc_recovery_bridge",
+      "route_binding_id": "rb_secure_link_recovery",
+      "route_family_id": "rf_patient_secure_link_recovery",
+      "route_family": "Secure-link recovery and claim resume (derived)",
+      "callback_uri": "http://127.0.0.1:4174/auth/callback/recovery",
+      "route_intent_key": "patient.recovery.resume",
+      "session_ceiling": "claim_pending_or_step_up",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Keeps grant-scoped recovery narrow and bound to the current route intent and subject lineage.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_033",
+      "environment_profile_id": "env_local_mock",
+      "client_id": "mc_recovery_bridge",
+      "route_binding_id": "rb_patient_settings_link",
+      "route_family_id": "rf_patient_home",
+      "route_family": "Home",
+      "callback_uri": "http://127.0.0.1:4174/auth/callback/settings-link",
+      "route_intent_key": "patient.settings.return",
+      "session_ceiling": "auth_read_only",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Settings-link simulations never imply broader record access; they only prove safe return handling.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_034",
+      "environment_profile_id": "env_sandpit_like",
+      "client_id": "mc_recovery_bridge",
+      "route_binding_id": "rb_patient_intake_upgrade",
+      "route_family_id": "rf_intake_self_service",
+      "route_family": "Intake / self-service form (derived)",
+      "callback_uri": "https://sandpit-like.vecells.local/auth/callback/intake",
+      "route_intent_key": "patient.intake.upgrade",
+      "session_ceiling": "auth_read_only",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Auth success may only upgrade the public intake shell into an authenticated or claim-pending posture; it never grants clinical writability by itself.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_035",
+      "environment_profile_id": "env_sandpit_like",
+      "client_id": "mc_recovery_bridge",
+      "route_binding_id": "rb_secure_link_recovery",
+      "route_family_id": "rf_patient_secure_link_recovery",
+      "route_family": "Secure-link recovery and claim resume (derived)",
+      "callback_uri": "https://sandpit-like.vecells.local/auth/callback/recovery",
+      "route_intent_key": "patient.recovery.resume",
+      "session_ceiling": "claim_pending_or_step_up",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Keeps grant-scoped recovery narrow and bound to the current route intent and subject lineage.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_036",
+      "environment_profile_id": "env_sandpit_like",
+      "client_id": "mc_recovery_bridge",
+      "route_binding_id": "rb_patient_settings_link",
+      "route_family_id": "rf_patient_home",
+      "route_family": "Home",
+      "callback_uri": "https://sandpit-like.vecells.local/auth/callback/settings-link",
+      "route_intent_key": "patient.settings.return",
+      "session_ceiling": "auth_read_only",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Settings-link simulations never imply broader record access; they only prove safe return handling.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_037",
+      "environment_profile_id": "env_integration_like",
+      "client_id": "mc_recovery_bridge",
+      "route_binding_id": "rb_patient_intake_upgrade",
+      "route_family_id": "rf_intake_self_service",
+      "route_family": "Intake / self-service form (derived)",
+      "callback_uri": "https://integration-like.vecells.local/auth/callback/intake",
+      "route_intent_key": "patient.intake.upgrade",
+      "session_ceiling": "auth_read_only",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Auth success may only upgrade the public intake shell into an authenticated or claim-pending posture; it never grants clinical writability by itself.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_038",
+      "environment_profile_id": "env_integration_like",
+      "client_id": "mc_recovery_bridge",
+      "route_binding_id": "rb_secure_link_recovery",
+      "route_family_id": "rf_patient_secure_link_recovery",
+      "route_family": "Secure-link recovery and claim resume (derived)",
+      "callback_uri": "https://integration-like.vecells.local/auth/callback/recovery",
+      "route_intent_key": "patient.recovery.resume",
+      "session_ceiling": "claim_pending_or_step_up",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Keeps grant-scoped recovery narrow and bound to the current route intent and subject lineage.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_039",
+      "environment_profile_id": "env_integration_like",
+      "client_id": "mc_recovery_bridge",
+      "route_binding_id": "rb_patient_settings_link",
+      "route_family_id": "rf_patient_home",
+      "route_family": "Home",
+      "callback_uri": "https://integration-like.vecells.local/auth/callback/settings-link",
+      "route_intent_key": "patient.settings.return",
+      "session_ceiling": "auth_read_only",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Settings-link simulations never imply broader record access; they only prove safe return handling.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_040",
+      "environment_profile_id": "env_actual_sandpit",
+      "client_id": "mc_recovery_bridge",
+      "route_binding_id": "rb_patient_intake_upgrade",
+      "route_family_id": "rf_intake_self_service",
+      "route_family": "Intake / self-service form (derived)",
+      "callback_uri": "https://sandpit.patient.vecells.example/auth/callback/intake",
+      "route_intent_key": "patient.intake.upgrade",
+      "session_ceiling": "auth_read_only",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Auth success may only upgrade the public intake shell into an authenticated or claim-pending posture; it never grants clinical writability by itself.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_041",
+      "environment_profile_id": "env_actual_sandpit",
+      "client_id": "mc_recovery_bridge",
+      "route_binding_id": "rb_secure_link_recovery",
+      "route_family_id": "rf_patient_secure_link_recovery",
+      "route_family": "Secure-link recovery and claim resume (derived)",
+      "callback_uri": "https://sandpit.patient.vecells.example/auth/callback/recovery",
+      "route_intent_key": "patient.recovery.resume",
+      "session_ceiling": "claim_pending_or_step_up",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Keeps grant-scoped recovery narrow and bound to the current route intent and subject lineage.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_042",
+      "environment_profile_id": "env_actual_sandpit",
+      "client_id": "mc_recovery_bridge",
+      "route_binding_id": "rb_patient_settings_link",
+      "route_family_id": "rf_patient_home",
+      "route_family": "Home",
+      "callback_uri": "https://sandpit.patient.vecells.example/auth/callback/settings-link",
+      "route_intent_key": "patient.settings.return",
+      "session_ceiling": "auth_read_only",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Settings-link simulations never imply broader record access; they only prove safe return handling.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_043",
+      "environment_profile_id": "env_actual_integration",
+      "client_id": "mc_recovery_bridge",
+      "route_binding_id": "rb_patient_intake_upgrade",
+      "route_family_id": "rf_intake_self_service",
+      "route_family": "Intake / self-service form (derived)",
+      "callback_uri": "https://integration.patient.vecells.example/auth/callback/intake",
+      "route_intent_key": "patient.intake.upgrade",
+      "session_ceiling": "auth_read_only",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Auth success may only upgrade the public intake shell into an authenticated or claim-pending posture; it never grants clinical writability by itself.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_044",
+      "environment_profile_id": "env_actual_integration",
+      "client_id": "mc_recovery_bridge",
+      "route_binding_id": "rb_secure_link_recovery",
+      "route_family_id": "rf_patient_secure_link_recovery",
+      "route_family": "Secure-link recovery and claim resume (derived)",
+      "callback_uri": "https://integration.patient.vecells.example/auth/callback/recovery",
+      "route_intent_key": "patient.recovery.resume",
+      "session_ceiling": "claim_pending_or_step_up",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Keeps grant-scoped recovery narrow and bound to the current route intent and subject lineage.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_045",
+      "environment_profile_id": "env_actual_integration",
+      "client_id": "mc_recovery_bridge",
+      "route_binding_id": "rb_patient_settings_link",
+      "route_family_id": "rf_patient_home",
+      "route_family": "Home",
+      "callback_uri": "https://integration.patient.vecells.example/auth/callback/settings-link",
+      "route_intent_key": "patient.settings.return",
+      "session_ceiling": "auth_read_only",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Settings-link simulations never imply broader record access; they only prove safe return handling.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_046",
+      "environment_profile_id": "env_actual_production",
+      "client_id": "mc_recovery_bridge",
+      "route_binding_id": "rb_patient_intake_upgrade",
+      "route_family_id": "rf_intake_self_service",
+      "route_family": "Intake / self-service form (derived)",
+      "callback_uri": "https://patient.vecells.example/auth/callback/intake",
+      "route_intent_key": "patient.intake.upgrade",
+      "session_ceiling": "auth_read_only",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Auth success may only upgrade the public intake shell into an authenticated or claim-pending posture; it never grants clinical writability by itself.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_047",
+      "environment_profile_id": "env_actual_production",
+      "client_id": "mc_recovery_bridge",
+      "route_binding_id": "rb_secure_link_recovery",
+      "route_family_id": "rf_patient_secure_link_recovery",
+      "route_family": "Secure-link recovery and claim resume (derived)",
+      "callback_uri": "https://patient.vecells.example/auth/callback/recovery",
+      "route_intent_key": "patient.recovery.resume",
+      "session_ceiling": "claim_pending_or_step_up",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Keeps grant-scoped recovery narrow and bound to the current route intent and subject lineage.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_048",
+      "environment_profile_id": "env_actual_production",
+      "client_id": "mc_recovery_bridge",
+      "route_binding_id": "rb_patient_settings_link",
+      "route_family_id": "rf_patient_home",
+      "route_family": "Home",
+      "callback_uri": "https://patient.vecells.example/auth/callback/settings-link",
+      "route_intent_key": "patient.settings.return",
+      "session_ceiling": "auth_read_only",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Settings-link simulations never imply broader record access; they only prove safe return handling.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_049",
+      "environment_profile_id": "env_local_mock",
+      "client_id": "mc_im1_pairing",
+      "route_binding_id": "rb_gp_im1_pairing",
+      "route_family_id": "rf_patient_home",
+      "route_family": "Home",
+      "callback_uri": "http://127.0.0.1:4174/auth/callback/gp-pairing",
+      "route_intent_key": "patient.gp.im1.pairing",
+      "session_ceiling": "claim_pending_or_step_up",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Explicitly gated behind IM1 enablement and never available as a one-off retrieval shortcut.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_050",
+      "environment_profile_id": "env_integration_like",
+      "client_id": "mc_im1_pairing",
+      "route_binding_id": "rb_gp_im1_pairing",
+      "route_family_id": "rf_patient_home",
+      "route_family": "Home",
+      "callback_uri": "https://integration-like.vecells.local/auth/callback/gp-pairing",
+      "route_intent_key": "patient.gp.im1.pairing",
+      "session_ceiling": "claim_pending_or_step_up",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Explicitly gated behind IM1 enablement and never available as a one-off retrieval shortcut.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_051",
+      "environment_profile_id": "env_actual_integration",
+      "client_id": "mc_im1_pairing",
+      "route_binding_id": "rb_gp_im1_pairing",
+      "route_family_id": "rf_patient_home",
+      "route_family": "Home",
+      "callback_uri": "https://integration.patient.vecells.example/auth/callback/gp-pairing",
+      "route_intent_key": "patient.gp.im1.pairing",
+      "session_ceiling": "claim_pending_or_step_up",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Explicitly gated behind IM1 enablement and never available as a one-off retrieval shortcut.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_052",
+      "environment_profile_id": "env_actual_production",
+      "client_id": "mc_im1_pairing",
+      "route_binding_id": "rb_gp_im1_pairing",
+      "route_family_id": "rf_patient_home",
+      "route_family": "Home",
+      "callback_uri": "https://patient.vecells.example/auth/callback/gp-pairing",
+      "route_intent_key": "patient.gp.im1.pairing",
+      "session_ceiling": "claim_pending_or_step_up",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Explicitly gated behind IM1 enablement and never available as a one-off retrieval shortcut.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_053",
+      "environment_profile_id": "env_local_mock",
+      "client_id": "mc_embedded_future",
+      "route_binding_id": "rb_embedded_channel_future",
+      "route_family_id": "rf_patient_embedded_channel",
+      "route_family": "Patient embedded channel parity",
+      "callback_uri": "http://127.0.0.1:4174/auth/callback/embedded",
+      "route_intent_key": "patient.embedded.return",
+      "session_ceiling": "deferred_channel_only",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Future-only route binding kept in the pack so Phase 7 cannot silently widen current callback posture.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    },
+    {
+      "redirect_id": "redir_054",
+      "environment_profile_id": "env_integration_like",
+      "client_id": "mc_embedded_future",
+      "route_binding_id": "rb_embedded_channel_future",
+      "route_family_id": "rf_patient_embedded_channel",
+      "route_family": "Patient embedded channel parity",
+      "callback_uri": "https://integration-like.vecells.local/auth/callback/embedded",
+      "route_intent_key": "patient.embedded.return",
+      "session_ceiling": "deferred_channel_only",
+      "overflow_strategy": "opaque_state_fanout_when_more_than_10",
+      "official_limit_state": "within_current_limit",
+      "notes": "Future-only route binding kept in the pack so Phase 7 cannot silently widen current callback posture.",
+      "source_refs": "official_multiple_redirect_uris; blueprint/phase-0-the-foundation-protocol.md; blueprint/platform-runtime-and-release-blueprint.md"
+    }
+  ],
+  "mock_clients": [
+    {
+      "client_id": "mc_patient_portal",
+      "label": "Vecells patient portal",
+      "friendly_name": "Vecells Patient Portal",
+      "environment_profile_ids": [
+        "env_local_mock",
+        "env_sandpit_like",
+        "env_integration_like",
+        "env_actual_sandpit",
+        "env_actual_integration",
+        "env_actual_production"
+      ],
+      "route_binding_ids": [
+        "rb_patient_home",
+        "rb_patient_requests",
+        "rb_patient_appointments",
+        "rb_patient_health_record",
+        "rb_patient_messages"
+      ],
+      "allowed_scope_bundle_ids": [
+        "sb_patient_profile",
+        "sb_patient_profile_extended"
+      ],
+      "jwks": {
+        "kid": "kid_portal_2026_04",
+        "alg": "RS256",
+        "kty": "RSA",
+        "n": "synthetic_portal_modulus_redacted",
+        "e": "AQAB"
+      },
+      "im1_enabled": false,
+      "redirect_limit_strategy": "route_family_split_under_10",
+      "test_user_ids": [
+        "usr_basic_p0",
+        "usr_repeat_p5",
+        "usr_verified_p9"
+      ],
+      "notes": "Primary client for standard signed-in patient work."
+    },
+    {
+      "client_id": "mc_recovery_bridge",
+      "label": "Vecells recovery bridge",
+      "friendly_name": "Vecells Recovery Bridge",
+      "environment_profile_ids": [
+        "env_local_mock",
+        "env_sandpit_like",
+        "env_integration_like",
+        "env_actual_sandpit",
+        "env_actual_integration",
+        "env_actual_production"
+      ],
+      "route_binding_ids": [
+        "rb_patient_intake_upgrade",
+        "rb_secure_link_recovery",
+        "rb_patient_settings_link"
+      ],
+      "allowed_scope_bundle_ids": [
+        "sb_auth_contact_minimum",
+        "sb_patient_profile"
+      ],
+      "jwks": {
+        "kid": "kid_recovery_2026_04",
+        "alg": "RS256",
+        "kty": "RSA",
+        "n": "synthetic_recovery_modulus_redacted",
+        "e": "AQAB"
+      },
+      "im1_enabled": false,
+      "redirect_limit_strategy": "route_family_split_under_10",
+      "test_user_ids": [
+        "usr_basic_p0",
+        "usr_repeat_p5",
+        "usr_denied_consent"
+      ],
+      "notes": "Narrow client for recovery, upgrade, and safe return handling."
+    },
+    {
+      "client_id": "mc_im1_pairing",
+      "label": "Vecells IM1 pairing",
+      "friendly_name": "Vecells IM1 Pairing",
+      "environment_profile_ids": [
+        "env_local_mock",
+        "env_integration_like",
+        "env_actual_integration",
+        "env_actual_production"
+      ],
+      "route_binding_ids": [
+        "rb_gp_im1_pairing"
+      ],
+      "allowed_scope_bundle_ids": [
+        "sb_gp_im1_pairing"
+      ],
+      "jwks": {
+        "kid": "kid_im1_2026_04",
+        "alg": "RS256",
+        "kty": "RSA",
+        "n": "synthetic_im1_modulus_redacted",
+        "e": "AQAB"
+      },
+      "im1_enabled": true,
+      "redirect_limit_strategy": "single_route_under_limit",
+      "test_user_ids": [
+        "usr_im1_ready_p9"
+      ],
+      "notes": "Explicit IM1-only client. Disabled in sandpit-like environments and blocked in live until IM1 approval exists."
+    },
+    {
+      "client_id": "mc_embedded_future",
+      "label": "Vecells embedded future",
+      "friendly_name": "Vecells Embedded Future",
+      "environment_profile_ids": [
+        "env_local_mock",
+        "env_integration_like"
+      ],
+      "route_binding_ids": [
+        "rb_embedded_channel_future"
+      ],
+      "allowed_scope_bundle_ids": [
+        "sb_patient_profile"
+      ],
+      "jwks": {
+        "kid": "kid_embedded_2026_04",
+        "alg": "RS256",
+        "kty": "RSA",
+        "n": "synthetic_embedded_modulus_redacted",
+        "e": "AQAB"
+      },
+      "im1_enabled": false,
+      "redirect_limit_strategy": "deferred_channel_placeholder",
+      "test_user_ids": [
+        "usr_repeat_p5",
+        "usr_verified_p9"
+      ],
+      "notes": "Deferred channel placeholder only; not part of the current baseline."
+    }
+  ],
+  "test_users": [
+    {
+      "user_id": "usr_basic_p0",
+      "alias": "basic-p0",
+      "email": "basic-p0@mock.vecells.local",
+      "password": "Bluewoven-01",
+      "otp": "190696",
+      "verification_level": "P0",
+      "vot": "P0.Cp",
+      "im1_ready": false,
+      "environments": [
+        "env_local_mock",
+        "env_sandpit_like"
+      ],
+      "scenario_support": [
+        "happy_path",
+        "consent_denied",
+        "wrong_redirect_uri"
+      ]
+    },
+    {
+      "user_id": "usr_repeat_p5",
+      "alias": "repeat-p5",
+      "email": "repeat-p5@mock.vecells.local",
+      "password": "Bluewoven-02",
+      "otp": "190696",
+      "verification_level": "P5",
+      "vot": "P5.Cp.Cd",
+      "im1_ready": false,
+      "environments": [
+        "env_local_mock",
+        "env_sandpit_like",
+        "env_integration_like"
+      ],
+      "scenario_support": [
+        "happy_path",
+        "stale_code",
+        "reused_code",
+        "expired_session"
+      ]
+    },
+    {
+      "user_id": "usr_verified_p9",
+      "alias": "verified-p9",
+      "email": "verified-p9@mock.vecells.local",
+      "password": "Bluewoven-03",
+      "otp": "190696",
+      "verification_level": "P9",
+      "vot": "P9.Cp.Cd",
+      "im1_ready": false,
+      "environments": [
+        "env_local_mock",
+        "env_integration_like"
+      ],
+      "scenario_support": [
+        "happy_path",
+        "stale_code",
+        "reused_code",
+        "settings_return"
+      ]
+    },
+    {
+      "user_id": "usr_im1_ready_p9",
+      "alias": "im1-ready-p9",
+      "email": "im1-ready-p9@mock.vecells.local",
+      "password": "Bluewoven-04",
+      "otp": "190696",
+      "verification_level": "P9",
+      "vot": "P9.Cp.Cd",
+      "im1_ready": true,
+      "environments": [
+        "env_local_mock",
+        "env_integration_like"
+      ],
+      "scenario_support": [
+        "happy_path",
+        "im1_pairing",
+        "stale_code"
+      ]
+    },
+    {
+      "user_id": "usr_denied_consent",
+      "alias": "deny-consent",
+      "email": "deny-consent@mock.vecells.local",
+      "password": "Bluewoven-05",
+      "otp": "190696",
+      "verification_level": "P5",
+      "vot": "P5.Cp.Cd",
+      "im1_ready": false,
+      "environments": [
+        "env_local_mock",
+        "env_sandpit_like"
+      ],
+      "scenario_support": [
+        "consent_denied"
+      ]
+    }
+  ],
+  "auth_scenarios": [
+    {
+      "scenario_id": "happy_path",
+      "label": "Authorize to token to userinfo happy path",
+      "outcome": "success",
+      "return_state": "callback_received",
+      "reason_code": "AUTH_SUCCESS_LOCAL_SESSION_CHECK_REQUIRED"
+    },
+    {
+      "scenario_id": "consent_denied",
+      "label": "Consent denied",
+      "outcome": "error",
+      "return_state": "denied",
+      "reason_code": "OIDC_ACCESS_DENIED"
+    },
+    {
+      "scenario_id": "wrong_redirect_uri",
+      "label": "Wrong redirect URI",
+      "outcome": "error",
+      "return_state": "invalid_callback",
+      "reason_code": "REDIRECT_URI_NOT_REGISTERED"
+    },
+    {
+      "scenario_id": "stale_code",
+      "label": "Expired auth code",
+      "outcome": "error",
+      "return_state": "recovery_required",
+      "reason_code": "AUTH_CODE_EXPIRED"
+    },
+    {
+      "scenario_id": "reused_code",
+      "label": "Reused auth code",
+      "outcome": "error",
+      "return_state": "recovery_required",
+      "reason_code": "AUTH_CODE_ALREADY_REDEEMED"
+    },
+    {
+      "scenario_id": "expired_session",
+      "label": "Expired session and re-auth required",
+      "outcome": "error",
+      "return_state": "re_auth_required",
+      "reason_code": "SESSION_EXPIRED"
+    },
+    {
+      "scenario_id": "im1_pairing",
+      "label": "IM1 pairing via gp_integration_credentials",
+      "outcome": "conditional_success",
+      "return_state": "callback_received",
+      "reason_code": "IM1_SCOPE_ALLOWED_ONLY_WHEN_CLIENT_AND_USER_ARE_ENABLED"
+    },
+    {
+      "scenario_id": "settings_return",
+      "label": "Settings deep-link return",
+      "outcome": "success",
+      "return_state": "callback_received",
+      "reason_code": "SETTINGS_RETURN_SAFE"
+    }
+  ],
+  "live_gates": [
+    {
+      "gate_id": "LIVE_GATE_EXTERNAL_FOUNDATION_WITHHELD",
+      "label": "Phase 0 external-readiness gate",
+      "status": "blocked",
+      "summary": "seq_020 still reports `withheld` for Phase 0 entry; no real provider mutation may proceed while the external-readiness chain remains withheld.",
+      "required_for_submission": true,
+      "source_refs": [
+        "data/analysis/phase0_gate_verdict.json",
+        "prompt/024.md"
+      ]
+    },
+    {
+      "gate_id": "LIVE_GATE_NHS_LOGIN_PARTNER_APPROVED",
+      "label": "NHS login partner approval",
+      "status": "blocked",
+      "summary": "Real client IDs, redirect registration, and production credentials stay placeholder-only until the NHS login partner onboarding path and named approver identity are complete.",
+      "required_for_submission": true,
+      "source_refs": [
+        "official_integrating_to_sandpit",
+        "docs/external/24_nhs_login_actual_onboarding_strategy.md"
+      ]
+    },
+    {
+      "gate_id": "LIVE_GATE_REDIRECT_URI_REVIEW",
+      "label": "Redirect and environment review",
+      "status": "review_required",
+      "summary": "The redirect matrix is generated and route-family bound, but a later human review must approve any real sandpit or live redirect registration.",
+      "required_for_submission": true,
+      "source_refs": [
+        "official_multiple_redirect_uris",
+        "docs/external/25_redirect_uri_and_scope_matrix.md"
+      ]
+    },
+    {
+      "gate_id": "LIVE_GATE_IDENTITY_SESSION_PARITY",
+      "label": "Identity and session parity proof",
+      "status": "pass",
+      "summary": "This pack binds redirect URIs, VoT profiles, scopes, and callback outcomes to the blueprint\u2019s route-intent and local-session law.",
+      "required_for_submission": true,
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md",
+        "blueprint/phase-2-the-identity-and-echoes.md"
+      ]
+    },
+    {
+      "gate_id": "LIVE_GATE_ENVIRONMENT_TARGET_MISSING",
+      "label": "Environment target present",
+      "status": "blocked",
+      "summary": "Real runs must specify sandpit, integration, or production as a named target. The pack intentionally leaves the field blank.",
+      "required_for_submission": true,
+      "source_refs": [
+        "prompt/024.md",
+        "official_compare_environments"
+      ]
+    },
+    {
+      "gate_id": "LIVE_GATE_MUTATION_FLAG_DISABLED",
+      "label": "Live mutation flag enabled",
+      "status": "blocked",
+      "summary": "All generated browser automation defaults to dry-run and refuses live submission until ALLOW_REAL_PROVIDER_MUTATION=true.",
+      "required_for_submission": true,
+      "source_refs": [
+        "prompt/shared_operating_contract_021_to_025.md",
+        "prompt/024.md"
+      ]
+    },
+    {
+      "gate_id": "LIVE_GATE_IM1_SCAL_APPROVED",
+      "label": "IM1 and SCAL approval",
+      "status": "blocked",
+      "summary": "Any real `gp_integration_credentials` use remains blocked until IM1, SCAL, and approved third-party pairing evidence are current.",
+      "required_for_submission": false,
+      "source_refs": [
+        "official_gp_credentials",
+        "official_technical_conformance"
+      ]
+    },
+    {
+      "gate_id": "LIVE_GATE_TECHNICAL_CONFORMANCE_PENDING",
+      "label": "Technical conformance and regression pack",
+      "status": "review_required",
+      "summary": "The simulator covers callback, userinfo, stale-code, and redirect rules now, but official technical conformance still belongs to the actual integration environment.",
+      "required_for_submission": true,
+      "source_refs": [
+        "official_compare_environments",
+        "official_technical_conformance"
+      ]
+    }
+  ],
+  "summary": {
+    "route_binding_count": 10,
+    "redirect_row_count": 54,
+    "scope_bundle_count": 4,
+    "scope_row_count": 10,
+    "environment_profile_count": 6,
+    "mock_client_count": 4,
+    "test_user_count": 5,
+    "live_gate_count": 8,
+    "phase0_verdict": "withheld"
+  },
+  "placeholder_registry": {
+    "task_id": "seq_025",
+    "captured_at": "2026-04-09T18:27:42",
+    "phase0_verdict": "withheld",
+    "selector_map": {
+      "base_profile": {
+        "mode_toggle_actual": "[data-testid='mode-toggle-actual']",
+        "environment_switcher": "[data-testid='environment-switcher']",
+        "client_registry": "[data-testid='client-registry-list']",
+        "credential_intake_drawer": "[data-testid='credential-intake-drawer']",
+        "placeholder_field_prefix": "placeholder-field-",
+        "redaction_notice": "[data-testid='redaction-notice']",
+        "final_submit": "[data-testid='final-submit-button']"
+      }
+    },
+    "dry_run_defaults": {
+      "allow_real_provider_mutation": false,
+      "default_mode": "dry_run",
+      "default_target_url": "http://127.0.0.1:4174/?mode=actual&view=admin",
+      "pause_before_submit": true,
+      "redaction_required": true,
+      "trace_capture_disabled": true
+    },
+    "live_gates": [
+      {
+        "gate_id": "LIVE_GATE_EXTERNAL_FOUNDATION_WITHHELD",
+        "label": "Phase 0 external-readiness gate",
+        "status": "blocked",
+        "summary": "seq_020 still reports `withheld` for Phase 0 entry; no real provider mutation may proceed while the external-readiness chain remains withheld.",
+        "required_for_submission": true,
+        "source_refs": [
+          "data/analysis/phase0_gate_verdict.json",
+          "prompt/024.md"
+        ]
+      },
+      {
+        "gate_id": "LIVE_GATE_NHS_LOGIN_PARTNER_APPROVED",
+        "label": "NHS login partner approval",
+        "status": "blocked",
+        "summary": "Real client IDs, redirect registration, and production credentials stay placeholder-only until the NHS login partner onboarding path and named approver identity are complete.",
+        "required_for_submission": true,
+        "source_refs": [
+          "official_integrating_to_sandpit",
+          "docs/external/24_nhs_login_actual_onboarding_strategy.md"
+        ]
+      },
+      {
+        "gate_id": "LIVE_GATE_REDIRECT_URI_REVIEW",
+        "label": "Redirect and environment review",
+        "status": "review_required",
+        "summary": "The redirect matrix is generated and route-family bound, but a later human review must approve any real sandpit or live redirect registration.",
+        "required_for_submission": true,
+        "source_refs": [
+          "official_multiple_redirect_uris",
+          "docs/external/25_redirect_uri_and_scope_matrix.md"
+        ]
+      },
+      {
+        "gate_id": "LIVE_GATE_IDENTITY_SESSION_PARITY",
+        "label": "Identity and session parity proof",
+        "status": "pass",
+        "summary": "This pack binds redirect URIs, VoT profiles, scopes, and callback outcomes to the blueprint\u2019s route-intent and local-session law.",
+        "required_for_submission": true,
+        "source_refs": [
+          "blueprint/phase-0-the-foundation-protocol.md",
+          "blueprint/phase-2-the-identity-and-echoes.md"
+        ]
+      },
+      {
+        "gate_id": "LIVE_GATE_ENVIRONMENT_TARGET_MISSING",
+        "label": "Environment target present",
+        "status": "blocked",
+        "summary": "Real runs must specify sandpit, integration, or production as a named target. The pack intentionally leaves the field blank.",
+        "required_for_submission": true,
+        "source_refs": [
+          "prompt/024.md",
+          "official_compare_environments"
+        ]
+      },
+      {
+        "gate_id": "LIVE_GATE_MUTATION_FLAG_DISABLED",
+        "label": "Live mutation flag enabled",
+        "status": "blocked",
+        "summary": "All generated browser automation defaults to dry-run and refuses live submission until ALLOW_REAL_PROVIDER_MUTATION=true.",
+        "required_for_submission": true,
+        "source_refs": [
+          "prompt/shared_operating_contract_021_to_025.md",
+          "prompt/024.md"
+        ]
+      },
+      {
+        "gate_id": "LIVE_GATE_IM1_SCAL_APPROVED",
+        "label": "IM1 and SCAL approval",
+        "status": "blocked",
+        "summary": "Any real `gp_integration_credentials` use remains blocked until IM1, SCAL, and approved third-party pairing evidence are current.",
+        "required_for_submission": false,
+        "source_refs": [
+          "official_gp_credentials",
+          "official_technical_conformance"
+        ]
+      },
+      {
+        "gate_id": "LIVE_GATE_TECHNICAL_CONFORMANCE_PENDING",
+        "label": "Technical conformance and regression pack",
+        "status": "review_required",
+        "summary": "The simulator covers callback, userinfo, stale-code, and redirect rules now, but official technical conformance still belongs to the actual integration environment.",
+        "required_for_submission": true,
+        "source_refs": [
+          "official_compare_environments",
+          "official_technical_conformance"
+        ]
+      }
+    ],
+    "placeholder_fields": [
+      {
+        "placeholder_id": "cred_named_approver",
+        "label": "Named approver",
+        "secret_class": "approval_identity",
+        "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+        "backup_owner_role": "ROLE_SECURITY_LEAD",
+        "storage_backend": "partner_metadata_registry",
+        "default_value": "",
+        "required_for_live": true,
+        "notes": "Must identify the operator who may later pause-and-confirm a real submission run."
+      },
+      {
+        "placeholder_id": "cred_environment_target",
+        "label": "Environment target",
+        "secret_class": "environment_metadata",
+        "owner_role": "ROLE_IDENTITY_PARTNER_MANAGER",
+        "backup_owner_role": "ROLE_PROGRAMME_ARCHITECT",
+        "storage_backend": "partner_metadata_registry",
+        "default_value": "",
+        "required_for_live": true,
+        "notes": "Must be one of sandpit, integration, or production."
+      },
+      {
+        "placeholder_id": "cred_sandpit_client_id",
+        "label": "Sandpit client ID",
+        "secret_class": "client_identifier",
+        "owner_role": "ROLE_IDENTITY_PARTNER_MANAGER",
+        "backup_owner_role": "ROLE_SECURITY_LEAD",
+        "storage_backend": "partner_capture_quarantine",
+        "default_value": "PLACEHOLDER_SANDPIT_CLIENT_ID",
+        "required_for_live": false,
+        "notes": "Capture to quarantine first, then move to metadata registry after review."
+      },
+      {
+        "placeholder_id": "cred_integration_client_id",
+        "label": "Integration client ID",
+        "secret_class": "client_identifier",
+        "owner_role": "ROLE_IDENTITY_PARTNER_MANAGER",
+        "backup_owner_role": "ROLE_SECURITY_LEAD",
+        "storage_backend": "partner_capture_quarantine",
+        "default_value": "PLACEHOLDER_INTEGRATION_CLIENT_ID",
+        "required_for_live": false,
+        "notes": "Becomes active only after product demo and environment approval."
+      },
+      {
+        "placeholder_id": "cred_production_client_id",
+        "label": "Production client ID",
+        "secret_class": "client_identifier",
+        "owner_role": "ROLE_IDENTITY_PARTNER_MANAGER",
+        "backup_owner_role": "ROLE_SECURITY_LEAD",
+        "storage_backend": "partner_capture_quarantine",
+        "default_value": "PLACEHOLDER_PRODUCTION_CLIENT_ID",
+        "required_for_live": false,
+        "notes": "Must never be committed to the repository or screenshots."
+      },
+      {
+        "placeholder_id": "cred_public_key_ref",
+        "label": "Public-key submission ref",
+        "secret_class": "signing_key_reference",
+        "owner_role": "ROLE_SECURITY_LEAD",
+        "backup_owner_role": "ROLE_IDENTITY_PARTNER_MANAGER",
+        "storage_backend": "nonprod_hsm_keyring",
+        "default_value": "kid_portal_2026_04",
+        "required_for_live": true,
+        "notes": "The private key remains outside the repo; this field records the approved public-key reference only."
+      },
+      {
+        "placeholder_id": "cred_redirect_review_ref",
+        "label": "Redirect review ref",
+        "secret_class": "redirect_inventory_reference",
+        "owner_role": "ROLE_PROGRAMME_ARCHITECT",
+        "backup_owner_role": "ROLE_IDENTITY_PARTNER_MANAGER",
+        "storage_backend": "partner_metadata_registry",
+        "default_value": "REDIRECT_REVIEW_PENDING",
+        "required_for_live": true,
+        "notes": "Must refer to the generated route-family redirect matrix rather than ad hoc form text."
+      },
+      {
+        "placeholder_id": "cred_scope_approval_ref",
+        "label": "Scope approval ref",
+        "secret_class": "scope_approval_reference",
+        "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+        "backup_owner_role": "ROLE_PROGRAMME_ARCHITECT",
+        "storage_backend": "partner_metadata_registry",
+        "default_value": "SCOPE_APPROVAL_PENDING",
+        "required_for_live": true,
+        "notes": "Records the approved scope bundle and VTR for later real onboarding."
+      },
+      {
+        "placeholder_id": "cred_test_pack_ref",
+        "label": "Provider test pack reference",
+        "secret_class": "test_pack_reference",
+        "owner_role": "ROLE_PARTNER_ONBOARDING_LEAD",
+        "backup_owner_role": "ROLE_IDENTITY_PARTNER_MANAGER",
+        "storage_backend": "partner_metadata_registry",
+        "default_value": "TEST_PACK_PENDING",
+        "required_for_live": false,
+        "notes": "Captures the provider-issued test pack reference; not the raw spreadsheet itself."
+      },
+      {
+        "placeholder_id": "cred_gp_im1_pairing_ref",
+        "label": "IM1 pairing reference",
+        "secret_class": "im1_pairing_reference",
+        "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+        "backup_owner_role": "ROLE_SECURITY_LEAD",
+        "storage_backend": "partner_metadata_registry",
+        "default_value": "IM1_PAIRING_PENDING",
+        "required_for_live": false,
+        "notes": "Only complete when the IM1-enabled flag, SCAL, and approved third-party posture all exist."
+      },
+      {
+        "placeholder_id": "cred_live_mutation_flag",
+        "label": "Allow real provider mutation",
+        "secret_class": "execution_gate",
+        "owner_role": "ROLE_SECURITY_LEAD",
+        "backup_owner_role": "ROLE_PROGRAMME_ARCHITECT",
+        "storage_backend": "partner_metadata_registry",
+        "default_value": "false",
+        "required_for_live": true,
+        "notes": "Must remain false by default and requires a pause-before-submit acknowledgement."
+      }
+    ],
+    "vault_ingest_flow": [
+      {
+        "step_id": "ingest_01",
+        "action": "Capture provider-issued values into partner_capture_quarantine",
+        "owner_role": "ROLE_PARTNER_ONBOARDING_LEAD",
+        "storage_backend": "partner_capture_quarantine"
+      },
+      {
+        "step_id": "ingest_02",
+        "action": "Record non-secret metadata into partner_metadata_registry",
+        "owner_role": "ROLE_IDENTITY_PARTNER_MANAGER",
+        "storage_backend": "partner_metadata_registry"
+      },
+      {
+        "step_id": "ingest_03",
+        "action": "Promote live secret material into preprod_vault or production_vault only after dual review",
+        "owner_role": "ROLE_SECURITY_LEAD",
+        "storage_backend": "preprod_vault"
+      },
+      {
+        "step_id": "ingest_04",
+        "action": "Reference signing material by HSM key ID only; never expose private-key bytes to browser automation",
+        "owner_role": "ROLE_SECURITY_LEAD",
+        "storage_backend": "production_hsm_keyring"
+      }
+    ]
+  },
+  "field_dependencies": {
+    "field_map_task_id": "seq_024",
+    "named_approver_field_id": "fld_named_approver",
+    "environment_target_field_id": "fld_environment_target",
+    "live_mutation_flag_field_id": "fld_live_mutation_flag",
+    "application_dossier_fields": [
+      "fld_redirect_uri_primary",
+      "fld_public_key_ref",
+      "fld_scopes_claims_summary",
+      "fld_vector_of_trust_profile",
+      "fld_named_approver",
+      "fld_environment_target",
+      "fld_live_mutation_flag"
+    ]
+  }
+} as const;

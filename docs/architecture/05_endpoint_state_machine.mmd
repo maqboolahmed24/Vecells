@@ -1,0 +1,53 @@
+stateDiagram-v2
+    [*] --> SubmissionEnvelope
+    SubmissionEnvelope --> RequestSubmitted: SubmissionPromotionRecord
+    SubmissionEnvelope --> FallbackReview: degraded ingest or quarantine
+    SubmissionEnvelope --> IdentityHold: wrong-patient or binding dispute
+
+    RequestSubmitted --> IntakeNormalized
+    IntakeNormalized --> TriageReady
+    TriageReady --> TriageActive: RequestLifecycleLease + TriageTask
+
+    TriageActive --> UrgentRequired: SafetyDecisionRecord
+    UrgentRequired --> UrgentDiverted: UrgentDiversionSettlement
+
+    TriageActive --> MoreInfoCycle: MoreInfoCycle current
+    MoreInfoCycle --> TriageActive: accepted reply + assimilation
+    MoreInfoCycle --> ContactRepair: blocked_repair or degraded delivery
+
+    TriageActive --> DuplicateReview: DuplicateCluster(review_required)
+    DuplicateReview --> TriageActive: DuplicateResolutionDecision
+
+    TriageActive --> DirectOutcome: Self-care or admin-resolution
+    DirectOutcome --> OutcomeRecorded: authoritative direct settlement
+
+    TriageActive --> ChildCaseActive: LineageCaseLink acknowledged
+    state ChildCaseActive {
+        [*] --> Messaging
+        [*] --> Callback
+        [*] --> Booking
+        [*] --> Waitlist
+        [*] --> Hub
+        [*] --> Pharmacy
+        Messaging --> ContactRepair: delivery_failed or repair_route
+        Callback --> ContactRepair: route_invalid or repair_required
+        Booking --> Waitlist: waitlisted
+        Booking --> ConfirmationPending: ExternalConfirmationGate
+        Waitlist --> Callback: callback fallback
+        Waitlist --> Hub: hub fallback
+        Hub --> Callback: callback transfer
+        Hub --> ReopenToPractice: return_to_practice
+        Pharmacy --> ContactRepair: reachability blocked
+        Pharmacy --> ReopenToPractice: unresolved_returned or urgent_bounce_back
+    }
+
+    ConfirmationPending --> ChildCaseActive: authoritative proof restored
+    ContactRepair --> ChildCaseActive: reachability rebound
+    IdentityHold --> TriageActive: IdentityRepairReleaseSettlement
+    FallbackReview --> TriageActive: manual recovery settled
+
+    ChildCaseActive --> OutcomeRecorded: authoritative child outcome recorded
+    OutcomeRecorded --> ClosureEvaluation
+    ClosureEvaluation --> Closed: RequestClosureRecord(decision = close)
+    ClosureEvaluation --> TriageActive: blocker, gate, lease, or reopen still active
+    Closed --> [*]

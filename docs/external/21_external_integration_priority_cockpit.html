@@ -1,0 +1,1213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vecells Integration Constellation Board</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #F4F7FB;
+        --shell: #FFFFFF;
+        --inset: #EEF2F7;
+        --text-strong: #0F172A;
+        --text-default: #1E293B;
+        --text-muted: #475569;
+        --border-subtle: #E2E8F0;
+        --border-default: #CBD5E1;
+        --lane-mock: #335CFF;
+        --lane-hybrid: #5665F2;
+        --lane-actual: #7C3AED;
+        --lane-deferred: #94A3B8;
+        --accent-warning: #C98900;
+        --accent-blocked: #C24141;
+        --accent-success: #0F9D58;
+        --shadow: 0 14px 40px rgba(15, 23, 42, 0.07);
+        --radius-lg: 24px;
+        --radius-md: 18px;
+        --radius-sm: 12px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: linear-gradient(180deg, #F4F7FB 0%, #EEF3F9 100%);
+        color: var(--text-default);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.5;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible {
+        outline: 2px solid var(--lane-mock);
+        outline-offset: 2px;
+      }
+
+      .page {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      .hero {
+        background: var(--shell);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow);
+        padding: 28px;
+        display: grid;
+        gap: 20px;
+      }
+
+      .hero-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        align-items: flex-start;
+      }
+
+      .hero h1 {
+        margin: 0 0 8px;
+        color: var(--text-strong);
+        font-size: clamp(1.8rem, 2.5vw, 2.8rem);
+        line-height: 1.05;
+      }
+
+      .hero p {
+        margin: 0;
+        max-width: 78ch;
+        color: var(--text-muted);
+      }
+
+      .constellation {
+        width: 108px;
+        height: 72px;
+        flex: 0 0 auto;
+      }
+
+      .meta-row,
+      .summary-grid,
+      .filters,
+      .lane-board,
+      .panel-grid,
+      .risk-list {
+        display: grid;
+        gap: 16px;
+      }
+
+      .meta-row {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      }
+
+      .meta-card,
+      .summary-card,
+      .panel,
+      .swimlane,
+      .filter-rail,
+      .inspector {
+        background: var(--shell);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+      }
+
+      .meta-card,
+      .summary-card {
+        padding: 16px 18px;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      }
+
+      .summary-card strong,
+      .meta-card strong {
+        display: block;
+        color: var(--text-strong);
+        font-size: 1.3rem;
+      }
+
+      .meta-card span,
+      .summary-card span {
+        color: var(--text-muted);
+        font-size: 0.92rem;
+      }
+
+      .ribbon {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: #E7EDF7;
+        color: var(--text-strong);
+        font-weight: 600;
+        font-size: 0.92rem;
+      }
+
+      .layout {
+        margin-top: 24px;
+        display: grid;
+        grid-template-columns: 296px minmax(0, 1fr) 360px;
+        gap: 24px;
+        align-items: start;
+      }
+
+      .filter-rail,
+      .inspector,
+      .panel {
+        padding: 20px;
+      }
+
+      .filter-rail {
+        position: sticky;
+        top: 20px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .filter-rail h2,
+      .panel h2,
+      .inspector h2 {
+        margin: 0 0 6px;
+        color: var(--text-strong);
+        font-size: 1rem;
+      }
+
+      .rail-note,
+      .muted {
+        color: var(--text-muted);
+        font-size: 0.92rem;
+      }
+
+      .control {
+        display: grid;
+        gap: 8px;
+      }
+
+      .control label {
+        color: var(--text-strong);
+        font-weight: 600;
+        font-size: 0.92rem;
+      }
+
+      .control input,
+      .control select {
+        width: 100%;
+        min-height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--border-default);
+        background: var(--inset);
+        padding: 0 14px;
+        color: var(--text-default);
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        min-height: 28px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid var(--border-default);
+        background: var(--shell);
+        color: var(--text-default);
+      }
+
+      .chip[aria-pressed="true"] {
+        color: var(--text-strong);
+        border-color: transparent;
+        box-shadow: inset 0 0 0 1px transparent;
+      }
+
+      .chip[data-lane="mock_now"][aria-pressed="true"] {
+        background: rgba(51, 92, 255, 0.12);
+        color: var(--lane-mock);
+      }
+
+      .chip[data-lane="hybrid_mock_then_live"][aria-pressed="true"] {
+        background: rgba(86, 101, 242, 0.12);
+        color: var(--lane-hybrid);
+      }
+
+      .chip[data-lane="actual_later"][aria-pressed="true"] {
+        background: rgba(124, 58, 237, 0.12);
+        color: var(--lane-actual);
+      }
+
+      .chip[data-lane="deferred"][aria-pressed="true"] {
+        background: rgba(148, 163, 184, 0.18);
+        color: #526272;
+      }
+
+      .main {
+        display: grid;
+        gap: 24px;
+      }
+
+      .panel {
+        box-shadow: var(--shadow);
+      }
+
+      .panel-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .panel-head p {
+        margin: 0;
+      }
+
+      .quadrant {
+        min-height: 420px;
+        border-radius: var(--radius-md);
+        background: linear-gradient(180deg, #FCFDFE 0%, #F7FAFD 100%);
+        border: 1px solid var(--border-subtle);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .quadrant-grid {
+        position: absolute;
+        inset: 16px 16px 32px 32px;
+        border-left: 1px solid var(--border-default);
+        border-bottom: 1px solid var(--border-default);
+        background:
+          linear-gradient(to right, rgba(203, 213, 225, 0.45) 1px, transparent 1px) 0 0 / 25% 100%,
+          linear-gradient(to top, rgba(203, 213, 225, 0.45) 1px, transparent 1px) 0 0 / 100% 25%;
+      }
+
+      .axis-label {
+        position: absolute;
+        color: var(--text-muted);
+        font-size: 0.82rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+
+      .axis-x {
+        bottom: 6px;
+        right: 18px;
+      }
+
+      .axis-y {
+        left: 10px;
+        top: 16px;
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+      }
+
+      .node-layer {
+        position: absolute;
+        inset: 16px 16px 32px 32px;
+      }
+
+      .node {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        min-width: 116px;
+        max-width: 188px;
+        border: 1px solid transparent;
+        border-radius: 16px;
+        padding: 10px 12px;
+        text-align: left;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+      }
+
+      .node::before {
+        content: "";
+        position: absolute;
+        inset: -6px;
+        border-radius: 20px;
+        z-index: -1;
+        opacity: 0.18;
+      }
+
+      .node strong {
+        display: block;
+        color: var(--text-strong);
+        font-size: 0.88rem;
+        line-height: 1.15;
+      }
+
+      .node span {
+        display: block;
+        font-size: 0.76rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+
+      .node[data-lane="mock_now"] {
+        border-color: rgba(51, 92, 255, 0.25);
+      }
+
+      .node[data-lane="mock_now"]::before {
+        background: var(--lane-mock);
+      }
+
+      .node[data-lane="hybrid_mock_then_live"] {
+        border-color: rgba(86, 101, 242, 0.28);
+      }
+
+      .node[data-lane="hybrid_mock_then_live"]::before {
+        background: var(--lane-hybrid);
+      }
+
+      .node[data-lane="actual_later"] {
+        border-color: rgba(124, 58, 237, 0.28);
+      }
+
+      .node[data-lane="actual_later"]::before {
+        background: var(--lane-actual);
+      }
+
+      .node[data-lane="deferred"] {
+        border-color: rgba(148, 163, 184, 0.38);
+      }
+
+      .node[data-lane="deferred"]::before {
+        background: var(--lane-deferred);
+      }
+
+      .node.is-selected {
+        border-color: var(--text-strong);
+      }
+
+      .table-shell {
+        margin-top: 16px;
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        overflow: auto;
+        background: var(--shell);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border-subtle);
+        text-align: left;
+        vertical-align: top;
+        font-size: 0.9rem;
+      }
+
+      th {
+        color: var(--text-strong);
+        background: #FAFCFE;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+      }
+
+      tbody tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .lane-board {
+        min-height: 360px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .swimlane {
+        padding: 16px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(250,252,254,0.98) 100%);
+      }
+
+      .swimlane h3 {
+        margin: 0 0 6px;
+        color: var(--text-strong);
+        font-size: 0.98rem;
+      }
+
+      .swimlane .lane-note {
+        margin: 0 0 12px;
+        color: var(--text-muted);
+        font-size: 0.86rem;
+      }
+
+      .card-stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .integration-card {
+        width: 100%;
+        text-align: left;
+        border-radius: 16px;
+        border: 1px solid var(--border-subtle);
+        background: var(--shell);
+        padding: 14px;
+        min-height: 120px;
+      }
+
+      .integration-card.is-selected {
+        border-color: var(--text-strong);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .integration-card strong {
+        display: block;
+        margin-top: 8px;
+        color: var(--text-strong);
+      }
+
+      .integration-card p {
+        margin: 8px 0 0;
+        color: var(--text-muted);
+        font-size: 0.86rem;
+      }
+
+      .mini-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: var(--inset);
+        color: var(--text-default);
+        font-size: 0.78rem;
+      }
+
+      .inspector {
+        position: sticky;
+        top: 20px;
+        display: grid;
+        gap: 14px;
+        box-shadow: var(--shadow);
+      }
+
+      .inspector .block {
+        display: grid;
+        gap: 8px;
+        padding-top: 2px;
+      }
+
+      .inspector strong {
+        color: var(--text-strong);
+      }
+
+      .inspector ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .panel-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      }
+
+      .risk-list {
+        min-height: 220px;
+      }
+
+      .risk-card {
+        padding: 14px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 14px;
+        background: #FCFDFF;
+      }
+
+      .risk-card strong {
+        color: var(--text-strong);
+      }
+
+      .score-dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        margin-right: 8px;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      .empty {
+        padding: 16px;
+        border-radius: 14px;
+        background: var(--inset);
+        color: var(--text-muted);
+      }
+
+      @media (max-width: 1260px) {
+        .layout {
+          grid-template-columns: 280px minmax(0, 1fr);
+        }
+
+        .inspector {
+          grid-column: 1 / -1;
+          position: static;
+        }
+
+        .panel-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 980px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .filter-rail {
+          position: static;
+        }
+
+        .lane-board {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .page {
+          padding: 16px;
+        }
+
+        .hero {
+          padding: 20px;
+        }
+
+        .hero-top {
+          flex-direction: column;
+        }
+
+        .lane-board {
+          grid-template-columns: 1fr;
+        }
+
+        th,
+        td {
+          padding: 10px 12px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script id="payload" type="application/json">{"model_id": "INT_PRIORITY_021", "generated_at": "2026-04-09T15:01:57Z", "mission": "Turn the validated external dependency inventory into one deterministic integration priority model that separates mock-now execution from later live-provider strategy, without weakening proof, ambiguity, degraded-mode, or control-plane law.", "visual_mode": "Integration_Constellation_Board", "source_precedence": ["prompt/021.md", "prompt/shared_operating_contract_021_to_025.md", "blueprint/phase-0-the-foundation-protocol.md", "blueprint/phase-2-identity-and-echoes.md", "blueprint/phase-4-the-booking-engine.md", "blueprint/phase-5-the-network-horizon.md", "blueprint/phase-6-the-pharmacy-loop.md", "blueprint/phase-7-inside-the-nhs-app.md", "blueprint/platform-runtime-and-release-blueprint.md", "blueprint/phase-cards.md", "blueprint/forensic-audit-findings.md", "blueprint/blueprint-init.md", "data/analysis/external_dependencies.json", "data/analysis/dependency_watchlist.json", "data/analysis/master_risk_register.json", "data/analysis/phase0_gate_verdict.json"], "upstream_inputs": {"external_dependencies": "data/analysis/external_dependencies.json", "dependency_truth_matrix": "data/analysis/dependency_truth_and_fallback_matrix.csv", "browser_automation_backlog": "data/analysis/future_browser_automation_backlog.csv", "dependency_watchlist": "data/analysis/dependency_watchlist.json", "master_risk_register": "data/analysis/master_risk_register.json", "phase0_gate_verdict": "data/analysis/phase0_gate_verdict.json", "phase0_gate_blockers": "data/analysis/phase0_gate_blockers.csv", "merge_gate_matrix": "data/analysis/merge_gate_matrix.csv", "coverage_summary": "data/analysis/coverage_summary.json", "external_touchpoint_matrix": "data/analysis/external_touchpoint_matrix.csv", "cross_phase_conformance_seed": "data/analysis/cross_phase_conformance_seed.json"}, "summary": {"integration_family_count": 15, "source_dependency_count": 20, "baseline_role_counts": {"baseline_required": 3, "optional_flagged": 2, "baseline_mock_required": 8, "deferred_channel": 1, "future_optional": 1}, "lane_counts": {"hybrid_mock_then_live": 3, "actual_later": 2, "mock_now": 8, "deferred": 2}, "divergence_count": 15, "top_mock_now_ids": ["int_pharmacy_dispatch_and_urgent_return", "int_identity_nhs_login_core", "int_local_booking_provider_truth", "int_pharmacy_outcome_reconciliation", "int_telephony_capture_evidence_backplane"], "top_live_later_ids": ["int_pharmacy_dispatch_and_urgent_return", "int_identity_nhs_login_core", "int_local_booking_provider_truth", "int_telephony_capture_evidence_backplane", "int_pharmacy_outcome_reconciliation"], "phase0_entry_verdict": "withheld", "phase0_entry_reason": "Planning and architecture foundation are frozen enough to open external-readiness work, but actual Phase 0 entry remains withheld because the current-baseline external-readiness gate is still blocked by onboarding, assurance, and simulator-freeze dependencies.", "external_gate_blocker_refs": ["BLOCKER_P0_EXT_GATE_BLOCKED", "BLOCKER_P0_IDENTITY_AND_WRONG_PATIENT_PROOF", "BLOCKER_P0_TELEPHONY_AND_MESH_READINESS"]}, "task_groups": [{"task_group_id": "TG_SCORECARD_AND_SECRET_POSTURE", "label": "Scorecards And Secret Posture", "task_refs": ["seq_022", "seq_023"], "task_titles": ["external define provider selection scorecards for identity telephony notifications gp and pharmacy", "external create sandbox account strategy and secret ownership model"], "impacted_integration_ids": ["int_identity_nhs_login_core", "int_identity_pds_optional_enrichment", "int_telephony_capture_evidence_backplane", "int_sms_continuation_delivery", "int_email_notification_delivery", "int_im1_pairing_and_capability_prereq", "int_local_booking_provider_truth", "int_network_capacity_and_practice_ack", "int_cross_org_secure_messaging", "int_pharmacy_directory_and_choice", "int_pharmacy_dispatch_and_urgent_return", "int_pharmacy_outcome_reconciliation"], "why_now": "Freeze selection criteria, secret classes, and owner law before live onboarding scripts or vendor consoles appear."}, {"task_group_id": "TG_NHS_LOGIN_LONG_LEAD", "label": "NHS Login Long Lead", "task_refs": ["seq_024", "seq_025"], "task_titles": ["external use Playwright or other appropriate tooling browser automation to submit nhs login partner access requests", "external use Playwright or other appropriate tooling browser automation to capture nhs login credentials and redirect uris"], "impacted_integration_ids": ["int_identity_nhs_login_core"], "why_now": "NHS login is the only current-baseline identity rail that stays on the critical path for authenticated and recovery-grade patient authority."}, {"task_group_id": "TG_NHS_AND_PARTNER_APPROVALS", "label": "NHS And Partner Approvals", "task_refs": ["seq_026", "seq_027", "seq_028", "seq_029", "seq_030"], "task_titles": ["external use Playwright or other appropriate tooling browser automation to submit im1 pairing prerequisite forms and track scal artifacts", "external use Playwright or other appropriate tooling browser automation to request optional pds fhir sandbox access and feature flag plan", "external use Playwright or other appropriate tooling browser automation to request mesh test mailbox and message workflow access", "external use Playwright or other appropriate tooling browser automation to request nhs app sandpit and aos access", "external use Playwright or other appropriate tooling browser automation to register nhs app site link metadata placeholders"], "impacted_integration_ids": ["int_im1_pairing_and_capability_prereq", "int_local_booking_provider_truth", "int_identity_pds_optional_enrichment", "int_cross_org_secure_messaging", "int_nhs_app_embedded_channel"], "why_now": "Start long-lead NHS, interoperability, and deferred-channel approvals without letting those tracks erase the mock-first execution posture."}, {"task_group_id": "TG_COMMERCIAL_VENDOR_ONBOARDING", "label": "Commercial Vendor Onboarding", "task_refs": ["seq_031", "seq_032", "seq_033", "seq_034", "seq_035"], "task_titles": ["external select telephony ivr sms and email vendors", "external use Playwright or other appropriate tooling browser automation to create telephony vendor accounts and test numbers", "external use Playwright or other appropriate tooling browser automation to create sms and email notification projects", "external select transcription and artifact scanning providers", "external use Playwright or other appropriate tooling browser automation to provision transcription and malware scanning projects"], "impacted_integration_ids": ["int_telephony_capture_evidence_backplane", "int_sms_continuation_delivery", "int_email_notification_delivery"], "why_now": "Telephony, notifications, transcription, and scanning need scorecards and account plans, but live credentials may trail the simulator-first engineering path."}, {"task_group_id": "TG_PROVIDER_DISCOVERY_AND_FREEZE", "label": "Provider Discovery And Freeze", "task_refs": ["seq_036", "seq_037", "seq_038", "seq_039", "seq_040"], "task_titles": ["external identify gp system provider sandbox paths and booking capability evidence", "external identify pharmacy directory and update record access paths", "external create local adapter simulator backlog for unavailable or manual integrations", "external document manual approval checkpoints and browser automation retries", "external freeze integration contract assumptions and degraded mode defaults"], "impacted_integration_ids": ["int_im1_pairing_and_capability_prereq", "int_local_booking_provider_truth", "int_network_capacity_and_practice_ack", "int_pharmacy_directory_and_choice", "int_pharmacy_dispatch_and_urgent_return", "int_pharmacy_outcome_reconciliation", "int_telephony_capture_evidence_backplane", "int_email_notification_delivery", "int_cross_org_secure_messaging", "int_identity_nhs_login_core", "int_sms_continuation_delivery", "int_standards_and_assurance_watch", "int_identity_pds_optional_enrichment", "int_nhs_app_embedded_channel", "int_assistive_vendor_boundary"], "why_now": "Provider-path discovery, simulator backlog, manual checkpoints, and degraded-mode defaults turn raw dependency awareness into executable delivery law."}], "task_links": [{"task_ref": "seq_022", "task_title": "external define provider selection scorecards for identity telephony notifications gp and pharmacy", "task_group": "Scorecards And Secret Posture", "integration_ids": ["int_identity_nhs_login_core", "int_identity_pds_optional_enrichment", "int_telephony_capture_evidence_backplane", "int_sms_continuation_delivery", "int_email_notification_delivery", "int_im1_pairing_and_capability_prereq", "int_local_booking_provider_truth", "int_network_capacity_and_practice_ack", "int_cross_org_secure_messaging", "int_pharmacy_directory_and_choice", "int_pharmacy_dispatch_and_urgent_return", "int_pharmacy_outcome_reconciliation"], "integration_names": ["NHS login core identity rail", "Optional PDS enrichment seam", "Telephony capture, transcript, and artifact-safety backplane", "SMS continuation delivery rail", "Email and secure-link notification rail", "IM1 pairing and capability-governance prerequisite seam", "Local booking provider capability and confirmation-truth seam", "Network capacity and practice-acknowledgement seam", "Cross-organisation secure messaging and MESH seam", "Pharmacy directory and patient-choice seam", "Pharmacy dispatch proof and urgent-return seam", "Pharmacy outcome observation and reconciliation seam"], "lanes": ["mock_now", "hybrid_mock_then_live", "actual_later"], "baseline_roles": ["baseline_required", "baseline_mock_required", "optional_flagged"]}, {"task_ref": "seq_023", "task_title": "external create sandbox account strategy and secret ownership model", "task_group": "Scorecards And Secret Posture", "integration_ids": ["int_identity_nhs_login_core", "int_identity_pds_optional_enrichment", "int_telephony_capture_evidence_backplane", "int_email_notification_delivery", "int_im1_pairing_and_capability_prereq", "int_cross_org_secure_messaging"], "integration_names": ["NHS login core identity rail", "Optional PDS enrichment seam", "Telephony capture, transcript, and artifact-safety backplane", "Email and secure-link notification rail", "IM1 pairing and capability-governance prerequisite seam", "Cross-organisation secure messaging and MESH seam"], "lanes": ["mock_now", "hybrid_mock_then_live", "actual_later"], "baseline_roles": ["baseline_required", "baseline_mock_required", "optional_flagged"]}, {"task_ref": "seq_024", "task_title": "external use Playwright or other appropriate tooling browser automation to submit nhs login partner access requests", "task_group": "NHS Login Long Lead", "integration_ids": ["int_identity_nhs_login_core"], "integration_names": ["NHS login core identity rail"], "lanes": ["hybrid_mock_then_live"], "baseline_roles": ["baseline_required"]}, {"task_ref": "seq_025", "task_title": "external use Playwright or other appropriate tooling browser automation to capture nhs login credentials and redirect uris", "task_group": "NHS Login Long Lead", "integration_ids": ["int_identity_nhs_login_core"], "integration_names": ["NHS login core identity rail"], "lanes": ["hybrid_mock_then_live"], "baseline_roles": ["baseline_required"]}, {"task_ref": "seq_026", "task_title": "external use Playwright or other appropriate tooling browser automation to submit im1 pairing prerequisite forms and track scal artifacts", "task_group": "NHS And Partner Approvals", "integration_ids": ["int_im1_pairing_and_capability_prereq", "int_local_booking_provider_truth"], "integration_names": ["IM1 pairing and capability-governance prerequisite seam", "Local booking provider capability and confirmation-truth seam"], "lanes": ["mock_now", "hybrid_mock_then_live"], "baseline_roles": ["baseline_required", "baseline_mock_required"]}, {"task_ref": "seq_027", "task_title": "external use Playwright or other appropriate tooling browser automation to request optional pds fhir sandbox access and feature flag plan", "task_group": "NHS And Partner Approvals", "integration_ids": ["int_identity_pds_optional_enrichment"], "integration_names": ["Optional PDS enrichment seam"], "lanes": ["actual_later"], "baseline_roles": ["optional_flagged"]}, {"task_ref": "seq_028", "task_title": "external use Playwright or other appropriate tooling browser automation to request mesh test mailbox and message workflow access", "task_group": "NHS And Partner Approvals", "integration_ids": ["int_cross_org_secure_messaging"], "integration_names": ["Cross-organisation secure messaging and MESH seam"], "lanes": ["hybrid_mock_then_live"], "baseline_roles": ["baseline_mock_required"]}, {"task_ref": "seq_029", "task_title": "external use Playwright or other appropriate tooling browser automation to request nhs app sandpit and aos access", "task_group": "NHS And Partner Approvals", "integration_ids": ["int_nhs_app_embedded_channel"], "integration_names": ["NHS App embedded-channel ecosystem"], "lanes": ["deferred"], "baseline_roles": ["deferred_channel"]}, {"task_ref": "seq_030", "task_title": "external use Playwright or other appropriate tooling browser automation to register nhs app site link metadata placeholders", "task_group": "NHS And Partner Approvals", "integration_ids": ["int_nhs_app_embedded_channel"], "integration_names": ["NHS App embedded-channel ecosystem"], "lanes": ["deferred"], "baseline_roles": ["deferred_channel"]}, {"task_ref": "seq_031", "task_title": "external select telephony ivr sms and email vendors", "task_group": "Commercial Vendor Onboarding", "integration_ids": ["int_telephony_capture_evidence_backplane", "int_sms_continuation_delivery", "int_email_notification_delivery"], "integration_names": ["Telephony capture, transcript, and artifact-safety backplane", "SMS continuation delivery rail", "Email and secure-link notification rail"], "lanes": ["mock_now", "actual_later"], "baseline_roles": ["baseline_mock_required", "optional_flagged"]}, {"task_ref": "seq_032", "task_title": "external use Playwright or other appropriate tooling browser automation to create telephony vendor accounts and test numbers", "task_group": "Commercial Vendor Onboarding", "integration_ids": ["int_telephony_capture_evidence_backplane"], "integration_names": ["Telephony capture, transcript, and artifact-safety backplane"], "lanes": ["mock_now"], "baseline_roles": ["baseline_mock_required"]}, {"task_ref": "seq_033", "task_title": "external use Playwright or other appropriate tooling browser automation to create sms and email notification projects", "task_group": "Commercial Vendor Onboarding", "integration_ids": ["int_sms_continuation_delivery", "int_email_notification_delivery"], "integration_names": ["SMS continuation delivery rail", "Email and secure-link notification rail"], "lanes": ["mock_now", "actual_later"], "baseline_roles": ["baseline_mock_required", "optional_flagged"]}, {"task_ref": "seq_034", "task_title": "external select transcription and artifact scanning providers", "task_group": "Commercial Vendor Onboarding", "integration_ids": ["int_telephony_capture_evidence_backplane"], "integration_names": ["Telephony capture, transcript, and artifact-safety backplane"], "lanes": ["mock_now"], "baseline_roles": ["baseline_mock_required"]}, {"task_ref": "seq_035", "task_title": "external use Playwright or other appropriate tooling browser automation to provision transcription and malware scanning projects", "task_group": "Commercial Vendor Onboarding", "integration_ids": ["int_telephony_capture_evidence_backplane"], "integration_names": ["Telephony capture, transcript, and artifact-safety backplane"], "lanes": ["mock_now"], "baseline_roles": ["baseline_mock_required"]}, {"task_ref": "seq_036", "task_title": "external identify gp system provider sandbox paths and booking capability evidence", "task_group": "Provider Discovery And Freeze", "integration_ids": ["int_im1_pairing_and_capability_prereq", "int_local_booking_provider_truth", "int_network_capacity_and_practice_ack"], "integration_names": ["IM1 pairing and capability-governance prerequisite seam", "Local booking provider capability and confirmation-truth seam", "Network capacity and practice-acknowledgement seam"], "lanes": ["mock_now", "hybrid_mock_then_live"], "baseline_roles": ["baseline_required", "baseline_mock_required"]}, {"task_ref": "seq_037", "task_title": "external identify pharmacy directory and update record access paths", "task_group": "Provider Discovery And Freeze", "integration_ids": ["int_pharmacy_directory_and_choice", "int_pharmacy_dispatch_and_urgent_return", "int_pharmacy_outcome_reconciliation"], "integration_names": ["Pharmacy directory and patient-choice seam", "Pharmacy dispatch proof and urgent-return seam", "Pharmacy outcome observation and reconciliation seam"], "lanes": ["mock_now"], "baseline_roles": ["baseline_mock_required"]}, {"task_ref": "seq_038", "task_title": "external create local adapter simulator backlog for unavailable or manual integrations", "task_group": "Provider Discovery And Freeze", "integration_ids": ["int_telephony_capture_evidence_backplane", "int_email_notification_delivery", "int_local_booking_provider_truth", "int_network_capacity_and_practice_ack", "int_cross_org_secure_messaging", "int_pharmacy_directory_and_choice", "int_pharmacy_dispatch_and_urgent_return", "int_pharmacy_outcome_reconciliation"], "integration_names": ["Telephony capture, transcript, and artifact-safety backplane", "Email and secure-link notification rail", "Local booking provider capability and confirmation-truth seam", "Network capacity and practice-acknowledgement seam", "Cross-organisation secure messaging and MESH seam", "Pharmacy directory and patient-choice seam", "Pharmacy dispatch proof and urgent-return seam", "Pharmacy outcome observation and reconciliation seam"], "lanes": ["mock_now", "hybrid_mock_then_live"], "baseline_roles": ["baseline_mock_required"]}, {"task_ref": "seq_039", "task_title": "external document manual approval checkpoints and browser automation retries", "task_group": "Provider Discovery And Freeze", "integration_ids": ["int_identity_nhs_login_core", "int_telephony_capture_evidence_backplane", "int_sms_continuation_delivery", "int_email_notification_delivery", "int_im1_pairing_and_capability_prereq", "int_local_booking_provider_truth", "int_network_capacity_and_practice_ack", "int_cross_org_secure_messaging", "int_pharmacy_directory_and_choice", "int_pharmacy_dispatch_and_urgent_return", "int_pharmacy_outcome_reconciliation", "int_standards_and_assurance_watch"], "integration_names": ["NHS login core identity rail", "Telephony capture, transcript, and artifact-safety backplane", "SMS continuation delivery rail", "Email and secure-link notification rail", "IM1 pairing and capability-governance prerequisite seam", "Local booking provider capability and confirmation-truth seam", "Network capacity and practice-acknowledgement seam", "Cross-organisation secure messaging and MESH seam", "Pharmacy directory and patient-choice seam", "Pharmacy dispatch proof and urgent-return seam", "Pharmacy outcome observation and reconciliation seam", "NHS standards and assurance source watch"], "lanes": ["mock_now", "hybrid_mock_then_live", "actual_later"], "baseline_roles": ["baseline_required", "baseline_mock_required", "optional_flagged"]}, {"task_ref": "seq_040", "task_title": "external freeze integration contract assumptions and degraded mode defaults", "task_group": "Provider Discovery And Freeze", "integration_ids": ["int_identity_nhs_login_core", "int_identity_pds_optional_enrichment", "int_telephony_capture_evidence_backplane", "int_sms_continuation_delivery", "int_email_notification_delivery", "int_im1_pairing_and_capability_prereq", "int_local_booking_provider_truth", "int_network_capacity_and_practice_ack", "int_cross_org_secure_messaging", "int_pharmacy_directory_and_choice", "int_pharmacy_dispatch_and_urgent_return", "int_pharmacy_outcome_reconciliation", "int_nhs_app_embedded_channel", "int_assistive_vendor_boundary", "int_standards_and_assurance_watch"], "integration_names": ["NHS login core identity rail", "Optional PDS enrichment seam", "Telephony capture, transcript, and artifact-safety backplane", "SMS continuation delivery rail", "Email and secure-link notification rail", "IM1 pairing and capability-governance prerequisite seam", "Local booking provider capability and confirmation-truth seam", "Network capacity and practice-acknowledgement seam", "Cross-organisation secure messaging and MESH seam", "Pharmacy directory and patient-choice seam", "Pharmacy dispatch proof and urgent-return seam", "Pharmacy outcome observation and reconciliation seam", "NHS App embedded-channel ecosystem", "Assistive model-vendor boundary", "NHS standards and assurance source watch"], "lanes": ["mock_now", "hybrid_mock_then_live", "actual_later", "deferred"], "baseline_roles": ["baseline_required", "baseline_mock_required", "optional_flagged", "deferred_channel", "future_optional"]}], "risk_summary": [{"risk_id": "HZ_TELEPHONY_EVIDENCE_INADEQUACY", "risk_title": "Telephony evidence inadequacy", "risk_class": "clinical_safety", "risk_score": 44, "gate_impact": "blocking", "owner_role": "ROLE_MANUFACTURER_CSO", "target_due_ref": "GATE_EXTERNAL_TO_FOUNDATION", "integration_ids": ["int_cross_org_secure_messaging", "int_email_notification_delivery", "int_identity_nhs_login_core", "int_im1_pairing_and_capability_prereq", "int_sms_continuation_delivery", "int_telephony_capture_evidence_backplane"], "leading_indicators": ["telephony-evidence-readiness gating tests", "recording and transcript readiness proof"], "problem_statement": "Recording, transcript, or structured capture failure could leave clinically material phone evidence unresolved while the workflow appears routine."}, {"risk_id": "HZ_DUPLICATE_SUPPRESSION_OR_MERGE", "risk_title": "Duplicate suppression or merge hazard", "risk_class": "clinical_safety", "risk_score": 43, "gate_impact": "blocking", "owner_role": "ROLE_MANUFACTURER_CSO", "target_due_ref": "seq_028", "integration_ids": ["int_cross_org_secure_messaging", "int_im1_pairing_and_capability_prereq"], "leading_indicators": ["duplicate-resolution tests", "cross-channel candidate competition tests"], "problem_statement": "Cross-channel duplicate handling or same-request attach could inappropriately merge clinically distinct evidence or hide replay collisions."}, {"risk_id": "HZ_URGENT_DIVERSION_UNDER_OR_OVER_TRIAGE", "risk_title": "Urgent diversion under-triage or over-triage", "risk_class": "clinical_safety", "risk_score": 43, "gate_impact": "blocking", "owner_role": "ROLE_MANUFACTURER_CSO", "target_due_ref": "GATE_P0_LONG_LEAD_ASSURANCE_MERGE", "integration_ids": ["int_email_notification_delivery", "int_identity_nhs_login_core", "int_im1_pairing_and_capability_prereq", "int_sms_continuation_delivery", "int_standards_and_assurance_watch", "int_telephony_capture_evidence_backplane"], "leading_indicators": ["same_facts_same_safety_outcome regression", "urgent diversion decision-versus-settlement proof"], "problem_statement": "Rule or evidence changes could request urgent diversion too late, too early, or settle it inaccurately across channels."}, {"risk_id": "RISK_EXT_NHS_LOGIN_DELAY", "risk_title": "NHS login partner onboarding or redirect proof delay stalls the current baseline", "risk_class": "external_dependency", "risk_score": 42, "gate_impact": "blocking", "owner_role": "ROLE_INTEROPERABILITY_LEAD", "target_due_ref": "GATE_EXTERNAL_TO_FOUNDATION", "integration_ids": ["int_identity_nhs_login_core"], "leading_indicators": ["NHS login partner onboarding task still marked blocked", "redirect URI inventory differs across environments", "subject-binding proof remains mock-only while current-baseline tasks depend on it"], "problem_statement": "The current baseline assumes NHS login onboarding, redirect inventory, and subject-binding proof arrive before wider patient-authenticated flows open."}, {"risk_id": "RISK_EXT_COMMS_VENDOR_DELAY", "risk_title": "Notifications, telephony, transcription, or scanning onboarding drifts past the engineering path", "risk_class": "external_dependency", "risk_score": 41, "gate_impact": "blocking", "owner_role": "ROLE_COMMUNICATIONS_PLATFORM_LEAD", "target_due_ref": "GATE_EXTERNAL_TO_FOUNDATION", "integration_ids": ["int_email_notification_delivery", "int_sms_continuation_delivery", "int_telephony_capture_evidence_backplane"], "leading_indicators": ["Account setup tasks remain unstarted", "manual checkpoint debt grows without owner", "secure-link or callback fallback posture remains unresolved"], "problem_statement": "Telephony, notification, transcription, and malware-scanning suppliers are long-lead delivery dependencies with safety and disclosure impact."}, {"risk_id": "RISK_EXT_IM1_SCAL_DELAY", "risk_title": "IM1 and SCAL readiness lag blocks Phase 0 assurance merge and later booking reach", "risk_class": "external_dependency", "risk_score": 41, "gate_impact": "blocking", "owner_role": "ROLE_INTEROPERABILITY_LEAD", "target_due_ref": "GATE_P0_LONG_LEAD_ASSURANCE_MERGE", "integration_ids": ["int_im1_pairing_and_capability_prereq", "int_local_booking_provider_truth"], "leading_indicators": ["IM1 or SCAL packs remain draft-only", "booking-provider capability evidence remains provisional", "interop workstream artifacts are stale at gate time"], "problem_statement": "IM1 prerequisite and SCAL readiness must be visible before Phase 0 claims interoperability readiness."}, {"risk_id": "RISK_ASSURANCE_001", "risk_title": "continuity-sensitive calmness is proven by ExperienceContinuityControlEvidence", "risk_class": "release", "risk_score": 39, "gate_impact": "watch", "owner_role": "ROLE_RELEASE_MANAGER", "target_due_ref": "GATE_PLAN_EXTERNAL_ENTRY", "integration_ids": ["int_assistive_vendor_boundary"], "leading_indicators": ["Reject summaries that describe calm continuity behavior without naming the continuity evidence tuple that proves it.", "Missing evidence class: ExperienceContinuityControlEvidence", "Runtime tuple drift across ReleaseWatchTuple"], "problem_statement": "Treat patient-home actionability, thread settlement, booking manage, support replay, assistive session, workspace completion, and pharmacy-console settlement as evidence-producing continuity controls with shared ops and governance consumption."}, {"risk_id": "RISK_BOOKING_002", "risk_title": "ExternalConfirmationGate governs ambiguous booking and dispatch truth", "risk_class": "integration", "risk_score": 39, "gate_impact": "watch", "owner_role": "ROLE_INTEROPERABILITY_LEAD", "target_due_ref": "GATE_P4_PARALLEL_MERGE", "integration_ids": ["int_cross_org_secure_messaging", "int_local_booking_provider_truth", "int_network_capacity_and_practice_ack"], "leading_indicators": ["Reject summary language that implies authoritative external success before confirmation-gate resolution.", "Missing evidence class: BookingConfirmationTruthProjection", "Runtime tuple drift across RuntimePublicationBundle"], "problem_statement": "Use `ExternalConfirmationGate` and case-local truth projections for ambiguous external booking or dispatch states; never imply final booked or referred calmness before the gate clears."}, {"risk_id": "RISK_EXT_PHARMACY_PROVIDER_GAP", "risk_title": "Pharmacy directory, transport, or outcome observation posture remains weak", "risk_class": "external_dependency", "risk_score": 39, "gate_impact": "watch", "owner_role": "ROLE_PHARMACY_DOMAIN_LEAD", "target_due_ref": "GATE_P6_PARALLEL_MERGE", "integration_ids": ["int_pharmacy_directory_and_choice", "int_pharmacy_dispatch_and_urgent_return", "int_pharmacy_outcome_reconciliation"], "leading_indicators": ["directory or transport onboarding remains onboarding-only at Phase 6 entry", "pharmacy outcome observation path still lacks authoritative proof", "manual outcome reconciliation debt remains open"], "problem_statement": "Directory truth, dispatch transport, and outcome observation must all line up before pharmacy calmness or closure can be treated as trustworthy."}, {"risk_id": "RISK_MUTATION_003", "risk_title": "CommandSettlementRecord is the authoritative outcome for visible mutation state", "risk_class": "release", "risk_score": 39, "gate_impact": "watch", "owner_role": "ROLE_RELEASE_MANAGER", "target_due_ref": "GATE_PLAN_EXTERNAL_ENTRY", "integration_ids": ["int_identity_nhs_login_core", "int_im1_pairing_and_capability_prereq", "int_telephony_capture_evidence_backplane"], "leading_indicators": ["Reject summary or UI contracts that collapse local acknowledgement into final authoritative outcome.", "Missing evidence class: CommandSettlementRecord", "Runtime tuple drift across RuntimePublicationBundle"], "problem_statement": "UI calmness, success, stale recovery, and continuation posture must advance from authoritative `CommandSettlementRecord`, not optimistic UI or delivery-only signals."}, {"risk_id": "RISK_PHARMACY_001", "risk_title": "pharmacy calmness depends on dispatch proof, not transport acceptance alone", "risk_class": "integration", "risk_score": 39, "gate_impact": "watch", "owner_role": "ROLE_INTEROPERABILITY_LEAD", "target_due_ref": "GATE_P6_PARALLEL_MERGE", "integration_ids": ["int_local_booking_provider_truth", "int_pharmacy_directory_and_choice", "int_pharmacy_dispatch_and_urgent_return", "int_pharmacy_outcome_reconciliation"], "leading_indicators": ["Fail pharmacy summary text that equates send acceptance with final referral truth.", "Missing evidence class: PharmacyDispatchSettlement", "Runtime tuple drift across RuntimePublicationBundle"], "problem_statement": "Separate transport acceptance, provider acceptance, and authoritative dispatch proof, and keep patient or staff calmness pending until dispatch proof and any confirmation gate satisfy the transport class."}, {"risk_id": "RISK_RUNTIME_001", "risk_title": "RuntimePublicationBundle and DesignContractPublicationBundle publish one coherent surface tuple", "risk_class": "release", "risk_score": 39, "gate_impact": "watch", "owner_role": "ROLE_RELEASE_MANAGER", "target_due_ref": "GATE_P0_0B_TO_0C", "integration_ids": ["int_identity_nhs_login_core", "int_im1_pairing_and_capability_prereq", "int_local_booking_provider_truth"], "leading_indicators": ["Fail any summary or publication contract that treats token export or route manifests as separable from the live runtime tuple.", "Missing evidence class: ReleasePublicationParityRecord", "Runtime tuple drift across RuntimePublicationBundle"], "problem_statement": "Treat runtime publication, parity, route contracts, design contracts, and surface bindings as one exact published tuple before calm or writable posture remains live."}, {"risk_id": "HZ_WRONG_PATIENT_BINDING", "risk_title": "Wrong-patient binding or correction failure", "risk_class": "privacy", "risk_score": 38, "gate_impact": "blocking", "owner_role": "ROLE_MANUFACTURER_CSO", "target_due_ref": "GATE_EXTERNAL_TO_FOUNDATION", "integration_ids": ["int_cross_org_secure_messaging", "int_email_notification_delivery", "int_identity_nhs_login_core", "int_im1_pairing_and_capability_prereq", "int_sms_continuation_delivery", "int_standards_and_assurance_watch"], "leading_indicators": ["SafetyCase delta packet", "Session and binding regression suites"], "problem_statement": "Identity binding, secure-link redemption, or correction flow could expose or act on the wrong patient if freezes, evidence, and release ordering fail."}, {"risk_id": "RISK_RECOVERY_001", "risk_title": "bounce-back, reopen, and fallback stay inside the same lineage with explicit recovery truth", "risk_class": "resilience", "risk_score": 38, "gate_impact": "watch", "owner_role": "ROLE_SRE_LEAD", "target_due_ref": "GATE_P4_PARALLEL_MERGE", "integration_ids": ["int_cross_org_secure_messaging", "int_local_booking_provider_truth", "int_network_capacity_and_practice_ack", "int_pharmacy_directory_and_choice", "int_pharmacy_dispatch_and_urgent_return", "int_pharmacy_outcome_reconciliation"], "leading_indicators": ["Missing evidence class: ExperienceContinuityControlEvidence", "Runtime tuple drift across ReleaseRecoveryDisposition"], "problem_statement": "When accepted progress degrades, reopen or bounce back inside the same lineage using explicit fallback, exception, or recovery cases rather than detached secondary workflows."}, {"risk_id": "RISK_BOOKING_001", "risk_title": "reservation truth comes from CapacityReservation and ReservationTruthProjection", "risk_class": "product_logic", "risk_score": 37, "gate_impact": "watch", "owner_role": "ROLE_CLINICAL_PRODUCT_LEAD", "target_due_ref": "GATE_P4_PARALLEL_MERGE", "integration_ids": ["int_cross_org_secure_messaging", "int_local_booking_provider_truth", "int_network_capacity_and_practice_ack", "int_pharmacy_directory_and_choice"], "leading_indicators": ["Reject booking summaries that imply exclusivity without reservation-truth contracts.", "Missing evidence class: ControlStatusSnapshot", "Runtime tuple drift across RuntimePublicationBundle"], "problem_statement": "Visible booking exclusivity and hold truth come from `ReservationAuthority`, `CapacityReservation`, and `ReservationTruthProjection`, not countdown copy or supplier hints."}, {"risk_id": "RISK_EXT_MESH_DELAY", "risk_title": "MESH and secure-message readiness lag blocks cross-organisation messaging truth", "risk_class": "external_dependency", "risk_score": 37, "gate_impact": "watch", "owner_role": "ROLE_INTEROPERABILITY_LEAD", "target_due_ref": "GATE_P5_PARALLEL_MERGE", "integration_ids": ["int_cross_org_secure_messaging"], "leading_indicators": ["MESH mailbox or secure-message onboarding remains blocked", "cross-org fallback rules stay undocumented", "hub or support messaging paths rely on generic email fallback only"], "problem_statement": "Cross-organisation messaging readiness is a named dependency for hub and support flows, not a later implementation detail."}, {"risk_id": "RISK_MUTATION_002", "risk_title": "CommandActionRecord is the canonical mutation envelope", "risk_class": "product_logic", "risk_score": 37, "gate_impact": "watch", "owner_role": "ROLE_CLINICAL_PRODUCT_LEAD", "target_due_ref": "GATE_PLAN_EXTERNAL_ENTRY", "integration_ids": ["int_identity_nhs_login_core", "int_im1_pairing_and_capability_prereq"], "leading_indicators": ["Fail route summaries that mention mutation without a durable action-envelope record.", "Missing evidence class: CommandActionRecord", "Runtime tuple drift across RuntimePublicationBundle"], "problem_statement": "Every consequence-bearing post-submit mutation emits one durable `CommandActionRecord` tied to the active route-intent tuple and governing object version."}, {"risk_id": "RISK_STATE_001", "risk_title": "SubmissionEnvelope.state owns draft and pre-promotion lifecycle", "risk_class": "product_logic", "risk_score": 37, "gate_impact": "watch", "owner_role": "ROLE_CLINICAL_PRODUCT_LEAD", "target_due_ref": "GATE_P0_0B_TO_0C", "integration_ids": ["int_identity_nhs_login_core"], "leading_indicators": ["Reject any canonical schema or summary text that stores draft state on `Request.workflowState`.", "Missing evidence class: SubmissionPromotionRecord", "Runtime tuple drift across RuntimePublicationBundle"], "problem_statement": "Use `SubmissionEnvelope.state = draft | evidence_pending | ready_to_promote | promoted | abandoned | expired`; do not model draft as `Request.workflowState`."}, {"risk_id": "RISK_EXT_BOOKING_PROVIDER_GAP", "risk_title": "Booking supplier capability evidence remains ambiguous too late in the programme", "risk_class": "external_dependency", "risk_score": 36, "gate_impact": "watch", "owner_role": "ROLE_BOOKING_DOMAIN_LEAD", "target_due_ref": "GATE_P4_PARALLEL_MERGE", "integration_ids": ["int_local_booking_provider_truth", "int_network_capacity_and_practice_ack"], "leading_indicators": ["supplier capability evidence remains provisional", "waitlist or confirmation fallback paths remain assumption-only", "booking merge gate depends on simulator-only truth late in the cycle"], "problem_statement": "Booking implementation can outrun real supplier capability evidence, leaving slot truth, confirmation, or fallback semantics under-specified."}, {"risk_id": "RISK_STATE_004", "risk_title": "identityState plus nullable patientRef derived from IdentityBinding", "risk_class": "privacy", "risk_score": 36, "gate_impact": "watch", "owner_role": "ROLE_DPO", "target_due_ref": "GATE_OPTIONAL_PDS_ENABLEMENT", "integration_ids": ["int_identity_pds_optional_enrichment", "int_telephony_capture_evidence_backplane"], "leading_indicators": ["Reject any summary or schema that assumes unconditional `patientRef` or uses `ownershipState` instead of `identityState`.", "Missing evidence class: IdentityRepairEvidenceBundle", "Runtime tuple drift across RuntimePublicationBundle"], "problem_statement": "Use `identityState = anonymous | partial_match | matched | claimed`; treat `patientRef` as nullable and derive it only from settled `IdentityBinding`."}, {"risk_id": "RISK_MUTATION_001", "risk_title": "RouteIntentBinding is the canonical post-submit mutation fence", "risk_class": "architecture", "risk_score": 33, "gate_impact": "watch", "owner_role": "ROLE_PROGRAMME_ARCHITECT", "target_due_ref": "GATE_PLAN_EXTERNAL_ENTRY", "integration_ids": ["int_telephony_capture_evidence_backplane"], "leading_indicators": ["Reject patient or staff mutation summaries that describe live actions without a bound route-intent tuple.", "Missing evidence class: CommandActionRecord", "Runtime tuple drift across AudienceSurfaceRuntimeBinding"], "problem_statement": "Every post-submit mutation binds one live `RouteIntentBinding` over route family, session, subject binding, fence epoch, and publication posture."}, {"risk_id": "RISK_OWNERSHIP_003", "risk_title": "child domains emit milestones and evidence; they do not write canonical Request state directly", "risk_class": "architecture", "risk_score": 33, "gate_impact": "watch", "owner_role": "ROLE_PROGRAMME_ARCHITECT", "target_due_ref": "GATE_P3_PARALLEL_MERGE", "integration_ids": ["int_cross_org_secure_messaging", "int_local_booking_provider_truth", "int_network_capacity_and_practice_ack", "int_pharmacy_directory_and_choice", "int_pharmacy_dispatch_and_urgent_return", "int_pharmacy_outcome_reconciliation"], "leading_indicators": ["Reject summary text or contracts that let a child domain claim final canonical request milestone ownership.", "Missing evidence class: DecisionEpoch", "Runtime tuple drift across RuntimePublicationBundle"], "problem_statement": "Normalize triage, booking, hub, and pharmacy outputs to case-local milestones, gates, and leases that `LifecycleCoordinator` consumes to derive canonical request state."}, {"risk_id": "RISK_UI_002", "risk_title": "channel profiles constrain shell posture without redefining the shell family", "risk_class": "architecture", "risk_score": 33, "gate_impact": "watch", "owner_role": "ROLE_PROGRAMME_ARCHITECT", "target_due_ref": "GATE_POST6_SCOPE_SPLIT", "integration_ids": ["int_nhs_app_embedded_channel"], "leading_indicators": ["Reject summary language that treats NHS App embedded delivery as a current baseline hard gate or separate native workflow.", "Missing evidence class: ExperienceContinuityControlEvidence", "Runtime tuple drift across ReleaseApprovalFreeze"], "problem_statement": "Embedded, constrained-browser, and browser handoff change channel posture and affordances, but not the owning shell family; NHS App remains a deferred channel-expansion phase rather than a present hard gate."}], "divergence_register": [{"divergence_id": "DIV_INT_STANDARDS_AND_ASSURANCE_WATCH", "integration_id": "int_standards_and_assurance_watch", "integration_name": "NHS standards and assurance source watch", "divergence_class": "lane_alignment_gap", "baseline_role": "baseline_required", "recommended_lane": "mock_now", "mock_now_execution_rank": 12, "actual_provider_strategy_later_rank": 15, "rank_delta_live_minus_mock": 3, "mock_now_summary": "The external-readiness programme needs a pinned standards watch immediately so the rest of the provider strategy does not drift onto stale guidance or undocumented approval assumptions.", "actual_provider_summary": "There is no provider-acquisition track here; later work is watch refresh and exception handling, not a separate onboarding exercise.", "proof_gap_summary": "Maintain one pinned version map, freshness digest, and change-watch signal so new docs or standards changes never silently widen capability or compliance claims.", "later_task_refs": ["seq_039", "seq_040"], "later_task_titles": ["external document manual approval checkpoints and browser automation retries", "external freeze integration contract assumptions and degraded mode defaults"], "risk_refs": ["HZ_URGENT_DIVERSION_UNDER_OR_OVER_TRIAGE", "HZ_WRONG_PATIENT_BINDING"], "notes": "The family is read-mostly, but it is still a baseline requirement because stale standards can invalidate the rest of the ranking."}, {"divergence_id": "DIV_INT_PHARMACY_OUTCOME_RECONCILIATION", "integration_id": "int_pharmacy_outcome_reconciliation", "integration_name": "Pharmacy outcome observation and reconciliation seam", "divergence_class": "proof_stricter_than_public_onboarding", "baseline_role": "baseline_mock_required", "recommended_lane": "mock_now", "mock_now_execution_rank": 4, "actual_provider_strategy_later_rank": 5, "rank_delta_live_minus_mock": 1, "mock_now_summary": "Outcome replay, weak correlation, manual review, and reopened-for-safety behavior are canonical control problems and must be testable before the live assured observation path exists.", "actual_provider_summary": "Real Update Record or equivalent inbound observation routes need assured combinations and correlation evidence later, but they do not remove the need for a replay-safe mock seam now.", "proof_gap_summary": "Simulate exact replay, semantic replay, collision review, unresolved match, resolved_apply, resolved_reopen, unmatched, proof-bearing correlation chains, and blocked closure. Weakly matched outcomes may not auto-close the request or stand in for authoritative proof.", "later_task_refs": ["seq_022", "seq_037", "seq_038", "seq_039", "seq_040"], "later_task_titles": ["external define provider selection scorecards for identity telephony notifications gp and pharmacy", "external identify pharmacy directory and update record access paths", "external create local adapter simulator backlog for unavailable or manual integrations", "external document manual approval checkpoints and browser automation retries", "external freeze integration contract assumptions and degraded mode defaults"], "risk_refs": ["RISK_EXT_PHARMACY_PROVIDER_GAP", "RISK_PHARMACY_001", "RISK_RECOVERY_001", "RISK_OWNERSHIP_003"], "notes": "Outcome ingest is replay-safe or it is not safe. This family blocks closure until the reconciliation gate settles."}, {"divergence_id": "DIV_INT_TELEPHONY_CAPTURE_EVIDENCE_BACKPLANE", "integration_id": "int_telephony_capture_evidence_backplane", "integration_name": "Telephony capture, transcript, and artifact-safety backplane", "divergence_class": "proof_stricter_than_public_onboarding", "baseline_role": "baseline_mock_required", "recommended_lane": "mock_now", "mock_now_execution_rank": 5, "actual_provider_strategy_later_rank": 4, "rank_delta_live_minus_mock": -1, "mock_now_summary": "Telephony parity is baseline law and the product cannot wait for live carrier, recording, transcript, or scanning accounts before it proves IVR choreography, evidence readiness, and urgent fallback states.", "actual_provider_summary": "Live numbers, recording retention, transcript handling, and scanner placement all carry contract, privacy, and safety review before they become production truth.", "proof_gap_summary": "Simulate call-session creation, IVR branch capture, webhook retries, recording present or missing, transcript usable versus unusable, artifact quarantine, safety-usable versus manual-review states, callback or secure-link fallback, and urgent escalation. Answered call or file stored may not imply clinically usable evidence or completed contact.", "later_task_refs": ["seq_022", "seq_023", "seq_031", "seq_032", "seq_034", "seq_035", "seq_038", "seq_039", "seq_040"], "later_task_titles": ["external define provider selection scorecards for identity telephony notifications gp and pharmacy", "external create sandbox account strategy and secret ownership model", "external select telephony ivr sms and email vendors", "external use Playwright or other appropriate tooling browser automation to create telephony vendor accounts and test numbers", "external select transcription and artifact scanning providers", "external use Playwright or other appropriate tooling browser automation to provision transcription and malware scanning projects", "external create local adapter simulator backlog for unavailable or manual integrations", "external document manual approval checkpoints and browser automation retries", "external freeze integration contract assumptions and degraded mode defaults"], "risk_refs": ["HZ_TELEPHONY_EVIDENCE_INADEQUACY", "HZ_URGENT_DIVERSION_UNDER_OR_OVER_TRIAGE", "RISK_EXT_COMMS_VENDOR_DELAY", "RISK_MUTATION_003", "RISK_STATE_004", "RISK_MUTATION_001"], "notes": "Treat telephony capture as a proof-bearing evidence lane, not as a commodity voice API. Transcript completion alone is never enough; the readiness assessment stays authoritative."}, {"divergence_id": "DIV_INT_NETWORK_CAPACITY_AND_PRACTICE_ACK", "integration_id": "int_network_capacity_and_practice_ack", "integration_name": "Network capacity and practice-acknowledgement seam", "divergence_class": "proof_stricter_than_public_onboarding", "baseline_role": "baseline_mock_required", "recommended_lane": "mock_now", "mock_now_execution_rank": 6, "actual_provider_strategy_later_rank": 7, "rank_delta_live_minus_mock": 1, "mock_now_summary": "Hub choice, callback fallback, practice visibility debt, and acknowledgement overdue states must be available to product and platform teams before real partner feeds or practice routes exist.", "actual_provider_summary": "Live partner feeds and practice acknowledgements still need data-sharing and trust review before they can drive patient-visible offers or closable hub outcomes.", "proof_gap_summary": "Simulate trusted versus stale capacity snapshots, callback fallback, return-to-practice, acknowledgement generations, overdue practice debt, and supplier drift without letting stale feeds or missing ack clear the case.", "later_task_refs": ["seq_022", "seq_036", "seq_038", "seq_039", "seq_040"], "later_task_titles": ["external define provider selection scorecards for identity telephony notifications gp and pharmacy", "external identify gp system provider sandbox paths and booking capability evidence", "external create local adapter simulator backlog for unavailable or manual integrations", "external document manual approval checkpoints and browser automation retries", "external freeze integration contract assumptions and degraded mode defaults"], "risk_refs": ["RISK_BOOKING_002", "RISK_RECOVERY_001", "RISK_BOOKING_001", "RISK_EXT_BOOKING_PROVIDER_GAP", "RISK_OWNERSHIP_003"], "notes": "Hub flows must stay subordinate to trusted_offerable capacity and current-generation practice visibility debt."}, {"divergence_id": "DIV_INT_PHARMACY_DISPATCH_AND_URGENT_RETURN", "integration_id": "int_pharmacy_dispatch_and_urgent_return", "integration_name": "Pharmacy dispatch proof and urgent-return seam", "divergence_class": "proof_stricter_than_public_onboarding", "baseline_role": "baseline_mock_required", "recommended_lane": "mock_now", "mock_now_execution_rank": 1, "actual_provider_strategy_later_rank": 1, "rank_delta_live_minus_mock": 0, "mock_now_summary": "The pharmacy loop cannot wait for live dispatch or monitored urgent-return routes before it proves frozen package hashes, transport ambiguity, redispatch, and urgent reopen behavior.", "actual_provider_summary": "Real monitored routes, transport assurance, and professional escalation contacts are later onboarding work, but the simulator must already preserve their proof versus ambiguity law.", "proof_gap_summary": "Simulate dispatch attempts, transport accepted versus authoritative proof, proof deadlines, redispatch, weak email or weak mailbox returns, urgent return phone escalation, and reopen-for-safety. Update Record may not stand in for urgent return and mock send acceptance may not count as resolved dispatch truth.", "later_task_refs": ["seq_022", "seq_037", "seq_038", "seq_039", "seq_040"], "later_task_titles": ["external define provider selection scorecards for identity telephony notifications gp and pharmacy", "external identify pharmacy directory and update record access paths", "external create local adapter simulator backlog for unavailable or manual integrations", "external document manual approval checkpoints and browser automation retries", "external freeze integration contract assumptions and degraded mode defaults"], "risk_refs": ["RISK_EXT_PHARMACY_PROVIDER_GAP", "RISK_PHARMACY_001", "RISK_RECOVERY_001", "RISK_OWNERSHIP_003"], "notes": "Low mock feasibility does not excuse low fidelity. This family is exactly where proof-bearing and simple transport semantics must not be flattened."}, {"divergence_id": "DIV_INT_LOCAL_BOOKING_PROVIDER_TRUTH", "integration_id": "int_local_booking_provider_truth", "integration_name": "Local booking provider capability and confirmation-truth seam", "divergence_class": "proof_stricter_than_public_onboarding", "baseline_role": "baseline_mock_required", "recommended_lane": "mock_now", "mock_now_execution_rank": 3, "actual_provider_strategy_later_rank": 3, "rank_delta_live_minus_mock": 0, "mock_now_summary": "Booking revalidation, confirmation ambiguity, waitlist fallback, and manage-freeze rules must be proven behind a simulator before any supplier path, pairing, or portal credential becomes current.", "actual_provider_summary": "Live patient-facing booking still needs provider-path evidence, pairing readiness, and exact confirmation proof before it can move beyond simulator-backed development.", "proof_gap_summary": "Simulate slot search snapshots, capability resolution, held versus non-exclusive reservation truth, revalidation failure, confirmation_pending, disputed callbacks, same-commit read-after-write proof, manage freeze, waitlist fallback, and wrong-patient freeze. Queue or webhook acceptance may not imply booked truth.", "later_task_refs": ["seq_022", "seq_026", "seq_036", "seq_038", "seq_039", "seq_040"], "later_task_titles": ["external define provider selection scorecards for identity telephony notifications gp and pharmacy", "external use Playwright or other appropriate tooling browser automation to submit im1 pairing prerequisite forms and track scal artifacts", "external identify gp system provider sandbox paths and booking capability evidence", "external create local adapter simulator backlog for unavailable or manual integrations", "external document manual approval checkpoints and browser automation retries", "external freeze integration contract assumptions and degraded mode defaults"], "risk_refs": ["RISK_EXT_IM1_SCAL_DELAY", "RISK_BOOKING_002", "RISK_PHARMACY_001", "RISK_RUNTIME_001", "RISK_RECOVERY_001", "RISK_BOOKING_001", "RISK_EXT_BOOKING_PROVIDER_GAP", "RISK_OWNERSHIP_003"], "notes": "Proof-bearing family. Confirmation truth must stay distinct from acceptance, queueing, or webhook arrival."}, {"divergence_id": "DIV_INT_PHARMACY_DIRECTORY_AND_CHOICE", "integration_id": "int_pharmacy_directory_and_choice", "integration_name": "Pharmacy directory and patient-choice seam", "divergence_class": "lane_alignment_gap", "baseline_role": "baseline_mock_required", "recommended_lane": "mock_now", "mock_now_execution_rank": 9, "actual_provider_strategy_later_rank": 9, "rank_delta_live_minus_mock": 0, "mock_now_summary": "Patient choice, warned-choice explanations, opening-hours logic, and consent supersession need a stable directory simulator long before a real strategic search rail is current.", "actual_provider_summary": "Live directory access and source-freshness proof remain later onboarding work and should not be treated as a current-baseline blocker while the choice contract is still being built.", "proof_gap_summary": "Simulate snapshot freshness, provider opening hours, provider withdrawal, no-safe-choice conditions, warned choices, and consent reset when the selected provider or pathway drifts.", "later_task_refs": ["seq_022", "seq_037", "seq_038", "seq_039", "seq_040"], "later_task_titles": ["external define provider selection scorecards for identity telephony notifications gp and pharmacy", "external identify pharmacy directory and update record access paths", "external create local adapter simulator backlog for unavailable or manual integrations", "external document manual approval checkpoints and browser automation retries", "external freeze integration contract assumptions and degraded mode defaults"], "risk_refs": ["RISK_EXT_PHARMACY_PROVIDER_GAP", "RISK_PHARMACY_001", "RISK_RECOVERY_001", "RISK_BOOKING_001", "RISK_OWNERSHIP_003"], "notes": "Directory drift may supersede the choice tuple, but it may not silently reorder or reinterpret a frozen patient choice."}, {"divergence_id": "DIV_INT_EMAIL_NOTIFICATION_DELIVERY", "integration_id": "int_email_notification_delivery", "integration_name": "Email and secure-link notification rail", "divergence_class": "lane_alignment_gap", "baseline_role": "baseline_mock_required", "recommended_lane": "mock_now", "mock_now_execution_rank": 10, "actual_provider_strategy_later_rank": 10, "rank_delta_live_minus_mock": 0, "mock_now_summary": "Receipts, secure-link recovery, and callback or message reassurance need realistic delivery evidence and bounce semantics before a live notification vendor is onboarded.", "actual_provider_summary": "Live sender-domain verification, webhook ownership, and delivery evidence still need later onboarding before the system can promote calm patient or staff reassurance from a real provider.", "proof_gap_summary": "Simulate accepted, queued, delivered, bounced, disputed, and expired delivery chains and keep those states separate from current CommunicationEnvelope truth or secure-link authority.", "later_task_refs": ["seq_022", "seq_023", "seq_031", "seq_033", "seq_038", "seq_039", "seq_040"], "later_task_titles": ["external define provider selection scorecards for identity telephony notifications gp and pharmacy", "external create sandbox account strategy and secret ownership model", "external select telephony ivr sms and email vendors", "external use Playwright or other appropriate tooling browser automation to create sms and email notification projects", "external create local adapter simulator backlog for unavailable or manual integrations", "external document manual approval checkpoints and browser automation retries", "external freeze integration contract assumptions and degraded mode defaults"], "risk_refs": ["HZ_TELEPHONY_EVIDENCE_INADEQUACY", "HZ_URGENT_DIVERSION_UNDER_OR_OVER_TRIAGE", "RISK_EXT_COMMS_VENDOR_DELAY", "HZ_WRONG_PATIENT_BINDING"], "notes": "Do not let notification acceptance outrank booking, hub, or pharmacy truth. Delivery evidence informs communication posture only; it does not settle operational truth on its own."}, {"divergence_id": "DIV_INT_CROSS_ORG_SECURE_MESSAGING", "integration_id": "int_cross_org_secure_messaging", "integration_name": "Cross-organisation secure messaging and MESH seam", "divergence_class": "proof_stricter_than_public_onboarding", "baseline_role": "baseline_mock_required", "recommended_lane": "hybrid_mock_then_live", "mock_now_execution_rank": 7, "actual_provider_strategy_later_rank": 6, "rank_delta_live_minus_mock": -1, "mock_now_summary": "Hub, practice, and pharmacy message flows need replay-safe transport proof, ambiguity, and escalation behavior now even though live mailbox or certificate onboarding will lag.", "actual_provider_summary": "Real mailboxes, certificates, minimum-necessary payload review, and cross-org approvals are later work that should start early but must not stall simulator-backed implementation.", "proof_gap_summary": "Simulate ordered outbox dispatch, queue acceptance, mailbox receipt, duplicate or reordered callbacks, disputed delivery, proof upgrades, and escalation routes. Transport acceptance alone may never settle hub or pharmacy truth, and the mock must preserve explicit proof versus ambiguity states for every effect chain.", "later_task_refs": ["seq_022", "seq_023", "seq_028", "seq_038", "seq_039", "seq_040"], "later_task_titles": ["external define provider selection scorecards for identity telephony notifications gp and pharmacy", "external create sandbox account strategy and secret ownership model", "external use Playwright or other appropriate tooling browser automation to request mesh test mailbox and message workflow access", "external create local adapter simulator backlog for unavailable or manual integrations", "external document manual approval checkpoints and browser automation retries", "external freeze integration contract assumptions and degraded mode defaults"], "risk_refs": ["HZ_TELEPHONY_EVIDENCE_INADEQUACY", "HZ_DUPLICATE_SUPPRESSION_OR_MERGE", "RISK_BOOKING_002", "HZ_WRONG_PATIENT_BINDING", "RISK_RECOVERY_001", "RISK_BOOKING_001", "RISK_EXT_MESH_DELAY", "RISK_OWNERSHIP_003"], "notes": "Proof-bearing transport family. Weak mailbox or weak transport semantics must stay visibly distinct from business settlement."}, {"divergence_id": "DIV_INT_IDENTITY_NHS_LOGIN_CORE", "integration_id": "int_identity_nhs_login_core", "integration_name": "NHS login core identity rail", "divergence_class": "proof_stricter_than_public_onboarding", "baseline_role": "baseline_required", "recommended_lane": "hybrid_mock_then_live", "mock_now_execution_rank": 2, "actual_provider_strategy_later_rank": 2, "rank_delta_live_minus_mock": 0, "mock_now_summary": "Phase 2 cannot defer auth transactions, route-intent binding, subject mismatch handling, or read-only versus writable recovery states until the partner onboarding completes.", "actual_provider_summary": "Current-baseline authenticated and recovery-grade patient authority still depends on real redirect inventory, partner approval, and live session proof before the rail is admissible.", "proof_gap_summary": "Simulate frozen authorize and callback scope bundles, state or nonce or PKCE fences, consent decline, insufficient assurance, subject mismatch, callback replay, auth_read_only, claim_pending, writable, and bounded recovery. Mock callback arrival must never equal writable authority.", "later_task_refs": ["seq_022", "seq_023", "seq_024", "seq_025", "seq_039", "seq_040"], "later_task_titles": ["external define provider selection scorecards for identity telephony notifications gp and pharmacy", "external create sandbox account strategy and secret ownership model", "external use Playwright or other appropriate tooling browser automation to submit nhs login partner access requests", "external use Playwright or other appropriate tooling browser automation to capture nhs login credentials and redirect uris", "external document manual approval checkpoints and browser automation retries", "external freeze integration contract assumptions and degraded mode defaults"], "risk_refs": ["HZ_TELEPHONY_EVIDENCE_INADEQUACY", "HZ_URGENT_DIVERSION_UNDER_OR_OVER_TRIAGE", "RISK_EXT_NHS_LOGIN_DELAY", "RISK_MUTATION_003", "RISK_RUNTIME_001", "HZ_WRONG_PATIENT_BINDING", "RISK_MUTATION_002", "RISK_STATE_001"], "notes": "Core identity rail. Do not let callback success, subject claims, or token exchange stand in for SessionEstablishmentDecision plus RouteIntentBinding and current IdentityBinding."}, {"divergence_id": "DIV_INT_IM1_PAIRING_AND_CAPABILITY_PREREQ", "integration_id": "int_im1_pairing_and_capability_prereq", "integration_name": "IM1 pairing and capability-governance prerequisite seam", "divergence_class": "lane_alignment_gap", "baseline_role": "baseline_required", "recommended_lane": "hybrid_mock_then_live", "mock_now_execution_rank": 8, "actual_provider_strategy_later_rank": 8, "rank_delta_live_minus_mock": 0, "mock_now_summary": "The programme needs a governed capability-matrix seam and explicit blocked states now so booking and identity work stay decoupled from live supplier pairing while the long-lead onboarding runs.", "actual_provider_summary": "IM1 and SCAL readiness are still required before live supplier capability claims are admissible for booking reach, but the corpus explicitly keeps this out of the Phase 2 identity critical path.", "proof_gap_summary": "Simulate unsupported, supported-test-only, linkage-required, and blocked capability rows plus pairing-pack freshness states. The mock may not claim live supplier reach or patient-facing capability proof.", "later_task_refs": ["seq_022", "seq_023", "seq_026", "seq_036", "seq_039", "seq_040"], "later_task_titles": ["external define provider selection scorecards for identity telephony notifications gp and pharmacy", "external create sandbox account strategy and secret ownership model", "external use Playwright or other appropriate tooling browser automation to submit im1 pairing prerequisite forms and track scal artifacts", "external identify gp system provider sandbox paths and booking capability evidence", "external document manual approval checkpoints and browser automation retries", "external freeze integration contract assumptions and degraded mode defaults"], "risk_refs": ["HZ_TELEPHONY_EVIDENCE_INADEQUACY", "HZ_DUPLICATE_SUPPRESSION_OR_MERGE", "HZ_URGENT_DIVERSION_UNDER_OR_OVER_TRIAGE", "RISK_EXT_IM1_SCAL_DELAY", "RISK_MUTATION_003", "RISK_RUNTIME_001", "HZ_WRONG_PATIENT_BINDING", "RISK_MUTATION_002"], "notes": "Long-lead baseline dependency. Keep IM1 out of the Phase 2 identity critical path even while starting the pairing programme early for later booking reach."}, {"divergence_id": "DIV_INT_IDENTITY_PDS_OPTIONAL_ENRICHMENT", "integration_id": "int_identity_pds_optional_enrichment", "integration_name": "Optional PDS enrichment seam", "divergence_class": "lane_alignment_gap", "baseline_role": "optional_flagged", "recommended_lane": "actual_later", "mock_now_execution_rank": 15, "actual_provider_strategy_later_rank": 14, "rank_delta_live_minus_mock": -1, "mock_now_summary": "Only a thin no-op or fixture seam is required now so the identity model proves PDS is optional and cannot silently become the baseline truth source.", "actual_provider_summary": "PDS access carries legal-basis, approval, and feature-flag prerequisites and remains a later enrichment strategy rather than a current-baseline blocker.", "proof_gap_summary": "Model enrichment absent, enrichment available, partial demographic corroboration, and enrichment rejected without letting the seam widen identity authority or hide local matching uncertainty.", "later_task_refs": ["seq_022", "seq_023", "seq_027", "seq_040"], "later_task_titles": ["external define provider selection scorecards for identity telephony notifications gp and pharmacy", "external create sandbox account strategy and secret ownership model", "external use Playwright or other appropriate tooling browser automation to request optional pds fhir sandbox access and feature flag plan", "external freeze integration contract assumptions and degraded mode defaults"], "risk_refs": ["RISK_STATE_004"], "notes": "Do not rank PDS above NHS login. The seam may enrich matching confidence later, but it does not replace append-only binding law or become a shortcut for ownership claims."}, {"divergence_id": "DIV_INT_SMS_CONTINUATION_DELIVERY", "integration_id": "int_sms_continuation_delivery", "integration_name": "SMS continuation delivery rail", "divergence_class": "lane_alignment_gap", "baseline_role": "optional_flagged", "recommended_lane": "actual_later", "mock_now_execution_rank": 11, "actual_provider_strategy_later_rank": 11, "rank_delta_live_minus_mock": 0, "mock_now_summary": "The internal continuation contract still needs a thin simulator so seeded versus challenge flows, delivery delay, and wrong-recipient safeguards are tested without making SMS a baseline dependency.", "actual_provider_summary": "SMS remains optional-flagged. Live sender registration and wrong-recipient governance should trail the current MVP proof and never outrank the core identity or booking truth seams.", "proof_gap_summary": "Simulate queued, delayed, bounced, and expired deliveries, seeded versus challenge continuation, and grant issuance without letting provider acceptance imply grant redemption or verified reachability.", "later_task_refs": ["seq_022", "seq_031", "seq_033", "seq_039", "seq_040"], "later_task_titles": ["external define provider selection scorecards for identity telephony notifications gp and pharmacy", "external select telephony ivr sms and email vendors", "external use Playwright or other appropriate tooling browser automation to create sms and email notification projects", "external document manual approval checkpoints and browser automation retries", "external freeze integration contract assumptions and degraded mode defaults"], "risk_refs": ["HZ_TELEPHONY_EVIDENCE_INADEQUACY", "HZ_URGENT_DIVERSION_UNDER_OR_OVER_TRIAGE", "RISK_EXT_COMMS_VENDOR_DELAY", "HZ_WRONG_PATIENT_BINDING"], "notes": "Optional flagged only. SMS delivery is external; continuation grants, route authority, and claim law remain internal and must continue to work without live SMS."}, {"divergence_id": "DIV_INT_NHS_APP_EMBEDDED_CHANNEL", "integration_id": "int_nhs_app_embedded_channel", "integration_name": "NHS App embedded-channel ecosystem", "divergence_class": "deferred_or_future", "baseline_role": "deferred_channel", "recommended_lane": "deferred", "mock_now_execution_rank": 13, "actual_provider_strategy_later_rank": 12, "rank_delta_live_minus_mock": -1, "mock_now_summary": "Only preserve manifest, bridge-capability, and downgrade contracts in a local simulator so future embedded work cannot violate current shell or release law.", "actual_provider_summary": "Phase 7 remains deferred channel expansion and may not become a current-baseline blocker or reorder the live-provider acquisition queue.", "proof_gap_summary": "Simulate embedded manifest present or missing, bridge capability denied, safe browser handoff, route-freeze fallback, and placeholder-only embedded visibility. The deferred channel may not imply current-baseline writability.", "later_task_refs": ["seq_029", "seq_030", "seq_040"], "later_task_titles": ["external use Playwright or other appropriate tooling browser automation to request nhs app sandpit and aos access", "external use Playwright or other appropriate tooling browser automation to register nhs app site link metadata placeholders", "external freeze integration contract assumptions and degraded mode defaults"], "risk_refs": ["RISK_UI_002"], "notes": "Deferred by programme law. Inventory it, sequence it, but do not let it block current-baseline execution."}, {"divergence_id": "DIV_INT_ASSISTIVE_VENDOR_BOUNDARY", "integration_id": "int_assistive_vendor_boundary", "integration_name": "Assistive model-vendor boundary", "divergence_class": "deferred_or_future", "baseline_role": "future_optional", "recommended_lane": "deferred", "mock_now_execution_rank": 14, "actual_provider_strategy_later_rank": 13, "rank_delta_live_minus_mock": -1, "mock_now_summary": "Keep only bounded observe-only and placeholder-only seams alive so core clinical and operational delivery stays complete without any model-vendor dependency.", "actual_provider_summary": "Future assistive onboarding depends on intended-use decisions, medical-device boundary review, supplier assurance, and rollout cohorts that remain optional to core completeness.", "proof_gap_summary": "Simulate observe_only, shadow_only, frozen, placeholder_only, and hidden states. Assistive output may not become authoritative action, closure, or patient reassurance in the mock.", "later_task_refs": ["seq_040"], "later_task_titles": ["external freeze integration contract assumptions and degraded mode defaults"], "risk_refs": ["RISK_ASSURANCE_001"], "notes": "Optional to core completeness. Do not let model-vendor glamour or roadmap curiosity displace current-baseline need."}], "integration_families": [{"integration_id": "int_identity_nhs_login_core", "integration_family": "identity_auth", "integration_name": "NHS login core identity rail", "source_dependency_ids": ["dep_nhs_login_rail"], "source_dependency_names": ["NHS login authentication rail"], "baseline_role": "baseline_required", "authoritative_truth_class": "identity_session_and_writable_authority", "patient_safety_impact": "high", "control_plane_impact": "critical", "lineage_or_closure_dependency": "direct", "channel_dependency_classes": ["browser_web", "secure_link_continuation", "support_recovery"], "bounded_context_refs": ["identity_access", "patient_portal", "support_recovery"], "current_mock_feasibility": "high", "live_onboarding_latency_band": "contract_heavy", "sponsor_or_assurance_gate": "required", "recommended_lane": "hybrid_mock_then_live", "why_mock_now": "Phase 2 cannot defer auth transactions, route-intent binding, subject mismatch handling, or read-only versus writable recovery states until the partner onboarding completes.", "why_actual_later": "Current-baseline authenticated and recovery-grade patient authority still depends on real redirect inventory, partner approval, and live session proof before the rail is admissible.", "minimum_mock_fidelity": "Simulate frozen authorize and callback scope bundles, state or nonce or PKCE fences, consent decline, insufficient assurance, subject mismatch, callback replay, auth_read_only, claim_pending, writable, and bounded recovery. Mock callback arrival must never equal writable authority.", "minimum_live_readiness_conditions": ["seq_022 scorecard freezes redirect, scope, and evidence rules for the rail", "seq_023 secret ownership and vault-ingest posture is published for client identifiers and signing material", "seq_024 and seq_025 capture partner access requests plus environment-specific redirect inventory", "GATE_EXTERNAL_TO_FOUNDATION remains blocked until live onboarding proof is current for the active environment"], "later_task_refs": ["seq_022", "seq_023", "seq_024", "seq_025", "seq_039", "seq_040"], "risk_refs": ["HZ_TELEPHONY_EVIDENCE_INADEQUACY", "HZ_URGENT_DIVERSION_UNDER_OR_OVER_TRIAGE", "RISK_EXT_NHS_LOGIN_DELAY", "RISK_MUTATION_003", "RISK_RUNTIME_001", "HZ_WRONG_PATIENT_BINDING", "RISK_MUTATION_002", "RISK_STATE_001"], "notes": "Core identity rail. Do not let callback success, subject claims, or token exchange stand in for SessionEstablishmentDecision plus RouteIntentBinding and current IdentityBinding.", "source_refs": ["blueprint/phase-2-identity-and-echoes.md#2B. NHS login bridge and local session engine", "blueprint/blueprint-init.md#10. Identity, consent, security, and policy", "data/analysis/dependency_truth_and_fallback_matrix.csv#dep_nhs_login_rail", "data/analysis/phase0_gate_verdict.json#GATE_P0_FOUNDATION_ENTRY", "phase-2-identity-and-echoes.md#2B. NHS login bridge and local session engine", "blueprint-init.md#10. Identity, consent, security, and policy", "platform-runtime-and-release-blueprint.md#AdapterContractProfile"], "watch_lifecycle_states": ["onboarding"], "watch_dependency_ids": ["dep_nhs_login_rail"], "phase0_blocker_refs": ["BLOCKER_P0_EXT_GATE_BLOCKED", "BLOCKER_P0_IDENTITY_AND_WRONG_PATIENT_PROOF"], "touchpoint_ids": ["ext_nhs_login"], "truth_proof_digest": ["Current SessionEstablishmentDecision plus current Session, IdentityBinding, and RouteIntentBinding showing writable authority for the same subject and lineage."], "ambiguity_modes": ["ConsentNotGiven or access_denied returns", "Subject mismatch or stale subject binding version", "claim_pending or auth_read_only posture after successful auth"], "fallback_modes": ["bounded_recovery with explicit post-auth next step", "auth_read_only or claim_pending shell posture", "secure-link or support-assisted recovery without pretending writable ownership"], "mock_placeholder_only": ["branding chrome", "non-authoritative copy polish"], "failure_injection_expectations": ["duplicate callback replay", "expired auth transaction", "consent declined", "subject mismatch against secure-link or draft continuation", "auth success without writable authority"], "cannot_be_authoritative": ["raw callback arrival", "token exchange success without session establishment", "subject claim without current binding and route authority"], "patient_safety_consequence": 4, "canonical_truth_effect": 5, "patient_visible_continuity": 5, "operator_truth_supportability": 4, "mockability_quality": 4, "live_acquisition_latency": 5, "approval_burden": 5, "security_privacy_burden": 5, "coupling_risk_if_delayed": 5, "readiness_value_unlocked": 5, "proof_rigor_demand": 5, "mock_now_execution_score": 251, "actual_provider_strategy_later_score": 253, "quadrant_live_acquisition_friction": 89, "quadrant_mvp_control_plane_necessity": 93, "summary_dependency_names": "NHS login authentication rail", "mock_now_execution_rank": 2, "mock_now_execution_ordering_key": "02:int_identity_nhs_login_core", "actual_provider_strategy_later_rank": 2, "actual_provider_strategy_later_ordering_key": "02:int_identity_nhs_login_core", "rank_delta_live_minus_mock": 0}, {"integration_id": "int_identity_pds_optional_enrichment", "integration_family": "patient_data_enrichment", "integration_name": "Optional PDS enrichment seam", "source_dependency_ids": ["dep_pds_fhir_enrichment"], "source_dependency_names": ["Optional PDS enrichment seam"], "baseline_role": "optional_flagged", "authoritative_truth_class": "supporting_demographic_enrichment_only", "patient_safety_impact": "medium", "control_plane_impact": "medium", "lineage_or_closure_dependency": "indirect", "channel_dependency_classes": ["browser_web", "support_recovery", "governance_review"], "bounded_context_refs": ["identity_access", "governance", "support_operations"], "current_mock_feasibility": "high", "live_onboarding_latency_band": "contract_heavy", "sponsor_or_assurance_gate": "required", "recommended_lane": "actual_later", "why_mock_now": "Only a thin no-op or fixture seam is required now so the identity model proves PDS is optional and cannot silently become the baseline truth source.", "why_actual_later": "PDS access carries legal-basis, approval, and feature-flag prerequisites and remains a later enrichment strategy rather than a current-baseline blocker.", "minimum_mock_fidelity": "Model enrichment absent, enrichment available, partial demographic corroboration, and enrichment rejected without letting the seam widen identity authority or hide local matching uncertainty.", "minimum_live_readiness_conditions": ["seq_027 produces the optional sandbox and feature-flag plan", "seq_040 freezes the no-PDS degraded default and no-authority-escalation law", "Any tenant rollout remains behind explicit legal-basis and governance approval"], "later_task_refs": ["seq_022", "seq_023", "seq_027", "seq_040"], "risk_refs": ["RISK_STATE_004"], "notes": "Do not rank PDS above NHS login. The seam may enrich matching confidence later, but it does not replace append-only binding law or become a shortcut for ownership claims.", "source_refs": ["blueprint/phase-2-identity-and-echoes.md#2C. Patient linkage, demographic confidence, and optional PDS enrichment", "blueprint/blueprint-init.md#10. Identity, consent, security, and policy", "data/analysis/dependency_truth_and_fallback_matrix.csv#dep_pds_fhir_enrichment", "phase-2-identity-and-echoes.md#2C. Patient linkage, demographic confidence, and optional PDS enrichment", "blueprint-init.md#10. Identity, consent, security, and policy", "phase-cards.md#Phase 2 - Identity and Echoes"], "watch_lifecycle_states": ["replaceable_by_simulator"], "watch_dependency_ids": ["dep_pds_fhir_enrichment"], "phase0_blocker_refs": [], "touchpoint_ids": [], "truth_proof_digest": ["A legally permitted PDS lookup correlated to the current linkage candidate set and accepted as supporting evidence by IdentityBindingAuthority."], "ambiguity_modes": ["Legal basis or onboarding still incomplete", "PDS response conflicts with local or telephony evidence", "Feature flag disabled for the current tenant or route"], "fallback_modes": ["Local matching only with partial_match or review posture", "Support-assisted correction without widening identity truth", "Keep enrichment fully off while preserving baseline identity flow"], "mock_placeholder_only": ["real demographics", "real organisation identifiers", "tenant rollout cohorts"], "failure_injection_expectations": ["PDS unavailable", "partial enrichment only", "enrichment contradicts local match candidate"], "cannot_be_authoritative": ["standalone PDS record lookup", "PDS response without local binding review"], "patient_safety_consequence": 2, "canonical_truth_effect": 1, "patient_visible_continuity": 1, "operator_truth_supportability": 2, "mockability_quality": 5, "live_acquisition_latency": 4, "approval_burden": 4, "security_privacy_burden": 4, "coupling_risk_if_delayed": 2, "readiness_value_unlocked": 1, "proof_rigor_demand": 1, "mock_now_execution_score": 115, "actual_provider_strategy_later_score": 122, "quadrant_live_acquisition_friction": 69, "quadrant_mvp_control_plane_necessity": 30, "summary_dependency_names": "Optional PDS enrichment seam", "mock_now_execution_rank": 15, "mock_now_execution_ordering_key": "15:int_identity_pds_optional_enrichment", "actual_provider_strategy_later_rank": 14, "actual_provider_strategy_later_ordering_key": "14:int_identity_pds_optional_enrichment", "rank_delta_live_minus_mock": -1}, {"integration_id": "int_telephony_capture_evidence_backplane", "integration_family": "telephony_evidence", "integration_name": "Telephony capture, transcript, and artifact-safety backplane", "source_dependency_ids": ["dep_telephony_ivr_recording_provider", "dep_transcription_processing_provider", "dep_malware_scanning_provider"], "source_dependency_names": ["Telephony, IVR, and call-recording provider", "Transcript and derived-facts processing provider", "Malware and artifact scanning provider"], "baseline_role": "baseline_mock_required", "authoritative_truth_class": "call_session_and_evidence_readiness", "patient_safety_impact": "critical", "control_plane_impact": "high", "lineage_or_closure_dependency": "direct", "channel_dependency_classes": ["telephony_ivr", "callback_recovery", "browser_web", "support_operations"], "bounded_context_refs": ["telephony", "evidence_classification", "artifact_quarantine", "identity_access"], "current_mock_feasibility": "medium", "live_onboarding_latency_band": "long", "sponsor_or_assurance_gate": "required", "recommended_lane": "mock_now", "why_mock_now": "Telephony parity is baseline law and the product cannot wait for live carrier, recording, transcript, or scanning accounts before it proves IVR choreography, evidence readiness, and urgent fallback states.", "why_actual_later": "Live numbers, recording retention, transcript handling, and scanner placement all carry contract, privacy, and safety review before they become production truth.", "minimum_mock_fidelity": "Simulate call-session creation, IVR branch capture, webhook retries, recording present or missing, transcript usable versus unusable, artifact quarantine, safety-usable versus manual-review states, callback or secure-link fallback, and urgent escalation. Answered call or file stored may not imply clinically usable evidence or completed contact.", "minimum_live_readiness_conditions": ["seq_031, seq_032, seq_034, and seq_035 complete the vendor selection and account-setup path", "seq_023 publishes secret ownership for account tokens, webhooks, phone numbers, and project identifiers", "seq_039 freezes manual checkpoints for recording, transcript, and quarantine failure", "seq_040 freezes degraded defaults so telephony never settles routine truth from weak evidence"], "later_task_refs": ["seq_022", "seq_023", "seq_031", "seq_032", "seq_034", "seq_035", "seq_038", "seq_039", "seq_040"], "risk_refs": ["HZ_TELEPHONY_EVIDENCE_INADEQUACY", "HZ_URGENT_DIVERSION_UNDER_OR_OVER_TRIAGE", "RISK_EXT_COMMS_VENDOR_DELAY", "RISK_MUTATION_003", "RISK_STATE_004", "RISK_MUTATION_001"], "notes": "Treat telephony capture as a proof-bearing evidence lane, not as a commodity voice API. Transcript completion alone is never enough; the readiness assessment stays authoritative.", "source_refs": ["blueprint/phase-2-identity-and-echoes.md#2E. Telephony edge, IVR choreography, and call-session persistence", "blueprint/phase-2-identity-and-echoes.md#2F. Caller verification, voice capture, transcript stub, and SMS continuation", "blueprint/forensic-audit-findings.md#Finding 12 - No safe fallback when ingest or safety failed", "data/analysis/dependency_truth_and_fallback_matrix.csv#dep_telephony_ivr_recording_provider", "phase-2-identity-and-echoes.md#2E. Telephony call-session ingestion, evidence readiness, and convergence", "phase-2-identity-and-echoes.md#2F. Caller verification, voice capture, transcript stub, and SMS continuation", "callback-and-clinician-messaging-loop.md#Callback domain", "forensic-audit-findings.md#Finding 12 - No safe fallback when ingest or safety failed", "phase-0-the-foundation-protocol.md#4.3A Artifact quarantine and fallback review"], "watch_lifecycle_states": ["onboarding"], "watch_dependency_ids": ["dep_telephony_ivr_recording_provider", "dep_transcription_processing_provider", "dep_malware_scanning_provider"], "phase0_blocker_refs": ["BLOCKER_P0_TELEPHONY_AND_MESH_READINESS"], "touchpoint_ids": ["ext_telephony_and_ivr_provider", "ext_artifact_store_and_scan"], "truth_proof_digest": ["Current CallSession evidence or CallbackOutcomeEvidenceBundle linked to AdapterReceiptCheckpoint and the current lineage-bound callback or intake objects.", "TelephonyTranscriptReadinessRecord with clinically sufficient coverage accepted by TelephonyEvidenceReadinessAssessment(usabilityState = safety_usable).", "Current artifact quarantine outcome showing the capture bundle or recording is safe, readable enough, or explicitly quarantined with governed next action."], "ambiguity_modes": ["recording_missing or transcript_degraded", "Duplicate or contradictory callback outcomes", "urgent_live_only posture without routine evidence readiness", "Coverage is partial or clinically insufficient", "Contradictory transcript reruns or stale derivation packages", "Manual review still required before routine promotion", "Scan timed out or returned unsupported", "File is quarantined or unreadable", "Conflicting scan evidence across retries"], "fallback_modes": ["Callback retry or governed manual escalation", "Secure-link continuation where route authority allows", "Manual review of audio or urgent live diversion without false routine progress", "Manual transcription or audio review", "continuation_challenge or manual_only posture", "Keep the lineage blocked on evidence readiness rather than guessing safety-usable meaning", "FallbackReviewCase with same-lineage degraded receipt", "Manual review or re-upload request", "Fail closed rather than silently dropping the artifact"], "mock_placeholder_only": ["carrier branding", "real caller IDs", "real audio content"], "failure_injection_expectations": ["recording missing", "transcript unsafe or incomplete", "scanner timeout", "duplicate telephony webhook", "urgent escalation during capture"], "cannot_be_authoritative": ["call answered event", "file upload acknowledgement", "draft transcript before readiness assessment"], "patient_safety_consequence": 5, "canonical_truth_effect": 4, "patient_visible_continuity": 4, "operator_truth_supportability": 5, "mockability_quality": 3, "live_acquisition_latency": 4, "approval_burden": 4, "security_privacy_burden": 5, "coupling_risk_if_delayed": 5, "readiness_value_unlocked": 5, "proof_rigor_demand": 5, "mock_now_execution_score": 240, "actual_provider_strategy_later_score": 243, "quadrant_live_acquisition_friction": 80, "quadrant_mvp_control_plane_necessity": 90, "summary_dependency_names": "Telephony, IVR, and call-recording provider, Transcript and derived-facts processing provider, Malware and artifact scanning provider", "mock_now_execution_rank": 5, "mock_now_execution_ordering_key": "05:int_telephony_capture_evidence_backplane", "actual_provider_strategy_later_rank": 4, "actual_provider_strategy_later_ordering_key": "04:int_telephony_capture_evidence_backplane", "rank_delta_live_minus_mock": -1}, {"integration_id": "int_sms_continuation_delivery", "integration_family": "notification_sms", "integration_name": "SMS continuation delivery rail", "source_dependency_ids": ["dep_sms_notification_provider"], "source_dependency_names": ["SMS delivery provider"], "baseline_role": "optional_flagged", "authoritative_truth_class": "delivery_for_seeded_or_challenge_continuation", "patient_safety_impact": "medium", "control_plane_impact": "medium", "lineage_or_closure_dependency": "indirect", "channel_dependency_classes": ["sms_secure_link_continuation", "telephony_ivr", "patient_portal"], "bounded_context_refs": ["telephony", "patient_communications", "callback_messaging"], "current_mock_feasibility": "high", "live_onboarding_latency_band": "medium", "sponsor_or_assurance_gate": "likely", "recommended_lane": "actual_later", "why_mock_now": "The internal continuation contract still needs a thin simulator so seeded versus challenge flows, delivery delay, and wrong-recipient safeguards are tested without making SMS a baseline dependency.", "why_actual_later": "SMS remains optional-flagged. Live sender registration and wrong-recipient governance should trail the current MVP proof and never outrank the core identity or booking truth seams.", "minimum_mock_fidelity": "Simulate queued, delayed, bounced, and expired deliveries, seeded versus challenge continuation, and grant issuance without letting provider acceptance imply grant redemption or verified reachability.", "minimum_live_readiness_conditions": ["seq_031 and seq_033 freeze the vendor path and sender ownership model", "seq_039 captures wrong-recipient and reissue checkpoints", "seq_040 freezes the default fallback away from SMS when the route or grant is stale"], "later_task_refs": ["seq_022", "seq_031", "seq_033", "seq_039", "seq_040"], "risk_refs": ["HZ_TELEPHONY_EVIDENCE_INADEQUACY", "HZ_URGENT_DIVERSION_UNDER_OR_OVER_TRIAGE", "RISK_EXT_COMMS_VENDOR_DELAY", "HZ_WRONG_PATIENT_BINDING"], "notes": "Optional flagged only. SMS delivery is external; continuation grants, route authority, and claim law remain internal and must continue to work without live SMS.", "source_refs": ["blueprint/phase-2-identity-and-echoes.md#2F. Caller verification, voice capture, transcript stub, and SMS continuation", "data/analysis/dependency_truth_and_fallback_matrix.csv#dep_sms_notification_provider", "data/analysis/future_browser_automation_backlog.csv#dep_sms_notification_provider_seq_033", "phase-2-identity-and-echoes.md#2F. Caller verification, voice capture, transcript stub, and SMS continuation", "callback-and-clinician-messaging-loop.md#Delivery, callback-window, and settlement confidence model", "phase-0-the-foundation-protocol.md#Command and adapter effect ledger"], "watch_lifecycle_states": ["replaceable_by_simulator"], "watch_dependency_ids": ["dep_sms_notification_provider"], "phase0_blocker_refs": ["BLOCKER_P0_TELEPHONY_AND_MESH_READINESS"], "touchpoint_ids": ["ext_secure_link_and_notification_rail", "ext_message_delivery_provider"], "truth_proof_digest": ["Current AdapterReceiptCheckpoint plus the governing AccessGrant or CommunicationEnvelope still current for the same route and visibility tuple."], "ambiguity_modes": ["Wrong-recipient or stale-number risk", "Bounced, expired, or disputed delivery", "Link redemption fenced by subject or session drift"], "fallback_modes": ["Email or support reissue", "Challenge continuation instead of seeded continuation", "Same-shell bounded recovery without reusing stale grant assumptions"], "mock_placeholder_only": ["real sender IDs", "real recipients"], "failure_injection_expectations": ["delayed send", "wrong recipient suspicion", "expired secure link"], "cannot_be_authoritative": ["provider accepted send", "message queued"], "patient_safety_consequence": 3, "canonical_truth_effect": 2, "patient_visible_continuity": 4, "operator_truth_supportability": 3, "mockability_quality": 5, "live_acquisition_latency": 3, "approval_burden": 3, "security_privacy_burden": 4, "coupling_risk_if_delayed": 3, "readiness_value_unlocked": 3, "proof_rigor_demand": 2, "mock_now_execution_score": 164, "actual_provider_strategy_later_score": 156, "quadrant_live_acquisition_friction": 56, "quadrant_mvp_control_plane_necessity": 52, "summary_dependency_names": "SMS delivery provider", "mock_now_execution_rank": 11, "mock_now_execution_ordering_key": "11:int_sms_continuation_delivery", "actual_provider_strategy_later_rank": 11, "actual_provider_strategy_later_ordering_key": "11:int_sms_continuation_delivery", "rank_delta_live_minus_mock": 0}, {"integration_id": "int_email_notification_delivery", "integration_family": "notification_email", "integration_name": "Email and secure-link notification rail", "source_dependency_ids": ["dep_email_notification_provider"], "source_dependency_names": ["Email and notification delivery provider"], "baseline_role": "baseline_mock_required", "authoritative_truth_class": "communication_delivery_evidence", "patient_safety_impact": "medium", "control_plane_impact": "high", "lineage_or_closure_dependency": "indirect", "channel_dependency_classes": ["browser_web", "outbound_notification_delivery", "support_operations"], "bounded_context_refs": ["patient_communications", "callback_messaging", "support_operations"], "current_mock_feasibility": "high", "live_onboarding_latency_band": "medium", "sponsor_or_assurance_gate": "likely", "recommended_lane": "mock_now", "why_mock_now": "Receipts, secure-link recovery, and callback or message reassurance need realistic delivery evidence and bounce semantics before a live notification vendor is onboarded.", "why_actual_later": "Live sender-domain verification, webhook ownership, and delivery evidence still need later onboarding before the system can promote calm patient or staff reassurance from a real provider.", "minimum_mock_fidelity": "Simulate accepted, queued, delivered, bounced, disputed, and expired delivery chains and keep those states separate from current CommunicationEnvelope truth or secure-link authority.", "minimum_live_readiness_conditions": ["seq_031 and seq_033 complete vendor selection and sender-domain setup", "seq_023 publishes secret and webhook ownership", "seq_039 and seq_040 freeze resend, callback, and support-repair fallbacks for disputed delivery"], "later_task_refs": ["seq_022", "seq_023", "seq_031", "seq_033", "seq_038", "seq_039", "seq_040"], "risk_refs": ["HZ_TELEPHONY_EVIDENCE_INADEQUACY", "HZ_URGENT_DIVERSION_UNDER_OR_OVER_TRIAGE", "RISK_EXT_COMMS_VENDOR_DELAY", "HZ_WRONG_PATIENT_BINDING"], "notes": "Do not let notification acceptance outrank booking, hub, or pharmacy truth. Delivery evidence informs communication posture only; it does not settle operational truth on its own.", "source_refs": ["blueprint/callback-and-clinician-messaging-loop.md#Clinician message domain", "blueprint/phase-5-the-network-horizon.md#Reminder and communication publication", "data/analysis/dependency_truth_and_fallback_matrix.csv#dep_email_notification_provider", "callback-and-clinician-messaging-loop.md#Clinician message domain", "phase-5-the-network-horizon.md#Reminder and communication publication", "phase-0-the-foundation-protocol.md#Command and adapter effect ledger"], "watch_lifecycle_states": ["onboarding"], "watch_dependency_ids": ["dep_email_notification_provider"], "phase0_blocker_refs": ["BLOCKER_P0_TELEPHONY_AND_MESH_READINESS"], "touchpoint_ids": ["ext_secure_link_and_notification_rail", "ext_message_delivery_provider"], "truth_proof_digest": ["Current MessageDeliveryEvidenceBundle or AdapterReceiptCheckpoint for the live CommunicationEnvelope and route tuple."], "ambiguity_modes": ["Delivery failed, disputed, expired, or suppressed", "Message thread closed locally while delivery truth is still unresolved", "Reachability repair overrides the intended communication route"], "fallback_modes": ["Controlled resend under the same authoritative chain", "Support repair or callback escalation", "Same-shell read-only or recovery posture while delivery truth is unresolved"], "mock_placeholder_only": ["real domains", "real recipient inboxes"], "failure_injection_expectations": ["queued but not delivered", "bounce or suppression", "delivery disputed after patient action"], "cannot_be_authoritative": ["API send acceptance", "SMTP accepted response"], "patient_safety_consequence": 3, "canonical_truth_effect": 2, "patient_visible_continuity": 4, "operator_truth_supportability": 4, "mockability_quality": 5, "live_acquisition_latency": 3, "approval_burden": 3, "security_privacy_burden": 4, "coupling_risk_if_delayed": 3, "readiness_value_unlocked": 4, "proof_rigor_demand": 2, "mock_now_execution_score": 177, "actual_provider_strategy_later_score": 167, "quadrant_live_acquisition_friction": 56, "quadrant_mvp_control_plane_necessity": 61, "summary_dependency_names": "Email and notification delivery provider", "mock_now_execution_rank": 10, "mock_now_execution_ordering_key": "10:int_email_notification_delivery", "actual_provider_strategy_later_rank": 10, "actual_provider_strategy_later_ordering_key": "10:int_email_notification_delivery", "rank_delta_live_minus_mock": 0}, {"integration_id": "int_im1_pairing_and_capability_prereq", "integration_family": "gp_system_pairing", "integration_name": "IM1 pairing and capability-governance prerequisite seam", "source_dependency_ids": ["dep_im1_pairing_programme"], "source_dependency_names": ["IM1 Pairing programme and prerequisite path"], "baseline_role": "baseline_required", "authoritative_truth_class": "supplier_access_prerequisite_and_capability_evidence", "patient_safety_impact": "medium", "control_plane_impact": "high", "lineage_or_closure_dependency": "indirect", "channel_dependency_classes": ["staff_workspace", "booking_internal", "assurance_review"], "bounded_context_refs": ["booking", "identity_access", "assurance"], "current_mock_feasibility": "medium", "live_onboarding_latency_band": "contract_heavy", "sponsor_or_assurance_gate": "required", "recommended_lane": "hybrid_mock_then_live", "why_mock_now": "The programme needs a governed capability-matrix seam and explicit blocked states now so booking and identity work stay decoupled from live supplier pairing while the long-lead onboarding runs.", "why_actual_later": "IM1 and SCAL readiness are still required before live supplier capability claims are admissible for booking reach, but the corpus explicitly keeps this out of the Phase 2 identity critical path.", "minimum_mock_fidelity": "Simulate unsupported, supported-test-only, linkage-required, and blocked capability rows plus pairing-pack freshness states. The mock may not claim live supplier reach or patient-facing capability proof.", "minimum_live_readiness_conditions": ["seq_026 completes prerequisite forms and SCAL artifact tracking", "seq_036 captures provider-path evidence against the frozen capability scorecards", "seq_039 and seq_040 freeze manual checkpoints and degraded booking defaults while supplier access is partial"], "later_task_refs": ["seq_022", "seq_023", "seq_026", "seq_036", "seq_039", "seq_040"], "risk_refs": ["HZ_TELEPHONY_EVIDENCE_INADEQUACY", "HZ_DUPLICATE_SUPPRESSION_OR_MERGE", "HZ_URGENT_DIVERSION_UNDER_OR_OVER_TRIAGE", "RISK_EXT_IM1_SCAL_DELAY", "RISK_MUTATION_003", "RISK_RUNTIME_001", "HZ_WRONG_PATIENT_BINDING", "RISK_MUTATION_002"], "notes": "Long-lead baseline dependency. Keep IM1 out of the Phase 2 identity critical path even while starting the pairing programme early for later booking reach.", "source_refs": ["blueprint/phase-2-identity-and-echoes.md#Rule 5: keep IM1 out of the critical path for this phase", "blueprint/phase-4-the-booking-engine.md#4B. Provider capability matrix and adapter seam", "data/analysis/dependency_truth_and_fallback_matrix.csv#dep_im1_pairing_programme", "phase-4-the-booking-engine.md#4B Provider capability matrix and adapter seam", "phase-4-the-booking-engine.md#4E Commit path", "blueprint-init.md#1. Product definition"], "watch_lifecycle_states": ["onboarding"], "watch_dependency_ids": ["dep_im1_pairing_programme"], "phase0_blocker_refs": ["BLOCKER_P0_EXT_GATE_BLOCKED", "BLOCKER_P0_IDENTITY_AND_WRONG_PATIENT_PROOF"], "touchpoint_ids": ["ext_booking_supplier_adapter"], "truth_proof_digest": ["Current pairing evidence pack showing the exact supplier, organisation, and environment have cleared the required IM1 stage for the targeted capability set."], "ambiguity_modes": ["SCAL or model-interface prerequisites still pending", "Supported-test or assurance incomplete for the selected supplier path", "Live rollout not yet approved for the supplier or organisation pair"], "fallback_modes": ["Stay on simulator or supported-test path only", "Keep the related route in assisted-only, recovery-only, or blocked posture", "Use hub fallback or manual handling where booking policy allows"], "mock_placeholder_only": ["real supplier credentials", "live pairing approvals"], "failure_injection_expectations": ["supported test only", "pairing evidence stale", "supplier path missing for selected capability"], "cannot_be_authoritative": ["supplier docs alone", "pairing application submitted"], "patient_safety_consequence": 2, "canonical_truth_effect": 3, "patient_visible_continuity": 2, "operator_truth_supportability": 4, "mockability_quality": 3, "live_acquisition_latency": 5, "approval_burden": 5, "security_privacy_burden": 4, "coupling_risk_if_delayed": 5, "readiness_value_unlocked": 5, "proof_rigor_demand": 3, "mock_now_execution_score": 194, "actual_provider_strategy_later_score": 210, "quadrant_live_acquisition_friction": 89, "quadrant_mvp_control_plane_necessity": 61, "summary_dependency_names": "IM1 Pairing programme and prerequisite path", "mock_now_execution_rank": 8, "mock_now_execution_ordering_key": "08:int_im1_pairing_and_capability_prereq", "actual_provider_strategy_later_rank": 8, "actual_provider_strategy_later_ordering_key": "08:int_im1_pairing_and_capability_prereq", "rank_delta_live_minus_mock": 0}, {"integration_id": "int_local_booking_provider_truth", "integration_family": "booking_provider_truth", "integration_name": "Local booking provider capability and confirmation-truth seam", "source_dependency_ids": ["dep_gp_system_supplier_paths", "dep_local_booking_supplier_adapters"], "source_dependency_names": ["Principal GP-system supplier integration paths", "Local booking supplier adapter family"], "baseline_role": "baseline_mock_required", "authoritative_truth_class": "booking_confirmation_truth_projection", "patient_safety_impact": "high", "control_plane_impact": "critical", "lineage_or_closure_dependency": "direct", "channel_dependency_classes": ["patient_portal", "staff_workspace", "booking_internal"], "bounded_context_refs": ["booking", "patient_portal", "staff_operations"], "current_mock_feasibility": "medium", "live_onboarding_latency_band": "contract_heavy", "sponsor_or_assurance_gate": "required", "recommended_lane": "mock_now", "why_mock_now": "Booking revalidation, confirmation ambiguity, waitlist fallback, and manage-freeze rules must be proven behind a simulator before any supplier path, pairing, or portal credential becomes current.", "why_actual_later": "Live patient-facing booking still needs provider-path evidence, pairing readiness, and exact confirmation proof before it can move beyond simulator-backed development.", "minimum_mock_fidelity": "Simulate slot search snapshots, capability resolution, held versus non-exclusive reservation truth, revalidation failure, confirmation_pending, disputed callbacks, same-commit read-after-write proof, manage freeze, waitlist fallback, and wrong-patient freeze. Queue or webhook acceptance may not imply booked truth.", "minimum_live_readiness_conditions": ["seq_036 publishes provider sandbox paths and booking capability evidence", "seq_038 builds the local adapter simulator backlog for unsupported or manual supplier paths", "seq_039 and seq_040 freeze manual confirmation checkpoints and degraded-mode defaults"], "later_task_refs": ["seq_022", "seq_026", "seq_036", "seq_038", "seq_039", "seq_040"], "risk_refs": ["RISK_EXT_IM1_SCAL_DELAY", "RISK_BOOKING_002", "RISK_PHARMACY_001", "RISK_RUNTIME_001", "RISK_RECOVERY_001", "RISK_BOOKING_001", "RISK_EXT_BOOKING_PROVIDER_GAP", "RISK_OWNERSHIP_003"], "notes": "Proof-bearing family. Confirmation truth must stay distinct from acceptance, queueing, or webhook arrival.", "source_refs": ["blueprint/phase-4-the-booking-engine.md#4B. Provider capability matrix and adapter seam", "blueprint/phase-4-the-booking-engine.md#4C. Slot search, normalisation, and availability snapshots", "blueprint/phase-4-the-booking-engine.md#4E. Commit path, revalidation, booking record, and compensation", "blueprint/forensic-audit-findings.md#Finding 72 - The booking commit path did not bind ambiguous supplier truth to canonical confirmation gates strongly enough", "phase-4-the-booking-engine.md#4B Provider capability matrix and adapter seam", "phase-4-the-booking-engine.md#4C Slot search", "phase-6-the-pharmacy-loop.md#6F. Outcome ingest, Update Record observation, and reconciliation", "phase-4-the-booking-engine.md#4E Commit path", "phase-4-the-booking-engine.md#4F Manage flows"], "watch_lifecycle_states": ["onboarding"], "watch_dependency_ids": ["dep_gp_system_supplier_paths", "dep_local_booking_supplier_adapters"], "phase0_blocker_refs": [], "touchpoint_ids": ["ext_booking_supplier_adapter"], "truth_proof_digest": ["Current supplier binding and authoritative read or outcome observation path accepted for the same supplier, organisation, action scope, and transport assurance profile.", "BookingConfirmationTruthProjection(confirmationTruthState = confirmed) backed by a durable provider reference or same-commit read-after-write proof for the same BookingTransaction."], "ambiguity_modes": ["linkage_required or local_component_required capability states", "Supplier-specific action support withdrawn or stale", "Outcome evidence shape does not match the live supplier path", "confirmation_pending posture after async acceptance", "supplier_reconciliation_pending due to disputed or stale supplier truth", "waitlist, callback fallback, or hub fallback still open"], "fallback_modes": ["Assisted-only handling or hub fallback", "Simulator and contract-test path while supplier access remains incomplete", "Reconciliation-required posture instead of false booking or outcome calmness", "Stay in confirmation_pending with explicit truth posture", "Route to waitlist, callback, or hub fallback under current policy", "Freeze stale manage actions until capability resolution is recomputed"], "mock_placeholder_only": ["supplier branding", "practice-specific routing labels"], "failure_injection_expectations": ["supplier accepted but not confirmed", "read-after-write mismatch", "stale provider binding", "slot revalidation failure", "waitlist fallback required"], "cannot_be_authoritative": ["slot shown in UI", "provider accepted for processing", "callback arrival without confirmation truth"], "patient_safety_consequence": 4, "canonical_truth_effect": 5, "patient_visible_continuity": 5, "operator_truth_supportability": 5, "mockability_quality": 3, "live_acquisition_latency": 5, "approval_burden": 4, "security_privacy_burden": 4, "coupling_risk_if_delayed": 5, "readiness_value_unlocked": 5, "proof_rigor_demand": 5, "mock_now_execution_score": 246, "actual_provider_strategy_later_score": 249, "quadrant_live_acquisition_friction": 82, "quadrant_mvp_control_plane_necessity": 93, "summary_dependency_names": "Principal GP-system supplier integration paths, Local booking supplier adapter family", "mock_now_execution_rank": 3, "mock_now_execution_ordering_key": "03:int_local_booking_provider_truth", "actual_provider_strategy_later_rank": 3, "actual_provider_strategy_later_ordering_key": "03:int_local_booking_provider_truth", "rank_delta_live_minus_mock": 0}, {"integration_id": "int_network_capacity_and_practice_ack", "integration_family": "hub_capacity_and_ack", "integration_name": "Network capacity and practice-acknowledgement seam", "source_dependency_ids": ["dep_network_capacity_partner_feeds", "dep_origin_practice_ack_rail"], "source_dependency_names": ["Network and hub partner capacity feeds", "Origin-practice acknowledgement rail"], "baseline_role": "baseline_mock_required", "authoritative_truth_class": "trusted_offerable_capacity_and_practice_visibility_debt", "patient_safety_impact": "high", "control_plane_impact": "high", "lineage_or_closure_dependency": "direct", "channel_dependency_classes": ["hub_console", "operations_console", "practice_visibility"], "bounded_context_refs": ["hub_coordination", "operations", "practice_visibility"], "current_mock_feasibility": "medium", "live_onboarding_latency_band": "long", "sponsor_or_assurance_gate": "likely", "recommended_lane": "mock_now", "why_mock_now": "Hub choice, callback fallback, practice visibility debt, and acknowledgement overdue states must be available to product and platform teams before real partner feeds or practice routes exist.", "why_actual_later": "Live partner feeds and practice acknowledgements still need data-sharing and trust review before they can drive patient-visible offers or closable hub outcomes.", "minimum_mock_fidelity": "Simulate trusted versus stale capacity snapshots, callback fallback, return-to-practice, acknowledgement generations, overdue practice debt, and supplier drift without letting stale feeds or missing ack clear the case.", "minimum_live_readiness_conditions": ["seq_036 identifies real partner-path evidence relevant to hub booking", "seq_038 and seq_039 freeze simulator scope and manual acknowledgement checkpoints", "seq_040 freezes callback and return-to-practice defaults when source freshness or practice ack is degraded"], "later_task_refs": ["seq_022", "seq_036", "seq_038", "seq_039", "seq_040"], "risk_refs": ["RISK_BOOKING_002", "RISK_RECOVERY_001", "RISK_BOOKING_001", "RISK_EXT_BOOKING_PROVIDER_GAP", "RISK_OWNERSHIP_003"], "notes": "Hub flows must stay subordinate to trusted_offerable capacity and current-generation practice visibility debt.", "source_refs": ["blueprint/phase-5-the-network-horizon.md#5C. Enhanced Access policy engine and network capacity ingestion", "blueprint/phase-5-the-network-horizon.md#5F. Native hub booking commit, practice continuity, and cross-org messaging", "blueprint/phase-5-the-network-horizon.md#5G. No-slot handling, urgent bounce-back, callback fallback, and reopen mechanics", "data/analysis/dependency_truth_and_fallback_matrix.csv#dep_network_capacity_partner_feeds", "phase-5-the-network-horizon.md#5C. Enhanced Access policy engine and network capacity ingestion", "phase-5-the-network-horizon.md#Network coordination contract, case model, and state machine", "phase-9-the-assurance-ledger.md#9B. Essential-functions health, queues, and assurance operations boards", "phase-5-the-network-horizon.md#PracticeAcknowledgementRecord", "phase-5-the-network-horizon.md#Hub commit algorithm", "phase-5-the-network-horizon.md#Manage, reminders, and practice visibility after hub booking"], "watch_lifecycle_states": ["onboarding"], "watch_dependency_ids": ["dep_network_capacity_partner_feeds", "dep_origin_practice_ack_rail"], "phase0_blocker_refs": [], "touchpoint_ids": ["ext_network_booking_adapter", "ext_practice_ack_delivery_rail"], "truth_proof_digest": ["Current CandidateSnapshot admitted as trusted_offerable by NetworkCoordinationPolicyEvaluation for the same policy tuple and source set.", "Current-generation PracticeAcknowledgementRecord matching the live truthTupleHash and ackGeneration for the active hub visibility duty."], "ambiguity_modes": ["degraded_diagnostic_only or quarantined_hidden source posture", "Snapshot expiry or stale source version", "Offer session drift after candidate snapshot changes", "Acknowledgement overdue or disputed", "Generation drift after cancellation, reschedule, or supplier-drift update", "Policy exception still pending for no-ack-required posture"], "fallback_modes": ["callback fallback or return_to_practice", "read_only_provenance or callback_only recovery in the same shell", "Operational escalation when partner feeds are stale or quarantined", "Operational escalation and overdue timers", "Recovery-required practice visibility posture", "Explicit exception handling rather than silent debt clearance"], "mock_placeholder_only": ["real practice names", "real site addresses"], "failure_injection_expectations": ["stale feed", "practice acknowledgement overdue", "offer invalidated after patient selection", "return to practice reopened"], "cannot_be_authoritative": ["spreadsheet-style partner feed import", "booked hub state without current ack generation"], "patient_safety_consequence": 4, "canonical_truth_effect": 4, "patient_visible_continuity": 5, "operator_truth_supportability": 5, "mockability_quality": 3, "live_acquisition_latency": 4, "approval_burden": 4, "security_privacy_burden": 3, "coupling_risk_if_delayed": 4, "readiness_value_unlocked": 4, "proof_rigor_demand": 4, "mock_now_execution_score": 218, "actual_provider_strategy_later_score": 219, "quadrant_live_acquisition_friction": 72, "quadrant_mvp_control_plane_necessity": 86, "summary_dependency_names": "Network and hub partner capacity feeds, Origin-practice acknowledgement rail", "mock_now_execution_rank": 6, "mock_now_execution_ordering_key": "06:int_network_capacity_and_practice_ack", "actual_provider_strategy_later_rank": 7, "actual_provider_strategy_later_ordering_key": "07:int_network_capacity_and_practice_ack", "rank_delta_live_minus_mock": 1}, {"integration_id": "int_cross_org_secure_messaging", "integration_family": "cross_org_messaging", "integration_name": "Cross-organisation secure messaging and MESH seam", "source_dependency_ids": ["dep_cross_org_secure_messaging_mesh"], "source_dependency_names": ["Cross-organisation secure messaging rail including MESH"], "baseline_role": "baseline_mock_required", "authoritative_truth_class": "proof_bearing_transport_chain", "patient_safety_impact": "medium", "control_plane_impact": "high", "lineage_or_closure_dependency": "direct", "channel_dependency_classes": ["hub_console", "pharmacy_console", "practice_visibility"], "bounded_context_refs": ["hub_coordination", "pharmacy", "support_operations"], "current_mock_feasibility": "medium", "live_onboarding_latency_band": "contract_heavy", "sponsor_or_assurance_gate": "required", "recommended_lane": "hybrid_mock_then_live", "why_mock_now": "Hub, practice, and pharmacy message flows need replay-safe transport proof, ambiguity, and escalation behavior now even though live mailbox or certificate onboarding will lag.", "why_actual_later": "Real mailboxes, certificates, minimum-necessary payload review, and cross-org approvals are later work that should start early but must not stall simulator-backed implementation.", "minimum_mock_fidelity": "Simulate ordered outbox dispatch, queue acceptance, mailbox receipt, duplicate or reordered callbacks, disputed delivery, proof upgrades, and escalation routes. Transport acceptance alone may never settle hub or pharmacy truth, and the mock must preserve explicit proof versus ambiguity states for every effect chain.", "minimum_live_readiness_conditions": ["seq_028 completes mailbox or route access requests", "seq_023 publishes certificate and endpoint secret ownership", "seq_039 and seq_040 freeze manual checkpoints and fallback routes for disputed or weak transport proof"], "later_task_refs": ["seq_022", "seq_023", "seq_028", "seq_038", "seq_039", "seq_040"], "risk_refs": ["HZ_TELEPHONY_EVIDENCE_INADEQUACY", "HZ_DUPLICATE_SUPPRESSION_OR_MERGE", "RISK_BOOKING_002", "HZ_WRONG_PATIENT_BINDING", "RISK_RECOVERY_001", "RISK_BOOKING_001", "RISK_EXT_MESH_DELAY", "RISK_OWNERSHIP_003"], "notes": "Proof-bearing transport family. Weak mailbox or weak transport semantics must stay visibly distinct from business settlement.", "source_refs": ["blueprint/phase-5-the-network-horizon.md#5F. Native hub booking commit, practice continuity, and cross-org messaging", "blueprint/phase-6-the-pharmacy-loop.md#6D. Referral pack composer, dispatch adapters, and transport contract", "data/analysis/dependency_truth_and_fallback_matrix.csv#dep_cross_org_secure_messaging_mesh", "blueprint-init.md#1. Product definition", "phase-5-the-network-horizon.md#Hub commit algorithm", "phase-6-the-pharmacy-loop.md#6D. Referral pack composer, dispatch adapters, and transport contract"], "watch_lifecycle_states": ["onboarding"], "watch_dependency_ids": ["dep_cross_org_secure_messaging_mesh"], "phase0_blocker_refs": ["BLOCKER_P0_EXT_GATE_BLOCKED", "BLOCKER_P0_TELEPHONY_AND_MESH_READINESS"], "touchpoint_ids": ["ext_practice_ack_delivery_rail", "ext_pharmacy_dispatch_transport"], "truth_proof_digest": ["Current delivery evidence or other allowed proof class accepted by the live transport assurance profile for the exact outbound effect chain."], "ambiguity_modes": ["Delivery evidence still pending or disputed", "Transport-only evidence without current-generation acknowledgement", "Duplicate or stale message correlation against superseded tuples"], "fallback_modes": ["Retry through the same idempotent effect chain", "Monitored mailbox or telephone escalation where policy allows", "Keep patient or practice posture in explicit pending or recovery state"], "mock_placeholder_only": ["real mailbox IDs", "real certificates"], "failure_injection_expectations": ["duplicate receipt", "reordered callback", "accepted for transport but not delivered", "mailbox offline"], "cannot_be_authoritative": ["queue dequeue", "transport accepted", "mailbox queued"], "patient_safety_consequence": 3, "canonical_truth_effect": 4, "patient_visible_continuity": 4, "operator_truth_supportability": 4, "mockability_quality": 3, "live_acquisition_latency": 5, "approval_burden": 5, "security_privacy_burden": 5, "coupling_risk_if_delayed": 4, "readiness_value_unlocked": 4, "proof_rigor_demand": 5, "mock_now_execution_score": 218, "actual_provider_strategy_later_score": 231, "quadrant_live_acquisition_friction": 92, "quadrant_mvp_control_plane_necessity": 79, "summary_dependency_names": "Cross-organisation secure messaging rail including MESH", "mock_now_execution_rank": 7, "mock_now_execution_ordering_key": "07:int_cross_org_secure_messaging", "actual_provider_strategy_later_rank": 6, "actual_provider_strategy_later_ordering_key": "06:int_cross_org_secure_messaging", "rank_delta_live_minus_mock": -1}, {"integration_id": "int_pharmacy_directory_and_choice", "integration_family": "pharmacy_directory", "integration_name": "Pharmacy directory and patient-choice seam", "source_dependency_ids": ["dep_pharmacy_directory_dohs"], "source_dependency_names": ["Pharmacy directory and discovery dependency"], "baseline_role": "baseline_mock_required", "authoritative_truth_class": "directory_snapshot_and_choice_proof", "patient_safety_impact": "medium", "control_plane_impact": "medium", "lineage_or_closure_dependency": "indirect", "channel_dependency_classes": ["patient_portal", "pharmacy_console", "operations_console"], "bounded_context_refs": ["pharmacy", "patient_portal", "operations"], "current_mock_feasibility": "high", "live_onboarding_latency_band": "long", "sponsor_or_assurance_gate": "likely", "recommended_lane": "mock_now", "why_mock_now": "Patient choice, warned-choice explanations, opening-hours logic, and consent supersession need a stable directory simulator long before a real strategic search rail is current.", "why_actual_later": "Live directory access and source-freshness proof remain later onboarding work and should not be treated as a current-baseline blocker while the choice contract is still being built.", "minimum_mock_fidelity": "Simulate snapshot freshness, provider opening hours, provider withdrawal, no-safe-choice conditions, warned choices, and consent reset when the selected provider or pathway drifts.", "minimum_live_readiness_conditions": ["seq_037 documents real directory and update-record access paths", "seq_038 captures simulator backlog coverage for no-safe-choice and stale-directory states", "seq_040 freezes fallback wording and renewed-choice behavior when the directory tuple drifts"], "later_task_refs": ["seq_022", "seq_037", "seq_038", "seq_039", "seq_040"], "risk_refs": ["RISK_EXT_PHARMACY_PROVIDER_GAP", "RISK_PHARMACY_001", "RISK_RECOVERY_001", "RISK_BOOKING_001", "RISK_OWNERSHIP_003"], "notes": "Directory drift may supersede the choice tuple, but it may not silently reorder or reinterpret a frozen patient choice.", "source_refs": ["blueprint/blueprint-init.md#7. Pharmacy First pathway", "blueprint/phase-6-the-pharmacy-loop.md#6C. Pharmacy discovery, provider choice, and directory abstraction", "data/analysis/dependency_truth_and_fallback_matrix.csv#dep_pharmacy_directory_dohs", "phase-6-the-pharmacy-loop.md#6C. Pharmacy discovery, provider choice, and directory abstraction", "phase-6-the-pharmacy-loop.md#Pharmacy contract, case model, and state machine", "blueprint-init.md#7. Pharmacy First pathway"], "watch_lifecycle_states": ["onboarding"], "watch_dependency_ids": ["dep_pharmacy_directory_dohs"], "phase0_blocker_refs": [], "touchpoint_ids": ["ext_pharmacy_directory"], "truth_proof_digest": ["Current PharmacyDirectorySnapshot and PharmacyChoiceProof over the visible choice set and selected provider explanation."], "ambiguity_modes": ["Stale or partial directory snapshot", "Unsafe timing or capability drift", "Visible-choice set changed materially after prior selection"], "fallback_modes": ["Same-shell directory regeneration", "Warned choice or clinician fallback when no safe provider remains", "Consent renewal or fresh choice before dispatch if the choice set drifted"], "mock_placeholder_only": ["real pharmacy names", "real addresses"], "failure_injection_expectations": ["directory stale", "provider no longer open", "warned choice required"], "cannot_be_authoritative": ["legacy lookup heuristics", "directory row without frozen choice proof"], "patient_safety_consequence": 3, "canonical_truth_effect": 2, "patient_visible_continuity": 4, "operator_truth_supportability": 3, "mockability_quality": 5, "live_acquisition_latency": 4, "approval_burden": 3, "security_privacy_burden": 2, "coupling_risk_if_delayed": 4, "readiness_value_unlocked": 4, "proof_rigor_demand": 3, "mock_now_execution_score": 182, "actual_provider_strategy_later_score": 171, "quadrant_live_acquisition_friction": 55, "quadrant_mvp_control_plane_necessity": 61, "summary_dependency_names": "Pharmacy directory and discovery dependency", "mock_now_execution_rank": 9, "mock_now_execution_ordering_key": "09:int_pharmacy_directory_and_choice", "actual_provider_strategy_later_rank": 9, "actual_provider_strategy_later_ordering_key": "09:int_pharmacy_directory_and_choice", "rank_delta_live_minus_mock": 0}, {"integration_id": "int_pharmacy_dispatch_and_urgent_return", "integration_family": "pharmacy_transport", "integration_name": "Pharmacy dispatch proof and urgent-return seam", "source_dependency_ids": ["dep_pharmacy_referral_transport", "dep_pharmacy_urgent_return_professional_routes"], "source_dependency_names": ["Pharmacy referral transport dependency", "Pharmacy urgent-return and professional-contact routes"], "baseline_role": "baseline_mock_required", "authoritative_truth_class": "dispatch_proof_and_urgent_return_acknowledgement", "patient_safety_impact": "critical", "control_plane_impact": "critical", "lineage_or_closure_dependency": "direct", "channel_dependency_classes": ["pharmacy_console", "patient_portal", "support_operations"], "bounded_context_refs": ["pharmacy", "operations", "support_operations"], "current_mock_feasibility": "low", "live_onboarding_latency_band": "contract_heavy", "sponsor_or_assurance_gate": "required", "recommended_lane": "mock_now", "why_mock_now": "The pharmacy loop cannot wait for live dispatch or monitored urgent-return routes before it proves frozen package hashes, transport ambiguity, redispatch, and urgent reopen behavior.", "why_actual_later": "Real monitored routes, transport assurance, and professional escalation contacts are later onboarding work, but the simulator must already preserve their proof versus ambiguity law.", "minimum_mock_fidelity": "Simulate dispatch attempts, transport accepted versus authoritative proof, proof deadlines, redispatch, weak email or weak mailbox returns, urgent return phone escalation, and reopen-for-safety. Update Record may not stand in for urgent return and mock send acceptance may not count as resolved dispatch truth.", "minimum_live_readiness_conditions": ["seq_037 identifies live transport and urgent-return access paths", "seq_038 captures the simulator backlog for proof deadlines, redispatch, and weak-route ambiguity", "seq_039 freezes the manual approval checkpoints for urgent return and monitored mailbox or phone recovery", "seq_040 freezes dispatch confirmation defaults and no-authority behavior for weak transport proof"], "later_task_refs": ["seq_022", "seq_037", "seq_038", "seq_039", "seq_040"], "risk_refs": ["RISK_EXT_PHARMACY_PROVIDER_GAP", "RISK_PHARMACY_001", "RISK_RECOVERY_001", "RISK_OWNERSHIP_003"], "notes": "Low mock feasibility does not excuse low fidelity. This family is exactly where proof-bearing and simple transport semantics must not be flattened.", "source_refs": ["blueprint/phase-6-the-pharmacy-loop.md#6D. Referral pack composer, dispatch adapters, and transport contract", "blueprint/phase-6-the-pharmacy-loop.md#6G. Bounce-back, urgent return, and reopen mechanics", "blueprint/forensic-audit-findings.md#Patch response. Hardened E_PHARM_SEND into a proof-backed dispatch chain", "phase-6-the-pharmacy-loop.md#6D. Referral pack composer, dispatch adapters, and transport contract", "phase-6-the-pharmacy-loop.md#Pharmacy contract, case model, and state machine", "phase-0-the-foundation-protocol.md#Pharmacy dispatch and confirmation gate algorithm", "phase-6-the-pharmacy-loop.md#6G. Bounce-back, urgent return, and reopen mechanics", "blueprint-init.md#7. Pharmacy First pathway"], "watch_lifecycle_states": ["onboarding"], "watch_dependency_ids": ["dep_pharmacy_referral_transport", "dep_pharmacy_urgent_return_professional_routes"], "phase0_blocker_refs": [], "touchpoint_ids": ["ext_pharmacy_dispatch_transport", "ext_pharmacy_outcome_ingest"], "truth_proof_digest": ["Current DispatchProofEnvelope(authoritative proof satisfied) accepted by the live TransportAssuranceProfile and current ExternalConfirmationGate for the same dispatch attempt.", "Current urgent-return or bounce-back evidence acknowledged on the configured route and bound to the active PharmacyCase or reopened request lineage."], "ambiguity_modes": ["proof_pending at or near deadline", "contradiction score above threshold", "consent or package drift after the outbound attempt", "Urgent return not yet acknowledged on the current route", "Stale or misconfigured monitored email or professional number", "Contact-route repair blocks the expected return channel"], "fallback_modes": ["Keep same-shell pending or reconciliation posture", "Controlled redispatch only under a fresh tuple", "manual_assisted_dispatch with attestation and secondary review where policy requires it", "Immediate duty-task reopen or supervisor escalation", "Phone escalation if mailbox or digital route is unavailable", "No use of Update Record for urgent return semantics"], "mock_placeholder_only": ["real destination identifiers", "real professional phone numbers"], "failure_injection_expectations": ["transport accepted only", "provider acceptance missing", "proof deadline missed", "urgent return digital route unavailable", "redispatch after duplicate receipt"], "cannot_be_authoritative": ["transport accepted", "mailbox delivery only", "Update Record message for urgent return"], "patient_safety_consequence": 5, "canonical_truth_effect": 5, "patient_visible_continuity": 5, "operator_truth_supportability": 5, "mockability_quality": 2, "live_acquisition_latency": 5, "approval_burden": 5, "security_privacy_burden": 4, "coupling_risk_if_delayed": 5, "readiness_value_unlocked": 5, "proof_rigor_demand": 5, "mock_now_execution_score": 251, "actual_provider_strategy_later_score": 263, "quadrant_live_acquisition_friction": 92, "quadrant_mvp_control_plane_necessity": 97, "summary_dependency_names": "Pharmacy referral transport dependency, Pharmacy urgent-return and professional-contact routes", "mock_now_execution_rank": 1, "mock_now_execution_ordering_key": "01:int_pharmacy_dispatch_and_urgent_return", "actual_provider_strategy_later_rank": 1, "actual_provider_strategy_later_ordering_key": "01:int_pharmacy_dispatch_and_urgent_return", "rank_delta_live_minus_mock": 0}, {"integration_id": "int_pharmacy_outcome_reconciliation", "integration_family": "pharmacy_outcome", "integration_name": "Pharmacy outcome observation and reconciliation seam", "source_dependency_ids": ["dep_pharmacy_outcome_observation"], "source_dependency_names": ["Pharmacy outcome observation and reconciliation path"], "baseline_role": "baseline_mock_required", "authoritative_truth_class": "outcome_observation_and_reconciliation_gate", "patient_safety_impact": "critical", "control_plane_impact": "high", "lineage_or_closure_dependency": "direct", "channel_dependency_classes": ["pharmacy_console", "staff_workspace", "operations_console"], "bounded_context_refs": ["pharmacy", "triage", "operations"], "current_mock_feasibility": "high", "live_onboarding_latency_band": "long", "sponsor_or_assurance_gate": "required", "recommended_lane": "mock_now", "why_mock_now": "Outcome replay, weak correlation, manual review, and reopened-for-safety behavior are canonical control problems and must be testable before the live assured observation path exists.", "why_actual_later": "Real Update Record or equivalent inbound observation routes need assured combinations and correlation evidence later, but they do not remove the need for a replay-safe mock seam now.", "minimum_mock_fidelity": "Simulate exact replay, semantic replay, collision review, unresolved match, resolved_apply, resolved_reopen, unmatched, proof-bearing correlation chains, and blocked closure. Weakly matched outcomes may not auto-close the request or stand in for authoritative proof.", "minimum_live_readiness_conditions": ["seq_037 identifies real outcome access paths and update-record constraints", "seq_038 captures simulator coverage for weak-match, duplicate, and manual-review gates", "seq_039 and seq_040 freeze manual-apply, reopen, and no-auto-close defaults for ambiguous outcome evidence"], "later_task_refs": ["seq_022", "seq_037", "seq_038", "seq_039", "seq_040"], "risk_refs": ["RISK_EXT_PHARMACY_PROVIDER_GAP", "RISK_PHARMACY_001", "RISK_RECOVERY_001", "RISK_OWNERSHIP_003"], "notes": "Outcome ingest is replay-safe or it is not safe. This family blocks closure until the reconciliation gate settles.", "source_refs": ["blueprint/phase-6-the-pharmacy-loop.md#6F. Outcome ingest, Update Record observation, and reconciliation", "blueprint/phase-6-the-pharmacy-loop.md#6G. Bounce-back, urgent return, and reopen mechanics", "data/analysis/dependency_truth_and_fallback_matrix.csv#dep_pharmacy_outcome_observation", "phase-6-the-pharmacy-loop.md#6F. Outcome ingest, Update Record observation, and reconciliation", "forensic-audit-findings.md#Finding 79 - weak-source matching did not clearly stop at a case-local review state", "phase-6-the-pharmacy-loop.md#6G. Bounce-back, urgent return, and reopen mechanics"], "watch_lifecycle_states": ["onboarding"], "watch_dependency_ids": ["dep_pharmacy_outcome_observation"], "phase0_blocker_refs": [], "touchpoint_ids": ["ext_pharmacy_outcome_ingest"], "truth_proof_digest": ["Current PharmacyOutcomeRecord or PharmacyBounceBackRecord correlated to the active PharmacyCase and, where needed, resolved through PharmacyOutcomeReconciliationGate."], "ambiguity_modes": ["Weak or conflicting match against the active case", "Duplicate or replayed outcome evidence", "No message arrived yet, which cannot prove completion"], "fallback_modes": ["outcome_reconciliation_pending with explicit review placeholder", "Reopen for safety when the outcome is urgent or materially different", "Manual structured capture or clarification without auto-closing the request"], "mock_placeholder_only": ["real patient summaries", "real message identifiers"], "failure_injection_expectations": ["exact replay", "semantic replay", "collision review", "weak match reopened for safety"], "cannot_be_authoritative": ["single inbound message without correlation proof", "weakly matched email outcome"], "patient_safety_consequence": 5, "canonical_truth_effect": 4, "patient_visible_continuity": 4, "operator_truth_supportability": 5, "mockability_quality": 4, "live_acquisition_latency": 4, "approval_burden": 4, "security_privacy_burden": 4, "coupling_risk_if_delayed": 5, "readiness_value_unlocked": 5, "proof_rigor_demand": 5, "mock_now_execution_score": 242, "actual_provider_strategy_later_score": 236, "quadrant_live_acquisition_friction": 72, "quadrant_mvp_control_plane_necessity": 90, "summary_dependency_names": "Pharmacy outcome observation and reconciliation path", "mock_now_execution_rank": 4, "mock_now_execution_ordering_key": "04:int_pharmacy_outcome_reconciliation", "actual_provider_strategy_later_rank": 5, "actual_provider_strategy_later_ordering_key": "05:int_pharmacy_outcome_reconciliation", "rank_delta_live_minus_mock": 1}, {"integration_id": "int_nhs_app_embedded_channel", "integration_family": "embedded_channel", "integration_name": "NHS App embedded-channel ecosystem", "source_dependency_ids": ["dep_nhs_app_embedded_channel_ecosystem"], "source_dependency_names": ["NHS App embedded-channel ecosystem"], "baseline_role": "deferred_channel", "authoritative_truth_class": "embedded_manifest_and_bridge_eligibility", "patient_safety_impact": "low", "control_plane_impact": "medium", "lineage_or_closure_dependency": "indirect", "channel_dependency_classes": ["embedded_channel", "patient_portal", "release_control"], "bounded_context_refs": ["patient_portal", "identity_access", "release_control"], "current_mock_feasibility": "high", "live_onboarding_latency_band": "contract_heavy", "sponsor_or_assurance_gate": "required", "recommended_lane": "deferred", "why_mock_now": "Only preserve manifest, bridge-capability, and downgrade contracts in a local simulator so future embedded work cannot violate current shell or release law.", "why_actual_later": "Phase 7 remains deferred channel expansion and may not become a current-baseline blocker or reorder the live-provider acquisition queue.", "minimum_mock_fidelity": "Simulate embedded manifest present or missing, bridge capability denied, safe browser handoff, route-freeze fallback, and placeholder-only embedded visibility. The deferred channel may not imply current-baseline writability.", "minimum_live_readiness_conditions": ["seq_029 and seq_030 produce only deferred-channel placeholders and access-request strategy", "seq_040 freezes downgrade and safe browser-handoff defaults before any future embedded rollout"], "later_task_refs": ["seq_029", "seq_030", "seq_040"], "risk_refs": ["RISK_UI_002"], "notes": "Deferred by programme law. Inventory it, sequence it, but do not let it block current-baseline execution.", "source_refs": ["blueprint/phase-cards.md#Programme Baseline Update (NHS App Deferred)", "blueprint/phase-7-inside-the-nhs-app.md", "data/analysis/dependency_truth_and_fallback_matrix.csv#dep_nhs_app_embedded_channel_ecosystem", "phase-7-inside-the-nhs-app.md#7A. Integration manifest and route inventory", "phase-7-inside-the-nhs-app.md#7H. Sandpit, AOS, SCAL, and operational delivery pipeline", "phase-cards.md#Phase 7 - Inside the NHS App"], "watch_lifecycle_states": ["deferred"], "watch_dependency_ids": ["dep_nhs_app_embedded_channel_ecosystem"], "phase0_blocker_refs": [], "touchpoint_ids": ["ext_embedded_host_bridge"], "truth_proof_digest": ["Current NHSAppIntegrationManifest, PatientEmbeddedNavEligibility, and PatientEmbeddedSessionProjection under the approved manifest, release, and bridge-capability tuple."], "ambiguity_modes": ["Manifest drift across Sandpit, AOS, and live", "Bridge capability mismatch or stale embedded continuity evidence", "Consent denial or auth return that fails silent handoff"], "fallback_modes": ["Safe browser handoff", "read_only or placeholder-only embedded posture", "Bounded recovery inside the same patient shell rather than silent route fork"], "mock_placeholder_only": ["real site-link metadata", "real embedded host contexts"], "failure_injection_expectations": ["bridge unavailable", "manifest stale", "embedded route frozen"], "cannot_be_authoritative": ["embedded host frame present", "placeholder site-link registration"], "patient_safety_consequence": 1, "canonical_truth_effect": 1, "patient_visible_continuity": 3, "operator_truth_supportability": 2, "mockability_quality": 4, "live_acquisition_latency": 5, "approval_burden": 5, "security_privacy_burden": 4, "coupling_risk_if_delayed": 1, "readiness_value_unlocked": 1, "proof_rigor_demand": 3, "mock_now_execution_score": 126, "actual_provider_strategy_later_score": 143, "quadrant_live_acquisition_friction": 85, "quadrant_mvp_control_plane_necessity": 32, "summary_dependency_names": "NHS App embedded-channel ecosystem", "mock_now_execution_rank": 13, "mock_now_execution_ordering_key": "13:int_nhs_app_embedded_channel", "actual_provider_strategy_later_rank": 12, "actual_provider_strategy_later_ordering_key": "12:int_nhs_app_embedded_channel", "rank_delta_live_minus_mock": -1}, {"integration_id": "int_assistive_vendor_boundary", "integration_family": "assistive_vendor", "integration_name": "Assistive model-vendor boundary", "source_dependency_ids": ["dep_assistive_model_vendor_family"], "source_dependency_names": ["Assistive model vendor and subprocessor family"], "baseline_role": "future_optional", "authoritative_truth_class": "assistive_capability_trust_envelope", "patient_safety_impact": "low", "control_plane_impact": "low", "lineage_or_closure_dependency": "none", "channel_dependency_classes": ["assistive_control", "staff_workspace", "governance_review"], "bounded_context_refs": ["assistive", "staff_workspace", "assurance"], "current_mock_feasibility": "high", "live_onboarding_latency_band": "contract_heavy", "sponsor_or_assurance_gate": "required", "recommended_lane": "deferred", "why_mock_now": "Keep only bounded observe-only and placeholder-only seams alive so core clinical and operational delivery stays complete without any model-vendor dependency.", "why_actual_later": "Future assistive onboarding depends on intended-use decisions, medical-device boundary review, supplier assurance, and rollout cohorts that remain optional to core completeness.", "minimum_mock_fidelity": "Simulate observe_only, shadow_only, frozen, placeholder_only, and hidden states. Assistive output may not become authoritative action, closure, or patient reassurance in the mock.", "minimum_live_readiness_conditions": ["A future assistive rollout must carry explicit intended-use and assurance approval", "seq_040 preserves the non-authoritative default even while optional vendor strategy is documented"], "later_task_refs": ["seq_040"], "risk_refs": ["RISK_ASSURANCE_001"], "notes": "Optional to core completeness. Do not let model-vendor glamour or roadmap curiosity displace current-baseline need.", "source_refs": ["blueprint/phase-cards.md#Programme Baseline Update (NHS App Deferred)", "data/analysis/external_dependencies.json#dep_assistive_model_vendor_family", "data/analysis/dependency_watchlist.json#dep_assistive_model_vendor_family", "phase-8-the-assistive-layer.md#8H", "phase-8-the-assistive-layer.md#AssistiveCapabilityTrustEnvelope", "phase-cards.md#Phase 8 - The Assistive Layer"], "watch_lifecycle_states": ["replaceable_by_simulator"], "watch_dependency_ids": ["dep_assistive_model_vendor_family"], "phase0_blocker_refs": [], "touchpoint_ids": [], "truth_proof_digest": ["Current AssistiveCapabilityTrustEnvelope plus AssistiveCapabilityRolloutVerdict and supplier-assurance freshness for the exact route, cohort, and watch tuple."], "ambiguity_modes": ["trustState = degraded, quarantined, shadow_only, or frozen", "Supplier assurance drifted, suspended, or stale", "Route-family or cohort rollout evidence is missing or blocked"], "fallback_modes": ["observe_only, provenance_only, placeholder_only, or hidden posture", "Shadow-only or frozen rollout without widening assistive actionability", "Keep core clinical and operational workflow fully complete without model dependency"], "mock_placeholder_only": ["real prompts", "real model vendors", "real subprocessors"], "failure_injection_expectations": ["assistive trust withdrawn", "rollout frozen", "output hidden after watch-tuple drift"], "cannot_be_authoritative": ["model suggestion", "assistive draft alone"], "patient_safety_consequence": 1, "canonical_truth_effect": 1, "patient_visible_continuity": 1, "operator_truth_supportability": 2, "mockability_quality": 4, "live_acquisition_latency": 4, "approval_burden": 5, "security_privacy_burden": 5, "coupling_risk_if_delayed": 2, "readiness_value_unlocked": 1, "proof_rigor_demand": 3, "mock_now_execution_score": 120, "actual_provider_strategy_later_score": 138, "quadrant_live_acquisition_friction": 82, "quadrant_mvp_control_plane_necessity": 27, "summary_dependency_names": "Assistive model vendor and subprocessor family", "mock_now_execution_rank": 14, "mock_now_execution_ordering_key": "14:int_assistive_vendor_boundary", "actual_provider_strategy_later_rank": 13, "actual_provider_strategy_later_ordering_key": "13:int_assistive_vendor_boundary", "rank_delta_live_minus_mock": -1}, {"integration_id": "int_standards_and_assurance_watch", "integration_family": "assurance_source_watch", "integration_name": "NHS standards and assurance source watch", "source_dependency_ids": ["dep_nhs_assurance_and_standards_sources"], "source_dependency_names": ["NHS standards and assurance source set"], "baseline_role": "baseline_required", "authoritative_truth_class": "standards_version_map_and_watchlist", "patient_safety_impact": "medium", "control_plane_impact": "high", "lineage_or_closure_dependency": "none", "channel_dependency_classes": ["governance_review", "release_control", "assurance_review"], "bounded_context_refs": ["assurance", "release_control", "governance"], "current_mock_feasibility": "high", "live_onboarding_latency_band": "short", "sponsor_or_assurance_gate": "none", "recommended_lane": "mock_now", "why_mock_now": "The external-readiness programme needs a pinned standards watch immediately so the rest of the provider strategy does not drift onto stale guidance or undocumented approval assumptions.", "why_actual_later": "There is no provider-acquisition track here; later work is watch refresh and exception handling, not a separate onboarding exercise.", "minimum_mock_fidelity": "Maintain one pinned version map, freshness digest, and change-watch signal so new docs or standards changes never silently widen capability or compliance claims.", "minimum_live_readiness_conditions": ["seq_039 records manual review checkpoints when a watched standard changes", "seq_040 freezes current assumption and degraded defaults when standards drift is unresolved"], "later_task_refs": ["seq_039", "seq_040"], "risk_refs": ["HZ_URGENT_DIVERSION_UNDER_OR_OVER_TRIAGE", "HZ_WRONG_PATIENT_BINDING"], "notes": "The family is read-mostly, but it is still a baseline requirement because stale standards can invalidate the rest of the ranking.", "source_refs": ["blueprint/blueprint-init.md#12. Practical engineering shape", "data/analysis/dependency_watchlist.json#dep_nhs_assurance_and_standards_sources", "data/analysis/master_risk_register.json#HZ_URGENT_DIVERSION_UNDER_OR_OVER_TRIAGE", "phase-9-the-assurance-ledger.md#9D. Assurance pack factory and standards evidence pipeline", "phase-9-the-assurance-ledger.md#9H. Tenant governance, config immutability, and dependency hygiene", "phase-7-inside-the-nhs-app.md#What Phase 7 must prove before Phase 8 starts"], "watch_lifecycle_states": ["current"], "watch_dependency_ids": ["dep_nhs_assurance_and_standards_sources"], "phase0_blocker_refs": [], "touchpoint_ids": [], "truth_proof_digest": ["Current StandardsVersionMap and StandardsDependencyWatchlist bound to the same assurance-evidence graph and release candidate under review."], "ambiguity_modes": ["Standards version moved, refreshed, or decommissioned", "Supplier assurance evidence is stale or suspended", "Dependency hygiene scan still reports legacy references"], "fallback_modes": ["Freeze affected onboarding or release step until review completes", "Open explicit standards exception or evidence gap", "Keep live dependency assumptions constrained to current watchlist evidence"], "mock_placeholder_only": ["remote URLs"], "failure_injection_expectations": ["watched standard changes", "onboarding guide stale"], "cannot_be_authoritative": ["old documentation snapshot after watch drift"], "patient_safety_consequence": 2, "canonical_truth_effect": 1, "patient_visible_continuity": 1, "operator_truth_supportability": 3, "mockability_quality": 5, "live_acquisition_latency": 1, "approval_burden": 1, "security_privacy_burden": 1, "coupling_risk_if_delayed": 4, "readiness_value_unlocked": 4, "proof_rigor_demand": 2, "mock_now_execution_score": 133, "actual_provider_strategy_later_score": 111, "quadrant_live_acquisition_friction": 20, "quadrant_mvp_control_plane_necessity": 44, "summary_dependency_names": "NHS standards and assurance source set", "mock_now_execution_rank": 12, "mock_now_execution_ordering_key": "12:int_standards_and_assurance_watch", "actual_provider_strategy_later_rank": 15, "actual_provider_strategy_later_ordering_key": "15:int_standards_and_assurance_watch", "rank_delta_live_minus_mock": 3}], "lane_groups": {"mock_now": ["int_pharmacy_dispatch_and_urgent_return", "int_local_booking_provider_truth", "int_pharmacy_outcome_reconciliation", "int_telephony_capture_evidence_backplane", "int_network_capacity_and_practice_ack", "int_pharmacy_directory_and_choice", "int_email_notification_delivery", "int_standards_and_assurance_watch"], "hybrid_mock_then_live": ["int_identity_nhs_login_core", "int_cross_org_secure_messaging", "int_im1_pairing_and_capability_prereq"], "actual_later": ["int_sms_continuation_delivery", "int_identity_pds_optional_enrichment"], "deferred": ["int_nhs_app_embedded_channel", "int_assistive_vendor_boundary"]}, "scoring_model": {"weights": {"mock_now_execution": {"patient_safety_consequence": 6, "canonical_truth_effect": 6, "patient_visible_continuity": 5, "operator_truth_supportability": 5, "mockability_quality": 5, "live_acquisition_latency": 3, "approval_burden": 3, "security_privacy_burden": 2, "coupling_risk_if_delayed": 5, "readiness_value_unlocked": 6, "proof_rigor_demand": 6, "live_pressure_from_mock_limit": 1, "baseline_role_bonus": 1}, "actual_provider_strategy_later": {"patient_safety_consequence": 5, "canonical_truth_effect": 5, "patient_visible_continuity": 4, "operator_truth_supportability": 4, "mockability_quality": 1, "live_acquisition_latency": 6, "approval_burden": 6, "security_privacy_burden": 4, "coupling_risk_if_delayed": 5, "readiness_value_unlocked": 5, "proof_rigor_demand": 5, "live_pressure_from_mock_limit": 4, "baseline_role_bonus": 1}}, "baseline_role_bonus": {"baseline_required": 5, "baseline_mock_required": 4, "optional_flagged": 2, "deferred_channel": 0, "future_optional": 0, "prohibited": -2}, "dimensions": ["patient_safety_consequence", "canonical_truth_effect", "patient_visible_continuity", "operator_truth_supportability", "mockability_quality", "live_acquisition_latency", "approval_burden", "security_privacy_burden", "coupling_risk_if_delayed", "readiness_value_unlocked", "proof_rigor_demand"]}, "assumptions": ["ASSUMPTION_021_001: baseline_role captures current execution need for seq_021-040, not the eventual production necessity of every live provider.", "ASSUMPTION_021_002: current MVP evidence can proceed with simulator-first delivery for booking, hub, messaging, pharmacy, and telephony so long as proof, ambiguity, and degraded fallbacks remain explicit.", "ASSUMPTION_021_003: standards-watch work is modelled inside the same board because stale guidance can invalidate later live-onboarding decisions even though it is not a provider onboarding path."]}</script>
+    <div class="page" data-testid="priority-cockpit-shell">
+      <header class="hero">
+        <div class="hero-top">
+          <div>
+            <div class="ribbon">Current baseline: Phases 0-6, 8, and 9; Phase 7 deferred</div>
+            <h1>Vecells Integration Constellation Board</h1>
+            <p>The ranking separates families that must be simulated immediately from those that should be acquired live later, while keeping proof, ambiguity, fallback, and control-plane law intact.</p>
+          </div>
+          <svg class="constellation" viewBox="0 0 108 72" aria-hidden="true">
+            <defs>
+              <linearGradient id="constellationGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#335CFF" />
+                <stop offset="100%" stop-color="#7C3AED" />
+              </linearGradient>
+            </defs>
+            <path d="M12 52L34 24L54 34L76 14L96 28" fill="none" stroke="url(#constellationGradient)" stroke-width="2" stroke-linecap="round" opacity="0.9" />
+            <path d="M34 24L42 56L76 14" fill="none" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="4 4" />
+            <circle cx="12" cy="52" r="5" fill="#335CFF" />
+            <circle cx="34" cy="24" r="5" fill="#5C60F1" />
+            <circle cx="54" cy="34" r="4" fill="#7C3AED" />
+            <circle cx="76" cy="14" r="5" fill="#335CFF" />
+            <circle cx="96" cy="28" r="4" fill="#7C3AED" />
+            <circle cx="42" cy="56" r="3" fill="#94A3B8" />
+          </svg>
+        </div>
+        <div class="meta-row">
+          <div class="meta-card">
+            <strong id="entryVerdict">withheld</strong>
+            <span>Phase 0 entry verdict carried from seq_020</span>
+          </div>
+          <div class="meta-card">
+            <strong id="familyCount">0</strong>
+            <span>integration families in the ranked model</span>
+          </div>
+          <div class="meta-card">
+            <strong id="dependencyCount">0</strong>
+            <span>source dependency rows collapsed from seq_008</span>
+          </div>
+          <div class="meta-card">
+            <strong id="divergenceCount">0</strong>
+            <span>mock-vs-live divergences recorded explicitly</span>
+          </div>
+        </div>
+        <div class="summary-grid" id="laneSummary"></div>
+      </header>
+
+      <div class="layout">
+        <aside class="filter-rail" aria-label="Filters" data-testid="priority-filter-rail">
+          <div>
+            <h2>Filters</h2>
+            <p class="rail-note">Use the rail to compare current mock urgency against later live-provider urgency. The board is read-only by design.</p>
+          </div>
+          <div class="control">
+            <label for="searchInput">Search</label>
+            <input id="searchInput" type="search" placeholder="Search integrations, tasks, or risks" />
+          </div>
+          <div class="control">
+            <label for="baselineFilter">Baseline role</label>
+            <select id="baselineFilter">
+              <option value="all">All baseline roles</option>
+            </select>
+          </div>
+          <div class="control">
+            <label for="familyFilter">Family</label>
+            <select id="familyFilter">
+              <option value="all">All families</option>
+            </select>
+          </div>
+          <div class="control">
+            <label>Lanes</label>
+            <div class="chip-row" id="laneChips"></div>
+          </div>
+          <div class="control">
+            <label for="sortMode">Board sort</label>
+            <select id="sortMode">
+              <option value="mock">Mock-now rank</option>
+              <option value="live">Live-later rank</option>
+            </select>
+          </div>
+        </aside>
+
+        <main class="main">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Quadrant</h2>
+                <p class="muted">X-axis: live acquisition friction. Y-axis: MVP and control-plane necessity.</p>
+              </div>
+              <div class="mono muted">Integration_Constellation_Board</div>
+            </div>
+            <div class="quadrant" data-testid="priority-quadrant-chart">
+              <div class="quadrant-grid" aria-hidden="true"></div>
+              <div class="axis-label axis-x">Live acquisition friction</div>
+              <div class="axis-label axis-y">MVP / control-plane necessity</div>
+              <div class="node-layer" id="quadrantNodes"></div>
+            </div>
+            <div class="table-shell" data-testid="priority-quadrant-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Integration</th>
+                    <th>Lane</th>
+                    <th>Mock rank</th>
+                    <th>Live rank</th>
+                    <th>Friction</th>
+                    <th>Necessity</th>
+                  </tr>
+                </thead>
+                <tbody id="quadrantTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Swimlanes</h2>
+                <p class="muted">The lane board stays read-only so the chosen lane law is reviewable rather than ad hoc editable.</p>
+              </div>
+            </div>
+            <div class="lane-board" data-testid="priority-lane-board">
+              <section class="swimlane" data-lane="mock_now">
+                <h3>mock_now</h3>
+                <p class="lane-note">Families that need simulator-grade execution immediately.</p>
+                <div class="card-stack" id="laneMock"></div>
+              </section>
+              <section class="swimlane" data-lane="hybrid_mock_then_live">
+                <h3>hybrid</h3>
+                <p class="lane-note">Families that need both a real simulator now and early live-provider prep.</p>
+                <div class="card-stack" id="laneHybrid"></div>
+              </section>
+              <section class="swimlane" data-lane="actual_later">
+                <h3>actual_later</h3>
+                <p class="lane-note">Families where strategy and gating matter more than immediate simulator depth.</p>
+                <div class="card-stack" id="laneActual"></div>
+              </section>
+              <section class="swimlane" data-lane="deferred">
+                <h3>deferred</h3>
+                <p class="lane-note">Inventoried, bounded, and deliberately kept out of current-baseline blocking posture.</p>
+                <div class="card-stack" id="laneDeferred"></div>
+              </section>
+            </div>
+          </section>
+
+          <section class="panel-grid">
+            <section class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2>Divergence register</h2>
+                  <p class="muted">Rows where the current mock urgency and later live urgency intentionally diverge.</p>
+                </div>
+              </div>
+              <div class="table-shell" data-testid="priority-divergence-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Integration</th>
+                      <th>Class</th>
+                      <th>Mock rank</th>
+                      <th>Live rank</th>
+                      <th>Later tasks</th>
+                    </tr>
+                  </thead>
+                  <tbody id="divergenceTableBody"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2>Later-task linkage</h2>
+                  <p class="muted">Tasks 022-040 grouped by the families they now influence.</p>
+                </div>
+              </div>
+              <div class="table-shell" data-testid="priority-task-linkage-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Task</th>
+                      <th>Group</th>
+                      <th>Integrations</th>
+                      <th>Lanes</th>
+                    </tr>
+                  </thead>
+                  <tbody id="taskLinkTableBody"></tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Top risks</h2>
+                <p class="muted">The board surfaces the highest-risk rows linked to the currently visible integration set.</p>
+              </div>
+            </div>
+            <div class="risk-list" data-testid="priority-risk-list" id="riskList"></div>
+          </section>
+        </main>
+
+        <aside class="inspector" aria-live="polite" data-testid="priority-inspector">
+          <div>
+            <h2>Inspector</h2>
+            <p class="muted">Select a node, table row, or lane card to inspect the rationale, proof bar, and readiness gates.</p>
+          </div>
+          <div id="inspectorBody" class="empty">Select an integration family.</div>
+        </aside>
+      </div>
+    </div>
+
+    <script>
+      const payload = JSON.parse(document.getElementById("payload").textContent);
+      const state = {
+        search: "",
+        baselineRole: "all",
+        family: "all",
+        lane: "all",
+        sortMode: "mock",
+        selectedId: location.hash ? location.hash.slice(1) : null,
+      };
+
+      const laneColors = {
+        mock_now: "#335CFF",
+        hybrid_mock_then_live: "#5665F2",
+        actual_later: "#7C3AED",
+        deferred: "#94A3B8",
+      };
+
+      const laneTargets = {
+        mock_now: document.getElementById("laneMock"),
+        hybrid_mock_then_live: document.getElementById("laneHybrid"),
+        actual_later: document.getElementById("laneActual"),
+        deferred: document.getElementById("laneDeferred"),
+      };
+
+      function selectRow(integrationId, pushHash = true) {
+        state.selectedId = integrationId;
+        if (pushHash) {
+          history.replaceState(null, "", "#" + integrationId);
+        }
+        render();
+      }
+
+      function buildFilterOptions() {
+        const baselineFilter = document.getElementById("baselineFilter");
+        const familyFilter = document.getElementById("familyFilter");
+        const laneChips = document.getElementById("laneChips");
+
+        const baselineRoles = [...new Set(payload.integration_families.map((row) => row.baseline_role))];
+        baselineRoles.forEach((role) => {
+          const option = document.createElement("option");
+          option.value = role;
+          option.textContent = role;
+          baselineFilter.appendChild(option);
+        });
+
+        const families = [...new Set(payload.integration_families.map((row) => row.integration_family))].sort();
+        families.forEach((family) => {
+          const option = document.createElement("option");
+          option.value = family;
+          option.textContent = family;
+          familyFilter.appendChild(option);
+        });
+
+        const lanes = [
+          ["all", "All"],
+          ["mock_now", "mock_now"],
+          ["hybrid_mock_then_live", "hybrid"],
+          ["actual_later", "actual_later"],
+          ["deferred", "deferred"],
+        ];
+        lanes.forEach(([value, label]) => {
+          const chip = document.createElement("button");
+          chip.type = "button";
+          chip.className = "chip";
+          chip.dataset.lane = value;
+          chip.setAttribute("aria-pressed", value === "all" ? "true" : "false");
+          chip.textContent = label;
+          chip.addEventListener("click", () => {
+            state.lane = value;
+            [...laneChips.children].forEach((child) => child.setAttribute("aria-pressed", child.dataset.lane === value ? "true" : "false"));
+            render();
+          });
+          laneChips.appendChild(chip);
+        });
+      }
+
+      function filteredRows() {
+        const searchNeedle = state.search.trim().toLowerCase();
+        const rows = payload.integration_families.filter((row) => {
+          if (state.baselineRole !== "all" && row.baseline_role !== state.baselineRole) {
+            return false;
+          }
+          if (state.family !== "all" && row.integration_family !== state.family) {
+            return false;
+          }
+          if (state.lane !== "all" && row.recommended_lane !== state.lane) {
+            return false;
+          }
+          if (!searchNeedle) {
+            return true;
+          }
+          const haystack = [
+            row.integration_id,
+            row.integration_name,
+            row.integration_family,
+            row.baseline_role,
+            row.recommended_lane,
+            row.why_mock_now,
+            row.why_actual_later,
+            row.minimum_mock_fidelity,
+            ...row.later_task_refs,
+            ...row.risk_refs,
+            ...row.source_dependency_ids,
+          ].join(" ").toLowerCase();
+          return haystack.includes(searchNeedle);
+        });
+        const key = state.sortMode === "live" ? "actual_provider_strategy_later_rank" : "mock_now_execution_rank";
+        rows.sort((a, b) => a[key] - b[key] || a.integration_name.localeCompare(b.integration_name));
+        return rows;
+      }
+
+      function ensureSelection(rows) {
+        if (!rows.length) {
+          state.selectedId = null;
+          return;
+        }
+        if (!state.selectedId || !rows.some((row) => row.integration_id === state.selectedId)) {
+          state.selectedId = rows[0].integration_id;
+          history.replaceState(null, "", "#" + state.selectedId);
+        }
+      }
+
+      function renderSummary(rows) {
+        document.getElementById("entryVerdict").textContent = payload.summary.phase0_entry_verdict;
+        document.getElementById("familyCount").textContent = String(payload.summary.integration_family_count);
+        document.getElementById("dependencyCount").textContent = String(payload.summary.source_dependency_count);
+        document.getElementById("divergenceCount").textContent = String(payload.summary.divergence_count);
+        const laneSummary = document.getElementById("laneSummary");
+        laneSummary.innerHTML = "";
+        const counts = rows.reduce((acc, row) => {
+          acc[row.recommended_lane] = (acc[row.recommended_lane] || 0) + 1;
+          return acc;
+        }, {});
+        ["mock_now", "hybrid_mock_then_live", "actual_later", "deferred"].forEach((lane) => {
+          const card = document.createElement("div");
+          card.className = "summary-card";
+          card.innerHTML = `<strong>${counts[lane] || 0}</strong><span>${lane}</span>`;
+          laneSummary.appendChild(card);
+        });
+      }
+
+      function renderQuadrant(rows) {
+        const layer = document.getElementById("quadrantNodes");
+        const tableBody = document.getElementById("quadrantTableBody");
+        layer.innerHTML = "";
+        tableBody.innerHTML = "";
+        rows.forEach((row) => {
+          const node = document.createElement("button");
+          node.type = "button";
+          node.className = "node" + (row.integration_id === state.selectedId ? " is-selected" : "");
+          node.dataset.integrationId = row.integration_id;
+          node.dataset.lane = row.recommended_lane;
+          node.style.left = `${Math.max(6, Math.min(94, row.quadrant_live_acquisition_friction))}%`;
+          node.style.top = `${Math.max(8, Math.min(92, 100 - row.quadrant_mvp_control_plane_necessity))}%`;
+          node.innerHTML = `<strong>${row.integration_name}</strong><span>#${row.mock_now_execution_rank} mock · #${row.actual_provider_strategy_later_rank} live</span>`;
+          node.addEventListener("click", () => selectRow(row.integration_id));
+          layer.appendChild(node);
+
+          const tr = document.createElement("tr");
+          tr.dataset.integrationId = row.integration_id;
+          tr.innerHTML = `
+            <td><button type="button" class="mono" style="all:unset; cursor:pointer; color:inherit;">${row.integration_name}</button></td>
+            <td>${row.recommended_lane}</td>
+            <td>${row.mock_now_execution_rank}</td>
+            <td>${row.actual_provider_strategy_later_rank}</td>
+            <td>${row.quadrant_live_acquisition_friction}</td>
+            <td>${row.quadrant_mvp_control_plane_necessity}</td>
+          `;
+          tr.querySelector("button").addEventListener("click", () => selectRow(row.integration_id));
+          tableBody.appendChild(tr);
+        });
+      }
+
+      function renderLaneBoard(rows) {
+        Object.values(laneTargets).forEach((target) => {
+          target.innerHTML = "";
+        });
+        rows.forEach((row) => {
+          const card = document.createElement("button");
+          card.type = "button";
+          card.className = "integration-card" + (row.integration_id === state.selectedId ? " is-selected" : "");
+          card.dataset.integrationId = row.integration_id;
+          card.datasetLane = row.recommended_lane;
+          card.innerHTML = `
+            <div class="eyebrow">
+              <span class="score-dot" style="background:${laneColors[row.recommended_lane]}"></span>
+              <span>${row.baseline_role}</span>
+            </div>
+            <strong>${row.integration_name}</strong>
+            <p>#${row.mock_now_execution_rank} mock · #${row.actual_provider_strategy_later_rank} live</p>
+            <div class="badge-row" style="margin-top:10px;">
+              <span class="mini-chip">${row.integration_family}</span>
+              <span class="mini-chip">${row.current_mock_feasibility} mockability</span>
+            </div>
+          `;
+          card.addEventListener("click", () => selectRow(row.integration_id));
+          laneTargets[row.recommended_lane].appendChild(card);
+        });
+        Object.values(laneTargets).forEach((target) => {
+          if (!target.children.length) {
+            target.innerHTML = `<div class="empty">No integrations match the current filter state.</div>`;
+          }
+        });
+      }
+
+      function renderInspector(rows) {
+        const inspector = document.getElementById("inspectorBody");
+        const selected = rows.find((row) => row.integration_id === state.selectedId);
+        if (!selected) {
+          inspector.className = "empty";
+          inspector.textContent = "No integration matches the current filters.";
+          return;
+        }
+        inspector.className = "";
+        inspector.innerHTML = `
+          <div class="block">
+            <strong>${selected.integration_name}</strong>
+            <div class="badge-row">
+              <span class="mini-chip mono">${selected.integration_id}</span>
+              <span class="mini-chip">${selected.baseline_role}</span>
+              <span class="mini-chip">${selected.recommended_lane}</span>
+            </div>
+            <div class="muted">Source dependencies: ${
+              selected.source_dependency_ids.map((id) => `<span class="mono">${id}</span>`).join(", ")
+            }</div>
+          </div>
+          <div class="block">
+            <h3>Rationale</h3>
+            <div class="muted">${selected.why_mock_now}</div>
+            <div class="muted">${selected.why_actual_later}</div>
+          </div>
+          <div class="block">
+            <h3>Proof / ambiguity summary</h3>
+            <div class="muted">${selected.minimum_mock_fidelity}</div>
+          </div>
+          <div class="block">
+            <h3>Actual readiness gates</h3>
+            <ul>${selected.minimum_live_readiness_conditions.map((item) => `<li>${item}</li>`).join("")}</ul>
+          </div>
+          <div class="block">
+            <h3>Cannot be authoritative</h3>
+            <ul>${selected.cannot_be_authoritative.map((item) => `<li>${item}</li>`).join("")}</ul>
+          </div>
+          <div class="block">
+            <h3>Top risks and tasks</h3>
+            <div class="muted">Risks: ${
+              selected.risk_refs.length ? selected.risk_refs.map((risk) => `<span class="mono">${risk}</span>`).join(", ") : "none"
+            }</div>
+            <div class="muted">Tasks: ${
+              selected.later_task_refs.map((task) => `<span class="mono">${task}</span>`).join(", ")
+            }</div>
+          </div>
+        `;
+      }
+
+      function renderDivergence(rows) {
+        const allowedIds = new Set(rows.map((row) => row.integration_id));
+        const body = document.getElementById("divergenceTableBody");
+        body.innerHTML = "";
+        const filtered = payload.divergence_register.filter((row) => allowedIds.has(row.integration_id));
+        filtered.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><button type="button" style="all:unset; cursor:pointer; color:inherit;">${row.integration_name}</button></td>
+            <td>${row.divergence_class}</td>
+            <td>${row.mock_now_execution_rank}</td>
+            <td>${row.actual_provider_strategy_later_rank}</td>
+            <td>${row.later_task_refs.map((task) => `<span class="mono">${task}</span>`).join(", ")}</td>
+          `;
+          tr.querySelector("button").addEventListener("click", () => selectRow(row.integration_id));
+          body.appendChild(tr);
+        });
+        if (!filtered.length) {
+          body.innerHTML = `<tr><td colspan="5" class="muted">No divergence rows match the current filters.</td></tr>`;
+        }
+      }
+
+      function renderTaskLinks(rows) {
+        const allowedIds = new Set(rows.map((row) => row.integration_id));
+        const body = document.getElementById("taskLinkTableBody");
+        body.innerHTML = "";
+        const filtered = payload.task_links.filter((row) => row.integration_ids.some((id) => allowedIds.has(id)));
+        filtered.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><span class="mono">${row.task_ref}</span><br /><span class="muted">${row.task_title}</span></td>
+            <td>${row.task_group}</td>
+            <td>${row.integration_ids.map((id) => `<span class="mono">${id}</span>`).join(", ")}</td>
+            <td>${row.lanes.join(", ")}</td>
+          `;
+          body.appendChild(tr);
+        });
+        if (!filtered.length) {
+          body.innerHTML = `<tr><td colspan="4" class="muted">No later tasks match the current filters.</td></tr>`;
+        }
+      }
+
+      function renderRisks(rows) {
+        const allowedIds = new Set(rows.map((row) => row.integration_id));
+        const target = document.getElementById("riskList");
+        target.innerHTML = "";
+        const filtered = payload.risk_summary
+          .filter((row) => row.integration_ids.some((id) => allowedIds.has(id)))
+          .slice(0, 8);
+        if (!filtered.length) {
+          target.innerHTML = `<div class="empty">No risk rows match the current filters.</div>`;
+          return;
+        }
+        filtered.forEach((risk) => {
+          const card = document.createElement("div");
+          card.className = "risk-card";
+          card.innerHTML = `
+            <strong><span class="mono">${risk.risk_id}</span> · ${risk.risk_title}</strong>
+            <div class="muted">score ${risk.risk_score} · gate impact ${risk.gate_impact} · owner ${risk.owner_role}</div>
+            <p class="muted">${risk.problem_statement}</p>
+            <div class="muted">Integrations: ${
+              risk.integration_ids.map((id) => `<span class="mono">${id}</span>`).join(", ")
+            }</div>
+          `;
+          target.appendChild(card);
+        });
+      }
+
+      function render() {
+        const rows = filteredRows();
+        ensureSelection(rows);
+        renderSummary(rows);
+        renderQuadrant(rows);
+        renderLaneBoard(rows);
+        renderInspector(rows);
+        renderDivergence(rows);
+        renderTaskLinks(rows);
+        renderRisks(rows);
+      }
+
+      buildFilterOptions();
+      document.getElementById("searchInput").addEventListener("input", (event) => {
+        state.search = event.target.value;
+        render();
+      });
+      document.getElementById("baselineFilter").addEventListener("change", (event) => {
+        state.baselineRole = event.target.value;
+        render();
+      });
+      document.getElementById("familyFilter").addEventListener("change", (event) => {
+        state.family = event.target.value;
+        render();
+      });
+      document.getElementById("sortMode").addEventListener("change", (event) => {
+        state.sortMode = event.target.value;
+        render();
+      });
+      window.addEventListener("hashchange", () => {
+        state.selectedId = location.hash ? location.hash.slice(1) : null;
+        render();
+      });
+      render();
+    </script>
+  </body>
+</html>

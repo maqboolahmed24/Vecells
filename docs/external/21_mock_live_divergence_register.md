@@ -1,0 +1,28 @@
+            # 21 Mock Live Divergence Register
+
+            The divergence register records where current mock urgency and later live-onboarding urgency intentionally differ.
+
+            | Integration | Class | Mock rank | Live rank | Reason | Later tasks |
+| --- | --- | --- | --- | --- | --- |
+| NHS standards and assurance source watch | lane_alignment_gap | 12 | 15 | The external-readiness programme needs a pinned standards watch immediately so the rest of the provider strategy does not drift onto stale guidance or undocumented approval assumptions. | seq_039, seq_040 |
+| Pharmacy outcome observation and reconciliation seam | proof_stricter_than_public_onboarding | 4 | 5 | Outcome replay, weak correlation, manual review, and reopened-for-safety behavior are canonical control problems and must be testable before the live assured observation path exists. | seq_022, seq_037, seq_038, seq_039, seq_040 |
+| Telephony capture, transcript, and artifact-safety backplane | proof_stricter_than_public_onboarding | 5 | 4 | Telephony parity is baseline law and the product cannot wait for live carrier, recording, transcript, or scanning accounts before it proves IVR choreography, evidence readiness, and urgent fallback states. | seq_022, seq_023, seq_031, seq_032, seq_034, seq_035, seq_038, seq_039, seq_040 |
+| Network capacity and practice-acknowledgement seam | proof_stricter_than_public_onboarding | 6 | 7 | Hub choice, callback fallback, practice visibility debt, and acknowledgement overdue states must be available to product and platform teams before real partner feeds or practice routes exist. | seq_022, seq_036, seq_038, seq_039, seq_040 |
+| Pharmacy dispatch proof and urgent-return seam | proof_stricter_than_public_onboarding | 1 | 1 | The pharmacy loop cannot wait for live dispatch or monitored urgent-return routes before it proves frozen package hashes, transport ambiguity, redispatch, and urgent reopen behavior. | seq_022, seq_037, seq_038, seq_039, seq_040 |
+| Local booking provider capability and confirmation-truth seam | proof_stricter_than_public_onboarding | 3 | 3 | Booking revalidation, confirmation ambiguity, waitlist fallback, and manage-freeze rules must be proven behind a simulator before any supplier path, pairing, or portal credential becomes current. | seq_022, seq_026, seq_036, seq_038, seq_039, seq_040 |
+| Pharmacy directory and patient-choice seam | lane_alignment_gap | 9 | 9 | Patient choice, warned-choice explanations, opening-hours logic, and consent supersession need a stable directory simulator long before a real strategic search rail is current. | seq_022, seq_037, seq_038, seq_039, seq_040 |
+| Email and secure-link notification rail | lane_alignment_gap | 10 | 10 | Receipts, secure-link recovery, and callback or message reassurance need realistic delivery evidence and bounce semantics before a live notification vendor is onboarded. | seq_022, seq_023, seq_031, seq_033, seq_038, seq_039, seq_040 |
+| Cross-organisation secure messaging and MESH seam | proof_stricter_than_public_onboarding | 7 | 6 | Hub, practice, and pharmacy message flows need replay-safe transport proof, ambiguity, and escalation behavior now even though live mailbox or certificate onboarding will lag. | seq_022, seq_023, seq_028, seq_038, seq_039, seq_040 |
+| NHS login core identity rail | proof_stricter_than_public_onboarding | 2 | 2 | Phase 2 cannot defer auth transactions, route-intent binding, subject mismatch handling, or read-only versus writable recovery states until the partner onboarding completes. | seq_022, seq_023, seq_024, seq_025, seq_039, seq_040 |
+| IM1 pairing and capability-governance prerequisite seam | lane_alignment_gap | 8 | 8 | The programme needs a governed capability-matrix seam and explicit blocked states now so booking and identity work stay decoupled from live supplier pairing while the long-lead onboarding runs. | seq_022, seq_023, seq_026, seq_036, seq_039, seq_040 |
+| Optional PDS enrichment seam | lane_alignment_gap | 15 | 14 | Only a thin no-op or fixture seam is required now so the identity model proves PDS is optional and cannot silently become the baseline truth source. | seq_022, seq_023, seq_027, seq_040 |
+| SMS continuation delivery rail | lane_alignment_gap | 11 | 11 | The internal continuation contract still needs a thin simulator so seeded versus challenge flows, delivery delay, and wrong-recipient safeguards are tested without making SMS a baseline dependency. | seq_022, seq_031, seq_033, seq_039, seq_040 |
+| NHS App embedded-channel ecosystem | deferred_or_future | 13 | 12 | Only preserve manifest, bridge-capability, and downgrade contracts in a local simulator so future embedded work cannot violate current shell or release law. | seq_029, seq_030, seq_040 |
+| Assistive model-vendor boundary | deferred_or_future | 14 | 13 | Keep only bounded observe-only and placeholder-only seams alive so core clinical and operational delivery stays complete without any model-vendor dependency. | seq_040 |
+
+            ## Notes
+
+            - `mock_mandatory_live_can_wait` means the simulator must exist now, but real onboarding can lag until later evidence exists.
+            - `live_critical_later_not_current_blocker` means the family is strategically important to start early once MVP proof exists, but it is not the next engineering blocker.
+            - `proof_stricter_than_public_onboarding` marks families where Vecells' mock or control-plane proof bar is stricter than vendor docs usually describe.
+            - `deferred_or_future` marks NHS App and assistive families that remain inventoried without rebasing current scope.

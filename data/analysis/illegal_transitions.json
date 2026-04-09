@@ -1,0 +1,1376 @@
+{
+  "register_id": "vecells_illegal_transitions_v1",
+  "summary": {
+    "illegal_transition_count": 45,
+    "state_term_conflict_count": 37,
+    "total_conflict_count": 82
+  },
+  "illegal_transition_rows": [
+    {
+      "issue_id": "ISSUE_SM_SUBMISSION_ENVELOPE_STATE_DRAFT_PROMOTED",
+      "machine_id": "SM_SUBMISSION_ENVELOPE_STATE",
+      "from_state": "draft",
+      "to_state": "promoted",
+      "issue_type": "missing_readiness_and_governed_submit",
+      "dangerous_interpretation": "A runtime could mint a Request from incomplete or quarantined draft data.",
+      "canonical_correction": "Promote only from ready_to_promote after explicit readiness proof and settled promotion.",
+      "related_invariant_ids": [
+        "INV_NO_BUSINESS_SUCCESS_FROM_TRANSPORT",
+        "INV_EVIDENCE_ASSIMILATION_AND_RESAFETY"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.1 SubmissionEnvelope",
+        "phase-0-the-foundation-protocol.md#4 Canonical ingest and request promotion"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 09"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_REQUEST_WORKFLOW_STATE_TRIAGE_ACTIVE_CONFIRMATION_PENDING",
+      "machine_id": "SM_REQUEST_WORKFLOW_STATE",
+      "from_state": "triage_active",
+      "to_state": "confirmation_pending",
+      "issue_type": "overloaded_canonical_state",
+      "dangerous_interpretation": "Booking or pharmacy ambiguity could be copied into Request.workflowState and mask the milestone-only contract.",
+      "canonical_correction": "Keep confirmation ambiguity on ExternalConfirmationGate or case-local state; canonical workflow stays milestone-only.",
+      "related_invariant_ids": [
+        "INV_REQ_WORKFLOW_MILESTONES_ONLY",
+        "INV_CONFIRMATION_AMBIGUITY_STAYS_EXPLICIT"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.3 Request",
+        "forensic-audit-findings.md#Finding 54 - Request.workflowState incorrectly mixed workflow milestones with reconciliation states"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 54",
+        "forensic-audit-findings.md#Finding 73",
+        "forensic-audit-findings.md#Finding 78"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_REQUEST_WORKFLOW_STATE_TRIAGE_ACTIVE_CLOSED",
+      "machine_id": "SM_REQUEST_WORKFLOW_STATE",
+      "from_state": "triage_active",
+      "to_state": "closed",
+      "issue_type": "closure_without_coordinator_and_blocker_evaluation",
+      "dangerous_interpretation": "A child domain or UI could close the Request while blockers are still open.",
+      "canonical_correction": "Only LifecycleCoordinator may derive closed after a persisted RequestClosureRecord with an empty blocker set.",
+      "related_invariant_ids": [
+        "INV_COORDINATOR_OWNS_CANONICAL_MILESTONES",
+        "INV_CLOSURE_REQUIRES_EMPTY_BLOCKERS"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.12 RequestClosureRecord",
+        "phase-3-the-human-checkpoint.md#3A Triage contract and workspace state model"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 56",
+        "forensic-audit-findings.md#Finding 71"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_REQUEST_SAFETY_STATE_URGENT_DIVERSION_REQUIRED_SCREEN_CLEAR",
+      "machine_id": "SM_REQUEST_SAFETY_STATE",
+      "from_state": "urgent_diversion_required",
+      "to_state": "screen_clear",
+      "issue_type": "urgent_without_diversion_settlement",
+      "dangerous_interpretation": "An implementation could treat urgent requirement as if the urgent advice was already issued and let the case drift back to routine safety.",
+      "canonical_correction": "Keep urgent_diversion_required durable until UrgentDiversionSettlement proves issuance; only new evidence may change safety after that.",
+      "related_invariant_ids": [
+        "INV_URGENT_REQUIRED_NOT_DIVERTED"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.3 Request",
+        "phase-1-the-red-flag-gate.md"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 11"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_REQUEST_IDENTITY_STATE_ANONYMOUS_CLAIMED",
+      "machine_id": "SM_REQUEST_IDENTITY_STATE",
+      "from_state": "anonymous",
+      "to_state": "claimed",
+      "issue_type": "direct_patientref_write",
+      "dangerous_interpretation": "Auth or support flows could stamp patientRef directly and bypass IdentityBinding governance.",
+      "canonical_correction": "patientRef remains nullable until IdentityBinding settles; claim requires verified binding plus current session and route tuple.",
+      "related_invariant_ids": [
+        "INV_PATIENTREF_DERIVES_FROM_BINDING",
+        "INV_WRONG_PATIENT_IS_REPAIR_PATH"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.4 IdentityBinding",
+        "phase-0-the-foundation-protocol.md#1.3 Request"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 50",
+        "forensic-audit-findings.md#Finding 69"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_EPISODE_STATE_OPEN_IDENTITY_HOLD",
+      "machine_id": "SM_EPISODE_STATE",
+      "from_state": "open",
+      "to_state": "identity_hold",
+      "issue_type": "repair_state_overload",
+      "dangerous_interpretation": "Identity repair would be flattened into the episode lifecycle and make a temporary privacy freeze look like a lifecycle stage.",
+      "canonical_correction": "Keep identity repair on IdentityRepairCase and Episode blocker refs; Episode.state remains open/resolved/archived.",
+      "related_invariant_ids": [
+        "INV_BLOCKERS_ORTHOGONAL",
+        "INV_WRONG_PATIENT_IS_REPAIR_PATH"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.2 Episode",
+        "phase-0-the-foundation-protocol.md#1.5 IdentityRepairCase"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 53",
+        "forensic-audit-findings.md#Finding 69"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_TELEPHONY_EVIDENCE_READINESS_AWAITING_RECORDING_SAFETY_USABLE",
+      "machine_id": "SM_TELEPHONY_EVIDENCE_READINESS",
+      "from_state": "awaiting_recording",
+      "to_state": "safety_usable",
+      "issue_type": "premature_readiness",
+      "dangerous_interpretation": "Telephony flow could promote partially captured evidence into routine safety.",
+      "canonical_correction": "Only a settled readiness assessment may declare safety_usable after the required recording/transcript/structured capture conditions are satisfied.",
+      "related_invariant_ids": [
+        "INV_EVIDENCE_ASSIMILATION_AND_RESAFETY"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.3D TelephonyEvidenceReadinessAssessment"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 08"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_TELEPHONY_CONTINUATION_ELIGIBILITY_MANUAL_ONLY_ELIGIBLE_SEEDED",
+      "machine_id": "SM_TELEPHONY_CONTINUATION_ELIGIBILITY",
+      "from_state": "manual_only",
+      "to_state": "eligible_seeded",
+      "issue_type": "manual_override_widening_scope",
+      "dangerous_interpretation": "A telephony operator could bypass the continuity proof boundary and issue a seeded continuation anyway.",
+      "canonical_correction": "Continuation eligibility may narrow or force manual handling, but it may not bypass AccessGrantService or widen continuity scope outside the proven lineage.",
+      "related_invariant_ids": [
+        "INV_MUTATION_REQUIRES_CURRENT_ROUTE_TUPLE"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.3E TelephonyContinuationEligibility"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 08"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_IDENTITY_BINDING_STATE_VERIFIED_PATIENT_REVOKED",
+      "machine_id": "SM_IDENTITY_BINDING_STATE",
+      "from_state": "verified_patient",
+      "to_state": "revoked",
+      "issue_type": "correction_without_repair_branch",
+      "dangerous_interpretation": "A system could revoke patient binding without opening repair and freeze the lineage invisibly.",
+      "canonical_correction": "Wrong-patient correction must pass through correction_pending and repair/branch disposition objects before release or revocation settles.",
+      "related_invariant_ids": [
+        "INV_WRONG_PATIENT_IS_REPAIR_PATH",
+        "INV_PATIENTREF_DERIVES_FROM_BINDING"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.5 IdentityRepairCase"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 69"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_SESSION_STATE_ESTABLISHING_RESTRICTED",
+      "machine_id": "SM_SESSION_STATE",
+      "from_state": "establishing",
+      "to_state": "restricted",
+      "issue_type": "skipping_establishment_settlement",
+      "dangerous_interpretation": "Routes could act as if a restricted session exists without ever establishing current identity and tuple authority.",
+      "canonical_correction": "All post-auth posture must settle through SessionEstablishmentDecision before restrictions or writable actionability are exposed.",
+      "related_invariant_ids": [
+        "INV_MUTATION_REQUIRES_CURRENT_ROUTE_TUPLE"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.4C Session"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 91"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_SESSION_ROUTE_AUTHORITY_AUTH_READ_ONLY_WRITABLE",
+      "machine_id": "SM_SESSION_ROUTE_AUTHORITY",
+      "from_state": "auth_read_only",
+      "to_state": "writable",
+      "issue_type": "claim_without_live_tuple",
+      "dangerous_interpretation": "Authentication success could be mistaken for writable patient or operator authority.",
+      "canonical_correction": "Writable route authority requires current capability decision, session, live RouteIntentBinding, and publishable runtime binding.",
+      "related_invariant_ids": [
+        "INV_MUTATION_REQUIRES_CURRENT_ROUTE_TUPLE"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.4C Session",
+        "phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 91"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_ACCESS_GRANT_LIFECYCLE_LIVE_REDEEMED",
+      "machine_id": "SM_ACCESS_GRANT_LIFECYCLE",
+      "from_state": "live",
+      "to_state": "redeemed",
+      "issue_type": "redemption_without_exact_once_record",
+      "dangerous_interpretation": "A continuation or callback URL could be treated as valid without exact-once redemption settlement.",
+      "canonical_correction": "Any first successful presentation must settle through AccessGrantRedemptionRecord before session creation or route re-entry continues.",
+      "related_invariant_ids": [
+        "INV_MUTATION_REQUIRES_CURRENT_ROUTE_TUPLE"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.6 AccessGrant"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 60"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_DUPLICATE_CLUSTER_STATUS_OPEN_RESOLVED_CONFIRMED",
+      "machine_id": "SM_DUPLICATE_CLUSTER_STATUS",
+      "from_state": "open",
+      "to_state": "resolved_confirmed",
+      "issue_type": "attach_without_review_or_witness",
+      "dangerous_interpretation": "same_episode_candidate could silently collapse or attach work without explicit review or continuity witness.",
+      "canonical_correction": "Only DuplicateResolutionDecision with a valid decision class and witness may settle attach, retry, or related linkage.",
+      "related_invariant_ids": [
+        "INV_SAME_REQUEST_CONTINUATION_REUSES_LINEAGE",
+        "INV_CLOSURE_REQUIRES_EMPTY_BLOCKERS"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.7 DuplicateCluster"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 57",
+        "forensic-audit-findings.md#Finding 65"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_FALLBACK_REVIEW_CASE_SUBMITTED_DEGRADED_CLOSED",
+      "machine_id": "SM_FALLBACK_REVIEW_CASE",
+      "from_state": "submitted_degraded",
+      "to_state": "closed",
+      "issue_type": "degraded_progress_lost",
+      "dangerous_interpretation": "Accepted but degraded progress could be silently dropped or marked closed without review.",
+      "canonical_correction": "Fallback review must remain explicit and closure-blocking until recovered, superseded by governed manual action, or explicitly closed under policy.",
+      "related_invariant_ids": [
+        "INV_CLOSURE_REQUIRES_EMPTY_BLOCKERS"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.20 FallbackReviewCase"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 58",
+        "forensic-audit-findings.md#Finding 62"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_REQUEST_LIFECYCLE_LEASE_EXPIRED_ACTIVE",
+      "machine_id": "SM_REQUEST_LIFECYCLE_LEASE",
+      "from_state": "expired",
+      "to_state": "active",
+      "issue_type": "stale_reacquire_without_new_fence",
+      "dangerous_interpretation": "A stale owner could silently resume mutation after expiry.",
+      "canonical_correction": "Lease expiry must open stale-owner recovery and only a new compare-and-set acquire or supervised takeover may mint fresh ownershipEpoch and fencingToken.",
+      "related_invariant_ids": [
+        "INV_MUTATION_REQUIRES_CURRENT_ROUTE_TUPLE",
+        "INV_CLOSURE_REQUIRES_EMPTY_BLOCKERS"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.10 RequestLifecycleLease",
+        "phase-0-the-foundation-protocol.md#1.10A StaleOwnershipRecoveryRecord and LeaseTakeoverRecord"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 15"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_REQUEST_CLOSURE_DECISION_CLOSE_CLOSE",
+      "machine_id": "SM_REQUEST_CLOSURE_DECISION",
+      "from_state": "close",
+      "to_state": "close",
+      "issue_type": "closure_without_fresh_blocker_evaluation",
+      "dangerous_interpretation": "A cached close decision could be reused after blockers, lineage epoch, or confirmation ambiguity drift.",
+      "canonical_correction": "Each close decision must be recomputed against the current requiredLineageEpoch and blocker refs rather than replaying stale calmness.",
+      "related_invariant_ids": [
+        "INV_CLOSURE_REQUIRES_EMPTY_BLOCKERS"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.12 RequestClosureRecord"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 71"
+      ],
+      "notes": "The same row captures stale close replay risk rather than a literal state transition."
+    },
+    {
+      "issue_id": "ISSUE_SM_CAPACITY_RESERVATION_STATE_SOFT_SELECTED_CONFIRMED",
+      "machine_id": "SM_CAPACITY_RESERVATION_STATE",
+      "from_state": "soft_selected",
+      "to_state": "confirmed",
+      "issue_type": "fake_exclusivity_or_booking_truth",
+      "dangerous_interpretation": "UI or booking logic could jump from selection to booked reassurance without a real hold or authoritative confirmation.",
+      "canonical_correction": "Selection and reservation truth stay explicit: soft_selected is never exclusivity or final booking truth.",
+      "related_invariant_ids": [
+        "INV_NO_BUSINESS_SUCCESS_FROM_TRANSPORT",
+        "INV_CONFIRMATION_AMBIGUITY_STAYS_EXPLICIT"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.14 CapacityReservation",
+        "phase-0-the-foundation-protocol.md#1.14A ReservationTruthProjection"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 27"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_EXTERNAL_CONFIRMATION_GATE_PENDING_CONFIRMED",
+      "machine_id": "SM_EXTERNAL_CONFIRMATION_GATE",
+      "from_state": "pending",
+      "to_state": "confirmed",
+      "issue_type": "transport_acceptance_as_business_truth",
+      "dangerous_interpretation": "Transport or provider acceptance alone could be mistaken for confirmed booking or dispatch truth.",
+      "canonical_correction": "Business success requires gate confirmation with required hard matches and sufficient corroboration, not transport acceptance alone.",
+      "related_invariant_ids": [
+        "INV_NO_BUSINESS_SUCCESS_FROM_TRANSPORT",
+        "INV_CONFIRMATION_AMBIGUITY_STAYS_EXPLICIT"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.15 ExternalConfirmationGate",
+        "phase-0-the-foundation-protocol.md#Pharmacy dispatch truth"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 67",
+        "forensic-audit-findings.md#Finding 72"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_ROUTE_INTENT_BINDING_STALE_LIVE",
+      "machine_id": "SM_ROUTE_INTENT_BINDING",
+      "from_state": "stale",
+      "to_state": "live",
+      "issue_type": "mutate_on_old_tuple",
+      "dangerous_interpretation": "A route could regain writable posture just because the UI still has a CTA, even though its tuple is stale.",
+      "canonical_correction": "Any tuple drift requires fresh explicit disambiguation and a reissued RouteIntentBinding before writable posture resumes.",
+      "related_invariant_ids": [
+        "INV_MUTATION_REQUIRES_CURRENT_ROUTE_TUPLE"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.21 RouteIntentBinding",
+        "phase-0-the-foundation-protocol.md#25A Any writable command must prove one exact target tuple"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 91"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_COMMAND_SETTLEMENT_PENDING_SETTLED",
+      "machine_id": "SM_COMMAND_SETTLEMENT",
+      "from_state": "pending",
+      "to_state": "settled",
+      "issue_type": "transport_or_local_ack_as_calm_success",
+      "dangerous_interpretation": "UI could collapse local acknowledgement or processing acceptance into final reassurance.",
+      "canonical_correction": "Calm success requires authoritativeOutcomeState = settled plus the required proof class and any command-following projection truth.",
+      "related_invariant_ids": [
+        "INV_NO_BUSINESS_SUCCESS_FROM_TRANSPORT",
+        "INV_CALLBACK_AND_MESSAGE_EVIDENCE_BOUND"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.23 CommandSettlementRecord"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 101"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_AUDIENCE_SURFACE_RUNTIME_BINDING_RECOVERY_ONLY_PUBLISHABLE_LIVE",
+      "machine_id": "SM_AUDIENCE_SURFACE_RUNTIME_BINDING",
+      "from_state": "recovery_only",
+      "to_state": "publishable_live",
+      "issue_type": "cta_reopened_from_cached_contract",
+      "dangerous_interpretation": "A client cache or stale route contract could reopen mutating affordances after tuple drift.",
+      "canonical_correction": "Writable or calm posture may return only after a fresh runtime binding proves exact publication parity and current continuity proof.",
+      "related_invariant_ids": [
+        "INV_MUTATION_REQUIRES_CURRENT_ROUTE_TUPLE",
+        "INV_PROJECTION_FRESHNESS_GATES_ACTIONABILITY"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.38A AudienceSurfaceRuntimeBinding"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 91",
+        "forensic-audit-findings.md#Finding 97"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_TRIAGE_TASK_STATUS_ENDPOINT_SELECTED_CLOSED",
+      "machine_id": "SM_TRIAGE_TASK_STATUS",
+      "from_state": "endpoint_selected",
+      "to_state": "closed",
+      "issue_type": "triage_closes_request_locally",
+      "dangerous_interpretation": "Triage could collapse straight to closed after local endpoint choice or local acknowledgement.",
+      "canonical_correction": "Triage closes only after authoritative endpoint settlement and task completion settlement; canonical request closure remains coordinator-owned.",
+      "related_invariant_ids": [
+        "INV_CHILD_DOMAINS_EMIT_SIGNALS_ONLY",
+        "INV_COORDINATOR_OWNS_CANONICAL_MILESTONES"
+      ],
+      "source_refs": [
+        "phase-3-the-human-checkpoint.md#3G Direct resolution, downstream handoff seeds, and reopen mechanics"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 75"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_DECISION_EPOCH_SUPERSEDED_LIVE",
+      "machine_id": "SM_DECISION_EPOCH",
+      "from_state": "superseded",
+      "to_state": "live",
+      "issue_type": "stale_preview_reused_after_supersession",
+      "dangerous_interpretation": "A superseded preview or approval could still launch new downstream work.",
+      "canonical_correction": "Replacement epochs must be explicit; stale epochs remain provenance only and cannot authorize preview, approval, submit, or downstream seeds.",
+      "related_invariant_ids": [
+        "INV_CHILD_DOMAINS_EMIT_SIGNALS_ONLY",
+        "INV_MORE_INFO_TTL_AND_SUPERSESSION"
+      ],
+      "source_refs": [
+        "phase-3-the-human-checkpoint.md#3E Endpoint decision engine and resolution model"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 75"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_APPROVAL_CHECKPOINT_APPROVED_APPROVED",
+      "machine_id": "SM_APPROVAL_CHECKPOINT",
+      "from_state": "approved",
+      "to_state": "approved",
+      "issue_type": "approval_reused_after_material_change",
+      "dangerous_interpretation": "An old approval could still authorize changed notes, endpoint, evidence, duplicate resolution, or publication posture.",
+      "canonical_correction": "Material change supersedes the checkpoint and requires fresh approval on the replacement epoch.",
+      "related_invariant_ids": [
+        "INV_CHILD_DOMAINS_EMIT_SIGNALS_ONLY"
+      ],
+      "source_refs": [
+        "phase-3-the-human-checkpoint.md#3F Human approval checkpoint and urgent escalation path"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 75"
+      ],
+      "notes": "This row captures stale approval reuse rather than a literal state transition."
+    },
+    {
+      "issue_id": "ISSUE_SM_MORE_INFO_REPLY_WINDOW_EXPIRED_SETTLED",
+      "machine_id": "SM_MORE_INFO_REPLY_WINDOW",
+      "from_state": "expired",
+      "to_state": "settled",
+      "issue_type": "late_reply_reopens_expired_cycle",
+      "dangerous_interpretation": "An expired or superseded reply could silently mint new evidence and reopen routine queue flow.",
+      "canonical_correction": "expired_rejected and superseded_duplicate replies remain explainable through MoreInfoResponseDisposition but may not implicitly reopen a closed or superseded cycle.",
+      "related_invariant_ids": [
+        "INV_MORE_INFO_TTL_AND_SUPERSESSION",
+        "INV_EVIDENCE_ASSIMILATION_AND_RESAFETY"
+      ],
+      "source_refs": [
+        "phase-3-the-human-checkpoint.md#3D More-info loop, patient response threading, and re-safety"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 18"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_CALLBACK_CASE_STATE_ATTEMPT_IN_PROGRESS_COMPLETED",
+      "machine_id": "SM_CALLBACK_CASE_STATE",
+      "from_state": "attempt_in_progress",
+      "to_state": "completed",
+      "issue_type": "completion_without_outcome_evidence_and_resolution_gate",
+      "dangerous_interpretation": "The case could look complete after a dial action or local note without proving the callback outcome.",
+      "canonical_correction": "Callback completion requires CallbackOutcomeEvidenceBundle plus CallbackResolutionGate(decision = complete).",
+      "related_invariant_ids": [
+        "INV_CALLBACK_AND_MESSAGE_EVIDENCE_BOUND",
+        "INV_NO_BUSINESS_SUCCESS_FROM_TRANSPORT"
+      ],
+      "source_refs": [
+        "callback-and-clinician-messaging-loop.md#Callback domain"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 24",
+        "forensic-audit-findings.md#Finding 25"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_CLINICIAN_MESSAGE_THREAD_SENT_CLOSED",
+      "machine_id": "SM_CLINICIAN_MESSAGE_THREAD",
+      "from_state": "sent",
+      "to_state": "closed",
+      "issue_type": "thread_closed_on_send_or_transport",
+      "dangerous_interpretation": "The thread could close on transport acceptance, local send acknowledgement, or optimistic timeline copy.",
+      "canonical_correction": "Delivery, dispute, reply review, repair routing, and closure are all gated by evidence bundles and ThreadResolutionGate.",
+      "related_invariant_ids": [
+        "INV_CALLBACK_AND_MESSAGE_EVIDENCE_BOUND",
+        "INV_NO_BUSINESS_SUCCESS_FROM_TRANSPORT"
+      ],
+      "source_refs": [
+        "callback-and-clinician-messaging-loop.md#Clinician message domain"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 23",
+        "forensic-audit-findings.md#Finding 25"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_BOOKING_CASE_STATUS_COMMIT_PENDING_BOOKED",
+      "machine_id": "SM_BOOKING_CASE_STATUS",
+      "from_state": "commit_pending",
+      "to_state": "booked",
+      "issue_type": "booked_from_transport_or_weak_supplier_acceptance",
+      "dangerous_interpretation": "Provider acceptance or local success toast could imply booked truth before authoritative confirmation.",
+      "canonical_correction": "Only strong booking truth may enter booked. Otherwise remain confirmation_pending or supplier_reconciliation_pending with an ExternalConfirmationGate.",
+      "related_invariant_ids": [
+        "INV_NO_BUSINESS_SUCCESS_FROM_TRANSPORT",
+        "INV_CONFIRMATION_AMBIGUITY_STAYS_EXPLICIT"
+      ],
+      "source_refs": [
+        "phase-4-the-booking-engine.md#4A Booking contract, case model, and state machine"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 72",
+        "forensic-audit-findings.md#Finding 73"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_BOOKING_CASE_STATUS_BOOKED_HANDOFF_ACTIVE",
+      "machine_id": "SM_BOOKING_CASE_STATUS",
+      "from_state": "booked",
+      "to_state": "handoff_active",
+      "issue_type": "child_domain_writes_canonical_request_state",
+      "dangerous_interpretation": "Booking-domain code could write canonical Request.workflowState directly when booked or reconciled.",
+      "canonical_correction": "Booking emits branch-local truth and milestone evidence only; LifecycleCoordinator alone derives request-level milestone change.",
+      "related_invariant_ids": [
+        "INV_CHILD_DOMAINS_EMIT_SIGNALS_ONLY",
+        "INV_COORDINATOR_OWNS_CANONICAL_MILESTONES"
+      ],
+      "source_refs": [
+        "phase-4-the-booking-engine.md#4A Booking contract, case model, and state machine",
+        "phase-0-the-foundation-protocol.md#Canonical request model"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 74"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_WAITLIST_FALLBACK_TRANSFER_ARMED_SATISFIED",
+      "machine_id": "SM_WAITLIST_FALLBACK_TRANSFER",
+      "from_state": "armed",
+      "to_state": "satisfied",
+      "issue_type": "fallback_obligation_cleared_without_durable_transfer",
+      "dangerous_interpretation": "A local waitlist could claim the callback or hub debt is gone before the new branch is actually linked and patient-visible.",
+      "canonical_correction": "Fallback obligation remains explicit through transfer_pending and transferred until the new continuation path is durably linked.",
+      "related_invariant_ids": [
+        "INV_WAITLIST_AND_HUB_TRANSFER_EXPLICIT"
+      ],
+      "source_refs": [
+        "phase-4-the-booking-engine.md#4G Smart Waitlist and local auto-fill",
+        "phase-5-the-network-horizon.md#5G No-slot handling, urgent bounce-back, callback fallback, and reopen mechanics"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 76"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_HUB_COORDINATION_CASE_STATUS_CONFIRMATION_PENDING_BOOKED",
+      "machine_id": "SM_HUB_COORDINATION_CASE_STATUS",
+      "from_state": "confirmation_pending",
+      "to_state": "booked",
+      "issue_type": "hub_books_without_practice_visibility_clearance",
+      "dangerous_interpretation": "The case could look fully booked while practice acknowledgement debt or fallback linkage is still unresolved.",
+      "canonical_correction": "Keep booked_pending_practice_ack explicit and do not close the hub branch until acknowledgement or policy exception is current for the latest generation.",
+      "related_invariant_ids": [
+        "INV_CONFIRMATION_AMBIGUITY_STAYS_EXPLICIT",
+        "INV_WAITLIST_AND_HUB_TRANSFER_EXPLICIT"
+      ],
+      "source_refs": [
+        "phase-5-the-network-horizon.md#5F Native hub booking commit, practice continuity, and cross-org messaging",
+        "phase-5-the-network-horizon.md#5H Patient communications, network reminders, manage flows, and practice visibility"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 76"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_HUB_COORDINATION_CASE_STATUS_BOOKED_HANDOFF_ACTIVE",
+      "machine_id": "SM_HUB_COORDINATION_CASE_STATUS",
+      "from_state": "booked",
+      "to_state": "handoff_active",
+      "issue_type": "hub_writes_request_milestone_directly",
+      "dangerous_interpretation": "Hub code could overwrite canonical request workflow or closure meaning directly from hub-local truth.",
+      "canonical_correction": "Hub emits case-local truth and milestone evidence only; LifecycleCoordinator derives request-level milestone and closure semantics.",
+      "related_invariant_ids": [
+        "INV_CHILD_DOMAINS_EMIT_SIGNALS_ONLY",
+        "INV_COORDINATOR_OWNS_CANONICAL_MILESTONES"
+      ],
+      "source_refs": [
+        "phase-5-the-network-horizon.md#5A Network coordination contract, case model, and state machine",
+        "phase-0-the-foundation-protocol.md#Canonical request model"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 76"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_HUB_CONFIRMATION_TRUTH_NATIVE_BOOKING_PENDING_CONFIRMED",
+      "machine_id": "SM_HUB_CONFIRMATION_TRUTH",
+      "from_state": "native_booking_pending",
+      "to_state": "confirmed",
+      "issue_type": "skipping_confirmation_and_ack_debt",
+      "dangerous_interpretation": "A hub-native booking could jump straight to confirmed calmness without explicit confirmation and practice visibility stages.",
+      "canonical_correction": "Use confirmation_pending and confirmed_pending_practice_ack explicitly, then clear only on current-generation acknowledgement or policy exception.",
+      "related_invariant_ids": [
+        "INV_CONFIRMATION_AMBIGUITY_STAYS_EXPLICIT"
+      ],
+      "source_refs": [
+        "phase-5-the-network-horizon.md#5F Native hub booking commit, practice continuity, and cross-org messaging"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 76"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_PHARMACY_CASE_STATUS_DISPATCH_PENDING_CONSULTATION_OUTCOME_PENDING",
+      "machine_id": "SM_PHARMACY_CASE_STATUS",
+      "from_state": "dispatch_pending",
+      "to_state": "consultation_outcome_pending",
+      "issue_type": "dispatch_truth_without_confirmation_proof",
+      "dangerous_interpretation": "Transport or provider acceptance could be mistaken for authoritative dispatch truth.",
+      "canonical_correction": "Only proof-satisfied dispatch on the current tuple may move the case into consultation_outcome_pending; weak modes stay behind ExternalConfirmationGate and reconciliation review when needed.",
+      "related_invariant_ids": [
+        "INV_NO_BUSINESS_SUCCESS_FROM_TRANSPORT",
+        "INV_PHARMACY_CONSENT_DISPATCH_RECONCILIATION"
+      ],
+      "source_refs": [
+        "phase-6-the-pharmacy-loop.md#6D Referral pack composer, dispatch adapters, and transport contract"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 78"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_PHARMACY_CASE_STATUS_OUTCOME_RECONCILIATION_PENDING_OUTCOME_RECORDED",
+      "machine_id": "SM_PHARMACY_CASE_STATUS",
+      "from_state": "outcome_reconciliation_pending",
+      "to_state": "outcome_recorded",
+      "issue_type": "case_local_ambiguity_written_to_request",
+      "dangerous_interpretation": "Weak pharmacy outcome truth could directly advance canonical request workflow.",
+      "canonical_correction": "outcome_reconciliation_pending stays case-local. LifecycleCoordinator derives request milestones only from settled outcome evidence and blocker evaluation.",
+      "related_invariant_ids": [
+        "INV_CHILD_DOMAINS_EMIT_SIGNALS_ONLY",
+        "INV_CONFIRMATION_AMBIGUITY_STAYS_EXPLICIT"
+      ],
+      "source_refs": [
+        "phase-6-the-pharmacy-loop.md#6F Outcome ingest, Update Record observation, and reconciliation",
+        "phase-0-the-foundation-protocol.md#Canonical request model"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 77",
+        "forensic-audit-findings.md#Finding 78",
+        "forensic-audit-findings.md#Finding 79"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_PHARMACY_CONSENT_CHECKPOINT_RENEWAL_REQUIRED_SATISFIED",
+      "machine_id": "SM_PHARMACY_CONSENT_CHECKPOINT",
+      "from_state": "renewal_required",
+      "to_state": "satisfied",
+      "issue_type": "stale_consent_reused_without_new_scope",
+      "dangerous_interpretation": "A stale or expired consent could silently remain good enough for dispatch.",
+      "canonical_correction": "Any renewed consent must produce a fresh consent record, checkpoint, and package fingerprint on the current provider/pathway scope.",
+      "related_invariant_ids": [
+        "INV_PHARMACY_CONSENT_DISPATCH_RECONCILIATION"
+      ],
+      "source_refs": [
+        "phase-6-the-pharmacy-loop.md#6A Pharmacy contract, case model, and state machine"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 78"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_PHARMACY_DISPATCH_STATUS_TRANSPORT_ACCEPTED_PROOF_SATISFIED",
+      "machine_id": "SM_PHARMACY_DISPATCH_STATUS",
+      "from_state": "transport_accepted",
+      "to_state": "proof_satisfied",
+      "issue_type": "transport_acceptance_as_dispatch_truth",
+      "dangerous_interpretation": "Transport or provider acceptance alone could be treated as authoritative dispatch proof.",
+      "canonical_correction": "Dispatch truth remains explicit: acceptance may widen pending guidance but proof_satisfied needs the configured confirmation gate and tuple-bound proof.",
+      "related_invariant_ids": [
+        "INV_NO_BUSINESS_SUCCESS_FROM_TRANSPORT",
+        "INV_PHARMACY_CONSENT_DISPATCH_RECONCILIATION"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#Pharmacy dispatch truth"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 78"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_ADMIN_RESOLUTION_CASE_IN_PROGRESS_COMPLETED",
+      "machine_id": "SM_ADMIN_RESOLUTION_CASE",
+      "from_state": "in_progress",
+      "to_state": "completed",
+      "issue_type": "completion_without_typed_artifact",
+      "dangerous_interpretation": "Internal admin work could appear complete without a typed completion artifact or patient-visible expectation text.",
+      "canonical_correction": "completed requires AdminResolutionSettlement(result = completed) and a matching AdminResolutionCompletionArtifact.",
+      "related_invariant_ids": [
+        "INV_PROJECTION_FRESHNESS_GATES_ACTIONABILITY"
+      ],
+      "source_refs": [
+        "self-care-content-and-admin-resolution-blueprint.md#Admin-resolution domain"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 102"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_ASSISTIVE_TRUST_ENVELOPE_DEGRADED_TRUSTED",
+      "machine_id": "SM_ASSISTIVE_TRUST_ENVELOPE",
+      "from_state": "degraded",
+      "to_state": "trusted",
+      "issue_type": "trust_recovered_without_new_tuple_or_rerun",
+      "dangerous_interpretation": "Stale assistive artifacts could regain interactive posture just because the UI refreshed.",
+      "canonical_correction": "When trust, publication, selected-anchor ownership, or continuity drift, freeze in place and require fresh current watch-tuple proof or rerun before trusted posture returns.",
+      "related_invariant_ids": [
+        "INV_ASSISTIVE_FREEZE_IN_PLACE",
+        "INV_PROJECTION_FRESHNESS_GATES_ACTIONABILITY"
+      ],
+      "source_refs": [
+        "phase-8-the-assistive-layer.md#8A Assistive capability contract, intended-use boundaries, and policy envelope"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 94"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_ASSISTIVE_ROLLOUT_VERDICT_SHADOW_ONLY_VISIBLE_INSERT",
+      "machine_id": "SM_ASSISTIVE_ROLLOUT_VERDICT",
+      "from_state": "shadow_only",
+      "to_state": "visible_insert",
+      "issue_type": "skipping_rollout_ladder_rungs",
+      "dangerous_interpretation": "Feature flags or local overrides could widen visible capability without satisfying the governed rollout ladder.",
+      "canonical_correction": "AssistiveRolloutLadderPolicy is the only authority for widening posture from shadow to visible summary, insert, or governed commit.",
+      "related_invariant_ids": [
+        "INV_ASSISTIVE_FREEZE_IN_PLACE"
+      ],
+      "source_refs": [
+        "phase-8-the-assistive-layer.md#8A Assistive capability contract, intended-use boundaries, and policy envelope",
+        "phase-8-the-assistive-layer.md#8I Pilot rollout, controlled slices, and formal exit gate"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 94"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_DISPOSITION_ELIGIBILITY_BLOCKED_DELETE_ALLOWED",
+      "machine_id": "SM_DISPOSITION_ELIGIBILITY",
+      "from_state": "blocked",
+      "to_state": "delete_allowed",
+      "issue_type": "delete_under_hold_or_graph_dependency",
+      "dangerous_interpretation": "Retention could delete replay-critical or legally preserved artifacts while the evidence graph still depends on them.",
+      "canonical_correction": "DispositionEligibilityAssessment is the only delete gate and must converge freeze, legal-hold, dependency, and graph posture before deletion becomes legal.",
+      "related_invariant_ids": [
+        "INV_RETENTION_AND_RESILIENCE_GATE_EXPORTS"
+      ],
+      "source_refs": [
+        "phase-9-the-assurance-ledger.md#Records lifecycle, retention, legal hold, and deletion engine"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 103"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_LEGAL_HOLD_STATE_ACTIVE_RELEASED",
+      "machine_id": "SM_LEGAL_HOLD_STATE",
+      "from_state": "active",
+      "to_state": "released",
+      "issue_type": "hold_release_as_delete_authority",
+      "dangerous_interpretation": "Operators could treat hold release alone as permission to archive or delete.",
+      "canonical_correction": "Hold release requires a fresh superseding DispositionEligibilityAssessment before any queued archive or delete job may proceed.",
+      "related_invariant_ids": [
+        "INV_RETENTION_AND_RESILIENCE_GATE_EXPORTS"
+      ],
+      "source_refs": [
+        "phase-9-the-assurance-ledger.md#Records lifecycle, retention, legal hold, and deletion engine"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 103"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_RESILIENCE_SURFACE_BINDING_DIAGNOSTIC_ONLY_LIVE",
+      "machine_id": "SM_RESILIENCE_SURFACE_BINDING",
+      "from_state": "diagnostic_only",
+      "to_state": "live",
+      "issue_type": "resilience_controls_rearmed_on_stale_tuple",
+      "dangerous_interpretation": "Restore, failover, or chaos controls could rearm while recovery evidence or publication tuple is stale.",
+      "canonical_correction": "bindingState = live is legal only when the linked ReleaseTrustFreezeVerdict is live, latest recovery evidence pack is current, and the binding tuple matches the current resilience tuple.",
+      "related_invariant_ids": [
+        "INV_RETENTION_AND_RESILIENCE_GATE_EXPORTS",
+        "INV_PROJECTION_FRESHNESS_GATES_ACTIONABILITY"
+      ],
+      "source_refs": [
+        "phase-9-the-assurance-ledger.md#9F Resilience architecture, restore orchestration, and chaos programme"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 103"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_RECOVERY_CONTROL_POSTURE_DIAGNOSTIC_ONLY_LIVE_CONTROL",
+      "machine_id": "SM_RECOVERY_CONTROL_POSTURE",
+      "from_state": "diagnostic_only",
+      "to_state": "live_control",
+      "issue_type": "operator_control_from_historical_pack",
+      "dangerous_interpretation": "A historical recovery pack could re-enable restore or failover controls after tuple drift.",
+      "canonical_correction": "RecoveryEvidencePack is admissible only while packState = current and its resilienceTupleHash still matches live runtime truth.",
+      "related_invariant_ids": [
+        "INV_RETENTION_AND_RESILIENCE_GATE_EXPORTS"
+      ],
+      "source_refs": [
+        "phase-9-the-assurance-ledger.md#9F Resilience architecture, restore orchestration, and chaos programme"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 103"
+      ],
+      "notes": ""
+    },
+    {
+      "issue_id": "ISSUE_SM_CROSS_PHASE_SCORECARD_BLOCKED_EXACT",
+      "machine_id": "SM_CROSS_PHASE_SCORECARD",
+      "from_state": "blocked",
+      "to_state": "exact",
+      "issue_type": "bau_signoff_without_continuity_and_runtime_proof",
+      "dangerous_interpretation": "Narrative confidence or dashboard green could imply programme completion without exact continuity, runtime, and end-state proof.",
+      "canonical_correction": "CrossPhaseConformanceScorecard becomes exact only when every required row is exact and the scorecard hash still matches current planning, verification, runtime publication, continuity evidence, and end-state proof.",
+      "related_invariant_ids": [
+        "INV_CONTINUITY_PROOF_REQUIRED_FOR_SIGNOFF"
+      ],
+      "source_refs": [
+        "phase-9-the-assurance-ledger.md#9I Full-program exercises, BAU transfer, and formal exit gate"
+      ],
+      "forensic_refs": [
+        "forensic-audit-findings.md#Finding 103"
+      ],
+      "notes": ""
+    }
+  ],
+  "state_term_conflicts": [
+    {
+      "issue_id": "CONFLICT_STATE_TERM_ACTIVE",
+      "issue_type": "state_term_reuse",
+      "state_value": "active",
+      "machine_ids": [
+        "SM_LEGAL_HOLD_STATE",
+        "SM_REQUEST_LIFECYCLE_LEASE",
+        "SM_SESSION_STATE"
+      ],
+      "dangerous_interpretation": "The token `active` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_APPROVED",
+      "issue_type": "state_term_reuse",
+      "state_value": "approved",
+      "machine_ids": [
+        "SM_APPROVAL_CHECKPOINT",
+        "SM_CLINICIAN_MESSAGE_THREAD"
+      ],
+      "dangerous_interpretation": "The token `approved` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_BLOCKED",
+      "issue_type": "state_term_reuse",
+      "state_value": "blocked",
+      "machine_ids": [
+        "SM_AUDIENCE_SURFACE_RUNTIME_BINDING",
+        "SM_CROSS_PHASE_SCORECARD",
+        "SM_DECISION_EPOCH",
+        "SM_DISPOSITION_ELIGIBILITY",
+        "SM_RECOVERY_CONTROL_POSTURE",
+        "SM_RESILIENCE_SURFACE_BINDING"
+      ],
+      "dangerous_interpretation": "The token `blocked` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_BOOKED",
+      "issue_type": "state_term_reuse",
+      "state_value": "booked",
+      "machine_ids": [
+        "SM_BOOKING_CASE_STATUS",
+        "SM_HUB_COORDINATION_CASE_STATUS"
+      ],
+      "dangerous_interpretation": "The token `booked` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_CANCELLED",
+      "issue_type": "state_term_reuse",
+      "state_value": "cancelled",
+      "machine_ids": [
+        "SM_CALLBACK_CASE_STATE",
+        "SM_EXTERNAL_CONFIRMATION_GATE",
+        "SM_WAITLIST_FALLBACK_TRANSFER"
+      ],
+      "dangerous_interpretation": "The token `cancelled` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_CANDIDATE_REVALIDATING",
+      "issue_type": "state_term_reuse",
+      "state_value": "candidate_revalidating",
+      "machine_ids": [
+        "SM_HUB_CONFIRMATION_TRUTH",
+        "SM_HUB_COORDINATION_CASE_STATUS"
+      ],
+      "dangerous_interpretation": "The token `candidate_revalidating` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_CLAIMED",
+      "issue_type": "state_term_reuse",
+      "state_value": "claimed",
+      "machine_ids": [
+        "SM_HUB_COORDINATION_CASE_STATUS",
+        "SM_REQUEST_IDENTITY_STATE",
+        "SM_TRIAGE_TASK_STATUS"
+      ],
+      "dangerous_interpretation": "The token `claimed` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_CLOSED",
+      "issue_type": "state_term_reuse",
+      "state_value": "closed",
+      "machine_ids": [
+        "SM_ADMIN_RESOLUTION_CASE",
+        "SM_BOOKING_CASE_STATUS",
+        "SM_CALLBACK_CASE_STATE",
+        "SM_CLINICIAN_MESSAGE_THREAD",
+        "SM_FALLBACK_REVIEW_CASE",
+        "SM_HUB_COORDINATION_CASE_STATUS",
+        "SM_PHARMACY_CASE_STATUS",
+        "SM_REQUEST_WORKFLOW_STATE",
+        "SM_TRIAGE_TASK_STATUS"
+      ],
+      "dangerous_interpretation": "The token `closed` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_COMPLETED",
+      "issue_type": "state_term_reuse",
+      "state_value": "completed",
+      "machine_ids": [
+        "SM_ADMIN_RESOLUTION_CASE",
+        "SM_CALLBACK_CASE_STATE"
+      ],
+      "dangerous_interpretation": "The token `completed` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_CONFIRMATION_PENDING",
+      "issue_type": "state_term_reuse",
+      "state_value": "confirmation_pending",
+      "machine_ids": [
+        "SM_BOOKING_CASE_STATUS",
+        "SM_HUB_CONFIRMATION_TRUTH",
+        "SM_HUB_COORDINATION_CASE_STATUS"
+      ],
+      "dangerous_interpretation": "The token `confirmation_pending` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_CONFIRMED",
+      "issue_type": "state_term_reuse",
+      "state_value": "confirmed",
+      "machine_ids": [
+        "SM_CAPACITY_RESERVATION_STATE",
+        "SM_EXTERNAL_CONFIRMATION_GATE",
+        "SM_HUB_CONFIRMATION_TRUTH"
+      ],
+      "dangerous_interpretation": "The token `confirmed` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_CONTACT_ROUTE_REPAIR_PENDING",
+      "issue_type": "state_term_reuse",
+      "state_value": "contact_route_repair_pending",
+      "machine_ids": [
+        "SM_CALLBACK_CASE_STATE",
+        "SM_CLINICIAN_MESSAGE_THREAD"
+      ],
+      "dangerous_interpretation": "The token `contact_route_repair_pending` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_CREATED",
+      "issue_type": "state_term_reuse",
+      "state_value": "created",
+      "machine_ids": [
+        "SM_CALLBACK_CASE_STATE",
+        "SM_PHARMACY_DISPATCH_STATUS"
+      ],
+      "dangerous_interpretation": "The token `created` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_DIAGNOSTIC_ONLY",
+      "issue_type": "state_term_reuse",
+      "state_value": "diagnostic_only",
+      "machine_ids": [
+        "SM_RECOVERY_CONTROL_POSTURE",
+        "SM_RESILIENCE_SURFACE_BINDING"
+      ],
+      "dangerous_interpretation": "The token `diagnostic_only` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_DISPUTED",
+      "issue_type": "state_term_reuse",
+      "state_value": "disputed",
+      "machine_ids": [
+        "SM_CAPACITY_RESERVATION_STATE",
+        "SM_EXTERNAL_CONFIRMATION_GATE",
+        "SM_HUB_CONFIRMATION_TRUTH"
+      ],
+      "dangerous_interpretation": "The token `disputed` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_EXPIRED",
+      "issue_type": "state_term_reuse",
+      "state_value": "expired",
+      "machine_ids": [
+        "SM_ACCESS_GRANT_LIFECYCLE",
+        "SM_CALLBACK_CASE_STATE",
+        "SM_CAPACITY_RESERVATION_STATE",
+        "SM_COMMAND_SETTLEMENT",
+        "SM_EXTERNAL_CONFIRMATION_GATE",
+        "SM_HUB_CONFIRMATION_TRUTH",
+        "SM_MORE_INFO_REPLY_WINDOW",
+        "SM_PHARMACY_DISPATCH_STATUS",
+        "SM_REQUEST_LIFECYCLE_LEASE",
+        "SM_SUBMISSION_ENVELOPE_STATE"
+      ],
+      "dangerous_interpretation": "The token `expired` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_FAILED",
+      "issue_type": "state_term_reuse",
+      "state_value": "failed",
+      "machine_ids": [
+        "SM_COMMAND_SETTLEMENT",
+        "SM_PHARMACY_DISPATCH_STATUS"
+      ],
+      "dangerous_interpretation": "The token `failed` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_FROZEN",
+      "issue_type": "state_term_reuse",
+      "state_value": "frozen",
+      "machine_ids": [
+        "SM_ASSISTIVE_ROLLOUT_VERDICT",
+        "SM_ASSISTIVE_TRUST_ENVELOPE"
+      ],
+      "dangerous_interpretation": "The token `frozen` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_IN_REVIEW",
+      "issue_type": "state_term_reuse",
+      "state_value": "in_review",
+      "machine_ids": [
+        "SM_DUPLICATE_CLUSTER_STATUS",
+        "SM_TRIAGE_TASK_STATUS"
+      ],
+      "dangerous_interpretation": "The token `in_review` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_LIVE",
+      "issue_type": "state_term_reuse",
+      "state_value": "live",
+      "machine_ids": [
+        "SM_ACCESS_GRANT_LIFECYCLE",
+        "SM_DECISION_EPOCH",
+        "SM_RESILIENCE_SURFACE_BINDING",
+        "SM_ROUTE_INTENT_BINDING"
+      ],
+      "dangerous_interpretation": "The token `live` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_NATIVE_BOOKING_PENDING",
+      "issue_type": "state_term_reuse",
+      "state_value": "native_booking_pending",
+      "machine_ids": [
+        "SM_HUB_CONFIRMATION_TRUTH",
+        "SM_HUB_COORDINATION_CASE_STATUS"
+      ],
+      "dangerous_interpretation": "The token `native_booking_pending` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_NONE",
+      "issue_type": "state_term_reuse",
+      "state_value": "none",
+      "machine_ids": [
+        "SM_CAPACITY_RESERVATION_STATE",
+        "SM_SESSION_ROUTE_AUTHORITY"
+      ],
+      "dangerous_interpretation": "The token `none` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_OPEN",
+      "issue_type": "state_term_reuse",
+      "state_value": "open",
+      "machine_ids": [
+        "SM_DUPLICATE_CLUSTER_STATUS",
+        "SM_EPISODE_STATE",
+        "SM_MORE_INFO_REPLY_WINDOW"
+      ],
+      "dangerous_interpretation": "The token `open` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_PENDING",
+      "issue_type": "state_term_reuse",
+      "state_value": "pending",
+      "machine_ids": [
+        "SM_APPROVAL_CHECKPOINT",
+        "SM_COMMAND_SETTLEMENT",
+        "SM_EXTERNAL_CONFIRMATION_GATE"
+      ],
+      "dangerous_interpretation": "The token `pending` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_QUEUED",
+      "issue_type": "state_term_reuse",
+      "state_value": "queued",
+      "machine_ids": [
+        "SM_ADMIN_RESOLUTION_CASE",
+        "SM_CALLBACK_CASE_STATE",
+        "SM_HUB_COORDINATION_CASE_STATUS",
+        "SM_TRIAGE_TASK_STATUS"
+      ],
+      "dangerous_interpretation": "The token `queued` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_RECONCILIATION_REQUIRED",
+      "issue_type": "state_term_reuse",
+      "state_value": "reconciliation_required",
+      "machine_ids": [
+        "SM_COMMAND_SETTLEMENT",
+        "SM_PHARMACY_DISPATCH_STATUS"
+      ],
+      "dangerous_interpretation": "The token `reconciliation_required` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_RECOVERY_ONLY",
+      "issue_type": "state_term_reuse",
+      "state_value": "recovery_only",
+      "machine_ids": [
+        "SM_AUDIENCE_SURFACE_RUNTIME_BINDING",
+        "SM_RESILIENCE_SURFACE_BINDING",
+        "SM_ROUTE_INTENT_BINDING",
+        "SM_SESSION_STATE"
+      ],
+      "dangerous_interpretation": "The token `recovery_only` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_RECOVERY_REQUIRED",
+      "issue_type": "state_term_reuse",
+      "state_value": "recovery_required",
+      "machine_ids": [
+        "SM_COMMAND_SETTLEMENT",
+        "SM_PHARMACY_CONSENT_CHECKPOINT"
+      ],
+      "dangerous_interpretation": "The token `recovery_required` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_RELEASED",
+      "issue_type": "state_term_reuse",
+      "state_value": "released",
+      "machine_ids": [
+        "SM_CAPACITY_RESERVATION_STATE",
+        "SM_LEGAL_HOLD_STATE",
+        "SM_REQUEST_LIFECYCLE_LEASE"
+      ],
+      "dangerous_interpretation": "The token `released` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_REOPENED",
+      "issue_type": "state_term_reuse",
+      "state_value": "reopened",
+      "machine_ids": [
+        "SM_ADMIN_RESOLUTION_CASE",
+        "SM_CALLBACK_CASE_STATE",
+        "SM_CLINICIAN_MESSAGE_THREAD",
+        "SM_TRIAGE_TASK_STATUS"
+      ],
+      "dangerous_interpretation": "The token `reopened` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_REVOKED",
+      "issue_type": "state_term_reuse",
+      "state_value": "revoked",
+      "machine_ids": [
+        "SM_ACCESS_GRANT_LIFECYCLE",
+        "SM_IDENTITY_BINDING_STATE",
+        "SM_SESSION_STATE"
+      ],
+      "dangerous_interpretation": "The token `revoked` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_SATISFIED",
+      "issue_type": "state_term_reuse",
+      "state_value": "satisfied",
+      "machine_ids": [
+        "SM_PHARMACY_CONSENT_CHECKPOINT",
+        "SM_WAITLIST_FALLBACK_TRANSFER"
+      ],
+      "dangerous_interpretation": "The token `satisfied` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_SETTLED",
+      "issue_type": "state_term_reuse",
+      "state_value": "settled",
+      "machine_ids": [
+        "SM_COMMAND_SETTLEMENT",
+        "SM_MORE_INFO_REPLY_WINDOW"
+      ],
+      "dangerous_interpretation": "The token `settled` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_SHADOW_ONLY",
+      "issue_type": "state_term_reuse",
+      "state_value": "shadow_only",
+      "machine_ids": [
+        "SM_ASSISTIVE_ROLLOUT_VERDICT",
+        "SM_ASSISTIVE_TRUST_ENVELOPE"
+      ],
+      "dangerous_interpretation": "The token `shadow_only` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_STALE",
+      "issue_type": "state_term_reuse",
+      "state_value": "stale",
+      "machine_ids": [
+        "SM_CROSS_PHASE_SCORECARD",
+        "SM_ROUTE_INTENT_BINDING"
+      ],
+      "dangerous_interpretation": "The token `stale` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_SUPERSEDED",
+      "issue_type": "state_term_reuse",
+      "state_value": "superseded",
+      "machine_ids": [
+        "SM_ACCESS_GRANT_LIFECYCLE",
+        "SM_APPROVAL_CHECKPOINT",
+        "SM_COMMAND_SETTLEMENT",
+        "SM_DECISION_EPOCH",
+        "SM_DUPLICATE_CLUSTER_STATUS",
+        "SM_HUB_CONFIRMATION_TRUTH",
+        "SM_LEGAL_HOLD_STATE",
+        "SM_MORE_INFO_REPLY_WINDOW",
+        "SM_PHARMACY_DISPATCH_STATUS",
+        "SM_ROUTE_INTENT_BINDING"
+      ],
+      "dangerous_interpretation": "The token `superseded` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    },
+    {
+      "issue_id": "CONFLICT_STATE_TERM_WITHDRAWN",
+      "issue_type": "state_term_reuse",
+      "state_value": "withdrawn",
+      "machine_ids": [
+        "SM_ASSISTIVE_ROLLOUT_VERDICT",
+        "SM_PHARMACY_CONSENT_CHECKPOINT"
+      ],
+      "dangerous_interpretation": "The token `withdrawn` appears in multiple machines and can be misread as one shared status axis.",
+      "canonical_correction": "Always qualify duplicated state terms by owning machine and object; never mirror the label across machines without tuple and proof context."
+    }
+  ]
+}

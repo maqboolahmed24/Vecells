@@ -1,0 +1,3456 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import csv
+import html
+import json
+import textwrap
+from collections import Counter, defaultdict
+from pathlib import Path
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[2]
+DATA_DIR = ROOT / "data" / "analysis"
+DOCS_DIR = ROOT / "docs" / "architecture"
+
+PRODUCT_SCOPE_PATH = DATA_DIR / "product_scope_matrix.csv"
+AUDIENCE_SURFACE_PATH = DATA_DIR / "audience_surface_inventory.csv"
+ROUTE_FAMILY_PATH = DATA_DIR / "route_family_inventory.csv"
+OBJECT_CATALOG_PATH = DATA_DIR / "object_catalog.json"
+STATE_MACHINES_PATH = DATA_DIR / "state_machines.json"
+EXTERNAL_DEPENDENCIES_PATH = DATA_DIR / "external_dependencies.json"
+REGULATORY_WORKSTREAMS_PATH = DATA_DIR / "regulatory_workstreams.json"
+DATA_CLASSIFICATION_PATH = DATA_DIR / "data_classification_matrix.csv"
+REQUIREMENT_REGISTRY_PATH = DATA_DIR / "requirement_registry.jsonl"
+
+WORKLOAD_JSON_PATH = DATA_DIR / "runtime_workload_families.json"
+BOUNDARY_CSV_PATH = DATA_DIR / "trust_zone_boundaries.csv"
+GATEWAY_CSV_PATH = DATA_DIR / "gateway_surface_matrix.csv"
+TENANT_CSV_PATH = DATA_DIR / "tenant_isolation_matrix.csv"
+ACTING_SCOPE_CSV_PATH = DATA_DIR / "acting_scope_tuple_matrix.csv"
+RESILIENCE_JSON_PATH = DATA_DIR / "region_resilience_matrix.json"
+
+REGION_DOC_PATH = DOCS_DIR / "11_cloud_region_and_residency_decision.md"
+TENANT_DOC_PATH = DOCS_DIR / "11_tenant_model_and_acting_scope_strategy.md"
+TRUST_ZONE_DOC_PATH = DOCS_DIR / "11_trust_zone_and_workload_family_strategy.md"
+GATEWAY_DOC_PATH = DOCS_DIR / "11_gateway_surface_and_runtime_topology_baseline.md"
+RESILIENCE_DOC_PATH = DOCS_DIR / "11_region_resilience_and_failover_posture.md"
+DECISION_LOG_DOC_PATH = DOCS_DIR / "11_trust_zone_decision_log.md"
+ATLAS_HTML_PATH = DOCS_DIR / "11_runtime_topology_atlas.html"
+MERMAID_PATH = DOCS_DIR / "11_runtime_topology_baseline.mmd"
+
+MISSION = (
+    "Choose the canonical Vecells UK-hosted runtime topology baseline covering cloud-region "
+    "posture, tenant isolation, acting-scope fencing, workload-family ownership, trust-zone "
+    "boundaries, gateway surface splits, and resilience posture without binding the product "
+    "to a speculative cloud vendor SKU."
+)
+
+SOURCE_PRECEDENCE = [
+    "phase-0-the-foundation-protocol.md",
+    "platform-runtime-and-release-blueprint.md",
+    "phase-9-the-assurance-ledger.md",
+    "platform-admin-and-config-blueprint.md",
+    "patient-account-and-communications-blueprint.md",
+    "staff-operations-and-support-blueprint.md",
+    "patient-portal-experience-architecture-blueprint.md",
+    "operations-console-frontend-blueprint.md",
+    "governance-admin-console-frontend-blueprint.md",
+    "pharmacy-console-frontend-architecture.md",
+    "forensic-audit-findings.md",
+    "blueprint-init.md",
+]
+
+ATLAS_MARKERS = [
+    'data-testid="atlas-shell"',
+    'data-testid="atlas-nav"',
+    'data-testid="hero-summary"',
+    'data-testid="filter-environment"',
+    'data-testid="filter-audience"',
+    'data-testid="filter-family"',
+    'data-testid="filter-tenant"',
+    'data-testid="filter-zone"',
+    'data-testid="topology-canvas"',
+    'data-testid="topology-summary-table"',
+    'data-testid="boundary-table"',
+    'data-testid="gateway-list"',
+    'data-testid="gateway-inspector"',
+    'data-testid="boundary-inspector"',
+    'data-testid="resilience-panel"',
+    'data-testid="selection-state"',
+]
+
+ENVIRONMENT_RINGS = ["local", "ci-preview", "integration", "preprod", "production"]
+ALLOWED_FAMILY_CODES = {
+    "public_edge",
+    "shell_delivery",
+    "command",
+    "projection",
+    "integration",
+    "data",
+    "assurance_security",
+}
+TENANT_SCOPE_MODES = {
+    "public_pre_identity",
+    "grant_scoped_subject",
+    "tenant_subject_self_service",
+    "tenant_subject_embedded",
+    "tenant_org_scoped_staff",
+    "cross_org_hub_scope",
+    "servicing_site_scope",
+    "support_tenant_delegate",
+    "support_investigation_scope",
+    "multi_tenant_operational_watch",
+    "platform_governance_scope",
+    "inherited_from_owner_shell",
+}
+
+
+def load_json(path: Path) -> Any:
+    return json.loads(path.read_text())
+
+
+def load_csv(path: Path) -> list[dict[str, str]]:
+    with path.open() as handle:
+        return list(csv.DictReader(handle))
+
+
+def count_jsonl(path: Path) -> int:
+    return sum(1 for line in path.read_text().splitlines() if line.strip())
+
+
+def write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content.rstrip() + "\n")
+
+
+def write_json(path: Path, payload: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2) + "\n")
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not rows:
+        raise SystemExit(f"Cannot write empty CSV: {path}")
+    fieldnames: list[str] = []
+    for row in rows:
+        for key in row:
+            if key not in fieldnames:
+                fieldnames.append(key)
+    with path.open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def render_table(headers: list[str], rows: list[list[Any]]) -> str:
+    def clean(value: Any) -> str:
+        text = "" if value is None else str(value)
+        return text.replace("|", "\\|").replace("\n", "<br>")
+
+    head = "| " + " | ".join(headers) + " |"
+    sep = "| " + " | ".join(["---"] * len(headers)) + " |"
+    body = ["| " + " | ".join(clean(value) for value in row) + " |" for row in rows]
+    return "\n".join([head, sep, *body])
+
+
+def join_items(values: list[str] | tuple[str, ...]) -> str:
+    return "; ".join(values)
+
+
+def normalize_name(text: str) -> str:
+    return text.lower().replace(" / ", "_").replace(" ", "_").replace("-", "_")
+
+
+def ensure_prerequisites() -> dict[str, Any]:
+    required = {
+        PRODUCT_SCOPE_PATH: "task 003 scope matrix",
+        AUDIENCE_SURFACE_PATH: "task 004 audience surface inventory",
+        ROUTE_FAMILY_PATH: "task 004 route family inventory",
+        OBJECT_CATALOG_PATH: "task 006 object catalog",
+        STATE_MACHINES_PATH: "task 007 state machines",
+        EXTERNAL_DEPENDENCIES_PATH: "task 008 external dependency inventory",
+        REGULATORY_WORKSTREAMS_PATH: "task 009 regulatory workstreams",
+        DATA_CLASSIFICATION_PATH: "task 010 data classification matrix",
+        REQUIREMENT_REGISTRY_PATH: "task 001 requirement registry",
+    }
+    missing = [f"PREREQUISITE_GAP_SEQ_011 missing {label}: {path}" for path, label in required.items() if not path.exists()]
+    if missing:
+        raise SystemExit("\n".join(missing))
+
+    product_scope_rows = load_csv(PRODUCT_SCOPE_PATH)
+    audience_rows = load_csv(AUDIENCE_SURFACE_PATH)
+    route_rows = load_csv(ROUTE_FAMILY_PATH)
+    classification_rows = load_csv(DATA_CLASSIFICATION_PATH)
+    object_payload = load_json(OBJECT_CATALOG_PATH)
+    state_payload = load_json(STATE_MACHINES_PATH)
+    dependency_payload = load_json(EXTERNAL_DEPENDENCIES_PATH)
+    workstream_payload = load_json(REGULATORY_WORKSTREAMS_PATH)
+
+    checks = [
+        (len(product_scope_rows) >= 15, "PREREQUISITE_GAP_SEQ_011 product scope matrix looks incomplete."),
+        (len(audience_rows) == 22, "PREREQUISITE_GAP_SEQ_011 audience surface inventory row count drifted."),
+        (len(route_rows) >= 20, "PREREQUISITE_GAP_SEQ_011 route family inventory looks incomplete."),
+        (len(classification_rows) >= 70, "PREREQUISITE_GAP_SEQ_011 data classification matrix looks incomplete."),
+        (object_payload.get("summary", {}).get("object_count", 0) >= 900, "PREREQUISITE_GAP_SEQ_011 object catalog summary drifted."),
+        (state_payload.get("summary", {}).get("machine_count", 0) >= 40, "PREREQUISITE_GAP_SEQ_011 state machine atlas summary drifted."),
+        (dependency_payload.get("summary", {}).get("dependency_count", 0) >= 18, "PREREQUISITE_GAP_SEQ_011 dependency inventory summary drifted."),
+        (workstream_payload.get("summary", {}).get("workstream_count", 0) >= 10, "PREREQUISITE_GAP_SEQ_011 regulatory workstream summary drifted."),
+    ]
+    for condition, message in checks:
+        if not condition:
+            raise SystemExit(message)
+
+    return {
+        "product_scope_rows": len(product_scope_rows),
+        "audience_surface_rows": len(audience_rows),
+        "route_family_rows": len(route_rows),
+        "requirement_registry_rows": count_jsonl(REQUIREMENT_REGISTRY_PATH),
+        "object_count": object_payload["summary"]["object_count"],
+        "state_machine_count": state_payload["summary"]["machine_count"],
+        "dependency_count": dependency_payload["summary"]["dependency_count"],
+        "regulatory_workstream_count": workstream_payload["summary"]["workstream_count"],
+        "classification_row_count": len(classification_rows),
+    }
+
+
+def build_region_option_scorecard() -> list[dict[str, Any]]:
+    return [
+        {
+            "option_id": "OPT_SINGLE_UK_REGION_SAME_REGION_RECOVERY",
+            "label": "Single UK region with same-region recovery only",
+            "region_posture": "One UK region, backup in the same region, no second live-ready region role.",
+            "tenant_model": "Shared runtime, shared control plane, shared storage partitions.",
+            "blast_radius_score": 1,
+            "recovery_score": 1,
+            "auditability_score": 2,
+            "operability_score": 4,
+            "complexity_score": 5,
+            "decision": "rejected",
+            "rejection_reason": "Fails the requirement to make disaster-recovery blast radius explicit across two UK-hosted region roles.",
+            "source_refs": [
+                "blueprint-init.md#12. Practical engineering shape",
+                "phase-9-the-assurance-ledger.md#9F. Resilience architecture, restore orchestration, and chaos programme",
+            ],
+        },
+        {
+            "option_id": "OPT_DUAL_UK_REGION_SHARED_RUNTIME",
+            "label": "Dual UK region, shared control plane, shared runtime",
+            "region_posture": "Primary and secondary UK regions with largely shared compute tiers and shared data partitions.",
+            "tenant_model": "Shared runtime and shared storage partitions with strong logical fences.",
+            "blast_radius_score": 2,
+            "recovery_score": 4,
+            "auditability_score": 3,
+            "operability_score": 4,
+            "complexity_score": 3,
+            "decision": "rejected",
+            "rejection_reason": "Improves region posture, but tenant blast radius remains too broad for governance, support, and release watch tuples.",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Runtime topology contract",
+                "forensic-audit-findings.md#Finding 114 - tenant and acting context drift",
+            ],
+        },
+        {
+            "option_id": "OPT_SHARED_CONTROL_SHARED_RUNTIME_STRONG_ISOLATION",
+            "label": "Shared control plane and shared runtime with strong tenant isolation",
+            "region_posture": "Dual UK region, but tenant work stays inside the same compute fleet.",
+            "tenant_model": "Shared compute fleet, strict tenant tuple and cache partitioning.",
+            "blast_radius_score": 3,
+            "recovery_score": 4,
+            "auditability_score": 3,
+            "operability_score": 4,
+            "complexity_score": 4,
+            "decision": "rejected",
+            "rejection_reason": "Still leaves release blast radius and support/governance cross-tenant paths too dependent on policy discipline inside one shared hot path.",
+            "source_refs": [
+                "platform-admin-and-config-blueprint.md#Release governance contract",
+                "phase-9-the-assurance-ledger.md#9H. Tenant governance, config immutability, and dependency hygiene",
+            ],
+        },
+        {
+            "option_id": "OPT_FULLY_ISOLATED_PER_TENANT_STACK",
+            "label": "Fully isolated per-tenant deployment baseline",
+            "region_posture": "Dual UK regions per tenant with fully isolated runtime stacks.",
+            "tenant_model": "Per-tenant deploy, per-tenant stores, per-tenant control surfaces.",
+            "blast_radius_score": 5,
+            "recovery_score": 5,
+            "auditability_score": 5,
+            "operability_score": 1,
+            "complexity_score": 1,
+            "decision": "rejected",
+            "rejection_reason": "Over-rotates into operational duplication and weakens the shared assurance, release, and simulator posture expected by the corpus.",
+            "source_refs": [
+                "phase-9-the-assurance-ledger.md#9F. Resilience architecture, restore orchestration, and chaos programme",
+                "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+            ],
+        },
+        {
+            "option_id": "OPT_HYBRID_SHARED_PLATFORM_TENANT_SLICES",
+            "label": "Hybrid baseline with shared platform services and tenant-scoped runtime/data slices",
+            "region_posture": "Dual UK region provider-neutral baseline with one primary and one secondary region role.",
+            "tenant_model": "Shared edge, shell-delivery, assurance, and release control planes plus tenant-scoped command/projection/data slices.",
+            "blast_radius_score": 5,
+            "recovery_score": 5,
+            "auditability_score": 5,
+            "operability_score": 4,
+            "complexity_score": 3,
+            "decision": "chosen",
+            "rejection_reason": "",
+            "source_refs": [
+                "blueprint-init.md#12. Practical engineering shape",
+                "phase-0-the-foundation-protocol.md#ActingScopeTuple",
+                "platform-runtime-and-release-blueprint.md#GatewayBffSurface",
+                "phase-9-the-assurance-ledger.md#9H. Tenant governance, config immutability, and dependency hygiene",
+            ],
+        },
+    ]
+
+
+def build_trust_zones() -> list[dict[str, Any]]:
+    return [
+        {
+            "trust_zone_ref": "tz_public_edge",
+            "display_name": "Public edge",
+            "band_order": 1,
+            "purpose": "TLS termination, origin policy, rate limiting, DDoS and attack-surface filtering.",
+            "allows_browser_traffic": "yes",
+            "primary_controls": [
+                "Origin allowlist",
+                "Rate-limit and bot fencing",
+                "No PHI assembly",
+                "No adapter egress",
+            ],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Runtime rules",
+            ],
+            "notes": "This is the first browser-contacting band, but it is not the browser-addressable compute boundary.",
+        },
+        {
+            "trust_zone_ref": "tz_shell_delivery",
+            "display_name": "Shell delivery",
+            "band_order": 2,
+            "purpose": "Static asset, manifest, and shell bundle delivery for published UI shells.",
+            "allows_browser_traffic": "yes",
+            "primary_controls": [
+                "RuntimePublicationBundle exact",
+                "No mutation or adapter egress",
+                "No PHI assembly",
+                "Static publication parity only",
+            ],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#RuntimeTopologyManifest",
+                "phase-0-the-foundation-protocol.md#1.38 RuntimePublicationBundle",
+            ],
+            "notes": "This band serves shell assets and manifests but never becomes a browser-visible compute proxy.",
+        },
+        {
+            "trust_zone_ref": "tz_published_gateway",
+            "display_name": "Published gateway",
+            "band_order": 3,
+            "purpose": "The only browser-addressable compute boundary via published GatewayBffSurface contracts.",
+            "allows_browser_traffic": "yes",
+            "primary_controls": [
+                "Published GatewayBffSurface only",
+                "Route-intent and session policy enforcement",
+                "No direct adapter or raw data access",
+                "SurfaceAuthorityTupleHash parity",
+            ],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#GatewayBffSurface",
+                "platform-runtime-and-release-blueprint.md#Frontend and backend integration contract",
+            ],
+            "notes": "Patient, staff, support, operations, and governance surfaces split here when session policy, tenant isolation, or downstream workload set changes.",
+        },
+        {
+            "trust_zone_ref": "tz_application_core",
+            "display_name": "Application core",
+            "band_order": 4,
+            "purpose": "Command and projection execution inside declared bounded-context seams.",
+            "allows_browser_traffic": "no",
+            "primary_controls": [
+                "ScopedMutationGate",
+                "Projection-first reads",
+                "Outbox initiation only",
+                "Minimum-necessary query surfaces",
+            ],
+            "source_refs": [
+                "phase-0-the-foundation-protocol.md#2.8 ScopedMutationGate",
+                "platform-runtime-and-release-blueprint.md#Runtime rules",
+            ],
+            "notes": "This band carries tenant-scoped command and projection work and may only be reached through the published gateway boundary.",
+        },
+        {
+            "trust_zone_ref": "tz_integration_perimeter",
+            "display_name": "Integration perimeter",
+            "band_order": 5,
+            "purpose": "External adapter egress, callback ingress, and transport correlation.",
+            "allows_browser_traffic": "no",
+            "primary_controls": [
+                "AdapterContractProfile only",
+                "Dependency degradation profiles",
+                "Durable checkpoints",
+                "Callback idempotency and correlation",
+            ],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#AdapterContractProfile",
+                "platform-runtime-and-release-blueprint.md#DependencyDegradationProfile",
+            ],
+            "notes": "Gateways never reach this band directly in the chosen baseline.",
+        },
+        {
+            "trust_zone_ref": "tz_stateful_data",
+            "display_name": "Stateful data",
+            "band_order": 6,
+            "purpose": "Relational, projection, object, queue, cache, and audit storage classes.",
+            "allows_browser_traffic": "no",
+            "primary_controls": [
+                "Tenant tuple on every key or stronger scope tuple",
+                "Store-class-specific replication policy",
+                "No browser reachability",
+                "Restore proof before live authority",
+            ],
+            "source_refs": [
+                "blueprint-init.md#12. Practical engineering shape",
+                "platform-runtime-and-release-blueprint.md#Runtime rules",
+            ],
+            "notes": "Every record, event, queue message, cache key, and object prefix stays tenant-scoped here.",
+        },
+        {
+            "trust_zone_ref": "tz_assurance_security",
+            "display_name": "Assurance and security",
+            "band_order": 7,
+            "purpose": "Policy compilation, runtime publication, immutable audit, detection, trust verdicts, and resilience control.",
+            "allows_browser_traffic": "no",
+            "primary_controls": [
+                "AssuranceSupervisor",
+                "RuntimeContractPublisher",
+                "Release watch tuple parity",
+                "Immutable evidence and trust freeze verdicts",
+            ],
+            "source_refs": [
+                "phase-0-the-foundation-protocol.md#2.7 AssuranceSupervisor",
+                "phase-0-the-foundation-protocol.md#2.10 RuntimeContractPublisher",
+                "phase-9-the-assurance-ledger.md#9F. Resilience architecture, restore orchestration, and chaos programme",
+            ],
+            "notes": "This band may inform runtime posture, but it may not be bypassed or reconstructed from dashboard-local state.",
+        },
+    ]
+
+
+def build_boundary_specs() -> list[dict[str, Any]]:
+    return [
+        {
+            "boundary_id": "tzb_public_edge_to_shell_delivery",
+            "source_trust_zone_ref": "tz_public_edge",
+            "target_trust_zone_ref": "tz_shell_delivery",
+            "source_family_codes": ["public_edge"],
+            "target_family_codes": ["shell_delivery"],
+            "allowed_protocols": ["https"],
+            "allowed_service_identity_refs": ["sid_public_edge_proxy", "sid_shell_delivery_origin"],
+            "allowed_data_classification_refs": ["public_safe", "operational_internal_non_phi"],
+            "allowed_tenant_transfer_mode": "tenant_hint_only",
+            "assurance_trust_transfer_mode": "publication_digest_passthrough",
+            "boundary_failure_mode": "static_placeholder_or_cached_shell_only",
+            "source_refs": ["platform-runtime-and-release-blueprint.md#Runtime rules"],
+            "notes": "Static shell delivery crosses the edge without carrying PHI-bearing browser compute.",
+        },
+        {
+            "boundary_id": "tzb_public_edge_to_published_gateway",
+            "source_trust_zone_ref": "tz_public_edge",
+            "target_trust_zone_ref": "tz_published_gateway",
+            "source_family_codes": ["public_edge"],
+            "target_family_codes": ["command", "projection", "assurance_security"],
+            "allowed_protocols": ["https", "sse", "websocket"],
+            "allowed_service_identity_refs": ["sid_public_edge_proxy", "sid_gateway_surface"],
+            "allowed_data_classification_refs": ["public_safe", "operational_internal_non_phi", "patient_identifying", "clinical_sensitive"],
+            "allowed_tenant_transfer_mode": "runtime_binding_and_session_policy_only",
+            "assurance_trust_transfer_mode": "surface_authority_tuple_hash_required",
+            "boundary_failure_mode": "same_shell_recovery_or_blocked",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#GatewayBffSurface",
+                "platform-runtime-and-release-blueprint.md#Frontend and backend integration contract",
+            ],
+            "notes": "This is the only browser-origin compute hop in the topology baseline.",
+        },
+        {
+            "boundary_id": "tzb_published_gateway_to_application_core",
+            "source_trust_zone_ref": "tz_published_gateway",
+            "target_trust_zone_ref": "tz_application_core",
+            "source_family_codes": ["command", "projection"],
+            "target_family_codes": ["command", "projection"],
+            "allowed_protocols": ["https", "grpc", "queue_dispatch"],
+            "allowed_service_identity_refs": ["sid_gateway_surface", "sid_command_plane", "sid_projection_plane"],
+            "allowed_data_classification_refs": [
+                "operational_internal_non_phi",
+                "patient_identifying",
+                "contact_sensitive",
+                "clinical_sensitive",
+                "identity_proof_sensitive",
+            ],
+            "allowed_tenant_transfer_mode": "tenant_tuple_and_route_intent_preserved",
+            "assurance_trust_transfer_mode": "assurance_slice_live_required_for_writable_calls",
+            "boundary_failure_mode": "command_halt_or_projection_recovery_only",
+            "source_refs": [
+                "phase-0-the-foundation-protocol.md#2.8 ScopedMutationGate",
+                "platform-runtime-and-release-blueprint.md#Runtime rules",
+            ],
+            "notes": "Gateways may read projections and dispatch commands, but the tenant tuple and runtime binding must survive this hop unchanged.",
+        },
+        {
+            "boundary_id": "tzb_published_gateway_to_assurance_security",
+            "source_trust_zone_ref": "tz_published_gateway",
+            "target_trust_zone_ref": "tz_assurance_security",
+            "source_family_codes": ["assurance_security"],
+            "target_family_codes": ["assurance_security"],
+            "allowed_protocols": ["https", "grpc"],
+            "allowed_service_identity_refs": ["sid_gateway_surface", "sid_assurance_runtime"],
+            "allowed_data_classification_refs": [
+                "operational_internal_non_phi",
+                "audit_investigation_restricted",
+                "retention_governance_restricted",
+                "security_or_secret_sensitive",
+            ],
+            "allowed_tenant_transfer_mode": "explicit_scope_tuple_or_platform_scope_only",
+            "assurance_trust_transfer_mode": "immutable_audit_and_watch_tuple_required",
+            "boundary_failure_mode": "controls_frozen_same_shell_context_preserved",
+            "source_refs": [
+                "phase-9-the-assurance-ledger.md#9F. Resilience architecture, restore orchestration, and chaos programme",
+                "phase-9-the-assurance-ledger.md#9H. Tenant governance, config immutability, and dependency hygiene",
+            ],
+            "notes": "Support replay, operations drilldown, and governance routes consume this boundary when they expose evidence or control posture.",
+        },
+        {
+            "boundary_id": "tzb_application_core_to_stateful_data",
+            "source_trust_zone_ref": "tz_application_core",
+            "target_trust_zone_ref": "tz_stateful_data",
+            "source_family_codes": ["command", "projection"],
+            "target_family_codes": ["data"],
+            "allowed_protocols": ["sql_tls", "object_api_tls", "queue_tls", "cache_tls"],
+            "allowed_service_identity_refs": ["sid_command_plane", "sid_projection_plane", "sid_data_plane"],
+            "allowed_data_classification_refs": [
+                "operational_internal_non_phi",
+                "patient_identifying",
+                "contact_sensitive",
+                "clinical_sensitive",
+                "identity_proof_sensitive",
+                "audit_investigation_restricted",
+            ],
+            "allowed_tenant_transfer_mode": "tenant_tuple_on_every_key_or_record",
+            "assurance_trust_transfer_mode": "restore_and_publication_parity_required_for_live_writes",
+            "boundary_failure_mode": "read_only_or_blocked_until_restore_proof",
+            "source_refs": [
+                "blueprint-init.md#12. Practical engineering shape",
+                "platform-runtime-and-release-blueprint.md#Runtime rules",
+            ],
+            "notes": "All primary stores, projections, queues, caches, and object prefixes stay in this zone and remain non-browser-addressable.",
+        },
+        {
+            "boundary_id": "tzb_application_core_to_integration_perimeter",
+            "source_trust_zone_ref": "tz_application_core",
+            "target_trust_zone_ref": "tz_integration_perimeter",
+            "source_family_codes": ["command"],
+            "target_family_codes": ["integration"],
+            "allowed_protocols": ["queue_dispatch", "outbox_checkpoint"],
+            "allowed_service_identity_refs": ["sid_command_plane", "sid_integration_runtime"],
+            "allowed_data_classification_refs": [
+                "operational_internal_non_phi",
+                "patient_identifying",
+                "contact_sensitive",
+                "clinical_sensitive",
+                "identity_proof_sensitive",
+            ],
+            "allowed_tenant_transfer_mode": "effect_scope_and_tenant_tuple_preserved",
+            "assurance_trust_transfer_mode": "dependency_profile_and_release_tuple_required",
+            "boundary_failure_mode": "integration_queue_only",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#AdapterContractProfile",
+                "platform-runtime-and-release-blueprint.md#DependencyDegradationProfile",
+            ],
+            "notes": "All external side effects begin from durable outbox or queue handoff rather than browser or gateway direct egress.",
+        },
+        {
+            "boundary_id": "tzb_application_core_to_assurance_security",
+            "source_trust_zone_ref": "tz_application_core",
+            "target_trust_zone_ref": "tz_assurance_security",
+            "source_family_codes": ["command", "projection"],
+            "target_family_codes": ["assurance_security"],
+            "allowed_protocols": ["grpc", "https", "audit_append"],
+            "allowed_service_identity_refs": ["sid_command_plane", "sid_projection_plane", "sid_assurance_runtime"],
+            "allowed_data_classification_refs": [
+                "operational_internal_non_phi",
+                "audit_investigation_restricted",
+                "retention_governance_restricted",
+                "security_or_secret_sensitive",
+            ],
+            "allowed_tenant_transfer_mode": "tenant_tuple_plus_scope_hash_required",
+            "assurance_trust_transfer_mode": "trust_slice_consume_and_publish",
+            "boundary_failure_mode": "writable_freeze_same_shell_context_preserved",
+            "source_refs": [
+                "phase-0-the-foundation-protocol.md#2.7 AssuranceSupervisor",
+                "phase-0-the-foundation-protocol.md#2.10 RuntimeContractPublisher",
+            ],
+            "notes": "Command, projection, and runtime publication consume assurance verdicts here rather than inferring trust posture from local health.",
+        },
+        {
+            "boundary_id": "tzb_integration_perimeter_to_stateful_data",
+            "source_trust_zone_ref": "tz_integration_perimeter",
+            "target_trust_zone_ref": "tz_stateful_data",
+            "source_family_codes": ["integration"],
+            "target_family_codes": ["data"],
+            "allowed_protocols": ["queue_tls", "sql_tls", "object_api_tls"],
+            "allowed_service_identity_refs": ["sid_integration_runtime", "sid_data_plane"],
+            "allowed_data_classification_refs": [
+                "operational_internal_non_phi",
+                "patient_identifying",
+                "contact_sensitive",
+                "clinical_sensitive",
+            ],
+            "allowed_tenant_transfer_mode": "effect_scope_and_supplier_correlation_only",
+            "assurance_trust_transfer_mode": "receipt_ordering_and_duplicate_policy_required",
+            "boundary_failure_mode": "checkpoint_and_retry_or_dispute",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#AdapterContractProfile",
+            ],
+            "notes": "Callback and transport results may settle state only through published checkpoint and correlation rules.",
+        },
+        {
+            "boundary_id": "tzb_integration_perimeter_to_assurance_security",
+            "source_trust_zone_ref": "tz_integration_perimeter",
+            "target_trust_zone_ref": "tz_assurance_security",
+            "source_family_codes": ["integration"],
+            "target_family_codes": ["assurance_security"],
+            "allowed_protocols": ["audit_append", "https"],
+            "allowed_service_identity_refs": ["sid_integration_runtime", "sid_assurance_runtime"],
+            "allowed_data_classification_refs": [
+                "operational_internal_non_phi",
+                "audit_investigation_restricted",
+                "security_or_secret_sensitive",
+            ],
+            "allowed_tenant_transfer_mode": "tenant_tuple_plus_dependency_code_only",
+            "assurance_trust_transfer_mode": "dependency_degradation_publish_only",
+            "boundary_failure_mode": "slice_degraded_or_queue_only",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#DependencyDegradationProfile",
+            ],
+            "notes": "Adapter failures may degrade dependent slices without collapsing unrelated families.",
+        },
+        {
+            "boundary_id": "tzb_assurance_security_to_stateful_data",
+            "source_trust_zone_ref": "tz_assurance_security",
+            "target_trust_zone_ref": "tz_stateful_data",
+            "source_family_codes": ["assurance_security"],
+            "target_family_codes": ["data"],
+            "allowed_protocols": ["sql_tls", "object_api_tls", "append_only_api"],
+            "allowed_service_identity_refs": ["sid_assurance_runtime", "sid_data_plane"],
+            "allowed_data_classification_refs": [
+                "operational_internal_non_phi",
+                "audit_investigation_restricted",
+                "retention_governance_restricted",
+                "security_or_secret_sensitive",
+            ],
+            "allowed_tenant_transfer_mode": "platform_control_with_explicit_tenant_projection_only",
+            "assurance_trust_transfer_mode": "authoritative",
+            "boundary_failure_mode": "controls_frozen_or_restore_only",
+            "source_refs": [
+                "phase-9-the-assurance-ledger.md#9F. Resilience architecture, restore orchestration, and chaos programme",
+                "phase-9-the-assurance-ledger.md#9H. Tenant governance, config immutability, and dependency hygiene",
+            ],
+            "notes": "Audit, runtime publication, and resilience evidence stores sit behind this boundary.",
+        },
+    ]
+
+
+def build_family_templates() -> list[dict[str, Any]]:
+    return [
+        {
+            "template_id": "wf_public_edge",
+            "family_code": "public_edge",
+            "display_name": "Public edge ingress",
+            "trust_zone_ref": "tz_public_edge",
+            "owned_bounded_context_refs": ["platform_edge", "runtime_security"],
+            "owned_service_refs": ["svc_public_edge_proxy", "svc_origin_policy", "svc_rate_limit"],
+            "ingress_mode": "browser_tls_termination_only",
+            "allowed_downstream_family_refs": ["shell_delivery"],
+            "allowed_data_classification_refs": ["public_safe", "operational_internal_non_phi"],
+            "tenant_context_mode": "tenant_hint_then_runtime_binding",
+            "tenant_isolation_mode": "shared_stateless_edge",
+            "acting_scope_requirements": ["ACT_PATIENT_PUBLIC_INTAKE", "ACT_PATIENT_AUTHENTICATED", "ACT_STAFF_SINGLE_ORG", "ACT_GOVERNANCE_PLATFORM"],
+            "assurance_trust_mode": "consume_release_and_runtime_publication_verdicts",
+            "service_identity_ref": "sid_public_edge_proxy",
+            "egress_allowlist_ref": "eal_public_edge_internal_only",
+            "browser_reachable": "yes",
+            "session_boundary_ref": "sb_public_edge_ephemeral",
+            "backup_restore_scope_ref": "brs_stateless_redeploy",
+            "recovery_disposition_refs": ["RRD_EDGE_PLACEHOLDER_ONLY", "RRD_EDGE_RATE_LIMIT_HOLD"],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Runtime rules",
+                "platform-runtime-and-release-blueprint.md#TrustZoneBoundary",
+            ],
+            "notes": "No PHI assembly, no adapter egress, and no runtime truth inference beyond the published boundary state.",
+        },
+        {
+            "template_id": "wf_shell_delivery",
+            "family_code": "shell_delivery",
+            "display_name": "Shell delivery and static publication",
+            "trust_zone_ref": "tz_shell_delivery",
+            "owned_bounded_context_refs": ["patient_portal_shells", "staff_shells", "ops_governance_shells"],
+            "owned_service_refs": ["svc_shell_delivery", "svc_manifest_origin", "svc_static_asset_origin"],
+            "ingress_mode": "static_asset_and_manifest_delivery",
+            "allowed_downstream_family_refs": [],
+            "allowed_data_classification_refs": ["public_safe", "operational_internal_non_phi"],
+            "tenant_context_mode": "runtime_manifest_and_shell_scope_only",
+            "tenant_isolation_mode": "shared_stateless_shell_delivery",
+            "acting_scope_requirements": ["ACT_PATIENT_PUBLIC_INTAKE", "ACT_PATIENT_AUTHENTICATED", "ACT_STAFF_SINGLE_ORG", "ACT_GOVERNANCE_PLATFORM"],
+            "assurance_trust_mode": "require_runtime_publication_bundle_for_live_shells",
+            "service_identity_ref": "sid_shell_delivery_origin",
+            "egress_allowlist_ref": "eal_shell_delivery_none",
+            "browser_reachable": "yes",
+            "session_boundary_ref": "sb_shell_delivery_manifest",
+            "backup_restore_scope_ref": "brs_stateless_redeploy",
+            "recovery_disposition_refs": ["RRD_SHELL_READ_ONLY", "RRD_SHELL_PLACEHOLDER_ONLY"],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#RuntimeTopologyManifest",
+                "phase-0-the-foundation-protocol.md#1.38 RuntimePublicationBundle",
+            ],
+            "notes": "Delivers compiled shells and manifests, but never becomes a mutation, query join, or supplier egress plane.",
+        },
+        {
+            "template_id": "wf_command",
+            "family_code": "command",
+            "display_name": "Command and mutation plane",
+            "trust_zone_ref": "tz_application_core",
+            "owned_bounded_context_refs": [
+                "request_lineage",
+                "identity_and_access",
+                "booking_engine",
+                "network_horizon",
+                "pharmacy_loop",
+                "governance_admin",
+            ],
+            "owned_service_refs": ["svc_command_api", "svc_mutation_dispatch", "svc_outbox_initiator"],
+            "ingress_mode": "gateway_dispatch_only",
+            "allowed_downstream_family_refs": ["integration", "data", "assurance_security"],
+            "allowed_data_classification_refs": [
+                "operational_internal_non_phi",
+                "patient_identifying",
+                "contact_sensitive",
+                "clinical_sensitive",
+                "identity_proof_sensitive",
+            ],
+            "tenant_context_mode": "tenant_tuple_required_on_every_mutation",
+            "tenant_isolation_mode": "tenant_scoped_command_slice",
+            "acting_scope_requirements": [
+                "ACT_PATIENT_PUBLIC_INTAKE",
+                "ACT_PATIENT_GRANT_RECOVERY",
+                "ACT_PATIENT_AUTHENTICATED",
+                "ACT_PATIENT_EMBEDDED",
+                "ACT_STAFF_SINGLE_ORG",
+                "ACT_HUB_CROSS_ORG",
+                "ACT_PHARMACY_SERVICING",
+                "ACT_SUPPORT_ASSISTED_CAPTURE",
+                "ACT_OPERATIONS_WATCH",
+                "ACT_RESILIENCE_CONTROL",
+                "ACT_GOVERNANCE_PLATFORM",
+                "ACT_ASSISTIVE_ADJUNCT",
+            ],
+            "assurance_trust_mode": "require_live_scope_tuple_and_release_parity_before_write",
+            "service_identity_ref": "sid_command_plane",
+            "egress_allowlist_ref": "eal_command_to_internal_planes_only",
+            "browser_reachable": "no",
+            "session_boundary_ref": "sb_route_intent_and_scope_tuple",
+            "backup_restore_scope_ref": "brs_command_effect_and_outbox_restore",
+            "recovery_disposition_refs": ["RRD_COMMAND_HALT", "RRD_COMMAND_READ_ONLY_RECOVERY"],
+            "source_refs": [
+                "phase-0-the-foundation-protocol.md#2.8 ScopedMutationGate",
+                "platform-runtime-and-release-blueprint.md#Runtime rules",
+            ],
+            "notes": "Owns authoritative mutations, leases, and outbox initiation. Browser reads never terminate here.",
+        },
+        {
+            "template_id": "wf_projection",
+            "family_code": "projection",
+            "display_name": "Projection and read plane",
+            "trust_zone_ref": "tz_application_core",
+            "owned_bounded_context_refs": [
+                "patient_portal_experience",
+                "staff_workspace",
+                "support_replay",
+                "ops_board",
+                "governance_review",
+            ],
+            "owned_service_refs": ["svc_projection_query", "svc_projection_stream", "svc_projection_applier"],
+            "ingress_mode": "gateway_query_and_live_delta_only",
+            "allowed_downstream_family_refs": ["data", "assurance_security"],
+            "allowed_data_classification_refs": [
+                "operational_internal_non_phi",
+                "patient_identifying",
+                "contact_sensitive",
+                "clinical_sensitive",
+                "audit_investigation_restricted",
+            ],
+            "tenant_context_mode": "tenant_tuple_and_visibility_contract_on_every_read",
+            "tenant_isolation_mode": "tenant_scoped_projection_slice",
+            "acting_scope_requirements": [
+                "ACT_PATIENT_PUBLIC_INTAKE",
+                "ACT_PATIENT_GRANT_RECOVERY",
+                "ACT_PATIENT_AUTHENTICATED",
+                "ACT_PATIENT_EMBEDDED",
+                "ACT_STAFF_SINGLE_ORG",
+                "ACT_HUB_CROSS_ORG",
+                "ACT_PHARMACY_SERVICING",
+                "ACT_SUPPORT_ASSISTED_CAPTURE",
+                "ACT_SUPPORT_REPLAY_RESTORE",
+                "ACT_OPERATIONS_WATCH",
+                "ACT_RESILIENCE_CONTROL",
+                "ACT_GOVERNANCE_PLATFORM",
+                "ACT_ASSISTIVE_ADJUNCT",
+            ],
+            "assurance_trust_mode": "require_projection_readiness_and_runtime_binding",
+            "service_identity_ref": "sid_projection_plane",
+            "egress_allowlist_ref": "eal_projection_to_internal_planes_only",
+            "browser_reachable": "no",
+            "session_boundary_ref": "sb_read_scope_and_visibility_tuple",
+            "backup_restore_scope_ref": "brs_projection_rebuild_and_readiness_restore",
+            "recovery_disposition_refs": ["RRD_PROJECTION_STALE", "RRD_PROJECTION_RECOVERY_ONLY"],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#ProjectionQueryContract",
+                "platform-runtime-and-release-blueprint.md#ProjectionContractVersionSet",
+            ],
+            "notes": "Owns audience-safe read models, live deltas, and recovery-aware completeness truth.",
+        },
+        {
+            "template_id": "wf_integration",
+            "family_code": "integration",
+            "display_name": "Integration and adapter plane",
+            "trust_zone_ref": "tz_integration_perimeter",
+            "owned_bounded_context_refs": [
+                "identity_rails",
+                "telephony_capture",
+                "booking_supplier_adapters",
+                "pharmacy_transport",
+                "notification_delivery",
+            ],
+            "owned_service_refs": ["svc_adapter_worker", "svc_callback_ingress", "svc_transport_correlator"],
+            "ingress_mode": "outbox_dispatch_and_callback_ingress",
+            "allowed_downstream_family_refs": ["data", "assurance_security"],
+            "allowed_data_classification_refs": [
+                "operational_internal_non_phi",
+                "patient_identifying",
+                "contact_sensitive",
+                "clinical_sensitive",
+                "identity_proof_sensitive",
+                "security_or_secret_sensitive",
+            ],
+            "tenant_context_mode": "tenant_tuple_plus_effect_scope_required",
+            "tenant_isolation_mode": "tenant_scoped_adapter_lane",
+            "acting_scope_requirements": ["ACT_STAFF_SINGLE_ORG", "ACT_HUB_CROSS_ORG", "ACT_PHARMACY_SERVICING", "ACT_GOVERNANCE_PLATFORM"],
+            "assurance_trust_mode": "dependency_profile_governed",
+            "service_identity_ref": "sid_integration_runtime",
+            "egress_allowlist_ref": "eal_declared_external_dependencies_only",
+            "browser_reachable": "no",
+            "session_boundary_ref": "sb_effect_scope_and_callback_correlation",
+            "backup_restore_scope_ref": "brs_adapter_checkpoint_restore",
+            "recovery_disposition_refs": ["RRD_INTEGRATION_QUEUE_ONLY", "RRD_DEPENDENCY_DEGRADED"],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#AdapterContractProfile",
+                "platform-runtime-and-release-blueprint.md#DependencyDegradationProfile",
+            ],
+            "notes": "Owns all supplier egress and callback ingress. Gateways never call this family directly in the chosen baseline.",
+        },
+        {
+            "template_id": "wf_data",
+            "family_code": "data",
+            "display_name": "Data and storage plane",
+            "trust_zone_ref": "tz_stateful_data",
+            "owned_bounded_context_refs": [
+                "canonical_request_store",
+                "projection_read_store",
+                "artifact_store",
+                "append_only_audit_store",
+                "queue_and_cache_store",
+            ],
+            "owned_service_refs": ["svc_relational_store", "svc_projection_store", "svc_object_store", "svc_queue_store", "svc_audit_store"],
+            "ingress_mode": "internal_store_only",
+            "allowed_downstream_family_refs": [],
+            "allowed_data_classification_refs": [
+                "public_safe",
+                "operational_internal_non_phi",
+                "patient_identifying",
+                "contact_sensitive",
+                "clinical_sensitive",
+                "identity_proof_sensitive",
+                "security_or_secret_sensitive",
+                "audit_investigation_restricted",
+                "retention_governance_restricted",
+            ],
+            "tenant_context_mode": "tenant_tuple_or_stronger_scope_tuple_on_every_key",
+            "tenant_isolation_mode": "tenant_partitioned_storage",
+            "acting_scope_requirements": [],
+            "assurance_trust_mode": "restore_proof_required_before_live_authority",
+            "service_identity_ref": "sid_data_plane",
+            "egress_allowlist_ref": "eal_none_internal_only",
+            "browser_reachable": "no",
+            "session_boundary_ref": "sb_none_internal_only",
+            "backup_restore_scope_ref": "brs_stateful_restore",
+            "recovery_disposition_refs": ["RRD_DATA_RESTORE_ONLY", "RRD_DATA_READ_ONLY"],
+            "source_refs": [
+                "blueprint-init.md#12. Practical engineering shape",
+                "platform-runtime-and-release-blueprint.md#Runtime rules",
+            ],
+            "notes": "Never browser-addressable. Every row, message, cache key, and object prefix must carry tenant scope.",
+        },
+        {
+            "template_id": "wf_assurance_security",
+            "family_code": "assurance_security",
+            "display_name": "Assurance, security, and resilience control plane",
+            "trust_zone_ref": "tz_assurance_security",
+            "owned_bounded_context_refs": [
+                "assurance_ledger",
+                "runtime_publication",
+                "policy_compilation",
+                "resilience_control",
+                "release_watch",
+            ],
+            "owned_service_refs": ["svc_assurance_supervisor", "svc_runtime_contract_publisher", "svc_policy_runtime", "svc_resilience_orchestrator"],
+            "ingress_mode": "internal_control_and_published_operator_entry",
+            "allowed_downstream_family_refs": ["data"],
+            "allowed_data_classification_refs": [
+                "operational_internal_non_phi",
+                "security_or_secret_sensitive",
+                "audit_investigation_restricted",
+                "retention_governance_restricted",
+            ],
+            "tenant_context_mode": "platform_scope_or_explicit_scope_tuple_only",
+            "tenant_isolation_mode": "platform_control_plane_with_explicit_tenant_projection",
+            "acting_scope_requirements": [
+                "ACT_SUPPORT_REPLAY_RESTORE",
+                "ACT_OPERATIONS_WATCH",
+                "ACT_RESILIENCE_CONTROL",
+                "ACT_GOVERNANCE_PLATFORM",
+            ],
+            "assurance_trust_mode": "authoritative_slice_and_watch_tuple_publisher",
+            "service_identity_ref": "sid_assurance_runtime",
+            "egress_allowlist_ref": "eal_assurance_to_internal_planes_only",
+            "browser_reachable": "no",
+            "session_boundary_ref": "sb_scope_tuple_and_watch_tuple",
+            "backup_restore_scope_ref": "brs_assurance_and_resilience_restore",
+            "recovery_disposition_refs": ["RRD_ASSURANCE_CONSTRAINED", "RRD_CONTROL_SURFACE_FROZEN"],
+            "source_refs": [
+                "phase-0-the-foundation-protocol.md#2.7 AssuranceSupervisor",
+                "phase-0-the-foundation-protocol.md#2.10 RuntimeContractPublisher",
+                "phase-0-the-foundation-protocol.md#2.10A ResilienceOrchestrator",
+            ],
+            "notes": "Publishes runtime truth, trust, redaction, recovery, and resilience posture and keeps operator controls frozen when tuples drift.",
+        },
+    ]
+
+
+def region_roles_by_ring() -> dict[str, list[str]]:
+    return {
+        "local": ["nonprod_local"],
+        "ci-preview": ["primary"],
+        "integration": ["primary"],
+        "preprod": ["primary", "secondary"],
+        "production": ["primary", "secondary"],
+    }
+
+
+def region_ref_for_role(environment_ring: str, role: str) -> str:
+    if role == "nonprod_local":
+        return "local_nonprod"
+    if role == "primary":
+        return "uk_primary_region"
+    if role == "secondary":
+        return "uk_secondary_region"
+    return f"{environment_ring}_{role}"
+
+
+def boundary_ids_for_gateway(downstream_families: list[str]) -> list[str]:
+    boundary_ids = ["tzb_public_edge_to_published_gateway"]
+    if any(code in downstream_families for code in ["command", "projection"]):
+        boundary_ids.append("tzb_published_gateway_to_application_core")
+    if "assurance_security" in downstream_families:
+        boundary_ids.append("tzb_published_gateway_to_assurance_security")
+    return boundary_ids
+
+
+def gateway_config() -> dict[str, dict[str, Any]]:
+    return {
+        "surf_patient_intake_web": {
+            "session_policy_ref": "SP_PATIENT_PUBLIC_EPHEMERAL",
+            "tenant_scope_mode": "public_pre_identity",
+            "tenant_isolation_mode": "shared_public_pre_tenant",
+            "downstream_family_refs": ["projection", "command"],
+            "acting_scope_profile_refs": ["ACT_PATIENT_PUBLIC_INTAKE"],
+            "blast_radius_mode": "pending_subject_lineage_only",
+            "audit_posture": "submission_ingress_and_promotion_chain",
+            "recovery_disposition_refs": ["RRD_PATIENT_PUBLIC_PLACEHOLDER", "RRD_PATIENT_INTAKE_RECOVERY"],
+            "notes": "Web intake remains in the same lineage until claim or promotion, so the gateway stays narrow and intake-specific.",
+        },
+        "surf_patient_intake_phone": {
+            "session_policy_ref": "SP_TELEPHONY_CAPTURE_PROXY",
+            "tenant_scope_mode": "public_pre_identity",
+            "tenant_isolation_mode": "shared_public_pre_tenant",
+            "downstream_family_refs": ["projection", "command"],
+            "acting_scope_profile_refs": ["ACT_PATIENT_PUBLIC_INTAKE"],
+            "blast_radius_mode": "pending_subject_lineage_only",
+            "audit_posture": "telephony_ingress_parity_and_promotion_chain",
+            "recovery_disposition_refs": ["RRD_PATIENT_PUBLIC_PLACEHOLDER", "RRD_TELEPHONY_CAPTURE_RECOVERY"],
+            "notes": "Telephony capture shares the intake lineage but not the web gateway contract because session policy and dependency posture differ.",
+        },
+        "surf_patient_secure_link_recovery": {
+            "session_policy_ref": "SP_GRANT_SCOPED_RECOVERY",
+            "tenant_scope_mode": "grant_scoped_subject",
+            "tenant_isolation_mode": "tenant_scoped_lineage_grant",
+            "downstream_family_refs": ["projection", "command"],
+            "acting_scope_profile_refs": ["ACT_PATIENT_GRANT_RECOVERY"],
+            "blast_radius_mode": "single_subject_single_lineage",
+            "audit_posture": "grant_redemption_and_runtime_binding_audit",
+            "recovery_disposition_refs": ["RRD_SECURE_LINK_RECOVERY_ONLY", "RRD_IDENTITY_HOLD_PLACEHOLDER"],
+            "notes": "Secure-link recovery is deliberately isolated from the broader authenticated patient gateway posture.",
+        },
+        "surf_patient_home": {
+            "session_policy_ref": "SP_PATIENT_AUTHENTICATED_SHELL",
+            "tenant_scope_mode": "tenant_subject_self_service",
+            "tenant_isolation_mode": "tenant_scoped_subject",
+            "downstream_family_refs": ["projection"],
+            "acting_scope_profile_refs": ["ACT_PATIENT_AUTHENTICATED"],
+            "blast_radius_mode": "single_tenant_subject_projection",
+            "audit_posture": "portal_navigation_and_runtime_binding_audit",
+            "recovery_disposition_refs": ["RRD_PATIENT_HOME_READ_ONLY", "RRD_PATIENT_HOME_PLACEHOLDER"],
+            "notes": "Home is projection-only because it orients and launches follow-up work but does not itself settle commands.",
+        },
+        "surf_patient_requests": {
+            "session_policy_ref": "SP_PATIENT_AUTHENTICATED_SHELL",
+            "tenant_scope_mode": "tenant_subject_self_service",
+            "tenant_isolation_mode": "tenant_scoped_subject",
+            "downstream_family_refs": ["projection", "command"],
+            "acting_scope_profile_refs": ["ACT_PATIENT_AUTHENTICATED"],
+            "blast_radius_mode": "single_tenant_subject_request_family",
+            "audit_posture": "request_route_intent_and_settlement_audit",
+            "recovery_disposition_refs": ["RRD_PATIENT_REQUEST_RECOVERY_ONLY", "RRD_PATIENT_REQUEST_READ_ONLY"],
+            "notes": "Request detail, more-info reply, and child-work entry require a narrower gateway than patient home.",
+        },
+        "surf_patient_appointments": {
+            "session_policy_ref": "SP_PATIENT_AUTHENTICATED_SHELL",
+            "tenant_scope_mode": "tenant_subject_self_service",
+            "tenant_isolation_mode": "tenant_scoped_subject",
+            "downstream_family_refs": ["projection", "command"],
+            "acting_scope_profile_refs": ["ACT_PATIENT_AUTHENTICATED"],
+            "blast_radius_mode": "single_tenant_subject_booking_family",
+            "audit_posture": "booking_route_intent_and_settlement_audit",
+            "recovery_disposition_refs": ["RRD_PATIENT_APPOINTMENT_READ_ONLY", "RRD_BOOKING_CONFIRMATION_PLACEHOLDER"],
+            "notes": "Booking manage and confirmation truth stay distinct from general request detail and require their own recovery posture.",
+        },
+        "surf_patient_health_record": {
+            "session_policy_ref": "SP_PATIENT_AUTHENTICATED_SHELL",
+            "tenant_scope_mode": "tenant_subject_self_service",
+            "tenant_isolation_mode": "tenant_scoped_subject",
+            "downstream_family_refs": ["projection"],
+            "acting_scope_profile_refs": ["ACT_PATIENT_AUTHENTICATED"],
+            "blast_radius_mode": "single_tenant_subject_record_projection",
+            "audit_posture": "artifact_mode_and_download_audit",
+            "recovery_disposition_refs": ["RRD_PATIENT_RECORD_SUMMARY_ONLY", "RRD_ARTIFACT_HANDOFF_REQUIRED"],
+            "notes": "Record viewing is projection- and artifact-governed and never grants broad patient mutation access.",
+        },
+        "surf_patient_messages": {
+            "session_policy_ref": "SP_PATIENT_AUTHENTICATED_SHELL",
+            "tenant_scope_mode": "tenant_subject_self_service",
+            "tenant_isolation_mode": "tenant_scoped_subject",
+            "downstream_family_refs": ["projection", "command"],
+            "acting_scope_profile_refs": ["ACT_PATIENT_AUTHENTICATED"],
+            "blast_radius_mode": "single_tenant_subject_message_thread",
+            "audit_posture": "message_visibility_and_settlement_audit",
+            "recovery_disposition_refs": ["RRD_PATIENT_MESSAGES_READ_ONLY", "RRD_CONVERSATION_RECOVERY_ONLY"],
+            "notes": "Conversation reply, callback repair, and clinician-message posture stay inside a message-specific gateway contract.",
+        },
+        "surf_patient_embedded_shell": {
+            "session_policy_ref": "SP_PATIENT_EMBEDDED_HOST_BOUND",
+            "tenant_scope_mode": "tenant_subject_embedded",
+            "tenant_isolation_mode": "tenant_scoped_subject_embedded",
+            "downstream_family_refs": ["projection", "command"],
+            "acting_scope_profile_refs": ["ACT_PATIENT_EMBEDDED"],
+            "blast_radius_mode": "single_tenant_subject_embedded_channel",
+            "audit_posture": "embedded_bridge_and_manifest_audit",
+            "recovery_disposition_refs": ["RRD_EMBEDDED_HANDOFF_ONLY", "RRD_EMBEDDED_READ_ONLY"],
+            "notes": "Deferred Phase 7 channel mapping exists now so future embedded work cannot silently widen the main patient gateway.",
+        },
+        "surf_clinician_workspace": {
+            "session_policy_ref": "SP_STAFF_SSO_SINGLE_ORG",
+            "tenant_scope_mode": "tenant_org_scoped_staff",
+            "tenant_isolation_mode": "tenant_org_partition",
+            "downstream_family_refs": ["projection", "command"],
+            "acting_scope_profile_refs": ["ACT_STAFF_SINGLE_ORG"],
+            "blast_radius_mode": "single_tenant_single_org_operational_slice",
+            "audit_posture": "workspace_scope_tuple_and_mutation_audit",
+            "recovery_disposition_refs": ["RRD_WORKSPACE_READ_ONLY", "RRD_WORKSPACE_QUEUE_PLACEHOLDER"],
+            "notes": "Clinical workspace command authority remains single-organisation unless hub or governance tuple changes prove otherwise.",
+        },
+        "surf_clinician_workspace_child": {
+            "session_policy_ref": "SP_STAFF_SSO_SINGLE_ORG_CHILD",
+            "tenant_scope_mode": "tenant_org_scoped_staff",
+            "tenant_isolation_mode": "tenant_org_partition",
+            "downstream_family_refs": ["projection", "command"],
+            "acting_scope_profile_refs": ["ACT_STAFF_SINGLE_ORG"],
+            "blast_radius_mode": "single_tenant_single_org_child_route",
+            "audit_posture": "child_route_intent_and_settlement_audit",
+            "recovery_disposition_refs": ["RRD_WORKSPACE_CHILD_READ_ONLY", "RRD_WORKSPACE_CHILD_RECOVERY_ONLY"],
+            "notes": "Child routes remain separate because route family, recovery semantics, and bounded action scope differ from the shell root workspace.",
+        },
+        "surf_practice_ops_workspace": {
+            "session_policy_ref": "SP_STAFF_SSO_SINGLE_ORG",
+            "tenant_scope_mode": "tenant_org_scoped_staff",
+            "tenant_isolation_mode": "tenant_org_partition",
+            "downstream_family_refs": ["projection", "command"],
+            "acting_scope_profile_refs": ["ACT_STAFF_SINGLE_ORG"],
+            "blast_radius_mode": "single_tenant_single_org_operational_slice",
+            "audit_posture": "practice_ops_scope_tuple_and_mutation_audit",
+            "recovery_disposition_refs": ["RRD_WORKSPACE_READ_ONLY", "RRD_WORKSPACE_QUEUE_PLACEHOLDER"],
+            "notes": "Practice operations stays separate from clinician workspace because minimum-necessary scope and task mix differ.",
+        },
+        "surf_hub_queue": {
+            "session_policy_ref": "SP_STAFF_CROSS_ORG_HUB",
+            "tenant_scope_mode": "cross_org_hub_scope",
+            "tenant_isolation_mode": "explicit_cross_org_subject_scope",
+            "downstream_family_refs": ["projection"],
+            "acting_scope_profile_refs": ["ACT_HUB_CROSS_ORG"],
+            "blast_radius_mode": "declared_cross_org_subset_only",
+            "audit_posture": "hub_visibility_scope_and_queue_audit",
+            "recovery_disposition_refs": ["RRD_HUB_QUEUE_READ_ONLY", "RRD_HUB_QUEUE_SUMMARY_ONLY"],
+            "notes": "The hub queue lists cross-organisation work but does not itself broaden mutation access until the operator selects a case under the current tuple.",
+        },
+        "surf_hub_case_management": {
+            "session_policy_ref": "SP_STAFF_CROSS_ORG_HUB",
+            "tenant_scope_mode": "cross_org_hub_scope",
+            "tenant_isolation_mode": "explicit_cross_org_subject_scope",
+            "downstream_family_refs": ["projection", "command"],
+            "acting_scope_profile_refs": ["ACT_HUB_CROSS_ORG"],
+            "blast_radius_mode": "declared_cross_org_subset_only",
+            "audit_posture": "hub_scope_tuple_and_settlement_audit",
+            "recovery_disposition_refs": ["RRD_HUB_CASE_READ_ONLY", "RRD_HUB_CASE_RECOVERY_ONLY"],
+            "notes": "Hub case management is split from queue browsing because cross-organisation mutation and acknowledgement rules differ.",
+        },
+        "surf_pharmacy_console": {
+            "session_policy_ref": "SP_PHARMACY_SERVICING_SCOPE",
+            "tenant_scope_mode": "servicing_site_scope",
+            "tenant_isolation_mode": "servicing_site_partition",
+            "downstream_family_refs": ["projection", "command"],
+            "acting_scope_profile_refs": ["ACT_PHARMACY_SERVICING"],
+            "blast_radius_mode": "single_servicing_site_or_declared_return_lane",
+            "audit_posture": "pharmacy_dispatch_and_outcome_audit",
+            "recovery_disposition_refs": ["RRD_PHARMACY_READ_ONLY", "RRD_PHARMACY_DISPATCH_RECOVERY"],
+            "notes": "Pharmacy settlement and bounce-back handling require a servicing-site-specific gateway split.",
+        },
+        "surf_support_ticket_workspace": {
+            "session_policy_ref": "SP_SUPPORT_TENANT_DELEGATE",
+            "tenant_scope_mode": "support_tenant_delegate",
+            "tenant_isolation_mode": "explicit_support_delegate_scope",
+            "downstream_family_refs": ["projection", "command"],
+            "acting_scope_profile_refs": ["ACT_SUPPORT_ASSISTED_CAPTURE"],
+            "blast_radius_mode": "single_ticket_declared_tenant_scope",
+            "audit_posture": "support_delegate_scope_and_action_audit",
+            "recovery_disposition_refs": ["RRD_SUPPORT_WORKSPACE_READ_ONLY", "RRD_SUPPORT_CAPTURE_RECOVERY"],
+            "notes": "Support ticket work is distinct from replay and governance evidence access and remains tenant-delegated rather than platform-wide.",
+        },
+        "surf_support_replay_observe": {
+            "session_policy_ref": "SP_SUPPORT_REPLAY_ENVELOPE",
+            "tenant_scope_mode": "support_investigation_scope",
+            "tenant_isolation_mode": "explicit_support_investigation_scope",
+            "downstream_family_refs": ["projection", "assurance_security"],
+            "acting_scope_profile_refs": ["ACT_SUPPORT_REPLAY_RESTORE"],
+            "blast_radius_mode": "selected_anchor_and_envelope_only",
+            "audit_posture": "masked_replay_and_restore_gate_audit",
+            "recovery_disposition_refs": ["RRD_SUPPORT_REPLAY_MASKED", "RRD_SUPPORT_REPLAY_RESTORE_FROZEN"],
+            "notes": "Replay and restore inspection cross into assurance and resilience evidence and therefore cannot share the support ticket gateway.",
+        },
+        "surf_support_assisted_capture": {
+            "session_policy_ref": "SP_SUPPORT_ASSISTED_CAPTURE",
+            "tenant_scope_mode": "support_tenant_delegate",
+            "tenant_isolation_mode": "explicit_support_delegate_scope",
+            "downstream_family_refs": ["projection", "command", "assurance_security"],
+            "acting_scope_profile_refs": ["ACT_SUPPORT_ASSISTED_CAPTURE"],
+            "blast_radius_mode": "single_ticket_declared_tenant_scope",
+            "audit_posture": "assisted_capture_scope_and_identity_audit",
+            "recovery_disposition_refs": ["RRD_SUPPORT_CAPTURE_RECOVERY", "RRD_SUPPORT_CAPTURE_READ_ONLY"],
+            "notes": "Assisted capture can write under a support delegate tuple but still requires assurance policy posture and immutable audit.",
+        },
+        "surf_operations_board": {
+            "session_policy_ref": "SP_OPERATIONS_WATCH_TUPLE",
+            "tenant_scope_mode": "multi_tenant_operational_watch",
+            "tenant_isolation_mode": "platform_observation_aggregate",
+            "downstream_family_refs": ["projection", "assurance_security"],
+            "acting_scope_profile_refs": ["ACT_OPERATIONS_WATCH"],
+            "blast_radius_mode": "declared_wave_or_incident_scope_only",
+            "audit_posture": "watch_tuple_and_guardrail_audit",
+            "recovery_disposition_refs": ["RRD_OPERATIONS_DIAGNOSTIC_ONLY", "RRD_OPERATIONS_BOARD_FROZEN"],
+            "notes": "The board shows multi-tenant truth, but all blast radius must be machine-readable and tuple-bound.",
+        },
+        "surf_operations_drilldown": {
+            "session_policy_ref": "SP_RESILIENCE_CONTROL_SCOPE",
+            "tenant_scope_mode": "multi_tenant_operational_watch",
+            "tenant_isolation_mode": "platform_observation_aggregate",
+            "downstream_family_refs": ["projection", "command", "assurance_security"],
+            "acting_scope_profile_refs": ["ACT_RESILIENCE_CONTROL"],
+            "blast_radius_mode": "declared_wave_or_incident_scope_only",
+            "audit_posture": "resilience_control_and_restore_authority_audit",
+            "recovery_disposition_refs": ["RRD_RESILIENCE_CONTROL_FROZEN", "RRD_OPERATIONS_DIAGNOSTIC_ONLY"],
+            "notes": "Restore and failover actions stay here, not in the broader operations board gateway, because authority and recovery posture differ.",
+        },
+        "surf_governance_shell": {
+            "session_policy_ref": "SP_GOVERNANCE_SCOPE_TUPLE",
+            "tenant_scope_mode": "platform_governance_scope",
+            "tenant_isolation_mode": "platform_control_plane_with_explicit_blast_radius",
+            "downstream_family_refs": ["projection", "command", "assurance_security"],
+            "acting_scope_profile_refs": ["ACT_GOVERNANCE_PLATFORM"],
+            "blast_radius_mode": "explicit_tenant_or_multi_tenant_blast_radius",
+            "audit_posture": "governance_scope_tuple_and_release_watch_audit",
+            "recovery_disposition_refs": ["RRD_GOVERNANCE_READ_ONLY", "RRD_GOVERNANCE_HANDOFF_ONLY"],
+            "notes": "Governance is platform-scoped but must still declare affected-tenant and affected-organisation counts on every consequential action.",
+        },
+        "surf_assistive_sidecar": {
+            "session_policy_ref": "SP_ASSISTIVE_ADJUNCT_INHERITED",
+            "tenant_scope_mode": "inherited_from_owner_shell",
+            "tenant_isolation_mode": "inherited_scope_no_standalone_tenant_widening",
+            "downstream_family_refs": ["projection", "command"],
+            "acting_scope_profile_refs": ["ACT_ASSISTIVE_ADJUNCT"],
+            "blast_radius_mode": "owner_shell_scope_only",
+            "audit_posture": "assistive_visibility_and_command_shadow_audit",
+            "recovery_disposition_refs": ["RRD_ASSISTIVE_READ_ONLY", "RRD_ASSISTIVE_SIDECAR_FROZEN"],
+            "notes": "Standalone assistive-control URLs remain conditional; the live baseline keeps the sidecar bound to its owning shell scope.",
+        },
+    }
+
+
+def build_gateway_rows(surface_rows: list[dict[str, str]]) -> list[dict[str, Any]]:
+    config = gateway_config()
+    rows: list[dict[str, Any]] = []
+    for surface in surface_rows:
+        surface_id = surface["surface_id"]
+        cfg = config[surface_id]
+        gateway_surface_id = "gws_" + surface_id.removeprefix("surf_")
+        downstream_family_refs = cfg["downstream_family_refs"]
+        rows.append(
+            {
+                "gateway_surface_id": gateway_surface_id,
+                "gateway_surface_name": f"{surface['surface_name']} gateway",
+                "audience_surface_id": surface_id,
+                "surface_name": surface["surface_name"],
+                "route_family_id": surface["route_family_id"],
+                "audience_tier": surface["audience_tier"],
+                "purpose_of_use": surface["purpose_of_use"],
+                "shell_type": surface["shell_type"],
+                "scope_posture": surface["scope_posture"],
+                "browser_workload_family_code": "shell_delivery",
+                "session_policy_ref": cfg["session_policy_ref"],
+                "tenant_scope_mode": cfg["tenant_scope_mode"],
+                "tenant_isolation_mode": cfg["tenant_isolation_mode"],
+                "downstream_family_refs": downstream_family_refs,
+                "trust_zone_boundary_refs": boundary_ids_for_gateway(downstream_family_refs),
+                "acting_scope_profile_refs": cfg["acting_scope_profile_refs"],
+                "blast_radius_mode": cfg["blast_radius_mode"],
+                "audit_posture": cfg["audit_posture"],
+                "recovery_disposition_refs": cfg["recovery_disposition_refs"],
+                "source_refs": [
+                    surface["source_refs"],
+                    "platform-runtime-and-release-blueprint.md#GatewayBffSurface",
+                ],
+                "notes": cfg["notes"],
+            }
+        )
+    return rows
+
+
+def build_tenant_isolation_rows() -> list[dict[str, Any]]:
+    return [
+        {
+            "isolation_row_id": "TIM_PUBLIC_PRE_IDENTITY",
+            "scope_mode": "public_pre_identity",
+            "tenant_isolation_mode": "shared_public_pre_tenant",
+            "blast_radius_mode": "pending_subject_lineage_only",
+            "surface_refs": ["surf_patient_intake_web", "surf_patient_intake_phone"],
+            "required_workload_family_codes": ["shell_delivery", "projection", "command"],
+            "required_acting_scope_profile_refs": ["ACT_PATIENT_PUBLIC_INTAKE"],
+            "audit_posture": "submission_ingress, promotion, and runtime binding proof required",
+            "tuple_drift_posture": "writable entry freezes to placeholder or safe receipt until identity or publication is revalidated",
+            "source_refs": [
+                "blueprint-init.md#2. Core product surfaces",
+                "phase-0-the-foundation-protocol.md#4. Canonical ingest and request promotion",
+            ],
+            "notes": "Used before patient identity or tenant binding is fully proven.",
+        },
+        {
+            "isolation_row_id": "TIM_GRANT_SCOPED_RECOVERY",
+            "scope_mode": "grant_scoped_subject",
+            "tenant_isolation_mode": "tenant_scoped_lineage_grant",
+            "blast_radius_mode": "single_subject_single_lineage",
+            "surface_refs": ["surf_patient_secure_link_recovery"],
+            "required_workload_family_codes": ["shell_delivery", "projection", "command"],
+            "required_acting_scope_profile_refs": ["ACT_PATIENT_GRANT_RECOVERY"],
+            "audit_posture": "grant redemption, runtime binding, and route intent must stay immutable",
+            "tuple_drift_posture": "same-shell recovery only, stale grant invalidation, and no cached writable carry-over",
+            "source_refs": [
+                "patient-account-and-communications-blueprint.md#Patient audience coverage contract",
+                "phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm",
+            ],
+            "notes": "The subject and lineage are narrower than a normal authenticated patient shell.",
+        },
+        {
+            "isolation_row_id": "TIM_PATIENT_SELF_SERVICE",
+            "scope_mode": "tenant_subject_self_service",
+            "tenant_isolation_mode": "tenant_scoped_subject",
+            "blast_radius_mode": "single_tenant_single_subject",
+            "surface_refs": [
+                "surf_patient_home",
+                "surf_patient_requests",
+                "surf_patient_appointments",
+                "surf_patient_health_record",
+                "surf_patient_messages",
+            ],
+            "required_workload_family_codes": ["shell_delivery", "projection", "command"],
+            "required_acting_scope_profile_refs": ["ACT_PATIENT_AUTHENTICATED"],
+            "audit_posture": "route intent, settlement, visibility, and runtime binding stay subject-bound",
+            "tuple_drift_posture": "downgrade to read-only, summary-only, or recovery-only inside the same shell",
+            "source_refs": [
+                "patient-portal-experience-architecture-blueprint.md#Portal entry and shell topology",
+                "phase-0-the-foundation-protocol.md#1.38A AudienceSurfaceRuntimeBinding",
+            ],
+            "notes": "The dominant baseline patient pattern.",
+        },
+        {
+            "isolation_row_id": "TIM_PATIENT_EMBEDDED",
+            "scope_mode": "tenant_subject_embedded",
+            "tenant_isolation_mode": "tenant_scoped_subject_embedded",
+            "blast_radius_mode": "single_tenant_single_subject_embedded_channel",
+            "surface_refs": ["surf_patient_embedded_shell"],
+            "required_workload_family_codes": ["shell_delivery", "projection", "command"],
+            "required_acting_scope_profile_refs": ["ACT_PATIENT_EMBEDDED"],
+            "audit_posture": "embedded bridge, host capability, and runtime publication tuples must remain exact",
+            "tuple_drift_posture": "handoff-only or read-only until embedded compatibility and publication parity recover",
+            "source_refs": [
+                "phase-7-inside-the-nhs-app.md",
+                "forensic-audit-findings.md#Finding 90 - The audit still omitted the hardened NHS App embedded-channel control plane",
+            ],
+            "notes": "Carried now as a deferred but explicit topology seam.",
+        },
+        {
+            "isolation_row_id": "TIM_TENANT_STAFF_SINGLE_ORG",
+            "scope_mode": "tenant_org_scoped_staff",
+            "tenant_isolation_mode": "tenant_org_partition",
+            "blast_radius_mode": "single_tenant_single_org_operational_slice",
+            "surface_refs": ["surf_clinician_workspace", "surf_clinician_workspace_child", "surf_practice_ops_workspace"],
+            "required_workload_family_codes": ["shell_delivery", "projection", "command"],
+            "required_acting_scope_profile_refs": ["ACT_STAFF_SINGLE_ORG"],
+            "audit_posture": "current acting scope tuple, minimum-necessary contract, and command settlement required",
+            "tuple_drift_posture": "freeze mutation and require revalidation on org switch, purpose drift, or visibility drift",
+            "source_refs": [
+                "phase-0-the-foundation-protocol.md#ActingScopeTuple",
+                "phase-0-the-foundation-protocol.md#2.8 ScopedMutationGate",
+            ],
+            "notes": "Single-organisation clinical and operations staff posture.",
+        },
+        {
+            "isolation_row_id": "TIM_HUB_CROSS_ORG",
+            "scope_mode": "cross_org_hub_scope",
+            "tenant_isolation_mode": "explicit_cross_org_subject_scope",
+            "blast_radius_mode": "declared_cross_org_subset_only",
+            "surface_refs": ["surf_hub_queue", "surf_hub_case_management"],
+            "required_workload_family_codes": ["shell_delivery", "projection", "command"],
+            "required_acting_scope_profile_refs": ["ACT_HUB_CROSS_ORG"],
+            "audit_posture": "acting scope tuple, visibility coverage, and current runtime binding must all reference the same cross-org subset",
+            "tuple_drift_posture": "queue can stay visible, but mutation freezes in place until a fresh tuple supersedes the old subset",
+            "source_refs": [
+                "forensic-audit-findings.md#Finding 114 - tenant and acting context drift",
+                "staff-operations-and-support-blueprint.md",
+            ],
+            "notes": "Cross-organisation visibility is lawful only through an explicit tuple, never through ambient hub role state.",
+        },
+        {
+            "isolation_row_id": "TIM_PHARMACY_SERVICING",
+            "scope_mode": "servicing_site_scope",
+            "tenant_isolation_mode": "servicing_site_partition",
+            "blast_radius_mode": "single_servicing_site_or_declared_return_lane",
+            "surface_refs": ["surf_pharmacy_console"],
+            "required_workload_family_codes": ["shell_delivery", "projection", "command"],
+            "required_acting_scope_profile_refs": ["ACT_PHARMACY_SERVICING"],
+            "audit_posture": "dispatch, outcome, and bounce-back flows need service-site and supplier proof",
+            "tuple_drift_posture": "dispatch and outcome actions freeze while existing evidence remains visible",
+            "source_refs": [
+                "phase-6-the-pharmacy-loop.md",
+                "pharmacy-console-frontend-architecture.md",
+            ],
+            "notes": "Keeps pharmacy scope separate from general staff routing and support.",
+        },
+        {
+            "isolation_row_id": "TIM_SUPPORT_DELEGATE",
+            "scope_mode": "support_tenant_delegate",
+            "tenant_isolation_mode": "explicit_support_delegate_scope",
+            "blast_radius_mode": "single_ticket_declared_tenant_scope",
+            "surface_refs": ["surf_support_ticket_workspace", "surf_support_assisted_capture"],
+            "required_workload_family_codes": ["shell_delivery", "projection", "command", "assurance_security"],
+            "required_acting_scope_profile_refs": ["ACT_SUPPORT_ASSISTED_CAPTURE"],
+            "audit_posture": "delegate reason, subject scope, and ticket scope must stay immutable",
+            "tuple_drift_posture": "same-shell read-only or capture-recovery posture when support scope or identity evidence drifts",
+            "source_refs": [
+                "staff-operations-and-support-blueprint.md#2. Routine support and assisted journey work",
+                "phase-0-the-foundation-protocol.md#ActingScopeTuple",
+            ],
+            "notes": "Support-assisted capture can help without inheriting broad replay or governance scope.",
+        },
+        {
+            "isolation_row_id": "TIM_SUPPORT_INVESTIGATION",
+            "scope_mode": "support_investigation_scope",
+            "tenant_isolation_mode": "explicit_support_investigation_scope",
+            "blast_radius_mode": "selected_anchor_and_envelope_only",
+            "surface_refs": ["surf_support_replay_observe"],
+            "required_workload_family_codes": ["shell_delivery", "projection", "assurance_security"],
+            "required_acting_scope_profile_refs": ["ACT_SUPPORT_REPLAY_RESTORE"],
+            "audit_posture": "InvestigationScopeEnvelope, masking ceiling, and restore posture stay bound together",
+            "tuple_drift_posture": "masked replay may remain visible but restore or export controls freeze immediately",
+            "source_refs": [
+                "phase-9-the-assurance-ledger.md#9C. Audit explorer, break-glass review, and support replay",
+                "forensic-audit-findings.md#Finding 100 - Support replay and observe return still had no authoritative restore gate",
+            ],
+            "notes": "Replay and export are not tenant-wide support privileges.",
+        },
+        {
+            "isolation_row_id": "TIM_OPERATIONS_MULTI_TENANT",
+            "scope_mode": "multi_tenant_operational_watch",
+            "tenant_isolation_mode": "platform_observation_aggregate",
+            "blast_radius_mode": "declared_wave_or_incident_scope_only",
+            "surface_refs": ["surf_operations_board", "surf_operations_drilldown"],
+            "required_workload_family_codes": ["shell_delivery", "projection", "command", "assurance_security"],
+            "required_acting_scope_profile_refs": ["ACT_OPERATIONS_WATCH", "ACT_RESILIENCE_CONTROL"],
+            "audit_posture": "watch tuple, guardrail snapshot, and resilience tuple are mandatory",
+            "tuple_drift_posture": "diagnostic evidence can stay visible, but live control posture freezes under tuple drift",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#ReleaseWatchTuple",
+                "phase-9-the-assurance-ledger.md#9F. Resilience architecture, restore orchestration, and chaos programme",
+            ],
+            "notes": "This is multi-tenant by design but must always surface blast radius explicitly.",
+        },
+        {
+            "isolation_row_id": "TIM_GOVERNANCE_PLATFORM",
+            "scope_mode": "platform_governance_scope",
+            "tenant_isolation_mode": "platform_control_plane_with_explicit_blast_radius",
+            "blast_radius_mode": "explicit_tenant_or_multi_tenant_blast_radius",
+            "surface_refs": ["surf_governance_shell"],
+            "required_workload_family_codes": ["shell_delivery", "projection", "command", "assurance_security"],
+            "required_acting_scope_profile_refs": ["ACT_GOVERNANCE_PLATFORM"],
+            "audit_posture": "scope tuple, release contract matrix, runtime publication, and watch tuple must stay aligned",
+            "tuple_drift_posture": "governance evidence remains visible, but compile, approval, or promotion controls freeze",
+            "source_refs": [
+                "platform-admin-and-config-blueprint.md#Change control rules",
+                "platform-admin-and-config-blueprint.md#Release governance contract",
+            ],
+            "notes": "Platform-scoped does not mean tenant-agnostic; blast radius must still be explicit.",
+        },
+        {
+            "isolation_row_id": "TIM_ASSISTIVE_ADJUNCT",
+            "scope_mode": "inherited_from_owner_shell",
+            "tenant_isolation_mode": "inherited_scope_no_standalone_tenant_widening",
+            "blast_radius_mode": "owner_shell_scope_only",
+            "surface_refs": ["surf_assistive_sidecar"],
+            "required_workload_family_codes": ["shell_delivery", "projection", "command"],
+            "required_acting_scope_profile_refs": ["ACT_ASSISTIVE_ADJUNCT"],
+            "audit_posture": "assistive suggestions inherit owner-shell tuple, visibility, and rollback boundaries",
+            "tuple_drift_posture": "freeze assistive controls whenever the owning shell loses live authority",
+            "source_refs": [
+                "phase-8-the-assistive-layer.md",
+                "forensic-audit-findings.md#Finding 91 - route, settlement, release, and trust controls were too phase-local",
+            ],
+            "notes": "Prevents assistive from becoming a shadow control plane.",
+        },
+    ]
+
+
+def build_acting_scope_rows() -> list[dict[str, Any]]:
+    return [
+        {
+            "acting_scope_profile_id": "ACT_PATIENT_PUBLIC_INTAKE",
+            "display_name": "Patient public intake",
+            "tuple_required": "no",
+            "tenant_scope_mode": "public_pre_identity",
+            "organisation_scope_mode": "not_applicable",
+            "environment_scope": "current_surface_binding_only",
+            "policy_plane": "patient_public_entry",
+            "purpose_of_use": "public_status",
+            "visibility_contract_ref": "AudienceVisibilityCoverage(patient_public)",
+            "runtime_binding_requirement": "AudienceSurfaceRuntimeBinding exact for intake surface",
+            "blast_radius_mode": "pending_subject_lineage_only",
+            "elevation_rule": "none",
+            "drift_triggers": "runtime_binding_drift; release_freeze; channel_freeze",
+            "on_drift_posture": "placeholder_only or safe receipt",
+            "audit_posture": "submission ingress and promotion record required",
+            "source_refs": [
+                "phase-0-the-foundation-protocol.md#1.38A AudienceSurfaceRuntimeBinding",
+                "phase-0-the-foundation-protocol.md#1.39 ReleaseRecoveryDisposition",
+            ],
+            "notes": "Not a staff ActingScopeTuple, but still a governed browser authority posture.",
+        },
+        {
+            "acting_scope_profile_id": "ACT_PATIENT_GRANT_RECOVERY",
+            "display_name": "Patient grant-scoped recovery",
+            "tuple_required": "no",
+            "tenant_scope_mode": "grant_scoped_subject",
+            "organisation_scope_mode": "not_applicable",
+            "environment_scope": "current_surface_binding_only",
+            "policy_plane": "grant_recovery",
+            "purpose_of_use": "secure_link_recovery",
+            "visibility_contract_ref": "AudienceVisibilityCoverage(secure_link_recovery)",
+            "runtime_binding_requirement": "AudienceSurfaceRuntimeBinding exact and grant live",
+            "blast_radius_mode": "single_subject_single_lineage",
+            "elevation_rule": "grant-bound only",
+            "drift_triggers": "grant_expired; runtime_binding_drift; route_intent_drift",
+            "on_drift_posture": "recovery_only or blocked",
+            "audit_posture": "grant redemption and route intent audit required",
+            "source_refs": [
+                "phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm",
+                "patient-account-and-communications-blueprint.md#Patient audience coverage contract",
+            ],
+            "notes": "Patient recovery scope is narrower than ordinary authenticated self-service.",
+        },
+        {
+            "acting_scope_profile_id": "ACT_PATIENT_AUTHENTICATED",
+            "display_name": "Authenticated patient self-service",
+            "tuple_required": "no",
+            "tenant_scope_mode": "tenant_subject_self_service",
+            "organisation_scope_mode": "not_applicable",
+            "environment_scope": "current_surface_binding_only",
+            "policy_plane": "patient_authenticated",
+            "purpose_of_use": "authenticated_self_service",
+            "visibility_contract_ref": "AudienceVisibilityCoverage(patient_authenticated)",
+            "runtime_binding_requirement": "AudienceSurfaceRuntimeBinding exact and writable eligibility fence live",
+            "blast_radius_mode": "single_tenant_single_subject",
+            "elevation_rule": "current auth session and subject binding only",
+            "drift_triggers": "subject_binding_drift; runtime_binding_drift; writable_eligibility_drift",
+            "on_drift_posture": "read_only or recovery_only",
+            "audit_posture": "route intent, command settlement, and runtime binding audit required",
+            "source_refs": [
+                "phase-0-the-foundation-protocol.md#1.40N PatientDegradedModeProjection",
+                "patient-portal-experience-architecture-blueprint.md#Portal entry and shell topology",
+            ],
+            "notes": "Explicitly prevents stale cache or stale calm copy from outliving the live tuple.",
+        },
+        {
+            "acting_scope_profile_id": "ACT_PATIENT_EMBEDDED",
+            "display_name": "Embedded patient channel",
+            "tuple_required": "no",
+            "tenant_scope_mode": "tenant_subject_embedded",
+            "organisation_scope_mode": "not_applicable",
+            "environment_scope": "current_surface_binding_only",
+            "policy_plane": "embedded_patient_channel",
+            "purpose_of_use": "authenticated_self_service",
+            "visibility_contract_ref": "AudienceVisibilityCoverage(patient_embedded_authenticated)",
+            "runtime_binding_requirement": "AudienceSurfaceRuntimeBinding exact plus embedded compatibility exact",
+            "blast_radius_mode": "single_tenant_single_subject_embedded_channel",
+            "elevation_rule": "host-manifest and bridge capability exact",
+            "drift_triggers": "embedded_manifest_drift; runtime_binding_drift; channel_freeze",
+            "on_drift_posture": "handoff_only or read_only",
+            "audit_posture": "embedded session projection and bridge capability audit required",
+            "source_refs": [
+                "phase-7-inside-the-nhs-app.md",
+                "phase-0-the-foundation-protocol.md#1.39 ReleaseRecoveryDisposition",
+            ],
+            "notes": "Keeps embedded posture from silently inheriting standalone browser affordances.",
+        },
+        {
+            "acting_scope_profile_id": "ACT_STAFF_SINGLE_ORG",
+            "display_name": "Staff single-organisation operations",
+            "tuple_required": "yes",
+            "tenant_scope_mode": "tenant_org_scoped_staff",
+            "organisation_scope_mode": "single_org",
+            "environment_scope": "current_runtime_binding",
+            "policy_plane": "care_delivery",
+            "purpose_of_use": "operational_care_delivery",
+            "visibility_contract_ref": "MinimumNecessaryContract(single_org_staff)",
+            "runtime_binding_requirement": "ActingScopeTuple and AudienceSurfaceRuntimeBinding exact",
+            "blast_radius_mode": "single_tenant_single_org_operational_slice",
+            "elevation_rule": "organisation membership and current step-up if required",
+            "drift_triggers": "organisation_switch; tenant_scope_change; environment_change; policy_plane_change; purpose_of_use_change; elevation_expired; visibility_contract_drift",
+            "on_drift_posture": "stale_recoverable or denied_scope",
+            "audit_posture": "scope tuple hash, route intent, and command settlement required",
+            "source_refs": [
+                "phase-0-the-foundation-protocol.md#ActingScopeTuple",
+                "phase-0-the-foundation-protocol.md#2.8 ScopedMutationGate",
+            ],
+            "notes": "The default staff tuple for clinician and practice operations work.",
+        },
+        {
+            "acting_scope_profile_id": "ACT_HUB_CROSS_ORG",
+            "display_name": "Hub cross-organisation coordination",
+            "tuple_required": "yes",
+            "tenant_scope_mode": "cross_org_hub_scope",
+            "organisation_scope_mode": "declared_cross_org_subset",
+            "environment_scope": "current_runtime_binding",
+            "policy_plane": "cross_org_coordination",
+            "purpose_of_use": "operational_care_delivery",
+            "visibility_contract_ref": "MinimumNecessaryContract(cross_org_hub)",
+            "runtime_binding_requirement": "ActingScopeTuple, runtime binding, and visibility coverage exact",
+            "blast_radius_mode": "declared_cross_org_subset_only",
+            "elevation_rule": "cross-org approval and current scope selection",
+            "drift_triggers": "organisation_switch; tenant_scope_change; environment_change; policy_plane_change; purpose_of_use_change; elevation_expired; break_glass_revoked; visibility_contract_drift",
+            "on_drift_posture": "summary_only or denied_scope",
+            "audit_posture": "cross-org tuple, visibility, and command settlement required",
+            "source_refs": [
+                "forensic-audit-findings.md#Finding 114 - tenant and acting context drift",
+                "phase-0-the-foundation-protocol.md#ActingScopeTuple",
+            ],
+            "notes": "This is the canonical closure for lawful cross-organisation hub work.",
+        },
+        {
+            "acting_scope_profile_id": "ACT_PHARMACY_SERVICING",
+            "display_name": "Pharmacy servicing and dispatch",
+            "tuple_required": "yes",
+            "tenant_scope_mode": "servicing_site_scope",
+            "organisation_scope_mode": "servicing_site",
+            "environment_scope": "current_runtime_binding",
+            "policy_plane": "servicing_site_delivery",
+            "purpose_of_use": "operational_care_delivery",
+            "visibility_contract_ref": "MinimumNecessaryContract(servicing_site)",
+            "runtime_binding_requirement": "ActingScopeTuple exact and pharmacy command coverage exact",
+            "blast_radius_mode": "single_servicing_site_or_declared_return_lane",
+            "elevation_rule": "site entitlement and dispatch authority exact",
+            "drift_triggers": "organisation_switch; tenant_scope_change; environment_change; purpose_of_use_change; elevation_expired; visibility_contract_drift",
+            "on_drift_posture": "read_only or blocked",
+            "audit_posture": "dispatch proof, outcome proof, and bounce-back proof required",
+            "source_refs": [
+                "phase-6-the-pharmacy-loop.md",
+                "pharmacy-console-frontend-architecture.md",
+            ],
+            "notes": "Pharmacy settlement proof remains distinct from broader staff or support scope.",
+        },
+        {
+            "acting_scope_profile_id": "ACT_SUPPORT_ASSISTED_CAPTURE",
+            "display_name": "Support-assisted capture",
+            "tuple_required": "yes",
+            "tenant_scope_mode": "support_tenant_delegate",
+            "organisation_scope_mode": "declared_support_delegate",
+            "environment_scope": "current_runtime_binding",
+            "policy_plane": "support_assist",
+            "purpose_of_use": "support_assisted_capture",
+            "visibility_contract_ref": "MinimumNecessaryContract(support_assisted_capture)",
+            "runtime_binding_requirement": "ActingScopeTuple exact and support delegate ticket live",
+            "blast_radius_mode": "single_ticket_declared_tenant_scope",
+            "elevation_rule": "reason-coded support delegation exact",
+            "drift_triggers": "tenant_scope_change; environment_change; purpose_of_use_change; elevation_expired; visibility_contract_drift",
+            "on_drift_posture": "capture_recovery_only or denied_scope",
+            "audit_posture": "support delegate reason, subject scope, and action settlement required",
+            "source_refs": [
+                "staff-operations-and-support-blueprint.md#2. Routine support and assisted journey work",
+                "phase-0-the-foundation-protocol.md#ActingScopeTuple",
+            ],
+            "notes": "Support can help capture or route work without inheriting replay scope.",
+        },
+        {
+            "acting_scope_profile_id": "ACT_SUPPORT_REPLAY_RESTORE",
+            "display_name": "Support replay and restore",
+            "tuple_required": "yes",
+            "tenant_scope_mode": "support_investigation_scope",
+            "organisation_scope_mode": "selected_anchor_scope",
+            "environment_scope": "current_runtime_binding",
+            "policy_plane": "support_recovery",
+            "purpose_of_use": "support_recovery",
+            "visibility_contract_ref": "InvestigationScopeEnvelope(selected_anchor)",
+            "runtime_binding_requirement": "ActingScopeTuple exact, InvestigationScopeEnvelope live, restore tuple exact",
+            "blast_radius_mode": "selected_anchor_and_envelope_only",
+            "elevation_rule": "investigation or restore authority exact",
+            "drift_triggers": "tenant_scope_change; environment_change; policy_plane_change; purpose_of_use_change; elevation_expired; break_glass_revoked; visibility_contract_drift",
+            "on_drift_posture": "masked_read_only or blocked",
+            "audit_posture": "masked replay, restore gate, and evidence bundle audit required",
+            "source_refs": [
+                "phase-9-the-assurance-ledger.md#9C. Audit explorer, break-glass review, and support replay",
+                "forensic-audit-findings.md#Finding 100 - Support replay and observe return still had no authoritative restore gate",
+            ],
+            "notes": "Replay and restore stay bound to one selected anchor and one current evidence envelope.",
+        },
+        {
+            "acting_scope_profile_id": "ACT_OPERATIONS_WATCH",
+            "display_name": "Operations watch and incident observation",
+            "tuple_required": "yes",
+            "tenant_scope_mode": "multi_tenant_operational_watch",
+            "organisation_scope_mode": "declared_wave_or_incident_scope",
+            "environment_scope": "current_runtime_binding",
+            "policy_plane": "operational_control",
+            "purpose_of_use": "operational_control",
+            "visibility_contract_ref": "ReleaseWatchTuple and WaveGuardrailSnapshot",
+            "runtime_binding_requirement": "ActingScopeTuple exact plus watch tuple exact",
+            "blast_radius_mode": "declared_wave_or_incident_scope_only",
+            "elevation_rule": "ops role plus active watch duty",
+            "drift_triggers": "tenant_scope_change; environment_change; policy_plane_change; purpose_of_use_change; elevation_expired; visibility_contract_drift",
+            "on_drift_posture": "diagnostic_copy_only or blocked",
+            "audit_posture": "watch tuple and publication parity audit required",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#ReleaseWatchTuple",
+                "phase-9-the-assurance-ledger.md#9F. Resilience architecture, restore orchestration, and chaos programme",
+            ],
+            "notes": "Makes multi-tenant blast radius explicit rather than implicit in dashboards or route names.",
+        },
+        {
+            "acting_scope_profile_id": "ACT_RESILIENCE_CONTROL",
+            "display_name": "Resilience restore and failover control",
+            "tuple_required": "yes",
+            "tenant_scope_mode": "multi_tenant_operational_watch",
+            "organisation_scope_mode": "declared_wave_or_incident_scope",
+            "environment_scope": "current_runtime_binding",
+            "policy_plane": "resilience_control",
+            "purpose_of_use": "operational_control",
+            "visibility_contract_ref": "ResilienceSurfaceRuntimeBinding and RecoveryControlPosture",
+            "runtime_binding_requirement": "ActingScopeTuple exact, resilience tuple exact, release watch tuple exact",
+            "blast_radius_mode": "declared_wave_or_incident_scope_only",
+            "elevation_rule": "resilience authority exact and not expired",
+            "drift_triggers": "tenant_scope_change; environment_change; policy_plane_change; purpose_of_use_change; elevation_expired; visibility_contract_drift",
+            "on_drift_posture": "controls_frozen_same_shell",
+            "audit_posture": "restore, failover, and chaos action settlement required",
+            "source_refs": [
+                "phase-9-the-assurance-ledger.md#9F. Resilience architecture, restore orchestration, and chaos programme",
+                "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+            ],
+            "notes": "Closes the fragmented restore authority gap by keeping controls tuple-bound.",
+        },
+        {
+            "acting_scope_profile_id": "ACT_GOVERNANCE_PLATFORM",
+            "display_name": "Governance and platform release control",
+            "tuple_required": "yes",
+            "tenant_scope_mode": "platform_governance_scope",
+            "organisation_scope_mode": "explicit_scope_or_platform",
+            "environment_scope": "current_runtime_binding",
+            "policy_plane": "governance_review",
+            "purpose_of_use": "governance_review",
+            "visibility_contract_ref": "GovernanceScopeToken plus ReleaseContractVerificationMatrix",
+            "runtime_binding_requirement": "ActingScopeTuple exact, governance scope exact, runtime publication exact",
+            "blast_radius_mode": "explicit_tenant_or_multi_tenant_blast_radius",
+            "elevation_rule": "governance approval or break-glass exact",
+            "drift_triggers": "organisation_switch; tenant_scope_change; environment_change; policy_plane_change; purpose_of_use_change; elevation_expired; break_glass_revoked; visibility_contract_drift",
+            "on_drift_posture": "read_only, handoff_only, or blocked",
+            "audit_posture": "scope tuple, release matrix, publication parity, and watch tuple audit required",
+            "source_refs": [
+                "platform-admin-and-config-blueprint.md#Change control rules",
+                "platform-admin-and-config-blueprint.md#Release governance contract",
+            ],
+            "notes": "Platform scope is lawful only while affected tenant and organisation counts stay explicit.",
+        },
+        {
+            "acting_scope_profile_id": "ACT_ASSISTIVE_ADJUNCT",
+            "display_name": "Assistive adjunct inherited scope",
+            "tuple_required": "inherits",
+            "tenant_scope_mode": "inherited_from_owner_shell",
+            "organisation_scope_mode": "inherits",
+            "environment_scope": "inherits",
+            "policy_plane": "assistive_adjunct",
+            "purpose_of_use": "adjunct_assistance",
+            "visibility_contract_ref": "Owner shell visibility contract plus assistive rollout policy",
+            "runtime_binding_requirement": "Owner shell binding exact and assistive rollout cohort exact",
+            "blast_radius_mode": "owner_shell_scope_only",
+            "elevation_rule": "inherits owner shell authority",
+            "drift_triggers": "owner_scope_drift; rollout_cohort_drift; visibility_contract_drift",
+            "on_drift_posture": "freeze assistive controls in place",
+            "audit_posture": "assistive visible effect audit required",
+            "source_refs": [
+                "phase-8-the-assistive-layer.md",
+                "forensic-audit-findings.md#Finding 91 - route, settlement, release, and trust controls were too phase-local",
+            ],
+            "notes": "Assistive never becomes an authority upgrade over the owning shell.",
+        },
+    ]
+
+
+def build_decision_log() -> list[dict[str, Any]]:
+    return [
+        {
+            "decision_id": "DEC_RUNTIME_011_01",
+            "title": "Adopt provider-neutral dual-UK-region roles",
+            "status": "accepted",
+            "rationale": "The bootstrap requires UK-hosted cloud infrastructure, and resilience work requires explicit primary and secondary UK roles without speculative vendor SKU names.",
+            "source_refs": [
+                "blueprint-init.md#12. Practical engineering shape",
+                "phase-9-the-assurance-ledger.md#9F. Resilience architecture, restore orchestration, and chaos programme",
+            ],
+        },
+        {
+            "decision_id": "DEC_RUNTIME_011_02",
+            "title": "Choose hybrid shared platform services with tenant-scoped runtime and data slices",
+            "status": "accepted",
+            "rationale": "This keeps release, assurance, and edge controls shared while making tenant blast radius machine-readable in command, projection, and data paths.",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Runtime topology contract",
+                "phase-9-the-assurance-ledger.md#9H. Tenant governance, config immutability, and dependency hygiene",
+            ],
+        },
+        {
+            "decision_id": "DEC_RUNTIME_011_03",
+            "title": "Treat gateway surfaces as explicit per-surface contracts, not one generic BFF",
+            "status": "accepted",
+            "rationale": "The blueprint forbids one broad BFF whenever tenant isolation, trust-zone boundary, downstream family set, or recovery profile changes.",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#GatewayBffSurface",
+            ],
+        },
+        {
+            "decision_id": "DEC_RUNTIME_011_04",
+            "title": "Forbid browser-to-integration direct reachability in the baseline",
+            "status": "accepted",
+            "rationale": "Although the runtime blueprint names integration as a downstream family type, this baseline keeps browser routes off the adapter plane to preserve control-plane clarity and validator simplicity.",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Runtime rules",
+                "platform-runtime-and-release-blueprint.md#AdapterContractProfile",
+            ],
+        },
+        {
+            "decision_id": "DEC_RUNTIME_011_05",
+            "title": "Bind restore and failover authority to resilience tuples, not dashboards",
+            "status": "accepted",
+            "rationale": "Restore authority was called out as fragmented; the baseline therefore keeps operations drilldown and resilience controls tuple-bound and gateway-split from general boards.",
+            "source_refs": [
+                "forensic-audit-findings.md#Finding 112 - restore authority fragmenting across runbooks and dashboards",
+                "phase-9-the-assurance-ledger.md#9F. Resilience architecture, restore orchestration, and chaos programme",
+            ],
+        },
+        {
+            "decision_id": "DEC_RUNTIME_011_06",
+            "title": "Normalize topology drift into published recovery dispositions",
+            "status": "accepted",
+            "rationale": "Browser shells, staff workspaces, support replay, and governance controls all keep context but freeze or degrade through the declared recovery contracts rather than generic errors.",
+            "source_refs": [
+                "phase-0-the-foundation-protocol.md#1.39 ReleaseRecoveryDisposition",
+                "forensic-audit-findings.md#Finding 120 - degraded-mode fragmentation across shells and channels",
+            ],
+        },
+    ]
+
+
+def build_assumptions() -> list[dict[str, Any]]:
+    return [
+        {
+            "issue_id": "ASSUMPTION_011_01",
+            "summary": "Provider-neutral region labels remain the canonical baseline because the repository does not pin a cloud vendor or region code.",
+            "source_refs": [
+                "blueprint-init.md#12. Practical engineering shape",
+                "platform-runtime-and-release-blueprint.md#Runtime topology contract",
+            ],
+        },
+        {
+            "issue_id": "ASSUMPTION_011_02",
+            "summary": "The local ring remains `nonprod_local`; all managed production, disaster-recovery, and restore-proof paths stay UK-hosted.",
+            "source_refs": [
+                "blueprint-init.md#12. Practical engineering shape",
+            ],
+        },
+        {
+            "issue_id": "ASSUMPTION_011_03",
+            "summary": "Deferred Phase 7 embedded surfaces and future-optional standalone assistive controls still need topology rows now so later work cannot invent hidden boundaries.",
+            "source_refs": [
+                "phase-7-inside-the-nhs-app.md",
+                "phase-8-the-assistive-layer.md",
+            ],
+        },
+    ]
+
+
+def build_risks() -> list[dict[str, Any]]:
+    return [
+        {
+            "issue_id": "RISK_011_01",
+            "summary": "Exceptional tenancy or regulator demands may still force a later tenant-specific deployment variant, so this baseline keeps that option visible but not default.",
+            "source_refs": [
+                "phase-9-the-assurance-ledger.md#9H. Tenant governance, config immutability, and dependency hygiene",
+            ],
+        },
+        {
+            "issue_id": "RISK_011_02",
+            "summary": "Support, operations, and governance surfaces depend on exact tuple refresh discipline; stale local shells would re-open the acting-scope drift defects the forensic audit closed.",
+            "source_refs": [
+                "forensic-audit-findings.md#Finding 114 - tenant and acting context drift",
+                "platform-admin-and-config-blueprint.md#Change control rules",
+            ],
+        },
+    ]
+
+
+def build_resilience_payload() -> dict[str, Any]:
+    return {
+        "resilience_matrix_id": "vecells_region_resilience_matrix_v1",
+        "chosen_region_strategy": "dual_uk_region_hybrid_tenant_slice",
+        "uk_residency_rule": "All production, preprod restore, and disaster-recovery data paths remain UK-hosted. No DR promotion may target a non-UK region.",
+        "regions": [
+            {
+                "region_ref": "uk_primary_region",
+                "role": "primary",
+                "residency": "United Kingdom",
+                "usage": "Normal write path for managed environments.",
+            },
+            {
+                "region_ref": "uk_secondary_region",
+                "role": "secondary",
+                "residency": "United Kingdom",
+                "usage": "Warm standby, restore rehearsal target, failover target, and replay target for declared store classes.",
+            },
+            {
+                "region_ref": "local_nonprod",
+                "role": "nonprod_local",
+                "residency": "developer controlled",
+                "usage": "Developer-only local execution; not authority for production or DR posture.",
+            },
+        ],
+        "environment_region_bindings": [
+            {
+                "environment_ring": "local",
+                "allowed_regions": ["local_nonprod"],
+                "default_write_region": "local_nonprod",
+                "notes": "Local builds may emulate topology but are never production authority.",
+            },
+            {
+                "environment_ring": "ci-preview",
+                "allowed_regions": ["uk_primary_region"],
+                "default_write_region": "uk_primary_region",
+                "notes": "Ephemeral preview posture in the primary UK role only.",
+            },
+            {
+                "environment_ring": "integration",
+                "allowed_regions": ["uk_primary_region"],
+                "default_write_region": "uk_primary_region",
+                "notes": "Simulator-backed verification ring before restore rehearsal.",
+            },
+            {
+                "environment_ring": "preprod",
+                "allowed_regions": ["uk_primary_region", "uk_secondary_region"],
+                "default_write_region": "uk_primary_region",
+                "notes": "Restore rehearsal and failover validation ring.",
+            },
+            {
+                "environment_ring": "production",
+                "allowed_regions": ["uk_primary_region", "uk_secondary_region"],
+                "default_write_region": "uk_primary_region",
+                "notes": "Secondary region stays warm and promotable only under declared authority.",
+            },
+        ],
+        "store_classes": [
+            {
+                "store_class_id": "STORE_RELATIONAL_FHIR",
+                "name": "FHIR-capable relational store",
+                "primary_posture": "Primary-region writable, tenant-partitioned logical schemas or keys.",
+                "secondary_posture": "Warm replica in secondary UK region; promotion requires restore proof, publication parity, and scope-tuple refresh.",
+                "residency_rule": "uk_only",
+                "failover_user_posture": "command_halt then read_only until tuple refresh and projection readiness converge",
+            },
+            {
+                "store_class_id": "STORE_OBJECT_ARTIFACT",
+                "name": "Object and artifact storage",
+                "primary_posture": "Primary-region writes with immutable object manifests and malware posture.",
+                "secondary_posture": "Cross-region UK replication with manifest parity verification before promotion.",
+                "residency_rule": "uk_only",
+                "failover_user_posture": "summary_only or governed handoff until artifact parity recovers",
+            },
+            {
+                "store_class_id": "STORE_EVENT_BUS_OUTBOX",
+                "name": "Event bus, queue, and outbox checkpoints",
+                "primary_posture": "Primary-region active dispatch and callback correlation.",
+                "secondary_posture": "Checkpointed durable mirror; replay from durable checkpoints only.",
+                "residency_rule": "uk_only",
+                "failover_user_posture": "integration_queue_only and command_halt for affected routes",
+            },
+            {
+                "store_class_id": "STORE_PROJECTION_READ",
+                "name": "Projection read store",
+                "primary_posture": "Primary-region live audience projections.",
+                "secondary_posture": "Warm or rebuildable copy; readiness verdict required before live claims.",
+                "residency_rule": "uk_only",
+                "failover_user_posture": "projection_stale, summary_only, or recovery_only",
+            },
+            {
+                "store_class_id": "STORE_APPEND_ONLY_AUDIT",
+                "name": "Append-only audit and assurance ledger",
+                "primary_posture": "Primary-region append and query.",
+                "secondary_posture": "Replicated or dual-written UK evidence path with continuity verification.",
+                "residency_rule": "uk_only",
+                "failover_user_posture": "diagnostic_copy_only until resilience tuple becomes exact",
+            },
+            {
+                "store_class_id": "STORE_CACHE",
+                "name": "Ephemeral cache and shell continuity cache",
+                "primary_posture": "Region-local disposable cache keyed by tenant tuple.",
+                "secondary_posture": "Cold or disposable; never authoritative during failover.",
+                "residency_rule": "uk_only for managed rings",
+                "failover_user_posture": "recompute from projection or drop to recovery_only",
+            },
+        ],
+        "queue_and_outbox_posture": [
+            "Every external effect originates from an outbox or durable queue checkpoint in the primary region.",
+            "Secondary-region activation replays only durable checkpoints and authoritative correlation state.",
+            "Gateways never bypass queue or outbox discipline for failover expediency.",
+        ],
+        "failover_authorities": [
+            {
+                "authority_id": "AUTH_RESILIENCE_ORCHESTRATOR",
+                "role": "ResilienceOrchestrator proposes restore or failover posture from exact runtime truth.",
+            },
+            {
+                "authority_id": "AUTH_OPERATIONS_DRILLDOWN",
+                "role": "Operations drilldown may execute declared actions only while the resilience tuple and watch tuple remain exact.",
+            },
+            {
+                "authority_id": "AUTH_GOVERNANCE_SCOPE",
+                "role": "Governance must approve platform or multi-tenant blast-radius widening, rollback stand-down, and exceptional recovery scope.",
+            },
+        ],
+        "degraded_user_postures": [
+            {
+                "surface_class": "patient",
+                "posture": "same-shell read_only, placeholder_only, or redirect_safe_route",
+                "reason": "PatientDegradedModeProjection and ReleaseRecoveryDisposition stay authoritative.",
+            },
+            {
+                "surface_class": "staff_workspace",
+                "posture": "same-shell read_only or queue placeholder",
+                "reason": "ScopedMutationGate freezes mutation on tuple or runtime drift.",
+            },
+            {
+                "surface_class": "support_replay",
+                "posture": "masked replay visible, restore controls frozen",
+                "reason": "InvestigationScopeEnvelope remains visible, but restore authority halts on drift.",
+            },
+            {
+                "surface_class": "operations_and_governance",
+                "posture": "diagnostic evidence visible, controls frozen",
+                "reason": "ReleaseWatchTuple and resilience tuple decide authority, not dashboard-local state.",
+            },
+        ],
+        "source_refs": [
+            "blueprint-init.md#12. Practical engineering shape",
+            "phase-9-the-assurance-ledger.md#9F. Resilience architecture, restore orchestration, and chaos programme",
+            "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+        ],
+    }
+
+
+def build_workload_rows(gateway_rows: list[dict[str, Any]], family_templates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    gateways_by_downstream: dict[str, list[str]] = defaultdict(list)
+    all_gateway_ids = [row["gateway_surface_id"] for row in gateway_rows]
+    for gateway in gateway_rows:
+        for family_code in gateway["downstream_family_refs"]:
+            gateways_by_downstream[family_code].append(gateway["gateway_surface_id"])
+
+    rows: list[dict[str, Any]] = []
+    for environment_ring in ENVIRONMENT_RINGS:
+        for role in region_roles_by_ring()[environment_ring]:
+            for template in family_templates:
+                family_code = template["family_code"]
+                if family_code == "public_edge":
+                    gateway_refs = all_gateway_ids
+                elif family_code == "shell_delivery":
+                    gateway_refs = all_gateway_ids
+                else:
+                    gateway_refs = sorted(gateways_by_downstream.get(family_code, []))
+                rows.append(
+                    {
+                        "workload_family_id": f"rwf_{environment_ring.replace('-', '_')}_{role}_{family_code}",
+                        "template_id": template["template_id"],
+                        "display_name": template["display_name"],
+                        "family_code": family_code,
+                        "environment_ring": environment_ring,
+                        "uk_region_role": role,
+                        "region_ref": region_ref_for_role(environment_ring, role),
+                        "trust_zone_ref": template["trust_zone_ref"],
+                        "owned_bounded_context_refs": list(template["owned_bounded_context_refs"]),
+                        "owned_service_refs": list(template["owned_service_refs"]),
+                        "ingress_mode": template["ingress_mode"],
+                        "allowed_downstream_family_refs": list(template["allowed_downstream_family_refs"]),
+                        "allowed_data_classification_refs": list(template["allowed_data_classification_refs"]),
+                        "tenant_context_mode": template["tenant_context_mode"],
+                        "tenant_isolation_mode": template["tenant_isolation_mode"],
+                        "acting_scope_requirements": list(template["acting_scope_requirements"]),
+                        "assurance_trust_mode": template["assurance_trust_mode"],
+                        "service_identity_ref": template["service_identity_ref"],
+                        "egress_allowlist_ref": template["egress_allowlist_ref"],
+                        "browser_reachable": template["browser_reachable"],
+                        "gateway_surface_refs": gateway_refs,
+                        "session_boundary_ref": template["session_boundary_ref"],
+                        "failure_domain_ref": f"fd_{environment_ring.replace('-', '_')}_{role}_{family_code}",
+                        "backup_restore_scope_ref": template["backup_restore_scope_ref"],
+                        "recovery_disposition_refs": list(template["recovery_disposition_refs"]),
+                        "source_refs": list(template["source_refs"]),
+                        "notes": template["notes"],
+                    }
+                )
+    return rows
+
+
+def serialize_gateway_csv_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    serialized = []
+    for row in rows:
+        serialized.append(
+            {
+                **{k: v for k, v in row.items() if not isinstance(v, list)},
+                "downstream_family_refs": join_items(row["downstream_family_refs"]),
+                "trust_zone_boundary_refs": join_items(row["trust_zone_boundary_refs"]),
+                "acting_scope_profile_refs": join_items(row["acting_scope_profile_refs"]),
+                "recovery_disposition_refs": join_items(row["recovery_disposition_refs"]),
+                "source_refs": join_items(row["source_refs"]),
+            }
+        )
+    return serialized
+
+
+def serialize_boundary_csv_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    serialized = []
+    for row in rows:
+        serialized.append(
+            {
+                **{k: v for k, v in row.items() if not isinstance(v, list)},
+                "source_family_codes": join_items(row["source_family_codes"]),
+                "target_family_codes": join_items(row["target_family_codes"]),
+                "allowed_protocols": join_items(row["allowed_protocols"]),
+                "allowed_service_identity_refs": join_items(row["allowed_service_identity_refs"]),
+                "allowed_data_classification_refs": join_items(row["allowed_data_classification_refs"]),
+                "source_refs": join_items(row["source_refs"]),
+            }
+        )
+    return serialized
+
+
+def serialize_tenant_csv_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    serialized = []
+    for row in rows:
+        serialized.append(
+            {
+                **{k: v for k, v in row.items() if not isinstance(v, list)},
+                "surface_refs": join_items(row["surface_refs"]),
+                "required_workload_family_codes": join_items(row["required_workload_family_codes"]),
+                "required_acting_scope_profile_refs": join_items(row["required_acting_scope_profile_refs"]),
+                "source_refs": join_items(row["source_refs"]),
+            }
+        )
+    return serialized
+
+
+def serialize_acting_scope_csv_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    serialized = []
+    for row in rows:
+        serialized.append(row.copy())
+        serialized[-1]["source_refs"] = join_items(row["source_refs"])
+    return serialized
+
+
+def build_summary(
+    workload_rows: list[dict[str, Any]],
+    boundary_rows: list[dict[str, Any]],
+    gateway_rows: list[dict[str, Any]],
+    tenant_rows: list[dict[str, Any]],
+    acting_rows: list[dict[str, Any]],
+    trust_zones: list[dict[str, Any]],
+    scorecard: list[dict[str, Any]],
+) -> dict[str, Any]:
+    family_counts = Counter(row["family_code"] for row in workload_rows)
+    ring_counts = Counter(row["environment_ring"] for row in workload_rows)
+    gateway_audience_counts = Counter(row["audience_tier"] for row in gateway_rows)
+    tenant_modes = Counter(row["tenant_isolation_mode"] for row in gateway_rows)
+    return {
+        "workload_family_count": len(workload_rows),
+        "trust_zone_count": len(trust_zones),
+        "boundary_count": len(boundary_rows),
+        "gateway_surface_count": len(gateway_rows),
+        "tenant_isolation_pattern_count": len(tenant_rows),
+        "acting_scope_profile_count": len(acting_rows),
+        "region_option_count": len(scorecard),
+        "chosen_option_id": "OPT_HYBRID_SHARED_PLATFORM_TENANT_SLICES",
+        "unresolved_gap_count": 0,
+        "family_counts": dict(sorted(family_counts.items())),
+        "ring_counts": dict(sorted(ring_counts.items())),
+        "gateway_audience_counts": dict(sorted(gateway_audience_counts.items())),
+        "tenant_mode_counts": dict(sorted(tenant_modes.items())),
+    }
+
+
+def build_bundle() -> dict[str, Any]:
+    prereq_summary = ensure_prerequisites()
+    surface_rows = load_csv(AUDIENCE_SURFACE_PATH)
+    scorecard = build_region_option_scorecard()
+    trust_zones = build_trust_zones()
+    family_templates = build_family_templates()
+    boundary_rows = build_boundary_specs()
+    gateway_rows = build_gateway_rows(surface_rows)
+    tenant_rows = build_tenant_isolation_rows()
+    acting_rows = build_acting_scope_rows()
+    workload_rows = build_workload_rows(gateway_rows, family_templates)
+    resilience_payload = build_resilience_payload()
+    assumptions = build_assumptions()
+    risks = build_risks()
+    decision_log = build_decision_log()
+
+    return {
+        "topology_id": "vecells_runtime_topology_baseline_v1",
+        "mission": MISSION,
+        "source_precedence": SOURCE_PRECEDENCE,
+        "upstream_inputs": prereq_summary,
+        "summary": build_summary(workload_rows, boundary_rows, gateway_rows, tenant_rows, acting_rows, trust_zones, scorecard),
+        "chosen_baseline": {
+            "option_id": "OPT_HYBRID_SHARED_PLATFORM_TENANT_SLICES",
+            "region_strategy": "dual_uk_region_provider_neutral",
+            "tenant_strategy": "shared_platform_services_plus_tenant_scoped_runtime_data_slices",
+            "browser_rule": "Browsers terminate only at public edge and published gateway surfaces; no direct data or integration reachability.",
+            "tenant_rule": "Platform, multi-tenant, and cross-organisation work must carry explicit blast radius and exact acting scope tuples.",
+            "resilience_rule": "Writable posture freezes whenever runtime publication, acting scope, or resilience tuples drift.",
+        },
+        "region_option_scorecard": scorecard,
+        "trust_zones": trust_zones,
+        "workload_family_templates": family_templates,
+        "runtime_workload_families": workload_rows,
+        "trust_zone_boundaries": boundary_rows,
+        "gateway_surface_matrix": gateway_rows,
+        "tenant_isolation_matrix": tenant_rows,
+        "acting_scope_tuple_matrix": acting_rows,
+        "region_resilience_matrix": resilience_payload,
+        "decision_log": decision_log,
+        "assumptions": assumptions,
+        "risks": risks,
+        "gaps": [],
+    }
+
+
+def render_region_doc(payload: dict[str, Any]) -> str:
+    scorecard_rows = []
+    for option in payload["region_option_scorecard"]:
+        scorecard_rows.append(
+            [
+                option["label"],
+                option["region_posture"],
+                option["tenant_model"],
+                option["blast_radius_score"],
+                option["recovery_score"],
+                option["auditability_score"],
+                option["decision"],
+            ]
+        )
+    resilience = payload["region_resilience_matrix"]
+    binding_rows = [
+        [
+            row["environment_ring"],
+            ", ".join(row["allowed_regions"]),
+            row["default_write_region"],
+            row["notes"],
+        ]
+        for row in resilience["environment_region_bindings"]
+    ]
+    return "\n".join(
+        [
+            "# 11 Cloud Region And Residency Decision",
+            "",
+            "Vecells now has one explicit UK-hosted region baseline: a provider-neutral dual-region posture with one `uk_primary_region` and one `uk_secondary_region`, shared platform control services, and tenant-scoped runtime and data slices.",
+            "",
+            "## Region Scorecard",
+            "",
+            render_table(
+                ["Option", "Region posture", "Tenant model", "Blast radius", "Recovery", "Auditability", "Decision"],
+                scorecard_rows,
+            ),
+            "",
+            "## Environment Ring Binding",
+            "",
+            render_table(["Environment", "Allowed regions", "Default write region", "Notes"], binding_rows),
+            "",
+            "## Residency Rules",
+            "",
+            "- All production, preprod restore, and disaster-recovery data paths stay UK-hosted.",
+            "- The local ring may emulate topology but is never authority for production or DR truth.",
+            "- Promotion or failover to any non-UK region is outside the baseline and must fail governance review.",
+            "",
+            "## Rejected Alternatives",
+            "",
+            "- Single-region recovery was rejected because it hides disaster-recovery blast radius.",
+            "- Fully isolated per-tenant stacks were rejected because they duplicate assurance, release, and simulator controls too aggressively for the current baseline.",
+            "- Shared-runtime-only multi-tenant options were rejected because tenant blast radius remains too implicit for support, governance, and release watch posture.",
+        ]
+    )
+
+
+def render_tenant_doc(payload: dict[str, Any]) -> str:
+    tenant_rows = [
+        [
+            row["isolation_row_id"],
+            row["scope_mode"],
+            row["tenant_isolation_mode"],
+            row["blast_radius_mode"],
+            ", ".join(row["surface_refs"]),
+            ", ".join(row["required_acting_scope_profile_refs"]),
+        ]
+        for row in payload["tenant_isolation_matrix"]
+    ]
+    acting_rows = [
+        [
+            row["acting_scope_profile_id"],
+            row["display_name"],
+            row["tuple_required"],
+            row["tenant_scope_mode"],
+            row["purpose_of_use"],
+            row["on_drift_posture"],
+        ]
+        for row in payload["acting_scope_tuple_matrix"]
+    ]
+    return "\n".join(
+        [
+            "# 11 Tenant Model And Acting Scope Strategy",
+            "",
+            "The chosen tenant baseline is hybrid: edge, shell-delivery, assurance, and governance publication remain shared platform services, while command, projection, integration, and storage paths carry explicit tenant scope and blast radius.",
+            "",
+            "## Tenant Isolation Patterns",
+            "",
+            render_table(
+                ["Pattern", "Scope mode", "Isolation mode", "Blast radius", "Surface refs", "Acting scope profiles"],
+                tenant_rows,
+            ),
+            "",
+            "## Acting Scope Profiles",
+            "",
+            render_table(
+                ["Profile", "Display name", "Tuple required", "Tenant scope", "Purpose", "On drift posture"],
+                acting_rows,
+            ),
+            "",
+            "## Baseline Law",
+            "",
+            "- Cross-tenant access is legal only through explicit acting context, immutable audit, and purpose-of-use-aware visibility control.",
+            "- Governance and operations routes must declare affected tenant and organisation counts instead of implying blast radius from route names or cohorts.",
+            "- `ActingScopeTuple` drift freezes writable posture in place; a shell may preserve context, but it may not keep live controls armed.",
+        ]
+    )
+
+
+def render_trust_zone_doc(payload: dict[str, Any]) -> str:
+    zone_rows = [
+        [
+            zone["trust_zone_ref"],
+            zone["display_name"],
+            zone["allows_browser_traffic"],
+            ", ".join(zone["primary_controls"]),
+        ]
+        for zone in payload["trust_zones"]
+    ]
+    family_rows = [
+        [
+            row["workload_family_id"],
+            row["family_code"],
+            row["environment_ring"],
+            row["uk_region_role"],
+            row["trust_zone_ref"],
+            row["browser_reachable"],
+        ]
+        for row in payload["runtime_workload_families"]
+    ]
+    boundary_rows = [
+        [
+            row["boundary_id"],
+            row["source_trust_zone_ref"],
+            row["target_trust_zone_ref"],
+            ", ".join(row["allowed_protocols"]),
+            row["allowed_tenant_transfer_mode"],
+            row["boundary_failure_mode"],
+        ]
+        for row in payload["trust_zone_boundaries"]
+    ]
+    return "\n".join(
+        [
+            "# 11 Trust Zone And Workload Family Strategy",
+            "",
+            f"The topology baseline defines {payload['summary']['trust_zone_count']} trust zones and {payload['summary']['workload_family_count']} workload rows across the canonical runtime family codes.",
+            "",
+            "## Trust Zones",
+            "",
+            render_table(["Zone", "Display name", "Browser traffic", "Primary controls"], zone_rows),
+            "",
+            "## Workload Families",
+            "",
+            render_table(["Workload id", "Family code", "Ring", "Region role", "Trust zone", "Browser reachable"], family_rows),
+            "",
+            "## Cross-Zone Boundaries",
+            "",
+            render_table(["Boundary", "Source zone", "Target zone", "Protocols", "Tenant transfer mode", "Failure mode"], boundary_rows),
+            "",
+            "## Non-negotiable Rules",
+            "",
+            "- `data` workloads are never browser-addressable.",
+            "- Gateway surfaces may call only their declared command, projection, or assurance families and may not jump directly to raw stores or adapters.",
+            "- `TrustZoneBoundary` rows are the only legal source of cross-plane reachability.",
+        ]
+    )
+
+
+def render_gateway_doc(payload: dict[str, Any]) -> str:
+    rows = [
+        [
+            row["gateway_surface_id"],
+            row["audience_surface_id"],
+            row["route_family_id"],
+            row["tenant_isolation_mode"],
+            ", ".join(row["downstream_family_refs"]),
+            row["session_policy_ref"],
+            ", ".join(row["recovery_disposition_refs"]),
+        ]
+        for row in payload["gateway_surface_matrix"]
+    ]
+    return "\n".join(
+        [
+            "# 11 Gateway Surface And Runtime Topology Baseline",
+            "",
+            f"Every one of the {payload['summary']['gateway_surface_count']} audience surfaces now resolves to exactly one published gateway surface and one browser-reachable workload family (`shell_delivery`).",
+            "",
+            "## Gateway Surface Matrix",
+            "",
+            render_table(
+                ["Gateway", "Audience surface", "Route family", "Tenant isolation", "Downstream families", "Session policy", "Recovery dispositions"],
+                rows,
+            ),
+            "",
+            "## Browser Boundary Law",
+            "",
+            "- Browsers terminate at `public_edge` and the published gateway surface only.",
+            "- Gateway surfaces are split whenever session policy, recovery posture, tenant isolation, or downstream workload set changes.",
+            "- No gateway surface in this baseline reaches `integration` or `data` directly.",
+        ]
+    )
+
+
+def render_resilience_doc(payload: dict[str, Any]) -> str:
+    resilience = payload["region_resilience_matrix"]
+    store_rows = [
+        [
+            row["store_class_id"],
+            row["name"],
+            row["primary_posture"],
+            row["secondary_posture"],
+            row["failover_user_posture"],
+        ]
+        for row in resilience["store_classes"]
+    ]
+    authority_rows = [[row["authority_id"], row["role"]] for row in resilience["failover_authorities"]]
+    posture_rows = [[row["surface_class"], row["posture"], row["reason"]] for row in resilience["degraded_user_postures"]]
+    return "\n".join(
+        [
+            "# 11 Region Resilience And Failover Posture",
+            "",
+            "Failover is now explicit: the primary region owns normal writes, the secondary UK region stays warm and promotable, and no restore or failover step may leave calm writable posture live while tuple truth drifts.",
+            "",
+            "## Store-Class Resilience",
+            "",
+            render_table(["Store class", "Name", "Primary posture", "Secondary posture", "User posture during failover"], store_rows),
+            "",
+            "## Failover Authority",
+            "",
+            render_table(["Authority", "Role"], authority_rows),
+            "",
+            "## Degraded User Posture",
+            "",
+            render_table(["Surface class", "Posture", "Reason"], posture_rows),
+            "",
+            "## Required Closures",
+            "",
+            "- Queue and outbox replay happens only from durable checkpoints.",
+            "- Restore proof, runtime publication parity, and scope-tuple refresh must all be exact before writable posture returns.",
+            "- Operations and governance shells may preserve evidence under drift, but they may not imply live authority until the resilience tuple is exact again.",
+        ]
+    )
+
+
+def render_decision_log_doc(payload: dict[str, Any]) -> str:
+    decision_rows = [
+        [
+            row["decision_id"],
+            row["title"],
+            row["status"],
+            row["rationale"],
+            ", ".join(row["source_refs"]),
+        ]
+        for row in payload["decision_log"]
+    ]
+    assumption_rows = [[row["issue_id"], row["summary"], ", ".join(row["source_refs"])] for row in payload["assumptions"]]
+    risk_rows = [[row["issue_id"], row["summary"], ", ".join(row["source_refs"])] for row in payload["risks"]]
+    return "\n".join(
+        [
+            "# 11 Trust Zone Decision Log",
+            "",
+            "This decision log records the baseline runtime topology choices, the grounded assumptions used to stay provider-neutral, and the residual topology risks carried forward for later infrastructure work.",
+            "",
+            "## Decisions",
+            "",
+            render_table(["Decision", "Title", "Status", "Rationale", "Source refs"], decision_rows),
+            "",
+            "## Assumptions",
+            "",
+            render_table(["Assumption", "Summary", "Source refs"], assumption_rows),
+            "",
+            "## Risks",
+            "",
+            render_table(["Risk", "Summary", "Source refs"], risk_rows),
+        ]
+    )
+
+
+def build_mermaid(payload: dict[str, Any]) -> str:
+    return textwrap.dedent(
+        """
+        flowchart LR
+          subgraph region_primary["uk_primary_region"]
+            pe["Public edge"]
+            sh["Shell delivery"]
+            gw["Published gateways"]
+            ac["Application core\\n(command + projection)"]
+            it["Integration perimeter"]
+            as["Assurance + security"]
+            da["Stateful data"]
+          end
+
+          subgraph region_secondary["uk_secondary_region"]
+            sh2["Warm shell + manifests"]
+            ac2["Warm application slices"]
+            it2["Warm adapter lanes"]
+            as2["Warm assurance and resilience evidence"]
+            da2["Replicated data and audit"]
+          end
+
+          pe --> sh
+          pe --> gw
+          gw --> ac
+          gw --> as
+          ac --> da
+          ac --> it
+          ac --> as
+          it --> da
+          it --> as
+          as --> da
+
+          sh -. restore rehearsal .-> sh2
+          ac -. tenant slice failover .-> ac2
+          it -. checkpoint replay .-> it2
+          as -. watch tuple continuity .-> as2
+          da -. UK-only replication .-> da2
+        """
+    ).strip()
+
+
+def build_html(payload: dict[str, Any]) -> str:
+    safe_json = (
+        json.dumps(payload, separators=(",", ":"))
+        .replace("&", "\\u0026")
+        .replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+        .replace("</", "<\\/")
+    )
+    template = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vecells Runtime Topology Atlas</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      --bg: #edf1f5;
+      --shell: #f7f9fb;
+      --panel: #ffffff;
+      --ink: #14212b;
+      --muted: #526273;
+      --line: #cfdae3;
+      --accent: #145d7a;
+      --accent-soft: rgba(20,93,122,0.12);
+      --accent-strong: #0f4459;
+      --warn: #a86c00;
+      --danger: #a64136;
+      --success: #2a6a47;
+      --shadow: 0 10px 30px rgba(20,33,43,0.08);
+      --radius: 18px;
+      --chip: 999px;
+      --focus: 2px solid #145d7a;
+      --rail: 280px;
+      --max: 1440px;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(180deg, #f4f7fa 0%, #edf1f5 100%);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body { min-height: 100vh; }
+    button, select, input {
+      font: inherit;
+      color: inherit;
+    }
+    button {
+      cursor: pointer;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 12px;
+    }
+    select, input {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      padding: 0 12px;
+    }
+    :focus-visible {
+      outline: var(--focus);
+      outline-offset: 2px;
+    }
+    .shell {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 24px 32px 40px;
+      display: grid;
+      gap: 24px;
+      grid-template-columns: var(--rail) minmax(0, 1fr);
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .nav {
+      position: sticky;
+      top: 20px;
+      align-self: start;
+      display: grid;
+      gap: 16px;
+    }
+    .nav .panel, .main .panel { padding: 20px; }
+    .brand {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      min-height: 72px;
+    }
+    .brand svg {
+      flex: none;
+    }
+    .brand strong {
+      display: block;
+      font-size: 16px;
+      line-height: 22px;
+    }
+    .brand span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 20px;
+    }
+    .filters {
+      display: grid;
+      gap: 10px;
+    }
+    .filters label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 18px;
+    }
+    .main {
+      display: grid;
+      gap: 20px;
+    }
+    .hero {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+    }
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: 30px;
+      line-height: 36px;
+      font-weight: 650;
+    }
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 22px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .stat {
+      padding: 14px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(20,93,122,0.08), rgba(255,255,255,0.95));
+      border: 1px solid rgba(20,93,122,0.14);
+    }
+    .stat strong {
+      display: block;
+      font-size: 26px;
+      line-height: 32px;
+    }
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 18px;
+    }
+    .grid-two {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.55fr);
+    }
+    .canvas-wrap {
+      display: grid;
+      gap: 16px;
+    }
+    .canvas-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+    .canvas-header h2, .subpanel h2, .panel h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 24px;
+    }
+    .canvas-header p, .subpanel p, .small-copy {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 20px;
+    }
+    .region-grid {
+      display: grid;
+      gap: 14px;
+    }
+    .region-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--shell);
+      padding: 14px;
+      display: grid;
+      gap: 14px;
+    }
+    .region-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .region-top button {
+      border: none;
+      background: transparent;
+      padding: 0;
+      text-align: left;
+      font-weight: 600;
+    }
+    .zone-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+    .zone-card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+      min-height: 150px;
+    }
+    .zone-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: baseline;
+    }
+    .zone-head button {
+      padding: 0;
+      border: none;
+      background: transparent;
+      text-align: left;
+      font-weight: 600;
+    }
+    .pill-list, .chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .pill {
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #fff;
+      font-size: 12px;
+      line-height: 16px;
+    }
+    .pill.is-selected, .list-btn.is-selected, .table-btn.is-selected {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+    }
+    .tables {
+      display: grid;
+      gap: 18px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      line-height: 18px;
+    }
+    th, td {
+      border-top: 1px solid var(--line);
+      padding: 10px 8px;
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .list {
+      display: grid;
+      gap: 8px;
+      max-height: 360px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+    .list-btn {
+      text-align: left;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: var(--shell);
+      display: grid;
+      gap: 4px;
+    }
+    .list-btn strong {
+      font-size: 13px;
+      line-height: 18px;
+    }
+    .list-btn span {
+      font-size: 12px;
+      line-height: 16px;
+      color: var(--muted);
+    }
+    .detail-grid {
+      display: grid;
+      gap: 10px;
+    }
+    .detail-row {
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+    }
+    .detail-row:first-child {
+      border-top: none;
+      padding-top: 0;
+    }
+    .detail-row strong {
+      display: block;
+      font-size: 12px;
+      line-height: 16px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .detail-row span, .detail-row div {
+      display: block;
+      font-size: 13px;
+      line-height: 20px;
+    }
+    .status-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .status-chip {
+      padding: 6px 10px;
+      border-radius: var(--chip);
+      border: 1px solid var(--line);
+      background: var(--shell);
+      font-size: 12px;
+      line-height: 16px;
+    }
+    .subgrid {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+    .table-btn {
+      padding: 0;
+      border: none;
+      background: transparent;
+      text-align: left;
+      color: inherit;
+      font: inherit;
+    }
+    @media (max-width: 1120px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+      .nav {
+        position: static;
+      }
+      .grid-two, .hero, .subgrid {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 720px) {
+      .shell {
+        padding: 16px;
+      }
+      .stats {
+        grid-template-columns: 1fr 1fr;
+      }
+      .zone-grid {
+        grid-template-columns: 1fr;
+      }
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+      thead {
+        display: none;
+      }
+      tr {
+        border-top: 1px solid var(--line);
+        padding: 10px 0;
+      }
+      td {
+        border: none;
+        padding: 4px 0;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        scroll-behavior: auto !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell" data-testid="atlas-shell">
+    <aside class="nav" data-testid="atlas-nav">
+      <section class="panel">
+        <div class="brand">
+          <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true">
+            <rect x="2" y="2" width="40" height="40" rx="12" fill="#145d7a" />
+            <path d="M13 14h5.2l4 12.6L26.1 14H31l-6.3 16h-5.3L13 14Z" fill="#F7FBFD" />
+          </svg>
+          <div>
+            <strong>Vecells Runtime Topology Atlas</strong>
+            <span>Operational baseline for region, trust, gateway, and tuple law.</span>
+          </div>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="filters">
+          <label>Environment ring
+            <select id="filter-environment" data-testid="filter-environment"></select>
+          </label>
+          <label>Audience tier
+            <select id="filter-audience" data-testid="filter-audience"></select>
+          </label>
+          <label>Workload family
+            <select id="filter-family" data-testid="filter-family"></select>
+          </label>
+          <label>Tenant scope
+            <select id="filter-tenant" data-testid="filter-tenant"></select>
+          </label>
+          <label>Trust zone
+            <select id="filter-zone" data-testid="filter-zone"></select>
+          </label>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Selection State</h2>
+        <p class="small-copy">Stable DOM markers for automated validation live here.</p>
+        <div id="selection-state" class="detail-grid" data-testid="selection-state" data-selected-region="" data-selected-trust-zone="" data-selected-workload-family="" data-selected-gateway-surface="" data-selected-boundary-state="">
+          <div class="detail-row"><strong>Region</strong><span id="state-region">-</span></div>
+          <div class="detail-row"><strong>Trust zone</strong><span id="state-zone">-</span></div>
+          <div class="detail-row"><strong>Workload family</strong><span id="state-family">-</span></div>
+          <div class="detail-row"><strong>Gateway surface</strong><span id="state-gateway">-</span></div>
+          <div class="detail-row"><strong>Boundary</strong><span id="state-boundary">-</span></div>
+        </div>
+      </section>
+    </aside>
+    <main class="main">
+      <section class="hero" data-testid="hero-summary">
+        <div class="panel">
+          <h1>UK-hosted topology cockpit</h1>
+          <p id="hero-copy"></p>
+        </div>
+        <div class="panel">
+          <div class="stats" id="stats"></div>
+        </div>
+      </section>
+
+      <section class="grid-two">
+        <div class="panel canvas-wrap">
+          <div class="canvas-header">
+            <div>
+              <h2>Region, trust zone, and workload bands</h2>
+              <p>Selectable topology bands with table parity for every visible workload row.</p>
+            </div>
+          </div>
+          <div id="topology-canvas" class="region-grid" data-testid="topology-canvas"></div>
+          <div class="tables">
+            <div>
+              <h2>Visible workload rows</h2>
+              <table data-testid="topology-summary-table">
+                <thead>
+                  <tr>
+                    <th>Workload</th>
+                    <th>Zone</th>
+                    <th>Region</th>
+                    <th>Gateways</th>
+                  </tr>
+                </thead>
+                <tbody id="workload-table-body"></tbody>
+              </table>
+            </div>
+            <div>
+              <h2>Trust boundaries</h2>
+              <table data-testid="boundary-table">
+                <thead>
+                  <tr>
+                    <th>Boundary</th>
+                    <th>Protocols</th>
+                    <th>Tenant transfer</th>
+                    <th>Failure mode</th>
+                  </tr>
+                </thead>
+                <tbody id="boundary-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="subpanel">
+          <section class="panel">
+            <h2>Gateway surfaces</h2>
+            <p class="small-copy">One row per audience surface. The split is the point.</p>
+            <div id="gateway-list" class="list" data-testid="gateway-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="subgrid">
+        <section class="panel" data-testid="gateway-inspector">
+          <h2>Gateway inspector</h2>
+          <p class="small-copy">Selected audience surface, session policy, tenant isolation, downstream families, and recovery law.</p>
+          <div id="gateway-inspector-body" class="detail-grid"></div>
+        </section>
+        <section class="panel" data-testid="boundary-inspector">
+          <h2>Boundary inspector</h2>
+          <p class="small-copy">Protocol, service identity, data class, tenant transfer, assurance trust, and failure mode.</p>
+          <div id="boundary-inspector-body" class="detail-grid"></div>
+        </section>
+      </section>
+
+      <section class="panel" data-testid="resilience-panel">
+        <h2>Resilience panel</h2>
+        <p class="small-copy">Region roles, store-class replication posture, failover authority, and degraded user posture.</p>
+        <div id="resilience-body" class="subgrid"></div>
+      </section>
+    </main>
+  </div>
+  <script id="embedded-json" type="application/json">__EMBEDDED_JSON__</script>
+  <script>
+    const payload = JSON.parse(document.getElementById("embedded-json").textContent);
+    const workloadRows = payload.runtime_workload_families;
+    const gatewayRows = payload.gateway_surface_matrix;
+    const boundaryRows = payload.trust_zone_boundaries;
+    const trustZones = payload.trust_zones;
+    const resilience = payload.region_resilience_matrix;
+
+    const state = {
+      environment: "production",
+      audience: "all",
+      family: "all",
+      tenant: "all",
+      zone: "all",
+      selectedWorkload: "",
+      selectedGateway: gatewayRows[0]?.gateway_surface_id || "",
+      selectedBoundary: boundaryRows[0]?.boundary_id || ""
+    };
+
+    const dom = {
+      env: document.getElementById("filter-environment"),
+      audience: document.getElementById("filter-audience"),
+      family: document.getElementById("filter-family"),
+      tenant: document.getElementById("filter-tenant"),
+      zone: document.getElementById("filter-zone"),
+      heroCopy: document.getElementById("hero-copy"),
+      stats: document.getElementById("stats"),
+      topologyCanvas: document.getElementById("topology-canvas"),
+      workloadTableBody: document.getElementById("workload-table-body"),
+      boundaryTableBody: document.getElementById("boundary-table-body"),
+      gatewayList: document.getElementById("gateway-list"),
+      gatewayInspector: document.getElementById("gateway-inspector-body"),
+      boundaryInspector: document.getElementById("boundary-inspector-body"),
+      resilienceBody: document.getElementById("resilience-body"),
+      selectionState: document.getElementById("selection-state"),
+      stateRegion: document.getElementById("state-region"),
+      stateZone: document.getElementById("state-zone"),
+      stateFamily: document.getElementById("state-family"),
+      stateGateway: document.getElementById("state-gateway"),
+      stateBoundary: document.getElementById("state-boundary")
+    };
+
+    function uniqueValues(rows, field) {
+      return Array.from(new Set(rows.map((row) => row[field]).filter(Boolean))).sort();
+    }
+
+    function joinList(values) {
+      return (values || []).join(", ");
+    }
+
+    function zoneName(zoneRef) {
+      return trustZones.find((zone) => zone.trust_zone_ref === zoneRef)?.display_name || zoneRef;
+    }
+
+    function selectedWorkloadRow() {
+      return workloadRows.find((row) => row.workload_family_id === state.selectedWorkload) || filteredWorkloads()[0] || null;
+    }
+
+    function selectedGatewayRow() {
+      return gatewayRows.find((row) => row.gateway_surface_id === state.selectedGateway) || filteredGateways()[0] || null;
+    }
+
+    function selectedBoundaryRow() {
+      return boundaryRows.find((row) => row.boundary_id === state.selectedBoundary) || filteredBoundaries()[0] || null;
+    }
+
+    function filteredWorkloads() {
+      return workloadRows.filter((row) => {
+        if (row.environment_ring !== state.environment) return false;
+        if (state.family !== "all" && row.family_code !== state.family) return false;
+        if (state.zone !== "all" && row.trust_zone_ref !== state.zone) return false;
+        return true;
+      });
+    }
+
+    function filteredGateways() {
+      return gatewayRows.filter((row) => {
+        if (state.audience !== "all" && row.audience_tier !== state.audience) return false;
+        if (state.family !== "all" && !row.downstream_family_refs.includes(state.family) && state.family !== "shell_delivery") return false;
+        if (state.tenant !== "all" && row.tenant_scope_mode !== state.tenant) return false;
+        return true;
+      });
+    }
+
+    function filteredBoundaries() {
+      const workload = selectedWorkloadRow();
+      const relatedZone = state.zone !== "all" ? state.zone : workload?.trust_zone_ref;
+      return boundaryRows.filter((row) => {
+        if (!relatedZone) return true;
+        return row.source_trust_zone_ref === relatedZone || row.target_trust_zone_ref === relatedZone;
+      });
+    }
+
+    function syncSelectedIds() {
+      const workloads = filteredWorkloads();
+      if (!workloads.find((row) => row.workload_family_id === state.selectedWorkload)) {
+        state.selectedWorkload = workloads[0]?.workload_family_id || "";
+      }
+      const gateways = filteredGateways();
+      if (!gateways.find((row) => row.gateway_surface_id === state.selectedGateway)) {
+        state.selectedGateway = gateways[0]?.gateway_surface_id || "";
+      }
+      const boundaries = filteredBoundaries();
+      if (!boundaries.find((row) => row.boundary_id === state.selectedBoundary)) {
+        state.selectedBoundary = boundaries[0]?.boundary_id || "";
+      }
+    }
+
+    function renderHero() {
+      dom.heroCopy.textContent = "Dual UK region runtime, explicit gateway splits, tenant-scoped command and projection slices, and tuple-bound resilience controls.";
+      const stats = [
+        ["Workload rows", payload.summary.workload_family_count],
+        ["Trust boundaries", payload.summary.boundary_count],
+        ["Gateway surfaces", payload.summary.gateway_surface_count],
+        ["Tenant patterns", payload.summary.tenant_isolation_pattern_count],
+        ["Acting scopes", payload.summary.acting_scope_profile_count],
+        ["Unresolved gaps", payload.summary.unresolved_gap_count]
+      ];
+      dom.stats.innerHTML = stats.map(([label, value]) => `<div class="stat"><strong>${value}</strong><span>${label}</span></div>`).join("");
+    }
+
+    function buildOptions(select, values, selected, allowAllLabel) {
+      const options = [];
+      options.push(`<option value="all">${allowAllLabel}</option>`);
+      values.forEach((value) => {
+        const safe = value.replace(/"/g, "&quot;");
+        const chosen = selected === value ? " selected" : "";
+        options.push(`<option value="${safe}"${chosen}>${value}</option>`);
+      });
+      select.innerHTML = options.join("");
+    }
+
+    function initFilters() {
+      buildOptions(dom.env, payload.summary.ring_counts ? Object.keys(payload.summary.ring_counts) : uniqueValues(workloadRows, "environment_ring"), state.environment, "All rings");
+      dom.env.value = state.environment;
+      buildOptions(dom.audience, uniqueValues(gatewayRows, "audience_tier"), state.audience, "All audiences");
+      buildOptions(dom.family, uniqueValues(workloadRows, "family_code"), state.family, "All families");
+      buildOptions(dom.tenant, uniqueValues(gatewayRows, "tenant_scope_mode"), state.tenant, "All tenant scopes");
+      buildOptions(dom.zone, uniqueValues(workloadRows, "trust_zone_ref"), state.zone, "All trust zones");
+
+      dom.env.addEventListener("change", () => { state.environment = dom.env.value; render(); });
+      dom.audience.addEventListener("change", () => { state.audience = dom.audience.value; render(); });
+      dom.family.addEventListener("change", () => { state.family = dom.family.value; render(); });
+      dom.tenant.addEventListener("change", () => { state.tenant = dom.tenant.value; render(); });
+      dom.zone.addEventListener("change", () => { state.zone = dom.zone.value; render(); });
+    }
+
+    function renderTopology() {
+      const workloads = filteredWorkloads();
+      const grouped = new Map();
+      workloads.forEach((row) => {
+        const key = row.region_ref;
+        if (!grouped.has(key)) grouped.set(key, []);
+        grouped.get(key).push(row);
+      });
+
+      dom.topologyCanvas.innerHTML = Array.from(grouped.entries()).map(([regionRef, rows]) => {
+        const zones = {};
+        rows.forEach((row) => {
+          zones[row.trust_zone_ref] = zones[row.trust_zone_ref] || [];
+          zones[row.trust_zone_ref].push(row);
+        });
+        const zoneCards = trustZones
+          .filter((zone) => {
+            if (state.zone !== "all") return zone.trust_zone_ref === state.zone;
+            return zones[zone.trust_zone_ref];
+          })
+          .map((zone) => {
+            const zoneRows = zones[zone.trust_zone_ref] || [];
+            const pills = zoneRows.map((row) => {
+              const selected = row.workload_family_id === state.selectedWorkload ? " is-selected" : "";
+              return `<button class="pill${selected}" data-workload-id="${row.workload_family_id}" data-region-ref="${regionRef}" data-zone-ref="${zone.trust_zone_ref}" data-family-code="${row.family_code}">${row.family_code}<br><span>${row.uk_region_role}</span></button>`;
+            }).join("");
+            return `<article class="zone-card">
+              <div class="zone-head">
+                <button type="button" data-zone-select="${zone.trust_zone_ref}">${zone.display_name}</button>
+                <span class="small-copy">${zoneRows.length} rows</span>
+              </div>
+              <div class="pill-list">${pills || '<span class="small-copy">No visible rows</span>'}</div>
+            </article>`;
+          }).join("");
+        return `<section class="region-card">
+          <div class="region-top">
+            <button type="button" data-region-select="${regionRef}">${regionRef}</button>
+            <span class="small-copy">${rows.length} workload rows</span>
+          </div>
+          <div class="zone-grid">${zoneCards}</div>
+        </section>`;
+      }).join("");
+
+      dom.topologyCanvas.querySelectorAll("[data-workload-id]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.selectedWorkload = button.dataset.workloadId;
+          render();
+        });
+      });
+      dom.topologyCanvas.querySelectorAll("[data-region-select]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const regionRef = button.dataset.regionSelect;
+          const match = filteredWorkloads().find((row) => row.region_ref === regionRef);
+          if (match) state.selectedWorkload = match.workload_family_id;
+          render();
+        });
+      });
+      dom.topologyCanvas.querySelectorAll("[data-zone-select]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const zoneRef = button.dataset.zoneSelect;
+          state.zone = zoneRef;
+          dom.zone.value = zoneRef;
+          render();
+        });
+      });
+    }
+
+    function renderWorkloadTable() {
+      dom.workloadTableBody.innerHTML = filteredWorkloads().map((row) => {
+        const selected = row.workload_family_id === state.selectedWorkload ? " is-selected" : "";
+        return `<tr>
+          <td><button class="table-btn${selected}" type="button" data-workload-id="${row.workload_family_id}">${row.family_code}</button></td>
+          <td>${zoneName(row.trust_zone_ref)}</td>
+          <td>${row.region_ref}</td>
+          <td>${row.gateway_surface_refs.length}</td>
+        </tr>`;
+      }).join("");
+      dom.workloadTableBody.querySelectorAll("[data-workload-id]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.selectedWorkload = button.dataset.workloadId;
+          render();
+        });
+      });
+    }
+
+    function renderBoundaryTable() {
+      dom.boundaryTableBody.innerHTML = filteredBoundaries().map((row) => {
+        const selected = row.boundary_id === state.selectedBoundary ? " is-selected" : "";
+        return `<tr>
+          <td><button class="table-btn${selected}" type="button" data-boundary-id="${row.boundary_id}">${row.boundary_id}</button></td>
+          <td>${joinList(row.allowed_protocols)}</td>
+          <td>${row.allowed_tenant_transfer_mode}</td>
+          <td>${row.boundary_failure_mode}</td>
+        </tr>`;
+      }).join("");
+      dom.boundaryTableBody.querySelectorAll("[data-boundary-id]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.selectedBoundary = button.dataset.boundaryId;
+          render();
+        });
+      });
+    }
+
+    function renderGatewayList() {
+      dom.gatewayList.innerHTML = filteredGateways().map((row) => {
+        const selected = row.gateway_surface_id === state.selectedGateway ? " is-selected" : "";
+        return `<button type="button" class="list-btn${selected}" data-gateway-id="${row.gateway_surface_id}">
+          <strong>${row.gateway_surface_name}</strong>
+          <span>${row.audience_surface_id} | ${row.tenant_isolation_mode}</span>
+        </button>`;
+      }).join("");
+      dom.gatewayList.querySelectorAll("[data-gateway-id]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.selectedGateway = button.dataset.gatewayId;
+          render();
+        });
+      });
+    }
+
+    function renderGatewayInspector() {
+      const row = selectedGatewayRow();
+      if (!row) {
+        dom.gatewayInspector.innerHTML = '<div class="detail-row"><span>No gateway rows match the current filters.</span></div>';
+        return;
+      }
+      dom.gatewayInspector.innerHTML = `
+        <div class="detail-row"><strong>Gateway</strong><span>${row.gateway_surface_name}</span></div>
+        <div class="detail-row"><strong>Audience surface</strong><span>${row.audience_surface_id}</span></div>
+        <div class="detail-row"><strong>Route family</strong><span>${row.route_family_id}</span></div>
+        <div class="detail-row"><strong>Session policy</strong><span>${row.session_policy_ref}</span></div>
+        <div class="detail-row"><strong>Tenant scope</strong><span>${row.tenant_scope_mode}</span></div>
+        <div class="detail-row"><strong>Tenant isolation</strong><span>${row.tenant_isolation_mode}</span></div>
+        <div class="detail-row"><strong>Downstream families</strong><span>${joinList(row.downstream_family_refs)}</span></div>
+        <div class="detail-row"><strong>Boundary refs</strong><span>${joinList(row.trust_zone_boundary_refs)}</span></div>
+        <div class="detail-row"><strong>Recovery disposition</strong><span>${joinList(row.recovery_disposition_refs)}</span></div>
+        <div class="detail-row"><strong>Audit posture</strong><span>${row.audit_posture}</span></div>
+      `;
+    }
+
+    function renderBoundaryInspector() {
+      const row = selectedBoundaryRow();
+      if (!row) {
+        dom.boundaryInspector.innerHTML = '<div class="detail-row"><span>No boundaries match the current selection.</span></div>';
+        return;
+      }
+      dom.boundaryInspector.innerHTML = `
+        <div class="detail-row"><strong>Boundary</strong><span>${row.boundary_id}</span></div>
+        <div class="detail-row"><strong>From / to</strong><span>${row.source_trust_zone_ref} -> ${row.target_trust_zone_ref}</span></div>
+        <div class="detail-row"><strong>Protocols</strong><span>${joinList(row.allowed_protocols)}</span></div>
+        <div class="detail-row"><strong>Service identities</strong><span>${joinList(row.allowed_service_identity_refs)}</span></div>
+        <div class="detail-row"><strong>Data classes</strong><span>${joinList(row.allowed_data_classification_refs)}</span></div>
+        <div class="detail-row"><strong>Tenant transfer</strong><span>${row.allowed_tenant_transfer_mode}</span></div>
+        <div class="detail-row"><strong>Assurance trust transfer</strong><span>${row.assurance_trust_transfer_mode}</span></div>
+        <div class="detail-row"><strong>Failure mode</strong><span>${row.boundary_failure_mode}</span></div>
+        <div class="detail-row"><strong>Notes</strong><span>${row.notes}</span></div>
+      `;
+    }
+
+    function renderResilience() {
+      const left = `
+        <div class="detail-grid">
+          <div class="detail-row"><strong>Region rule</strong><span>${resilience.uk_residency_rule}</span></div>
+          <div class="detail-row"><strong>Queue and outbox</strong><div class="status-strip">${resilience.queue_and_outbox_posture.map((item) => `<span class="status-chip">${item}</span>`).join("")}</div></div>
+          <div class="detail-row"><strong>Failover authority</strong><div class="status-strip">${resilience.failover_authorities.map((item) => `<span class="status-chip">${item.authority_id}</span>`).join("")}</div></div>
+        </div>`;
+      const right = `
+        <div class="detail-grid">
+          ${resilience.degraded_user_postures.map((item) => `<div class="detail-row"><strong>${item.surface_class}</strong><span>${item.posture}</span><div>${item.reason}</div></div>`).join("")}
+        </div>`;
+      dom.resilienceBody.innerHTML = `
+        <div>${left}</div>
+        <div>${right}</div>
+      `;
+    }
+
+    function updateSelectionState() {
+      const workload = selectedWorkloadRow();
+      const gateway = selectedGatewayRow();
+      const boundary = selectedBoundaryRow();
+      const region = workload?.region_ref || "";
+      const zone = workload?.trust_zone_ref || "";
+      const family = workload?.workload_family_id || "";
+      dom.selectionState.dataset.selectedRegion = region;
+      dom.selectionState.dataset.selectedTrustZone = zone;
+      dom.selectionState.dataset.selectedWorkloadFamily = family;
+      dom.selectionState.dataset.selectedGatewaySurface = gateway?.gateway_surface_id || "";
+      dom.selectionState.dataset.selectedBoundaryState = boundary?.boundary_id || "";
+      dom.stateRegion.textContent = region || "-";
+      dom.stateZone.textContent = zone || "-";
+      dom.stateFamily.textContent = family || "-";
+      dom.stateGateway.textContent = gateway?.gateway_surface_id || "-";
+      dom.stateBoundary.textContent = boundary?.boundary_id || "-";
+    }
+
+    function render() {
+      syncSelectedIds();
+      renderTopology();
+      renderWorkloadTable();
+      renderBoundaryTable();
+      renderGatewayList();
+      renderGatewayInspector();
+      renderBoundaryInspector();
+      renderResilience();
+      updateSelectionState();
+    }
+
+    renderHero();
+    initFilters();
+    render();
+  </script>
+</body>
+</html>
+"""
+    return template.replace("__EMBEDDED_JSON__", safe_json)
+
+
+def write_outputs(payload: dict[str, Any]) -> None:
+    write_json(WORKLOAD_JSON_PATH, payload)
+    write_csv(BOUNDARY_CSV_PATH, serialize_boundary_csv_rows(payload["trust_zone_boundaries"]))
+    write_csv(GATEWAY_CSV_PATH, serialize_gateway_csv_rows(payload["gateway_surface_matrix"]))
+    write_csv(TENANT_CSV_PATH, serialize_tenant_csv_rows(payload["tenant_isolation_matrix"]))
+    write_csv(ACTING_SCOPE_CSV_PATH, serialize_acting_scope_csv_rows(payload["acting_scope_tuple_matrix"]))
+    write_json(RESILIENCE_JSON_PATH, payload["region_resilience_matrix"])
+
+    write_text(REGION_DOC_PATH, render_region_doc(payload))
+    write_text(TENANT_DOC_PATH, render_tenant_doc(payload))
+    write_text(TRUST_ZONE_DOC_PATH, render_trust_zone_doc(payload))
+    write_text(GATEWAY_DOC_PATH, render_gateway_doc(payload))
+    write_text(RESILIENCE_DOC_PATH, render_resilience_doc(payload))
+    write_text(DECISION_LOG_DOC_PATH, render_decision_log_doc(payload))
+    write_text(MERMAID_PATH, build_mermaid(payload))
+    write_text(ATLAS_HTML_PATH, build_html(payload))
+
+
+def main() -> None:
+    payload = build_bundle()
+    write_outputs(payload)
+    summary = payload["summary"]
+    print(
+        "Built seq_011 runtime topology baseline with "
+        f"{summary['workload_family_count']} workload rows, "
+        f"{summary['boundary_count']} trust boundaries, "
+        f"{summary['gateway_surface_count']} gateway surfaces, "
+        f"{summary['tenant_isolation_pattern_count']} tenant isolation patterns, and "
+        f"{summary['acting_scope_profile_count']} acting-scope profiles."
+    )
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,2262 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import csv
+import json
+import textwrap
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[2]
+DATA_DIR = ROOT / "data" / "analysis"
+DOCS_DIR = ROOT / "docs" / "external"
+APP_DIR = ROOT / "apps" / "mock-nhs-login-onboarding"
+APP_SRC_DIR = APP_DIR / "src"
+APP_PUBLIC_DIR = APP_DIR / "public"
+
+FIELD_MAP_PATH = DATA_DIR / "nhs_login_application_field_map.json"
+LIVE_GATES_PATH = DATA_DIR / "nhs_login_live_gate_conditions.json"
+ARTIFACTS_CSV_PATH = DATA_DIR / "nhs_login_submission_artifact_checklist.csv"
+
+MOCK_STRATEGY_PATH = DOCS_DIR / "24_nhs_login_mock_onboarding_strategy.md"
+ACTUAL_STRATEGY_PATH = DOCS_DIR / "24_nhs_login_actual_onboarding_strategy.md"
+DOSSIER_PATH = DOCS_DIR / "24_nhs_login_application_dossier.md"
+CHECKPOINT_PATH = DOCS_DIR / "24_nhs_login_manual_checkpoint_register.md"
+STUDIO_HTML_PATH = DOCS_DIR / "24_nhs_login_onboarding_studio.html"
+
+APP_PACK_TS_PATH = APP_SRC_DIR / "generated" / "nhsLoginPack.ts"
+APP_PACK_JSON_PATH = APP_PUBLIC_DIR / "nhs-login-application-pack.json"
+README_PATH = APP_DIR / "README.md"
+
+REQUIRED_INPUTS = {
+    "phase0_gate_verdict": DATA_DIR / "phase0_gate_verdict.json",
+    "integration_priority_matrix": DATA_DIR / "integration_priority_matrix.json",
+    "provider_family_scorecards": DATA_DIR / "provider_family_scorecards.json",
+    "secret_ownership_map": DATA_DIR / "secret_ownership_map.json",
+    "external_account_inventory": DATA_DIR / "external_account_inventory.csv",
+    "coverage_summary": DATA_DIR / "coverage_summary.json",
+}
+
+VISUAL_MODE = "Partner_Access_Atelier"
+MISSION = (
+    "Create one canonical NHS login partner-onboarding rehearsal and gated live-submission pack "
+    "so Vecells can exercise product-fit, sandpit readiness, demo readiness, evidence readiness, "
+    "and later real-provider submission without implying current live eligibility."
+)
+
+STAGE_ORDER = [
+    "application_draft",
+    "product_fit_review",
+    "demo_prep",
+    "sandpit_request_ready",
+    "sandpit_requested",
+    "product_demo_pending",
+    "integration_request_blocked_until_demo",
+    "integration_request_ready",
+    "assurance_bundle_in_progress",
+    "connection_agreement_pending",
+    "service_desk_registration_pending",
+    "ready_for_real_submission",
+]
+
+SOURCE_PRECEDENCE = [
+    "prompt/024.md",
+    "prompt/shared_operating_contract_021_to_025.md",
+    "blueprint/blueprint-init.md",
+    "blueprint/phase-0-the-foundation-protocol.md",
+    "blueprint/phase-2-identity-and-echoes.md",
+    "blueprint/phase-7-inside-the-nhs-app.md",
+    "blueprint/platform-runtime-and-release-blueprint.md",
+    "blueprint/forensic-audit-findings.md",
+    "docs/external/21_integration_priority_and_execution_matrix.md",
+    "docs/external/22_provider_selection_scorecards.md",
+    "docs/external/23_sandbox_account_strategy.md",
+    "docs/external/23_actual_partner_account_governance.md",
+    "https://digital.nhs.uk/services/nhs-login/nhs-login-for-partners-and-developers/nhs-login-integration-toolkit/apply-for-nhs-login",
+    "https://digital.nhs.uk/services/nhs-login/nhs-login-for-partners-and-developers/nhs-login-integration-toolkit/discovery",
+    "https://digital.nhs.uk/services/nhs-login/nhs-login-for-partners-and-developers/nhs-login-integration-toolkit/integrate",
+    "https://digital.nhs.uk/services/nhs-login/nhs-login-for-partners-and-developers/nhs-login-integration-toolkit/how-nhs-login-works",
+    "https://nhsconnect.github.io/nhslogin/integrating-to-sandpit/",
+    "https://nhsconnect.github.io/nhslogin/compare-environments/",
+    "https://nhsconnect.github.io/nhslogin/multiple-redirect-uris/",
+]
+
+OFFICIAL_GUIDANCE = [
+    {
+        "source_id": "official_apply_for_nhs_login",
+        "title": "Apply for NHS login",
+        "url": "https://digital.nhs.uk/services/nhs-login/nhs-login-for-partners-and-developers/nhs-login-integration-toolkit/apply-for-nhs-login",
+        "captured_on": "2026-04-09",
+        "summary": "Application stage checks eligibility, commissioner or sponsor posture, IM1 or PDS linked dependencies, and board approval before any later integration work.",
+        "grounding": [
+            "Service must be commissioned or sponsored by an NHS organisation or local authority.",
+            "NHS login does not cover clinical authorisation.",
+            "Board approval of the use case does not itself mean live approval.",
+        ],
+    },
+    {
+        "source_id": "official_discovery",
+        "title": "Discovery",
+        "url": "https://digital.nhs.uk/services/nhs-login/nhs-login-for-partners-and-developers/nhs-login-integration-toolkit/discovery",
+        "captured_on": "2026-04-09",
+        "summary": "Discovery requires a sandpit proof of concept, forms-and-documents review, product demonstration checklist completion, and current architecture, data-flow, and user-journey artefacts.",
+        "grounding": [
+            "Discovery expects a proof of concept in sandpit before preparation and product demonstration calls.",
+            "The product demonstration pack must include architecture, data-flow, and user-journey artefacts.",
+            "The discovery demo must show allow and deny share cases, repeat sign-in, settings navigation, and P5 or P9 uplift where applicable.",
+        ],
+    },
+    {
+        "source_id": "official_integrate",
+        "title": "Integrate",
+        "url": "https://digital.nhs.uk/services/nhs-login/nhs-login-for-partners-and-developers/nhs-login-integration-toolkit/integrate",
+        "captured_on": "2026-04-09",
+        "summary": "Integration starts only after the product demonstration call, then runs through integration environment access, SCAL and clinical-safety evidence, connection agreement, and National Service Desk registration.",
+        "grounding": [
+            "Integration environment access comes only after the Product Demonstration Call.",
+            "SCAL, DSPT, privacy notice, clinical safety case, hazard log, and DCB0129 or DCB0160 posture are explicit evidence requirements.",
+            "Connection agreement and National Service Desk registration are mandatory before go live.",
+        ],
+    },
+    {
+        "source_id": "official_how_nhs_login_works",
+        "title": "How NHS login works",
+        "url": "https://digital.nhs.uk/services/nhs-login/nhs-login-for-partners-and-developers/nhs-login-integration-toolkit/how-nhs-login-works",
+        "captured_on": "2026-04-09",
+        "summary": "NHS login authenticates and verifies the user, but partner services own session management, logout, product authorization, age controls, and least-necessary scope requests.",
+        "grounding": [
+            "User agreement to share data is required and consent denial must be handled explicitly.",
+            "Partner services remain responsible for session management and logout.",
+            "NHS login is not a one-time GP credential retrieval tool and does not replace PDS.",
+        ],
+    },
+    {
+        "source_id": "official_integrating_to_sandpit",
+        "title": "How do I integrate to the sandpit?",
+        "url": "https://nhsconnect.github.io/nhslogin/integrating-to-sandpit/",
+        "captured_on": "2026-04-09",
+        "summary": "Sandpit setup requires a friendly service name, redirect URI, public key, and scope list. Sandpit is suitable for proof of concept and login flow rehearsal, not full assurance or live approval.",
+        "grounding": [
+            "Required information includes friendly name, redirect URI, public key, and requested scopes.",
+            "Sandpit does not support real identity documents and does not usually approve new registrations.",
+            "Prepared test data and login flow exercises come after the sandpit request is processed.",
+        ],
+    },
+    {
+        "source_id": "official_compare_environments",
+        "title": "Compare NHS login environments",
+        "url": "https://nhsconnect.github.io/nhslogin/compare-environments/",
+        "captured_on": "2026-04-09",
+        "summary": "Sandpit has no formal requirements, integration requires sandpit completion and DSPT or ODS posture, and live production requires completed readiness activity plus signed agreement.",
+        "grounding": [
+            "Sandpit supports proof of concept and login journey exploration only.",
+            "Integration environment requires sandpit completion plus ODS code and DSPT covering the service scope.",
+            "Live production requires readiness activity and a signed agreement.",
+        ],
+    },
+    {
+        "source_id": "official_multiple_redirect_uris",
+        "title": "Multiple redirect URIs",
+        "url": "https://nhsconnect.github.io/nhslogin/multiple-redirect-uris/",
+        "captured_on": "2026-04-09",
+        "summary": "NHS login supports up to 10 redirect URIs and advises state-based fan-out when more are needed.",
+        "grounding": [
+            "Use the opaque state parameter to preserve partner-side routing context.",
+            "NHS login supports at most 10 redirect URIs.",
+            "Redirect inventory is an operational governance topic, not a form-only detail.",
+        ],
+    },
+]
+
+
+def assert_true(condition: bool, message: str) -> None:
+    if not condition:
+        raise SystemExit(message)
+
+
+def load_json(path: Path) -> Any:
+    return json.loads(path.read_text())
+
+
+def load_csv(path: Path) -> list[dict[str, str]]:
+    with path.open() as handle:
+        return list(csv.DictReader(handle))
+
+
+def ensure_inputs() -> dict[str, Any]:
+    missing = [name for name, path in REQUIRED_INPUTS.items() if not path.exists()]
+    assert_true(not missing, "Missing seq_024 prerequisites: " + ", ".join(sorted(missing)))
+    return {
+        "phase0_gate_verdict": load_json(REQUIRED_INPUTS["phase0_gate_verdict"]),
+        "integration_priority_matrix": load_json(REQUIRED_INPUTS["integration_priority_matrix"]),
+        "provider_family_scorecards": load_json(REQUIRED_INPUTS["provider_family_scorecards"]),
+        "secret_ownership_map": load_json(REQUIRED_INPUTS["secret_ownership_map"]),
+        "external_account_inventory": load_csv(REQUIRED_INPUTS["external_account_inventory"]),
+        "coverage_summary": load_json(REQUIRED_INPUTS["coverage_summary"]),
+    }
+
+
+def write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content.strip() + "\n")
+
+
+def write_json(path: Path, payload: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2) + "\n")
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not rows:
+        raise SystemExit(f"Cannot write empty CSV to {path}")
+    with path.open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+
+
+def json_for_js(payload: Any) -> str:
+    return json.dumps(payload, separators=(",", ":"))
+
+
+def build_pack(prereqs: dict[str, Any]) -> dict[str, Any]:
+    phase0_verdict = prereqs["phase0_gate_verdict"]["gate_verdicts"][0]["verdict"]
+    captured_at = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+
+    fields = [
+        {
+            "field_id": "fld_service_name",
+            "section": "Service identity",
+            "label": "Service name",
+            "field_type": "text",
+            "mock_value": "Vecells",
+            "actual_placeholder": "Partner-facing product name exactly as submitted in application and sandpit forms.",
+            "required_for": ["application_draft"],
+            "source_refs": ["blueprint/blueprint-init.md", "official_apply_for_nhs_login"],
+        },
+        {
+            "field_id": "fld_service_summary",
+            "section": "Service identity",
+            "label": "Service summary",
+            "field_type": "textarea",
+            "mock_value": "FHIR-native primary care access and operations layer that routes patient demand into one safety-gated request pipeline.",
+            "actual_placeholder": "Public-facing product summary used in the application and product demo.",
+            "required_for": ["application_draft", "product_fit_review"],
+            "source_refs": ["blueprint/blueprint-init.md"],
+        },
+        {
+            "field_id": "fld_patient_eligibility",
+            "section": "Eligibility and sponsorship",
+            "label": "Patient eligibility statement",
+            "field_type": "textarea",
+            "mock_value": "Vecells serves patients registered at GP practices in England or receiving NHS services in England.",
+            "actual_placeholder": "Exact wording used to justify NHS login eligibility.",
+            "required_for": ["application_draft"],
+            "source_refs": ["official_apply_for_nhs_login"],
+        },
+        {
+            "field_id": "fld_commissioner_posture",
+            "section": "Eligibility and sponsorship",
+            "label": "Commissioner or sponsor posture",
+            "field_type": "textarea",
+            "mock_value": "ASSUMPTION_NHS_LOGIN_SPONSOR_PLACEHOLDER: commissioner and sponsor are not yet named; current pack preserves placeholder-only governance and blocks live progression.",
+            "actual_placeholder": "Named commissioner, NHS sponsor, or explicit commissioning discussion status.",
+            "required_for": ["application_draft", "product_fit_review", "product_demo_pending"],
+            "source_refs": ["official_apply_for_nhs_login"],
+        },
+        {
+            "field_id": "fld_sponsor_contact",
+            "section": "Eligibility and sponsorship",
+            "label": "Sponsor contact placeholder",
+            "field_type": "text",
+            "mock_value": "TBD sponsor owner - blocked until NHS commissioner or sponsor is confirmed.",
+            "actual_placeholder": "Named sponsor or commissioner contact.",
+            "required_for": ["product_fit_review", "product_demo_pending"],
+            "source_refs": ["official_apply_for_nhs_login"],
+        },
+        {
+            "field_id": "fld_route_families",
+            "section": "Product logic",
+            "label": "Patient route families",
+            "field_type": "textarea",
+            "mock_value": "Public request intake, authenticated status tracking, request claim and resume, booking manage, pharmacy follow-up, and conversation or callback follow-up.",
+            "actual_placeholder": "Route-family inventory exactly mapped to user journeys shown in demo and dossier.",
+            "required_for": ["product_fit_review"],
+            "source_refs": ["docs/architecture/04_shell_and_route_family_ownership.md", "docs/architecture/05_patient_action_to_route_binding_matrix.md"],
+        },
+        {
+            "field_id": "fld_identity_boundary",
+            "section": "Product logic",
+            "label": "Identity and session boundary",
+            "field_type": "textarea",
+            "mock_value": "NHS login authenticates the patient and returns claims. Vecells still decides local session creation, route intent, access grant redemption, writable authority, and same-shell recovery.",
+            "actual_placeholder": "Production wording for partner onboarding and architecture review.",
+            "required_for": ["product_fit_review", "demo_prep"],
+            "source_refs": [
+                "blueprint/phase-2-identity-and-echoes.md",
+                "blueprint/phase-0-the-foundation-protocol.md",
+                "official_how_nhs_login_works",
+            ],
+        },
+        {
+            "field_id": "fld_user_journeys",
+            "section": "User journey pack",
+            "label": "User journey inventory",
+            "field_type": "textarea",
+            "mock_value": "Registration allow-share, registration deny-share, repeat sign-in, settings-link return, P5 navigation, P9 uplift, and delegated-access placeholder.",
+            "actual_placeholder": "Current product journey inventory used in product demo and SCAL artefacts.",
+            "required_for": ["demo_prep", "product_demo_pending"],
+            "source_refs": ["official_discovery"],
+        },
+        {
+            "field_id": "fld_architecture_summary",
+            "section": "Architecture pack",
+            "label": "Architecture diagram narrative",
+            "field_type": "textarea",
+            "mock_value": "Client-first React shell, gateway-managed browser boundary, dual-UK-region runtime, identity bridge, event spine, audit and release parity controls.",
+            "actual_placeholder": "Updated architecture narrative used with the submitted diagram.",
+            "required_for": ["demo_prep", "assurance_bundle_in_progress"],
+            "source_refs": [
+                "docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md",
+                "docs/architecture/16_system_context_and_container_model.md",
+                "official_discovery",
+            ],
+        },
+        {
+            "field_id": "fld_data_flow_summary",
+            "section": "Architecture pack",
+            "label": "Data flow diagram narrative",
+            "field_type": "textarea",
+            "mock_value": "Claims from NHS login enter the identity bridge, settle into local session and route-intent decisions, then drive bounded patient actions and downstream notification, booking, or pharmacy adapters.",
+            "actual_placeholder": "Updated data-flow narrative used with the submitted diagram.",
+            "required_for": ["demo_prep", "assurance_bundle_in_progress"],
+            "source_refs": ["blueprint/blueprint-init.md", "official_discovery"],
+        },
+        {
+            "field_id": "fld_demo_team",
+            "section": "Demo readiness",
+            "label": "Demo attendees",
+            "field_type": "textarea",
+            "mock_value": "Product lead, technical architect, security lead, privacy lead, clinical safety owner, and sponsor placeholder.",
+            "actual_placeholder": "Named attendees for the preparation and product demonstration calls.",
+            "required_for": ["demo_prep", "product_demo_pending"],
+            "source_refs": ["official_integrate"],
+        },
+        {
+            "field_id": "fld_demo_script_ref",
+            "section": "Demo readiness",
+            "label": "Demo walkthrough script",
+            "field_type": "text",
+            "mock_value": "24_demo_walkthrough_internal_v1",
+            "actual_placeholder": "Current demo script or rehearsal recording reference.",
+            "required_for": ["demo_prep", "product_demo_pending"],
+            "source_refs": ["official_discovery"],
+        },
+        {
+            "field_id": "fld_sandpit_friendly_name",
+            "section": "Sandpit request",
+            "label": "Sandpit friendly service name",
+            "field_type": "text",
+            "mock_value": "Vecells Partner Access Atelier",
+            "actual_placeholder": "Exact friendly name for the sandpit environment request form.",
+            "required_for": ["sandpit_request_ready"],
+            "source_refs": ["official_integrating_to_sandpit"],
+        },
+        {
+            "field_id": "fld_redirect_uri_primary",
+            "section": "Sandpit request",
+            "label": "Primary redirect URI",
+            "field_type": "text",
+            "mock_value": "https://vecells.example/mock/callback/nhs-login",
+            "actual_placeholder": "Current callback URI registered for the chosen environment.",
+            "required_for": ["sandpit_request_ready", "integration_request_ready"],
+            "source_refs": ["official_integrating_to_sandpit", "official_multiple_redirect_uris"],
+        },
+        {
+            "field_id": "fld_public_key_ref",
+            "section": "Sandpit request",
+            "label": "Public key bundle reference",
+            "field_type": "text",
+            "mock_value": "PUBKEY_VECELLS_NHS_LOGIN_NONPROD_01",
+            "actual_placeholder": "Public key bundle and custody reference to submit.",
+            "required_for": ["sandpit_request_ready", "integration_request_ready"],
+            "source_refs": ["official_integrating_to_sandpit", "docs/external/23_secret_ownership_and_rotation_model.md"],
+        },
+        {
+            "field_id": "fld_scopes_claims_summary",
+            "section": "Sandpit request",
+            "label": "Scopes and claims summary",
+            "field_type": "textarea",
+            "mock_value": "openid profile email phone profile_extended (placeholder only), with route-family checks enforcing least-necessary use and local authorization after callback.",
+            "actual_placeholder": "Current scope and claims request matrix by route family.",
+            "required_for": ["sandpit_request_ready", "integration_request_ready"],
+            "source_refs": ["official_how_nhs_login_works", "official_integrating_to_sandpit"],
+        },
+        {
+            "field_id": "fld_vector_of_trust_profile",
+            "section": "Sandpit request",
+            "label": "Vector of trust posture",
+            "field_type": "textarea",
+            "mock_value": "P5 for low-risk signed-in portal continuity and P9 for PHI-bearing request ownership, booking manage, and pharmacy follow-up; final route matrix remains governed by local capability and session law.",
+            "actual_placeholder": "Final VoT matrix agreed during product demonstration.",
+            "required_for": ["sandpit_request_ready", "product_demo_pending", "integration_request_ready"],
+            "source_refs": ["official_how_nhs_login_works", "official_integrate"],
+        },
+        {
+            "field_id": "fld_integration_target_date",
+            "section": "Integration planning",
+            "label": "Indicative go-live target",
+            "field_type": "text",
+            "mock_value": "ASSUMPTION_NHS_LOGIN_GO_LIVE_WINDOW: no live date is proposed until sponsor, MVP, and approvals exist.",
+            "actual_placeholder": "Nominal target date agreed after product demo.",
+            "required_for": ["integration_request_ready"],
+            "source_refs": ["official_integrate"],
+        },
+        {
+            "field_id": "fld_dspt_status",
+            "section": "Assurance",
+            "label": "DSPT status",
+            "field_type": "text",
+            "mock_value": "Not yet published for live scope; mock dossier tracks placeholder only.",
+            "actual_placeholder": "In-year DSPT status covering NHS login service scope.",
+            "required_for": ["assurance_bundle_in_progress"],
+            "source_refs": ["official_integrate"],
+        },
+        {
+            "field_id": "fld_privacy_notice_ref",
+            "section": "Assurance",
+            "label": "Privacy notice reference",
+            "field_type": "text",
+            "mock_value": "PRIVACY_NOTICE_VECELLS_NHS_LOGIN_DRAFT",
+            "actual_placeholder": "Published NHS login-compliant privacy notice reference.",
+            "required_for": ["assurance_bundle_in_progress"],
+            "source_refs": ["official_integrate"],
+        },
+        {
+            "field_id": "fld_clinical_safety_owner",
+            "section": "Assurance",
+            "label": "Clinical safety owner",
+            "field_type": "text",
+            "mock_value": "ROLE_MANUFACTURER_CSO placeholder - evidence bundle not yet signed.",
+            "actual_placeholder": "Named Clinical Safety Officer and supporting sign-off references.",
+            "required_for": ["assurance_bundle_in_progress"],
+            "source_refs": ["official_integrate"],
+        },
+        {
+            "field_id": "fld_connection_signatory",
+            "section": "Commercial and legal",
+            "label": "Connection agreement signatory",
+            "field_type": "text",
+            "mock_value": "TBD signatory - blocked until commissioner or product ownership model is confirmed.",
+            "actual_placeholder": "Named signatory or commissioner-owner for the connection agreement.",
+            "required_for": ["connection_agreement_pending"],
+            "source_refs": ["official_integrate"],
+        },
+        {
+            "field_id": "fld_service_desk_contacts",
+            "section": "Operations handoff",
+            "label": "Service desk registration contacts",
+            "field_type": "textarea",
+            "mock_value": "Operations lead, support lead, incident manager, and out-of-hours escalation placeholders only.",
+            "actual_placeholder": "Current Service Bridge registration contacts and escalation details.",
+            "required_for": ["service_desk_registration_pending"],
+            "source_refs": ["official_integrate"],
+        },
+        {
+            "field_id": "fld_named_approver",
+            "section": "Live submission gates",
+            "label": "Named approver",
+            "field_type": "text",
+            "mock_value": "",
+            "actual_placeholder": "Named approver required before any live portal mutation.",
+            "required_for": ["ready_for_real_submission"],
+            "source_refs": ["prompt/024.md"],
+        },
+        {
+            "field_id": "fld_environment_target",
+            "section": "Live submission gates",
+            "label": "Environment target",
+            "field_type": "text",
+            "mock_value": "",
+            "actual_placeholder": "sandpit | integration | production",
+            "required_for": ["ready_for_real_submission"],
+            "source_refs": ["prompt/024.md"],
+        },
+        {
+            "field_id": "fld_live_mutation_flag",
+            "section": "Live submission gates",
+            "label": "Live mutation flag",
+            "field_type": "text",
+            "mock_value": "false",
+            "actual_placeholder": "ALLOW_REAL_PROVIDER_MUTATION=true",
+            "required_for": ["ready_for_real_submission"],
+            "source_refs": ["prompt/shared_operating_contract_021_to_025.md", "prompt/024.md"],
+        },
+    ]
+
+    artifacts = [
+        {
+            "artifact_id": "art_architecture_diagram",
+            "name": "Architecture diagram",
+            "stage_id": "demo_prep",
+            "artifact_class": "diagram",
+            "owner_role": "ROLE_PROGRAMME_ARCHITECT",
+            "freshness_days": 30,
+            "mock_status": "attach_synthetic_now",
+            "actual_status": "required_current",
+            "blocker_code": "BLOCKER_ARCHITECTURE_DIAGRAM_MISSING",
+            "source_refs": ["official_discovery", "official_integrate"],
+        },
+        {
+            "artifact_id": "art_data_flow_diagram",
+            "name": "Data flow diagram",
+            "stage_id": "demo_prep",
+            "artifact_class": "diagram",
+            "owner_role": "ROLE_PROGRAMME_ARCHITECT",
+            "freshness_days": 30,
+            "mock_status": "attach_synthetic_now",
+            "actual_status": "required_current",
+            "blocker_code": "BLOCKER_DATA_FLOW_DIAGRAM_MISSING",
+            "source_refs": ["official_discovery", "official_integrate"],
+        },
+        {
+            "artifact_id": "art_user_journey_pack",
+            "name": "User journey pack",
+            "stage_id": "demo_prep",
+            "artifact_class": "journey_pack",
+            "owner_role": "ROLE_IDENTITY_PARTNER_MANAGER",
+            "freshness_days": 21,
+            "mock_status": "attach_synthetic_now",
+            "actual_status": "required_current",
+            "blocker_code": "BLOCKER_USER_JOURNEYS_MISSING",
+            "source_refs": ["official_discovery", "official_integrate"],
+        },
+        {
+            "artifact_id": "art_demo_walkthrough",
+            "name": "Product demo walkthrough",
+            "stage_id": "product_demo_pending",
+            "artifact_class": "demo_pack",
+            "owner_role": "ROLE_IDENTITY_PARTNER_MANAGER",
+            "freshness_days": 14,
+            "mock_status": "attach_synthetic_now",
+            "actual_status": "required_current",
+            "blocker_code": "BLOCKER_PRODUCT_DEMO_WALKTHROUGH_MISSING",
+            "source_refs": ["official_discovery", "official_integrate"],
+        },
+        {
+            "artifact_id": "art_sandpit_request_pack",
+            "name": "Sandpit request pack",
+            "stage_id": "sandpit_request_ready",
+            "artifact_class": "form_bundle",
+            "owner_role": "ROLE_IDENTITY_PARTNER_MANAGER",
+            "freshness_days": 14,
+            "mock_status": "generate_now",
+            "actual_status": "submit_later",
+            "blocker_code": "BLOCKER_SANDPIT_REQUEST_PACK_MISSING",
+            "source_refs": ["official_integrating_to_sandpit"],
+        },
+        {
+            "artifact_id": "art_redirect_matrix",
+            "name": "Redirect URI matrix",
+            "stage_id": "sandpit_request_ready",
+            "artifact_class": "matrix",
+            "owner_role": "ROLE_PROGRAMME_ARCHITECT",
+            "freshness_days": 30,
+            "mock_status": "generate_now",
+            "actual_status": "required_current",
+            "blocker_code": "BLOCKER_REDIRECT_MATRIX_MISSING",
+            "source_refs": ["official_multiple_redirect_uris"],
+        },
+        {
+            "artifact_id": "art_public_key_bundle",
+            "name": "Public key submission bundle",
+            "stage_id": "sandpit_request_ready",
+            "artifact_class": "security_bundle",
+            "owner_role": "ROLE_SECURITY_LEAD",
+            "freshness_days": 30,
+            "mock_status": "generate_placeholder_now",
+            "actual_status": "required_current",
+            "blocker_code": "BLOCKER_PUBLIC_KEY_BUNDLE_MISSING",
+            "source_refs": ["official_integrating_to_sandpit", "docs/external/23_secret_ownership_and_rotation_model.md"],
+        },
+        {
+            "artifact_id": "art_integration_env_request",
+            "name": "Integration environment request pack",
+            "stage_id": "integration_request_ready",
+            "artifact_class": "form_bundle",
+            "owner_role": "ROLE_IDENTITY_PARTNER_MANAGER",
+            "freshness_days": 14,
+            "mock_status": "prepare_now_submit_later",
+            "actual_status": "submit_later",
+            "blocker_code": "BLOCKER_INTEGRATION_REQUEST_PACK_MISSING",
+            "source_refs": ["official_integrate", "official_compare_environments"],
+        },
+        {
+            "artifact_id": "art_scal_seed",
+            "name": "SCAL seed",
+            "stage_id": "assurance_bundle_in_progress",
+            "artifact_class": "assurance_bundle",
+            "owner_role": "ROLE_GOVERNANCE_LEAD",
+            "freshness_days": 21,
+            "mock_status": "seed_now",
+            "actual_status": "complete_later",
+            "blocker_code": "BLOCKER_SCAL_SEED_MISSING",
+            "source_refs": ["official_integrate"],
+        },
+        {
+            "artifact_id": "art_dspt_evidence",
+            "name": "DSPT evidence",
+            "stage_id": "assurance_bundle_in_progress",
+            "artifact_class": "assurance_bundle",
+            "owner_role": "ROLE_GOVERNANCE_LEAD",
+            "freshness_days": 30,
+            "mock_status": "placeholder_only",
+            "actual_status": "required_current",
+            "blocker_code": "BLOCKER_DSPT_EVIDENCE_MISSING",
+            "source_refs": ["official_integrate"],
+        },
+        {
+            "artifact_id": "art_privacy_notice",
+            "name": "NHS login privacy notice",
+            "stage_id": "assurance_bundle_in_progress",
+            "artifact_class": "policy_doc",
+            "owner_role": "ROLE_DPO",
+            "freshness_days": 30,
+            "mock_status": "placeholder_only",
+            "actual_status": "required_current",
+            "blocker_code": "BLOCKER_PRIVACY_NOTICE_MISSING",
+            "source_refs": ["official_integrate"],
+        },
+        {
+            "artifact_id": "art_clinical_safety_case",
+            "name": "Clinical safety case report",
+            "stage_id": "assurance_bundle_in_progress",
+            "artifact_class": "safety_doc",
+            "owner_role": "ROLE_MANUFACTURER_CSO",
+            "freshness_days": 30,
+            "mock_status": "placeholder_only",
+            "actual_status": "required_current",
+            "blocker_code": "BLOCKER_SAFETY_CASE_MISSING",
+            "source_refs": ["official_integrate"],
+        },
+        {
+            "artifact_id": "art_hazard_log",
+            "name": "Hazard log",
+            "stage_id": "assurance_bundle_in_progress",
+            "artifact_class": "safety_doc",
+            "owner_role": "ROLE_MANUFACTURER_CSO",
+            "freshness_days": 21,
+            "mock_status": "placeholder_only",
+            "actual_status": "required_current",
+            "blocker_code": "BLOCKER_HAZARD_LOG_MISSING",
+            "source_refs": ["official_integrate"],
+        },
+        {
+            "artifact_id": "art_medical_device_assessment",
+            "name": "Medical device assessment",
+            "stage_id": "assurance_bundle_in_progress",
+            "artifact_class": "regulatory_doc",
+            "owner_role": "ROLE_GOVERNANCE_LEAD",
+            "freshness_days": 30,
+            "mock_status": "placeholder_only",
+            "actual_status": "required_current",
+            "blocker_code": "BLOCKER_MEDICAL_DEVICE_ASSESSMENT_MISSING",
+            "source_refs": ["official_integrate"],
+        },
+        {
+            "artifact_id": "art_connection_agreement_notes",
+            "name": "Connection agreement pack",
+            "stage_id": "connection_agreement_pending",
+            "artifact_class": "legal_doc",
+            "owner_role": "ROLE_GOVERNANCE_LEAD",
+            "freshness_days": 14,
+            "mock_status": "prepare_now_sign_later",
+            "actual_status": "required_current",
+            "blocker_code": "BLOCKER_CONNECTION_AGREEMENT_PACK_MISSING",
+            "source_refs": ["official_integrate"],
+        },
+        {
+            "artifact_id": "art_service_desk_registration",
+            "name": "National Service Desk registration pack",
+            "stage_id": "service_desk_registration_pending",
+            "artifact_class": "ops_doc",
+            "owner_role": "ROLE_OPERATIONS_LEAD",
+            "freshness_days": 14,
+            "mock_status": "prepare_now_submit_later",
+            "actual_status": "required_current",
+            "blocker_code": "BLOCKER_SERVICE_DESK_REGISTRATION_MISSING",
+            "source_refs": ["official_integrate"],
+        },
+        {
+            "artifact_id": "art_selector_map",
+            "name": "Live selector map and dry-run harness",
+            "stage_id": "ready_for_real_submission",
+            "artifact_class": "automation_contract",
+            "owner_role": "ROLE_PROGRAMME_ARCHITECT",
+            "freshness_days": 14,
+            "mock_status": "generate_now",
+            "actual_status": "required_current",
+            "blocker_code": "BLOCKER_SELECTOR_MAP_MISSING",
+            "source_refs": ["prompt/024.md"],
+        },
+        {
+            "artifact_id": "art_manual_checkpoint_log",
+            "name": "Manual checkpoint register",
+            "stage_id": "ready_for_real_submission",
+            "artifact_class": "governance_log",
+            "owner_role": "ROLE_PARTNER_ONBOARDING_LEAD",
+            "freshness_days": 14,
+            "mock_status": "generate_now",
+            "actual_status": "required_current",
+            "blocker_code": "BLOCKER_MANUAL_CHECKPOINT_REGISTER_MISSING",
+            "source_refs": ["prompt/024.md"],
+        },
+    ]
+
+    checkpoints = [
+        {
+            "checkpoint_id": "chk_internal_eligibility_review",
+            "stage_id": "product_fit_review",
+            "label": "Internal eligibility review",
+            "automation_posture": "manual_review_required",
+            "required_roles": ["ROLE_IDENTITY_PARTNER_MANAGER", "ROLE_PROGRAMME_ARCHITECT"],
+            "rejection_reasons": [
+                "Service is not commissioned or sponsored.",
+                "Route logic suggests NHS login is being treated as authorization.",
+                "Commissioner or sponsor posture is still unknown.",
+            ],
+        },
+        {
+            "checkpoint_id": "chk_preparation_call_ready",
+            "stage_id": "demo_prep",
+            "label": "Preparation call readiness",
+            "automation_posture": "manual_review_required",
+            "required_roles": ["ROLE_IDENTITY_PARTNER_MANAGER", "ROLE_PROGRAMME_ARCHITECT"],
+            "rejection_reasons": [
+                "Architecture or data-flow artefacts are stale.",
+                "User journeys do not include consent-denied or repeat sign-in flows.",
+                "Demo attendees do not cover technical, privacy, and clinical safety responsibilities.",
+            ],
+        },
+        {
+            "checkpoint_id": "chk_product_demo_outcome",
+            "stage_id": "integration_request_blocked_until_demo",
+            "label": "Product demonstration outcome",
+            "automation_posture": "manual_review_required",
+            "required_roles": ["ROLE_IDENTITY_PARTNER_MANAGER", "ROLE_PROGRAMME_ARCHITECT", "ROLE_SECURITY_LEAD"],
+            "rejection_reasons": [
+                "Product demo has not happened yet.",
+                "Vector of Trust or scopes remain unresolved.",
+                "Commercial, legal, or AI questions remain open.",
+            ],
+        },
+        {
+            "checkpoint_id": "chk_security_privacy_review",
+            "stage_id": "assurance_bundle_in_progress",
+            "label": "Security and privacy review",
+            "automation_posture": "manual_review_required",
+            "required_roles": ["ROLE_SECURITY_LEAD", "ROLE_DPO"],
+            "rejection_reasons": [
+                "Privacy notice is missing or not NHS login compliant.",
+                "Evidence pack is stale or not scoped to the NHS login feature.",
+                "Data-transfer and hosting posture are unclear.",
+            ],
+        },
+        {
+            "checkpoint_id": "chk_clinical_safety_review",
+            "stage_id": "assurance_bundle_in_progress",
+            "label": "Clinical safety review",
+            "automation_posture": "manual_review_required",
+            "required_roles": ["ROLE_MANUFACTURER_CSO"],
+            "rejection_reasons": [
+                "Clinical safety case is missing.",
+                "Hazard log is missing or unsigned.",
+                "Medical device assessment is not current.",
+            ],
+        },
+        {
+            "checkpoint_id": "chk_special_terms_review",
+            "stage_id": "connection_agreement_pending",
+            "label": "Connection agreement and special terms review",
+            "automation_posture": "manual_review_required",
+            "required_roles": ["ROLE_GOVERNANCE_LEAD", "ROLE_SECURITY_LEAD"],
+            "rejection_reasons": [
+                "Signatory is not confirmed.",
+                "Commissioner ownership model remains unclear.",
+                "Special terms or GDPR relationship questions are unresolved.",
+            ],
+        },
+        {
+            "checkpoint_id": "chk_signatory_confirmed",
+            "stage_id": "connection_agreement_pending",
+            "label": "Signatory confirmed",
+            "automation_posture": "manual_review_required",
+            "required_roles": ["ROLE_GOVERNANCE_LEAD"],
+            "rejection_reasons": [
+                "No legal signatory has been identified.",
+                "Commissioner ownership model is still placeholder-only.",
+            ],
+        },
+        {
+            "checkpoint_id": "chk_service_desk_registration_review",
+            "stage_id": "service_desk_registration_pending",
+            "label": "Service desk registration review",
+            "automation_posture": "manual_review_required",
+            "required_roles": ["ROLE_OPERATIONS_LEAD", "ROLE_SUPPORT_LEAD"],
+            "rejection_reasons": [
+                "No named incident contacts or escalation path exist.",
+                "Service Bridge handoff details are incomplete.",
+            ],
+        },
+        {
+            "checkpoint_id": "chk_live_submit_pause",
+            "stage_id": "ready_for_real_submission",
+            "label": "Pause-and-confirm before final submission",
+            "automation_posture": "explicit_pause_required",
+            "required_roles": ["ROLE_IDENTITY_PARTNER_MANAGER", "ROLE_SECURITY_LEAD", "ROLE_PROGRAMME_ARCHITECT"],
+            "rejection_reasons": [
+                "ALLOW_REAL_PROVIDER_MUTATION is not enabled.",
+                "Named approver, target environment, or current evidence bundle is missing.",
+                "Phase 0 external-readiness gate is still withheld.",
+            ],
+        },
+    ]
+
+    stages = [
+        {
+            "stage_id": "application_draft",
+            "label": "Application draft",
+            "summary": "Capture product summary, eligibility, sponsor placeholder, and basic service facts.",
+            "required_field_ids": [
+                "fld_service_name",
+                "fld_service_summary",
+                "fld_patient_eligibility",
+                "fld_commissioner_posture",
+            ],
+            "required_artifact_ids": [],
+            "required_checkpoint_ids": [],
+            "hard_blockers": [],
+        },
+        {
+            "stage_id": "product_fit_review",
+            "label": "Product fit review",
+            "summary": "Lock the route-family description and the boundary that NHS login authenticates but does not authorize.",
+            "required_field_ids": [
+                "fld_service_summary",
+                "fld_commissioner_posture",
+                "fld_sponsor_contact",
+                "fld_route_families",
+                "fld_identity_boundary",
+            ],
+            "required_artifact_ids": [],
+            "required_checkpoint_ids": ["chk_internal_eligibility_review"],
+            "hard_blockers": [
+                "BLOCKER_SPONSOR_OR_COMMISSIONER_UNKNOWN",
+            ],
+        },
+        {
+            "stage_id": "demo_prep",
+            "label": "Demo prep",
+            "summary": "Prepare the current architecture, data flow, user journeys, and live-demo walkthrough.",
+            "required_field_ids": [
+                "fld_identity_boundary",
+                "fld_user_journeys",
+                "fld_architecture_summary",
+                "fld_data_flow_summary",
+                "fld_demo_team",
+                "fld_demo_script_ref",
+            ],
+            "required_artifact_ids": [
+                "art_architecture_diagram",
+                "art_data_flow_diagram",
+                "art_user_journey_pack",
+                "art_demo_walkthrough",
+            ],
+            "required_checkpoint_ids": ["chk_preparation_call_ready"],
+            "hard_blockers": [],
+        },
+        {
+            "stage_id": "sandpit_request_ready",
+            "label": "Sandpit request ready",
+            "summary": "Prepare the friendly name, redirect URI, public key bundle, scope list, and environment rationale.",
+            "required_field_ids": [
+                "fld_sandpit_friendly_name",
+                "fld_redirect_uri_primary",
+                "fld_public_key_ref",
+                "fld_scopes_claims_summary",
+                "fld_vector_of_trust_profile",
+            ],
+            "required_artifact_ids": [
+                "art_sandpit_request_pack",
+                "art_redirect_matrix",
+                "art_public_key_bundle",
+            ],
+            "required_checkpoint_ids": [],
+            "hard_blockers": [],
+        },
+        {
+            "stage_id": "sandpit_requested",
+            "label": "Sandpit requested",
+            "summary": "Record the sandpit request and treat the account pack as pending until the provider responds.",
+            "required_field_ids": [],
+            "required_artifact_ids": ["art_sandpit_request_pack"],
+            "required_checkpoint_ids": [],
+            "hard_blockers": [],
+        },
+        {
+            "stage_id": "product_demo_pending",
+            "label": "Product demo pending",
+            "summary": "Stage the proof-of-concept demo, the sponsor placeholder, and the walkthrough pack.",
+            "required_field_ids": [
+                "fld_commissioner_posture",
+                "fld_sponsor_contact",
+                "fld_user_journeys",
+                "fld_demo_team",
+                "fld_demo_script_ref",
+                "fld_vector_of_trust_profile",
+            ],
+            "required_artifact_ids": ["art_demo_walkthrough"],
+            "required_checkpoint_ids": [],
+            "hard_blockers": ["BLOCKER_PRODUCT_DEMO_NOT_YET_HELD"],
+        },
+        {
+            "stage_id": "integration_request_blocked_until_demo",
+            "label": "Integration request blocked until demo",
+            "summary": "Make the provider rule explicit: integration access follows the product demonstration, not the other way around.",
+            "required_field_ids": [],
+            "required_artifact_ids": [],
+            "required_checkpoint_ids": ["chk_product_demo_outcome"],
+            "hard_blockers": ["BLOCKER_INTEGRATION_REQUEST_BLOCKED_UNTIL_PRODUCT_DEMO"],
+        },
+        {
+            "stage_id": "integration_request_ready",
+            "label": "Integration request ready",
+            "summary": "After demo approval, package the integration request and nominal target date with current redirect and key material.",
+            "required_field_ids": [
+                "fld_redirect_uri_primary",
+                "fld_public_key_ref",
+                "fld_scopes_claims_summary",
+                "fld_vector_of_trust_profile",
+                "fld_integration_target_date",
+            ],
+            "required_artifact_ids": ["art_integration_env_request", "art_redirect_matrix", "art_public_key_bundle"],
+            "required_checkpoint_ids": ["chk_product_demo_outcome"],
+            "hard_blockers": [],
+        },
+        {
+            "stage_id": "assurance_bundle_in_progress",
+            "label": "Assurance bundle in progress",
+            "summary": "Prepare SCAL, DSPT, privacy, safety, and architecture evidence without implying that any signed approval exists yet.",
+            "required_field_ids": [
+                "fld_architecture_summary",
+                "fld_data_flow_summary",
+                "fld_dspt_status",
+                "fld_privacy_notice_ref",
+                "fld_clinical_safety_owner",
+            ],
+            "required_artifact_ids": [
+                "art_scal_seed",
+                "art_dspt_evidence",
+                "art_privacy_notice",
+                "art_clinical_safety_case",
+                "art_hazard_log",
+                "art_medical_device_assessment",
+            ],
+            "required_checkpoint_ids": ["chk_security_privacy_review", "chk_clinical_safety_review"],
+            "hard_blockers": [],
+        },
+        {
+            "stage_id": "connection_agreement_pending",
+            "label": "Connection agreement pending",
+            "summary": "Separate the legal signatory path from technical readiness and keep ownership questions explicit.",
+            "required_field_ids": ["fld_connection_signatory", "fld_commissioner_posture"],
+            "required_artifact_ids": ["art_connection_agreement_notes"],
+            "required_checkpoint_ids": ["chk_special_terms_review", "chk_signatory_confirmed"],
+            "hard_blockers": ["BLOCKER_CONNECTION_AGREEMENT_SIGNATORY_UNKNOWN"],
+        },
+        {
+            "stage_id": "service_desk_registration_pending",
+            "label": "Service desk registration pending",
+            "summary": "Prepare the Service Bridge contacts and incident posture after connection-agreement work is current.",
+            "required_field_ids": ["fld_service_desk_contacts"],
+            "required_artifact_ids": ["art_service_desk_registration"],
+            "required_checkpoint_ids": ["chk_service_desk_registration_review"],
+            "hard_blockers": [],
+        },
+        {
+            "stage_id": "ready_for_real_submission",
+            "label": "Ready for real submission",
+            "summary": "Mock rehearsal can reach this dossier-complete state, but real submission remains fail-closed until the live gates pass.",
+            "required_field_ids": ["fld_named_approver", "fld_environment_target", "fld_live_mutation_flag"],
+            "required_artifact_ids": ["art_selector_map", "art_manual_checkpoint_log"],
+            "required_checkpoint_ids": ["chk_live_submit_pause"],
+            "hard_blockers": [
+                "LIVE_GATE_EXTERNAL_FOUNDATION_WITHHELD",
+                "LIVE_GATE_SPONSOR_UNKNOWN",
+                "LIVE_GATE_APPROVER_MISSING",
+                "LIVE_GATE_MUTATION_FLAG_DISABLED",
+            ],
+        },
+    ]
+
+    live_gates = [
+        {
+            "gate_id": "LIVE_GATE_EXTERNAL_FOUNDATION_WITHHELD",
+            "label": "Phase 0 external-readiness gate",
+            "status": "blocked",
+            "summary": f"seq_020 still reports `{phase0_verdict}` for Phase 0 entry; no real provider mutation may proceed while the external-readiness chain remains withheld.",
+            "required_for_submission": True,
+            "source_refs": ["data/analysis/phase0_gate_verdict.json", "prompt/024.md"],
+        },
+        {
+            "gate_id": "LIVE_GATE_CREDIBLE_MVP_OR_DEMO_ENV",
+            "label": "Credible MVP or demo environment",
+            "status": "review_required",
+            "summary": "The rehearsal environment exists, but there is not yet a real sponsor-approved MVP or live-admissible demo environment.",
+            "required_for_submission": True,
+            "source_refs": ["prompt/024.md", "official_integrate"],
+        },
+        {
+            "gate_id": "LIVE_GATE_SPONSOR_UNKNOWN",
+            "label": "Sponsor or commissioner identified",
+            "status": "blocked",
+            "summary": "The current dossier intentionally preserves sponsor and commissioner placeholders instead of inventing names.",
+            "required_for_submission": True,
+            "source_refs": ["official_apply_for_nhs_login", "prompt/024.md"],
+        },
+        {
+            "gate_id": "LIVE_GATE_ARCHITECTURE_CURRENT",
+            "label": "Architecture and data-flow artefacts current",
+            "status": "pass",
+            "summary": "This task creates the current architecture narrative, data-flow narrative, and the submission checklist rows that keep them current.",
+            "required_for_submission": True,
+            "source_refs": ["official_discovery", "official_integrate"],
+        },
+        {
+            "gate_id": "LIVE_GATE_USER_JOURNEYS_CURRENT",
+            "label": "User journeys current",
+            "status": "pass",
+            "summary": "The application field map and demo pack keep the required allow-share, deny-share, repeat sign-in, settings, and uplift flows explicit.",
+            "required_for_submission": True,
+            "source_refs": ["official_discovery"],
+        },
+        {
+            "gate_id": "LIVE_GATE_SAFETY_AND_PRIVACY_CURRENT",
+            "label": "Safety and privacy bundle current",
+            "status": "review_required",
+            "summary": "The pack seeds the required bundle, but live submission remains blocked until those artefacts become current and signed.",
+            "required_for_submission": True,
+            "source_refs": ["official_integrate", "prompt/024.md"],
+        },
+        {
+            "gate_id": "LIVE_GATE_APPROVER_MISSING",
+            "label": "Named approver present",
+            "status": "blocked",
+            "summary": "No named live approver is stored in repo fixtures or synthetic seed data.",
+            "required_for_submission": True,
+            "source_refs": ["prompt/024.md"],
+        },
+        {
+            "gate_id": "LIVE_GATE_ENVIRONMENT_TARGET_MISSING",
+            "label": "Environment target present",
+            "status": "blocked",
+            "summary": "Real runs must specify sandpit, integration, or production as a named target. The pack intentionally leaves the field blank.",
+            "required_for_submission": True,
+            "source_refs": ["prompt/024.md", "official_compare_environments"],
+        },
+        {
+            "gate_id": "LIVE_GATE_MUTATION_FLAG_DISABLED",
+            "label": "Live mutation flag enabled",
+            "status": "blocked",
+            "summary": "All generated browser automation defaults to dry-run and refuses live submission until ALLOW_REAL_PROVIDER_MUTATION=true.",
+            "required_for_submission": True,
+            "source_refs": ["prompt/shared_operating_contract_021_to_025.md", "prompt/024.md"],
+        },
+    ]
+
+    selector_map = {
+        "base_profile": {
+            "mode_toggle_mock": "[data-testid='mode-toggle-mock']",
+            "mode_toggle_actual": "[data-testid='mode-toggle-actual']",
+            "stage_rail": "[data-testid='stage-rail']",
+            "stage_card_prefix": "stage-card-",
+            "field_prefix": "field-",
+            "artifact_prefix": "artifact-toggle-",
+            "next_stage_button": "[data-testid='next-stage-button']",
+            "previous_stage_button": "[data-testid='previous-stage-button']",
+            "save_banner": "[data-testid='autosave-banner']",
+            "evidence_drawer": "[data-testid='evidence-drawer']",
+            "actual_submission_notice": "[data-testid='actual-submission-notice']",
+        },
+        "live_provider_placeholder": {
+            "application_form": "[data-live-form='nhs-login-application']",
+            "friendly_name": "[name='friendly_name']",
+            "redirect_uri": "[name='redirect_uri']",
+            "public_key": "[name='public_key_reference']",
+            "scopes": "[name='scopes']",
+            "save_progress": "[data-live-action='save-progress']",
+            "continue": "[data-live-action='continue']",
+            "final_submit": "[data-live-action='final-submit']",
+        },
+    }
+
+    draft_values = {
+        "fld_service_name": "Vecells",
+        "fld_service_summary": "FHIR-native primary care access and operations layer for safe access, routing, booking, pharmacy, and communications continuity.",
+        "fld_patient_eligibility": "Patients registered at GP practices in England or receiving NHS services in England.",
+        "fld_commissioner_posture": "Sponsor and commissioner still placeholder-only; live progression blocked until real ownership exists.",
+        "fld_sponsor_contact": "TBD sponsor owner",
+        "fld_route_families": "public_request, authenticated_status, request_claim, booking_manage, pharmacy_follow_up, communications",
+        "fld_identity_boundary": "Authentication and consent share happen via NHS login; local session, route intent, grants, and writable authority stay inside Vecells.",
+        "fld_user_journeys": "allow_share, deny_share, repeat_sign_in, settings_return, p5_navigation, p9_uplift, delegated_access_placeholder",
+        "fld_architecture_summary": "Client-first browser shell, gateway boundary, identity bridge, audit, and dual-UK-region runtime.",
+        "fld_data_flow_summary": "Claims enter bridge, settle session and route intent, and only then unlock bounded patient actions.",
+        "fld_demo_team": "product-lead; technical-architect; security-lead; privacy-lead; clinical-safety-owner; sponsor-placeholder",
+        "fld_demo_script_ref": "24_demo_walkthrough_internal_v1",
+        "fld_sandpit_friendly_name": "Vecells Partner Access Atelier",
+        "fld_redirect_uri_primary": "https://vecells.example/mock/callback/nhs-login",
+        "fld_public_key_ref": "PUBKEY_VECELLS_NHS_LOGIN_NONPROD_01",
+        "fld_scopes_claims_summary": "openid profile email phone profile_extended_placeholder",
+        "fld_vector_of_trust_profile": "P5 for continuity, P9 for PHI-bearing actions",
+        "fld_integration_target_date": "No live date until approvals exist",
+        "fld_dspt_status": "placeholder_only",
+        "fld_privacy_notice_ref": "PRIVACY_NOTICE_VECELLS_NHS_LOGIN_DRAFT",
+        "fld_clinical_safety_owner": "ROLE_MANUFACTURER_CSO placeholder",
+        "fld_connection_signatory": "TBD signatory",
+        "fld_service_desk_contacts": "ops-lead; support-lead; incident-manager",
+        "fld_named_approver": "",
+        "fld_environment_target": "",
+        "fld_live_mutation_flag": "false",
+    }
+
+    stage_artifact_defaults = {
+        "art_architecture_diagram": True,
+        "art_data_flow_diagram": True,
+        "art_user_journey_pack": True,
+        "art_demo_walkthrough": True,
+        "art_sandpit_request_pack": True,
+        "art_redirect_matrix": True,
+        "art_public_key_bundle": True,
+        "art_integration_env_request": False,
+        "art_scal_seed": False,
+        "art_dspt_evidence": False,
+        "art_privacy_notice": False,
+        "art_clinical_safety_case": False,
+        "art_hazard_log": False,
+        "art_medical_device_assessment": False,
+        "art_connection_agreement_notes": False,
+        "art_service_desk_registration": False,
+        "art_selector_map": True,
+        "art_manual_checkpoint_log": True,
+    }
+
+    checkpoint_defaults = {
+        "chk_internal_eligibility_review": False,
+        "chk_preparation_call_ready": False,
+        "chk_product_demo_outcome": False,
+        "chk_security_privacy_review": False,
+        "chk_clinical_safety_review": False,
+        "chk_special_terms_review": False,
+        "chk_signatory_confirmed": False,
+        "chk_service_desk_registration_review": False,
+        "chk_live_submit_pause": False,
+    }
+
+    pack = {
+        "task_id": "seq_024",
+        "visual_mode": VISUAL_MODE,
+        "mission": MISSION,
+        "captured_at": captured_at,
+        "source_precedence": SOURCE_PRECEDENCE,
+        "official_guidance": OFFICIAL_GUIDANCE,
+        "stage_order": STAGE_ORDER,
+        "fields": fields,
+        "artifacts": artifacts,
+        "manual_checkpoints": checkpoints,
+        "stages": stages,
+        "live_gates": live_gates,
+        "selector_map": selector_map,
+        "draft_values": draft_values,
+        "artifact_defaults": stage_artifact_defaults,
+        "checkpoint_defaults": checkpoint_defaults,
+        "assumptions": [
+            {
+                "assumption_id": "ASSUMPTION_NHS_LOGIN_SPONSOR_PLACEHOLDER",
+                "summary": "Current-stage Vecells does not yet have a named NHS commissioner or sponsor in repo-backed evidence, so the pack keeps the field explicit and blocks live progression.",
+            },
+            {
+                "assumption_id": "ASSUMPTION_NHS_LOGIN_GO_LIVE_WINDOW",
+                "summary": "The real target date remains blank until product demonstration, sponsor, and assurance evidence become real rather than synthetic.",
+            },
+        ],
+        "summary": {
+            "stage_count": len(stages),
+            "field_count": len(fields),
+            "artifact_count": len(artifacts),
+            "manual_checkpoint_count": len(checkpoints),
+            "live_gate_count": len(live_gates),
+            "phase0_verdict": phase0_verdict,
+            "phase0_withheld": phase0_verdict == "withheld",
+            "integration_lane": "hybrid_mock_then_live",
+            "current_real_submission_posture": "blocked",
+            "current_mock_execution_posture": "executable",
+            "coverage_summary_requirements_with_gaps": prereqs["coverage_summary"]["summary"]["requirements_with_gaps_count"],
+        },
+    }
+    return pack
+
+
+def artifact_csv_rows(pack: dict[str, Any]) -> list[dict[str, Any]]:
+    checkpoint_index = {item["checkpoint_id"]: item for item in pack["manual_checkpoints"]}
+    rows = []
+    for artifact in pack["artifacts"]:
+        stage = next(item for item in pack["stages"] if item["stage_id"] == artifact["stage_id"])
+        checkpoint_ids = [item for item in stage["required_checkpoint_ids"] if checkpoint_index[item]["stage_id"] == artifact["stage_id"]]
+        rows.append(
+            {
+                "artifact_id": artifact["artifact_id"],
+                "artifact_name": artifact["name"],
+                "stage_id": artifact["stage_id"],
+                "stage_label": stage["label"],
+                "artifact_class": artifact["artifact_class"],
+                "owner_role": artifact["owner_role"],
+                "freshness_days": artifact["freshness_days"],
+                "mock_status": artifact["mock_status"],
+                "actual_status": artifact["actual_status"],
+                "blocker_code": artifact["blocker_code"],
+                "manual_checkpoint_refs": ",".join(checkpoint_ids),
+                "source_refs": " | ".join(artifact["source_refs"]),
+            }
+        )
+    return rows
+
+
+def pack_ts(pack: dict[str, Any]) -> str:
+    return (
+        "// Generated by tools/analysis/build_nhs_login_application_pack.py\n"
+        f"export const nhsLoginPack = {json.dumps(pack, indent=2)} as const;\n"
+        "export type NhsLoginPack = typeof nhsLoginPack;\n"
+    )
+
+
+def build_mock_strategy_md(pack: dict[str, Any]) -> str:
+    stage_rows = "\n".join(
+        f"| `{stage['stage_id']}` | {stage['label']} | {stage['summary']} |"
+        for stage in pack["stages"]
+    )
+    return textwrap.dedent(
+        f"""
+        # 24 NHS Login Mock Onboarding Strategy
+
+        This pack keeps the NHS login onboarding track honest by separating the executable rehearsal path from the later live provider path. The mock is meant to exercise product-fit, dossier readiness, evidence readiness, and checkpoint handling now without claiming that Vecells is already eligible for a real submission.
+
+        ## Summary
+
+        - visual mode: `{pack["visual_mode"]}`
+        - stages: {pack["summary"]["stage_count"]}
+        - fields: {pack["summary"]["field_count"]}
+        - artifacts: {pack["summary"]["artifact_count"]}
+        - manual checkpoints: {pack["summary"]["manual_checkpoint_count"]}
+        - live gates: {pack["summary"]["live_gate_count"]}
+        - current mock execution posture: `{pack["summary"]["current_mock_execution_posture"]}`
+        - current real submission posture: `{pack["summary"]["current_real_submission_posture"]}`
+
+        ## Section A — `Mock_now_execution`
+
+        The mock twin is intentionally not a visual clone of NHS login. It is an internal rehearsal surface that models the operational path:
+
+        1. application draft
+        2. product fit review
+        3. demo preparation
+        4. sandpit request readiness
+        5. sandpit requested
+        6. product demo pending
+        7. integration blocked until demo
+        8. integration request ready
+        9. assurance bundle in progress
+        10. connection agreement pending
+        11. service desk registration pending
+        12. ready for real submission
+
+        The mock faithfully simulates:
+        - stage-to-stage blocker handling
+        - evidence attachment and freshness
+        - sponsor and commissioner placeholders
+        - architecture, data-flow, and user-journey readiness
+        - product demonstration dependency before integration access
+        - later legal, assurance, and operational checkpoints
+        - fail-closed live-submission posture
+
+        The mock deliberately leaves these as placeholders instead of inventing fake truth:
+        - named sponsor or commissioner identity
+        - named signatory
+        - named live approver
+        - live target environment
+        - live mutation enablement
+
+        ## Mock stage model
+
+        | Stage id | Label | What it proves |
+        | --- | --- | --- |
+        {stage_rows}
+
+        ## Section B — `Actual_provider_strategy_later`
+
+        The mock stays aligned with later live work by using the same field map, selector map, manual checkpoint register, and live gate model. When real onboarding begins, the same stages still apply, but real progression remains blocked until sponsor, assurance, approver, and environment gates become true with current evidence.
+
+        Grounding:
+        - `blueprint/phase-0-the-foundation-protocol.md` and `blueprint/phase-2-identity-and-echoes.md` keep auth callback success separate from local session, route intent, and writable authority.
+        - `official_apply_for_nhs_login`, `official_discovery`, and `official_integrate` define the live process order: eligibility -> discovery -> demo -> integration -> assurance -> connection agreement -> service desk.
+        - `official_integrating_to_sandpit` and `official_multiple_redirect_uris` keep redirect, key, and scope inputs governed instead of ad hoc.
+        """
+    ).strip()
+
+
+def build_actual_strategy_md(pack: dict[str, Any]) -> str:
+    source_rows = "\n".join(
+        f"| {source['title']} | {source['summary']} | {source['url']} |"
+        for source in pack["official_guidance"]
+    )
+    gate_rows = "\n".join(
+        f"| `{gate['gate_id']}` | `{gate['status']}` | {gate['summary']} |"
+        for gate in pack["live_gates"]
+    )
+    return textwrap.dedent(
+        f"""
+        # 24 NHS Login Actual Onboarding Strategy
+
+        This strategy captures the real NHS login partner path for later use while failing closed today. The official process structure comes from current NHS England Digital and NHS Connect guidance accessed on `2026-04-09`. Vecells product logic remains governed by the blueprint corpus, not by the provider forms.
+
+        ## Section A — `Mock_now_execution`
+
+        The mock twin is used as the rehearsal substrate for the real provider path. Every real form section, checkpoint, and evidence bundle must first exist in the mock pack as a structured field, artefact, or manual checkpoint. That is the anti-drift control.
+
+        ## Section B — `Actual_provider_strategy_later`
+
+        Later live progression should follow this order:
+        1. confirm service eligibility and sponsorship
+        2. complete the application and review call path
+        3. build a proof of concept in sandpit
+        4. complete preparation and product demonstration calls
+        5. request integration environment access
+        6. complete SCAL, privacy, DSPT, safety, and technical conformance evidence
+        7. complete the connection agreement
+        8. complete National Service Desk registration
+        9. run the formal review cycle and wait for live enablement
+
+        Official source alignment:
+
+        | Source | Why it matters | URL |
+        | --- | --- | --- |
+        {source_rows}
+
+        Live gate posture:
+
+        | Gate | Status | Meaning |
+        | --- | --- | --- |
+        {gate_rows}
+
+        Automation law:
+        - Browser automation defaults to dry-run only.
+        - The selector map is data-driven in `data/analysis/nhs_login_live_gate_conditions.json`.
+        - Final submission requires `ALLOW_REAL_PROVIDER_MUTATION=true`, named approver, target environment, and current evidence presence.
+        - Screenshot capture is allowed only with synthetic or redacted values.
+        - Final-submit actions must pause for explicit operator confirmation.
+
+        Identity law carried through to provider onboarding:
+        - NHS login authenticates and verifies. It does not authorize Vecells actions or local session scope.
+        - Consent denial must return to a bounded local product state, not a generic success.
+        - Redirect URI inventory must stay tied to route families and state-parameter fan-out rather than freeform callback sprawl.
+        - Completion of a provider form never implies that Vecells may expose writable patient actions.
+        """
+    ).strip()
+
+
+def build_dossier_md(pack: dict[str, Any]) -> str:
+    field_rows = "\n".join(
+        f"| `{field['field_id']}` | {field['section']} | {field['label']} | {field['mock_value'] or '(blank)'} | {field['actual_placeholder']} |"
+        for field in pack["fields"]
+    )
+    return textwrap.dedent(
+        f"""
+        # 24 NHS Login Application Dossier
+
+        The dossier is the canonical field-level input model shared by the mock twin, the live dry-run harness, and the validation script.
+
+        ## Section A — `Mock_now_execution`
+
+        In mock mode every field has either a synthetic seeded value or an explicit blank that demonstrates why live progression must remain blocked.
+
+        ## Section B — `Actual_provider_strategy_later`
+
+        In actual later mode each field has an explicit capture contract so the team knows exactly what still has to become real.
+
+        | Field id | Section | Label | Mock seed | Actual capture contract |
+        | --- | --- | --- | --- | --- |
+        {field_rows}
+        """
+    ).strip()
+
+
+def build_checkpoint_md(pack: dict[str, Any]) -> str:
+    rows = "\n".join(
+        f"| `{item['checkpoint_id']}` | `{item['stage_id']}` | {item['label']} | {item['automation_posture']} | {'; '.join(item['required_roles'])} | {' / '.join(item['rejection_reasons'])} |"
+        for item in pack["manual_checkpoints"]
+    )
+    return textwrap.dedent(
+        f"""
+        # 24 NHS Login Manual Checkpoint Register
+
+        This register names the product demonstration, assurance, legal, and service-desk steps that must not be silently automated end-to-end.
+
+        ## Section A — `Mock_now_execution`
+
+        Each checkpoint is simulated inside the mock as an explicit unresolved review item so the team can rehearse rejection reasons and see where progression halts.
+
+        ## Section B — `Actual_provider_strategy_later`
+
+        Each checkpoint remains a human-owned gate even when dry-run browser automation is available.
+
+        | Checkpoint | Stage | Label | Automation posture | Roles | Rejection reasons |
+        | --- | --- | --- | --- | --- | --- |
+        {rows}
+        """
+    ).strip()
+
+
+def build_studio_html(pack: dict[str, Any]) -> str:
+    payload = json_for_js(pack)
+    html = textwrap.dedent(
+        """
+        <!doctype html>
+        <html lang="en">
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <title>Vecells NHS Login Partner Access Atelier</title>
+          <link
+            rel="icon"
+            href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M12 32c0-11 9-20 20-20h20v12H32a8 8 0 0 0 0 16h8v12h-8c-11 0-20-9-20-20Z' fill='%232F5BFF'/%3E%3Cpath d='M52 20v24c0 4.4-3.6 8-8 8h-4V12h4c4.4 0 8 3.6 8 8Z' fill='%236E59D9'/%3E%3C/svg%3E"
+          />
+          <style>
+            :root {{
+              --canvas: #F5F7FA;
+              --panel: #FFFFFF;
+              --inset: #EEF2F6;
+              --text-strong: #101828;
+              --text-default: #1D2939;
+              --text-muted: #667085;
+              --border-subtle: #E4E7EC;
+              --border-default: #D0D5DD;
+              --primary: #2F5BFF;
+              --secondary: #6E59D9;
+              --progress: #0F9D58;
+              --warning: #C98900;
+              --blocked: #C24141;
+              --radius: 18px;
+              --shadow: 0 18px 48px rgba(16, 24, 40, 0.08);
+            }}
+            * {{ box-sizing: border-box; }}
+            html {{ color-scheme: light; }}
+            body {{
+              margin: 0;
+              background:
+                radial-gradient(circle at top left, rgba(47, 91, 255, 0.08), transparent 34%),
+                radial-gradient(circle at top right, rgba(110, 89, 217, 0.08), transparent 26%),
+                var(--canvas);
+              color: var(--text-default);
+              font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            }}
+            button, input, textarea {{ font: inherit; }}
+            a {{ color: var(--primary); }}
+            .shell {{
+              max-width: 1440px;
+              margin: 0 auto;
+              padding: 24px;
+            }}
+            .header {{
+              position: sticky;
+              top: 0;
+              z-index: 10;
+              display: grid;
+              grid-template-columns: 1.4fr 1fr;
+              gap: 16px;
+              min-height: 72px;
+              margin-bottom: 24px;
+            }}
+            .banner, .toggle-card, .panel, .stage-card, .artifact-chip, .inspector-card, .table-card {{
+              background: rgba(255,255,255,0.94);
+              border: 1px solid var(--border-subtle);
+              border-radius: var(--radius);
+              box-shadow: var(--shadow);
+            }}
+            .banner {{
+              display: grid;
+              grid-template-columns: repeat(4, minmax(0, 1fr));
+              gap: 12px;
+              padding: 16px 18px;
+              align-items: center;
+              backdrop-filter: blur(12px);
+            }}
+            .toggle-card {{
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 16px;
+              padding: 16px 18px;
+            }}
+            .toggle-row {{
+              display: flex;
+              gap: 8px;
+            }}
+            .mode-toggle {{
+              height: 44px;
+              min-width: 132px;
+              border: 1px solid var(--border-default);
+              border-radius: 999px;
+              background: var(--panel);
+              color: var(--text-default);
+              cursor: pointer;
+            }}
+            .mode-toggle[aria-pressed="true"] {{
+              background: var(--primary);
+              color: white;
+              border-color: var(--primary);
+            }}
+            .metric label {{
+              display: block;
+              color: var(--text-muted);
+              font-size: 12px;
+              margin-bottom: 4px;
+            }}
+            .metric strong {{
+              color: var(--text-strong);
+              font-size: 16px;
+            }}
+            .layout {{
+              display: grid;
+              grid-template-columns: 280px minmax(0, 1fr) 380px;
+              gap: 20px;
+            }}
+            .rail {{
+              display: grid;
+              gap: 12px;
+              align-content: start;
+            }}
+            .stage-card {{
+              padding: 14px;
+              cursor: pointer;
+              transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+            }}
+            .stage-card.active {{
+              border-color: var(--primary);
+              box-shadow: 0 20px 50px rgba(47, 91, 255, 0.18);
+              transform: translateY(-1px);
+            }}
+            .stage-card.blocked {{
+              border-color: rgba(194, 65, 65, 0.35);
+            }}
+            .stage-tag {{
+              display: inline-flex;
+              align-items: center;
+              height: 28px;
+              padding: 0 10px;
+              border-radius: 999px;
+              background: var(--inset);
+              color: var(--text-muted);
+              font-size: 12px;
+              font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+              margin-bottom: 8px;
+            }}
+            .stage-card h3 {{
+              margin: 0 0 6px;
+              font-size: 15px;
+              color: var(--text-strong);
+            }}
+            .stage-card p {{
+              margin: 0;
+              color: var(--text-muted);
+            }}
+            .workspace {{
+              display: grid;
+              gap: 16px;
+            }}
+            .panel {{
+              padding: 18px;
+            }}
+            .wordmark {{
+              display: inline-flex;
+              align-items: center;
+              gap: 10px;
+              margin-bottom: 14px;
+            }}
+            .wordmark svg {{
+              width: 38px;
+              height: 38px;
+            }}
+            .mock-ribbon {{
+              display: inline-flex;
+              align-items: center;
+              padding: 6px 10px;
+              border-radius: 999px;
+              background: rgba(47, 91, 255, 0.12);
+              color: var(--primary);
+              font-size: 12px;
+              font-weight: 600;
+              letter-spacing: 0.04em;
+              text-transform: uppercase;
+            }}
+            .field-grid {{
+              display: grid;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 14px;
+            }}
+            .field-card {{
+              min-height: 160px;
+              padding: 14px;
+              border-radius: 16px;
+              border: 1px solid var(--border-subtle);
+              background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(238,242,246,0.8));
+            }}
+            .field-card label {{
+              display: block;
+              font-size: 12px;
+              color: var(--text-muted);
+              margin-bottom: 8px;
+            }}
+            .field-card textarea,
+            .field-card input {{
+              width: 100%;
+              min-height: 96px;
+              border: 1px solid var(--border-default);
+              border-radius: 14px;
+              background: var(--panel);
+              padding: 12px;
+              color: var(--text-strong);
+            }}
+            .field-card input {{ min-height: 44px; }}
+            .section-title {{
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 10px;
+              margin-bottom: 14px;
+            }}
+            .section-title h2, .section-title h3 {{
+              margin: 0;
+              color: var(--text-strong);
+            }}
+            .artifact-row {{
+              display: grid;
+              gap: 10px;
+            }}
+            .artifact-chip {{
+              display: grid;
+              grid-template-columns: 1fr auto;
+              gap: 12px;
+              align-items: center;
+              padding: 14px;
+            }}
+            .artifact-chip button,
+            .nav-actions button {{
+              height: 44px;
+              border-radius: 14px;
+              border: 1px solid var(--border-default);
+              background: var(--panel);
+              color: var(--text-strong);
+              cursor: pointer;
+            }}
+            .artifact-chip button.attached {{
+              background: rgba(15, 157, 88, 0.12);
+              border-color: rgba(15, 157, 88, 0.35);
+              color: var(--progress);
+            }}
+            .chip-list {{
+              display: flex;
+              flex-wrap: wrap;
+              gap: 8px;
+              margin-top: 12px;
+            }}
+            .blocker-chip {{
+              display: inline-flex;
+              align-items: center;
+              min-height: 28px;
+              padding: 4px 10px;
+              border-radius: 999px;
+              background: rgba(194, 65, 65, 0.08);
+              color: var(--blocked);
+              font-size: 12px;
+            }}
+            .info-chip {{
+              display: inline-flex;
+              align-items: center;
+              min-height: 28px;
+              padding: 4px 10px;
+              border-radius: 999px;
+              background: rgba(47, 91, 255, 0.08);
+              color: var(--primary);
+              font-size: 12px;
+            }}
+            .inspector {{
+              display: grid;
+              gap: 16px;
+              align-content: start;
+            }}
+            .inspector-card {{
+              padding: 18px;
+            }}
+            .inspector-card h3 {{
+              margin-top: 0;
+              color: var(--text-strong);
+            }}
+            .nav-actions {{
+              display: flex;
+              gap: 12px;
+              justify-content: space-between;
+              margin-top: 18px;
+            }}
+            .nav-actions button.primary {{
+              background: var(--primary);
+              border-color: var(--primary);
+              color: white;
+            }}
+            .table-card {{
+              padding: 18px;
+            }}
+            table {{
+              width: 100%;
+              border-collapse: collapse;
+            }}
+            th, td {{
+              text-align: left;
+              padding: 12px 10px;
+              border-bottom: 1px solid var(--border-subtle);
+              vertical-align: top;
+            }}
+            th {{
+              color: var(--text-muted);
+              font-weight: 600;
+            }}
+            .diagram {{
+              display: grid;
+              grid-template-columns: repeat(6, minmax(0, 1fr));
+              gap: 10px;
+              margin-bottom: 16px;
+            }}
+            .diagram-node {{
+              min-height: 92px;
+              padding: 12px;
+              border: 1px solid var(--border-default);
+              border-radius: 18px;
+              background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(238,242,246,0.82));
+            }}
+            .mono {{
+              font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            }}
+            [data-reduced-motion="true"] * {{
+              animation: none !important;
+              transition: none !important;
+              scroll-behavior: auto !important;
+            }}
+            :focus-visible {{
+              outline: 2px solid var(--primary);
+              outline-offset: 2px;
+            }}
+            @media (max-width: 1180px) {{
+              .layout {{ grid-template-columns: 1fr; }}
+              .inspector {{ order: 3; }}
+              .rail {{ order: 1; grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+              .workspace {{ order: 2; }}
+            }}
+            @media (max-width: 760px) {{
+              .shell {{ padding: 16px; }}
+              .header {{ grid-template-columns: 1fr; }}
+              .banner {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+              .field-grid, .rail, .diagram {{ grid-template-columns: 1fr; }}
+            }}
+          </style>
+        </head>
+        <body>
+          <main class="shell" data-testid="atelier-shell">
+            <section class="header">
+              <div class="banner" data-testid="readiness-banner">
+                <div class="metric"><label>Current stage</label><strong id="metric-stage"></strong></div>
+                <div class="metric"><label>Blocker count</label><strong id="metric-blockers"></strong></div>
+                <div class="metric"><label>Evidence freshness</label><strong id="metric-freshness"></strong></div>
+                <div class="metric"><label>Autosave</label><strong id="metric-save"></strong></div>
+              </div>
+              <div class="toggle-card">
+                <div>
+                  <div class="mock-ribbon">Mock_Onboarding</div>
+                  <div style="margin-top:8px;color:var(--text-muted)">Internal rehearsal only. Real progression stays fail-closed.</div>
+                </div>
+                <div class="toggle-row" data-testid="mode-toggle">
+                  <button class="mode-toggle" id="toggle-mock" data-testid="mode-toggle-mock" aria-pressed="true">Mock now</button>
+                  <button class="mode-toggle" id="toggle-actual" data-testid="mode-toggle-actual" aria-pressed="false">Actual later</button>
+                </div>
+              </div>
+            </section>
+
+            <div class="layout">
+              <aside class="rail" data-testid="stage-rail"></aside>
+
+              <section class="workspace">
+                <section class="panel" data-testid="form-sections">
+                  <div class="wordmark">
+                    <svg viewBox="0 0 64 64" aria-hidden="true">
+                      <path d="M12 32c0-11 9-20 20-20h20v12H32a8 8 0 0 0 0 16h8v12h-8c-11 0-20-9-20-20Z" fill="#2F5BFF"></path>
+                      <path d="M52 20v24c0 4.4-3.6 8-8 8h-4V12h4c4.4 0 8 3.6 8 8Z" fill="#6E59D9"></path>
+                    </svg>
+                    <div>
+                      <div class="mono" style="font-size:12px;color:var(--text-muted)">Vecells / Partner_Access_Atelier</div>
+                      <strong style="font-size:20px;color:var(--text-strong)">NHS login rehearsal workspace</strong>
+                    </div>
+                  </div>
+                  <div class="section-title">
+                    <h2 id="section-stage-title"></h2>
+                    <span class="info-chip" id="autosave-banner" data-testid="autosave-banner">Draft persistence armed</span>
+                  </div>
+                  <div class="field-grid" id="field-grid"></div>
+                </section>
+
+                <section class="panel" data-testid="artifact-panel">
+                  <div class="section-title">
+                    <h3>Evidence checklist</h3>
+                    <span class="info-chip">Synthetic attachments only</span>
+                  </div>
+                  <div class="artifact-row" id="artifact-list"></div>
+                </section>
+
+                <section class="table-card">
+                  <div class="section-title">
+                    <h3>Onboarding funnel</h3>
+                    <span class="info-chip mono" data-testid="process-diagram">application → demo → sandpit → integration → assurance → agreement → service desk</span>
+                  </div>
+                  <div class="diagram" id="process-diagram-grid"></div>
+                  <table data-testid="process-parity-table">
+                    <thead>
+                      <tr><th>Stage</th><th>Dependencies</th><th>Outcome</th></tr>
+                    </thead>
+                    <tbody id="process-parity-body"></tbody>
+                  </table>
+                </section>
+              </section>
+
+              <aside class="inspector">
+                <section class="inspector-card" data-testid="evidence-drawer">
+                  <h3>Evidence drawer</h3>
+                  <div id="evidence-drawer-body"></div>
+                </section>
+                <section class="inspector-card" data-testid="actual-submission-notice">
+                  <h3>Actual submission notice</h3>
+                  <div id="live-gates-body"></div>
+                </section>
+                <section class="inspector-card">
+                  <h3>Stage blockers</h3>
+                  <div class="chip-list" id="blocker-list" data-testid="blocker-chips"></div>
+                  <div class="nav-actions">
+                    <button id="prev-stage" data-testid="previous-stage-button">Previous</button>
+                    <button class="primary" id="next-stage" data-testid="next-stage-button">Next</button>
+                  </div>
+                </section>
+              </aside>
+            </div>
+          </main>
+
+          <script>
+            const PACK = __PACK_PAYLOAD__;
+            const STORAGE_KEY = "vecells-nhs-login-atelier";
+            const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            if (prefersReducedMotion) document.body.dataset.reducedMotion = "true";
+
+            const state = {{
+              mode: "mock",
+              stageId: PACK.stage_order[0],
+              selectedArtifactId: PACK.artifacts[0]?.artifact_id ?? null,
+              values: {{ ...PACK.draft_values }},
+              artifacts: {{ ...PACK.artifact_defaults }},
+              checkpoints: {{ ...PACK.checkpoint_defaults }},
+              lastSavedAt: null,
+            }};
+
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {{
+              try {{
+                const parsed = JSON.parse(saved);
+                Object.assign(state, parsed, {{
+                  values: {{ ...PACK.draft_values, ...(parsed.values || {{}}) }},
+                  artifacts: {{ ...PACK.artifact_defaults, ...(parsed.artifacts || {{}}) }},
+                  checkpoints: {{ ...PACK.checkpoint_defaults, ...(parsed.checkpoints || {{}}) }},
+                }});
+              }} catch (error) {{
+                console.warn("Ignoring saved rehearsal draft", error);
+              }}
+            }}
+
+            let saveTimer = null;
+
+            function scheduleSave() {{
+              clearTimeout(saveTimer);
+              saveTimer = window.setTimeout(() => {{
+                state.lastSavedAt = new Date().toISOString();
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                render();
+              }}, 160);
+            }}
+
+            function currentStage() {{
+              return PACK.stages.find((stage) => stage.stage_id === state.stageId);
+            }}
+
+            function currentStageIndex() {{
+              return PACK.stage_order.indexOf(state.stageId);
+            }}
+
+            function fieldById(fieldId) {{
+              return PACK.fields.find((field) => field.field_id === fieldId);
+            }}
+
+            function artifactById(artifactId) {{
+              return PACK.artifacts.find((artifact) => artifact.artifact_id === artifactId);
+            }}
+
+            function checkpointById(checkpointId) {{
+              return PACK.manual_checkpoints.find((item) => item.checkpoint_id === checkpointId);
+            }}
+
+            function stageBlockers(stage) {{
+              const blockers = [];
+              for (const fieldId of stage.required_field_ids) {{
+                const value = (state.values[fieldId] || "").trim();
+                if (!value) blockers.push(`Missing field: ${fieldById(fieldId).label}`);
+              }}
+              for (const artifactId of stage.required_artifact_ids) {{
+                if (!state.artifacts[artifactId]) blockers.push(`Missing evidence: ${artifactById(artifactId).name}`);
+              }}
+              for (const checkpointId of stage.required_checkpoint_ids) {{
+                if (!state.checkpoints[checkpointId]) blockers.push(`Review unresolved: ${checkpointById(checkpointId).label}`);
+              }}
+              for (const code of stage.hard_blockers) blockers.push(code.replaceAll("_", " "));
+              if (state.mode === "actual" && stage.stage_id === "ready_for_real_submission") {{
+                for (const gate of PACK.live_gates.filter((item) => item.status !== "pass")) {{
+                  blockers.push(`${gate.label}: ${gate.summary}`);
+                }}
+              }}
+              return blockers;
+            }}
+
+            function freshnessDigest() {{
+              const total = PACK.artifacts.filter((artifact) => state.artifacts[artifact.artifact_id]).length;
+              return `${total}/${PACK.artifacts.length} attached`;
+            }}
+
+            function renderRail() {{
+              const rail = document.querySelector("[data-testid='stage-rail']");
+              rail.innerHTML = "";
+              PACK.stages.forEach((stage) => {{
+                const blockers = stageBlockers(stage);
+                const article = document.createElement("button");
+                article.type = "button";
+                article.className = `stage-card${{stage.stage_id === state.stageId ? " active" : ""}}${{blockers.length ? " blocked" : ""}}`;
+                article.dataset.testid = `stage-card-${{stage.stage_id}}`;
+                article.id = `stage-card-${{stage.stage_id}}`;
+                article.innerHTML = `
+                  <span class="stage-tag mono">${{stage.stage_id}}</span>
+                  <h3>${{stage.label}}</h3>
+                  <p>${{stage.summary}}</p>
+                  <div class="chip-list" style="margin-top:10px">
+                    <span class="info-chip">${{blockers.length ? blockers.length + " blockers" : "clear"}}</span>
+                  </div>
+                `;
+                article.addEventListener("click", () => {{
+                  state.stageId = stage.stage_id;
+                  render();
+                }});
+                rail.appendChild(article);
+              }});
+            }}
+
+            function renderFields() {{
+              const stage = currentStage();
+              const grid = document.getElementById("field-grid");
+              document.getElementById("section-stage-title").textContent = stage.label;
+              grid.innerHTML = "";
+              const requiredFields = stage.required_field_ids.map(fieldById);
+              requiredFields.forEach((field) => {{
+                const card = document.createElement("div");
+                card.className = "field-card";
+                card.dataset.testid = `field-section-${{field.field_id}}`;
+                const isText = field.field_type === "text";
+                const control = isText ? document.createElement("input") : document.createElement("textarea");
+                control.value = state.values[field.field_id] || "";
+                control.placeholder = state.mode === "mock" ? field.mock_value : field.actual_placeholder;
+                control.dataset.testid = `field-${{field.field_id}}`;
+                control.id = `field-${{field.field_id}}`;
+                control.addEventListener("input", (event) => {{
+                  state.values[field.field_id] = event.target.value;
+                  scheduleSave();
+                }});
+                const label = document.createElement("label");
+                label.setAttribute("for", control.id);
+                label.textContent = field.label;
+                const detail = document.createElement("div");
+                detail.style.marginTop = "8px";
+                detail.style.color = "var(--text-muted)";
+                detail.textContent = state.mode === "mock" ? "Mock seed and editable rehearsal value." : field.actual_placeholder;
+                card.appendChild(label);
+                card.appendChild(control);
+                card.appendChild(detail);
+                grid.appendChild(card);
+              }});
+            }}
+
+            function renderArtifacts() {{
+              const stage = currentStage();
+              const list = document.getElementById("artifact-list");
+              list.innerHTML = "";
+              const relevant = PACK.artifacts.filter((artifact) => artifact.stage_id === stage.stage_id || stage.required_artifact_ids.includes(artifact.artifact_id));
+              for (const artifact of relevant) {{
+                const row = document.createElement("div");
+                row.className = "artifact-chip";
+                row.dataset.testid = `artifact-chip-${{artifact.artifact_id}}`;
+                row.innerHTML = `
+                  <div>
+                    <strong>${{artifact.name}}</strong>
+                    <div style="margin-top:4px;color:var(--text-muted)">${{artifact.actual_status.replaceAll("_", " ")}}</div>
+                    <div class="mono" style="margin-top:8px;color:var(--text-muted)">Owner: ${{artifact.owner_role}}</div>
+                  </div>
+                `;
+                const button = document.createElement("button");
+                button.type = "button";
+                button.id = `artifact-toggle-${{artifact.artifact_id}}`;
+                button.dataset.testid = `artifact-toggle-${{artifact.artifact_id}}`;
+                button.className = state.artifacts[artifact.artifact_id] ? "attached" : "";
+                button.textContent = state.artifacts[artifact.artifact_id] ? "Attached" : "Attach synthetic evidence";
+                button.addEventListener("click", () => {{
+                  state.artifacts[artifact.artifact_id] = !state.artifacts[artifact.artifact_id];
+                  state.selectedArtifactId = artifact.artifact_id;
+                  scheduleSave();
+                  render();
+                }});
+                row.appendChild(button);
+                row.addEventListener("click", () => {{
+                  state.selectedArtifactId = artifact.artifact_id;
+                  render();
+                }});
+                list.appendChild(row);
+              }}
+            }}
+
+            function renderDrawer() {{
+              const artifact = artifactById(state.selectedArtifactId) || PACK.artifacts[0];
+              const body = document.getElementById("evidence-drawer-body");
+              body.innerHTML = `
+                <strong>${{artifact.name}}</strong>
+                <p>${{artifact.actual_status.replaceAll("_", " ")}}. Freshness target: ${{artifact.freshness_days}} days.</p>
+                <p class="mono">Artifact id: ${{artifact.artifact_id}}</p>
+                <p class="mono">Owner: ${{artifact.owner_role}}</p>
+                <p>Source refs: ${{artifact.source_refs.join(" | ")}}</p>
+                <p>Attachment state: ${{state.artifacts[artifact.artifact_id] ? "synthetic evidence attached" : "missing, stage remains blocked"}}</p>
+              `;
+            }}
+
+            function renderBlockers() {{
+              const blockers = stageBlockers(currentStage());
+              const list = document.getElementById("blocker-list");
+              list.innerHTML = "";
+              if (!blockers.length) {{
+                const item = document.createElement("span");
+                item.className = "info-chip";
+                item.textContent = "No blockers on selected stage";
+                list.appendChild(item);
+              }} else {{
+                blockers.forEach((blocker, index) => {{
+                  const item = document.createElement("span");
+                  item.className = "blocker-chip";
+                  item.dataset.testid = `blocker-chip-${{index}}`;
+                  item.textContent = blocker;
+                  list.appendChild(item);
+                }});
+              }}
+            }}
+
+            function renderProcess() {{
+              const diagram = document.getElementById("process-diagram-grid");
+              const tbody = document.getElementById("process-parity-body");
+              diagram.innerHTML = "";
+              tbody.innerHTML = "";
+              const diagramStages = [
+                ["application_draft", "product_fit_review"],
+                ["demo_prep", "sandpit_request_ready"],
+                ["sandpit_requested", "product_demo_pending"],
+                ["integration_request_blocked_until_demo", "integration_request_ready"],
+                ["assurance_bundle_in_progress", "connection_agreement_pending"],
+                ["service_desk_registration_pending", "ready_for_real_submission"],
+              ];
+              diagramStages.forEach(([leftId, rightId]) => {{
+                const left = PACK.stages.find((stage) => stage.stage_id === leftId);
+                const right = PACK.stages.find((stage) => stage.stage_id === rightId);
+                const node = document.createElement("div");
+                node.className = "diagram-node";
+                node.innerHTML = `<strong>${{left.label}}</strong><div style="margin:8px 0;color:var(--text-muted)">→ ${{right.label}}</div><div class="mono">${{left.stage_id}}</div>`;
+                diagram.appendChild(node);
+              }});
+              PACK.stages.forEach((stage) => {{
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                  <td><span class="mono">${{stage.stage_id}}</span><br />${{stage.label}}</td>
+                  <td>${{[...stage.required_field_ids, ...stage.required_artifact_ids].length}} structured dependencies</td>
+                  <td>${{stage.summary}}</td>
+                `;
+                tbody.appendChild(row);
+              }});
+            }}
+
+            function renderLiveGates() {{
+              const body = document.getElementById("live-gates-body");
+              body.innerHTML = "";
+              PACK.live_gates.forEach((gate) => {{
+                const chip = document.createElement("div");
+                chip.className = gate.status === "pass" ? "info-chip" : "blocker-chip";
+                chip.style.display = "block";
+                chip.style.borderRadius = "16px";
+                chip.style.marginBottom = "8px";
+                chip.innerHTML = `<strong>${{gate.label}}</strong><br />${{gate.status}} — ${{gate.summary}}`;
+                body.appendChild(chip);
+              }});
+            }}
+
+            function renderMetrics() {{
+              const blockers = stageBlockers(currentStage());
+              document.getElementById("metric-stage").textContent = currentStage().label;
+              document.getElementById("metric-blockers").textContent = String(blockers.length);
+              document.getElementById("metric-freshness").textContent = freshnessDigest();
+              document.getElementById("metric-save").textContent = state.lastSavedAt ? new Date(state.lastSavedAt).toLocaleTimeString() : "not yet";
+              document.getElementById("toggle-mock").setAttribute("aria-pressed", String(state.mode === "mock"));
+              document.getElementById("toggle-actual").setAttribute("aria-pressed", String(state.mode === "actual"));
+            }}
+
+            function moveStage(delta) {{
+              const currentIndex = currentStageIndex();
+              const nextIndex = Math.max(0, Math.min(PACK.stage_order.length - 1, currentIndex + delta));
+              state.stageId = PACK.stage_order[nextIndex];
+              render();
+            }}
+
+            function render() {{
+              renderMetrics();
+              renderRail();
+              renderFields();
+              renderArtifacts();
+              renderDrawer();
+              renderBlockers();
+              renderProcess();
+              renderLiveGates();
+            }}
+
+            document.getElementById("toggle-mock").addEventListener("click", () => {{
+              state.mode = "mock";
+              scheduleSave();
+              render();
+            }});
+            document.getElementById("toggle-actual").addEventListener("click", () => {{
+              state.mode = "actual";
+              scheduleSave();
+              render();
+            }});
+            document.getElementById("prev-stage").addEventListener("click", () => moveStage(-1));
+            document.getElementById("next-stage").addEventListener("click", () => moveStage(1));
+            render();
+          </script>
+        </body>
+        </html>
+        """
+    ).strip()
+    return html.replace("{{", "{").replace("}}", "}").replace("__PACK_PAYLOAD__", payload)
+
+
+def build_readme(pack: dict[str, Any]) -> str:
+    return textwrap.dedent(
+        f"""
+        # Mock NHS Login Onboarding
+
+        This app is the React and TypeScript rehearsal surface for seq_024. It mirrors the same field map, stage model, artefact register, and live gate pack generated into:
+
+        - `/Users/test/Code/V/data/analysis/nhs_login_application_field_map.json`
+        - `/Users/test/Code/V/data/analysis/nhs_login_live_gate_conditions.json`
+        - `/Users/test/Code/V/data/analysis/nhs_login_submission_artifact_checklist.csv`
+
+        ## Scripts
+
+        - `pnpm install`
+        - `pnpm dev`
+        - `pnpm build`
+        - `pnpm preview`
+
+        ## Visual mode
+
+        - `{pack["visual_mode"]}`
+
+        ## Notes
+
+        - The app is an internal mock and must not be mistaken for the NHS login website.
+        - Autosave persists rehearsal inputs to `localStorage`.
+        - Actual mode is intentionally fail-closed and shows why live submission is still blocked.
+        """
+    ).strip()
+
+
+def main() -> None:
+    prereqs = ensure_inputs()
+    pack = build_pack(prereqs)
+
+    write_json(FIELD_MAP_PATH, pack)
+    write_json(
+        LIVE_GATES_PATH,
+        {
+            "task_id": pack["task_id"],
+            "captured_at": pack["captured_at"],
+            "phase0_verdict": pack["summary"]["phase0_verdict"],
+            "live_gate_conditions": pack["live_gates"],
+            "selector_map": pack["selector_map"],
+            "dry_run_defaults": {
+                "allow_real_provider_mutation": False,
+                "default_mode": "dry_run",
+                "default_target_url": "http://127.0.0.1:4173/?mode=actual",
+                "pause_before_submit": True,
+                "redaction_required": True,
+            },
+        },
+    )
+    write_csv(ARTIFACTS_CSV_PATH, artifact_csv_rows(pack))
+
+    write_text(MOCK_STRATEGY_PATH, build_mock_strategy_md(pack))
+    write_text(ACTUAL_STRATEGY_PATH, build_actual_strategy_md(pack))
+    write_text(DOSSIER_PATH, build_dossier_md(pack))
+    write_text(CHECKPOINT_PATH, build_checkpoint_md(pack))
+    write_text(STUDIO_HTML_PATH, build_studio_html(pack))
+
+    write_text(APP_PACK_TS_PATH, pack_ts(pack))
+    write_json(APP_PACK_JSON_PATH, pack)
+    write_text(README_PATH, build_readme(pack))
+
+    print("Built seq_024 NHS login application pack.")
+    print(f"- {FIELD_MAP_PATH}")
+    print(f"- {LIVE_GATES_PATH}")
+    print(f"- {ARTIFACTS_CSV_PATH}")
+    print(f"- {MOCK_STRATEGY_PATH}")
+    print(f"- {ACTUAL_STRATEGY_PATH}")
+    print(f"- {DOSSIER_PATH}")
+    print(f"- {CHECKPOINT_PATH}")
+    print(f"- {STUDIO_HTML_PATH}")
+    print(f"- {APP_PACK_TS_PATH}")
+    print(f"- {APP_PACK_JSON_PATH}")
+    print(f"- {README_PATH}")
+
+
+if __name__ == "__main__":
+    main()

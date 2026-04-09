@@ -47,6 +47,7 @@ Agents must not skip forward past the next blocked `seq_` gate.
 5. Save and re-read `/Users/test/Code/V/prompt/checklist.md` to confirm the claim still holds.
 6. Execute the task using its referenced prompt file.
 7. Change the task from `[-]` to `[X]` only after successful implementation and verification.
+8. Before implementing read back and forth promtps of the assigned promtp for better idea what you are building.
 
 ## Concurrency Guardrails
 
