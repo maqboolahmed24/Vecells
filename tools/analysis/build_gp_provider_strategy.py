@@ -1,0 +1,2368 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import csv
+import json
+import textwrap
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[2]
+DATA_DIR = ROOT / "data" / "analysis"
+DOCS_DIR = ROOT / "docs" / "external"
+
+TASK_ID = "seq_036"
+VISUAL_MODE = "Principal_System_Pathfinder"
+CAPTURED_ON = "2026-04-10"
+MISSION = (
+    "Freeze the current GP principal-system provider path strategy as a split between "
+    "mock-now executable truth, official watch-only lanes, and gated actual-provider-later "
+    "routes without letting supplier folklore bypass the canonical booking proof model."
+)
+
+REQUIRED_INPUTS = {
+    "phase0_gate_verdict": DATA_DIR / "phase0_gate_verdict.json",
+    "integration_priority_matrix": DATA_DIR / "integration_priority_matrix.json",
+    "provider_family_scorecards": DATA_DIR / "provider_family_scorecards.json",
+    "im1_provider_supplier_register": DATA_DIR / "im1_provider_supplier_register.json",
+    "route_family_inventory": DATA_DIR / "route_family_inventory.csv",
+    "master_risk_register": DATA_DIR / "master_risk_register.json",
+    "coverage_summary": DATA_DIR / "coverage_summary.json",
+}
+
+PATH_MATRIX_CSV_PATH = DATA_DIR / "gp_principal_system_path_matrix.csv"
+BOOKING_EVIDENCE_JSON_PATH = DATA_DIR / "gp_booking_capability_evidence.json"
+DECISION_REGISTER_JSON_PATH = DATA_DIR / "gp_provider_decision_register.json"
+GAP_REGISTER_CSV_PATH = DATA_DIR / "gp_provider_sandbox_gap_register.csv"
+
+MOCK_STRATEGY_DOC_PATH = DOCS_DIR / "36_gp_system_pathways_mock_strategy.md"
+ACTUAL_STRATEGY_DOC_PATH = DOCS_DIR / "36_gp_system_pathways_actual_strategy.md"
+EVIDENCE_DOSSIER_DOC_PATH = DOCS_DIR / "36_booking_capability_evidence_dossier.md"
+GAP_REGISTER_DOC_PATH = DOCS_DIR / "36_gp_provider_gap_and_watch_register.md"
+PATHFINDER_HTML_PATH = DOCS_DIR / "36_gp_provider_pathfinder.html"
+
+SOURCE_PRECEDENCE = [
+    "prompt/036.md",
+    "prompt/shared_operating_contract_036_to_045.md",
+    "prompt/AGENT.md",
+    "prompt/checklist.md",
+    "blueprint/blueprint-init.md",
+    "blueprint/phase-0-the-foundation-protocol.md",
+    "blueprint/phase-4-the-booking-engine.md",
+    "docs/external/21_integration_priority_and_execution_matrix.md",
+    "docs/external/22_provider_selection_scorecards.md",
+    "docs/external/26_im1_pairing_rehearsal_strategy.md",
+    "https://digital.nhs.uk/services/digital-services-for-integrated-care/im1-pairing-integration",
+    "https://digital.nhs.uk/services/gp-connect/gp-connect-in-your-organisation/appointment-management",
+    "https://digital.nhs.uk/services/gp-connect/supplier-progress",
+    "https://digital.nhs.uk/developer/guides-and-documentation/building-healthcare-software/referrals-and-bookings/guidance-for-specific-use-cases",
+    "https://standards.nhs.uk/published-standards/nhs-booking-and-referral-standard",
+]
+
+OFFICIAL_GUIDANCE = [
+    {
+        "source_id": "official_im1_pairing_integration",
+        "title": "IM1 Pairing integration",
+        "url": "https://digital.nhs.uk/services/digital-services-for-integrated-care/im1-pairing-integration",
+        "captured_on": CAPTURED_ON,
+        "summary": (
+            "NHS England still positions IM1 Pairing as the current principal-system route. "
+            "The page names Optum (EMISWeb) and TPP (SystmOne), says there are no current "
+            "plans to decommission IM1 Pairing, and shows the path from prerequisites through "
+            "SCAL, supported test, assurance, and live rollout."
+        ),
+        "grounding": [
+            "Optum (EMISWeb) and TPP (SystmOne) are the currently named provider suppliers.",
+            "IM1 Pairing has no current decommission plan.",
+            "Supplier-specific functionality differs and detailed technical packs arrive later through PIP acceptance.",
+            "The route remains long-lead and assurance-heavy rather than instantly usable.",
+        ],
+    },
+    {
+        "source_id": "official_gp_connect_appointment_management",
+        "title": "GP Connect Appointment Management",
+        "url": "https://digital.nhs.uk/services/gp-connect/gp-connect-in-your-organisation/appointment-management",
+        "captured_on": CAPTURED_ON,
+        "summary": (
+            "The GP Connect Appointment Management page describes the API as live and highlights "
+            "its primary use in integrated urgent care, care navigation, and care coordination. "
+            "It also names current embedded consumer suppliers instead of inviting new baseline "
+            "product onboarding."
+        ),
+        "grounding": [
+            "The page describes care navigation, care coordination, and integrated urgent care use cases.",
+            "Approved consumer suppliers are listed in current embedded estates rather than described as an open baseline expansion lane.",
+            "The examples are staff and service-coordination oriented, not Vecells patient-shell self-service truth.",
+        ],
+    },
+    {
+        "source_id": "official_gp_connect_supplier_progress",
+        "title": "GP Connect supplier progress",
+        "url": "https://digital.nhs.uk/services/gp-connect/supplier-progress",
+        "captured_on": CAPTURED_ON,
+        "summary": (
+            "The supplier-progress page explicitly says new supplier development for Appointment "
+            "Management is currently paused while existing consumer suppliers remain listed."
+        ),
+        "grounding": [
+            "Appointment Management new supplier development is currently paused.",
+            "Consumer estates are current but bounded to listed suppliers and use cases.",
+        ],
+    },
+    {
+        "source_id": "official_referrals_and_bookings_guidance",
+        "title": "Guidance for referrals and bookings specific use cases",
+        "url": "https://digital.nhs.uk/developer/guides-and-documentation/building-healthcare-software/referrals-and-bookings/guidance-for-specific-use-cases",
+        "captured_on": CAPTURED_ON,
+        "summary": (
+            "NHS England's guidance explicitly says patient-to-GP-practice booking applications "
+            "are generally integrated with principal clinical systems through IM1 Pairing Patient "
+            "APIs, while BaRS is presented in referral and urgent-care use cases."
+        ),
+        "grounding": [
+            "Patient-to-GP-practice booking is generally integrated through IM1 Pairing Patient APIs.",
+            "BaRS appears alongside urgent care and inter-service referrals rather than as a principal GP-system route.",
+            "The guidance helps separate principal-system booking from broader referral interoperability.",
+        ],
+    },
+    {
+        "source_id": "official_bars_standard",
+        "title": "NHS Booking and Referral Standard",
+        "url": "https://standards.nhs.uk/published-standards/nhs-booking-and-referral-standard",
+        "captured_on": CAPTURED_ON,
+        "summary": (
+            "The standard defines BaRS as a FHIR-based interoperability standard between patient "
+            "record systems for booking and referral information exchange. That is important, but "
+            "it still does not make BaRS the current Vecells baseline for principal-GP-system "
+            "patient self-service booking."
+        ),
+        "grounding": [
+            "BaRS is a standard for interoperability between patient record systems.",
+            "The standard is broader than one GP principal system estate and needs bounded interpretation inside Vecells.",
+        ],
+    },
+]
+
+ASSUMPTIONS = [
+    {
+        "assumption_id": "ASSUMPTION_GP_CONNECT_IS_EXISTING_ESTATE_WATCH_ONLY",
+        "summary": (
+            "Because current official GP Connect materials describe Appointment Management as live "
+            "but say new supplier development is paused, Vecells records GP Connect Appointment "
+            "Management as a watch-only estate path rather than a current baseline build target."
+        ),
+        "consequence": (
+            "The programme can preserve awareness of real estates without silently re-basing the "
+            "product on GP Connect."
+        ),
+    },
+    {
+        "assumption_id": "ASSUMPTION_BARS_IS_NOT_BASELINE_PRINCIPAL_GP_SELF_SERVICE",
+        "summary": (
+            "Official guidance positions BaRS in broader referral and urgent-care scenarios. "
+            "Vecells therefore keeps BaRS visible as a watch rail while refusing to treat it as "
+            "the current principal-GP-system patient-booking path."
+        ),
+        "consequence": (
+            "Cross-provider and urgent-care compatibility stays visible without diluting the "
+            "principal-system booking truth model."
+        ),
+    },
+    {
+        "assumption_id": "ASSUMPTION_SUPPLIER_DETAIL_REMAINS_GATED_UNTIL_PIP_AND_ASSURANCE",
+        "summary": (
+            "The IM1 pages and blueprint both say detailed supplier capability arrives later. "
+            "Seq_036 therefore freezes only what is current and public, and leaves hold semantics, "
+            "manage coverage, and exact slot behaviour under later PIP evidence."
+        ),
+        "consequence": (
+            "The matrix stays honest about what is known today and pushes missing detail into the "
+            "gap register instead of inventing supplier truth."
+        ),
+    },
+]
+
+CAPABILITY_DIMENSIONS = [
+    {
+        "dimension_id": "patient_booking_search",
+        "title": "Patient booking search",
+        "why_separate": "Patient search cannot be inferred from staff or API capability claims.",
+    },
+    {
+        "dimension_id": "staff_assisted_search",
+        "title": "Staff-assisted search",
+        "why_separate": "Staff-assisted routes may widen actionability without unlocking patient self-service.",
+    },
+    {
+        "dimension_id": "slot_freshness_proof",
+        "title": "Slot freshness proof",
+        "why_separate": "Showing a slot and proving it remained valid at commit time are different facts.",
+    },
+    {
+        "dimension_id": "hold_or_soft_hold_support",
+        "title": "Hold or soft-hold support",
+        "why_separate": "Exclusive hold, truthful non-exclusive hold, and no hold are different patient promises.",
+    },
+    {
+        "dimension_id": "authoritative_commit_proof",
+        "title": "Authoritative commit proof",
+        "why_separate": "Accepted, queued, and confirmed outcomes must not collapse into one state.",
+    },
+    {
+        "dimension_id": "cancellation_support",
+        "title": "Cancellation support",
+        "why_separate": "Cancel may exist even when reschedule or detail update do not.",
+    },
+    {
+        "dimension_id": "reschedule_support",
+        "title": "Reschedule support",
+        "why_separate": "Reschedule requires stronger tuple and revalidation guarantees than basic cancel.",
+    },
+    {
+        "dimension_id": "reminder_detail_update_support",
+        "title": "Reminder or detail update support",
+        "why_separate": "Reminder readiness flows from confirmed booking truth and manage capability, not from search support.",
+    },
+    {
+        "dimension_id": "waitlist_continuation_compatibility",
+        "title": "Waitlist continuation compatibility",
+        "why_separate": "Local waitlist continuation must stay core-owned even when supplier search or commit differs.",
+    },
+    {
+        "dimension_id": "practice_visibility_evidence",
+        "title": "Practice-visibility evidence",
+        "why_separate": "The practice or origin service may need a separate acknowledgement trail from patient confirmation.",
+    },
+    {
+        "dimension_id": "ambiguity_mode",
+        "title": "Ambiguity mode",
+        "why_separate": "Async acceptance, disputed callbacks, and partial evidence must stay visibly pending.",
+    },
+    {
+        "dimension_id": "degraded_fallback_mode",
+        "title": "Degraded fallback mode",
+        "why_separate": "Fallback must be explicit and same-shell, not a hidden operational assumption.",
+    },
+    {
+        "dimension_id": "exact_proof_object_required",
+        "title": "Exact proof object required before reassurance",
+        "why_separate": "The UI must bind to a named object chain, not generic success language.",
+    },
+]
+
+CANONICAL_PROOF_OBJECTS = [
+    {
+        "object_id": "ProviderCapabilityMatrix",
+        "role": "Static capability source row for the exact supplier, audience, route, and deployment context.",
+    },
+    {
+        "object_id": "BookingProviderAdapterBinding",
+        "role": "The only legal translation and proof contract for search, revalidation, reservation, commit, and manage support.",
+    },
+    {
+        "object_id": "BookingCapabilityResolution",
+        "role": "The audience-specific actionability decision for the current tuple and binding hash.",
+    },
+    {
+        "object_id": "ReservationTruthProjection",
+        "role": "Truth for exclusive hold, truthful non-exclusive posture, or released state before commit.",
+    },
+    {
+        "object_id": "ExternalConfirmationGate",
+        "role": "Mandatory external truth gate whenever supplier confirmation is weak, async, manual, or disputed.",
+    },
+    {
+        "object_id": "AppointmentRecord",
+        "role": "Durable booking record only after authoritative success under the active binding.",
+    },
+    {
+        "object_id": "BookingConfirmationTruthProjection",
+        "role": "The sole audience-safe authority for booked reassurance and writable manage posture.",
+    },
+    {
+        "object_id": "PracticeAcknowledgementRecord",
+        "role": "The practice-visibility proof object when origin services need explicit acknowledgement beyond patient confirmation.",
+    },
+]
+
+PATH_FIELDNAMES = [
+    "path_id",
+    "path_label",
+    "path_kind",
+    "principal_system_scope",
+    "actor_modes",
+    "maturity",
+    "current_execution",
+    "official_status",
+    "freshness_label",
+    "freshness_rank",
+    "proof_class",
+    "patient_booking_search",
+    "staff_assisted_search",
+    "slot_freshness_proof",
+    "hold_or_soft_hold_support",
+    "authoritative_commit_proof",
+    "cancellation_support",
+    "reschedule_support",
+    "reminder_detail_update_support",
+    "waitlist_continuation_compatibility",
+    "practice_visibility_evidence",
+    "ambiguity_mode",
+    "degraded_fallback_mode",
+    "exact_proof_object_required",
+    "current_position",
+    "actual_later_position",
+    "watch_summary",
+    "source_refs",
+]
+
+GAP_FIELDNAMES = [
+    "gap_id",
+    "path_id",
+    "gap_class",
+    "severity",
+    "blocks_actual_strategy",
+    "summary",
+    "owner_role",
+    "next_step",
+    "linked_risk_id",
+    "source_refs",
+]
+
+
+def iso_now() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def load_json(path: Path) -> Any:
+    return json.loads(path.read_text())
+
+
+def load_csv(path: Path) -> list[dict[str, str]]:
+    with path.open() as handle:
+        return list(csv.DictReader(handle))
+
+
+def write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content.rstrip() + "\n")
+
+
+def write_json(path: Path, payload: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2) + "\n")
+
+
+def write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, str]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def join_list(values: list[str]) -> str:
+    return "; ".join(values)
+
+
+def markdown_table(headers: list[str], rows: list[list[str]]) -> str:
+    def esc(cell: Any) -> str:
+        return str(cell).replace("|", "\\|").replace("\n", "<br>")
+
+    header_row = "| " + " | ".join(esc(cell) for cell in headers) + " |"
+    divider_row = "| " + " | ".join("---" for _ in headers) + " |"
+    body_rows = ["| " + " | ".join(esc(cell) for cell in row) + " |" for row in rows]
+    return "\n".join([header_row, divider_row, *body_rows])
+
+
+def ensure_inputs() -> dict[str, Any]:
+    missing = [name for name, path in REQUIRED_INPUTS.items() if not path.exists()]
+    if missing:
+        raise SystemExit("Missing seq_036 prerequisites: " + ", ".join(sorted(missing)))
+
+    payload = {
+        "phase0_gate_verdict": load_json(REQUIRED_INPUTS["phase0_gate_verdict"]),
+        "integration_priority_matrix": load_json(REQUIRED_INPUTS["integration_priority_matrix"]),
+        "provider_family_scorecards": load_json(REQUIRED_INPUTS["provider_family_scorecards"]),
+        "im1_provider_supplier_register": load_json(REQUIRED_INPUTS["im1_provider_supplier_register"]),
+        "route_family_inventory": load_csv(REQUIRED_INPUTS["route_family_inventory"]),
+        "master_risk_register": load_json(REQUIRED_INPUTS["master_risk_register"]),
+        "coverage_summary": load_json(REQUIRED_INPUTS["coverage_summary"]),
+    }
+    if payload["coverage_summary"]["summary"]["requirements_with_gaps_count"] != 0:
+        raise SystemExit("Seq_019 coverage summary reopened baseline requirement gaps.")
+    return payload
+
+
+def find_route_row(route_rows: list[dict[str, str]], route_family_id: str) -> dict[str, str]:
+    for row in route_rows:
+        if row["route_family_id"] == route_family_id:
+            return row
+    raise SystemExit(f"Missing route family inventory row for {route_family_id}")
+
+
+def find_integration_row(integration_payload: dict[str, Any], integration_id: str) -> dict[str, Any]:
+    for row in integration_payload["integration_families"]:
+        if row["integration_id"] == integration_id:
+            return row
+    raise SystemExit(f"Missing integration row {integration_id}")
+
+
+def find_provider_family(scorecards_payload: dict[str, Any], provider_family: str) -> dict[str, Any]:
+    for row in scorecards_payload["families"]:
+        if row["provider_family"] == provider_family:
+            return row
+    raise SystemExit(f"Missing provider family {provider_family}")
+
+
+def build_im1_path_row(provider: dict[str, Any], route_row: dict[str, str]) -> dict[str, Any]:
+    provider_supplier_id = provider["provider_supplier_id"]
+    path_id = {
+        "ps_optum_emisweb": "im1_pairing_optum_emisweb",
+        "ps_tpp_systmone": "im1_pairing_tpp_systmone",
+    }[provider_supplier_id]
+    supplier_label = provider["provider_supplier_name"]
+    return {
+        "path_id": path_id,
+        "path_label": f"IM1 Pairing / {supplier_label}",
+        "path_kind": "principal_system_actual_later",
+        "principal_system_scope": supplier_label,
+        "actor_modes": ["patient_self_service", "staff_assist"],
+        "maturity": "actual_later_gated",
+        "current_execution": "mock_now_only",
+        "official_status": provider["current_public_status"],
+        "freshness_label": f"current official supplier roster ({CAPTURED_ON})",
+        "freshness_rank": 80,
+        "proof_class": "authoritative_commit_or_read_after_write",
+        "patient_booking_search": "conditional_after_pairing",
+        "staff_assisted_search": "conditional_after_pairing",
+        "slot_freshness_proof": (
+            "Current revalidation through BookingProviderAdapterBinding under the live capability tuple."
+        ),
+        "hold_or_soft_hold_support": (
+            "Unknown until supplier PIP and capability row are reviewed; never promise exclusivity by default."
+        ),
+        "authoritative_commit_proof": (
+            "Durable provider reference or same-commit read-after-write on the same BookingTransaction."
+        ),
+        "cancellation_support": "conditional_after_pairing",
+        "reschedule_support": "conditional_after_pairing",
+        "reminder_detail_update_support": (
+            "Only after confirmed BookingConfirmationTruthProjection and current manage support contract."
+        ),
+        "waitlist_continuation_compatibility": (
+            "Compatible only when waitlist and fallback remain core-owned rather than supplier-owned."
+        ),
+        "practice_visibility_evidence": (
+            "PracticeAcknowledgementRecord or equivalent routed evidence after canonical confirmation."
+        ),
+        "ambiguity_mode": (
+            "confirmation_pending or supplier_reconciliation_pending under ExternalConfirmationGate."
+        ),
+        "degraded_fallback_mode": (
+            "assisted_only, linkage_required, local_component_required, degraded_manual, or recovery_required."
+        ),
+        "exact_proof_object_required": (
+            "BookingConfirmationTruthProjection.confirmed plus AppointmentRecord on the same transaction, "
+            "backed by the current BookingProviderAdapterBinding and BookingCapabilityResolution."
+        ),
+        "current_position": (
+            "Use only in the local simulator and capability-matrix pack now. Do not expose live patient booking."
+        ),
+        "actual_later_position": (
+            "Open only after pairing, supplier PIP review, licence execution, supported test, assurance, and "
+            "current sponsor or approver signoff."
+        ),
+        "watch_summary": (
+            "Official supplier exists, but exact booking semantics still need supplier evidence and assurance."
+        ),
+        "source_refs": [
+            "official_im1_pairing_integration",
+            "official_referrals_and_bookings_guidance",
+            "blueprint/phase-4-the-booking-engine.md#4B. Provider capability matrix and adapter seam",
+            "blueprint/phase-4-the-booking-engine.md#4E. Commit path, revalidation, booking record, and compensation",
+            f"route_family_inventory.csv#{route_row['route_family_id']}",
+        ],
+    }
+
+
+def build_path_rows(inputs: dict[str, Any]) -> list[dict[str, Any]]:
+    route_row = find_route_row(inputs["route_family_inventory"], "rf_patient_appointments")
+    targeted_providers = [
+        provider
+        for provider in inputs["im1_provider_supplier_register"]["providers"]
+        if provider["targeted_for_vecells"]
+    ]
+    targeted_providers.sort(key=lambda row: row["provider_supplier_id"])
+    if len(targeted_providers) != 2:
+        raise SystemExit("Seq_036 expects exactly two targeted IM1 providers from seq_026.")
+
+    rows = [build_im1_path_row(provider, route_row) for provider in targeted_providers]
+    rows.extend(
+        [
+            {
+                "path_id": "gp_connect_appointment_management_watch_only",
+                "path_label": "GP Connect Appointment Management / Watch only",
+                "path_kind": "existing_estate_watch",
+                "principal_system_scope": "Existing consumer estates only",
+                "actor_modes": ["staff_assist", "urgent_care_referrer"],
+                "maturity": "watch_only",
+                "current_execution": "watch_register_only",
+                "official_status": "appointment_management_live_but_new_supplier_development_paused",
+                "freshness_label": f"current official watch lane ({CAPTURED_ON})",
+                "freshness_rank": 70,
+                "proof_class": "watch_only_consumer_truth",
+                "patient_booking_search": "not_baseline_for_vecells",
+                "staff_assisted_search": "existing_estate_only",
+                "slot_freshness_proof": "Consumer-supplier specific and not current Vecells baseline evidence.",
+                "hold_or_soft_hold_support": "unknown_existing_estate_only",
+                "authoritative_commit_proof": "Do not claim without estate-specific supplier evidence and normalized truth mapping.",
+                "cancellation_support": "existing_estate_only",
+                "reschedule_support": "existing_estate_only",
+                "reminder_detail_update_support": "existing_estate_only and still projection-governed",
+                "waitlist_continuation_compatibility": "Do not let GP Connect consumer behaviour own Vecells waitlist truth.",
+                "practice_visibility_evidence": "Consumer-estate confirmation only; not current Vecells canonical evidence.",
+                "ambiguity_mode": "If ever adopted, must still normalize into ExternalConfirmationGate rather than consumer-local acceptance.",
+                "degraded_fallback_mode": "Stay in watch posture, local simulator, or manual handoff instead of widening into baseline.",
+                "exact_proof_object_required": (
+                    "Same BookingConfirmationTruthProjection and AppointmentRecord chain as IM1; GP Connect does not bypass that."
+                ),
+                "current_position": "Watch only. Do not model as the current product default.",
+                "actual_later_position": (
+                    "Possible only for bounded existing estates and only if future sponsor posture explicitly chooses that lane."
+                ),
+                "watch_summary": "Officially live but bounded, estate-specific, and not open for new supplier expansion now.",
+                "source_refs": [
+                    "official_gp_connect_appointment_management",
+                    "official_gp_connect_supplier_progress",
+                    "official_referrals_and_bookings_guidance",
+                ],
+            },
+            {
+                "path_id": "bars_watch_only",
+                "path_label": "BaRS / Watch only",
+                "path_kind": "broader_referral_standard_watch",
+                "principal_system_scope": "Cross-provider referral and urgent-care contexts",
+                "actor_modes": ["staff_assist", "urgent_care_referrer"],
+                "maturity": "watch_only",
+                "current_execution": "watch_register_only",
+                "official_status": "broader_interoperability_standard_current",
+                "freshness_label": f"current broader standard ({CAPTURED_ON})",
+                "freshness_rank": 60,
+                "proof_class": "inter_provider_referral_standard",
+                "patient_booking_search": "out_of_scope_for_baseline_principal_gp_booking",
+                "staff_assisted_search": "possible_in_referral_contexts_only",
+                "slot_freshness_proof": "Standard-level interoperability does not replace supplier-specific local slot freshness proof.",
+                "hold_or_soft_hold_support": "not_current_vecells_principal_system_contract",
+                "authoritative_commit_proof": (
+                    "Useful for referral or booking exchange, but not sufficient alone for principal-GP-system booked reassurance."
+                ),
+                "cancellation_support": "context_specific_watch_only",
+                "reschedule_support": "context_specific_watch_only",
+                "reminder_detail_update_support": "not_current_baseline",
+                "waitlist_continuation_compatibility": "Only through a future bounded adapter; current waitlist truth stays core-owned.",
+                "practice_visibility_evidence": "Referral-context evidence rather than principal-practice booking proof.",
+                "ambiguity_mode": "Treat as external_confirmation_gate_required if any partial or transport-only evidence exists.",
+                "degraded_fallback_mode": "Do not widen into public GP booking. Fall back to manual or bounded staff workflows.",
+                "exact_proof_object_required": (
+                    "If ever used for booking confirmation, the same BookingConfirmationTruthProjection chain still applies."
+                ),
+                "current_position": "Watch only. Keep visible for future interoperability but not as the current GP principal-system lane.",
+                "actual_later_position": "Future bounded adapter exploration only after explicit sponsor and use-case narrowing.",
+                "watch_summary": "Important standard, but not the current Vecells principal-GP-system booking route.",
+                "source_refs": [
+                    "official_bars_standard",
+                    "official_referrals_and_bookings_guidance",
+                ],
+            },
+            {
+                "path_id": "local_adapter_simulator_required",
+                "path_label": "Local adapter simulator / Required",
+                "path_kind": "mock_now_executable",
+                "principal_system_scope": "Vecells internal twin for booking-provider truth",
+                "actor_modes": ["patient_self_service", "staff_assist", "operations_support"],
+                "maturity": "mock_now_executable",
+                "current_execution": "required_now",
+                "official_status": "internal_controlled_execution",
+                "freshness_label": "repo-current deterministic twin",
+                "freshness_rank": 100,
+                "proof_class": "simulated_authoritative_truth",
+                "patient_booking_search": "supported_in_mock",
+                "staff_assisted_search": "supported_in_mock",
+                "slot_freshness_proof": "Snapshot plus revalidation contract under deterministic state injection.",
+                "hold_or_soft_hold_support": "exclusive_hold and truthful_nonexclusive both simulated explicitly.",
+                "authoritative_commit_proof": "Durable reference, same-commit read-after-write, ambiguous acceptance, and failure paths simulated.",
+                "cancellation_support": "supported_in_mock",
+                "reschedule_support": "supported_in_mock",
+                "reminder_detail_update_support": "supported_in_mock after confirmed truth only",
+                "waitlist_continuation_compatibility": "Fully required; simulator must preserve callback and hub fallback semantics.",
+                "practice_visibility_evidence": "Practice acknowledgement and outbound visibility proof simulated explicitly.",
+                "ambiguity_mode": "confirmation_pending, reconciliation_required, and stale-binding states all required.",
+                "degraded_fallback_mode": "assisted_only, linkage_required, local_component_required, blocked, callback_fallback, hub_review_pending.",
+                "exact_proof_object_required": (
+                    "Same canonical proof chain as live: BookingProviderAdapterBinding, BookingCapabilityResolution, "
+                    "ExternalConfirmationGate when needed, AppointmentRecord, and BookingConfirmationTruthProjection."
+                ),
+                "current_position": "Mandatory now. This is the only executable booking-provider lane in the current baseline.",
+                "actual_later_position": "Remains the proving ground even after live provider paths open.",
+                "watch_summary": "Seq_036 keeps the simulator mandatory so product behaviour never outruns supplier truth.",
+                "source_refs": [
+                    "docs/external/21_integration_priority_and_execution_matrix.md",
+                    "docs/external/22_provider_selection_scorecards.md",
+                    "blueprint/phase-4-the-booking-engine.md#4B. Provider capability matrix and adapter seam",
+                    "blueprint/phase-4-the-booking-engine.md#4E. Commit path, revalidation, booking record, and compensation",
+                ],
+            },
+            {
+                "path_id": "manual_practice_handoff_only",
+                "path_label": "Manual practice handoff / Only",
+                "path_kind": "manual_fallback_only",
+                "principal_system_scope": "Unsupported or unevidenced supplier estates",
+                "actor_modes": ["staff_assist", "operations_support", "practice_staff"],
+                "maturity": "manual_only",
+                "current_execution": "bounded_fallback_only",
+                "official_status": "no_trusted_live_automation_path",
+                "freshness_label": "bounded operational fallback",
+                "freshness_rank": 90,
+                "proof_class": "manual_handoff_acknowledgement",
+                "patient_booking_search": "not_supported",
+                "staff_assisted_search": "manual_only",
+                "slot_freshness_proof": "No authoritative portal slot-freshness claim; practice confirmation required.",
+                "hold_or_soft_hold_support": "none",
+                "authoritative_commit_proof": "Manual confirmation only after explicit practice acknowledgement and canonical projection refresh.",
+                "cancellation_support": "manual_only",
+                "reschedule_support": "manual_only",
+                "reminder_detail_update_support": "manual_follow_up_only",
+                "waitlist_continuation_compatibility": "Yes, but through callback, hub, or explicit practice follow-up obligations.",
+                "practice_visibility_evidence": "PracticeAcknowledgementRecord or governed callback transfer evidence.",
+                "ambiguity_mode": "Always gated until explicit manual confirmation arrives and clears ExternalConfirmationGate.",
+                "degraded_fallback_mode": "callback_fallback, hub_review_pending, assisted_only, or recovery_required.",
+                "exact_proof_object_required": (
+                    "ExternalConfirmationGate satisfied plus current BookingConfirmationTruthProjection for the same lineage."
+                ),
+                "current_position": "Allowed only as bounded fallback. It is not a silent success path.",
+                "actual_later_position": "May remain the safety fallback even after live provider rails open.",
+                "watch_summary": "Manual practice contact exists to preserve continuity, not to fake automated booking reach.",
+                "source_refs": [
+                    "blueprint/phase-4-the-booking-engine.md#4E. Commit path, revalidation, booking record, and compensation",
+                    "blueprint/phase-0-the-foundation-protocol.md#5.6 Booking, waitlist, hub, and pharmacy continuity algorithm",
+                ],
+            },
+        ]
+    )
+    return rows
+
+
+def build_live_gates(inputs: dict[str, Any]) -> list[dict[str, Any]]:
+    phase0_verdict = inputs["phase0_gate_verdict"]["summary"]["phase0_entry_verdict"]
+    return [
+        {
+            "gate_id": "LIVE_GATE_PROVIDER_PATH_EVIDENCE_PUBLISHED",
+            "title": "Provider path evidence is published",
+            "status": "pass",
+            "summary": "Seq_036 publishes the path matrix, proof dossier, decision register, and gap register.",
+            "required_env": [],
+            "source_refs": ["prompt/036.md", str(PATH_MATRIX_CSV_PATH.relative_to(ROOT))],
+        },
+        {
+            "gate_id": "LIVE_GATE_APPROVED_PROVIDER_SCORECARDS",
+            "title": "Approved provider scorecards exist",
+            "status": "pass",
+            "summary": "Seq_022 already froze the GP/IM1/booking supplier scorecard family and due-diligence bars.",
+            "required_env": [],
+            "source_refs": ["docs/external/22_provider_selection_scorecards.md"],
+        },
+        {
+            "gate_id": "LIVE_GATE_ARCHITECTURE_AND_DATA_FLOW_CURRENT",
+            "title": "Architecture and data-flow diagrams are current",
+            "status": "review_required",
+            "summary": (
+                "The architecture baseline exists, but the live-provider-specific diagram digest still needs named refresh "
+                "before any real path can open."
+            ),
+            "required_env": ["GP_PROVIDER_ARCHITECTURE_DIAGRAM_REF", "GP_PROVIDER_DATAFLOW_DIAGRAM_REF"],
+            "source_refs": [
+                "docs/architecture/16_target_architecture_adr_set.md",
+                "docs/architecture/13_backend_runtime_service_baseline.md",
+            ],
+        },
+        {
+            "gate_id": "LIVE_GATE_CREDIBLE_BOOKING_MVP",
+            "title": "Credible booking MVP is approved",
+            "status": "blocked",
+            "summary": "Actual provider work stays blocked until a bounded booking MVP is explicitly named and approved.",
+            "required_env": ["GP_PROVIDER_BOOKING_MVP_REF"],
+            "source_refs": ["prompt/036.md", "docs/external/21_integration_priority_and_execution_matrix.md"],
+        },
+        {
+            "gate_id": "LIVE_GATE_SPONSOR_AND_COMMISSIONING_POSTURE",
+            "title": "Sponsor and commissioning posture is explicit",
+            "status": "blocked",
+            "summary": "A real provider path cannot open without named sponsor ownership and commissioning posture.",
+            "required_env": ["GP_PROVIDER_SPONSOR_MODE"],
+            "source_refs": ["prompt/036.md", "docs/external/23_actual_partner_account_governance.md"],
+        },
+        {
+            "gate_id": "LIVE_GATE_NAMED_APPROVER_AND_ENVIRONMENT",
+            "title": "Named approver and environment are present",
+            "status": "blocked",
+            "summary": "Actual-later remains fail-closed until a named approver and target environment are declared.",
+            "required_env": ["GP_PROVIDER_NAMED_APPROVER", "GP_PROVIDER_ENVIRONMENT_TARGET"],
+            "source_refs": ["prompt/036.md", "docs/external/26_im1_pairing_rehearsal_strategy.md"],
+        },
+        {
+            "gate_id": "LIVE_GATE_MUTATION_FLAG_ENABLED",
+            "title": "Mutation flag is enabled explicitly",
+            "status": "blocked",
+            "summary": "Real provider mutation stays blocked unless ALLOW_REAL_PROVIDER_MUTATION=true is supplied deliberately.",
+            "required_env": ["ALLOW_REAL_PROVIDER_MUTATION"],
+            "source_refs": ["prompt/shared_operating_contract_036_to_045.md"],
+        },
+        {
+            "gate_id": "LIVE_GATE_WATCH_REGISTER_CLEAR",
+            "title": "No unresolved blocker remains in the watch register",
+            "status": "blocked",
+            "summary": "The gap register still contains unresolved supplier, governance, and evidence blockers.",
+            "required_env": ["GP_PROVIDER_WATCH_REGISTER_ACK"],
+            "source_refs": [str(GAP_REGISTER_CSV_PATH.relative_to(ROOT))],
+        },
+        {
+            "gate_id": "LIVE_GATE_PHASE0_EXTERNAL_FOUNDATION",
+            "title": "Phase 0 external foundation gate is open",
+            "status": "blocked" if phase0_verdict == "withheld" else "review_required",
+            "summary": (
+                "Seq_020 still reports Phase 0 entry withheld, so actual provider motion cannot be treated as current-baseline execution."
+            ),
+            "required_env": [],
+            "source_refs": ["data/analysis/phase0_gate_verdict.json"],
+        },
+    ]
+
+
+def build_gap_rows(live_gates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    gate_map = {row["gate_id"]: row for row in live_gates}
+    return [
+        {
+            "gap_id": "GAP_GP_001",
+            "path_id": "im1_pairing_optum_emisweb",
+            "gap_class": "supplier_pip_detail_missing",
+            "severity": "high",
+            "blocks_actual_strategy": "yes",
+            "summary": "Optum (EMISWeb) is publicly listed for IM1 Pairing, but exact booking, hold, and manage semantics still need supplier PIP evidence.",
+            "owner_role": "ROLE_PLATFORM_INTEROP_LEAD",
+            "next_step": "Carry supplier-specific capability proof into seq_038 and seq_039 before any live claim.",
+            "linked_risk_id": "RISK_EXT_BOOKING_PROVIDER_GAP",
+            "source_refs": "official_im1_pairing_integration; docs/external/26_im1_pairing_rehearsal_strategy.md",
+        },
+        {
+            "gap_id": "GAP_GP_002",
+            "path_id": "im1_pairing_tpp_systmone",
+            "gap_class": "supplier_pip_detail_missing",
+            "severity": "high",
+            "blocks_actual_strategy": "yes",
+            "summary": "TPP (SystmOne) is publicly listed for IM1 Pairing, but exact booking, hold, and manage semantics still need supplier PIP evidence.",
+            "owner_role": "ROLE_PLATFORM_INTEROP_LEAD",
+            "next_step": "Carry supplier-specific capability proof into seq_038 and seq_039 before any live claim.",
+            "linked_risk_id": "RISK_EXT_BOOKING_PROVIDER_GAP",
+            "source_refs": "official_im1_pairing_integration; docs/external/26_im1_pairing_rehearsal_strategy.md",
+        },
+        {
+            "gap_id": "GAP_GP_003",
+            "path_id": "gp_connect_appointment_management_watch_only",
+            "gap_class": "new_supplier_pause",
+            "severity": "high",
+            "blocks_actual_strategy": "yes",
+            "summary": "GP Connect Appointment Management new supplier development is currently paused, so it cannot be treated as the current Vecells expansion lane.",
+            "owner_role": "ROLE_PLATFORM_INTEROP_LEAD",
+            "next_step": "Keep the lane watch-only unless official supplier posture changes materially.",
+            "linked_risk_id": "RISK_EXT_BOOKING_PROVIDER_GAP",
+            "source_refs": "official_gp_connect_supplier_progress",
+        },
+        {
+            "gap_id": "GAP_GP_004",
+            "path_id": "gp_connect_appointment_management_watch_only",
+            "gap_class": "existing_estate_variance",
+            "severity": "medium",
+            "blocks_actual_strategy": "yes",
+            "summary": "Current GP Connect Appointment Management value is estate-specific and oriented to existing consumer suppliers and staff flows.",
+            "owner_role": "ROLE_PRODUCT_ARCHITECT",
+            "next_step": "Require a bounded estate-specific architecture decision before any future adoption.",
+            "linked_risk_id": "RISK_EXT_BOOKING_PROVIDER_GAP",
+            "source_refs": "official_gp_connect_appointment_management; official_gp_connect_supplier_progress",
+        },
+        {
+            "gap_id": "GAP_GP_005",
+            "path_id": "bars_watch_only",
+            "gap_class": "principal_route_boundary",
+            "severity": "medium",
+            "blocks_actual_strategy": "yes",
+            "summary": "BaRS is broader referral interoperability and should not be mistaken for the baseline patient-to-GP-practice principal-system booking path.",
+            "owner_role": "ROLE_PRODUCT_ARCHITECT",
+            "next_step": "Keep BaRS in the watch register until a separate bounded use-case decision exists.",
+            "linked_risk_id": "RISK_EXT_BOOKING_PROVIDER_GAP",
+            "source_refs": "official_referrals_and_bookings_guidance; official_bars_standard",
+        },
+        {
+            "gap_id": "GAP_GP_006",
+            "path_id": "im1_pairing_optum_emisweb",
+            "gap_class": "governance_missing",
+            "severity": "high",
+            "blocks_actual_strategy": "yes",
+            "summary": gate_map["LIVE_GATE_SPONSOR_AND_COMMISSIONING_POSTURE"]["summary"],
+            "owner_role": "ROLE_PROGRAMME_DIRECTOR",
+            "next_step": "Name sponsor and commissioning posture before any live provider activity.",
+            "linked_risk_id": "RISK_EXT_IM1_SCAL_DELAY",
+            "source_refs": "prompt/036.md; docs/external/23_actual_partner_account_governance.md",
+        },
+        {
+            "gap_id": "GAP_GP_007",
+            "path_id": "im1_pairing_tpp_systmone",
+            "gap_class": "approver_and_environment_missing",
+            "severity": "high",
+            "blocks_actual_strategy": "yes",
+            "summary": gate_map["LIVE_GATE_NAMED_APPROVER_AND_ENVIRONMENT"]["summary"],
+            "owner_role": "ROLE_PROGRAMME_DIRECTOR",
+            "next_step": "Capture named approver and target environment before dry-run execution is considered.",
+            "linked_risk_id": "RISK_EXT_IM1_SCAL_DELAY",
+            "source_refs": "prompt/036.md; docs/external/26_im1_pairing_rehearsal_strategy.md",
+        },
+        {
+            "gap_id": "GAP_GP_008",
+            "path_id": "local_adapter_simulator_required",
+            "gap_class": "diagram_refresh_needed",
+            "severity": "medium",
+            "blocks_actual_strategy": "yes",
+            "summary": gate_map["LIVE_GATE_ARCHITECTURE_AND_DATA_FLOW_CURRENT"]["summary"],
+            "owner_role": "ROLE_PLATFORM_ARCHITECT",
+            "next_step": "Freeze provider-specific architecture and data-flow digests before later live work.",
+            "linked_risk_id": "RISK_EXT_IM1_SCAL_DELAY",
+            "source_refs": "docs/architecture/16_target_architecture_adr_set.md; docs/architecture/13_backend_runtime_service_baseline.md",
+        },
+        {
+            "gap_id": "GAP_GP_009",
+            "path_id": "manual_practice_handoff_only",
+            "gap_class": "mutation_flag_missing",
+            "severity": "high",
+            "blocks_actual_strategy": "yes",
+            "summary": gate_map["LIVE_GATE_MUTATION_FLAG_ENABLED"]["summary"],
+            "owner_role": "ROLE_RELEASE_MANAGER",
+            "next_step": "Keep all dry-run tooling fail-closed unless the mutation flag is explicitly enabled.",
+            "linked_risk_id": "RISK_EXT_IM1_SCAL_DELAY",
+            "source_refs": "prompt/shared_operating_contract_036_to_045.md",
+        },
+        {
+            "gap_id": "GAP_GP_010",
+            "path_id": "manual_practice_handoff_only",
+            "gap_class": "watch_register_open",
+            "severity": "high",
+            "blocks_actual_strategy": "yes",
+            "summary": gate_map["LIVE_GATE_WATCH_REGISTER_CLEAR"]["summary"],
+            "owner_role": "ROLE_PLATFORM_INTEROP_LEAD",
+            "next_step": "Resolve supplier and governance blockers before claiming the watch register is clear.",
+            "linked_risk_id": "RISK_EXT_BOOKING_PROVIDER_GAP",
+            "source_refs": str(GAP_REGISTER_CSV_PATH.relative_to(ROOT)),
+        },
+    ]
+
+
+def build_decisions(live_gates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "decision_id": "DEC_36_001",
+            "status": "accepted",
+            "title": "Treat IM1 Pairing as the only current principal-system actual-later path.",
+            "path_ids": ["im1_pairing_optum_emisweb", "im1_pairing_tpp_systmone"],
+            "rationale": (
+                "Current official guidance still points patient-to-GP-practice booking at IM1 Pairing Patient APIs, "
+                "and the current public supplier roster names only Optum (EMISWeb) and TPP (SystmOne)."
+            ),
+            "source_refs": ["official_im1_pairing_integration", "official_referrals_and_bookings_guidance"],
+        },
+        {
+            "decision_id": "DEC_36_002",
+            "status": "accepted",
+            "title": "Keep GP Connect Appointment Management as watch only.",
+            "path_ids": ["gp_connect_appointment_management_watch_only"],
+            "rationale": (
+                "The lane is officially live, but new supplier development is currently paused and the current use cases "
+                "remain bounded to existing consumer estates and staff flows."
+            ),
+            "source_refs": ["official_gp_connect_appointment_management", "official_gp_connect_supplier_progress"],
+        },
+        {
+            "decision_id": "DEC_36_003",
+            "status": "accepted",
+            "title": "Keep BaRS visible but not baseline for principal GP-system booking.",
+            "path_ids": ["bars_watch_only"],
+            "rationale": (
+                "BaRS is relevant interoperability infrastructure, but current official guidance places principal-system "
+                "patient booking against IM1 Pairing and places BaRS in broader referral or urgent-care contexts."
+            ),
+            "source_refs": ["official_bars_standard", "official_referrals_and_bookings_guidance"],
+        },
+        {
+            "decision_id": "DEC_36_004",
+            "status": "accepted",
+            "title": "Local adapter simulation is mandatory now.",
+            "path_ids": ["local_adapter_simulator_required"],
+            "rationale": (
+                "The booking provider truth seam is a top-priority mock-now family and the blueprint explicitly requires "
+                "deterministic simulation before supplier claims are trusted."
+            ),
+            "source_refs": [
+                "docs/external/21_integration_priority_and_execution_matrix.md",
+                "blueprint/phase-4-the-booking-engine.md#4E. Commit path, revalidation, booking record, and compensation",
+            ],
+        },
+        {
+            "decision_id": "DEC_36_005",
+            "status": "accepted",
+            "title": "Manual practice handoff is fallback only, not success.",
+            "path_ids": ["manual_practice_handoff_only"],
+            "rationale": (
+                "Manual practice contact preserves continuity but must still flow through ExternalConfirmationGate and the "
+                "current BookingConfirmationTruthProjection before any calm booked state appears."
+            ),
+            "source_refs": [
+                "blueprint/phase-0-the-foundation-protocol.md#1.15 ExternalConfirmationGate",
+                "blueprint/phase-0-the-foundation-protocol.md#1.15A BookingConfirmationTruthProjection",
+            ],
+        },
+        {
+            "decision_id": "DEC_36_006",
+            "status": "accepted",
+            "title": "Proof objects remain named and separate.",
+            "path_ids": ["im1_pairing_optum_emisweb", "im1_pairing_tpp_systmone", "local_adapter_simulator_required"],
+            "rationale": (
+                "Seq_036 refuses generic yes/no capability claims. Search, hold, authoritative confirmation, manage support, "
+                "and reminder readiness stay distinct dimensions tied to named canonical objects."
+            ),
+            "source_refs": [
+                "blueprint/phase-4-the-booking-engine.md#4B. Provider capability matrix and adapter seam",
+                "blueprint/phase-0-the-foundation-protocol.md#1.15A BookingConfirmationTruthProjection",
+            ],
+        },
+        {
+            "decision_id": "DEC_36_007",
+            "status": "accepted",
+            "title": "Actual provider work remains fail-closed.",
+            "path_ids": ["im1_pairing_optum_emisweb", "im1_pairing_tpp_systmone"],
+            "rationale": (
+                "The current gate set still blocks real provider work until booking MVP, sponsor posture, diagrams, approver, "
+                "environment, mutation flag, and watch-register clearance all exist."
+            ),
+            "source_refs": [gate["gate_id"] for gate in live_gates],
+        },
+    ]
+
+
+def build_evidence_pack(path_rows: list[dict[str, Any]], live_gates: list[dict[str, Any]]) -> dict[str, Any]:
+    proof_ladders = [
+        {
+            "proof_class": "authoritative_commit_or_read_after_write",
+            "title": "IM1 authoritative commit or read-after-write proof",
+            "applies_to_path_ids": ["im1_pairing_optum_emisweb", "im1_pairing_tpp_systmone"],
+            "steps": [
+                "Resolve one current ProviderCapabilityMatrix row and one current BookingProviderAdapterBinding for the exact tuple.",
+                "Persist BookingCapabilityResolution and revalidate slot freshness against the same tuple and policy envelope.",
+                "Observe durable provider reference or same-commit read-after-write under the active binding.",
+                "Create AppointmentRecord on the same BookingTransaction lineage.",
+                "Refresh BookingConfirmationTruthProjection to confirmed before any booked reassurance or writable manage posture.",
+            ],
+            "ui_rule": "Booked summary appears only after step 5.",
+        },
+        {
+            "proof_class": "watch_only_consumer_truth",
+            "title": "Watch-only consumer estate proof",
+            "applies_to_path_ids": ["gp_connect_appointment_management_watch_only"],
+            "steps": [
+                "Treat the route as an external watch lane, not a current executable baseline.",
+                "Require estate-specific supplier evidence before any capability claim is promoted.",
+                "If adopted later, normalize every success or pending state into the same canonical truth objects as IM1.",
+            ],
+            "ui_rule": "No current patient reassurance is allowed from this lane.",
+        },
+        {
+            "proof_class": "inter_provider_referral_standard",
+            "title": "BaRS inter-provider proof boundary",
+            "applies_to_path_ids": ["bars_watch_only"],
+            "steps": [
+                "Keep BaRS classified as a broader referral interoperability rail.",
+                "Require a future bounded use-case decision before any appointment-control claim is made.",
+                "If a later booking use case emerges, bind it through the same canonical proof objects and ExternalConfirmationGate rules.",
+            ],
+            "ui_rule": "BaRS does not currently unlock principal-GP booked reassurance.",
+        },
+        {
+            "proof_class": "simulated_authoritative_truth",
+            "title": "Simulator proof ladder",
+            "applies_to_path_ids": ["local_adapter_simulator_required"],
+            "steps": [
+                "Compile the current BookingProviderAdapterBinding and BookingCapabilityResolution under deterministic fixtures.",
+                "Simulate slot search, revalidation, exclusive or truthful reservation semantics, and commit attempts.",
+                "Simulate both authoritative success and ambiguous or disputed outcomes under ExternalConfirmationGate.",
+                "Materialize AppointmentRecord and confirmed BookingConfirmationTruthProjection only in the success branch.",
+            ],
+            "ui_rule": "The simulator may render every state, but it must obey the same proof law as live paths.",
+        },
+        {
+            "proof_class": "manual_handoff_acknowledgement",
+            "title": "Manual handoff acknowledgement ladder",
+            "applies_to_path_ids": ["manual_practice_handoff_only"],
+            "steps": [
+                "Create manual follow-up or callback obligation instead of pretending slot or hold truth exists.",
+                "Capture explicit practice acknowledgement or fallback transfer evidence.",
+                "Keep ExternalConfirmationGate open until manual confirmation settles or recovery wins.",
+                "Refresh BookingConfirmationTruthProjection only after the manual outcome becomes canonical truth.",
+            ],
+            "ui_rule": "Manual contact never implies immediate booked calmness.",
+        },
+    ]
+
+    path_requirements = []
+    for row in path_rows:
+        path_requirements.append(
+            {
+                "path_id": row["path_id"],
+                "path_label": row["path_label"],
+                "proof_class": row["proof_class"],
+                "required_objects_before_reassurance": [
+                    "BookingProviderAdapterBinding",
+                    "BookingCapabilityResolution",
+                    "BookingConfirmationTruthProjection",
+                ]
+                + (
+                    ["AppointmentRecord"]
+                    if row["path_id"] != "manual_practice_handoff_only"
+                    else ["ExternalConfirmationGate"]
+                ),
+                "dimension_digest": {
+                    "patient_booking_search": row["patient_booking_search"],
+                    "staff_assisted_search": row["staff_assisted_search"],
+                    "slot_freshness_proof": row["slot_freshness_proof"],
+                    "hold_or_soft_hold_support": row["hold_or_soft_hold_support"],
+                    "authoritative_commit_proof": row["authoritative_commit_proof"],
+                },
+                "exact_proof_object_required": row["exact_proof_object_required"],
+            }
+        )
+
+    blocked_gates = [gate for gate in live_gates if gate["status"] == "blocked"]
+    return {
+        "task_id": TASK_ID,
+        "visual_mode": VISUAL_MODE,
+        "generated_at": iso_now(),
+        "mission": MISSION,
+        "source_precedence": SOURCE_PRECEDENCE,
+        "assumptions": ASSUMPTIONS,
+        "capability_dimensions": CAPABILITY_DIMENSIONS,
+        "canonical_proof_objects": CANONICAL_PROOF_OBJECTS,
+        "proof_ladders": proof_ladders,
+        "path_requirements": path_requirements,
+        "live_gate_digest": [
+            {
+                "gate_id": gate["gate_id"],
+                "status": gate["status"],
+                "title": gate["title"],
+            }
+            for gate in live_gates
+        ],
+        "official_guidance": OFFICIAL_GUIDANCE,
+        "summary": {
+            "path_count": len(path_rows),
+            "capability_dimension_count": len(CAPABILITY_DIMENSIONS),
+            "canonical_proof_object_count": len(CANONICAL_PROOF_OBJECTS),
+            "proof_class_count": len(proof_ladders),
+            "blocked_live_gate_count": len(blocked_gates),
+        },
+    }
+
+
+def build_decision_register(
+    path_rows: list[dict[str, Any]],
+    decisions: list[dict[str, Any]],
+    live_gates: list[dict[str, Any]],
+    gap_rows: list[dict[str, Any]],
+    inputs: dict[str, Any],
+) -> dict[str, Any]:
+    phase0_verdict = inputs["phase0_gate_verdict"]["summary"]["phase0_entry_verdict"]
+    gp_scorecard = find_provider_family(inputs["provider_family_scorecards"], "gp_im1_and_booking_supplier")
+    booking_integration = find_integration_row(inputs["integration_priority_matrix"], "int_local_booking_provider_truth")
+    return {
+        "task_id": TASK_ID,
+        "visual_mode": VISUAL_MODE,
+        "generated_at": iso_now(),
+        "mission": MISSION,
+        "source_precedence": SOURCE_PRECEDENCE,
+        "summary": {
+            "path_count": len(path_rows),
+            "decision_count": len(decisions),
+            "live_gate_count": len(live_gates),
+            "blocked_live_gate_count": len([gate for gate in live_gates if gate["status"] == "blocked"]),
+            "review_required_gate_count": len([gate for gate in live_gates if gate["status"] == "review_required"]),
+            "gap_row_count": len(gap_rows),
+            "phase0_entry_verdict": phase0_verdict,
+            "actual_provider_strategy_state": "blocked",
+        },
+        "decisions": decisions,
+        "live_gates": live_gates,
+        "gap_digest": [
+            {
+                "gap_id": row["gap_id"],
+                "path_id": row["path_id"],
+                "severity": row["severity"],
+                "summary": row["summary"],
+            }
+            for row in gap_rows
+        ],
+        "scorecard_digest": {
+            "provider_family": gp_scorecard["provider_family"],
+            "baseline_role": gp_scorecard["baseline_role"],
+            "recommended_lane": gp_scorecard["recommended_lane"],
+            "focus": gp_scorecard["focus"],
+            "integration_ids": gp_scorecard["integration_ids"],
+        },
+        "integration_priority_digest": {
+            "integration_id": booking_integration["integration_id"],
+            "mock_now_execution_rank": booking_integration["mock_now_execution_rank"],
+            "actual_provider_strategy_later_rank": booking_integration["actual_provider_strategy_later_rank"],
+            "minimum_mock_fidelity": booking_integration["minimum_mock_fidelity"],
+            "truth_proof_digest": booking_integration["truth_proof_digest"],
+            "cannot_be_authoritative": booking_integration["cannot_be_authoritative"],
+        },
+        "dry_run_harness": {
+            "required_env": sorted(
+                {
+                    env_var
+                    for gate in live_gates
+                    for env_var in gate["required_env"]
+                }
+                | {"ALLOW_REAL_PROVIDER_MUTATION"}
+            ),
+            "official_label_checks": {
+                "im1_pairing": [
+                    "Optum (EMISWeb)",
+                    "TPP (SystmOne)",
+                    "There are no current plans to decommission IM1.",
+                ],
+                "gp_connect_supplier_progress": [
+                    "Appointment Management is only relevant for existing suppliers.",
+                    "Appointment Management",
+                ],
+                "referrals_and_bookings": [
+                    "Patient to GP practice",
+                    "The NHS App and third party software options use",
+                    "IM1 Pairing",
+                ],
+            },
+            "selector_map": {
+                "base_profile": {
+                    "shell": "[data-testid='pathfinder-shell']",
+                    "actor_filter": "[data-testid='filter-actor-mode']",
+                    "maturity_filter": "[data-testid='filter-maturity']",
+                    "proof_filter": "[data-testid='filter-proof-class']",
+                    "sort_select": "[data-testid='sort-freshness']",
+                    "row_im1_optum": "[data-testid='path-row-im1_pairing_optum_emisweb']",
+                    "row_gpc": "[data-testid='path-row-gp_connect_appointment_management_watch_only']",
+                    "row_bars": "[data-testid='path-row-bars_watch_only']",
+                    "inspector": "[data-testid='path-inspector']",
+                    "gap_strip": "[data-testid='gap-strip']",
+                }
+            },
+        },
+        "official_guidance": OFFICIAL_GUIDANCE,
+    }
+
+
+def csv_row_from_path(path_row: dict[str, Any]) -> dict[str, str]:
+    row: dict[str, str] = {}
+    for field in PATH_FIELDNAMES:
+        value = path_row[field]
+        if isinstance(value, list):
+            row[field] = join_list(value)
+        else:
+            row[field] = str(value)
+    return row
+
+
+def build_markdown_docs(
+    path_rows: list[dict[str, Any]],
+    evidence_pack: dict[str, Any],
+    decision_register: dict[str, Any],
+    gap_rows: list[dict[str, Any]],
+) -> None:
+    path_table = markdown_table(
+        [
+            "Path",
+            "Kind",
+            "Maturity",
+            "Actor modes",
+            "Proof class",
+            "Current position",
+            "Actual-later position",
+        ],
+        [
+            [
+                row["path_label"],
+                row["path_kind"],
+                row["maturity"],
+                join_list(row["actor_modes"]),
+                row["proof_class"],
+                row["current_position"],
+                row["actual_later_position"],
+            ]
+            for row in path_rows
+        ],
+    )
+    mock_rows = [row for row in path_rows if row["maturity"] in {"mock_now_executable", "manual_only"}]
+    actual_rows = [row for row in path_rows if row["maturity"] in {"actual_later_gated", "watch_only"}]
+
+    mock_table = markdown_table(
+        ["Path", "Current execution", "Proof discipline", "Fallback rule"],
+        [
+            [
+                row["path_label"],
+                row["current_execution"],
+                row["authoritative_commit_proof"],
+                row["degraded_fallback_mode"],
+            ]
+            for row in mock_rows
+        ],
+    )
+    actual_table = markdown_table(
+        ["Path", "Official posture", "Why not baseline now", "Later gate"],
+        [
+            [
+                row["path_label"],
+                row["official_status"],
+                row["watch_summary"],
+                row["actual_later_position"],
+            ]
+            for row in actual_rows
+        ],
+    )
+
+    live_gate_table = markdown_table(
+        ["Gate", "Status", "Summary", "Required env"],
+        [
+            [
+                gate["gate_id"],
+                gate["status"],
+                gate["summary"],
+                join_list(gate["required_env"]) if gate["required_env"] else "n/a",
+            ]
+            for gate in decision_register["live_gates"]
+        ],
+    )
+    source_table = markdown_table(
+        ["Source", "Captured", "Why it matters"],
+        [
+            [row["title"], row["captured_on"], row["summary"]]
+            for row in OFFICIAL_GUIDANCE
+        ],
+    )
+    dimension_table = markdown_table(
+        ["Dimension", "Why separate"],
+        [[row["title"], row["why_separate"]] for row in CAPABILITY_DIMENSIONS],
+    )
+    proof_object_table = markdown_table(
+        ["Object", "Role"],
+        [[row["object_id"], row["role"]] for row in CANONICAL_PROOF_OBJECTS],
+    )
+    proof_ladder_table = markdown_table(
+        ["Proof class", "Applies to", "Steps", "UI rule"],
+        [
+            [
+                ladder["title"],
+                join_list(ladder["applies_to_path_ids"]),
+                "<br>".join(f"{index + 1}. {step}" for index, step in enumerate(ladder["steps"])),
+                ladder["ui_rule"],
+            ]
+            for ladder in evidence_pack["proof_ladders"]
+        ],
+    )
+    gap_table = markdown_table(
+        ["Gap", "Path", "Severity", "Blocks actual strategy", "Summary", "Next step"],
+        [
+            [
+                row["gap_id"],
+                row["path_id"],
+                row["severity"],
+                row["blocks_actual_strategy"],
+                row["summary"],
+                row["next_step"],
+            ]
+            for row in gap_rows
+        ],
+    )
+
+    write_text(
+        MOCK_STRATEGY_DOC_PATH,
+        "\n".join(
+            [
+                "# 36 GP System Pathways Mock Strategy",
+                "",
+                "Seq_036 freezes the current GP principal-system posture without pretending every official route is equally real or equally usable today.",
+                "",
+                "## Mock_now_execution",
+                "",
+                "- executable now: `local_adapter_simulator_required`",
+                "- bounded fallback now: `manual_practice_handoff_only`",
+                "- non-executable now but visible: the two IM1 actual-later rows plus the GP Connect and BaRS watch rows",
+                "- proof rule: transport, acceptance, and booked reassurance stay separate facts under canonical booking proof objects",
+                "",
+                "## Current mock-now and fallback matrix",
+                "",
+                mock_table,
+                "",
+                "## Full path classification",
+                "",
+                path_table,
+                "",
+                "## Mock guardrails",
+                "",
+                "- The simulator must preserve slot freshness, revalidation, reservation semantics, ambiguous confirmation, and waitlist or fallback truth.",
+                "- Manual practice handoff is continuity protection only; it never implies booked calmness by itself.",
+                "- GP Connect and BaRS stay visible in the same path model so the team does not quietly re-baseline them later.",
+            ]
+        ),
+    )
+
+    write_text(
+        ACTUAL_STRATEGY_DOC_PATH,
+        "\n".join(
+            [
+                "# 36 GP System Pathways Actual Strategy",
+                "",
+                "The actual-provider-later view is deliberately fail-closed. Seq_036 classifies the official routes, but it does not open live mutation or claim that provider booking reach is ready.",
+                "",
+                "## Actual_provider_strategy_later",
+                "",
+                "- principal-system actual-later lanes: `im1_pairing_optum_emisweb`, `im1_pairing_tpp_systmone`",
+                "- watch-only official lanes: `gp_connect_appointment_management_watch_only`, `bars_watch_only`",
+                "- current verdict: `blocked` while Phase 0 external readiness remains withheld and live gates remain open",
+                "",
+                "## Official route classification",
+                "",
+                actual_table,
+                "",
+                "## Live gates",
+                "",
+                live_gate_table,
+                "",
+                "## Current official grounding",
+                "",
+                source_table,
+            ]
+        ),
+    )
+
+    write_text(
+        EVIDENCE_DOSSIER_DOC_PATH,
+        "\n".join(
+            [
+                "# 36 Booking Capability Evidence Dossier",
+                "",
+                "The dossier exists so that the provider-path discussion stays bound to named proof objects and not to supplier folklore or route-local optimism.",
+                "",
+                "## Capability dimensions",
+                "",
+                dimension_table,
+                "",
+                "## Canonical proof objects",
+                "",
+                proof_object_table,
+                "",
+                "## Proof ladders",
+                "",
+                proof_ladder_table,
+                "",
+                "## Path-specific exact proof requirements",
+                "",
+                markdown_table(
+                    ["Path", "Exact proof object required", "Patient search", "Staff search", "Ambiguity mode"],
+                    [
+                        [
+                            row["path_label"],
+                            row["exact_proof_object_required"],
+                            row["patient_booking_search"],
+                            row["staff_assisted_search"],
+                            row["ambiguity_mode"],
+                        ]
+                        for row in path_rows
+                    ],
+                ),
+            ]
+        ),
+    )
+
+    write_text(
+        GAP_REGISTER_DOC_PATH,
+        "\n".join(
+            [
+                "# 36 GP Provider Gap And Watch Register",
+                "",
+                "The watch register keeps the uncomfortable facts visible: current official routes exist, but the real provider path is not open and cannot be claimed open from partial evidence.",
+                "",
+                "## Gap and watch matrix",
+                "",
+                gap_table,
+                "",
+                "## Gate-state digest",
+                "",
+                markdown_table(
+                    ["Gate", "Status", "Reason"],
+                    [[gate["gate_id"], gate["status"], gate["summary"]] for gate in decision_register["live_gates"]],
+                ),
+                "",
+                "## Decision digest",
+                "",
+                markdown_table(
+                    ["Decision", "Status", "Choice", "Rationale"],
+                    [
+                        [row["decision_id"], row["status"], row["title"], row["rationale"]]
+                        for row in decision_register["decisions"]
+                    ],
+                ),
+            ]
+        ),
+    )
+
+
+def build_html_payload(
+    path_rows: list[dict[str, Any]],
+    evidence_pack: dict[str, Any],
+    decision_register: dict[str, Any],
+    gap_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    gap_by_path: dict[str, list[dict[str, str]]] = {}
+    for row in gap_rows:
+        gap_by_path.setdefault(row["path_id"], []).append(row)
+
+    return {
+        "task_id": TASK_ID,
+        "visual_mode": VISUAL_MODE,
+        "captured_on": CAPTURED_ON,
+        "phase0_entry_verdict": decision_register["summary"]["phase0_entry_verdict"],
+        "summary": {
+            "path_count": len(path_rows),
+            "mock_now_count": len([row for row in path_rows if row["maturity"] == "mock_now_executable"]),
+            "manual_only_count": len([row for row in path_rows if row["maturity"] == "manual_only"]),
+            "actual_later_count": len([row for row in path_rows if row["maturity"] == "actual_later_gated"]),
+            "watch_only_count": len([row for row in path_rows if row["maturity"] == "watch_only"]),
+            "blocked_gate_count": len([row for row in decision_register["live_gates"] if row["status"] == "blocked"]),
+            "gap_count": len(gap_rows),
+        },
+        "paths": [
+            {
+                **row,
+                "source_refs_label": join_list(row["source_refs"]),
+                "gap_ids": [gap["gap_id"] for gap in gap_by_path.get(row["path_id"], [])],
+            }
+            for row in path_rows
+        ],
+        "gap_rows": gap_rows,
+        "decisions": decision_register["decisions"],
+        "live_gates": decision_register["live_gates"],
+        "capability_dimensions": CAPABILITY_DIMENSIONS,
+        "proof_ladders": evidence_pack["proof_ladders"],
+        "official_guidance": OFFICIAL_GUIDANCE,
+        "filter_options": {
+            "actor_modes": sorted({mode for row in path_rows for mode in row["actor_modes"]}),
+            "maturity": sorted({row["maturity"] for row in path_rows}),
+            "proof_class": sorted({row["proof_class"] for row in path_rows}),
+        },
+    }
+
+
+HTML_TEMPLATE = """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>36 GP Provider Pathfinder</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%230b5cab'/%3E%3Cpath d='M18 18h28v9H33v19h-9V27H18z' fill='white'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --canvas: #f2f5f8;
+      --panel: rgba(255,255,255,0.92);
+      --panel-strong: #ffffff;
+      --panel-soft: #eef2f6;
+      --text: #17212b;
+      --text-muted: #5d6b79;
+      --line: #d7dee7;
+      --line-strong: #b7c3cf;
+      --accent: #0b5cab;
+      --accent-soft: rgba(11,92,171,0.12);
+      --success: #0f766e;
+      --warning: #b45309;
+      --danger: #b42318;
+      --watch: #6941c6;
+      --shadow: 0 18px 50px rgba(23, 33, 43, 0.08);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --rail: 300px;
+      --inspector: 360px;
+      --font-ui: "Avenir Next", "Segoe UI", "Trebuchet MS", sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { color-scheme: light; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(11,92,171,0.08), transparent 32%),
+        linear-gradient(180deg, #f8fbfd, #eef3f7 46%, #eef2f6);
+      color: var(--text);
+      font-family: var(--font-ui);
+    }
+    body[data-reduced-motion="true"] * {
+      animation-duration: 0ms !important;
+      transition-duration: 0ms !important;
+      scroll-behavior: auto !important;
+    }
+    .page {
+      max-width: 1680px;
+      margin: 0 auto;
+      padding: 18px 18px 28px;
+    }
+    .masthead-shell {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      padding-top: 10px;
+      background: linear-gradient(180deg, rgba(242,245,248,0.96), rgba(242,245,248,0.88) 74%, rgba(242,245,248,0));
+      backdrop-filter: blur(10px);
+    }
+    .masthead {
+      display: grid;
+      gap: 18px;
+      padding: 20px 22px;
+      border: 1px solid rgba(255,255,255,0.55);
+      background: linear-gradient(140deg, rgba(255,255,255,0.95), rgba(233,238,244,0.9));
+      border-radius: 30px;
+      box-shadow: var(--shadow);
+    }
+    .masthead-top {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(160deg, #0b5cab, #5b7dd1);
+      color: white;
+      font-weight: 700;
+    }
+    h1 {
+      margin: 8px 0 8px;
+      font-size: clamp(30px, 4vw, 46px);
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+    }
+    .subtitle {
+      max-width: 86ch;
+      color: var(--text-muted);
+      line-height: 1.6;
+      font-size: 15px;
+    }
+    .pill-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.92);
+      font-size: 13px;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: var(--rail) minmax(0, 1fr) var(--inspector);
+      gap: 18px;
+      margin-top: 18px;
+      align-items: start;
+    }
+    .panel {
+      border: 1px solid rgba(255,255,255,0.6);
+      background: var(--panel);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+    .rail,
+    .inspector,
+    .canvas {
+      padding: 18px;
+    }
+    .section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .filter-stack {
+      display: grid;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+    label {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    select {
+      min-height: 42px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--text);
+      padding: 0 12px;
+      font: inherit;
+    }
+    .provider-list {
+      display: grid;
+      gap: 10px;
+      max-height: calc(100vh - 310px);
+      overflow: auto;
+      padding-right: 4px;
+    }
+    .path-button {
+      display: grid;
+      gap: 7px;
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(244,247,250,0.92));
+      cursor: pointer;
+      color: var(--text);
+      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+    }
+    .path-button:hover,
+    .path-button[aria-pressed="true"] {
+      transform: translateY(-1px);
+      border-color: rgba(11,92,171,0.44);
+      box-shadow: 0 10px 22px rgba(11,92,171,0.1);
+    }
+    .path-title {
+      font-size: 15px;
+      font-weight: 650;
+      line-height: 1.35;
+    }
+    .chip-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: var(--panel-soft);
+      color: var(--text-muted);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .chip.status-pass { background: rgba(15,118,110,0.12); color: var(--success); }
+    .chip.status-review_required { background: rgba(180,83,9,0.12); color: var(--warning); }
+    .chip.status-blocked { background: rgba(180,35,24,0.1); color: var(--danger); }
+    .chip.maturity-watch_only { background: rgba(105,65,198,0.12); color: var(--watch); }
+    .chip.maturity-actual_later_gated { background: rgba(11,92,171,0.12); color: var(--accent); }
+    .chip.maturity-mock_now_executable { background: rgba(15,118,110,0.12); color: var(--success); }
+    .chip.maturity-manual_only { background: rgba(180,83,9,0.12); color: var(--warning); }
+    .canvas {
+      display: grid;
+      gap: 18px;
+    }
+    .canvas-top {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+      gap: 18px;
+      align-items: start;
+    }
+    .panel-card {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.94);
+      border-radius: 20px;
+      padding: 16px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th,
+    td {
+      text-align: left;
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    th {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    tbody tr {
+      cursor: pointer;
+    }
+    tbody tr:hover,
+    tbody tr[data-selected="true"] {
+      background: rgba(11,92,171,0.07);
+    }
+    .proof-steps {
+      display: grid;
+      gap: 10px;
+    }
+    .proof-step {
+      display: grid;
+      gap: 6px;
+      padding: 12px 13px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(245,247,250,0.94));
+    }
+    .proof-step strong {
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .diagram {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      align-items: center;
+    }
+    .diagram-box {
+      min-height: 118px;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(242,246,250,0.92));
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+    .diagram-arrow {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 26px;
+    }
+    .inspector-grid {
+      display: grid;
+      gap: 16px;
+      position: sticky;
+      top: 112px;
+      max-height: calc(100vh - 140px);
+      overflow: auto;
+      padding-right: 4px;
+    }
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .metric-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px;
+      background: rgba(255,255,255,0.95);
+    }
+    .metric-card span {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .metric-card strong {
+      font-size: 16px;
+      line-height: 1.3;
+    }
+    .list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding-left: 18px;
+    }
+    .muted {
+      color: var(--text-muted);
+    }
+    .mono {
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+    .gap-strip {
+      margin-top: 18px;
+      border-radius: 28px;
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+    }
+    .gap-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+    }
+    .gap-card {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.97), rgba(248,249,251,0.94));
+      display: grid;
+      gap: 8px;
+    }
+    .gap-card[data-blocks="yes"] {
+      border-color: rgba(180,35,24,0.35);
+      background: linear-gradient(180deg, rgba(255,255,255,0.97), rgba(255,243,241,0.96));
+    }
+    .legend {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    button:focus-visible,
+    select:focus-visible,
+    tbody tr:focus-visible {
+      outline: 3px solid rgba(11,92,171,0.24);
+      outline-offset: 2px;
+    }
+    @media (max-width: 1320px) {
+      .layout {
+        grid-template-columns: 300px minmax(0, 1fr);
+      }
+      .inspector {
+        grid-column: 1 / -1;
+      }
+      .inspector-grid {
+        position: static;
+        max-height: none;
+        overflow: visible;
+      }
+    }
+    @media (max-width: 1080px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .canvas-top {
+        grid-template-columns: 1fr;
+      }
+      .diagram {
+        grid-template-columns: 1fr;
+      }
+      .diagram-arrow {
+        transform: rotate(90deg);
+      }
+    }
+    @media (max-width: 640px) {
+      .page { padding: 10px; }
+      .masthead { padding: 16px; }
+      .rail, .canvas, .inspector { padding: 14px; }
+      th, td { padding: 8px 6px; font-size: 12px; }
+      .metric-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page" data-testid="pathfinder-shell">
+    <div class="masthead-shell">
+      <section class="masthead panel" aria-label="Pathfinder summary">
+        <div class="masthead-top">
+          <div>
+            <div class="eyebrow"><span class="mark">36</span><span>Principal System Pathfinder</span></div>
+            <h1>GP Provider Path Classification</h1>
+            <p class="subtitle">
+              Current principal-system truth stays split on purpose: IM1 remains the only actual-provider-later
+              principal-system lane, GP Connect Appointment Management and BaRS stay watch only, and the simulator
+              plus bounded manual handoff stay executable now.
+            </p>
+          </div>
+          <div class="pill-row" id="summary-pills"></div>
+        </div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot" style="background:#0b5cab"></span>Actual later</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#6941c6"></span>Watch only</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#0f766e"></span>Mock now</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#b45309"></span>Manual only</span>
+        </div>
+      </section>
+    </div>
+
+    <div class="layout">
+      <aside class="panel rail">
+        <div class="section-title">Filters</div>
+        <div class="filter-stack">
+          <div class="field">
+            <label for="actor-filter">Actor mode</label>
+            <select id="actor-filter" data-testid="filter-actor-mode"></select>
+          </div>
+          <div class="field">
+            <label for="maturity-filter">Maturity</label>
+            <select id="maturity-filter" data-testid="filter-maturity"></select>
+          </div>
+          <div class="field">
+            <label for="proof-filter">Proof class</label>
+            <select id="proof-filter" data-testid="filter-proof-class"></select>
+          </div>
+          <div class="field">
+            <label for="sort-freshness">Sort</label>
+            <select id="sort-freshness" data-testid="sort-freshness">
+              <option value="freshness_desc">Freshness high to low</option>
+              <option value="freshness_asc">Freshness low to high</option>
+              <option value="label_asc">Path label A-Z</option>
+            </select>
+          </div>
+        </div>
+        <div class="section-title">Provider rail</div>
+        <div class="provider-list" id="provider-rail" data-testid="provider-rail"></div>
+      </aside>
+
+      <main class="panel canvas">
+        <div class="canvas-top">
+          <section class="panel-card" aria-labelledby="matrix-heading">
+            <div class="section-title" id="matrix-heading">Matrix</div>
+            <table data-testid="path-matrix">
+              <thead>
+                <tr>
+                  <th>Path</th>
+                  <th>Scope</th>
+                  <th>Search split</th>
+                  <th>Commit proof</th>
+                  <th>Freshness</th>
+                </tr>
+              </thead>
+              <tbody id="matrix-body"></tbody>
+            </table>
+          </section>
+
+          <section class="panel-card" data-testid="proof-ladder" aria-labelledby="proof-heading">
+            <div class="section-title" id="proof-heading">Proof ladder</div>
+            <div id="proof-ladder-body" class="proof-steps"></div>
+          </section>
+        </div>
+
+        <section class="panel-card" aria-labelledby="diagram-heading">
+          <div class="section-title" id="diagram-heading">One restrained diagram</div>
+          <div class="diagram" id="path-diagram" data-testid="path-diagram"></div>
+        </section>
+      </main>
+
+      <aside class="panel inspector">
+        <div class="inspector-grid" id="path-inspector" data-testid="path-inspector"></div>
+      </aside>
+    </div>
+
+    <section class="panel gap-strip" data-testid="gap-strip">
+      <div class="section-title">Gap strip</div>
+      <div class="gap-grid" id="gap-grid"></div>
+    </section>
+  </div>
+
+  <script>
+    const DATA = %%DATA_JSON%%;
+
+    const state = {
+      actorMode: "all",
+      maturity: "all",
+      proofClass: "all",
+      sort: "freshness_desc",
+      selectedPathId: DATA.paths[0]?.path_id ?? null,
+    };
+
+    const summaryPills = document.getElementById("summary-pills");
+    const actorFilter = document.getElementById("actor-filter");
+    const maturityFilter = document.getElementById("maturity-filter");
+    const proofFilter = document.getElementById("proof-filter");
+    const sortSelect = document.getElementById("sort-freshness");
+    const providerRail = document.getElementById("provider-rail");
+    const matrixBody = document.getElementById("matrix-body");
+    const proofLadderBody = document.getElementById("proof-ladder-body");
+    const pathInspector = document.getElementById("path-inspector");
+    const gapGrid = document.getElementById("gap-grid");
+    const diagram = document.getElementById("path-diagram");
+
+    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (reducedMotionQuery.matches) {
+      document.body.dataset.reducedMotion = "true";
+    }
+
+    function chip(label, className = "") {
+      return `<span class="chip ${className}">${label}</span>`;
+    }
+
+    function formatList(values) {
+      return values.map((value) => `<li>${value}</li>`).join("");
+    }
+
+    function selectedPath() {
+      return DATA.paths.find((row) => row.path_id === state.selectedPathId) ?? DATA.paths[0];
+    }
+
+    function pathColor(row) {
+      if (row.maturity === "mock_now_executable") return "#0f766e";
+      if (row.maturity === "manual_only") return "#b45309";
+      if (row.maturity === "watch_only") return "#6941c6";
+      return "#0b5cab";
+    }
+
+    function filteredPaths() {
+      let rows = DATA.paths.filter((row) => {
+        const actorOkay = state.actorMode === "all" || row.actor_modes.includes(state.actorMode);
+        const maturityOkay = state.maturity === "all" || row.maturity === state.maturity;
+        const proofOkay = state.proofClass === "all" || row.proof_class === state.proofClass;
+        return actorOkay && maturityOkay && proofOkay;
+      });
+      rows = rows.slice().sort((left, right) => {
+        if (state.sort === "freshness_desc") return right.freshness_rank - left.freshness_rank || left.path_label.localeCompare(right.path_label);
+        if (state.sort === "freshness_asc") return left.freshness_rank - right.freshness_rank || left.path_label.localeCompare(right.path_label);
+        return left.path_label.localeCompare(right.path_label);
+      });
+      return rows;
+    }
+
+    function fillSelect(select, options, labelMap = null) {
+      const current = select.value || "all";
+      const rows = ['<option value="all">All</option>'];
+      for (const option of options) {
+        rows.push(`<option value="${option}">${labelMap?.[option] ?? option}</option>`);
+      }
+      select.innerHTML = rows.join("");
+      select.value = options.includes(current) ? current : "all";
+    }
+
+    function renderSummary() {
+      summaryPills.innerHTML = [
+        `<span class="pill"><strong>${DATA.summary.path_count}</strong> paths</span>`,
+        `<span class="pill"><strong>${DATA.summary.actual_later_count}</strong> actual later</span>`,
+        `<span class="pill"><strong>${DATA.summary.watch_only_count}</strong> watch only</span>`,
+        `<span class="pill"><strong>${DATA.summary.mock_now_count}</strong> mock now</span>`,
+        `<span class="pill"><strong>${DATA.summary.blocked_gate_count}</strong> blocked gates</span>`,
+        `<span class="pill"><strong>${DATA.phase0_entry_verdict}</strong> phase 0 verdict</span>`,
+      ].join("");
+    }
+
+    function ensureSelectedPath(rows) {
+      if (!rows.some((row) => row.path_id === state.selectedPathId)) {
+        state.selectedPathId = rows[0]?.path_id ?? DATA.paths[0]?.path_id ?? null;
+      }
+    }
+
+    function renderProviderRail(rows) {
+      providerRail.innerHTML = rows.map((row) => `
+        <button
+          type="button"
+          class="path-button"
+          data-testid="path-button-${row.path_id}"
+          data-path-id="${row.path_id}"
+          aria-pressed="${row.path_id === state.selectedPathId ? "true" : "false"}"
+        >
+          <div class="path-title">${row.path_label}</div>
+          <div class="chip-row">
+            ${chip(row.maturity.replaceAll("_", " "), `maturity-${row.maturity}`)}
+            ${chip(row.proof_class.replaceAll("_", " "))}
+          </div>
+          <div class="muted">${row.watch_summary}</div>
+        </button>
+      `).join("");
+
+      for (const button of providerRail.querySelectorAll(".path-button")) {
+        button.addEventListener("click", () => {
+          state.selectedPathId = button.dataset.pathId;
+          render();
+        });
+        button.addEventListener("keydown", (event) => {
+          const buttons = Array.from(providerRail.querySelectorAll(".path-button"));
+          const index = buttons.indexOf(button);
+          if (event.key === "ArrowDown" && buttons[index + 1]) {
+            event.preventDefault();
+            buttons[index + 1].focus();
+          }
+          if (event.key === "ArrowUp" && buttons[index - 1]) {
+            event.preventDefault();
+            buttons[index - 1].focus();
+          }
+        });
+      }
+    }
+
+    function renderMatrix(rows) {
+      matrixBody.innerHTML = rows.map((row) => `
+        <tr
+          tabindex="0"
+          data-testid="path-row-${row.path_id}"
+          data-selected="${row.path_id === state.selectedPathId ? "true" : "false"}"
+          data-path-id="${row.path_id}"
+        >
+          <td>
+            <strong>${row.path_label}</strong>
+            <div class="chip-row" style="margin-top:8px">
+              ${chip(row.maturity.replaceAll("_", " "), `maturity-${row.maturity}`)}
+            </div>
+          </td>
+          <td>${row.principal_system_scope}</td>
+          <td>
+            <div><strong>Patient:</strong> ${row.patient_booking_search}</div>
+            <div><strong>Staff:</strong> ${row.staff_assisted_search}</div>
+          </td>
+          <td>${row.authoritative_commit_proof}</td>
+          <td><span class="mono">${row.freshness_rank}</span><br><span class="muted">${row.freshness_label}</span></td>
+        </tr>
+      `).join("");
+
+      for (const row of matrixBody.querySelectorAll("tr")) {
+        const selectRow = () => {
+          state.selectedPathId = row.dataset.pathId;
+          render();
+        };
+        row.addEventListener("click", selectRow);
+        row.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            selectRow();
+          }
+        });
+      }
+    }
+
+    function renderProofLadder(path) {
+      const ladder = DATA.proof_ladders.find((row) => row.proof_class === path.proof_class);
+      if (!ladder) {
+        proofLadderBody.innerHTML = `<div class="proof-step"><strong>Missing</strong><div>No proof ladder registered.</div></div>`;
+        return;
+      }
+      proofLadderBody.innerHTML = ladder.steps.map((step, index) => `
+        <article class="proof-step" data-testid="proof-step-${path.path_id}-${index + 1}">
+          <strong>Step ${index + 1}</strong>
+          <div>${step}</div>
+        </article>
+      `).join("") + `
+        <article class="proof-step">
+          <strong>UI rule</strong>
+          <div>${ladder.ui_rule}</div>
+        </article>
+      `;
+    }
+
+    function renderDiagram(path) {
+      const boxes = [
+        { title: "Official route", body: `${path.path_label}<br><span class="muted">${path.official_status}</span>` },
+        { title: "Capability binding", body: path.slot_freshness_proof },
+        { title: "Proof gate", body: path.authoritative_commit_proof },
+        { title: "Audience calmness", body: path.exact_proof_object_required },
+      ];
+      diagram.innerHTML = boxes.map((box, index) => `
+        ${index > 0 ? '<div class="diagram-arrow" aria-hidden="true">→</div>' : ''}
+        <article class="diagram-box" style="border-color:${pathColor(path)}33">
+          <div class="section-title" style="margin:0;color:${pathColor(path)}">${box.title}</div>
+          <div>${box.body}</div>
+        </article>
+      `).join("");
+    }
+
+    function renderInspector(path) {
+      const pathGaps = DATA.gap_rows.filter((row) => row.path_id === path.path_id);
+      const gates = DATA.live_gates.filter((gate) => gate.status !== "pass");
+      pathInspector.innerHTML = `
+        <section class="panel-card">
+          <div class="section-title">Selected path</div>
+          <h2 style="margin:0 0 10px;font-size:24px;line-height:1.1">${path.path_label}</h2>
+          <div class="chip-row">
+            ${chip(path.maturity.replaceAll("_", " "), `maturity-${path.maturity}`)}
+            ${chip(path.proof_class.replaceAll("_", " "))}
+          </div>
+          <p style="margin-top:10px">${path.watch_summary}</p>
+        </section>
+
+        <section class="panel-card">
+          <div class="section-title">Key metrics</div>
+          <div class="metric-grid">
+            <div class="metric-card"><span>Patient search</span><strong>${path.patient_booking_search}</strong></div>
+            <div class="metric-card"><span>Staff search</span><strong>${path.staff_assisted_search}</strong></div>
+            <div class="metric-card"><span>Hold mode</span><strong>${path.hold_or_soft_hold_support}</strong></div>
+            <div class="metric-card"><span>Freshness</span><strong>${path.freshness_label}</strong></div>
+          </div>
+        </section>
+
+        <section class="panel-card">
+          <div class="section-title">Truth and fallback</div>
+          <ul class="list">
+            <li><strong>Commit proof:</strong> ${path.authoritative_commit_proof}</li>
+            <li><strong>Ambiguity:</strong> ${path.ambiguity_mode}</li>
+            <li><strong>Fallback:</strong> ${path.degraded_fallback_mode}</li>
+            <li><strong>Waitlist compatibility:</strong> ${path.waitlist_continuation_compatibility}</li>
+            <li><strong>Practice visibility:</strong> ${path.practice_visibility_evidence}</li>
+          </ul>
+        </section>
+
+        <section class="panel-card">
+          <div class="section-title">Exact proof object</div>
+          <div>${path.exact_proof_object_required}</div>
+          <div class="mono muted" style="margin-top:10px">${path.source_refs_label}</div>
+        </section>
+
+        <section class="panel-card">
+          <div class="section-title">Relevant gaps</div>
+          ${pathGaps.length ? `<ul class="list">${formatList(pathGaps.map((row) => `${row.gap_id}: ${row.summary}`))}</ul>` : '<div class="muted">No path-specific gap rows.</div>'}
+        </section>
+
+        <section class="panel-card">
+          <div class="section-title">Blocked or review gates</div>
+          <ul class="list">
+            ${formatList(gates.map((gate) => `${gate.gate_id} (${gate.status}): ${gate.summary}`))}
+          </ul>
+        </section>
+      `;
+    }
+
+    function renderGapStrip(path) {
+      const filteredGapRows = DATA.gap_rows.filter((row) => {
+        if (row.path_id === path.path_id) return true;
+        return row.blocks_actual_strategy === "yes";
+      });
+      gapGrid.innerHTML = filteredGapRows.map((row) => `
+        <article class="gap-card" data-testid="gap-card-${row.gap_id}" data-blocks="${row.blocks_actual_strategy}">
+          <div class="chip-row">
+            ${chip(row.severity)}
+            ${chip(row.gap_class.replaceAll("_", " "))}
+          </div>
+          <strong>${row.gap_id}</strong>
+          <div>${row.summary}</div>
+          <div class="muted"><strong>Next:</strong> ${row.next_step}</div>
+        </article>
+      `).join("");
+    }
+
+    function render() {
+      fillSelect(actorFilter, DATA.filter_options.actor_modes);
+      fillSelect(maturityFilter, DATA.filter_options.maturity);
+      fillSelect(proofFilter, DATA.filter_options.proof_class);
+      actorFilter.value = state.actorMode;
+      maturityFilter.value = state.maturity;
+      proofFilter.value = state.proofClass;
+      sortSelect.value = state.sort;
+
+      const rows = filteredPaths();
+      ensureSelectedPath(rows);
+      renderProviderRail(rows);
+      renderMatrix(rows);
+      const path = selectedPath();
+      renderProofLadder(path);
+      renderDiagram(path);
+      renderInspector(path);
+      renderGapStrip(path);
+    }
+
+    actorFilter.addEventListener("change", () => {
+      state.actorMode = actorFilter.value;
+      render();
+    });
+    maturityFilter.addEventListener("change", () => {
+      state.maturity = maturityFilter.value;
+      render();
+    });
+    proofFilter.addEventListener("change", () => {
+      state.proofClass = proofFilter.value;
+      render();
+    });
+    sortSelect.addEventListener("change", () => {
+      state.sort = sortSelect.value;
+      render();
+    });
+
+    renderSummary();
+    render();
+  </script>
+</body>
+</html>
+"""
+
+
+def build_pathfinder_html(payload: dict[str, Any]) -> str:
+    data_json = json.dumps(payload).replace("</", "<\\/")
+    return HTML_TEMPLATE.replace("%%DATA_JSON%%", data_json)
+
+
+def main() -> None:
+    inputs = ensure_inputs()
+    path_rows = build_path_rows(inputs)
+    live_gates = build_live_gates(inputs)
+    gap_rows = build_gap_rows(live_gates)
+    decisions = build_decisions(live_gates)
+    evidence_pack = build_evidence_pack(path_rows, live_gates)
+    decision_register = build_decision_register(path_rows, decisions, live_gates, gap_rows, inputs)
+
+    write_csv(PATH_MATRIX_CSV_PATH, PATH_FIELDNAMES, [csv_row_from_path(row) for row in path_rows])
+    write_json(BOOKING_EVIDENCE_JSON_PATH, evidence_pack)
+    write_json(DECISION_REGISTER_JSON_PATH, decision_register)
+    write_csv(GAP_REGISTER_CSV_PATH, GAP_FIELDNAMES, gap_rows)
+    build_markdown_docs(path_rows, evidence_pack, decision_register, gap_rows)
+    html_payload = build_html_payload(path_rows, evidence_pack, decision_register, gap_rows)
+    write_text(PATHFINDER_HTML_PATH, build_pathfinder_html(html_payload))
+
+
+if __name__ == "__main__":
+    main()

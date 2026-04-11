@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>34 Evidence Signal Atlas</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23155EEF'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial, sans-serif' font-size='34' fill='white'%3EV%3C/text%3E%3C/svg%3E" />
+  <style>
+    :root {
+      color-scheme: light;
+      --canvas: #F6F8FB;
+      --panel: #FFFFFF;
+      --inset: #EEF3F8;
+      --text-strong: #101828;
+      --text-default: #1D2939;
+      --text-muted: #667085;
+      --border-subtle: #E4E7EC;
+      --border-default: #D0D5DD;
+      --primary: #155EEF;
+      --secondary: #7A5AF8;
+      --transcript: #0E9384;
+      --scan: #B54708;
+      --blocked: #C24141;
+      --success: #12B76A;
+      --shadow: 0 18px 38px rgba(16, 24, 40, 0.08);
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 999px;
+      --header-height: 72px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(21, 94, 239, 0.08), transparent 35%),
+        radial-gradient(circle at top right, rgba(122, 90, 248, 0.08), transparent 32%),
+        var(--canvas);
+      color: var(--text-default);
+    }
+    .shell {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .sticky-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      min-height: var(--header-height);
+      display: grid;
+      grid-template-columns: 1.4fr 1fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 16px 20px;
+      border: 1px solid rgba(255,255,255,0.45);
+      border-radius: 24px;
+      backdrop-filter: blur(18px);
+      background: rgba(246, 248, 251, 0.86);
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+    }
+    .eyebrow {
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.2;
+      color: var(--text-strong);
+    }
+    .header-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .metric {
+      background: rgba(255,255,255,0.9);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 12px 14px;
+    }
+    .metric-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .metric-value {
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--text-strong);
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .segmented,
+    .chip-row {
+      display: inline-flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    button,
+    select {
+      font: inherit;
+    }
+    .chip,
+    .toggle button,
+    .tab {
+      min-height: 44px;
+      padding: 0 16px;
+      border-radius: 999px;
+      border: 1px solid var(--border-default);
+      background: var(--panel);
+      color: var(--text-default);
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, color 120ms ease;
+    }
+    .chip:hover,
+    .toggle button:hover,
+    .tab:hover,
+    .provider-card:hover {
+      transform: translateY(-1px);
+    }
+    .chip.is-active,
+    .toggle button.is-active,
+    .tab.is-active {
+      background: var(--text-strong);
+      border-color: var(--text-strong);
+      color: white;
+    }
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    .search {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 44px;
+      border-radius: 18px;
+      background: var(--panel);
+      border: 1px solid var(--border-subtle);
+      padding: 0 14px;
+    }
+    .search input {
+      border: 0;
+      background: transparent;
+      width: 100%;
+      font: inherit;
+      color: var(--text-default);
+      outline: none;
+    }
+    .panel-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 20px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+    }
+    .panel-header {
+      padding: 18px 20px 0;
+    }
+    .panel-title {
+      margin: 0;
+      font-size: 18px;
+      color: var(--text-strong);
+    }
+    .panel-subtitle {
+      margin: 8px 0 0;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .provider-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      padding: 20px;
+    }
+    .provider-card {
+      min-height: 180px;
+      padding: 18px;
+      border-radius: 20px;
+      border: 1px solid var(--border-subtle);
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(238,243,248,0.9));
+      display: grid;
+      gap: 12px;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+    }
+    .provider-card.is-selected {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(21, 94, 239, 0.14);
+    }
+    .provider-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .provider-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-strong);
+      margin-bottom: 2px;
+    }
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .lane-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 28px;
+      padding: 0 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid var(--border-default);
+    }
+    .lane-shortlisted { color: var(--success); border-color: rgba(18, 183, 106, 0.24); background: rgba(18, 183, 106, 0.08); }
+    .lane-candidate { color: var(--primary); border-color: rgba(21, 94, 239, 0.24); background: rgba(21, 94, 239, 0.08); }
+    .lane-rejected { color: var(--blocked); border-color: rgba(194, 65, 65, 0.26); background: rgba(194, 65, 65, 0.08); }
+    .lane-mock_only { color: var(--secondary); border-color: rgba(122, 90, 248, 0.24); background: rgba(122, 90, 248, 0.08); }
+    .score-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .score-box {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+    .score-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .score-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-strong);
+    }
+    .tags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .tag {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--inset);
+      color: var(--text-default);
+      font-size: 12px;
+    }
+    .drawer {
+      padding: 20px;
+      display: grid;
+      gap: 18px;
+      align-content: start;
+    }
+    .drawer-section {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(238,243,248,0.92));
+      border: 1px solid var(--border-subtle);
+      border-radius: 18px;
+    }
+    .drawer-section h3 {
+      margin: 0;
+      font-size: 15px;
+      color: var(--text-strong);
+    }
+    .drawer-list {
+      display: grid;
+      gap: 10px;
+    }
+    .evidence-item {
+      padding: 12px;
+      border-radius: 14px;
+      background: var(--panel);
+      border: 1px solid var(--border-subtle);
+    }
+    .evidence-item a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    .lower-strip {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .viz {
+      padding: 20px;
+    }
+    .coverage-grid {
+      display: grid;
+      gap: 12px;
+    }
+    .coverage-row {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 12px;
+      align-items: center;
+    }
+    .coverage-track {
+      min-height: 18px;
+      border-radius: 999px;
+      background: var(--inset);
+      overflow: hidden;
+      position: relative;
+    }
+    .coverage-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      border-radius: 999px;
+    }
+    .bar-chart {
+      display: grid;
+      gap: 10px;
+    }
+    .bar-row {
+      display: grid;
+      grid-template-columns: 1fr 120px;
+      gap: 12px;
+      align-items: center;
+    }
+    .bar-track {
+      height: 12px;
+      border-radius: 999px;
+      background: var(--inset);
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      border-radius: 999px;
+    }
+    .table-wrap {
+      overflow: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--border-subtle);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .empty {
+      padding: 28px 20px;
+      color: var(--text-muted);
+    }
+    @media (max-width: 1120px) {
+      .sticky-header,
+      .toolbar,
+      .panel-grid,
+      .lower-strip {
+        grid-template-columns: 1fr;
+      }
+      .controls {
+        justify-content: flex-start;
+      }
+      .header-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 720px) {
+      .shell {
+        padding: 14px;
+      }
+      .sticky-header {
+        padding: 14px;
+      }
+      .provider-grid {
+        grid-template-columns: 1fr;
+        padding: 14px;
+      }
+      .drawer,
+      .viz {
+        padding: 14px;
+      }
+      .coverage-row {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell" data-testid="vendor-atlas-shell">
+    <section class="sticky-header" data-testid="sticky-header">
+      <div class="brand">
+        <div class="mark">V</div>
+        <div>
+          <div class="eyebrow">Evidence_Signal_Atlas · EVIDENCE_PROCESSING_ATLAS</div>
+          <h1>Evidence Signal Atlas</h1>
+        </div>
+      </div>
+      <div class="header-metrics">
+        <div class="metric"><div class="metric-label">Shortlisted</div><div class="metric-value" id="metric-shortlisted"></div></div>
+        <div class="metric"><div class="metric-label">Rejected</div><div class="metric-value" id="metric-rejected"></div></div>
+        <div class="metric"><div class="metric-label">Mock lane</div><div class="metric-value" id="metric-mock"></div></div>
+        <div class="metric"><div class="metric-label">Freshness</div><div class="metric-value" id="metric-freshness"></div></div>
+      </div>
+      <div class="controls">
+        <div class="segmented" role="tablist" aria-label="Provider family tabs">
+          <button class="tab is-active" id="tab-transcription" data-testid="tab-transcription" data-family="transcription" role="tab" aria-selected="true">Transcription</button>
+          <button class="tab" id="tab-artifact_scanning" data-testid="tab-artifact_scanning" data-family="artifact_scanning" role="tab" aria-selected="false">Artifact Scanning</button>
+          <button class="tab" id="tab-mock_lane" data-testid="tab-mock_lane" data-family="mock_lane" role="tab" aria-selected="false">Mock Lane</button>
+          <button class="tab" id="tab-actual_lane" data-testid="tab-actual_lane" data-family="actual_lane" role="tab" aria-selected="false">Actual Lane</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="toolbar">
+      <label class="search">
+        <span>Search</span>
+        <input id="search-input" type="search" placeholder="Vendor, note, or reason" />
+      </label>
+      <div class="toggle" data-testid="lane-toggle">
+        <button id="lane-mock" type="button">Mock lane</button>
+        <button id="lane-actual" type="button" class="is-active">Actual lane</button>
+      </div>
+      <select id="sort-select" aria-label="Sort vendors">
+        <option value="actual_later_fit_score">Sort by actual score</option>
+        <option value="mock_now_fit_score">Sort by mock score</option>
+        <option value="quarantine_fit_score">Sort by quarantine fit</option>
+        <option value="vendor_name">Sort by name</option>
+      </select>
+      <div class="chip-row" aria-label="Dimension filters">
+        <button class="chip is-active" type="button" data-filter="all">All</button>
+        <button class="chip" type="button" data-filter="webhooks">Webhooks</button>
+        <button class="chip" type="button" data-filter="regions">Regions</button>
+        <button class="chip" type="button" data-filter="quarantine">High quarantine fit</button>
+      </div>
+    </section>
+
+    <section class="panel-grid">
+      <section class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title" id="panel-title">Transcription Shortlist</h2>
+          <p class="panel-subtitle" id="panel-subtitle">Focused STT providers ranked against readiness, ambiguity, and portability law.</p>
+        </div>
+        <div class="provider-grid" id="provider-grid" data-testid="provider-grid"></div>
+        <div class="empty" id="provider-empty" hidden>No vendors match the current filter set.</div>
+      </section>
+
+      <aside class="panel drawer" data-testid="evidence-drawer">
+        <section class="drawer-section">
+          <h3 id="drawer-title">Select a vendor</h3>
+          <div id="drawer-summary" class="panel-subtitle">Open a provider card to inspect due-diligence evidence, fit scores, and kill switches.</div>
+        </section>
+        <section class="drawer-section">
+          <h3>Provider posture</h3>
+          <div id="drawer-posture" class="drawer-list"></div>
+        </section>
+        <section class="drawer-section">
+          <h3>Official evidence</h3>
+          <div id="drawer-evidence" class="drawer-list"></div>
+        </section>
+        <section class="drawer-section">
+          <h3>Why this lane</h3>
+          <div id="drawer-notes" class="drawer-list"></div>
+        </section>
+      </aside>
+    </section>
+
+    <section class="lower-strip">
+      <section class="panel viz">
+        <div class="panel-header">
+          <h2 class="panel-title">Family Coverage Diagram</h2>
+          <p class="panel-subtitle">Shortlisted, candidate, mock-only, and rejected counts stay visible per family.</p>
+        </div>
+        <div class="coverage-grid" id="coverage-diagram" data-testid="coverage-diagram"></div>
+      </section>
+      <section class="panel viz">
+        <div class="panel-header">
+          <h2 class="panel-title">Dimension Score Parity</h2>
+          <p class="panel-subtitle">The chart and table must always agree for the selected vendor.</p>
+        </div>
+        <div class="bar-chart" id="dimension-chart" data-testid="dimension-chart"></div>
+        <div class="table-wrap" data-testid="dimension-table">
+          <table>
+            <thead>
+              <tr><th>Dimension</th><th>Score</th><th>Actual weight</th><th>Lane priority</th></tr>
+            </thead>
+            <tbody id="dimension-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script id="atlas-data" type="application/json">{"summary":{"vendor_rows":13,"actual_shortlisted_vendor_count":4,"lane_counts":{"shortlisted":4,"candidate":3,"mock_only":3,"rejected":3},"evidence_rows":34,"kill_switch_count":10,"selected_access_row_count":4},"captured_on":"2026-04-10","vendors":[{"vendor_id":"vecells_transcript_readiness_twin","vendor_name":"Vecells Transcript Readiness Twin","provider_family":"transcription","vendor_lane":"mock_only","supports_async_jobs":"yes","supports_partial_results":"yes","supports_confidence_or_quality_bands":"yes","supports_webhooks":"yes","supports_replay_protection":"yes","supports_region_controls":"yes","retention_and_deletion_notes":"Synthetic fixtures only. Deterministic resets and explicit supersession keep replay, deletion, and audit behavior local to the repo.","quarantine_fit_score":97,"kill_switch_reason_if_any":"","notes":"Canonical local transcription twin. It must preserve readiness, coverage class, quality band, and supersession semantics before any real provider is admissible.","project_model":"repository-local simulator service plus deterministic credential seed","sandbox_posture":"full-fidelity synthetic mock","pricing_notes":"No external spend.","portability_notes":"This is the baseline contract the real-later shortlist must match.","dimension_scores":{"contract_shape":5,"authoritative_truth":5,"ambiguity_handling":5,"security_replay":5,"privacy_residency":5,"healthcare_compliance":4,"onboarding_and_sponsorship":5,"sandbox_depth":5,"test_data_fidelity":5,"observability_and_audit":5,"operational_support":5,"commercial_and_lock_in":5,"portability_and_exit":5,"degraded_mode_resilience":5,"experience_and_brand_constraints":5,"simulator_fidelity":5},"evidence_ids":[],"mock_now_fit_score":99,"actual_later_fit_score":99},{"vendor_id":"deepgram_transcription","vendor_name":"Deepgram","provider_family":"transcription","vendor_lane":"shortlisted","supports_async_jobs":"yes","supports_partial_results":"yes","supports_confidence_or_quality_bands":"yes","supports_webhooks":"yes","supports_replay_protection":"partial","supports_region_controls":"yes","retention_and_deletion_notes":"Hosted service can callback results; private and self-hosted deployment options reduce retention lock-in.","quarantine_fit_score":78,"kill_switch_reason_if_any":"","notes":"Focused transcription provider with strong async and streaming support. Callback authenticity remains a bounded weakness, so Vecells must treat callbacks as hints and re-fetch job state before promotion.","project_model":"project plus scoped API keys","sandbox_posture":"developer project and credits","pricing_notes":"Usage-priced with explicit developer and enterprise paths.","portability_notes":"Private deployment options reduce lock-in risk relative to cloud-only providers.","dimension_scores":{"contract_shape":5,"authoritative_truth":4,"ambiguity_handling":5,"security_replay":3,"privacy_residency":4,"healthcare_compliance":3,"onboarding_and_sponsorship":4,"sandbox_depth":4,"test_data_fidelity":4,"observability_and_audit":4,"operational_support":4,"commercial_and_lock_in":3,"portability_and_exit":4,"degraded_mode_resilience":4,"experience_and_brand_constraints":5,"simulator_fidelity":4},"evidence_ids":["ev_dg_callback","ev_dg_prerecorded","ev_dg_interim","ev_dg_projects","ev_dg_api_keys","ev_dg_deployment","ev_dg_pricing"],"mock_now_fit_score":81,"actual_later_fit_score":80},{"vendor_id":"assemblyai_transcription","vendor_name":"AssemblyAI","provider_family":"transcription","vendor_lane":"shortlisted","supports_async_jobs":"yes","supports_partial_results":"yes","supports_confidence_or_quality_bands":"yes","supports_webhooks":"yes","supports_replay_protection":"partial","supports_region_controls":"yes","retention_and_deletion_notes":"Transcript deletion removes uploaded files; region selection and private deployment reduce retention ambiguity.","quarantine_fit_score":76,"kill_switch_reason_if_any":"","notes":"AssemblyAI is strong on job callbacks, EU region selection, and deletion semantics. Like Deepgram, callback trust still needs Vecells-side replay fencing and trusted re-fetch.","project_model":"account plus API key","sandbox_posture":"developer account with webhook flows","pricing_notes":"Usage-priced with private deployment options.","portability_notes":"Private deployment and explicit delete APIs keep exit posture workable.","dimension_scores":{"contract_shape":4,"authoritative_truth":4,"ambiguity_handling":5,"security_replay":4,"privacy_residency":4,"healthcare_compliance":3,"onboarding_and_sponsorship":4,"sandbox_depth":4,"test_data_fidelity":4,"observability_and_audit":4,"operational_support":4,"commercial_and_lock_in":3,"portability_and_exit":4,"degraded_mode_resilience":4,"experience_and_brand_constraints":5,"simulator_fidelity":4},"evidence_ids":["ev_aa_webhooks_prerecorded","ev_aa_webhooks_streaming","ev_aa_region","ev_aa_delete","ev_aa_private_deployment","ev_aa_pricing"],"mock_now_fit_score":81,"actual_later_fit_score":80},{"vendor_id":"azure_speech_transcription","vendor_name":"Azure AI Speech","provider_family":"transcription","vendor_lane":"candidate","supports_async_jobs":"yes","supports_partial_results":"yes","supports_confidence_or_quality_bands":"yes","supports_webhooks":"yes","supports_replay_protection":"partial","supports_region_controls":"yes","retention_and_deletion_notes":"Batch jobs integrate with customer storage and TTL; data privacy posture is stronger than many focused API vendors but the environment model is heavier.","quarantine_fit_score":74,"kill_switch_reason_if_any":"","notes":"Azure is technically credible and safer on storage and privacy than a toy API, but seq_035 would inherit storage, networking, and tenant setup before the product-side adapter is ready.","project_model":"Azure resource plus storage account and webhook registration","sandbox_posture":"cloud subscription resources","pricing_notes":"Cloud subscription pricing; more infrastructure coupling than focused vendors.","portability_notes":"Containers help, but the account and storage model still couples provider choice with broader platform choices.","dimension_scores":{"contract_shape":4,"authoritative_truth":4,"ambiguity_handling":4,"security_replay":4,"privacy_residency":5,"healthcare_compliance":4,"onboarding_and_sponsorship":2,"sandbox_depth":3,"test_data_fidelity":3,"observability_and_audit":4,"operational_support":4,"commercial_and_lock_in":3,"portability_and_exit":3,"degraded_mode_resilience":4,"experience_and_brand_constraints":4,"simulator_fidelity":3},"evidence_ids":["ev_azure_batch_create","ev_azure_batch_overview","ev_azure_privacy"],"mock_now_fit_score":74,"actual_later_fit_score":74},{"vendor_id":"aws_transcribe_transcription","vendor_name":"Amazon Transcribe","provider_family":"transcription","vendor_lane":"candidate","supports_async_jobs":"yes","supports_partial_results":"yes","supports_confidence_or_quality_bands":"yes","supports_webhooks":"no","supports_replay_protection":"n/a","supports_region_controls":"yes","retention_and_deletion_notes":"Batch output is tightly coupled to S3 input and output configuration, which is good for audit but broadens the infrastructure surface too early.","quarantine_fit_score":70,"kill_switch_reason_if_any":"","notes":"Amazon Transcribe has strong partial-result semantics, but the lack of first-class callback delivery and the S3/KMS coupling make it a weaker seq_035 handoff than the shortlist pair.","project_model":"AWS account, IAM, S3 input/output buckets","sandbox_posture":"cloud account and bucket policy driven","pricing_notes":"Usage-based AWS billing with broader account guardrails needed.","portability_notes":"Output-storage coupling increases exit cost relative to focused API providers.","dimension_scores":{"contract_shape":4,"authoritative_truth":4,"ambiguity_handling":5,"security_replay":3,"privacy_residency":4,"healthcare_compliance":4,"onboarding_and_sponsorship":3,"sandbox_depth":3,"test_data_fidelity":3,"observability_and_audit":4,"operational_support":4,"commercial_and_lock_in":3,"portability_and_exit":3,"degraded_mode_resilience":4,"experience_and_brand_constraints":4,"simulator_fidelity":3},"evidence_ids":["ev_aws_transcribe_partial","ev_aws_transcribe_io"],"mock_now_fit_score":74,"actual_later_fit_score":74},{"vendor_id":"google_speech_transcription","vendor_name":"Google Cloud Speech-to-Text","provider_family":"transcription","vendor_lane":"rejected","supports_async_jobs":"yes","supports_partial_results":"yes","supports_confidence_or_quality_bands":"yes","supports_webhooks":"no","supports_replay_protection":"n/a","supports_region_controls":"yes","retention_and_deletion_notes":"Regional endpoints and batch APIs exist, but the official product page warning about sensitive or personal data is not acceptable for this use case without much stronger contractual evidence.","quarantine_fit_score":55,"kill_switch_reason_if_any":"Official product posture warns against entering sensitive, confidential, or personal information; that is incompatible with this evidence-processing seam until clarified with stronger contract evidence.","notes":"This is not a product-capability rejection. It is a current-official-docs rejection for this healthcare evidence-processing seam.","project_model":"Google Cloud project and recognizer resources","sandbox_posture":"cloud project and billing account","pricing_notes":"Published pricing exists, but the current product warning dominates.","portability_notes":"Standard cloud portability issues plus unresolved policy fit.","dimension_scores":{"contract_shape":4,"authoritative_truth":4,"ambiguity_handling":4,"security_replay":3,"privacy_residency":2,"healthcare_compliance":2,"onboarding_and_sponsorship":3,"sandbox_depth":3,"test_data_fidelity":3,"observability_and_audit":4,"operational_support":4,"commercial_and_lock_in":3,"portability_and_exit":3,"degraded_mode_resilience":3,"experience_and_brand_constraints":4,"simulator_fidelity":3},"evidence_ids":["ev_google_overview","ev_google_endpoints","ev_google_pricing"],"mock_now_fit_score":66,"actual_later_fit_score":65},{"vendor_id":"vecells_artifact_quarantine_twin","vendor_name":"Vecells Artifact Quarantine Twin","provider_family":"artifact_scanning","vendor_lane":"mock_only","supports_async_jobs":"yes","supports_partial_results":"n/a","supports_confidence_or_quality_bands":"yes","supports_webhooks":"yes","supports_replay_protection":"yes","supports_region_controls":"yes","retention_and_deletion_notes":"Synthetic-only signature packs, explicit quarantine manifests, and deterministic resets keep unsafe evidence local and replayable.","quarantine_fit_score":99,"kill_switch_reason_if_any":"","notes":"Canonical local artifact-scan twin. It must preserve clean, suspicious, quarantined, unreadable, and failed outcomes without silently passing evidence onward.","project_model":"repository-local simulator service plus signature fixture dataset","sandbox_posture":"full-fidelity synthetic mock","pricing_notes":"No external spend.","portability_notes":"This twin is the acceptance contract for any later managed scanner.","dimension_scores":{"contract_shape":5,"authoritative_truth":5,"ambiguity_handling":5,"security_replay":5,"privacy_residency":5,"healthcare_compliance":4,"onboarding_and_sponsorship":5,"sandbox_depth":5,"test_data_fidelity":5,"observability_and_audit":5,"operational_support":5,"commercial_and_lock_in":5,"portability_and_exit":5,"degraded_mode_resilience":5,"experience_and_brand_constraints":4,"simulator_fidelity":5},"evidence_ids":[],"mock_now_fit_score":98,"actual_later_fit_score":98},{"vendor_id":"aws_guardduty_s3_scan","vendor_name":"GuardDuty Malware Protection for S3","provider_family":"artifact_scanning","vendor_lane":"shortlisted","supports_async_jobs":"yes","supports_partial_results":"n/a","supports_confidence_or_quality_bands":"yes","supports_webhooks":"yes","supports_replay_protection":"yes","supports_region_controls":"yes","retention_and_deletion_notes":"Results stay in AWS control planes and S3 tags/events instead of direct file round-trips through a vendor callback endpoint.","quarantine_fit_score":93,"kill_switch_reason_if_any":"","notes":"Best fit for quarantine-first artifact handling because results are event-driven, taggable, and explicit about failure or unsupported states. The tradeoff is AWS account coupling.","project_model":"AWS account plus GuardDuty protection plan, IAM role, and EventBridge","sandbox_posture":"cloud account and S3 prefix-scoped plans","pricing_notes":"Per-object and per-GB pricing; strong need for spend boundaries.","portability_notes":"Good event semantics, but higher account and storage coupling than API-key scanners.","dimension_scores":{"contract_shape":5,"authoritative_truth":5,"ambiguity_handling":5,"security_replay":5,"privacy_residency":5,"healthcare_compliance":4,"onboarding_and_sponsorship":3,"sandbox_depth":3,"test_data_fidelity":3,"observability_and_audit":5,"operational_support":4,"commercial_and_lock_in":3,"portability_and_exit":3,"degraded_mode_resilience":4,"experience_and_brand_constraints":3,"simulator_fidelity":3},"evidence_ids":["ev_guardduty_enable","ev_guardduty_how","ev_guardduty_monitoring","ev_guardduty_eventbridge","ev_guardduty_pricing"],"mock_now_fit_score":81,"actual_later_fit_score":82},{"vendor_id":"opswat_metadefender_cloud","vendor_name":"OPSWAT MetaDefender Cloud","provider_family":"artifact_scanning","vendor_lane":"shortlisted","supports_async_jobs":"yes","supports_partial_results":"n/a","supports_confidence_or_quality_bands":"yes","supports_webhooks":"no","supports_replay_protection":"n/a","supports_region_controls":"yes","retention_and_deletion_notes":"Cloud-service regions and explicit API posture are documented; file handling remains more controllable than threat-intel-first services.","quarantine_fit_score":88,"kill_switch_reason_if_any":"","notes":"Strong multi-engine scan vendor with explicit API docs and region story. It is weaker than GuardDuty on event-driven posture but stronger than lighter-weight API scanners for quarantine evidence.","project_model":"tenant account plus API key","sandbox_posture":"cloud API access","pricing_notes":"Commercial managed service; cost governance must be explicit.","portability_notes":"API posture is clear, but multi-engine semantics still need adapter-bound normalization.","dimension_scores":{"contract_shape":4,"authoritative_truth":4,"ambiguity_handling":4,"security_replay":4,"privacy_residency":4,"healthcare_compliance":3,"onboarding_and_sponsorship":4,"sandbox_depth":4,"test_data_fidelity":4,"observability_and_audit":4,"operational_support":4,"commercial_and_lock_in":3,"portability_and_exit":3,"degraded_mode_resilience":4,"experience_and_brand_constraints":3,"simulator_fidelity":4},"evidence_ids":["ev_opswat_product","ev_opswat_api","ev_opswat_regions"],"mock_now_fit_score":77,"actual_later_fit_score":76},{"vendor_id":"cloudmersive_virus_scan","vendor_name":"Cloudmersive Virus Scan API","provider_family":"artifact_scanning","vendor_lane":"candidate","supports_async_jobs":"no","supports_partial_results":"n/a","supports_confidence_or_quality_bands":"limited","supports_webhooks":"no","supports_replay_protection":"n/a","supports_region_controls":"yes","retention_and_deletion_notes":"Deployment options are flexible, but the API posture is more scan-request oriented than quarantine-workflow oriented.","quarantine_fit_score":72,"kill_switch_reason_if_any":"","notes":"Useful portable API-key scanner, but it scores below the shortlist because it is lighter on explicit asynchronous evidence states and webhook-friendly eventing.","project_model":"account plus API key","sandbox_posture":"cloud API or dedicated/on-prem deployment","pricing_notes":"Hosted or dedicated pricing paths exist.","portability_notes":"Deployment flexibility is good, but audit and state semantics are thinner than the shortlist.","dimension_scores":{"contract_shape":3,"authoritative_truth":4,"ambiguity_handling":3,"security_replay":3,"privacy_residency":4,"healthcare_compliance":3,"onboarding_and_sponsorship":4,"sandbox_depth":3,"test_data_fidelity":3,"observability_and_audit":3,"operational_support":3,"commercial_and_lock_in":3,"portability_and_exit":4,"degraded_mode_resilience":3,"experience_and_brand_constraints":4,"simulator_fidelity":3},"evidence_ids":["ev_cloudmersive_product","ev_cloudmersive_api","ev_cloudmersive_pricing"],"mock_now_fit_score":65,"actual_later_fit_score":66},{"vendor_id":"virustotal_private_scanning","vendor_name":"VirusTotal Private Scanning","provider_family":"artifact_scanning","vendor_lane":"rejected","supports_async_jobs":"yes","supports_partial_results":"n/a","supports_confidence_or_quality_bands":"yes","supports_webhooks":"no","supports_replay_protection":"n/a","supports_region_controls":"limited","retention_and_deletion_notes":"Private scanning is isolated from the public corpus, but the product remains oriented to threat-intel workflows rather than quarantine-first evidence promotion.","quarantine_fit_score":40,"kill_switch_reason_if_any":"Threat-intel-oriented scanning and weaker quarantine workflow fit make it a poor match for governed patient-evidence intake.","notes":"Rejected because the operational model fits analyst triage better than patient-evidence quarantine and bounded review.","project_model":"commercial account and API","sandbox_posture":"commercial service","pricing_notes":"Commercial engagement required; no advantage over better shortlist options here.","portability_notes":"Adapter fit is weaker than GuardDuty or OPSWAT for this seam.","dimension_scores":{"contract_shape":2,"authoritative_truth":2,"ambiguity_handling":2,"security_replay":2,"privacy_residency":1,"healthcare_compliance":1,"onboarding_and_sponsorship":3,"sandbox_depth":2,"test_data_fidelity":2,"observability_and_audit":3,"operational_support":3,"commercial_and_lock_in":2,"portability_and_exit":2,"degraded_mode_resilience":2,"experience_and_brand_constraints":2,"simulator_fidelity":2},"evidence_ids":["ev_vt_private_scanning","ev_vt_files_api"],"mock_now_fit_score":41,"actual_later_fit_score":41},{"vendor_id":"vecells_evidence_signal_fabric","vendor_name":"Vecells Evidence Signal Fabric","provider_family":"combined","vendor_lane":"mock_only","supports_async_jobs":"yes","supports_partial_results":"yes","supports_confidence_or_quality_bands":"yes","supports_webhooks":"yes","supports_replay_protection":"yes","supports_region_controls":"yes","retention_and_deletion_notes":"Repository-local only. All transcript and scan events remain synthetic, replayable, and explicit.","quarantine_fit_score":98,"kill_switch_reason_if_any":"","notes":"Combined internal mock lane only. It exists to prove readiness, quarantine, and fallback semantics before any live vendor is trusted.","project_model":"internal twin composition","sandbox_posture":"full-fidelity synthetic mock","pricing_notes":"No external spend.","portability_notes":"The actual-later strategy must adapt to this internal contract, not replace it.","dimension_scores":{"contract_shape":5,"authoritative_truth":5,"ambiguity_handling":5,"security_replay":5,"privacy_residency":5,"healthcare_compliance":4,"onboarding_and_sponsorship":5,"sandbox_depth":5,"test_data_fidelity":5,"observability_and_audit":5,"operational_support":5,"commercial_and_lock_in":5,"portability_and_exit":5,"degraded_mode_resilience":5,"experience_and_brand_constraints":4,"simulator_fidelity":5},"evidence_ids":[],"mock_now_fit_score":98,"actual_later_fit_score":98},{"vendor_id":"aws_evidence_stack","vendor_name":"AWS Evidence Stack","provider_family":"combined","vendor_lane":"rejected","supports_async_jobs":"yes","supports_partial_results":"yes","supports_confidence_or_quality_bands":"yes","supports_webhooks":"partial","supports_replay_protection":"yes","supports_region_controls":"yes","retention_and_deletion_notes":"AWS can cover both families, but the combined stack would force shared storage, IAM, and event-plane choices too early.","quarantine_fit_score":68,"kill_switch_reason_if_any":"A single AWS stack would over-couple transcript and scan failure domains, storage posture, and onboarding friction before the adapter contract is frozen.","notes":"Rejected as the default suite winner. Individual AWS services remain viable where their family-specific fit is strong.","project_model":"AWS account and shared control plane","sandbox_posture":"cloud account and shared event/storage model","pricing_notes":"Billing and operational overhead spread across multiple AWS services.","portability_notes":"Suite coupling is the main reason for rejection, not the raw technical capability.","dimension_scores":{"contract_shape":4,"authoritative_truth":4,"ambiguity_handling":4,"security_replay":4,"privacy_residency":4,"healthcare_compliance":4,"onboarding_and_sponsorship":2,"sandbox_depth":3,"test_data_fidelity":3,"observability_and_audit":4,"operational_support":4,"commercial_and_lock_in":2,"portability_and_exit":2,"degraded_mode_resilience":4,"experience_and_brand_constraints":3,"simulator_fidelity":2},"evidence_ids":["ev_aws_transcribe_io","ev_guardduty_enable","ev_guardduty_eventbridge"],"mock_now_fit_score":69,"actual_later_fit_score":69}],"evidence":[{"evidence_id":"ev_dg_callback","vendor_id":"deepgram_transcription","vendor_name":"Deepgram","provider_families":["transcription"],"title":"Using Callbacks to Return Transcripts to Your Server | Deepgram Docs","url":"https://developers.deepgram.com/docs/using-callbacks-to-return-transcripts-to-your-server","captured_on":"2026-04-10","evidence_type":"webhook","summary":"Deepgram supports asynchronous transcription callbacks to a URL supplied with the transcription request.","strength":"strong"},{"evidence_id":"ev_dg_prerecorded","vendor_id":"deepgram_transcription","vendor_name":"Deepgram","provider_families":["transcription"],"title":"Pre-Recorded Audio | Deepgram Docs","url":"https://developers.deepgram.com/docs/pre-recorded-audio","captured_on":"2026-04-10","evidence_type":"async_jobs","summary":"Deepgram exposes pre-recorded transcription flows that can run synchronously or via callback for longer files.","strength":"strong"},{"evidence_id":"ev_dg_interim","vendor_id":"deepgram_transcription","vendor_name":"Deepgram","provider_families":["transcription"],"title":"Interim Results | Deepgram Docs","url":"https://developers.deepgram.com/docs/interim-results","captured_on":"2026-04-10","evidence_type":"partial_results","summary":"Deepgram streaming supports interim results so partial transcript states can remain explicit before finalization.","strength":"strong"},{"evidence_id":"ev_dg_projects","vendor_id":"deepgram_transcription","vendor_name":"Deepgram","provider_families":["transcription"],"title":"Managing Projects | Deepgram Docs","url":"https://developers.deepgram.com/docs/managing-projects","captured_on":"2026-04-10","evidence_type":"project_model","summary":"Deepgram separates usage and access through projects, which aligns with environment-scoped provisioning later on.","strength":"strong"},{"evidence_id":"ev_dg_api_keys","vendor_id":"deepgram_transcription","vendor_name":"Deepgram","provider_families":["transcription"],"title":"Create Additional API Keys | Deepgram Docs","url":"https://developers.deepgram.com/docs/create-additional-api-keys","captured_on":"2026-04-10","evidence_type":"credentials","summary":"Deepgram supports additional API keys, which helps isolate preview and live environments later.","strength":"strong"},{"evidence_id":"ev_dg_deployment","vendor_id":"deepgram_transcription","vendor_name":"Deepgram","provider_families":["transcription"],"title":"Deployment Options | Deepgram Docs","url":"https://developers.deepgram.com/docs/deployment-options","captured_on":"2026-04-10","evidence_type":"residency","summary":"Deepgram documents hosted, self-hosted, and private deployment paths, which keeps residency and portability options open.","strength":"strong"},{"evidence_id":"ev_dg_pricing","vendor_id":"deepgram_transcription","vendor_name":"Deepgram","provider_families":["transcription"],"title":"Pricing | Deepgram","url":"https://deepgram.com/pricing","captured_on":"2026-04-10","evidence_type":"pricing","summary":"Deepgram publishes usage-based pricing tiers, making spend controls explicit for later gated onboarding.","strength":"medium"},{"evidence_id":"ev_aa_webhooks_prerecorded","vendor_id":"assemblyai_transcription","vendor_name":"AssemblyAI","provider_families":["transcription"],"title":"Webhooks for Pre-recorded Audio | AssemblyAI Docs","url":"https://www.assemblyai.com/docs/deployment/webhooks","captured_on":"2026-04-10","evidence_type":"webhook","summary":"AssemblyAI lets clients attach webhook URLs to transcript jobs and retries failed deliveries up to ten attempts.","strength":"strong"},{"evidence_id":"ev_aa_webhooks_streaming","vendor_id":"assemblyai_transcription","vendor_name":"AssemblyAI","provider_families":["transcription"],"title":"Webhooks for Streaming Speech-to-Text | AssemblyAI Docs","url":"https://www.assemblyai.com/docs/deployment/webhooks-for-streaming-speech-to-text","captured_on":"2026-04-10","evidence_type":"streaming","summary":"AssemblyAI exposes webhook delivery for streaming jobs and keeps incremental transcript events explicit.","strength":"strong"},{"evidence_id":"ev_aa_region","vendor_id":"assemblyai_transcription","vendor_name":"AssemblyAI","provider_families":["transcription"],"title":"Select the Region | AssemblyAI Docs","url":"https://www.assemblyai.com/docs/pre-recorded-audio/select-the-region","captured_on":"2026-04-10","evidence_type":"residency","summary":"AssemblyAI offers explicit region selection with US and EU endpoints for pre-recorded transcription workloads.","strength":"strong"},{"evidence_id":"ev_aa_delete","vendor_id":"assemblyai_transcription","vendor_name":"AssemblyAI","provider_families":["transcription"],"title":"Delete a transcript | AssemblyAI Docs","url":"https://www.assemblyai.com/docs/api-reference/transcripts/delete","captured_on":"2026-04-10","evidence_type":"deletion","summary":"AssemblyAI documents transcript deletion and states that deleting a transcript also removes its uploaded files.","strength":"strong"},{"evidence_id":"ev_aa_private_deployment","vendor_id":"assemblyai_transcription","vendor_name":"AssemblyAI","provider_families":["transcription"],"title":"Private Deployment | AssemblyAI Docs","url":"https://www.assemblyai.com/docs/deployment/private-deployment","captured_on":"2026-04-10","evidence_type":"deployment","summary":"AssemblyAI documents private deployment options, including VPC and on-prem paths, which helps portability and residency review.","strength":"strong"},{"evidence_id":"ev_aa_pricing","vendor_id":"assemblyai_transcription","vendor_name":"AssemblyAI","provider_families":["transcription"],"title":"Pricing | AssemblyAI","url":"https://www.assemblyai.com/pricing","captured_on":"2026-04-10","evidence_type":"pricing","summary":"AssemblyAI publishes usage pricing and enterprise deployment options, which is enough to model later spend gates.","strength":"medium"},{"evidence_id":"ev_azure_batch_create","vendor_id":"azure_speech_transcription","vendor_name":"Azure AI Speech","provider_families":["transcription"],"title":"Create a batch transcription | Azure Speech","url":"https://learn.microsoft.com/en-us/azure/ai-services/speech-service/batch-transcription-create","captured_on":"2026-04-10","evidence_type":"batch_jobs","summary":"Azure batch transcription supports job creation, customer storage integration, and webhook registration with validation handshake rules.","strength":"strong"},{"evidence_id":"ev_azure_batch_overview","vendor_id":"azure_speech_transcription","vendor_name":"Azure AI Speech","provider_families":["transcription"],"title":"Batch transcription | Azure Speech","url":"https://learn.microsoft.com/en-us/azure/ai-services/speech-service/batch-transcription","captured_on":"2026-04-10","evidence_type":"retention","summary":"Azure batch transcription documents job lifecycle, content URLs, and TTL behavior that affects later retention policy design.","strength":"strong"},{"evidence_id":"ev_azure_privacy","vendor_id":"azure_speech_transcription","vendor_name":"Azure AI Speech","provider_families":["transcription"],"title":"Speech to text data privacy and security | Microsoft Learn","url":"https://learn.microsoft.com/en-us/legal/cognitive-services/speech-service/speech-to-text/data-privacy-security","captured_on":"2026-04-10","evidence_type":"privacy","summary":"Microsoft documents privacy, logging, and container posture for speech-to-text workloads, which is useful but operationally heavy.","strength":"strong"},{"evidence_id":"ev_aws_transcribe_partial","vendor_id":"aws_transcribe_transcription","vendor_name":"Amazon Transcribe","provider_families":["transcription"],"title":"Streaming and partial results | Amazon Transcribe","url":"https://docs.aws.amazon.com/transcribe/latest/dg/streaming-partial-results.html","captured_on":"2026-04-10","evidence_type":"partial_results","summary":"Amazon Transcribe exposes partial-result stabilization for streaming transcription, which aligns with explicit partial versus final states.","strength":"strong"},{"evidence_id":"ev_aws_transcribe_io","vendor_id":"aws_transcribe_transcription","vendor_name":"Amazon Transcribe","provider_families":["transcription"],"title":"Data input and output | Amazon Transcribe","url":"https://docs.aws.amazon.com/transcribe/latest/dg/how-input.html","captured_on":"2026-04-10","evidence_type":"retention","summary":"Amazon Transcribe couples batch jobs to S3 input and output paths, which is strong for audit but increases bucket and KMS coupling.","strength":"strong"},{"evidence_id":"ev_google_overview","vendor_id":"google_speech_transcription","vendor_name":"Google Cloud Speech-to-Text","provider_families":["transcription"],"title":"Speech-to-Text | Google Cloud","url":"https://cloud.google.com/speech-to-text","captured_on":"2026-04-10","evidence_type":"overview","summary":"Google positions Speech-to-Text as a Cloud product but the product page also carries a caution not to enter sensitive, confidential, or personal information.","strength":"strong"},{"evidence_id":"ev_google_endpoints","vendor_id":"google_speech_transcription","vendor_name":"Google Cloud Speech-to-Text","provider_families":["transcription"],"title":"Endpoints | Google Cloud Speech-to-Text","url":"https://cloud.google.com/speech-to-text/docs/endpoints","captured_on":"2026-04-10","evidence_type":"residency","summary":"Google documents global and regional endpoints, which helps environment separation but still leaves healthcare contract clarity to later review.","strength":"medium"},{"evidence_id":"ev_google_pricing","vendor_id":"google_speech_transcription","vendor_name":"Google Cloud Speech-to-Text","provider_families":["transcription"],"title":"Pricing | Google Cloud Speech-to-Text","url":"https://cloud.google.com/speech-to-text/pricing","captured_on":"2026-04-10","evidence_type":"pricing","summary":"Google publishes pricing and batch versus streaming tiers, but the product posture is not strong enough here to offset the PHI caution.","strength":"medium"},{"evidence_id":"ev_guardduty_enable","vendor_id":"aws_guardduty_s3_scan","vendor_name":"GuardDuty Malware Protection for S3","provider_families":["artifact_scanning"],"title":"Enable Malware Protection for S3 | AWS Docs","url":"https://docs.aws.amazon.com/guardduty/latest/ug/enable-malware-protection-s3-bucket.html","captured_on":"2026-04-10","evidence_type":"project_model","summary":"AWS documents enabling a protection plan per bucket scope, service role, EventBridge rule, and tagging permissions.","strength":"strong"},{"evidence_id":"ev_guardduty_how","vendor_id":"aws_guardduty_s3_scan","vendor_name":"GuardDuty Malware Protection for S3","provider_families":["artifact_scanning"],"title":"How Malware Protection for S3 works | AWS Docs","url":"https://docs.aws.amazon.com/guardduty/latest/ug/how-malware-protection-for-s3-gdu-works.html","captured_on":"2026-04-10","evidence_type":"quarantine_states","summary":"AWS describes status values, object tagging, and scan outcomes that map well to clean, suspicious, failed, and unsupported states.","strength":"strong"},{"evidence_id":"ev_guardduty_monitoring","vendor_id":"aws_guardduty_s3_scan","vendor_name":"GuardDuty Malware Protection for S3","provider_families":["artifact_scanning"],"title":"Monitoring scans for Malware Protection for S3 | AWS Docs","url":"https://docs.aws.amazon.com/guardduty/latest/ug/monitoring-malware-protection-s3-scans-gdu.html","captured_on":"2026-04-10","evidence_type":"observability","summary":"AWS exposes scan monitoring through tags, CloudWatch metrics, findings, and EventBridge, which is strong for audit and quarantine hooks.","strength":"strong"},{"evidence_id":"ev_guardduty_eventbridge","vendor_id":"aws_guardduty_s3_scan","vendor_name":"GuardDuty Malware Protection for S3","provider_families":["artifact_scanning"],"title":"Monitoring with Amazon EventBridge | AWS Docs","url":"https://docs.aws.amazon.com/guardduty/latest/ug/monitor-with-eventbridge-s3-malware-protection.html","captured_on":"2026-04-10","evidence_type":"webhook","summary":"GuardDuty emits EventBridge events for scan lifecycle changes, which fits a replay-safe internal event-ingress pattern better than raw vendor webhooks.","strength":"strong"},{"evidence_id":"ev_guardduty_pricing","vendor_id":"aws_guardduty_s3_scan","vendor_name":"GuardDuty Malware Protection for S3","provider_families":["artifact_scanning"],"title":"Pricing for Malware Protection for S3 | AWS Docs","url":"https://docs.aws.amazon.com/guardduty/latest/ug/pricing-malware-protection-for-s3-guardduty.html","captured_on":"2026-04-10","evidence_type":"pricing","summary":"AWS publishes per-object and per-GB pricing, which makes spend governance explicit enough for later gating.","strength":"medium"},{"evidence_id":"ev_opswat_product","vendor_id":"opswat_metadefender_cloud","vendor_name":"OPSWAT MetaDefender Cloud","provider_families":["artifact_scanning"],"title":"MetaDefender Cloud | OPSWAT","url":"https://www.opswat.com/products/metadefender/cloud","captured_on":"2026-04-10","evidence_type":"overview","summary":"OPSWAT positions MetaDefender Cloud as a multi-engine scanning service with hash lookup, CDR, and file-analysis workflows.","strength":"strong"},{"evidence_id":"ev_opswat_api","vendor_id":"opswat_metadefender_cloud","vendor_name":"OPSWAT MetaDefender Cloud","provider_families":["artifact_scanning"],"title":"MetaDefender Cloud v4 API | OPSWAT Docs","url":"https://www.opswat.com/docs/mdcloud/integrations/v4-api","captured_on":"2026-04-10","evidence_type":"api","summary":"OPSWAT documents REST API flows, API key authentication, hash lookup, and file submission patterns for cloud scanning.","strength":"strong"},{"evidence_id":"ev_opswat_regions","vendor_id":"opswat_metadefender_cloud","vendor_name":"OPSWAT MetaDefender Cloud","provider_families":["artifact_scanning"],"title":"Cloud Services | OPSWAT Docs","url":"https://www.opswat.com/docs/my/2025.1.3/home/cloud-services","captured_on":"2026-04-10","evidence_type":"residency","summary":"OPSWAT documents cloud-service regions and service boundaries, which gives it a workable residency and hosting story.","strength":"strong"},{"evidence_id":"ev_cloudmersive_product","vendor_id":"cloudmersive_virus_scan","vendor_name":"Cloudmersive Virus Scan API","provider_families":["artifact_scanning"],"title":"Virus Scan API | Cloudmersive","url":"https://cloudmersive.com/virus-api","captured_on":"2026-04-10","evidence_type":"overview","summary":"Cloudmersive markets a file and cloud-storage scanning API with cloud-hosted, dedicated, and on-premise deployment options.","strength":"strong"},{"evidence_id":"ev_cloudmersive_api","vendor_id":"cloudmersive_virus_scan","vendor_name":"Cloudmersive Virus Scan API","provider_families":["artifact_scanning"],"title":"Virus Scan APIs | Cloudmersive Docs","url":"https://api.cloudmersive.com/docs/virus.asp","captured_on":"2026-04-10","evidence_type":"api","summary":"Cloudmersive documents API-key authentication and scan endpoints for files, archives, and S3-hosted objects.","strength":"strong"},{"evidence_id":"ev_cloudmersive_pricing","vendor_id":"cloudmersive_virus_scan","vendor_name":"Cloudmersive Virus Scan API","provider_families":["artifact_scanning"],"title":"Pricing | Cloudmersive","url":"https://cloudmersive.com/pricing","captured_on":"2026-04-10","evidence_type":"pricing","summary":"Cloudmersive publishes hosted, dedicated, and private deployment pricing levers, which helps later spend control review.","strength":"medium"},{"evidence_id":"ev_vt_private_scanning","vendor_id":"virustotal_private_scanning","vendor_name":"VirusTotal Private Scanning","provider_families":["artifact_scanning"],"title":"Private Scanning | VirusTotal Docs","url":"https://docs.virustotal.com/docs/private-scanning","captured_on":"2026-04-10","evidence_type":"overview","summary":"VirusTotal positions private scanning as isolated from the public corpus, but the product still remains threat-intel-centric rather than quarantine-workflow-centric.","strength":"strong"},{"evidence_id":"ev_vt_files_api","vendor_id":"virustotal_private_scanning","vendor_name":"VirusTotal Private Scanning","provider_families":["artifact_scanning"],"title":"Files API | VirusTotal Docs","url":"https://docs.virustotal.com/reference/files","captured_on":"2026-04-10","evidence_type":"api","summary":"VirusTotal documents file upload and analysis APIs, but the workflow is still less aligned to private quarantine-state promotion than the stronger shortlist options.","strength":"strong"}],"dimensions":[{"dimension_id":"contract_shape","dimension_title":"Capability And Tuple Coverage","dimension_class":"capability","weight_mock_now":11,"weight_actual_later":10,"minimum_bar_mock_now":4,"minimum_bar_actual_later":4,"lane_priority":"mock_now_heavier"},{"dimension_id":"authoritative_truth","dimension_title":"Authoritative Truth Separation","dimension_class":"proof_truth","weight_mock_now":12,"weight_actual_later":12,"minimum_bar_mock_now":5,"minimum_bar_actual_later":5,"lane_priority":"shared_weight"},{"dimension_id":"ambiguity_handling","dimension_title":"Ambiguity And Partial Failure Semantics","dimension_class":"ambiguity_handling","weight_mock_now":12,"weight_actual_later":12,"minimum_bar_mock_now":5,"minimum_bar_actual_later":5,"lane_priority":"shared_weight"},{"dimension_id":"security_replay","dimension_title":"Security, Authentication, And Replay Control","dimension_class":"security","weight_mock_now":9,"weight_actual_later":10,"minimum_bar_mock_now":4,"minimum_bar_actual_later":4,"lane_priority":"actual_later_heavier"},{"dimension_id":"privacy_residency","dimension_title":"Privacy, Residency, And Subprocessor Transparency","dimension_class":"privacy","weight_mock_now":9,"weight_actual_later":10,"minimum_bar_mock_now":4,"minimum_bar_actual_later":5,"lane_priority":"actual_later_heavier"},{"dimension_id":"healthcare_compliance","dimension_title":"UK Healthcare Compliance And Assurance Readiness","dimension_class":"compliance","weight_mock_now":8,"weight_actual_later":10,"minimum_bar_mock_now":4,"minimum_bar_actual_later":5,"lane_priority":"actual_later_heavier"},{"dimension_id":"onboarding_and_sponsorship","dimension_title":"Onboarding Friction And Sponsor Burden","dimension_class":"onboarding_friction","weight_mock_now":4,"weight_actual_later":9,"minimum_bar_mock_now":2,"minimum_bar_actual_later":3,"lane_priority":"actual_later_heavier"},{"dimension_id":"sandbox_depth","dimension_title":"Sandbox Depth And Environment Isolation","dimension_class":"sandbox_quality","weight_mock_now":12,"weight_actual_later":8,"minimum_bar_mock_now":5,"minimum_bar_actual_later":4,"lane_priority":"mock_now_heavier"},{"dimension_id":"test_data_fidelity","dimension_title":"Test Data And Synthetic Fixture Quality","dimension_class":"test_data_quality","weight_mock_now":11,"weight_actual_later":8,"minimum_bar_mock_now":4,"minimum_bar_actual_later":4,"lane_priority":"mock_now_heavier"},{"dimension_id":"observability_and_audit","dimension_title":"Observability, Audit, And Replay Support","dimension_class":"observability","weight_mock_now":10,"weight_actual_later":10,"minimum_bar_mock_now":3,"minimum_bar_actual_later":5,"lane_priority":"shared_weight"},{"dimension_id":"operational_support","dimension_title":"Operational Support And Incident Handling","dimension_class":"operational_support","weight_mock_now":9,"weight_actual_later":9,"minimum_bar_mock_now":4,"minimum_bar_actual_later":4,"lane_priority":"shared_weight"},{"dimension_id":"commercial_and_lock_in","dimension_title":"Cost Governance And Lock-In Control","dimension_class":"cost_governance","weight_mock_now":3,"weight_actual_later":6,"minimum_bar_mock_now":2,"minimum_bar_actual_later":3,"lane_priority":"actual_later_heavier"},{"dimension_id":"portability_and_exit","dimension_title":"Portability And Adapter Exit Posture","dimension_class":"portability","weight_mock_now":6,"weight_actual_later":8,"minimum_bar_mock_now":3,"minimum_bar_actual_later":4,"lane_priority":"actual_later_heavier"},{"dimension_id":"degraded_mode_resilience","dimension_title":"Resilience And Degraded-Mode Compatibility","dimension_class":"resilience","weight_mock_now":11,"weight_actual_later":11,"minimum_bar_mock_now":5,"minimum_bar_actual_later":5,"lane_priority":"shared_weight"},{"dimension_id":"experience_and_brand_constraints","dimension_title":"UI / Brand / Interaction Constraints","dimension_class":"ui_brand_constraints","weight_mock_now":5,"weight_actual_later":6,"minimum_bar_mock_now":3,"minimum_bar_actual_later":3,"lane_priority":"actual_later_heavier"},{"dimension_id":"simulator_fidelity","dimension_title":"Simulator Fidelity And State Coverage","dimension_class":"mock_fidelity","weight_mock_now":12,"weight_actual_later":5,"minimum_bar_mock_now":5,"minimum_bar_actual_later":3,"lane_priority":"mock_now_heavier"}],"coverage_rows":[{"family":"transcription","family_label":"Transcription","total":6,"shortlisted":2,"candidate":2,"mock_only":1,"rejected":1},{"family":"artifact_scanning","family_label":"Artifact Scanning","total":5,"shortlisted":2,"candidate":1,"mock_only":1,"rejected":1},{"family":"combined","family_label":"Combined","total":2,"shortlisted":0,"candidate":0,"mock_only":1,"rejected":1}]}</script>
+  <script>
+    const model = JSON.parse(document.getElementById('atlas-data').textContent);
+    const state = {
+      tab: 'transcription',
+      lane: 'actual',
+      sort: 'actual_later_fit_score',
+      filter: 'all',
+      search: '',
+      selectedVendorId: null,
+    };
+
+    const providerGrid = document.getElementById('provider-grid');
+    const providerEmpty = document.getElementById('provider-empty');
+    const coverageDiagram = document.getElementById('coverage-diagram');
+    const dimensionChart = document.getElementById('dimension-chart');
+    const dimensionTableBody = document.getElementById('dimension-table-body');
+    const drawerTitle = document.getElementById('drawer-title');
+    const drawerSummary = document.getElementById('drawer-summary');
+    const drawerPosture = document.getElementById('drawer-posture');
+    const drawerEvidence = document.getElementById('drawer-evidence');
+    const drawerNotes = document.getElementById('drawer-notes');
+    const panelTitle = document.getElementById('panel-title');
+    const panelSubtitle = document.getElementById('panel-subtitle');
+
+    document.getElementById('metric-shortlisted').textContent = model.summary.actual_shortlisted_vendor_count;
+    document.getElementById('metric-rejected').textContent = model.summary.lane_counts.rejected;
+    document.getElementById('metric-mock').textContent = model.summary.lane_counts.mock_only;
+    document.getElementById('metric-freshness').textContent = model.captured_on;
+
+    function familyAccent(family) {
+      if (family === 'transcription') return 'var(--transcript)';
+      if (family === 'artifact_scanning') return 'var(--scan)';
+      return 'var(--secondary)';
+    }
+
+    function summarizeTab() {
+      const map = {
+        transcription: ['Transcription Shortlist', 'Focused STT providers ranked against readiness, ambiguity, and portability law.'],
+        artifact_scanning: ['Artifact Scanning Shortlist', 'Managed scanners compared against quarantine fidelity, audit hooks, and portability.'],
+        mock_lane: ['Mock Lane Fidelity', 'Internal twins remain the contract baseline for seq_035.'],
+        actual_lane: ['Actual Lane Due Diligence', 'Shortlist, candidates, and rejections across both families with explicit kill switches.'],
+      };
+      const [title, subtitle] = map[state.tab];
+      panelTitle.textContent = title;
+      panelSubtitle.textContent = subtitle;
+    }
+
+    function visibleVendors() {
+      let rows = model.vendors.slice();
+      if (state.tab === 'transcription' || state.tab === 'artifact_scanning') {
+        rows = rows.filter((row) => row.provider_family === state.tab);
+        rows = rows.filter((row) => state.lane === 'mock' ? row.vendor_lane === 'mock_only' : row.vendor_lane !== 'mock_only');
+      } else if (state.tab === 'mock_lane') {
+        rows = rows.filter((row) => row.vendor_lane === 'mock_only');
+      } else if (state.tab === 'actual_lane') {
+        rows = rows.filter((row) => row.vendor_lane !== 'mock_only');
+      }
+
+      if (state.filter === 'webhooks') {
+        rows = rows.filter((row) => row.supports_webhooks === 'yes');
+      } else if (state.filter === 'regions') {
+        rows = rows.filter((row) => row.supports_region_controls === 'yes');
+      } else if (state.filter === 'quarantine') {
+        rows = rows.filter((row) => row.quarantine_fit_score >= 85);
+      }
+
+      if (state.search) {
+        const q = state.search.toLowerCase();
+        rows = rows.filter((row) => (row.vendor_name + ' ' + row.vendor_id + ' ' + row.notes + ' ' + row.kill_switch_reason_if_any).toLowerCase().includes(q));
+      }
+
+      rows.sort((left, right) => {
+        if (state.sort === 'vendor_name') {
+          return left.vendor_name.localeCompare(right.vendor_name);
+        }
+        return Number(right[state.sort]) - Number(left[state.sort]);
+      });
+      return rows;
+    }
+
+    function ensureSelection(rows) {
+      if (!rows.length) {
+        state.selectedVendorId = null;
+        return;
+      }
+      if (!state.selectedVendorId || !rows.some((row) => row.vendor_id === state.selectedVendorId)) {
+        state.selectedVendorId = rows[0].vendor_id;
+      }
+    }
+
+    function renderProviders(rows) {
+      providerGrid.innerHTML = '';
+      providerEmpty.hidden = rows.length > 0;
+      rows.forEach((row) => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'provider-card' + (row.vendor_id === state.selectedVendorId ? ' is-selected' : '');
+        card.dataset.testid = `provider-row-${row.vendor_id}`;
+        card.setAttribute('data-testid', `provider-row-${row.vendor_id}`);
+        card.setAttribute('aria-pressed', row.vendor_id === state.selectedVendorId ? 'true' : 'false');
+        card.innerHTML = `
+          <div class="provider-top">
+            <div>
+              <div class="provider-name">${row.vendor_name}</div>
+              <div class="mono">${row.vendor_id}</div>
+            </div>
+            <div class="lane-pill lane-${row.vendor_lane}">${row.vendor_lane.replace('_', ' ')}</div>
+          </div>
+          <div class="score-strip">
+            <div class="score-box"><div class="score-label">Actual</div><div class="score-value" data-testid="score-cell-${row.vendor_id}-actual">${row.actual_later_fit_score}</div></div>
+            <div class="score-box"><div class="score-label">Mock</div><div class="score-value" data-testid="score-cell-${row.vendor_id}-mock">${row.mock_now_fit_score}</div></div>
+            <div class="score-box"><div class="score-label">Quarantine</div><div class="score-value" data-testid="score-cell-${row.vendor_id}-quarantine">${row.quarantine_fit_score}</div></div>
+          </div>
+          <div>${row.notes}</div>
+          <div class="tags">
+            <span class="tag">Webhooks: ${row.supports_webhooks}</span>
+            <span class="tag">Replay: ${row.supports_replay_protection}</span>
+            <span class="tag">Region: ${row.supports_region_controls}</span>
+          </div>
+        `;
+        card.addEventListener('click', () => {
+          state.selectedVendorId = row.vendor_id;
+          render();
+        });
+        providerGrid.appendChild(card);
+      });
+    }
+
+    function renderDrawer(selected) {
+      if (!selected) {
+        drawerTitle.textContent = 'Select a vendor';
+        drawerSummary.textContent = 'Open a provider card to inspect due-diligence evidence, fit scores, and kill switches.';
+        drawerPosture.innerHTML = '';
+        drawerEvidence.innerHTML = '';
+        drawerNotes.innerHTML = '';
+        return;
+      }
+      drawerTitle.textContent = selected.vendor_name;
+      drawerSummary.textContent = selected.vendor_id + ' · ' + selected.provider_family.replace('_', ' ') + ' · ' + selected.vendor_lane.replace('_', ' ');
+      drawerPosture.innerHTML = `
+        <div class="evidence-item"><strong>Project model</strong><div>${selected.project_model}</div></div>
+        <div class="evidence-item"><strong>Retention and deletion</strong><div>${selected.retention_and_deletion_notes}</div></div>
+        <div class="evidence-item"><strong>Sandbox posture</strong><div>${selected.sandbox_posture}</div></div>
+        <div class="evidence-item"><strong>Portability</strong><div>${selected.portability_notes}</div></div>
+      `;
+      const evidence = model.evidence.filter((row) => selected.evidence_ids.includes(row.evidence_id));
+      drawerEvidence.innerHTML = evidence.map((row) => `
+        <div class="evidence-item">
+          <div class="mono">${row.evidence_id} · ${row.captured_on}</div>
+          <div><a href="${row.url}">${row.title}</a></div>
+          <div>${row.summary}</div>
+        </div>
+      `).join('');
+      drawerNotes.innerHTML = `
+        <div class="evidence-item"><strong>Notes</strong><div>${selected.notes}</div></div>
+        <div class="evidence-item"><strong>Kill switch</strong><div>${selected.kill_switch_reason_if_any || 'No vendor-specific kill switch currently tripped.'}</div></div>
+      `;
+    }
+
+    function renderCoverage() {
+      coverageDiagram.innerHTML = '';
+      model.coverage_rows.forEach((row) => {
+        const total = row.total || 1;
+        const el = document.createElement('div');
+        el.className = 'coverage-row';
+        el.innerHTML = `
+          <div><strong>${row.family_label}</strong><div class="mono">${row.shortlisted} shortlisted · ${row.candidate} candidate · ${row.mock_only} mock · ${row.rejected} rejected</div></div>
+          <div class="coverage-track">
+            <div class="coverage-fill" style="width:${row.shortlisted / total * 100}%; background:${familyAccent(row.family)}"></div>
+            <div class="coverage-fill" style="left:${row.shortlisted / total * 100}%; width:${row.candidate / total * 100}%; background:rgba(21, 94, 239, 0.35)"></div>
+            <div class="coverage-fill" style="left:${(row.shortlisted + row.candidate) / total * 100}%; width:${row.mock_only / total * 100}%; background:rgba(122, 90, 248, 0.35)"></div>
+            <div class="coverage-fill" style="left:${(row.shortlisted + row.candidate + row.mock_only) / total * 100}%; width:${row.rejected / total * 100}%; background:rgba(194, 65, 65, 0.35)"></div>
+          </div>
+        `;
+        coverageDiagram.appendChild(el);
+      });
+    }
+
+    function renderDimensionParity(selected) {
+      dimensionChart.innerHTML = '';
+      dimensionTableBody.innerHTML = '';
+      if (!selected) return;
+      model.dimensions.forEach((dim) => {
+        const score = selected.dimension_scores[dim.dimension_id];
+        const bar = document.createElement('div');
+        bar.className = 'bar-row';
+        bar.innerHTML = `
+          <div>
+            <div><strong>${dim.dimension_title}</strong></div>
+            <div class="bar-track"><div class="bar-fill" style="width:${score * 20}%"></div></div>
+          </div>
+          <div class="mono">${score} / 5</div>
+        `;
+        dimensionChart.appendChild(bar);
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${dim.dimension_title}</td>
+          <td data-testid="score-cell-${selected.vendor_id}-${dim.dimension_id}">${score} / 5</td>
+          <td>${dim.weight_actual_later}</td>
+          <td>${dim.lane_priority.replace('_', ' ')}</td>
+        `;
+        dimensionTableBody.appendChild(tr);
+      });
+    }
+
+    function render() {
+      summarizeTab();
+      const rows = visibleVendors();
+      ensureSelection(rows);
+      renderProviders(rows);
+      const selected = model.vendors.find((row) => row.vendor_id === state.selectedVendorId) || null;
+      renderDrawer(selected);
+      renderCoverage();
+      renderDimensionParity(selected);
+
+      document.querySelectorAll('.tab').forEach((button) => {
+        const active = button.dataset.family === state.tab;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      document.querySelectorAll('.chip').forEach((button) => {
+        button.classList.toggle('is-active', button.dataset.filter === state.filter);
+      });
+      document.getElementById('lane-mock').classList.toggle('is-active', state.lane === 'mock');
+      document.getElementById('lane-actual').classList.toggle('is-active', state.lane === 'actual');
+    }
+
+    document.querySelectorAll('.tab').forEach((button) => {
+      button.addEventListener('click', () => {
+        state.tab = button.dataset.family;
+        render();
+      });
+    });
+    document.querySelectorAll('.chip').forEach((button) => {
+      button.addEventListener('click', () => {
+        state.filter = button.dataset.filter;
+        render();
+      });
+    });
+    document.getElementById('lane-mock').addEventListener('click', () => {
+      state.lane = 'mock';
+      render();
+    });
+    document.getElementById('lane-actual').addEventListener('click', () => {
+      state.lane = 'actual';
+      render();
+    });
+    document.getElementById('sort-select').addEventListener('change', (event) => {
+      state.sort = event.target.value;
+      render();
+    });
+    document.getElementById('search-input').addEventListener('input', (event) => {
+      state.search = event.target.value.trim();
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>

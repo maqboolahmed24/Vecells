@@ -1,0 +1,2944 @@
+export const evidenceGateLabPack = {
+  "task_id": "seq_035",
+  "generated_at": "2026-04-10T10:52:21+00:00",
+  "captured_on": "2026-04-10",
+  "mission": "Create the transcription and malware-scanning provisioning pack with a product-grade local evidence-processing lab now and a hard-gated real provider project, webhook, retention, region, and spend strategy later.",
+  "visual_mode": "Evidence_Gate_Lab",
+  "phase0_verdict": "withheld",
+  "integration_anchor_ref": "int_telephony_capture_evidence_backplane",
+  "source_precedence": [
+    "prompt/035.md",
+    "prompt/034.md",
+    "prompt/033.md",
+    "prompt/shared_operating_contract_026_to_035.md",
+    "prompt/AGENT.md",
+    "prompt/checklist.md",
+    "data/analysis/21_integration_priority_matrix.json",
+    "data/analysis/23_external_account_inventory.csv",
+    "data/analysis/34_vendor_shortlist.json",
+    "data/analysis/provider_family_scorecards.json",
+    "data/analysis/phase0_gate_verdict.json",
+    "docs/external/21_integration_priority_and_execution_matrix.md",
+    "docs/external/22_provider_selection_scorecards.md",
+    "docs/external/23_actual_partner_account_governance.md",
+    "docs/external/34_actual_provider_shortlist_and_due_diligence.md",
+    "blueprint/phase-0-the-foundation-protocol.md",
+    "blueprint/phase-2-identity-and-echoes.md",
+    "blueprint/phase-8-the-assistive-layer.md",
+    "blueprint/platform-runtime-and-release-blueprint.md",
+    "blueprint/forensic-audit-findings.md",
+    "https://www.assemblyai.com/docs/deployment/webhooks",
+    "https://www.assemblyai.com/docs/pre-recorded-audio/select-the-region",
+    "https://www.assemblyai.com/docs/api-reference/transcripts/delete",
+    "https://www.assemblyai.com/pricing",
+    "https://developers.deepgram.com/docs/managing-projects",
+    "https://developers.deepgram.com/docs/create-additional-api-keys",
+    "https://developers.deepgram.com/docs/using-callbacks-to-return-transcripts-to-your-server",
+    "https://developers.deepgram.com/docs/deployment-options",
+    "https://deepgram.com/pricing",
+    "https://docs.aws.amazon.com/guardduty/latest/ug/enable-malware-protection-s3-bucket.html",
+    "https://docs.aws.amazon.com/guardduty/latest/ug/how-malware-protection-for-s3-gdu-works.html",
+    "https://docs.aws.amazon.com/guardduty/latest/ug/monitor-with-eventbridge-s3-malware-protection.html",
+    "https://docs.aws.amazon.com/guardduty/latest/ug/monitoring-malware-protection-s3-scans-gdu.html",
+    "https://docs.aws.amazon.com/guardduty/latest/ug/pricing-malware-protection-for-s3-guardduty.html",
+    "https://www.opswat.com/docs/mdcloud/integrations/public-apis",
+    "https://www.opswat.com/docs/mdcloud/operation/private-scanning-with-metadefender-cloud-apis",
+    "https://www.opswat.com/docs/mdcloud/operation/retrieving-scan-results-via-webhooks",
+    "https://www.opswat.com/docs/mdcloud/compliance/locations",
+    "https://www.opswat.com/docs/mdcloud/account-management/licenses-and-usage-limits"
+  ],
+  "mock_service": {
+    "ports": {
+      "transcription_engine": 4200,
+      "artifact_scan_gateway": 4201,
+      "evidence_gate_lab": 4202
+    },
+    "base_url_default": {
+      "transcription_engine": "http://127.0.0.1:4200",
+      "artifact_scan_gateway": "http://127.0.0.1:4201"
+    }
+  },
+  "environment_profiles": [
+    {
+      "environment_profile": "local",
+      "label": "Local rehearsal",
+      "description": "Pure local simulator mode with no provider traffic."
+    },
+    {
+      "environment_profile": "preview",
+      "label": "Preview UI rehearsal",
+      "description": "Local simulator with preview-grade route and inspector behavior."
+    },
+    {
+      "environment_profile": "provider_like_preprod",
+      "label": "Provider-like preprod",
+      "description": "Still mock-first, but shaped around the shortlisted provider surfaces and explicit region/retention policy."
+    },
+    {
+      "environment_profile": "actual_later",
+      "label": "Actual provider later",
+      "description": "Disabled live posture blocked until gates and flags pass."
+    }
+  ],
+  "project_scopes": [
+    {
+      "project_scope": "transcript_nonprod_workspace",
+      "provider_family": "transcription",
+      "summary": "Nonprod workspace for transcript callbacks, residency, and deletion policy."
+    },
+    {
+      "project_scope": "scan_nonprod_workspace",
+      "provider_family": "artifact_scanning",
+      "summary": "Nonprod scanning boundary for bucket scope, quarantine, and callback/event wiring."
+    },
+    {
+      "project_scope": "evidence_gate_prod_candidate",
+      "provider_family": "shared",
+      "summary": "Future production candidate project boundary, kept blocked in seq_035."
+    }
+  ],
+  "shortlisted_vendors": [
+    {
+      "vendor_id": "assemblyai_transcription",
+      "vendor_name": "AssemblyAI",
+      "provider_family": "transcription",
+      "vendor_lane": "shortlisted",
+      "supports_async_jobs": "yes",
+      "supports_partial_results": "yes",
+      "supports_confidence_or_quality_bands": "yes",
+      "supports_webhooks": "yes",
+      "supports_replay_protection": "partial",
+      "supports_region_controls": "yes",
+      "retention_and_deletion_notes": "Transcript deletion removes uploaded files; region selection and private deployment reduce retention ambiguity.",
+      "quarantine_fit_score": 76,
+      "kill_switch_reason_if_any": "",
+      "source_refs": [
+        "https://www.assemblyai.com/docs/deployment/webhooks",
+        "https://www.assemblyai.com/docs/deployment/webhooks-for-streaming-speech-to-text",
+        "https://www.assemblyai.com/docs/pre-recorded-audio/select-the-region",
+        "https://www.assemblyai.com/docs/api-reference/transcripts/delete",
+        "https://www.assemblyai.com/docs/deployment/private-deployment",
+        "https://www.assemblyai.com/pricing"
+      ],
+      "notes": "AssemblyAI is strong on job callbacks, EU region selection, and deletion semantics. Like Deepgram, callback trust still needs Vecells-side replay fencing and trusted re-fetch.",
+      "project_model": "account plus API key",
+      "sandbox_posture": "developer account with webhook flows",
+      "pricing_notes": "Usage-priced with private deployment options.",
+      "portability_notes": "Private deployment and explicit delete APIs keep exit posture workable.",
+      "dimension_scores": {
+        "contract_shape": 4,
+        "authoritative_truth": 4,
+        "ambiguity_handling": 5,
+        "security_replay": 4,
+        "privacy_residency": 4,
+        "healthcare_compliance": 3,
+        "onboarding_and_sponsorship": 4,
+        "sandbox_depth": 4,
+        "test_data_fidelity": 4,
+        "observability_and_audit": 4,
+        "operational_support": 4,
+        "commercial_and_lock_in": 3,
+        "portability_and_exit": 4,
+        "degraded_mode_resilience": 4,
+        "experience_and_brand_constraints": 5,
+        "simulator_fidelity": 4
+      },
+      "evidence_ids": [
+        "ev_aa_webhooks_prerecorded",
+        "ev_aa_webhooks_streaming",
+        "ev_aa_region",
+        "ev_aa_delete",
+        "ev_aa_private_deployment",
+        "ev_aa_pricing"
+      ],
+      "mock_now_fit_score": 81,
+      "actual_later_fit_score": 80,
+      "evidence_urls": [
+        "https://www.assemblyai.com/docs/deployment/webhooks",
+        "https://www.assemblyai.com/docs/deployment/webhooks-for-streaming-speech-to-text",
+        "https://www.assemblyai.com/docs/pre-recorded-audio/select-the-region",
+        "https://www.assemblyai.com/docs/api-reference/transcripts/delete",
+        "https://www.assemblyai.com/docs/deployment/private-deployment",
+        "https://www.assemblyai.com/pricing"
+      ]
+    },
+    {
+      "vendor_id": "deepgram_transcription",
+      "vendor_name": "Deepgram",
+      "provider_family": "transcription",
+      "vendor_lane": "shortlisted",
+      "supports_async_jobs": "yes",
+      "supports_partial_results": "yes",
+      "supports_confidence_or_quality_bands": "yes",
+      "supports_webhooks": "yes",
+      "supports_replay_protection": "partial",
+      "supports_region_controls": "yes",
+      "retention_and_deletion_notes": "Hosted service can callback results; private and self-hosted deployment options reduce retention lock-in.",
+      "quarantine_fit_score": 78,
+      "kill_switch_reason_if_any": "",
+      "source_refs": [
+        "https://developers.deepgram.com/docs/using-callbacks-to-return-transcripts-to-your-server",
+        "https://developers.deepgram.com/docs/interim-results",
+        "https://developers.deepgram.com/docs/deployment-options",
+        "https://deepgram.com/pricing"
+      ],
+      "notes": "Focused transcription provider with strong async and streaming support. Callback authenticity remains a bounded weakness, so Vecells must treat callbacks as hints and re-fetch job state before promotion.",
+      "project_model": "project plus scoped API keys",
+      "sandbox_posture": "developer project and credits",
+      "pricing_notes": "Usage-priced with explicit developer and enterprise paths.",
+      "portability_notes": "Private deployment options reduce lock-in risk relative to cloud-only providers.",
+      "dimension_scores": {
+        "contract_shape": 5,
+        "authoritative_truth": 4,
+        "ambiguity_handling": 5,
+        "security_replay": 3,
+        "privacy_residency": 4,
+        "healthcare_compliance": 3,
+        "onboarding_and_sponsorship": 4,
+        "sandbox_depth": 4,
+        "test_data_fidelity": 4,
+        "observability_and_audit": 4,
+        "operational_support": 4,
+        "commercial_and_lock_in": 3,
+        "portability_and_exit": 4,
+        "degraded_mode_resilience": 4,
+        "experience_and_brand_constraints": 5,
+        "simulator_fidelity": 4
+      },
+      "evidence_ids": [
+        "ev_dg_callback",
+        "ev_dg_prerecorded",
+        "ev_dg_interim",
+        "ev_dg_projects",
+        "ev_dg_api_keys",
+        "ev_dg_deployment",
+        "ev_dg_pricing"
+      ],
+      "mock_now_fit_score": 81,
+      "actual_later_fit_score": 80,
+      "evidence_urls": [
+        "https://developers.deepgram.com/docs/using-callbacks-to-return-transcripts-to-your-server",
+        "https://developers.deepgram.com/docs/pre-recorded-audio",
+        "https://developers.deepgram.com/docs/interim-results",
+        "https://developers.deepgram.com/docs/managing-projects",
+        "https://developers.deepgram.com/docs/create-additional-api-keys",
+        "https://developers.deepgram.com/docs/deployment-options",
+        "https://deepgram.com/pricing"
+      ]
+    },
+    {
+      "vendor_id": "aws_guardduty_s3_scan",
+      "vendor_name": "GuardDuty Malware Protection for S3",
+      "provider_family": "artifact_scanning",
+      "vendor_lane": "shortlisted",
+      "supports_async_jobs": "yes",
+      "supports_partial_results": "n/a",
+      "supports_confidence_or_quality_bands": "yes",
+      "supports_webhooks": "yes",
+      "supports_replay_protection": "yes",
+      "supports_region_controls": "yes",
+      "retention_and_deletion_notes": "Results stay in AWS control planes and S3 tags/events instead of direct file round-trips through a vendor callback endpoint.",
+      "quarantine_fit_score": 93,
+      "kill_switch_reason_if_any": "",
+      "source_refs": [
+        "https://docs.aws.amazon.com/guardduty/latest/ug/enable-malware-protection-s3-bucket.html",
+        "https://docs.aws.amazon.com/guardduty/latest/ug/how-malware-protection-for-s3-gdu-works.html",
+        "https://docs.aws.amazon.com/guardduty/latest/ug/monitoring-malware-protection-s3-scans-gdu.html",
+        "https://docs.aws.amazon.com/guardduty/latest/ug/monitor-with-eventbridge-s3-malware-protection.html",
+        "https://docs.aws.amazon.com/guardduty/latest/ug/pricing-malware-protection-for-s3-guardduty.html"
+      ],
+      "notes": "Best fit for quarantine-first artifact handling because results are event-driven, taggable, and explicit about failure or unsupported states. The tradeoff is AWS account coupling.",
+      "project_model": "AWS account plus GuardDuty protection plan, IAM role, and EventBridge",
+      "sandbox_posture": "cloud account and S3 prefix-scoped plans",
+      "pricing_notes": "Per-object and per-GB pricing; strong need for spend boundaries.",
+      "portability_notes": "Good event semantics, but higher account and storage coupling than API-key scanners.",
+      "dimension_scores": {
+        "contract_shape": 5,
+        "authoritative_truth": 5,
+        "ambiguity_handling": 5,
+        "security_replay": 5,
+        "privacy_residency": 5,
+        "healthcare_compliance": 4,
+        "onboarding_and_sponsorship": 3,
+        "sandbox_depth": 3,
+        "test_data_fidelity": 3,
+        "observability_and_audit": 5,
+        "operational_support": 4,
+        "commercial_and_lock_in": 3,
+        "portability_and_exit": 3,
+        "degraded_mode_resilience": 4,
+        "experience_and_brand_constraints": 3,
+        "simulator_fidelity": 3
+      },
+      "evidence_ids": [
+        "ev_guardduty_enable",
+        "ev_guardduty_how",
+        "ev_guardduty_monitoring",
+        "ev_guardduty_eventbridge",
+        "ev_guardduty_pricing"
+      ],
+      "mock_now_fit_score": 81,
+      "actual_later_fit_score": 82,
+      "evidence_urls": [
+        "https://docs.aws.amazon.com/guardduty/latest/ug/enable-malware-protection-s3-bucket.html",
+        "https://docs.aws.amazon.com/guardduty/latest/ug/how-malware-protection-for-s3-gdu-works.html",
+        "https://docs.aws.amazon.com/guardduty/latest/ug/monitoring-malware-protection-s3-scans-gdu.html",
+        "https://docs.aws.amazon.com/guardduty/latest/ug/monitor-with-eventbridge-s3-malware-protection.html",
+        "https://docs.aws.amazon.com/guardduty/latest/ug/pricing-malware-protection-for-s3-guardduty.html"
+      ]
+    },
+    {
+      "vendor_id": "opswat_metadefender_cloud",
+      "vendor_name": "OPSWAT MetaDefender Cloud",
+      "provider_family": "artifact_scanning",
+      "vendor_lane": "shortlisted",
+      "supports_async_jobs": "yes",
+      "supports_partial_results": "n/a",
+      "supports_confidence_or_quality_bands": "yes",
+      "supports_webhooks": "no",
+      "supports_replay_protection": "n/a",
+      "supports_region_controls": "yes",
+      "retention_and_deletion_notes": "Cloud-service regions and explicit API posture are documented; file handling remains more controllable than threat-intel-first services.",
+      "quarantine_fit_score": 88,
+      "kill_switch_reason_if_any": "",
+      "source_refs": [
+        "https://www.opswat.com/products/metadefender/cloud",
+        "https://www.opswat.com/docs/mdcloud/integrations/v4-api",
+        "https://www.opswat.com/docs/my/2025.1.3/home/cloud-services"
+      ],
+      "notes": "Strong multi-engine scan vendor with explicit API docs and region story. It is weaker than GuardDuty on event-driven posture but stronger than lighter-weight API scanners for quarantine evidence.",
+      "project_model": "tenant account plus API key",
+      "sandbox_posture": "cloud API access",
+      "pricing_notes": "Commercial managed service; cost governance must be explicit.",
+      "portability_notes": "API posture is clear, but multi-engine semantics still need adapter-bound normalization.",
+      "dimension_scores": {
+        "contract_shape": 4,
+        "authoritative_truth": 4,
+        "ambiguity_handling": 4,
+        "security_replay": 4,
+        "privacy_residency": 4,
+        "healthcare_compliance": 3,
+        "onboarding_and_sponsorship": 4,
+        "sandbox_depth": 4,
+        "test_data_fidelity": 4,
+        "observability_and_audit": 4,
+        "operational_support": 4,
+        "commercial_and_lock_in": 3,
+        "portability_and_exit": 3,
+        "degraded_mode_resilience": 4,
+        "experience_and_brand_constraints": 3,
+        "simulator_fidelity": 4
+      },
+      "evidence_ids": [
+        "ev_opswat_product",
+        "ev_opswat_api",
+        "ev_opswat_regions"
+      ],
+      "mock_now_fit_score": 77,
+      "actual_later_fit_score": 76,
+      "evidence_urls": [
+        "https://www.opswat.com/products/metadefender/cloud",
+        "https://www.opswat.com/docs/mdcloud/integrations/v4-api",
+        "https://www.opswat.com/docs/my/2025.1.3/home/cloud-services"
+      ]
+    }
+  ],
+  "selected_access_rows": [
+    {
+      "account_or_secret_id": "ACC_SCAN_SHARED_DEV_PRINCIPAL",
+      "dependency_family": "malware_scanning",
+      "dependency_title": "Artifact scanning provider",
+      "environment": "shared_dev",
+      "record_class": "service_principal",
+      "current_lane": "mock_now",
+      "owner_role": "ROLE_SECURITY_LEAD",
+      "backup_owner_role": "ROLE_OPERATIONS_LEAD",
+      "creator_role": "ROLE_PARTNER_ONBOARDING_LEAD",
+      "approver_role": "ROLE_SECURITY_LEAD",
+      "storage_backend": "shared_nonprod_vault",
+      "distribution_method": "deterministic_seed_bootstrap",
+      "rotation_policy": "daily_shared_reset_or_on_contract_change",
+      "revocation_policy": "destroy_seed_material_reset_environment_append_mock_audit",
+      "audit_sink": "MockCredentialSeedAudit",
+      "exposure_constraints": "No markdown literals, no console echo, no trace/video capture, screenshots only after explicit redaction, runtime reference handles only.",
+      "allowed_usage_surfaces": "artifact_scan_simulator; svc_evidence_pipeline",
+      "manual_checkpoint_required": "no",
+      "live_gate_refs": "GATE_EXTERNAL_TO_FOUNDATION; LIVE_GATE_TRANSCRIPT_SAFETY_REVIEW",
+      "mock_equivalent_ref": "",
+      "origin_source": "deterministic_seed_generator",
+      "landing_zone": "seed_bootstrap_outside_repo",
+      "runtime_injection_path": "nonprod_workload_identity_fetch",
+      "dual_control_required": "no",
+      "redaction_profile": "full_secret_mask_and_capture_block",
+      "risk_refs": "HZ_TELEPHONY_EVIDENCE_INADEQUACY; HZ_URGENT_DIVERSION_UNDER_OR_OVER_TRIAGE; RISK_EXT_COMMS_VENDOR_DELAY",
+      "source_refs": "data/analysis/external_dependencies.json#dep_malware_scanning_provider; data/analysis/provider_family_scorecards.json#telephony_voice_and_recording",
+      "notes": "Mock scanning project principal for quarantine workflow rehearsal."
+    },
+    {
+      "account_or_secret_id": "DATA_SCAN_SHARED_DEV_SIGNATURE_PACK",
+      "dependency_family": "malware_scanning",
+      "dependency_title": "Artifact scanning provider",
+      "environment": "shared_dev",
+      "record_class": "sandbox_dataset",
+      "current_lane": "mock_now",
+      "owner_role": "ROLE_SECURITY_LEAD",
+      "backup_owner_role": "ROLE_OPERATIONS_LEAD",
+      "creator_role": "ROLE_PARTNER_ONBOARDING_LEAD",
+      "approver_role": "ROLE_SECURITY_LEAD",
+      "storage_backend": "shared_nonprod_fixture_registry",
+      "distribution_method": "deterministic_seed_bootstrap",
+      "rotation_policy": "daily_shared_reset_or_on_contract_change",
+      "revocation_policy": "destroy_seed_material_reset_environment_append_mock_audit",
+      "audit_sink": "MockCredentialSeedAudit",
+      "exposure_constraints": "Synthetic-only material; never mix with live partner outputs or live patient-like identifiers.",
+      "allowed_usage_surfaces": "artifact_scan_simulator; svc_evidence_pipeline; seed_reset_job",
+      "manual_checkpoint_required": "no",
+      "live_gate_refs": "GATE_EXTERNAL_TO_FOUNDATION; LIVE_GATE_TRANSCRIPT_SAFETY_REVIEW",
+      "mock_equivalent_ref": "",
+      "origin_source": "deterministic_seed_generator",
+      "landing_zone": "seed_bootstrap_outside_repo",
+      "runtime_injection_path": "seed_fixture_sync_and_environment_reset",
+      "dual_control_required": "no",
+      "redaction_profile": "synthetic_only_render",
+      "risk_refs": "HZ_TELEPHONY_EVIDENCE_INADEQUACY; HZ_URGENT_DIVERSION_UNDER_OR_OVER_TRIAGE; RISK_EXT_COMMS_VENDOR_DELAY",
+      "source_refs": "data/analysis/external_dependencies.json#dep_malware_scanning_provider; data/analysis/provider_family_scorecards.json#telephony_voice_and_recording",
+      "notes": "Synthetic malware-signature corpus and known-bad evidence pack."
+    },
+    {
+      "account_or_secret_id": "ACC_TRANSCRIPT_SHARED_DEV_PRINCIPAL",
+      "dependency_family": "transcription",
+      "dependency_title": "Transcript processing provider",
+      "environment": "shared_dev",
+      "record_class": "service_principal",
+      "current_lane": "mock_now",
+      "owner_role": "ROLE_COMMUNICATIONS_PLATFORM_LEAD",
+      "backup_owner_role": "ROLE_SECURITY_LEAD",
+      "creator_role": "ROLE_PARTNER_ONBOARDING_LEAD",
+      "approver_role": "ROLE_MANUFACTURER_CSO",
+      "storage_backend": "shared_nonprod_vault",
+      "distribution_method": "deterministic_seed_bootstrap",
+      "rotation_policy": "daily_shared_reset_or_on_contract_change",
+      "revocation_policy": "destroy_seed_material_reset_environment_append_mock_audit",
+      "audit_sink": "MockCredentialSeedAudit",
+      "exposure_constraints": "No markdown literals, no console echo, no trace/video capture, screenshots only after explicit redaction, runtime reference handles only.",
+      "allowed_usage_surfaces": "telephony_simulator; artifact_scan_simulator; svc_evidence_pipeline",
+      "manual_checkpoint_required": "no",
+      "live_gate_refs": "GATE_EXTERNAL_TO_FOUNDATION; LIVE_GATE_TRANSCRIPT_SAFETY_REVIEW",
+      "mock_equivalent_ref": "",
+      "origin_source": "deterministic_seed_generator",
+      "landing_zone": "seed_bootstrap_outside_repo",
+      "runtime_injection_path": "nonprod_workload_identity_fetch",
+      "dual_control_required": "no",
+      "redaction_profile": "full_secret_mask_and_capture_block",
+      "risk_refs": "HZ_TELEPHONY_EVIDENCE_INADEQUACY; HZ_URGENT_DIVERSION_UNDER_OR_OVER_TRIAGE; RISK_EXT_COMMS_VENDOR_DELAY; RISK_MUTATION_003; RISK_STATE_004; RISK_MUTATION_001",
+      "source_refs": "blueprint/phase-2-the-identity-and-echoes.md#2F. Caller verification, voice capture, transcript stub, and SMS continuation; data/analysis/external_dependencies.json#dep_transcription_processing_provider",
+      "notes": "Mock transcription project principal for readiness-state rehearsal."
+    },
+    {
+      "account_or_secret_id": "SEC_TRANSCRIPT_SHARED_DEV_WEBHOOK",
+      "dependency_family": "transcription",
+      "dependency_title": "Transcript processing provider",
+      "environment": "shared_dev",
+      "record_class": "webhook_secret",
+      "current_lane": "mock_now",
+      "owner_role": "ROLE_COMMUNICATIONS_PLATFORM_LEAD",
+      "backup_owner_role": "ROLE_SECURITY_LEAD",
+      "creator_role": "ROLE_PARTNER_ONBOARDING_LEAD",
+      "approver_role": "ROLE_MANUFACTURER_CSO",
+      "storage_backend": "shared_nonprod_vault",
+      "distribution_method": "deterministic_seed_bootstrap",
+      "rotation_policy": "daily_shared_reset_or_on_contract_change",
+      "revocation_policy": "destroy_seed_material_reset_environment_append_mock_audit",
+      "audit_sink": "MockCredentialSeedAudit",
+      "exposure_constraints": "No markdown literals, no console echo, no trace/video capture, screenshots only after explicit redaction, runtime reference handles only.",
+      "allowed_usage_surfaces": "telephony_simulator; artifact_scan_simulator; svc_evidence_pipeline",
+      "manual_checkpoint_required": "no",
+      "live_gate_refs": "GATE_EXTERNAL_TO_FOUNDATION; LIVE_GATE_TRANSCRIPT_SAFETY_REVIEW",
+      "mock_equivalent_ref": "",
+      "origin_source": "deterministic_seed_generator",
+      "landing_zone": "seed_bootstrap_outside_repo",
+      "runtime_injection_path": "nonprod_workload_identity_fetch",
+      "dual_control_required": "no",
+      "redaction_profile": "full_secret_mask_and_capture_block",
+      "risk_refs": "HZ_TELEPHONY_EVIDENCE_INADEQUACY; HZ_URGENT_DIVERSION_UNDER_OR_OVER_TRIAGE; RISK_EXT_COMMS_VENDOR_DELAY; RISK_MUTATION_003; RISK_STATE_004; RISK_MUTATION_001",
+      "source_refs": "blueprint/phase-2-the-identity-and-echoes.md#2F. Caller verification, voice capture, transcript stub, and SMS continuation; data/analysis/external_dependencies.json#dep_transcription_processing_provider",
+      "notes": "Mock transcript completion callback secret."
+    }
+  ],
+  "official_vendor_guidance": [
+    {
+      "source_id": "assemblyai_webhooks",
+      "vendor": "AssemblyAI",
+      "provider_family": "transcription",
+      "title": "Webhooks",
+      "url": "https://www.assemblyai.com/docs/deployment/webhooks",
+      "captured_on": "2026-04-10",
+      "summary": "AssemblyAI supports callbacks with optional webhook-auth headers and retries callbacks for up to 24 hours.",
+      "grounding": [
+        "Callback delivery is asynchronous and retry-driven.",
+        "Webhook authentication is configured with a custom header name and value.",
+        "Callback arrival is transport evidence only until Vecells re-fetches and settles the transcript contract."
+      ]
+    },
+    {
+      "source_id": "assemblyai_region_selection",
+      "vendor": "AssemblyAI",
+      "provider_family": "transcription",
+      "title": "Select the EU Region for EU Data Residency",
+      "url": "https://www.assemblyai.com/docs/pre-recorded-audio/select-the-region",
+      "captured_on": "2026-04-10",
+      "summary": "AssemblyAI documents explicit region selection for EU processing.",
+      "grounding": [
+        "Region is an explicit request configuration, not an implied default.",
+        "The local pack therefore blocks real project progression without a named region posture."
+      ]
+    },
+    {
+      "source_id": "assemblyai_delete_transcript",
+      "vendor": "AssemblyAI",
+      "provider_family": "transcription",
+      "title": "Delete a transcript",
+      "url": "https://www.assemblyai.com/docs/api-reference/transcripts/delete",
+      "captured_on": "2026-04-10",
+      "summary": "AssemblyAI exposes transcript deletion through the API.",
+      "grounding": [
+        "Deletion is an explicit follow-on operation.",
+        "Retention cannot be assumed from job completion alone."
+      ]
+    },
+    {
+      "source_id": "assemblyai_pricing",
+      "vendor": "AssemblyAI",
+      "provider_family": "transcription",
+      "title": "AssemblyAI pricing",
+      "url": "https://www.assemblyai.com/pricing",
+      "captured_on": "2026-04-10",
+      "summary": "AssemblyAI prices transcription usage commercially.",
+      "grounding": [
+        "Real project creation and live traffic are spend-bearing actions.",
+        "Spend gates must therefore stay explicit and separate from mutation gates."
+      ]
+    },
+    {
+      "source_id": "deepgram_managing_projects",
+      "vendor": "Deepgram",
+      "provider_family": "transcription",
+      "title": "Managing Projects",
+      "url": "https://developers.deepgram.com/docs/managing-projects",
+      "captured_on": "2026-04-10",
+      "summary": "Deepgram treats projects as the workspace boundary for API keys, usage, and configuration.",
+      "grounding": [
+        "Projects are a first-class account surface.",
+        "The live pack models project identifiers as environment-bound evidence, never as canonical truth."
+      ]
+    },
+    {
+      "source_id": "deepgram_api_keys",
+      "vendor": "Deepgram",
+      "provider_family": "transcription",
+      "title": "Create Additional API Keys",
+      "url": "https://developers.deepgram.com/docs/create-additional-api-keys",
+      "captured_on": "2026-04-10",
+      "summary": "Deepgram documents project-scoped API key creation.",
+      "grounding": [
+        "API keys are separable from the base account.",
+        "The pack therefore models project and credential ownership independently."
+      ]
+    },
+    {
+      "source_id": "deepgram_callbacks",
+      "vendor": "Deepgram",
+      "provider_family": "transcription",
+      "title": "Using Callbacks to Return Transcripts to Your Server",
+      "url": "https://developers.deepgram.com/docs/using-callbacks-to-return-transcripts-to-your-server",
+      "captured_on": "2026-04-10",
+      "summary": "Deepgram supports callback-based result delivery for prerecorded transcription jobs.",
+      "grounding": [
+        "Callbacks return after job completion and must be treated as hints.",
+        "Vecells must re-fetch or reconcile job state before promotion."
+      ]
+    },
+    {
+      "source_id": "deepgram_deployment_options",
+      "vendor": "Deepgram",
+      "provider_family": "transcription",
+      "title": "Deployment Options",
+      "url": "https://developers.deepgram.com/docs/deployment-options",
+      "captured_on": "2026-04-10",
+      "summary": "Deepgram offers hosted, on-prem, and private deployment patterns.",
+      "grounding": [
+        "Deployment model is a real architecture choice, not a cosmetic setting.",
+        "The pack records deployment mode so region and retention drift cannot stay implicit."
+      ]
+    },
+    {
+      "source_id": "deepgram_pricing",
+      "vendor": "Deepgram",
+      "provider_family": "transcription",
+      "title": "Deepgram pricing",
+      "url": "https://deepgram.com/pricing",
+      "captured_on": "2026-04-10",
+      "summary": "Deepgram publishes commercial pricing for speech-to-text workloads.",
+      "grounding": [
+        "Live use is billable.",
+        "Spend controls are mandatory even when technical readiness is present."
+      ]
+    },
+    {
+      "source_id": "guardduty_enable_plan",
+      "vendor": "AWS GuardDuty Malware Protection for S3",
+      "provider_family": "artifact_scanning",
+      "title": "Enabling Malware Protection for Amazon S3",
+      "url": "https://docs.aws.amazon.com/guardduty/latest/ug/enable-malware-protection-s3-bucket.html",
+      "captured_on": "2026-04-10",
+      "summary": "GuardDuty Malware Protection for S3 is configured as a protection plan tied to an S3 bucket scope, IAM role, and optional prefix filters.",
+      "grounding": [
+        "Storage scope is part of the project boundary.",
+        "Prefix filtering is explicit, so the pack blocks real rollout without object-scope declaration."
+      ]
+    },
+    {
+      "source_id": "guardduty_how_it_works",
+      "vendor": "AWS GuardDuty Malware Protection for S3",
+      "provider_family": "artifact_scanning",
+      "title": "How Malware Protection for Amazon S3 works",
+      "url": "https://docs.aws.amazon.com/guardduty/latest/ug/how-malware-protection-for-s3-gdu-works.html",
+      "captured_on": "2026-04-10",
+      "summary": "GuardDuty scans new objects and writes results through control-plane events and object tagging rather than direct file-return callbacks.",
+      "grounding": [
+        "Scan completion is not a content-promotion permission by itself.",
+        "Event and tag results stay evidence inputs until quarantine law is satisfied."
+      ]
+    },
+    {
+      "source_id": "guardduty_eventbridge",
+      "vendor": "AWS GuardDuty Malware Protection for S3",
+      "provider_family": "artifact_scanning",
+      "title": "Monitoring Malware Protection for S3 with EventBridge",
+      "url": "https://docs.aws.amazon.com/guardduty/latest/ug/monitor-with-eventbridge-s3-malware-protection.html",
+      "captured_on": "2026-04-10",
+      "summary": "GuardDuty publishes result states to EventBridge, including no-threat, threats-found, unsupported, and access-failure style outcomes.",
+      "grounding": [
+        "The result stream is multi-state.",
+        "The local lab must preserve unreadable, failed, and quarantined branches rather than flatten to pass or fail."
+      ]
+    },
+    {
+      "source_id": "guardduty_results",
+      "vendor": "AWS GuardDuty Malware Protection for S3",
+      "provider_family": "artifact_scanning",
+      "title": "Monitoring Malware Protection for S3 scan results",
+      "url": "https://docs.aws.amazon.com/guardduty/latest/ug/monitoring-malware-protection-s3-scans-gdu.html",
+      "captured_on": "2026-04-10",
+      "summary": "GuardDuty documents per-object result states and scan metadata.",
+      "grounding": [
+        "Per-object result states are part of the evidence contract.",
+        "The pack keeps those states distinct from downstream usability decisions."
+      ]
+    },
+    {
+      "source_id": "guardduty_pricing",
+      "vendor": "AWS GuardDuty Malware Protection for S3",
+      "provider_family": "artifact_scanning",
+      "title": "Pricing for Malware Protection for Amazon S3",
+      "url": "https://docs.aws.amazon.com/guardduty/latest/ug/pricing-malware-protection-for-s3-guardduty.html",
+      "captured_on": "2026-04-10",
+      "summary": "AWS prices GuardDuty Malware Protection for S3 per object and storage volume processed.",
+      "grounding": [
+        "Live scan enablement is billable immediately.",
+        "Real plan activation remains behind explicit spend approval."
+      ]
+    },
+    {
+      "source_id": "opswat_public_apis",
+      "vendor": "OPSWAT MetaDefender Cloud",
+      "provider_family": "artifact_scanning",
+      "title": "Public APIs",
+      "url": "https://www.opswat.com/docs/mdcloud/integrations/public-apis",
+      "captured_on": "2026-04-10",
+      "summary": "MetaDefender Cloud uses API keys tied to registered users and limited call quotas.",
+      "grounding": [
+        "API key ownership is user or organization scoped.",
+        "Quota posture must be recorded alongside mutation controls."
+      ]
+    },
+    {
+      "source_id": "opswat_private_processing",
+      "vendor": "OPSWAT MetaDefender Cloud",
+      "provider_family": "artifact_scanning",
+      "title": "Private Scanning with MetaDefender Cloud APIs",
+      "url": "https://www.opswat.com/docs/mdcloud/operation/private-scanning-with-metadefender-cloud-apis",
+      "captured_on": "2026-04-10",
+      "summary": "MetaDefender Cloud supports private processing so uploads are removed after analysis and only the submitting owner can access results.",
+      "grounding": [
+        "Private processing is an explicit flag, not a default.",
+        "The pack blocks live usage until private processing posture is declared."
+      ]
+    },
+    {
+      "source_id": "opswat_webhooks",
+      "vendor": "OPSWAT MetaDefender Cloud",
+      "provider_family": "artifact_scanning",
+      "title": "Retrieving Scan Results Via Webhooks",
+      "url": "https://www.opswat.com/docs/mdcloud/operation/retrieving-scan-results-via-webhooks",
+      "captured_on": "2026-04-10",
+      "summary": "MetaDefender Cloud supports a `callbackurl` upload header that posts results after scan completion.",
+      "grounding": [
+        "Webhook delivery is optional and callback-url driven.",
+        "The pack models callback security and retry policy independently from the scan request itself."
+      ]
+    },
+    {
+      "source_id": "opswat_locations",
+      "vendor": "OPSWAT MetaDefender Cloud",
+      "provider_family": "artifact_scanning",
+      "title": "Locations",
+      "url": "https://www.opswat.com/docs/mdcloud/compliance/locations",
+      "captured_on": "2026-04-10",
+      "summary": "MetaDefender Cloud publishes named regional endpoints and states that uploaded files stay in the designated server location.",
+      "grounding": [
+        "Region endpoint selection is explicit and material.",
+        "Non-private mode can store uploaded files indefinitely, so retention posture must be frozen before live use."
+      ]
+    },
+    {
+      "source_id": "opswat_usage_limits",
+      "vendor": "OPSWAT MetaDefender Cloud",
+      "provider_family": "artifact_scanning",
+      "title": "Licenses and Usage Limits",
+      "url": "https://www.opswat.com/docs/mdcloud/account-management/licenses-and-usage-limits",
+      "captured_on": "2026-04-10",
+      "summary": "MetaDefender Cloud enforces license and usage limits at the individual or organization boundary.",
+      "grounding": [
+        "Usage quotas are part of the live project model.",
+        "The real-later pack therefore includes explicit spend and usage guardrails."
+      ]
+    }
+  ],
+  "project_field_map": {
+    "field_rows": [
+      {
+        "field_id": "FLD_TRANS_VENDOR_ID",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "assemblyai_transcription",
+          "deepgram_transcription"
+        ],
+        "surface": "shared_transcription",
+        "label": "Provider vendor",
+        "requirement_class": "required",
+        "placeholder": "assemblyai_transcription",
+        "notes": "Shortlisted vendor id.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.transcription"
+      },
+      {
+        "field_id": "FLD_TRANS_PROJECT_SCOPE",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "assemblyai_transcription",
+          "deepgram_transcription"
+        ],
+        "surface": "shared_transcription",
+        "label": "Project scope",
+        "requirement_class": "required",
+        "placeholder": "transcript_nonprod_workspace",
+        "notes": "Workspace boundary for nonprod transcript jobs.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.transcription"
+      },
+      {
+        "field_id": "FLD_TRANS_ENVIRONMENT",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "assemblyai_transcription",
+          "deepgram_transcription"
+        ],
+        "surface": "shared_transcription",
+        "label": "Environment profile",
+        "requirement_class": "required",
+        "placeholder": "provider_like_preprod",
+        "notes": "local, preview, or provider-like environment.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.transcription"
+      },
+      {
+        "field_id": "FLD_TRANS_NAMED_APPROVER",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "assemblyai_transcription",
+          "deepgram_transcription"
+        ],
+        "surface": "shared_transcription",
+        "label": "Named approver",
+        "requirement_class": "required_for_live",
+        "placeholder": "ROLE_SECURITY_LEAD",
+        "notes": "Required before any real mutation.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.transcription"
+      },
+      {
+        "field_id": "FLD_TRANS_WEBHOOK_BASE",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "assemblyai_transcription",
+          "deepgram_transcription"
+        ],
+        "surface": "shared_transcription",
+        "label": "Webhook base URL",
+        "requirement_class": "required",
+        "placeholder": "https://example.invalid/transcript",
+        "notes": "Base callback URL for result delivery.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.transcription"
+      },
+      {
+        "field_id": "FLD_TRANS_WEBHOOK_SECRET",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "assemblyai_transcription",
+          "deepgram_transcription"
+        ],
+        "surface": "shared_transcription",
+        "label": "Webhook secret ref",
+        "requirement_class": "required",
+        "placeholder": "vault://evidence/transcript/webhook",
+        "notes": "Secret class or auth-header handle.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.transcription"
+      },
+      {
+        "field_id": "FLD_TRANS_REGION_POLICY",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "assemblyai_transcription",
+          "deepgram_transcription"
+        ],
+        "surface": "shared_transcription",
+        "label": "Region policy ref",
+        "requirement_class": "required",
+        "placeholder": "REGION_EU_TRANSCRIPT_ONLY",
+        "notes": "Must be explicit before live setup.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.transcription"
+      },
+      {
+        "field_id": "FLD_TRANS_RETENTION_POLICY",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "assemblyai_transcription",
+          "deepgram_transcription"
+        ],
+        "surface": "shared_transcription",
+        "label": "Retention policy ref",
+        "requirement_class": "required",
+        "placeholder": "RET_TRANSCRIPT_TRANSIENT_24H",
+        "notes": "Controls deletion after assimilation.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.transcription"
+      },
+      {
+        "field_id": "FLD_TRANS_PARTIAL_MODE",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "assemblyai_transcription",
+          "deepgram_transcription"
+        ],
+        "surface": "shared_transcription",
+        "label": "Partial results mode",
+        "requirement_class": "required",
+        "placeholder": "enabled",
+        "notes": "Partial results stay distinct from ready.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.transcription"
+      },
+      {
+        "field_id": "FLD_TRANS_SPEND_CAP",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "assemblyai_transcription",
+          "deepgram_transcription"
+        ],
+        "surface": "shared_transcription",
+        "label": "Spend-cap reference",
+        "requirement_class": "required_for_live",
+        "placeholder": "billing://speech/nonprod",
+        "notes": "Named cost guardrail.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.transcription"
+      },
+      {
+        "field_id": "FLD_TRANS_DELETE_CONFIRM",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "assemblyai_transcription",
+          "deepgram_transcription"
+        ],
+        "surface": "shared_transcription",
+        "label": "Delete confirmation sink",
+        "requirement_class": "required",
+        "placeholder": "evidence-audit:delete-confirmation",
+        "notes": "Deletion proof location.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.transcription"
+      },
+      {
+        "field_id": "FLD_AAI_API_KEY",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "assemblyai_transcription"
+        ],
+        "surface": "assemblyai_workspace",
+        "label": "AssemblyAI API key ref",
+        "requirement_class": "required_for_live",
+        "placeholder": "vault://assemblyai/api-key",
+        "notes": "Account plus key model.",
+        "source_ref": "https://www.assemblyai.com/docs/deployment/webhooks"
+      },
+      {
+        "field_id": "FLD_AAI_HEADER_NAME",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "assemblyai_transcription"
+        ],
+        "surface": "assemblyai_workspace",
+        "label": "Webhook auth header name",
+        "requirement_class": "required",
+        "placeholder": "x-vecells-assemblyai-auth",
+        "notes": "Matches documented webhook-auth header support.",
+        "source_ref": "https://www.assemblyai.com/docs/deployment/webhooks"
+      },
+      {
+        "field_id": "FLD_AAI_HEADER_VALUE",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "assemblyai_transcription"
+        ],
+        "surface": "assemblyai_workspace",
+        "label": "Webhook auth header value ref",
+        "requirement_class": "required",
+        "placeholder": "vault://assemblyai/webhook-auth",
+        "notes": "Header value secret handle.",
+        "source_ref": "https://www.assemblyai.com/docs/deployment/webhooks"
+      },
+      {
+        "field_id": "FLD_AAI_REGION",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "assemblyai_transcription"
+        ],
+        "surface": "assemblyai_workspace",
+        "label": "Region selection",
+        "requirement_class": "required",
+        "placeholder": "eu",
+        "notes": "Explicit EU residency selector.",
+        "source_ref": "https://www.assemblyai.com/docs/deployment/webhooks"
+      },
+      {
+        "field_id": "FLD_AAI_PRIVATE_MODE",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "assemblyai_transcription"
+        ],
+        "surface": "assemblyai_workspace",
+        "label": "Private deployment mode",
+        "requirement_class": "review_required",
+        "placeholder": "hosted_default",
+        "notes": "Private deployment is a later architecture choice.",
+        "source_ref": "https://www.assemblyai.com/docs/deployment/webhooks"
+      },
+      {
+        "field_id": "FLD_AAI_REDACTION",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "assemblyai_transcription"
+        ],
+        "surface": "assemblyai_workspace",
+        "label": "Transcript redaction profile",
+        "requirement_class": "review_required",
+        "placeholder": "synthetic_only_nonphi",
+        "notes": "Avoids provider-side PHI drift during rehearsal.",
+        "source_ref": "https://www.assemblyai.com/docs/deployment/webhooks"
+      },
+      {
+        "field_id": "FLD_AAI_DELETE_MODE",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "assemblyai_transcription"
+        ],
+        "surface": "assemblyai_workspace",
+        "label": "Delete-after-assimilation mode",
+        "requirement_class": "required",
+        "placeholder": "immediate_after_assimilation",
+        "notes": "Deletion call follows successful evidence capture.",
+        "source_ref": "https://www.assemblyai.com/docs/deployment/webhooks"
+      },
+      {
+        "field_id": "FLD_DG_PROJECT_ID",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "deepgram_transcription"
+        ],
+        "surface": "deepgram_workspace",
+        "label": "Deepgram project id",
+        "requirement_class": "required_for_live",
+        "placeholder": "dg-project-placeholder",
+        "notes": "Project-scoped boundary.",
+        "source_ref": "https://developers.deepgram.com/docs/managing-projects"
+      },
+      {
+        "field_id": "FLD_DG_API_KEY",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "deepgram_transcription"
+        ],
+        "surface": "deepgram_workspace",
+        "label": "Deepgram API key ref",
+        "requirement_class": "required_for_live",
+        "placeholder": "vault://deepgram/api-key",
+        "notes": "Project-scoped credential.",
+        "source_ref": "https://developers.deepgram.com/docs/managing-projects"
+      },
+      {
+        "field_id": "FLD_DG_API_SCOPE",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "deepgram_transcription"
+        ],
+        "surface": "deepgram_workspace",
+        "label": "API key scope",
+        "requirement_class": "required",
+        "placeholder": "listen:write",
+        "notes": "Keep least privilege explicit.",
+        "source_ref": "https://developers.deepgram.com/docs/managing-projects"
+      },
+      {
+        "field_id": "FLD_DG_CALLBACK_URL",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "deepgram_transcription"
+        ],
+        "surface": "deepgram_workspace",
+        "label": "Callback URL",
+        "requirement_class": "required",
+        "placeholder": "https://example.invalid/deepgram/callback",
+        "notes": "Deepgram prerecorded callback target.",
+        "source_ref": "https://developers.deepgram.com/docs/managing-projects"
+      },
+      {
+        "field_id": "FLD_DG_CALLBACK_SECRET",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "deepgram_transcription"
+        ],
+        "surface": "deepgram_workspace",
+        "label": "Callback secret ref",
+        "requirement_class": "review_required",
+        "placeholder": "vault://deepgram/callback",
+        "notes": "Vecells-side callback fence.",
+        "source_ref": "https://developers.deepgram.com/docs/managing-projects"
+      },
+      {
+        "field_id": "FLD_DG_DEPLOYMENT_MODE",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "deepgram_transcription"
+        ],
+        "surface": "deepgram_workspace",
+        "label": "Deployment mode",
+        "requirement_class": "required",
+        "placeholder": "hosted_cloud",
+        "notes": "Hosted, private, or self-hosted posture.",
+        "source_ref": "https://developers.deepgram.com/docs/managing-projects"
+      },
+      {
+        "field_id": "FLD_DG_RESIDENCY_MODE",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "deepgram_transcription"
+        ],
+        "surface": "deepgram_workspace",
+        "label": "Residency mode",
+        "requirement_class": "required",
+        "placeholder": "eu_contractual_path",
+        "notes": "Named residency and deployment posture.",
+        "source_ref": "https://developers.deepgram.com/docs/managing-projects"
+      },
+      {
+        "field_id": "FLD_DG_USAGE_NOTIFY",
+        "provider_family": "transcription",
+        "provider_targets": [
+          "deepgram_transcription"
+        ],
+        "surface": "deepgram_workspace",
+        "label": "Usage-notification sink",
+        "requirement_class": "review_required",
+        "placeholder": "alerts://speech-spend",
+        "notes": "Spend threshold notifications.",
+        "source_ref": "https://developers.deepgram.com/docs/managing-projects"
+      },
+      {
+        "field_id": "FLD_SCAN_VENDOR_ID",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "aws_guardduty_s3_scan",
+          "opswat_metadefender_cloud"
+        ],
+        "surface": "shared_scanning",
+        "label": "Scan vendor",
+        "requirement_class": "required",
+        "placeholder": "aws_guardduty_s3_scan",
+        "notes": "Shortlisted scan provider id.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.artifact_scanning"
+      },
+      {
+        "field_id": "FLD_SCAN_PROJECT_SCOPE",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "aws_guardduty_s3_scan",
+          "opswat_metadefender_cloud"
+        ],
+        "surface": "shared_scanning",
+        "label": "Scan project scope",
+        "requirement_class": "required",
+        "placeholder": "scan_nonprod_workspace",
+        "notes": "Environment-specific scan boundary.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.artifact_scanning"
+      },
+      {
+        "field_id": "FLD_SCAN_BUCKET_REF",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "aws_guardduty_s3_scan",
+          "opswat_metadefender_cloud"
+        ],
+        "surface": "shared_scanning",
+        "label": "Storage bucket ref",
+        "requirement_class": "required",
+        "placeholder": "s3://vecells-evidence-nonprod",
+        "notes": "Object storage boundary.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.artifact_scanning"
+      },
+      {
+        "field_id": "FLD_SCAN_PREFIX_SCOPE",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "aws_guardduty_s3_scan",
+          "opswat_metadefender_cloud"
+        ],
+        "surface": "shared_scanning",
+        "label": "Object prefix scope",
+        "requirement_class": "required",
+        "placeholder": "incoming/evidence/",
+        "notes": "Least-privilege object path.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.artifact_scanning"
+      },
+      {
+        "field_id": "FLD_SCAN_REGION_POLICY",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "aws_guardduty_s3_scan",
+          "opswat_metadefender_cloud"
+        ],
+        "surface": "shared_scanning",
+        "label": "Region policy ref",
+        "requirement_class": "required",
+        "placeholder": "REGION_AWS_EU_SCAN_PLAN",
+        "notes": "Explicit regional processing rule.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.artifact_scanning"
+      },
+      {
+        "field_id": "FLD_SCAN_RETENTION_POLICY",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "aws_guardduty_s3_scan",
+          "opswat_metadefender_cloud"
+        ],
+        "surface": "shared_scanning",
+        "label": "Retention policy ref",
+        "requirement_class": "required",
+        "placeholder": "RET_QUARANTINE_14D",
+        "notes": "Quarantine evidence retention policy.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.artifact_scanning"
+      },
+      {
+        "field_id": "FLD_SCAN_QUARANTINE_POLICY",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "aws_guardduty_s3_scan",
+          "opswat_metadefender_cloud"
+        ],
+        "surface": "shared_scanning",
+        "label": "Quarantine policy ref",
+        "requirement_class": "required",
+        "placeholder": "QUARANTINE_HOLD_UNTIL_CLEAN",
+        "notes": "Canonical quarantine behavior.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.artifact_scanning"
+      },
+      {
+        "field_id": "FLD_SCAN_CALLBACK_BASE",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "aws_guardduty_s3_scan",
+          "opswat_metadefender_cloud"
+        ],
+        "surface": "shared_scanning",
+        "label": "Scan callback base URL",
+        "requirement_class": "required",
+        "placeholder": "https://example.invalid/scan",
+        "notes": "Callback or event ingestion surface.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.artifact_scanning"
+      },
+      {
+        "field_id": "FLD_SCAN_CALLBACK_SECRET",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "aws_guardduty_s3_scan",
+          "opswat_metadefender_cloud"
+        ],
+        "surface": "shared_scanning",
+        "label": "Scan callback secret ref",
+        "requirement_class": "required",
+        "placeholder": "vault://scan/webhook",
+        "notes": "Callback authenticity material.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.artifact_scanning"
+      },
+      {
+        "field_id": "FLD_SCAN_NAMED_APPROVER",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "aws_guardduty_s3_scan",
+          "opswat_metadefender_cloud"
+        ],
+        "surface": "shared_scanning",
+        "label": "Named approver",
+        "requirement_class": "required_for_live",
+        "placeholder": "ROLE_SECURITY_LEAD",
+        "notes": "Human approval boundary.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.artifact_scanning"
+      },
+      {
+        "field_id": "FLD_SCAN_SPEND_CAP",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "aws_guardduty_s3_scan",
+          "opswat_metadefender_cloud"
+        ],
+        "surface": "shared_scanning",
+        "label": "Spend-cap reference",
+        "requirement_class": "required_for_live",
+        "placeholder": "billing://scan/nonprod",
+        "notes": "Spend guardrail.",
+        "source_ref": "data/analysis/34_vendor_shortlist.json#shortlist_by_family.artifact_scanning"
+      },
+      {
+        "field_id": "FLD_GD_ACCOUNT_ID",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "aws_guardduty_s3_scan"
+        ],
+        "surface": "guardduty_plan",
+        "label": "AWS account id",
+        "requirement_class": "required_for_live",
+        "placeholder": "111111111111",
+        "notes": "GuardDuty plan owner account.",
+        "source_ref": "https://docs.aws.amazon.com/guardduty/latest/ug/enable-malware-protection-s3-bucket.html"
+      },
+      {
+        "field_id": "FLD_GD_PLAN_NAME",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "aws_guardduty_s3_scan"
+        ],
+        "surface": "guardduty_plan",
+        "label": "Protection plan name",
+        "requirement_class": "required",
+        "placeholder": "vecells-nonprod-evidence",
+        "notes": "Per-bucket protection plan label.",
+        "source_ref": "https://docs.aws.amazon.com/guardduty/latest/ug/enable-malware-protection-s3-bucket.html"
+      },
+      {
+        "field_id": "FLD_GD_IAM_ROLE",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "aws_guardduty_s3_scan"
+        ],
+        "surface": "guardduty_plan",
+        "label": "IAM role ref",
+        "requirement_class": "required",
+        "placeholder": "iam://guardduty-s3-malware-role",
+        "notes": "Role granting scan access.",
+        "source_ref": "https://docs.aws.amazon.com/guardduty/latest/ug/enable-malware-protection-s3-bucket.html"
+      },
+      {
+        "field_id": "FLD_GD_EVENTBUS",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "aws_guardduty_s3_scan"
+        ],
+        "surface": "guardduty_plan",
+        "label": "EventBridge bus ref",
+        "requirement_class": "required",
+        "placeholder": "eventbridge://vecells-evidence",
+        "notes": "Result ingestion bus.",
+        "source_ref": "https://docs.aws.amazon.com/guardduty/latest/ug/enable-malware-protection-s3-bucket.html"
+      },
+      {
+        "field_id": "FLD_GD_TAG_PREFIX",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "aws_guardduty_s3_scan"
+        ],
+        "surface": "guardduty_plan",
+        "label": "Result tag prefix",
+        "requirement_class": "required",
+        "placeholder": "guardduty:malware-protection",
+        "notes": "Tag namespace for downstream reads.",
+        "source_ref": "https://docs.aws.amazon.com/guardduty/latest/ug/enable-malware-protection-s3-bucket.html"
+      },
+      {
+        "field_id": "FLD_GD_FINDING_SINK",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "aws_guardduty_s3_scan"
+        ],
+        "surface": "guardduty_plan",
+        "label": "Finding export sink",
+        "requirement_class": "review_required",
+        "placeholder": "audit://guardduty-findings",
+        "notes": "Audit stream for findings.",
+        "source_ref": "https://docs.aws.amazon.com/guardduty/latest/ug/enable-malware-protection-s3-bucket.html"
+      },
+      {
+        "field_id": "FLD_MD_API_KEY",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "opswat_metadefender_cloud"
+        ],
+        "surface": "opswat_workspace",
+        "label": "MetaDefender Cloud API key ref",
+        "requirement_class": "required_for_live",
+        "placeholder": "vault://opswat/api-key",
+        "notes": "API key handle.",
+        "source_ref": "https://www.opswat.com/docs/mdcloud/operation/private-scanning-with-metadefender-cloud-apis"
+      },
+      {
+        "field_id": "FLD_MD_ORG_REF",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "opswat_metadefender_cloud"
+        ],
+        "surface": "opswat_workspace",
+        "label": "Organization or sub-org ref",
+        "requirement_class": "review_required",
+        "placeholder": "opswat-org://vecells",
+        "notes": "Quota and RBAC boundary.",
+        "source_ref": "https://www.opswat.com/docs/mdcloud/operation/private-scanning-with-metadefender-cloud-apis"
+      },
+      {
+        "field_id": "FLD_MD_REGION_ENDPOINT",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "opswat_metadefender_cloud"
+        ],
+        "surface": "opswat_workspace",
+        "label": "Region endpoint",
+        "requirement_class": "required",
+        "placeholder": "https://api-prod-eucentral1.metadefender.com",
+        "notes": "Explicit EU endpoint.",
+        "source_ref": "https://www.opswat.com/docs/mdcloud/operation/private-scanning-with-metadefender-cloud-apis"
+      },
+      {
+        "field_id": "FLD_MD_PRIVATE_PROCESSING",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "opswat_metadefender_cloud"
+        ],
+        "surface": "opswat_workspace",
+        "label": "Private processing flag",
+        "requirement_class": "required",
+        "placeholder": "true",
+        "notes": "Prevents indefinite retained uploads.",
+        "source_ref": "https://www.opswat.com/docs/mdcloud/operation/private-scanning-with-metadefender-cloud-apis"
+      },
+      {
+        "field_id": "FLD_MD_CALLBACK_URL",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "opswat_metadefender_cloud"
+        ],
+        "surface": "opswat_workspace",
+        "label": "callbackurl header value",
+        "requirement_class": "required",
+        "placeholder": "https://example.invalid/opswat/callback",
+        "notes": "Async result endpoint.",
+        "source_ref": "https://www.opswat.com/docs/mdcloud/operation/private-scanning-with-metadefender-cloud-apis"
+      },
+      {
+        "field_id": "FLD_MD_IP_ALLOWLIST",
+        "provider_family": "artifact_scanning",
+        "provider_targets": [
+          "opswat_metadefender_cloud"
+        ],
+        "surface": "opswat_workspace",
+        "label": "IP allowlist profile",
+        "requirement_class": "review_required",
+        "placeholder": "cidr://provider-ingest",
+        "notes": "Optional IP allowlisting boundary.",
+        "source_ref": "https://www.opswat.com/docs/mdcloud/operation/private-scanning-with-metadefender-cloud-apis"
+      }
+    ]
+  },
+  "region_policies": [
+    {
+      "region_policy_ref": "REGION_MOCK_LOCAL_ONLY",
+      "label": "Local-only simulator region",
+      "applies_to": [
+        "transcription",
+        "artifact_scanning"
+      ],
+      "environment_profiles": [
+        "local",
+        "preview"
+      ],
+      "allowed_vendor_ids": [
+        "vecells_transcript_readiness_twin",
+        "vecells_artifact_quarantine_twin"
+      ],
+      "operator_rule": "No external provider traffic; all assets stay local to the workstation or development host.",
+      "notes": "Default mock lane during seq_035 execution."
+    },
+    {
+      "region_policy_ref": "REGION_EU_TRANSCRIPT_ONLY",
+      "label": "Explicit EU transcript processing",
+      "applies_to": [
+        "transcription"
+      ],
+      "environment_profiles": [
+        "provider_like_preprod",
+        "actual_later"
+      ],
+      "allowed_vendor_ids": [
+        "assemblyai_transcription",
+        "deepgram_transcription"
+      ],
+      "operator_rule": "Real transcript jobs may run only when the provider project is explicitly fixed to an EU-compatible posture.",
+      "notes": "AssemblyAI and Deepgram both require an explicit residency declaration in the pack."
+    },
+    {
+      "region_policy_ref": "REGION_AWS_EU_SCAN_PLAN",
+      "label": "AWS EU bucket and event path",
+      "applies_to": [
+        "artifact_scanning"
+      ],
+      "environment_profiles": [
+        "provider_like_preprod",
+        "actual_later"
+      ],
+      "allowed_vendor_ids": [
+        "aws_guardduty_s3_scan"
+      ],
+      "operator_rule": "GuardDuty protection plans must be attached only to EU-resident buckets aligned to the target trust zone.",
+      "notes": "Bucket scope and prefix scope are part of the plan contract."
+    },
+    {
+      "region_policy_ref": "REGION_OPSWAT_FORCED_EU",
+      "label": "Forced EU MetaDefender endpoint",
+      "applies_to": [
+        "artifact_scanning"
+      ],
+      "environment_profiles": [
+        "provider_like_preprod",
+        "actual_later"
+      ],
+      "allowed_vendor_ids": [
+        "opswat_metadefender_cloud"
+      ],
+      "operator_rule": "Use the EU Central API endpoint and block non-private processing for any patient-adjacent file.",
+      "notes": "MetaDefender Cloud can force a specific regional endpoint."
+    }
+  ],
+  "retention_policies": [
+    {
+      "retention_policy_ref": "RET_TRANSCRIPT_TRANSIENT_24H",
+      "label": "Transient transcript payloads",
+      "artifact_family": "transcript_payload",
+      "retention_window": "24h",
+      "deletion_trigger": "after_assimilation_or_failure_close",
+      "notes": "Provider-held transcript payloads are deleted after local evidence assimilation or failed-job closure."
+    },
+    {
+      "retention_policy_ref": "RET_TRANSCRIPT_REDACTED_7D",
+      "label": "Redacted transcript review bundle",
+      "artifact_family": "redacted_transcript_projection",
+      "retention_window": "7d",
+      "deletion_trigger": "manual_review_close",
+      "notes": "Redacted review material is kept only for bounded fallback review."
+    },
+    {
+      "retention_policy_ref": "RET_SCAN_TAGS_30D",
+      "label": "Scan result tags and callback envelopes",
+      "artifact_family": "scan_result_envelope",
+      "retention_window": "30d",
+      "deletion_trigger": "audit_window_elapsed",
+      "notes": "Control-plane proof is retained longer than raw files."
+    },
+    {
+      "retention_policy_ref": "RET_QUARANTINE_14D",
+      "label": "Quarantined artifacts",
+      "artifact_family": "quarantined_artifact",
+      "retention_window": "14d",
+      "deletion_trigger": "manual_release_or_destroy",
+      "notes": "Unreadable, suspicious, and failed-scan items remain quarantined until an explicit operator action completes."
+    }
+  ],
+  "quarantine_policies": [
+    {
+      "quarantine_policy_ref": "QUARANTINE_HOLD_UNTIL_CLEAN",
+      "label": "Hold until clean verdict",
+      "trigger_states": [
+        "queued",
+        "scanning",
+        "clean_pending_confirmation"
+      ],
+      "release_rule": "release only after clean scan plus policy match"
+    },
+    {
+      "quarantine_policy_ref": "QUARANTINE_SUSPICIOUS_MANUAL",
+      "label": "Suspicious requires manual review",
+      "trigger_states": [
+        "suspicious",
+        "heuristic_hit"
+      ],
+      "release_rule": "manual review can release or destroy, never auto-pass"
+    },
+    {
+      "quarantine_policy_ref": "QUARANTINE_UNREADABLE_REACQUIRE",
+      "label": "Unreadable requires reacquire",
+      "trigger_states": [
+        "unreadable",
+        "unsupported_format"
+      ],
+      "release_rule": "request reacquire or alternate evidence path"
+    },
+    {
+      "quarantine_policy_ref": "QUARANTINE_SCAN_FAILURE_ESCALATE",
+      "label": "Scan failure escalates",
+      "trigger_states": [
+        "failed",
+        "callback_missing",
+        "region_mismatch"
+      ],
+      "release_rule": "escalate and keep blocked until operator closes"
+    },
+    {
+      "quarantine_policy_ref": "QUARANTINE_SUPERSEDED_EVIDENCE_REBIND",
+      "label": "Superseded transcript requires rebind",
+      "trigger_states": [
+        "superseded"
+      ],
+      "release_rule": "replacement transcript must be bound before any readiness promotion"
+    }
+  ],
+  "webhook_profiles": [
+    {
+      "webhook_profile_ref": "WEBHOOK_TRANSCRIPT_ASSEMBLYAI",
+      "provider_family": "transcription",
+      "provider_candidates": [
+        "assemblyai_transcription"
+      ],
+      "transport_model": "https_callback",
+      "auth_model": "custom_header_name_value",
+      "retry_model": "provider_retry_plus_trusted_refetch",
+      "notes": "AssemblyAI retries callback delivery for up to 24 hours."
+    },
+    {
+      "webhook_profile_ref": "WEBHOOK_TRANSCRIPT_DEEPGRAM",
+      "provider_family": "transcription",
+      "provider_candidates": [
+        "deepgram_transcription"
+      ],
+      "transport_model": "https_callback",
+      "auth_model": "vecells_refetch_and_endpoint_control",
+      "retry_model": "provider_callback_hint_plus_state_refetch",
+      "notes": "Deepgram callbacks are hints and must be reconciled with fetched job state."
+    },
+    {
+      "webhook_profile_ref": "WEBHOOK_SCAN_GUARDDUTY_EVENTBRIDGE",
+      "provider_family": "artifact_scanning",
+      "provider_candidates": [
+        "aws_guardduty_s3_scan"
+      ],
+      "transport_model": "eventbridge_event",
+      "auth_model": "aws_control_plane",
+      "retry_model": "event_delivery_plus_object_refetch",
+      "notes": "GuardDuty results are consumed from EventBridge and object metadata, not raw file callbacks."
+    },
+    {
+      "webhook_profile_ref": "WEBHOOK_SCAN_OPSWAT_CALLBACK",
+      "provider_family": "artifact_scanning",
+      "provider_candidates": [
+        "opswat_metadefender_cloud"
+      ],
+      "transport_model": "callbackurl_post",
+      "auth_model": "callbackurl_plus_vecells_ingest_secret",
+      "retry_model": "provider_post_or_poll_refetch",
+      "notes": "MetaDefender Cloud can post results to a caller-specified callback URL."
+    }
+  ],
+  "job_profiles": [
+    {
+      "job_profile_id": "JOB_TRANS_VOICE_CALLBACK_LOCAL",
+      "profile_label": "Voice callback, local rehearsal",
+      "provider_family": "transcription",
+      "environment": "local",
+      "input_class": "voice_recording_wav",
+      "output_state_family": "queued|partial|ready|failed|superseded",
+      "webhook_profile_ref": "WEBHOOK_TRANSCRIPT_ASSEMBLYAI",
+      "retention_policy_ref": "RET_TRANSCRIPT_TRANSIENT_24H",
+      "region_policy_ref": "REGION_MOCK_LOCAL_ONLY",
+      "quarantine_policy_ref": "QUARANTINE_HOLD_UNTIL_CLEAN",
+      "mock_now_use": "Exercise partial transcript readiness after clean artifact admission.",
+      "actual_later_use": "Maps to a real nonprod project with explicit webhook and deletion posture.",
+      "notes": "Local default for callback transcript rehearsal."
+    },
+    {
+      "job_profile_id": "JOB_TRANS_VOICE_CALLBACK_PROVIDER_PREVIEW",
+      "profile_label": "Voice callback, provider-like preview",
+      "provider_family": "transcription",
+      "environment": "provider_like_preprod",
+      "input_class": "voice_recording_m4a",
+      "output_state_family": "queued|partial|ready|failed|superseded",
+      "webhook_profile_ref": "WEBHOOK_TRANSCRIPT_DEEPGRAM",
+      "retention_policy_ref": "RET_TRANSCRIPT_TRANSIENT_24H",
+      "region_policy_ref": "REGION_EU_TRANSCRIPT_ONLY",
+      "quarantine_policy_ref": "QUARANTINE_HOLD_UNTIL_CLEAN",
+      "mock_now_use": "Validate explicit residency and callback-hint semantics.",
+      "actual_later_use": "Becomes the real provider-like staging workspace.",
+      "notes": "Provider-like preview does not permit real mutation during seq_035."
+    },
+    {
+      "job_profile_id": "JOB_TRANS_ATTACHMENT_AUDIO_PORTAL",
+      "profile_label": "Portal audio attachment",
+      "provider_family": "transcription",
+      "environment": "preview",
+      "input_class": "portal_audio_attachment",
+      "output_state_family": "queued|partial|ready|failed|superseded",
+      "webhook_profile_ref": "WEBHOOK_TRANSCRIPT_ASSEMBLYAI",
+      "retention_policy_ref": "RET_TRANSCRIPT_REDACTED_7D",
+      "region_policy_ref": "REGION_MOCK_LOCAL_ONLY",
+      "quarantine_policy_ref": "QUARANTINE_SUSPICIOUS_MANUAL",
+      "mock_now_use": "Exercise portal-upload transcript review without implying usable evidence.",
+      "actual_later_use": "Can map to later provider ingestion after scan and quarantine pass.",
+      "notes": "Transcript completion remains weaker than evidence usability."
+    },
+    {
+      "job_profile_id": "JOB_TRANS_RETRANSCRIBE_SUPERSEDE",
+      "profile_label": "Manual re-transcribe and supersede",
+      "provider_family": "transcription",
+      "environment": "local",
+      "input_class": "operator_selected_audio",
+      "output_state_family": "queued|partial|ready|failed|superseded",
+      "webhook_profile_ref": "WEBHOOK_TRANSCRIPT_DEEPGRAM",
+      "retention_policy_ref": "RET_TRANSCRIPT_REDACTED_7D",
+      "region_policy_ref": "REGION_MOCK_LOCAL_ONLY",
+      "quarantine_policy_ref": "QUARANTINE_SUPERSEDED_EVIDENCE_REBIND",
+      "mock_now_use": "Prove supersession and replacement transcript binding.",
+      "actual_later_use": "Models operator-driven retry after poor transcript quality.",
+      "notes": "Superseded transcript must not continue to drive readiness."
+    },
+    {
+      "job_profile_id": "JOB_TRANS_SCAN_DEPENDENT_HOLD",
+      "profile_label": "Transcript held on scan posture",
+      "provider_family": "transcription",
+      "environment": "provider_like_preprod",
+      "input_class": "artifact_extracted_audio",
+      "output_state_family": "queued|partial|ready|failed|superseded",
+      "webhook_profile_ref": "WEBHOOK_TRANSCRIPT_ASSEMBLYAI",
+      "retention_policy_ref": "RET_TRANSCRIPT_TRANSIENT_24H",
+      "region_policy_ref": "REGION_EU_TRANSCRIPT_ONLY",
+      "quarantine_policy_ref": "QUARANTINE_SUSPICIOUS_MANUAL",
+      "mock_now_use": "Force transcript readiness to wait on scan verdict and fallback review.",
+      "actual_later_use": "Maps to production evidence gate for patient-submitted audio.",
+      "notes": "A clean transcript cannot overrule a bad or unreadable scan branch."
+    },
+    {
+      "job_profile_id": "JOB_SCAN_PORTAL_UPLOAD_CLEAN",
+      "profile_label": "Portal upload, expected clean",
+      "provider_family": "artifact_scanning",
+      "environment": "local",
+      "input_class": "portal_document_pdf",
+      "output_state_family": "clean|suspicious|quarantined|unreadable|failed",
+      "webhook_profile_ref": "WEBHOOK_SCAN_OPSWAT_CALLBACK",
+      "retention_policy_ref": "RET_QUARANTINE_14D",
+      "region_policy_ref": "REGION_MOCK_LOCAL_ONLY",
+      "quarantine_policy_ref": "QUARANTINE_HOLD_UNTIL_CLEAN",
+      "mock_now_use": "Exercise clean path without collapsing quarantine release law.",
+      "actual_later_use": "Can map to cloud scan API or object-event scanning later.",
+      "notes": "Clean does not equal clinically usable."
+    },
+    {
+      "job_profile_id": "JOB_SCAN_PORTAL_UPLOAD_SUSPICIOUS",
+      "profile_label": "Portal upload, suspicious branch",
+      "provider_family": "artifact_scanning",
+      "environment": "preview",
+      "input_class": "portal_image_attachment",
+      "output_state_family": "clean|suspicious|quarantined|unreadable|failed",
+      "webhook_profile_ref": "WEBHOOK_SCAN_OPSWAT_CALLBACK",
+      "retention_policy_ref": "RET_QUARANTINE_14D",
+      "region_policy_ref": "REGION_MOCK_LOCAL_ONLY",
+      "quarantine_policy_ref": "QUARANTINE_SUSPICIOUS_MANUAL",
+      "mock_now_use": "Show operator hold and review flows.",
+      "actual_later_use": "Models suspicious verdict handling for real file providers.",
+      "notes": "Suspicious evidence must stay held."
+    },
+    {
+      "job_profile_id": "JOB_SCAN_PORTAL_UPLOAD_QUARANTINE",
+      "profile_label": "Portal upload, quarantined",
+      "provider_family": "artifact_scanning",
+      "environment": "provider_like_preprod",
+      "input_class": "patient_attachment_archive",
+      "output_state_family": "clean|suspicious|quarantined|unreadable|failed",
+      "webhook_profile_ref": "WEBHOOK_SCAN_GUARDDUTY_EVENTBRIDGE",
+      "retention_policy_ref": "RET_QUARANTINE_14D",
+      "region_policy_ref": "REGION_AWS_EU_SCAN_PLAN",
+      "quarantine_policy_ref": "QUARANTINE_HOLD_UNTIL_CLEAN",
+      "mock_now_use": "Exercise object-scope and eventbridge-style ingestion law.",
+      "actual_later_use": "Maps to GuardDuty S3 protection plans later.",
+      "notes": "Real plan enablement remains gated and billable."
+    },
+    {
+      "job_profile_id": "JOB_SCAN_UNREADABLE_REACQUIRE",
+      "profile_label": "Unreadable or unsupported artifact",
+      "provider_family": "artifact_scanning",
+      "environment": "local",
+      "input_class": "corrupt_attachment_blob",
+      "output_state_family": "clean|suspicious|quarantined|unreadable|failed",
+      "webhook_profile_ref": "WEBHOOK_SCAN_OPSWAT_CALLBACK",
+      "retention_policy_ref": "RET_QUARANTINE_14D",
+      "region_policy_ref": "REGION_MOCK_LOCAL_ONLY",
+      "quarantine_policy_ref": "QUARANTINE_UNREADABLE_REACQUIRE",
+      "mock_now_use": "Exercise unreadable evidence and reacquire fallback.",
+      "actual_later_use": "Maps to later file-scan provider error-handling.",
+      "notes": "Unreadable is distinct from failed and suspicious."
+    },
+    {
+      "job_profile_id": "JOB_SCAN_STORAGE_BUCKET_PROVIDER_LIKE",
+      "profile_label": "Bucket-backed scan, provider-like",
+      "provider_family": "artifact_scanning",
+      "environment": "provider_like_preprod",
+      "input_class": "s3_object_event",
+      "output_state_family": "clean|suspicious|quarantined|unreadable|failed",
+      "webhook_profile_ref": "WEBHOOK_SCAN_GUARDDUTY_EVENTBRIDGE",
+      "retention_policy_ref": "RET_SCAN_TAGS_30D",
+      "region_policy_ref": "REGION_AWS_EU_SCAN_PLAN",
+      "quarantine_policy_ref": "QUARANTINE_SCAN_FAILURE_ESCALATE",
+      "mock_now_use": "Simulate object-event scanning with result tags and fallback hold.",
+      "actual_later_use": "Becomes the real S3-backed protection-plan path.",
+      "notes": "Storage plan and event bus are first-class contract fields."
+    }
+  ],
+  "scan_and_quarantine_policy_rows": [
+    {
+      "policy_row_id": "SCAN_POLICY_CLEAN_LOCAL",
+      "provider_family": "artifact_scanning",
+      "environment": "local",
+      "scan_policy_ref": "POLICY_CLEAN_LOCAL",
+      "verdict_state": "clean",
+      "quarantine_action": "hold_until_release_check",
+      "fallback_review_action": "not_required",
+      "webhook_profile_ref": "WEBHOOK_SCAN_OPSWAT_CALLBACK",
+      "retention_policy_ref": "RET_SCAN_TAGS_30D",
+      "region_policy_ref": "REGION_MOCK_LOCAL_ONLY",
+      "notes": "Even clean verdicts wait for release and evidence binding."
+    },
+    {
+      "policy_row_id": "SCAN_POLICY_SUSPICIOUS_HOLD",
+      "provider_family": "artifact_scanning",
+      "environment": "preview",
+      "scan_policy_ref": "POLICY_SUSPICIOUS_REVIEW",
+      "verdict_state": "suspicious",
+      "quarantine_action": "manual_review_hold",
+      "fallback_review_action": "security_review_required",
+      "webhook_profile_ref": "WEBHOOK_SCAN_OPSWAT_CALLBACK",
+      "retention_policy_ref": "RET_QUARANTINE_14D",
+      "region_policy_ref": "REGION_MOCK_LOCAL_ONLY",
+      "notes": "Suspicious files stay blocked until an operator decides."
+    },
+    {
+      "policy_row_id": "SCAN_POLICY_QUARANTINED_BUCKET",
+      "provider_family": "artifact_scanning",
+      "environment": "provider_like_preprod",
+      "scan_policy_ref": "POLICY_GUARDDUTY_BUCKET_HOLD",
+      "verdict_state": "quarantined",
+      "quarantine_action": "keep_in_bucket_quarantine",
+      "fallback_review_action": "operator_release_or_destroy",
+      "webhook_profile_ref": "WEBHOOK_SCAN_GUARDDUTY_EVENTBRIDGE",
+      "retention_policy_ref": "RET_QUARANTINE_14D",
+      "region_policy_ref": "REGION_AWS_EU_SCAN_PLAN",
+      "notes": "GuardDuty-style event plus tag flow."
+    },
+    {
+      "policy_row_id": "SCAN_POLICY_UNREADABLE_RETRY",
+      "provider_family": "artifact_scanning",
+      "environment": "local",
+      "scan_policy_ref": "POLICY_UNREADABLE_REACQUIRE",
+      "verdict_state": "unreadable",
+      "quarantine_action": "stay_blocked",
+      "fallback_review_action": "request_reacquire",
+      "webhook_profile_ref": "WEBHOOK_SCAN_OPSWAT_CALLBACK",
+      "retention_policy_ref": "RET_QUARANTINE_14D",
+      "region_policy_ref": "REGION_MOCK_LOCAL_ONLY",
+      "notes": "Unreadable evidence stays distinct from hard failure."
+    },
+    {
+      "policy_row_id": "SCAN_POLICY_FAILED_ESCALATE",
+      "provider_family": "artifact_scanning",
+      "environment": "provider_like_preprod",
+      "scan_policy_ref": "POLICY_FAILED_ESCALATE",
+      "verdict_state": "failed",
+      "quarantine_action": "block_and_raise_alert",
+      "fallback_review_action": "manual_triage_required",
+      "webhook_profile_ref": "WEBHOOK_SCAN_GUARDDUTY_EVENTBRIDGE",
+      "retention_policy_ref": "RET_SCAN_TAGS_30D",
+      "region_policy_ref": "REGION_AWS_EU_SCAN_PLAN",
+      "notes": "Failure never counts as implicit pass-through."
+    },
+    {
+      "policy_row_id": "SCAN_POLICY_OPSWAT_PRIVATE_ONLY",
+      "provider_family": "artifact_scanning",
+      "environment": "actual_later",
+      "scan_policy_ref": "POLICY_PRIVATE_PROCESSING_ONLY",
+      "verdict_state": "clean",
+      "quarantine_action": "hold_until_private_processing_verified",
+      "fallback_review_action": "security_review_required",
+      "webhook_profile_ref": "WEBHOOK_SCAN_OPSWAT_CALLBACK",
+      "retention_policy_ref": "RET_QUARANTINE_14D",
+      "region_policy_ref": "REGION_OPSWAT_FORCED_EU",
+      "notes": "Blocks live MetaDefender use without private processing."
+    },
+    {
+      "policy_row_id": "SCAN_POLICY_CALLBACK_UNSIGNED",
+      "provider_family": "artifact_scanning",
+      "environment": "preview",
+      "scan_policy_ref": "POLICY_CALLBACK_UNSIGNED",
+      "verdict_state": "failed",
+      "quarantine_action": "hold_and_refetch",
+      "fallback_review_action": "webhook_retry_required",
+      "webhook_profile_ref": "WEBHOOK_SCAN_OPSWAT_CALLBACK",
+      "retention_policy_ref": "RET_SCAN_TAGS_30D",
+      "region_policy_ref": "REGION_MOCK_LOCAL_ONLY",
+      "notes": "Unsigned callback remains only a hint."
+    },
+    {
+      "policy_row_id": "SCAN_POLICY_REGION_MISMATCH",
+      "provider_family": "artifact_scanning",
+      "environment": "actual_later",
+      "scan_policy_ref": "POLICY_REGION_MISMATCH",
+      "verdict_state": "failed",
+      "quarantine_action": "block_live_setup",
+      "fallback_review_action": "architecture_review_required",
+      "webhook_profile_ref": "WEBHOOK_SCAN_GUARDDUTY_EVENTBRIDGE",
+      "retention_policy_ref": "RET_SCAN_TAGS_30D",
+      "region_policy_ref": "REGION_AWS_EU_SCAN_PLAN",
+      "notes": "Prevents cross-region rollout drift."
+    },
+    {
+      "policy_row_id": "TRANS_POLICY_PARTIAL_NEVER_SETTLE",
+      "provider_family": "transcription",
+      "environment": "local",
+      "scan_policy_ref": "POLICY_PARTIAL_TRANSCRIPT_HOLD",
+      "verdict_state": "partial",
+      "quarantine_action": "retain_higher_level_hold",
+      "fallback_review_action": "await_ready_or_manual_review",
+      "webhook_profile_ref": "WEBHOOK_TRANSCRIPT_ASSEMBLYAI",
+      "retention_policy_ref": "RET_TRANSCRIPT_TRANSIENT_24H",
+      "region_policy_ref": "REGION_MOCK_LOCAL_ONLY",
+      "notes": "Partial transcript output cannot settle evidence usability."
+    },
+    {
+      "policy_row_id": "TRANS_POLICY_FAILED_RETRY",
+      "provider_family": "transcription",
+      "environment": "provider_like_preprod",
+      "scan_policy_ref": "POLICY_TRANSCRIPT_FAILED_RETRY",
+      "verdict_state": "failed",
+      "quarantine_action": "hold_until_recovery",
+      "fallback_review_action": "manual_retry_or_callback_fallback",
+      "webhook_profile_ref": "WEBHOOK_TRANSCRIPT_DEEPGRAM",
+      "retention_policy_ref": "RET_TRANSCRIPT_REDACTED_7D",
+      "region_policy_ref": "REGION_EU_TRANSCRIPT_ONLY",
+      "notes": "Failed transcription does not close the evidence branch."
+    },
+    {
+      "policy_row_id": "TRANS_POLICY_SUPERSEDED_REBIND",
+      "provider_family": "transcription",
+      "environment": "local",
+      "scan_policy_ref": "POLICY_SUPERSEDED_REBIND",
+      "verdict_state": "superseded",
+      "quarantine_action": "retain_previous_hold",
+      "fallback_review_action": "replacement_binding_required",
+      "webhook_profile_ref": "WEBHOOK_TRANSCRIPT_DEEPGRAM",
+      "retention_policy_ref": "RET_TRANSCRIPT_REDACTED_7D",
+      "region_policy_ref": "REGION_MOCK_LOCAL_ONLY",
+      "notes": "Superseded jobs cannot keep downstream readiness alive."
+    },
+    {
+      "policy_row_id": "TRANS_POLICY_WEBHOOK_RETRY",
+      "provider_family": "transcription",
+      "environment": "provider_like_preprod",
+      "scan_policy_ref": "POLICY_TRANSCRIPT_WEBHOOK_RETRY",
+      "verdict_state": "ready",
+      "quarantine_action": "hold_until_signature_validated",
+      "fallback_review_action": "retry_and_refetch",
+      "webhook_profile_ref": "WEBHOOK_TRANSCRIPT_ASSEMBLYAI",
+      "retention_policy_ref": "RET_TRANSCRIPT_TRANSIENT_24H",
+      "region_policy_ref": "REGION_EU_TRANSCRIPT_ONLY",
+      "notes": "Ready transcript is still blocked while webhook authenticity is unresolved."
+    }
+  ],
+  "transcript_scenarios": [
+    {
+      "scenario_id": "transcript_partial_ready",
+      "label": "Partial then ready",
+      "transcript_state": "ready",
+      "readiness_state": "review_gate_open",
+      "fallback_review_state": "not_required",
+      "webhook_signature_state": "validated",
+      "quality_band": "high",
+      "coverage_class": "full_capture",
+      "summary": "Transcript streams through partial results and lands ready, but still waits on evidence promotion.",
+      "can_retry_webhook": false,
+      "can_supersede": false,
+      "timeline_templates": [
+        {
+          "state": "queued",
+          "label": "job accepted",
+          "tone": "neutral",
+          "detail": "Audio accepted into the transcript queue.",
+          "offset_minutes": 0
+        },
+        {
+          "state": "partial",
+          "label": "partial transcript available",
+          "tone": "good",
+          "detail": "Partial text is present but not yet admissible.",
+          "offset_minutes": 1
+        },
+        {
+          "state": "ready",
+          "label": "transcript complete",
+          "tone": "good",
+          "detail": "Provider marks the transcript complete.",
+          "offset_minutes": 3
+        },
+        {
+          "state": "review_gate_open",
+          "label": "evidence readiness still gated",
+          "tone": "neutral",
+          "detail": "Vecells still requires evidence binding and policy checks.",
+          "offset_minutes": 4
+        }
+      ],
+      "retry_timeline_templates": [],
+      "supersede_timeline_templates": []
+    },
+    {
+      "scenario_id": "transcript_failed_retry",
+      "label": "Failed, retry needed",
+      "transcript_state": "failed",
+      "readiness_state": "fallback_required",
+      "fallback_review_state": "manual_retry_required",
+      "webhook_signature_state": "validated",
+      "quality_band": "none",
+      "coverage_class": "missing",
+      "summary": "Transcript processing fails and shifts the branch into bounded fallback review.",
+      "can_retry_webhook": false,
+      "can_supersede": false,
+      "timeline_templates": [
+        {
+          "state": "queued",
+          "label": "job accepted",
+          "tone": "neutral",
+          "detail": "Job created for transcription.",
+          "offset_minutes": 0
+        },
+        {
+          "state": "processing",
+          "label": "provider processing",
+          "tone": "neutral",
+          "detail": "Provider attempts transcription.",
+          "offset_minutes": 2
+        },
+        {
+          "state": "failed",
+          "label": "transcript failed",
+          "tone": "danger",
+          "detail": "No usable transcript returned.",
+          "offset_minutes": 5
+        },
+        {
+          "state": "fallback_required",
+          "label": "fallback review required",
+          "tone": "danger",
+          "detail": "Evidence branch remains unresolved and review is mandatory.",
+          "offset_minutes": 6
+        }
+      ],
+      "retry_timeline_templates": [],
+      "supersede_timeline_templates": []
+    },
+    {
+      "scenario_id": "transcript_superseded_replacement",
+      "label": "Superseded by replacement",
+      "transcript_state": "partial",
+      "readiness_state": "hold_for_supersession",
+      "fallback_review_state": "manual_rebind_required",
+      "webhook_signature_state": "validated",
+      "quality_band": "low",
+      "coverage_class": "partial_capture",
+      "summary": "A weak transcript remains in hold until an operator supersedes it with a replacement run.",
+      "can_retry_webhook": false,
+      "can_supersede": true,
+      "timeline_templates": [
+        {
+          "state": "queued",
+          "label": "job accepted",
+          "tone": "neutral",
+          "detail": "Initial transcript job created.",
+          "offset_minutes": 0
+        },
+        {
+          "state": "partial",
+          "label": "low-confidence partial",
+          "tone": "warn",
+          "detail": "Transcript quality is insufficient for safe progression.",
+          "offset_minutes": 2
+        },
+        {
+          "state": "hold_for_supersession",
+          "label": "supersession hold",
+          "tone": "warn",
+          "detail": "Operator must create a replacement transcript.",
+          "offset_minutes": 4
+        }
+      ],
+      "retry_timeline_templates": [],
+      "supersede_timeline_templates": [
+        {
+          "state": "superseded",
+          "label": "job superseded",
+          "tone": "warn",
+          "detail": "Original transcript can no longer drive readiness.",
+          "offset_minutes": 0
+        },
+        {
+          "state": "replacement_requested",
+          "label": "replacement transcript requested",
+          "tone": "good",
+          "detail": "A new transcript run must replace the old binding.",
+          "offset_minutes": 1
+        }
+      ]
+    },
+    {
+      "scenario_id": "transcript_signature_retry",
+      "label": "Ready transcript, unsigned callback",
+      "transcript_state": "ready",
+      "readiness_state": "hold_for_signature",
+      "fallback_review_state": "not_required",
+      "webhook_signature_state": "signature_failed",
+      "quality_band": "high",
+      "coverage_class": "full_capture",
+      "summary": "Provider says the transcript is ready, but the callback authenticity failed and the branch stays held.",
+      "can_retry_webhook": true,
+      "can_supersede": false,
+      "timeline_templates": [
+        {
+          "state": "queued",
+          "label": "job accepted",
+          "tone": "neutral",
+          "detail": "Transcript job accepted.",
+          "offset_minutes": 0
+        },
+        {
+          "state": "ready",
+          "label": "provider reports ready",
+          "tone": "good",
+          "detail": "Transcript payload looks complete.",
+          "offset_minutes": 2
+        },
+        {
+          "state": "signature_failed",
+          "label": "callback signature failed",
+          "tone": "danger",
+          "detail": "Callback trust failed; do not promote the result.",
+          "offset_minutes": 3
+        }
+      ],
+      "retry_timeline_templates": [
+        {
+          "state": "validated",
+          "label": "webhook signature validated",
+          "tone": "good",
+          "detail": "Retry path re-established authenticity and re-fetch succeeded.",
+          "offset_minutes": 0
+        },
+        {
+          "state": "review_gate_open",
+          "label": "review gate reopened",
+          "tone": "good",
+          "detail": "Transcript is now admissible for the next evidence check.",
+          "offset_minutes": 1
+        }
+      ],
+      "supersede_timeline_templates": []
+    },
+    {
+      "scenario_id": "transcript_review_hold",
+      "label": "Transcript complete, evidence still review-held",
+      "transcript_state": "ready",
+      "readiness_state": "manual_review_hold",
+      "fallback_review_state": "manual_review_open",
+      "webhook_signature_state": "validated",
+      "quality_band": "medium",
+      "coverage_class": "full_capture",
+      "summary": "Transcript is available but the evidence branch remains held because the related scan branch has not cleared.",
+      "can_retry_webhook": false,
+      "can_supersede": false,
+      "timeline_templates": [
+        {
+          "state": "queued",
+          "label": "job accepted",
+          "tone": "neutral",
+          "detail": "Transcript job accepted.",
+          "offset_minutes": 0
+        },
+        {
+          "state": "ready",
+          "label": "transcript ready",
+          "tone": "good",
+          "detail": "Transcript content is complete.",
+          "offset_minutes": 3
+        },
+        {
+          "state": "manual_review_hold",
+          "label": "manual review hold",
+          "tone": "warn",
+          "detail": "Cross-branch evidence checks still block progression.",
+          "offset_minutes": 4
+        }
+      ],
+      "retry_timeline_templates": [],
+      "supersede_timeline_templates": []
+    }
+  ],
+  "scan_scenarios": [
+    {
+      "scenario_id": "scan_clean_pass",
+      "label": "Clean verdict, pending release",
+      "scan_state": "clean",
+      "quarantine_state": "held_pending_release",
+      "fallback_review_state": "not_required",
+      "webhook_signature_state": "validated",
+      "confidence_band": "high",
+      "release_decision_state": "release_pending",
+      "summary": "Scan is clean but the artifact stays held until release checks complete.",
+      "can_retry_webhook": false,
+      "can_review": true,
+      "timeline_templates": [
+        {
+          "state": "queued",
+          "label": "scan requested",
+          "tone": "neutral",
+          "detail": "Artifact entered the scan queue.",
+          "offset_minutes": 0
+        },
+        {
+          "state": "clean",
+          "label": "no threat detected",
+          "tone": "good",
+          "detail": "Provider returned a clean verdict.",
+          "offset_minutes": 2
+        },
+        {
+          "state": "held_pending_release",
+          "label": "held pending release",
+          "tone": "neutral",
+          "detail": "Release still requires policy confirmation.",
+          "offset_minutes": 3
+        }
+      ],
+      "retry_timeline_templates": [],
+      "review_timeline_templates": [
+        {
+          "state": "released",
+          "label": "release approved",
+          "tone": "good",
+          "detail": "Operator completed the release check.",
+          "offset_minutes": 0
+        }
+      ]
+    },
+    {
+      "scenario_id": "scan_suspicious_review",
+      "label": "Suspicious, manual review required",
+      "scan_state": "suspicious",
+      "quarantine_state": "quarantined",
+      "fallback_review_state": "security_review_required",
+      "webhook_signature_state": "validated",
+      "confidence_band": "medium",
+      "release_decision_state": "blocked",
+      "summary": "Scan shows a suspicious result and the artifact remains quarantined until review closes.",
+      "can_retry_webhook": false,
+      "can_review": true,
+      "timeline_templates": [
+        {
+          "state": "queued",
+          "label": "scan requested",
+          "tone": "neutral",
+          "detail": "Artifact entered the queue.",
+          "offset_minutes": 0
+        },
+        {
+          "state": "suspicious",
+          "label": "suspicious signal raised",
+          "tone": "warn",
+          "detail": "The provider reported a suspicious verdict.",
+          "offset_minutes": 3
+        },
+        {
+          "state": "quarantined",
+          "label": "artifact quarantined",
+          "tone": "danger",
+          "detail": "The artifact stays blocked until manual review.",
+          "offset_minutes": 4
+        }
+      ],
+      "retry_timeline_templates": [],
+      "review_timeline_templates": [
+        {
+          "state": "manual_review_complete",
+          "label": "manual review complete",
+          "tone": "warn",
+          "detail": "Review concluded but does not imply automatic release.",
+          "offset_minutes": 0
+        }
+      ]
+    },
+    {
+      "scenario_id": "scan_quarantined_blocked",
+      "label": "Quarantined hard block",
+      "scan_state": "quarantined",
+      "quarantine_state": "quarantined",
+      "fallback_review_state": "security_review_required",
+      "webhook_signature_state": "validated",
+      "confidence_band": "high",
+      "release_decision_state": "destroy_or_escalate",
+      "summary": "Artifact is quarantined and must not proceed without an explicit destroy or escalation decision.",
+      "can_retry_webhook": false,
+      "can_review": true,
+      "timeline_templates": [
+        {
+          "state": "queued",
+          "label": "scan requested",
+          "tone": "neutral",
+          "detail": "Artifact entered the queue.",
+          "offset_minutes": 0
+        },
+        {
+          "state": "quarantined",
+          "label": "quarantine hard block",
+          "tone": "danger",
+          "detail": "Threat verdict triggered the quarantine fence.",
+          "offset_minutes": 2
+        }
+      ],
+      "retry_timeline_templates": [],
+      "review_timeline_templates": [
+        {
+          "state": "manual_review_complete",
+          "label": "security review complete",
+          "tone": "warn",
+          "detail": "Security review finished, awaiting explicit destroy or retain decision.",
+          "offset_minutes": 0
+        }
+      ]
+    },
+    {
+      "scenario_id": "scan_unreadable_reacquire",
+      "label": "Unreadable and reacquire",
+      "scan_state": "unreadable",
+      "quarantine_state": "blocked_pending_reacquire",
+      "fallback_review_state": "request_reacquire",
+      "webhook_signature_state": "validated",
+      "confidence_band": "none",
+      "release_decision_state": "blocked",
+      "summary": "Artifact cannot be scanned and the user or operator must reacquire it.",
+      "can_retry_webhook": false,
+      "can_review": true,
+      "timeline_templates": [
+        {
+          "state": "queued",
+          "label": "scan requested",
+          "tone": "neutral",
+          "detail": "Artifact entered the queue.",
+          "offset_minutes": 0
+        },
+        {
+          "state": "unreadable",
+          "label": "artifact unreadable",
+          "tone": "danger",
+          "detail": "Artifact could not be parsed or scanned.",
+          "offset_minutes": 2
+        },
+        {
+          "state": "blocked_pending_reacquire",
+          "label": "reacquire required",
+          "tone": "danger",
+          "detail": "No promotion path exists until a new artifact arrives.",
+          "offset_minutes": 3
+        }
+      ],
+      "retry_timeline_templates": [],
+      "review_timeline_templates": [
+        {
+          "state": "reacquire_requested",
+          "label": "reacquire requested",
+          "tone": "warn",
+          "detail": "Operator initiated reacquire flow.",
+          "offset_minutes": 0
+        }
+      ]
+    },
+    {
+      "scenario_id": "scan_webhook_retry",
+      "label": "Result arrived with callback trust failure",
+      "scan_state": "clean",
+      "quarantine_state": "held_for_signature",
+      "fallback_review_state": "not_required",
+      "webhook_signature_state": "signature_failed",
+      "confidence_band": "medium",
+      "release_decision_state": "blocked",
+      "summary": "The scan result appears clean but stays held because the callback trust path failed.",
+      "can_retry_webhook": true,
+      "can_review": true,
+      "timeline_templates": [
+        {
+          "state": "queued",
+          "label": "scan requested",
+          "tone": "neutral",
+          "detail": "Artifact entered the queue.",
+          "offset_minutes": 0
+        },
+        {
+          "state": "clean",
+          "label": "result reported clean",
+          "tone": "good",
+          "detail": "Provider returned a clean verdict.",
+          "offset_minutes": 2
+        },
+        {
+          "state": "signature_failed",
+          "label": "callback trust failed",
+          "tone": "danger",
+          "detail": "Ingest trust failed, so the verdict cannot drive release.",
+          "offset_minutes": 3
+        }
+      ],
+      "retry_timeline_templates": [
+        {
+          "state": "validated",
+          "label": "callback validated",
+          "tone": "good",
+          "detail": "Retry path revalidated the callback or refetch proof.",
+          "offset_minutes": 0
+        },
+        {
+          "state": "held_pending_release",
+          "label": "held pending release",
+          "tone": "neutral",
+          "detail": "Result is authentic but still needs release confirmation.",
+          "offset_minutes": 1
+        }
+      ],
+      "review_timeline_templates": [
+        {
+          "state": "released",
+          "label": "release approved",
+          "tone": "good",
+          "detail": "Release decision completed after callback validation.",
+          "offset_minutes": 0
+        }
+      ]
+    }
+  ],
+  "seeded_transcript_jobs": [
+    {
+      "job_id": "TRJ-2001",
+      "job_profile_id": "JOB_TRANS_VOICE_CALLBACK_LOCAL",
+      "scenario_id": "transcript_partial_ready",
+      "source_asset_ref": "voice://call/2001",
+      "environment": "local",
+      "vendor_mode": "mock_now",
+      "transcript_state": "ready",
+      "readiness_state": "review_gate_open",
+      "fallback_review_state": "not_required",
+      "webhook_signature_state": "validated",
+      "quality_band": "high",
+      "coverage_class": "full_capture",
+      "superseded_by_ref": "",
+      "summary": "Transcript streams through partial results and lands ready, but still waits on evidence promotion.",
+      "timeline_events": [
+        {
+          "event_id": "TRJ-2001-E1",
+          "state": "queued",
+          "label": "job accepted",
+          "tone": "neutral",
+          "detail": "Audio accepted into the transcript queue.",
+          "at": "2026-04-10T08:00:00+00:00"
+        },
+        {
+          "event_id": "TRJ-2001-E2",
+          "state": "partial",
+          "label": "partial transcript available",
+          "tone": "good",
+          "detail": "Partial text is present but not yet admissible.",
+          "at": "2026-04-10T08:01:00+00:00"
+        },
+        {
+          "event_id": "TRJ-2001-E3",
+          "state": "ready",
+          "label": "transcript complete",
+          "tone": "good",
+          "detail": "Provider marks the transcript complete.",
+          "at": "2026-04-10T08:03:00+00:00"
+        },
+        {
+          "event_id": "TRJ-2001-E4",
+          "state": "review_gate_open",
+          "label": "evidence readiness still gated",
+          "tone": "neutral",
+          "detail": "Vecells still requires evidence binding and policy checks.",
+          "at": "2026-04-10T08:04:00+00:00"
+        }
+      ],
+      "can_retry_webhook": false,
+      "can_supersede": false
+    },
+    {
+      "job_id": "TRJ-2002",
+      "job_profile_id": "JOB_TRANS_VOICE_CALLBACK_PROVIDER_PREVIEW",
+      "scenario_id": "transcript_signature_retry",
+      "source_asset_ref": "voice://call/2002",
+      "environment": "provider_like_preprod",
+      "vendor_mode": "mock_now",
+      "transcript_state": "ready",
+      "readiness_state": "hold_for_signature",
+      "fallback_review_state": "not_required",
+      "webhook_signature_state": "signature_failed",
+      "quality_band": "high",
+      "coverage_class": "full_capture",
+      "superseded_by_ref": "",
+      "summary": "Provider says the transcript is ready, but the callback authenticity failed and the branch stays held.",
+      "timeline_events": [
+        {
+          "event_id": "TRJ-2002-E1",
+          "state": "queued",
+          "label": "job accepted",
+          "tone": "neutral",
+          "detail": "Transcript job accepted.",
+          "at": "2026-04-10T08:11:00+00:00"
+        },
+        {
+          "event_id": "TRJ-2002-E2",
+          "state": "ready",
+          "label": "provider reports ready",
+          "tone": "good",
+          "detail": "Transcript payload looks complete.",
+          "at": "2026-04-10T08:13:00+00:00"
+        },
+        {
+          "event_id": "TRJ-2002-E3",
+          "state": "signature_failed",
+          "label": "callback signature failed",
+          "tone": "danger",
+          "detail": "Callback trust failed; do not promote the result.",
+          "at": "2026-04-10T08:14:00+00:00"
+        }
+      ],
+      "can_retry_webhook": true,
+      "can_supersede": false
+    },
+    {
+      "job_id": "TRJ-2003",
+      "job_profile_id": "JOB_TRANS_ATTACHMENT_AUDIO_PORTAL",
+      "scenario_id": "transcript_review_hold",
+      "source_asset_ref": "portal://artifact/audio-17",
+      "environment": "preview",
+      "vendor_mode": "mock_now",
+      "transcript_state": "ready",
+      "readiness_state": "manual_review_hold",
+      "fallback_review_state": "manual_review_open",
+      "webhook_signature_state": "validated",
+      "quality_band": "medium",
+      "coverage_class": "full_capture",
+      "superseded_by_ref": "",
+      "summary": "Transcript is available but the evidence branch remains held because the related scan branch has not cleared.",
+      "timeline_events": [
+        {
+          "event_id": "TRJ-2003-E1",
+          "state": "queued",
+          "label": "job accepted",
+          "tone": "neutral",
+          "detail": "Transcript job accepted.",
+          "at": "2026-04-10T08:22:00+00:00"
+        },
+        {
+          "event_id": "TRJ-2003-E2",
+          "state": "ready",
+          "label": "transcript ready",
+          "tone": "good",
+          "detail": "Transcript content is complete.",
+          "at": "2026-04-10T08:25:00+00:00"
+        },
+        {
+          "event_id": "TRJ-2003-E3",
+          "state": "manual_review_hold",
+          "label": "manual review hold",
+          "tone": "warn",
+          "detail": "Cross-branch evidence checks still block progression.",
+          "at": "2026-04-10T08:26:00+00:00"
+        }
+      ],
+      "can_retry_webhook": false,
+      "can_supersede": false
+    },
+    {
+      "job_id": "TRJ-2004",
+      "job_profile_id": "JOB_TRANS_RETRANSCRIBE_SUPERSEDE",
+      "scenario_id": "transcript_superseded_replacement",
+      "source_asset_ref": "ops://replay/audio-08",
+      "environment": "local",
+      "vendor_mode": "mock_now",
+      "transcript_state": "partial",
+      "readiness_state": "hold_for_supersession",
+      "fallback_review_state": "manual_rebind_required",
+      "webhook_signature_state": "validated",
+      "quality_band": "low",
+      "coverage_class": "partial_capture",
+      "superseded_by_ref": "",
+      "summary": "A weak transcript remains in hold until an operator supersedes it with a replacement run.",
+      "timeline_events": [
+        {
+          "event_id": "TRJ-2004-E1",
+          "state": "queued",
+          "label": "job accepted",
+          "tone": "neutral",
+          "detail": "Initial transcript job created.",
+          "at": "2026-04-10T08:33:00+00:00"
+        },
+        {
+          "event_id": "TRJ-2004-E2",
+          "state": "partial",
+          "label": "low-confidence partial",
+          "tone": "warn",
+          "detail": "Transcript quality is insufficient for safe progression.",
+          "at": "2026-04-10T08:35:00+00:00"
+        },
+        {
+          "event_id": "TRJ-2004-E3",
+          "state": "hold_for_supersession",
+          "label": "supersession hold",
+          "tone": "warn",
+          "detail": "Operator must create a replacement transcript.",
+          "at": "2026-04-10T08:37:00+00:00"
+        }
+      ],
+      "can_retry_webhook": false,
+      "can_supersede": true
+    },
+    {
+      "job_id": "TRJ-2005",
+      "job_profile_id": "JOB_TRANS_SCAN_DEPENDENT_HOLD",
+      "scenario_id": "transcript_failed_retry",
+      "source_asset_ref": "artifact://upload/scan-held-03",
+      "environment": "provider_like_preprod",
+      "vendor_mode": "mock_now",
+      "transcript_state": "failed",
+      "readiness_state": "fallback_required",
+      "fallback_review_state": "manual_retry_required",
+      "webhook_signature_state": "validated",
+      "quality_band": "none",
+      "coverage_class": "missing",
+      "superseded_by_ref": "",
+      "summary": "Transcript processing fails and shifts the branch into bounded fallback review.",
+      "timeline_events": [
+        {
+          "event_id": "TRJ-2005-E1",
+          "state": "queued",
+          "label": "job accepted",
+          "tone": "neutral",
+          "detail": "Job created for transcription.",
+          "at": "2026-04-10T08:44:00+00:00"
+        },
+        {
+          "event_id": "TRJ-2005-E2",
+          "state": "processing",
+          "label": "provider processing",
+          "tone": "neutral",
+          "detail": "Provider attempts transcription.",
+          "at": "2026-04-10T08:46:00+00:00"
+        },
+        {
+          "event_id": "TRJ-2005-E3",
+          "state": "failed",
+          "label": "transcript failed",
+          "tone": "danger",
+          "detail": "No usable transcript returned.",
+          "at": "2026-04-10T08:49:00+00:00"
+        },
+        {
+          "event_id": "TRJ-2005-E4",
+          "state": "fallback_required",
+          "label": "fallback review required",
+          "tone": "danger",
+          "detail": "Evidence branch remains unresolved and review is mandatory.",
+          "at": "2026-04-10T08:50:00+00:00"
+        }
+      ],
+      "can_retry_webhook": false,
+      "can_supersede": false
+    }
+  ],
+  "seeded_scan_jobs": [
+    {
+      "scan_job_id": "SCN-3001",
+      "job_profile_id": "JOB_SCAN_PORTAL_UPLOAD_CLEAN",
+      "scenario_id": "scan_clean_pass",
+      "object_ref": "upload://artifact/3001",
+      "environment": "local",
+      "scan_state": "clean",
+      "quarantine_state": "held_pending_release",
+      "fallback_review_state": "not_required",
+      "webhook_signature_state": "validated",
+      "confidence_band": "high",
+      "release_decision_state": "release_pending",
+      "summary": "Scan is clean but the artifact stays held until release checks complete.",
+      "timeline_events": [
+        {
+          "event_id": "SCN-3001-E1",
+          "state": "queued",
+          "label": "scan requested",
+          "tone": "neutral",
+          "detail": "Artifact entered the scan queue.",
+          "at": "2026-04-10T09:00:00+00:00"
+        },
+        {
+          "event_id": "SCN-3001-E2",
+          "state": "clean",
+          "label": "no threat detected",
+          "tone": "good",
+          "detail": "Provider returned a clean verdict.",
+          "at": "2026-04-10T09:02:00+00:00"
+        },
+        {
+          "event_id": "SCN-3001-E3",
+          "state": "held_pending_release",
+          "label": "held pending release",
+          "tone": "neutral",
+          "detail": "Release still requires policy confirmation.",
+          "at": "2026-04-10T09:03:00+00:00"
+        }
+      ],
+      "can_retry_webhook": false,
+      "can_review": true
+    },
+    {
+      "scan_job_id": "SCN-3002",
+      "job_profile_id": "JOB_SCAN_PORTAL_UPLOAD_SUSPICIOUS",
+      "scenario_id": "scan_suspicious_review",
+      "object_ref": "upload://artifact/3002",
+      "environment": "preview",
+      "scan_state": "suspicious",
+      "quarantine_state": "quarantined",
+      "fallback_review_state": "security_review_required",
+      "webhook_signature_state": "validated",
+      "confidence_band": "medium",
+      "release_decision_state": "blocked",
+      "summary": "Scan shows a suspicious result and the artifact remains quarantined until review closes.",
+      "timeline_events": [
+        {
+          "event_id": "SCN-3002-E1",
+          "state": "queued",
+          "label": "scan requested",
+          "tone": "neutral",
+          "detail": "Artifact entered the queue.",
+          "at": "2026-04-10T09:09:00+00:00"
+        },
+        {
+          "event_id": "SCN-3002-E2",
+          "state": "suspicious",
+          "label": "suspicious signal raised",
+          "tone": "warn",
+          "detail": "The provider reported a suspicious verdict.",
+          "at": "2026-04-10T09:12:00+00:00"
+        },
+        {
+          "event_id": "SCN-3002-E3",
+          "state": "quarantined",
+          "label": "artifact quarantined",
+          "tone": "danger",
+          "detail": "The artifact stays blocked until manual review.",
+          "at": "2026-04-10T09:13:00+00:00"
+        }
+      ],
+      "can_retry_webhook": false,
+      "can_review": true
+    },
+    {
+      "scan_job_id": "SCN-3003",
+      "job_profile_id": "JOB_SCAN_PORTAL_UPLOAD_QUARANTINE",
+      "scenario_id": "scan_quarantined_blocked",
+      "object_ref": "s3://bucket/incoming/3003",
+      "environment": "provider_like_preprod",
+      "scan_state": "quarantined",
+      "quarantine_state": "quarantined",
+      "fallback_review_state": "security_review_required",
+      "webhook_signature_state": "validated",
+      "confidence_band": "high",
+      "release_decision_state": "destroy_or_escalate",
+      "summary": "Artifact is quarantined and must not proceed without an explicit destroy or escalation decision.",
+      "timeline_events": [
+        {
+          "event_id": "SCN-3003-E1",
+          "state": "queued",
+          "label": "scan requested",
+          "tone": "neutral",
+          "detail": "Artifact entered the queue.",
+          "at": "2026-04-10T09:18:00+00:00"
+        },
+        {
+          "event_id": "SCN-3003-E2",
+          "state": "quarantined",
+          "label": "quarantine hard block",
+          "tone": "danger",
+          "detail": "Threat verdict triggered the quarantine fence.",
+          "at": "2026-04-10T09:20:00+00:00"
+        }
+      ],
+      "can_retry_webhook": false,
+      "can_review": true
+    },
+    {
+      "scan_job_id": "SCN-3004",
+      "job_profile_id": "JOB_SCAN_UNREADABLE_REACQUIRE",
+      "scenario_id": "scan_unreadable_reacquire",
+      "object_ref": "upload://artifact/3004",
+      "environment": "local",
+      "scan_state": "unreadable",
+      "quarantine_state": "blocked_pending_reacquire",
+      "fallback_review_state": "request_reacquire",
+      "webhook_signature_state": "validated",
+      "confidence_band": "none",
+      "release_decision_state": "blocked",
+      "summary": "Artifact cannot be scanned and the user or operator must reacquire it.",
+      "timeline_events": [
+        {
+          "event_id": "SCN-3004-E1",
+          "state": "queued",
+          "label": "scan requested",
+          "tone": "neutral",
+          "detail": "Artifact entered the queue.",
+          "at": "2026-04-10T09:27:00+00:00"
+        },
+        {
+          "event_id": "SCN-3004-E2",
+          "state": "unreadable",
+          "label": "artifact unreadable",
+          "tone": "danger",
+          "detail": "Artifact could not be parsed or scanned.",
+          "at": "2026-04-10T09:29:00+00:00"
+        },
+        {
+          "event_id": "SCN-3004-E3",
+          "state": "blocked_pending_reacquire",
+          "label": "reacquire required",
+          "tone": "danger",
+          "detail": "No promotion path exists until a new artifact arrives.",
+          "at": "2026-04-10T09:30:00+00:00"
+        }
+      ],
+      "can_retry_webhook": false,
+      "can_review": true
+    },
+    {
+      "scan_job_id": "SCN-3005",
+      "job_profile_id": "JOB_SCAN_STORAGE_BUCKET_PROVIDER_LIKE",
+      "scenario_id": "scan_webhook_retry",
+      "object_ref": "s3://bucket/incoming/3005",
+      "environment": "provider_like_preprod",
+      "scan_state": "clean",
+      "quarantine_state": "held_for_signature",
+      "fallback_review_state": "not_required",
+      "webhook_signature_state": "signature_failed",
+      "confidence_band": "medium",
+      "release_decision_state": "blocked",
+      "summary": "The scan result appears clean but stays held because the callback trust path failed.",
+      "timeline_events": [
+        {
+          "event_id": "SCN-3005-E1",
+          "state": "queued",
+          "label": "scan requested",
+          "tone": "neutral",
+          "detail": "Artifact entered the queue.",
+          "at": "2026-04-10T09:36:00+00:00"
+        },
+        {
+          "event_id": "SCN-3005-E2",
+          "state": "clean",
+          "label": "result reported clean",
+          "tone": "good",
+          "detail": "Provider returned a clean verdict.",
+          "at": "2026-04-10T09:38:00+00:00"
+        },
+        {
+          "event_id": "SCN-3005-E3",
+          "state": "signature_failed",
+          "label": "callback trust failed",
+          "tone": "danger",
+          "detail": "Ingest trust failed, so the verdict cannot drive release.",
+          "at": "2026-04-10T09:39:00+00:00"
+        }
+      ],
+      "can_retry_webhook": true,
+      "can_review": true
+    }
+  ],
+  "live_gate_pack": {
+    "phase0_verdict": "withheld",
+    "allowed_vendor_ids": [
+      "assemblyai_transcription",
+      "deepgram_transcription",
+      "aws_guardduty_s3_scan",
+      "opswat_metadefender_cloud"
+    ],
+    "required_env": [
+      "EVIDENCE_PROVIDER_VENDOR_ID",
+      "EVIDENCE_PROJECT_SCOPE",
+      "EVIDENCE_TARGET_ENVIRONMENT",
+      "EVIDENCE_REGION_POLICY_REF",
+      "EVIDENCE_RETENTION_POLICY_REF",
+      "EVIDENCE_WEBHOOK_BASE_URL",
+      "EVIDENCE_WEBHOOK_SECRET_REF",
+      "EVIDENCE_STORAGE_BUCKET_REF",
+      "EVIDENCE_SCAN_POLICY_REF",
+      "EVIDENCE_NAMED_APPROVER",
+      "ALLOW_REAL_PROVIDER_MUTATION",
+      "ALLOW_SPEND"
+    ],
+    "live_gates": [
+      {
+        "gate_id": "LIVE_GATE_EVIDENCE_PHASE0_EXTERNAL_READY",
+        "status": "blocked",
+        "severity": "hard_blocker",
+        "title": "Phase 0 external-readiness chain is clear",
+        "reason": "Phase 0 entry remains withheld, so no real provider mutation may start."
+      },
+      {
+        "gate_id": "LIVE_GATE_EVIDENCE_SHORTLIST_APPROVED",
+        "status": "pass",
+        "severity": "required",
+        "title": "Provider is on the seq_034 shortlist",
+        "reason": "Only shortlisted providers may be configured later."
+      },
+      {
+        "gate_id": "LIVE_GATE_EVIDENCE_REGION_POLICY_EXPLICIT",
+        "status": "review_required",
+        "severity": "required",
+        "title": "Region policy is explicit",
+        "reason": "Provider project creation stays blocked until region posture is named."
+      },
+      {
+        "gate_id": "LIVE_GATE_EVIDENCE_RETENTION_POLICY_EXPLICIT",
+        "status": "review_required",
+        "severity": "required",
+        "title": "Retention and deletion policy is explicit",
+        "reason": "Deletion or retention cannot be inferred from job completion."
+      },
+      {
+        "gate_id": "LIVE_GATE_EVIDENCE_WEBHOOK_SECURITY_READY",
+        "status": "review_required",
+        "severity": "required",
+        "title": "Webhook security and replay controls are ready",
+        "reason": "Unsigned or replayed callbacks must stay non-authoritative."
+      },
+      {
+        "gate_id": "LIVE_GATE_EVIDENCE_STORAGE_SCOPE_DEFINED",
+        "status": "review_required",
+        "severity": "required",
+        "title": "Bucket or storage scope is declared",
+        "reason": "Storage and prefix scope are part of the scanning contract."
+      },
+      {
+        "gate_id": "LIVE_GATE_EVIDENCE_QUARANTINE_POLICY_FROZEN",
+        "status": "review_required",
+        "severity": "required",
+        "title": "Quarantine policy is frozen",
+        "reason": "Clean, suspicious, unreadable, and failed branches cannot collapse into one badge."
+      },
+      {
+        "gate_id": "LIVE_GATE_EVIDENCE_NAMED_APPROVER_AND_ENV",
+        "status": "blocked",
+        "severity": "hard_blocker",
+        "title": "Named approver and target environment are present",
+        "reason": "Live mutations require a named human approver and environment target."
+      },
+      {
+        "gate_id": "LIVE_GATE_EVIDENCE_MUTATION_FLAG",
+        "status": "blocked",
+        "severity": "hard_blocker",
+        "title": "ALLOW_REAL_PROVIDER_MUTATION is true",
+        "reason": "Real provider changes must fail closed without the mutation flag."
+      },
+      {
+        "gate_id": "LIVE_GATE_EVIDENCE_SPEND_FLAG",
+        "status": "blocked",
+        "severity": "hard_blocker",
+        "title": "ALLOW_SPEND is true for billable actions",
+        "reason": "Project creation and live traffic can incur spend immediately."
+      },
+      {
+        "gate_id": "LIVE_GATE_EVIDENCE_FINAL_OPERATOR_ACK",
+        "status": "blocked",
+        "severity": "hard_blocker",
+        "title": "Final operator acknowledgement is captured",
+        "reason": "Real project setup is blocked until a human acknowledges the live posture and artifact sensitivity."
+      }
+    ],
+    "selector_map": {
+      "base_profile": {
+        "mode_toggle_actual": "[data-testid='mode-toggle-actual']",
+        "page_tab_live_gates": "[data-testid='page-tab-Live_Gates_and_Retention_Posture']",
+        "field_vendor": "[data-testid='actual-field-vendor-id']",
+        "field_project_scope": "[data-testid='actual-field-project-scope']",
+        "field_region_policy": "[data-testid='actual-field-region-policy']",
+        "field_retention_policy": "[data-testid='actual-field-retention-policy']",
+        "field_callback_base": "[data-testid='actual-field-callback-base']",
+        "field_secret_ref": "[data-testid='actual-field-secret-ref']",
+        "field_bucket_ref": "[data-testid='actual-field-bucket-ref']",
+        "field_scan_policy": "[data-testid='actual-field-scan-policy']",
+        "field_environment": "[data-testid='actual-field-target-environment']",
+        "field_approver": "[data-testid='actual-field-named-approver']",
+        "field_allow_mutation": "[data-testid='actual-field-allow-mutation']",
+        "field_allow_spend": "[data-testid='actual-field-allow-spend']",
+        "final_submit": "[data-testid='actual-submit-button']"
+      }
+    }
+  },
+  "summary": {
+    "field_count": 49,
+    "job_profile_count": 10,
+    "scan_policy_count": 12,
+    "live_gate_count": 11,
+    "blocking_live_gate_count": 5,
+    "review_live_gate_count": 5,
+    "pass_live_gate_count": 1,
+    "transcript_scenario_count": 5,
+    "scan_scenario_count": 5,
+    "seeded_transcript_job_count": 5,
+    "seeded_scan_job_count": 5,
+    "shortlisted_vendor_count": 4,
+    "selected_access_row_count": 4,
+    "official_guidance_count": 19
+  }
+} as const;
+export type EvidenceGateLabPack = typeof evidenceGateLabPack;
