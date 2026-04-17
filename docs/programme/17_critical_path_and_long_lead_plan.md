@@ -1,4 +1,3 @@
-
             # 17 Critical Path And Long Lead Plan
 
             Critical-path digest:
@@ -7,6 +6,7 @@
             ## Current-Baseline Critical Path
 
             | Critical Path Order | Milestone | Tasks | Scope | Notes |
+
 | --- | --- | --- | --- | --- |
 | 1 | MS_PLAN_DISCOVERY_BASELINE | seq_001 -> seq_016 | current | Discovery corpus, architecture baselines, and ADR freeze |
 | 2 | MS_PLAN_EXECUTION_GRAPH | seq_017 | current | Programme graph and merge-gate model |
@@ -79,6 +79,7 @@
             ## Long-Lead Dependencies
 
             | Long Lead Milestone | Tasks | Scope | Dependencies |
+
 | --- | --- | --- | --- |
 | MS_EXT_NHS_LOGIN_ONBOARDING | seq_024 -> seq_025 | current | dep_nhs_login_rail |
 | MS_EXT_IM1_SCAL_READINESS | seq_026 | current | dep_im1_pairing_programme |

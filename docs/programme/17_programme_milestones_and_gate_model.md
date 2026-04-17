@@ -1,4 +1,3 @@
-
             # 17 Programme Milestones And Gate Model
 
             Mission: Turn the serialized checklist roadmap into one executable milestone graph with strict sequence, scoped exceptions, parallel blocks, merge gates, long-lead dependency visibility, and current-baseline critical-path truth.
@@ -23,6 +22,7 @@
             ## Milestone Matrix
 
             | Milestone | Phase | Class | Scope | Tasks | Path | Gate |
+
 | --- | --- | --- | --- | --- | --- | --- |
 | MS_PLAN_DISCOVERY_BASELINE | planning | planning | current | seq_001 -> seq_016 | on_path | GATE_PLAN_EXTERNAL_ENTRY |
 | MS_PLAN_EXECUTION_GRAPH | planning | planning | current | seq_017 | on_path | GATE_PLAN_EXTERNAL_ENTRY |

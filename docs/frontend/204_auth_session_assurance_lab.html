@@ -1,0 +1,1061 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>204 Auth Session Assurance Lab</title>
+    <style>
+      :root {
+        --canvas: #f5f7fb;
+        --shell: #ffffff;
+        --inset: #eef2f7;
+        --strong: #0f172a;
+        --text: #334155;
+        --muted: #64748b;
+        --border: #d7dfea;
+        --primary: #3158e0;
+        --live: #0f766e;
+        --recovery: #b7791f;
+        --danger: #b42318;
+        --shadow: 0 22px 70px rgba(15, 23, 42, 0.08);
+        --hover-ms: 120ms;
+        --switch-ms: 160ms;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at 9% 2%, rgba(49, 88, 224, 0.1), transparent 30rem),
+          radial-gradient(circle at 92% 18%, rgba(15, 118, 110, 0.11), transparent 28rem),
+          linear-gradient(180deg, #f8fafc 0%, var(--canvas) 48%, #edf2f8 100%);
+        color: var(--text);
+        font-family: Inter, system-ui, sans-serif;
+        font-size: 14px;
+        line-height: 20px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        color: var(--strong);
+        font-family: "Inter Tight", Inter, system-ui, sans-serif;
+        font-size: 28px;
+        font-weight: 650;
+        letter-spacing: -0.035em;
+        line-height: 34px;
+      }
+
+      h2,
+      h3 {
+        color: var(--strong);
+        font-family: "Inter Tight", Inter, system-ui, sans-serif;
+        font-size: 18px;
+        font-weight: 620;
+        letter-spacing: -0.02em;
+        line-height: 24px;
+      }
+
+      code,
+      .mono,
+      td:first-child,
+      .event-code {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        overflow-wrap: anywhere;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        line-height: 19px;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--border);
+        padding: 10px 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      a {
+        color: var(--primary);
+      }
+
+      .page {
+        width: 100%;
+        max-width: 1540px;
+        margin: 0 auto;
+        padding: 28px;
+      }
+
+      .masthead {
+        display: flex;
+        min-height: 72px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .masthead p {
+        max-width: 760px;
+        color: var(--muted);
+      }
+
+      .status-stack {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.82);
+        color: var(--strong);
+        font-weight: 800;
+        padding: 8px 11px;
+      }
+
+      .pill::before {
+        width: 8px;
+        height: 8px;
+        border-radius: 99px;
+        background: var(--live);
+        content: "";
+      }
+
+      .pill.recovery::before {
+        background: var(--recovery);
+      }
+
+      .pill.blocked::before {
+        background: var(--danger);
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: 296px minmax(760px, 1fr) 404px;
+        gap: 18px;
+        margin-top: 22px;
+        align-items: start;
+      }
+
+      .scenario-rail,
+      .transaction-canvas,
+      .inspector-rail,
+      .evidence-card {
+        min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.88);
+        box-shadow: var(--shadow);
+      }
+
+      .scenario-rail,
+      .inspector-rail {
+        position: sticky;
+        top: 16px;
+        padding: 16px;
+      }
+
+      .rail-title,
+      .card-label {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        line-height: 16px;
+        text-transform: uppercase;
+      }
+
+      .scenario-chip-strip {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .scenario-tab {
+        display: grid;
+        min-height: 84px;
+        gap: 6px;
+        border: 1px solid transparent;
+        border-radius: 18px;
+        background: var(--inset);
+        color: var(--text);
+        cursor: pointer;
+        font: inherit;
+        padding: 14px;
+        text-align: left;
+        transition:
+          transform var(--hover-ms) ease,
+          border-color var(--hover-ms) ease,
+          background var(--switch-ms) ease;
+      }
+
+      .scenario-tab:hover,
+      .scenario-tab:focus-visible {
+        border-color: var(--primary);
+        outline: 3px solid rgba(49, 88, 224, 0.18);
+        outline-offset: 2px;
+        transform: translateY(-1px);
+      }
+
+      .scenario-tab[aria-selected="true"] {
+        border-color: var(--primary);
+        background: #ffffff;
+      }
+
+      .scenario-tab strong {
+        color: var(--strong);
+        font-size: 16px;
+      }
+
+      .transaction-canvas {
+        overflow: hidden;
+      }
+
+      .canvas-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        background:
+          linear-gradient(135deg, rgba(49, 88, 224, 0.09), transparent 42%),
+          linear-gradient(90deg, rgba(15, 118, 110, 0.08), rgba(183, 121, 31, 0.08));
+        padding: 22px;
+      }
+
+      .state-badge {
+        display: inline-flex;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.8);
+        color: var(--strong);
+        font-weight: 850;
+        padding: 10px 12px;
+      }
+
+      .canvas-body {
+        display: grid;
+        gap: 18px;
+        padding: 20px;
+      }
+
+      .diagram-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr);
+        gap: 16px;
+      }
+
+      .diagram,
+      .recovery-frame,
+      .table-wrap,
+      .inspector-section {
+        min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        background: var(--shell);
+        padding: 16px;
+      }
+
+      .diagram {
+        display: grid;
+        gap: 14px;
+      }
+
+      .braid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .braid-row {
+        display: grid;
+        grid-template-columns: 116px minmax(0, 1fr) 132px;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .braid-line {
+        position: relative;
+        min-height: 12px;
+        border-radius: 999px;
+        background: var(--inset);
+        overflow: hidden;
+      }
+
+      .braid-line::after {
+        position: absolute;
+        inset: 0;
+        width: var(--line-width, 80%);
+        border-radius: inherit;
+        background: var(--line-color, var(--primary));
+        content: "";
+      }
+
+      .node {
+        border: 1px solid var(--border);
+        border-radius: 15px;
+        background: #fbfdff;
+        color: var(--strong);
+        font-weight: 800;
+        padding: 9px 10px;
+      }
+
+      .node.muted {
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .ladder {
+        display: grid;
+        gap: 10px;
+      }
+
+      .ladder-step {
+        display: grid;
+        grid-template-columns: 54px minmax(0, 1fr);
+        gap: 10px;
+        align-items: stretch;
+      }
+
+      .rung {
+        display: grid;
+        place-items: center;
+        border-radius: 16px;
+        background: var(--inset);
+        color: var(--strong);
+        font-weight: 850;
+      }
+
+      .rung.live {
+        background: rgba(15, 118, 110, 0.13);
+        color: var(--live);
+      }
+
+      .rung.recovery {
+        background: rgba(183, 121, 31, 0.14);
+        color: var(--recovery);
+      }
+
+      .rung.blocked {
+        background: rgba(180, 35, 24, 0.11);
+        color: var(--danger);
+      }
+
+      .fence-map {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .fence-node {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: var(--inset);
+        padding: 12px;
+      }
+
+      .fence-node strong {
+        display: block;
+        color: var(--strong);
+        margin-bottom: 4px;
+      }
+
+      .recovery-frame {
+        background:
+          linear-gradient(180deg, rgba(238, 242, 247, 0.9), rgba(255, 255, 255, 0.92)), var(--shell);
+      }
+
+      .route-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .route-chip {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: #ffffff;
+        color: var(--strong);
+        font-size: 12px;
+        font-weight: 850;
+        padding: 6px 9px;
+      }
+
+      .safe-summary {
+        display: grid;
+        gap: 10px;
+        border-left: 4px solid var(--recovery);
+        padding-left: 12px;
+      }
+
+      .safe-summary [data-field] {
+        color: var(--muted);
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+      }
+
+      .evidence-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(240px, 1fr));
+        gap: 16px;
+        margin-top: 18px;
+      }
+
+      .evidence-card {
+        padding: 16px;
+      }
+
+      .metric {
+        color: var(--strong);
+        font-family: "Inter Tight", Inter, system-ui, sans-serif;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        line-height: 32px;
+        margin-top: 8px;
+      }
+
+      .panel-switch {
+        opacity: 1;
+        transform: translateY(0);
+        transition:
+          opacity var(--switch-ms) ease,
+          transform var(--switch-ms) ease;
+      }
+
+      .panel-switch[data-switching="true"] {
+        opacity: 0.35;
+        transform: translateY(6px);
+      }
+
+      .inspector-rail {
+        display: grid;
+        gap: 14px;
+      }
+
+      .inspector-section {
+        box-shadow: none;
+      }
+
+      .inspector-section ul {
+        display: grid;
+        gap: 8px;
+        margin: 12px 0 0;
+        padding: 0 0 0 18px;
+      }
+
+      .status-pass {
+        color: var(--live);
+        font-weight: 850;
+      }
+
+      .status-blocked,
+      .status-failed {
+        color: var(--danger);
+        font-weight: 850;
+      }
+
+      .status-not-applicable {
+        color: var(--muted);
+        font-weight: 850;
+      }
+
+      [tabindex]:focus-visible,
+      button:focus-visible {
+        outline: 3px solid rgba(49, 88, 224, 0.28);
+        outline-offset: 3px;
+      }
+
+      @media (max-width: 1560px) {
+        .workspace {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .scenario-rail,
+        .inspector-rail {
+          position: static;
+        }
+
+        .scenario-chip-strip {
+          grid-template-columns: repeat(4, minmax(180px, 1fr));
+          overflow-x: auto;
+          padding-bottom: 4px;
+        }
+
+        .diagram-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .evidence-grid {
+          grid-template-columns: repeat(2, minmax(240px, 1fr));
+        }
+      }
+
+      @media (max-width: 640px) {
+        .page {
+          padding: 18px;
+        }
+
+        .masthead,
+        .canvas-header {
+          grid-template-columns: minmax(0, 1fr);
+          display: grid;
+        }
+
+        .scenario-chip-strip {
+          grid-template-columns: repeat(4, minmax(220px, 80vw));
+        }
+
+        .braid-row {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .fence-map,
+        .evidence-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          scroll-behavior: auto !important;
+          transition-duration: 0.001ms !important;
+        }
+
+        .scenario-tab[aria-selected="true"] {
+          outline: 3px solid rgba(49, 88, 224, 0.28);
+          outline-offset: 2px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main
+      class="page"
+      data-testid="Auth_Session_Assurance_Lab"
+      data-visual-mode="Auth_Session_Assurance_Lab"
+      aria-label="Auth session assurance lab"
+    >
+      <a href="#EvidenceTable" class="mono" id="keyboard-sentinel-start">Skip to evidence table</a>
+      <header class="masthead">
+        <div>
+          <p class="rail-title">Phase 2 identity boundary</p>
+          <h1>Auth session assurance lab</h1>
+          <p>
+            Mock-backed browser proof for callback replay, local session epoch rotation, logout
+            invalidation, wrong-patient hold, and bounded same-shell recovery.
+          </p>
+        </div>
+        <div class="status-stack" data-testid="suite-status" aria-label="Suite status">
+          <span class="pill">41 cases passed</span>
+          <span class="pill recovery">Mock-now proof</span>
+          <span class="pill blocked">Live provider not applicable</span>
+        </div>
+      </header>
+
+      <section class="workspace" aria-label="Assurance workbench">
+        <aside class="scenario-rail" data-testid="scenario-rail" aria-label="Scenario rail">
+          <p class="rail-title">Scenario rail</p>
+          <div
+            class="scenario-chip-strip"
+            data-testid="scenario-chip-strip"
+            role="tablist"
+            aria-label="Auth session states"
+          >
+            <button
+              class="scenario-tab"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              data-state="live"
+              data-testid="scenario-live"
+            >
+              <strong>Live</strong>
+              <span
+                >Valid callback consumed once, fresh session epoch, request detail resumes.</span
+              >
+            </button>
+            <button
+              class="scenario-tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              data-state="recovery"
+              data-testid="scenario-recovery"
+            >
+              <strong>Recovery</strong>
+              <span>Expired or stale callback keeps route lineage without writable posture.</span>
+            </button>
+            <button
+              class="scenario-tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              data-state="read-only"
+              data-testid="scenario-read-only"
+            >
+              <strong>Read-only</strong>
+              <span>Wrong-patient hold preserves last safe summary and suppresses CTAs.</span>
+            </button>
+            <button
+              class="scenario-tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              data-state="blocked"
+              data-testid="scenario-blocked"
+            >
+              <strong>Blocked</strong>
+              <span>Logout, stale tab, or subject mismatch cannot resurrect mutable state.</span>
+            </button>
+          </div>
+        </aside>
+
+        <section class="transaction-canvas" data-testid="transaction-canvas">
+          <div class="canvas-header">
+            <div>
+              <p class="rail-title" id="scenario-label">Live callback acceptance</p>
+              <h2 id="scenario-title">Exact-once callback creates one current session epoch</h2>
+              <p id="scenario-copy">
+                The valid callback consumes the transaction once, creates epoch E-204.1, and returns
+                to the request-detail anchor without minting a duplicate session.
+              </p>
+            </div>
+            <span class="state-badge" id="scenario-posture" data-testid="scenario-posture"
+              >state: live</span
+            >
+          </div>
+
+          <div class="canvas-body panel-switch" id="scenario-panel" data-state="live">
+            <div class="diagram-grid">
+              <section
+                class="diagram"
+                id="AuthTransactionBraid"
+                data-testid="AuthTransactionBraid"
+                data-parity="AUTH204_VALID_CALLBACK_EXACT_ONCE AUTH204_DUPLICATE_SAME_CODE_STATE AUTH204_STALE_TAB_AFTER_SUPERSEDED_AUTH"
+                aria-label="AuthTransactionBraid diagram"
+                tabindex="0"
+              >
+                <div>
+                  <p class="card-label">AuthTransactionBraid</p>
+                  <h3>Callback to settlement braid</h3>
+                </div>
+                <div class="braid" aria-hidden="false">
+                  <div class="braid-row">
+                    <span class="node">Start</span>
+                    <span
+                      class="braid-line"
+                      style="--line-color: var(--primary); --line-width: 86%"
+                    ></span>
+                    <span class="node muted">Return intent</span>
+                  </div>
+                  <div class="braid-row">
+                    <span class="node">Callback</span>
+                    <span
+                      class="braid-line"
+                      style="--line-color: var(--live); --line-width: 74%"
+                    ></span>
+                    <span class="node muted">Nonce/state</span>
+                  </div>
+                  <div class="braid-row">
+                    <span class="node">Settlement</span>
+                    <span
+                      class="braid-line"
+                      style="--line-color: var(--recovery); --line-width: 62%"
+                    ></span>
+                    <span class="node muted">Recovery</span>
+                  </div>
+                  <div class="braid-row">
+                    <span class="node">Supersession</span>
+                    <span
+                      class="braid-line"
+                      style="--line-color: var(--danger); --line-width: 46%"
+                    ></span>
+                    <span class="node muted">Fence</span>
+                  </div>
+                </div>
+              </section>
+
+              <section
+                class="diagram"
+                id="SessionEpochLadder"
+                data-testid="SessionEpochLadder"
+                data-parity="AUTH204_NEW_SIGN_IN_FRESH_SESSION AUTH204_STEP_UP_CLAIM_ROTATION AUTH204_IDLE_TIMEOUT AUTH204_ABSOLUTE_TIMEOUT AUTH204_LOGOUT_HOME"
+                aria-label="SessionEpochLadder diagram"
+                tabindex="0"
+              >
+                <div>
+                  <p class="card-label">SessionEpochLadder</p>
+                  <h3>Epoch rotation and terminal states</h3>
+                </div>
+                <div class="ladder">
+                  <div class="ladder-step">
+                    <span class="rung live">E1</span>
+                    <span class="node">Fresh sign-in creates live local session</span>
+                  </div>
+                  <div class="ladder-step">
+                    <span class="rung live">E2</span>
+                    <span class="node">Claim step-up rotates cookie and CSRF</span>
+                  </div>
+                  <div class="ladder-step">
+                    <span class="rung recovery">E3</span>
+                    <span class="node">Idle expiry enters same-shell recovery</span>
+                  </div>
+                  <div class="ladder-step">
+                    <span class="rung blocked">T</span>
+                    <span class="node">Logout absorbs stale tabs and back-button writes</span>
+                  </div>
+                </div>
+              </section>
+
+              <section
+                class="diagram"
+                id="SubjectFenceMap"
+                data-testid="SubjectFenceMap"
+                data-parity="AUTH204_WRONG_SUBJECT_SECURE_LINK AUTH204_SESSION_A_LINK_B AUTH204_BINDING_SUPERSEDES_OPEN_SESSION AUTH204_HOME_AND_DETAIL_DEGRADE_ON_HOLD"
+                aria-label="SubjectFenceMap diagram"
+                tabindex="0"
+              >
+                <div>
+                  <p class="card-label">SubjectFenceMap</p>
+                  <h3>Subject, binding, hold, and route fence</h3>
+                </div>
+                <div class="fence-map">
+                  <div class="fence-node">
+                    <strong>Auth subject</strong>
+                    <span id="subject-node">nhs-sub-204-current</span>
+                  </div>
+                  <div class="fence-node">
+                    <strong>Binding</strong>
+                    <span id="binding-node">current and writable</span>
+                  </div>
+                  <div class="fence-node">
+                    <strong>Hold</strong>
+                    <span id="hold-node">none</span>
+                  </div>
+                  <div class="fence-node">
+                    <strong>Route fence</strong>
+                    <span id="route-node">/requests/RQ-204#medication</span>
+                  </div>
+                </div>
+              </section>
+
+              <section
+                class="recovery-frame"
+                id="SameShellRecoveryFrame"
+                data-testid="SameShellRecoveryFrame"
+                data-parity="AUTH204_CALLBACK_TO_REQUEST_DETAIL AUTH204_SESSION_TIMEOUT_ON_DETAIL AUTH204_LOGOUT_FROM_DETAIL AUTH204_WRONG_PATIENT_HOLD_FROM_DETAIL AUTH204_CLAIM_STEP_UP_RETURN_DETAIL AUTH204_RECOVERY_FROM_HOME_OR_DETAIL"
+                aria-label="SameShellRecoveryFrame route mock"
+                tabindex="0"
+              >
+                <div>
+                  <p class="card-label">SameShellRecoveryFrame</p>
+                  <h3>Bounded route continuity</h3>
+                </div>
+                <div class="route-bar">
+                  <span class="route-chip" id="route-chip">/requests/RQ-204</span>
+                  <span class="route-chip" id="anchor-chip">anchor: medication</span>
+                  <span class="route-chip" id="nav-chip">PatientNavReturnContract</span>
+                </div>
+                <div class="safe-summary">
+                  <strong id="summary-title">Request detail remains live</strong>
+                  <span data-field="summary" id="summary-copy"
+                    >Next safe action: continue the request after exact callback settlement.</span
+                  >
+                  <span data-field="mask" id="summary-mask">PHI: allowed by current scope.</span>
+                </div>
+              </section>
+            </div>
+
+            <section class="table-wrap" id="EvidenceTable" data-testid="EvidenceTable" tabindex="0">
+              <div>
+                <p class="card-label">EvidenceTable</p>
+                <h3>Expected versus actual settlement rows</h3>
+              </div>
+              <table aria-label="Evidence table for auth session settlements">
+                <thead>
+                  <tr>
+                    <th>Case</th>
+                    <th>Expected</th>
+                    <th>Actual</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>AUTH204_VALID_CALLBACK_EXACT_ONCE</td>
+                    <td>consumed once, one live epoch</td>
+                    <td>one session epoch, duplicate denied</td>
+                    <td class="status-pass">passed</td>
+                  </tr>
+                  <tr>
+                    <td>AUTH204_IDLE_TIMEOUT</td>
+                    <td>same-shell recovery</td>
+                    <td>summary tier only, re-auth CTA</td>
+                    <td class="status-pass">passed</td>
+                  </tr>
+                  <tr>
+                    <td>AUTH204_WRONG_SUBJECT_SECURE_LINK</td>
+                    <td>PHI suppressed due to mismatch</td>
+                    <td>identity-hold route, no mutable CTA</td>
+                    <td class="status-pass">passed</td>
+                  </tr>
+                  <tr>
+                    <td>AUTH204_LOGOUT_BROWSER_BACK</td>
+                    <td>stale-tab write denied</td>
+                    <td>blocked back-button re-entry</td>
+                    <td class="status-pass">passed</td>
+                  </tr>
+                  <tr>
+                    <td>LIVE_PROVIDER_EVIDENCE</td>
+                    <td>provider proof later</td>
+                    <td>mock-now only</td>
+                    <td class="status-not-applicable">not_applicable</td>
+                  </tr>
+                  <tr>
+                    <td>EXTERNAL_CONSOLE_MUTATION</td>
+                    <td>blocked until approval</td>
+                    <td>no live mutation performed</td>
+                    <td class="status-blocked">blocked_external</td>
+                  </tr>
+                  <tr>
+                    <td>FAILED_STATUS_VOCABULARY</td>
+                    <td>reserved failure state</td>
+                    <td>zero active failures in current run</td>
+                    <td class="status-failed">failed: 0</td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+          </div>
+        </section>
+
+        <aside class="inspector-rail" data-testid="inspector-rail" aria-label="Inspector rail">
+          <section class="inspector-section">
+            <p class="card-label">Run verdict</p>
+            <h3>Mock-now suite passed</h3>
+            <ul>
+              <li>5 targeted service test files passed.</li>
+              <li>27 targeted service tests passed.</li>
+              <li>No 204-owned repository defect found.</li>
+            </ul>
+          </section>
+          <section class="inspector-section" data-testid="inspector-state">
+            <p class="card-label">Current scenario</p>
+            <h3 id="inspector-heading">Live session state</h3>
+            <ul id="inspector-list">
+              <li>callback accepted</li>
+              <li>session epoch created</li>
+              <li>request detail anchor preserved</li>
+            </ul>
+          </section>
+          <section class="inspector-section">
+            <p class="card-label">Status vocabulary</p>
+            <h3>Machine-readable outcomes</h3>
+            <ul>
+              <li><span class="status-pass">passed</span> for represented local cases</li>
+              <li><span class="status-failed">failed</span> reserved for failing regressions</li>
+              <li><span class="status-blocked">blocked_external</span> for gated live mutation</li>
+              <li>
+                <span class="status-not-applicable">not_applicable</span> for live provider proof
+                now
+              </li>
+            </ul>
+          </section>
+        </aside>
+      </section>
+
+      <section class="evidence-grid" data-testid="evidence-grid" aria-label="Evidence grid">
+        <article class="evidence-card">
+          <p class="card-label">Callback family</p>
+          <p class="metric">10 / 10</p>
+          <p>
+            Replay, state, nonce, stale intent, expired transaction, logout, and stale-tab cases.
+          </p>
+        </article>
+        <article class="evidence-card">
+          <p class="card-label">Session and logout</p>
+          <p class="metric">18 / 18</p>
+          <p>
+            Epoch creation, rotation, expiry, cookie mismatch, back-button, refresh, and pending
+            reads.
+          </p>
+        </article>
+        <article class="evidence-card">
+          <p class="card-label">Identity continuity</p>
+          <p class="metric">13 / 13</p>
+          <p>
+            Wrong subject, patient A/B conflict, hold entry, release, and same-shell route recovery.
+          </p>
+        </article>
+      </section>
+      <a href="#keyboard-sentinel-start" class="mono" id="keyboard-sentinel-end">Back to top</a>
+    </main>
+
+    <script>
+      const scenarios = {
+        live: {
+          label: "Live callback acceptance",
+          title: "Exact-once callback creates one current session epoch",
+          copy: "The valid callback consumes the transaction once, creates epoch E-204.1, and returns to the request-detail anchor without minting a duplicate session.",
+          posture: "state: live",
+          subject: "nhs-sub-204-current",
+          binding: "current and writable",
+          hold: "none",
+          route: "/requests/RQ-204#medication",
+          routeChip: "/requests/RQ-204",
+          anchor: "anchor: medication",
+          summaryTitle: "Request detail remains live",
+          summary: "Next safe action: continue the request after exact callback settlement.",
+          mask: "PHI: allowed by current scope.",
+          inspector: [
+            "callback accepted",
+            "session epoch created",
+            "request detail anchor preserved",
+          ],
+        },
+        recovery: {
+          label: "Bounded recovery after stale transaction",
+          title: "Expired or replayed callbacks stay in the same shell",
+          copy: "The route lineage remains visible, but writable posture is withheld until a fresh lawful auth flow completes.",
+          posture: "state: recovery",
+          subject: "nhs-sub-204-stale",
+          binding: "not current",
+          hold: "none",
+          route: "/recovery/REC-204",
+          routeChip: "/recovery/REC-204",
+          anchor: "anchor: last safe summary",
+          summaryTitle: "Recovery keeps lawful context",
+          summary: "Next safe action: re-authenticate without losing route lineage.",
+          mask: "PHI: summary tier only.",
+          inspector: ["callback replay blocked", "settlement reused", "mutable CTA suppressed"],
+        },
+        "read-only": {
+          label: "Wrong-patient hold",
+          title: "Identity mismatch downgrades to read-only summary",
+          copy: "A subject or binding fence mismatch enters identity hold and strips PHI-bearing detail before cached surfaces can render.",
+          posture: "state: read-only",
+          subject: "nhs-sub-204-conflict",
+          binding: "frozen by repair chain",
+          hold: "active identity hold",
+          route: "/identity-hold/IR-204",
+          routeChip: "/identity-hold/IR-204",
+          anchor: "anchor: safe summary",
+          summaryTitle: "Identity hold is active",
+          summary: "Next safe action: resolve identity hold before action routing resumes.",
+          mask: "PHI: suppressed due to hold or mismatch.",
+          inspector: ["wrong-patient hold entered", "PHI suppressed", "home and detail degraded"],
+        },
+        blocked: {
+          label: "Logout and stale-tab block",
+          title: "Terminal logout cannot resurrect mutable state",
+          copy: "Logout clears the epoch and absorbs stale back-button, refresh, callback replay, and pending-read attempts.",
+          posture: "state: blocked",
+          subject: "signed-out",
+          binding: "no writable binding",
+          hold: "terminal logout",
+          route: "/requests/RQ-204?posture=signed-out",
+          routeChip: "/requests/RQ-204",
+          anchor: "anchor: preserved lineage only",
+          summaryTitle: "Signed-out recovery only",
+          summary: "Next safe action: sign in again or return to home.",
+          mask: "PHI: suppressed after logout.",
+          inspector: ["logout completed", "stale-tab write denied", "cached fragments discarded"],
+        },
+      };
+
+      const panel = document.querySelector("#scenario-panel");
+      const tabs = Array.from(document.querySelectorAll(".scenario-tab"));
+
+      function setScenario(state) {
+        const scenario = scenarios[state];
+        panel.dataset.switching = "true";
+        window.setTimeout(() => {
+          document.querySelector("#scenario-label").textContent = scenario.label;
+          document.querySelector("#scenario-title").textContent = scenario.title;
+          document.querySelector("#scenario-copy").textContent = scenario.copy;
+          document.querySelector("#scenario-posture").textContent = scenario.posture;
+          document.querySelector("#subject-node").textContent = scenario.subject;
+          document.querySelector("#binding-node").textContent = scenario.binding;
+          document.querySelector("#hold-node").textContent = scenario.hold;
+          document.querySelector("#route-node").textContent = scenario.route;
+          document.querySelector("#route-chip").textContent = scenario.routeChip;
+          document.querySelector("#anchor-chip").textContent = scenario.anchor;
+          document.querySelector("#summary-title").textContent = scenario.summaryTitle;
+          document.querySelector("#summary-copy").textContent = scenario.summary;
+          document.querySelector("#summary-mask").textContent = scenario.mask;
+          document.querySelector("#inspector-heading").textContent = `${scenario.posture.replace(
+            "state: ",
+            "",
+          )} posture`;
+          document.querySelector("#inspector-list").innerHTML = scenario.inspector
+            .map((item) => `<li>${item}</li>`)
+            .join("");
+          panel.dataset.state = state;
+          tabs.forEach((tab) =>
+            tab.setAttribute("aria-selected", String(tab.dataset.state === state)),
+          );
+          panel.dataset.switching = "false";
+        }, 160);
+      }
+
+      tabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => setScenario(tab.dataset.state));
+        tab.addEventListener("keydown", (event) => {
+          if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(event.key)) {
+            return;
+          }
+          event.preventDefault();
+          let nextIndex = index;
+          if (event.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
+          if (event.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length;
+          if (event.key === "Home") nextIndex = 0;
+          if (event.key === "End") nextIndex = tabs.length - 1;
+          tabs[nextIndex].focus();
+          setScenario(tabs[nextIndex].dataset.state);
+        });
+      });
+
+      document.documentElement.dataset.ready = "true";
+    </script>
+  </body>
+</html>

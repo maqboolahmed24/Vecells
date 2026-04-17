@@ -1,0 +1,180 @@
+{
+  "task_id": "par_089",
+  "generated_at": "2026-04-12T19:12:00+00:00",
+  "captured_on": "2026-04-12",
+  "visual_mode": "Secret_And_Key_Rotation_Atlas",
+  "mission": "Publish the KMS and envelope-encryption hierarchy for runtime secrets so session, signing, provider, data-plane, CI, and break-glass materials stay separated by purpose and blast radius.",
+  "source_precedence": [
+    "prompt/089.md",
+    "prompt/shared_operating_contract_086_to_095.md",
+    "data/analysis/runtime_topology_manifest.json",
+    "data/analysis/secret_class_manifest.json",
+    "docs/architecture/84_core_network_and_private_egress_design.md",
+    "docs/architecture/85_domain_transaction_store_and_fhir_storage_design.md",
+    "docs/architecture/86_object_storage_and_retention_design.md",
+    "docs/architecture/87_event_spine_and_queueing_design.md",
+    "blueprint/platform-runtime-and-release-blueprint.md#Security baseline contract",
+    "blueprint/forensic-audit-findings.md#Finding 95",
+    "blueprint/forensic-audit-findings.md#Finding 112",
+    "blueprint/forensic-audit-findings.md#Finding 114"
+  ],
+  "summary": {
+    "environment_count": 5,
+    "root_key_count": 5,
+    "branch_key_count": 6,
+    "wrap_target_count": 22
+  },
+  "environments": [
+    {
+      "environment_ring": "local",
+      "namespace_id": "sec_local_vecells_foundation",
+      "kms_root_key_ref": "KMS_ROOT_LOCAL",
+      "master_key_state_file_ref": "infra/secrets-kms/local/.state/local/master-key.json",
+      "custody_mode": "local_file_emulator"
+    },
+    {
+      "environment_ring": "ci-preview",
+      "namespace_id": "sec_ci_preview_vecells_foundation",
+      "kms_root_key_ref": "KMS_ROOT_CI_PREVIEW",
+      "master_key_state_file_ref": "infra/secrets-kms/local/.state/ci-preview/master-key.json",
+      "custody_mode": "ci_ephemeral_emulator"
+    },
+    {
+      "environment_ring": "integration",
+      "namespace_id": "sec_integration_vecells_foundation",
+      "kms_root_key_ref": "KMS_ROOT_INTEGRATION",
+      "master_key_state_file_ref": "infra/secrets-kms/local/.state/integration/master-key.json",
+      "custody_mode": "managed_store_equivalent_emulator"
+    },
+    {
+      "environment_ring": "preprod",
+      "namespace_id": "sec_preprod_vecells_foundation",
+      "kms_root_key_ref": "KMS_ROOT_PREPROD",
+      "master_key_state_file_ref": "provider_managed_only",
+      "custody_mode": "kms_backed_nonprod_custody"
+    },
+    {
+      "environment_ring": "production",
+      "namespace_id": "sec_production_vecells_foundation",
+      "kms_root_key_ref": "KMS_ROOT_PRODUCTION",
+      "master_key_state_file_ref": "provider_managed_only",
+      "custody_mode": "kms_or_hsm_backed_production_custody"
+    }
+  ],
+  "root_keys": [
+    {
+      "key_ref": "KMS_ROOT_LOCAL",
+      "environment_ring": "local",
+      "trust_zone_ref": "tz_assurance_security",
+      "custody_mode": "local_file_emulator",
+      "source_refs": ["prompt/089.md", "data/analysis/secret_class_manifest.json"]
+    },
+    {
+      "key_ref": "KMS_ROOT_CI_PREVIEW",
+      "environment_ring": "ci-preview",
+      "trust_zone_ref": "tz_assurance_security",
+      "custody_mode": "ci_ephemeral_emulator",
+      "source_refs": ["prompt/089.md", "data/analysis/secret_class_manifest.json"]
+    },
+    {
+      "key_ref": "KMS_ROOT_INTEGRATION",
+      "environment_ring": "integration",
+      "trust_zone_ref": "tz_assurance_security",
+      "custody_mode": "integration_emulator_with_managed_contract",
+      "source_refs": ["prompt/089.md", "data/analysis/secret_class_manifest.json"]
+    },
+    {
+      "key_ref": "KMS_ROOT_PREPROD",
+      "environment_ring": "preprod",
+      "trust_zone_ref": "tz_assurance_security",
+      "custody_mode": "managed_kms_nonprod",
+      "source_refs": ["prompt/089.md", "data/analysis/secret_class_manifest.json"]
+    },
+    {
+      "key_ref": "KMS_ROOT_PRODUCTION",
+      "environment_ring": "production",
+      "trust_zone_ref": "tz_assurance_security",
+      "custody_mode": "managed_kms_or_hsm_production",
+      "source_refs": ["prompt/089.md", "data/analysis/secret_class_manifest.json"]
+    }
+  ],
+  "branch_keys": [
+    {
+      "key_ref": "KMS_SESSION_SEAL",
+      "parent_key_ref": "environment_root_key",
+      "environment_scope": "all",
+      "purpose": "session sealing and CSRF-secret rotation",
+      "custody_mode": "derived_per_environment",
+      "blast_radius_scope": "published_gateway_sessions_only",
+      "rotation_policy": "90_days_or_incident",
+      "wrap_targets": ["AUTH_EDGE_SESSION_SECRET_REF"]
+    },
+    {
+      "key_ref": "KMS_RUNTIME_SIGNING",
+      "parent_key_ref": "environment_root_key",
+      "environment_scope": "all",
+      "purpose": "gateway, command, and notification signing material",
+      "custody_mode": "derived_per_environment",
+      "blast_radius_scope": "runtime_signing_only",
+      "rotation_policy": "90_days_or_incident",
+      "wrap_targets": ["AUTH_EDGE_SIGNING_KEY_REF", "COMMAND_MUTATION_GATE_SECRET_REF", "NOTIFICATION_SIGNING_KEY_REF"]
+    },
+    {
+      "key_ref": "KMS_PROVIDER_CREDENTIAL_WRAP",
+      "parent_key_ref": "environment_root_key",
+      "environment_scope": "all",
+      "purpose": "provider and simulator partner credential wrapping",
+      "custody_mode": "derived_per_environment",
+      "blast_radius_scope": "provider_and_callback_credentials_only",
+      "rotation_policy": "60_days_or_cutover",
+      "wrap_targets": [
+        "NOTIFICATION_PROVIDER_SECRET_REF",
+        "NOTIFICATION_WEBHOOK_SECRET_REF",
+        "SIMULATOR_NHS_LOGIN_CLIENT_SECRET_REF",
+        "SIMULATOR_IM1_PAIRING_SECRET_REF",
+        "SIMULATOR_MESH_MAILBOX_SECRET_REF",
+        "SIMULATOR_TELEPHONY_WEBHOOK_SECRET_REF",
+        "SIMULATOR_NOTIFICATION_WEBHOOK_SECRET_REF"
+      ]
+    },
+    {
+      "key_ref": "KMS_DATA_PLANE_WRAP",
+      "parent_key_ref": "environment_root_key",
+      "environment_scope": "all",
+      "purpose": "data-plane, broker, object, and transport credentials",
+      "custody_mode": "derived_per_environment",
+      "blast_radius_scope": "data_and_runtime_infrastructure_only",
+      "rotation_policy": "60_days_or_drift",
+      "wrap_targets": [
+        "COMMAND_IDEMPOTENCY_STORE_REF",
+        "PROJECTION_CURSOR_STORE_REF",
+        "PROJECTION_DEAD_LETTER_STORE_REF",
+        "DOMAIN_STORE_WRITER_DSN_REF",
+        "FHIR_STORE_WRITER_DSN_REF",
+        "EVENT_SPINE_CLIENT_SECRET_REF",
+        "OBJECT_STORAGE_ACCESS_KEY_REF",
+        "CACHE_TRANSPORT_AUTH_TOKEN_REF"
+      ]
+    },
+    {
+      "key_ref": "KMS_CI_ATTESTATION_WRAP",
+      "parent_key_ref": "environment_root_key",
+      "environment_scope": "ci-preview|integration|preprod|production",
+      "purpose": "CI attestation and preview reset material",
+      "custody_mode": "derived_per_environment",
+      "blast_radius_scope": "ci_and_preview_control_only",
+      "rotation_policy": "45_days_or_pipeline_drift",
+      "wrap_targets": ["RELEASE_PROVENANCE_SIGNING_KEY_REF", "PREVIEW_RESET_TOKEN_REF"]
+    },
+    {
+      "key_ref": "KMS_BREAK_GLASS_WRAP",
+      "parent_key_ref": "environment_root_key",
+      "environment_scope": "all",
+      "purpose": "break-glass audit and incident-control material",
+      "custody_mode": "derived_per_environment",
+      "blast_radius_scope": "break_glass_evidence_only",
+      "rotation_policy": "14_days_or_incident",
+      "wrap_targets": ["BREAK_GLASS_AUDIT_HMAC_REF"]
+    }
+  ]
+}

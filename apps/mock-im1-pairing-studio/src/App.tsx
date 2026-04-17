@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { VecellLogoLockup } from "@vecells/design-system";
 import { im1PairingPack } from "./generated/im1PairingPack";
 
 type Pack = typeof im1PairingPack;
@@ -790,16 +791,7 @@ function App() {
       <header className="readiness-header" data-testid="readiness-header">
         <div className="brand-panel">
           <div className="brand-row">
-            <svg className="wordmark" viewBox="0 0 64 64" aria-hidden="true">
-              <rect width="64" height="64" rx="18" fill="#EEF2F6" />
-              <path d="M18 18h12l8 13 8-13h12L40 46h-8L18 18Z" fill="#2457F5" />
-              <path
-                d="M24 46h16"
-                stroke="#0E9384"
-                strokeWidth="4"
-                strokeLinecap="round"
-              />
-            </svg>
+            <VecellLogoLockup aria-hidden="true" className="wordmark" />
             <div>
               <div className="ribbon-row">
                 <span className="mock-ribbon" data-testid="mock-ribbon">

@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Release Trust Freeze Command Center</title>
+    <style>
+      :root {
+        --canvas: #F7F9FC;
+        --panel: #FFFFFF;
+        --rail: #EEF2F8;
+        --inset: #F4F6FB;
+        --text-strong: #0F172A;
+        --text-default: #1E293B;
+        --text-muted: #667085;
+        --border-subtle: #E2E8F0;
+        --freeze: #3559E6;
+        --trust: #0EA5A4;
+        --verdict: #7C3AED;
+        --caution: #C98900;
+        --blocked: #C24141;
+        --shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text-default);
+        background:
+          radial-gradient(circle at top left, rgba(53, 89, 230, 0.08), transparent 28%),
+          radial-gradient(circle at top right, rgba(14, 165, 164, 0.08), transparent 22%),
+          var(--canvas);
+      }
+
+      body[data-reduced-motion="true"] * { transition: none !important; }
+
+      .shell {
+        max-width: 1520px;
+        margin: 0 auto;
+        padding: 24px;
+        display: grid;
+        gap: 20px;
+      }
+
+      .masthead {
+        min-height: 72px;
+        background: var(--panel);
+        border: 1px solid var(--border-subtle);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+        padding: 18px 24px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .brand-row, .metric-strip, .workspace {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .monogram {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: linear-gradient(145deg, rgba(53, 89, 230, 0.16), rgba(124, 58, 237, 0.16));
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(53, 89, 230, 0.18);
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: 1.15rem;
+        color: var(--text-strong);
+      }
+
+      .brand p {
+        margin: 2px 0 0;
+        color: var(--text-muted);
+        font-size: 0.92rem;
+      }
+
+      .metric-strip { gap: 12px; }
+
+      .metric {
+        min-width: 152px;
+        padding: 12px 14px;
+        border-radius: 18px;
+        background: var(--inset);
+        border: 1px solid var(--border-subtle);
+      }
+
+      .metric span {
+        display: block;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 1.3rem;
+        color: var(--text-strong);
+      }
+
+      .workspace {
+        align-items: stretch;
+      }
+
+      .left-rail, .inspector, .panel {
+        background: var(--panel);
+        border: 1px solid var(--border-subtle);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: 308px minmax(0, 1fr) 410px;
+        gap: 20px;
+      }
+
+      .left-rail {
+        padding: 20px;
+        display: grid;
+        gap: 16px;
+        align-content: start;
+        min-width: 0;
+      }
+
+      .rail-heading h2,
+      .panel h2,
+      .inspector h2 {
+        margin: 0;
+        color: var(--text-strong);
+        font-size: 1rem;
+      }
+
+      .rail-heading p,
+      .panel p,
+      .inspector p {
+        margin: 6px 0 0;
+        color: var(--text-muted);
+        line-height: 1.45;
+      }
+
+      .filters {
+        display: grid;
+        gap: 12px;
+      }
+
+      label {
+        display: grid;
+        gap: 8px;
+        font-size: 0.86rem;
+        color: var(--text-muted);
+      }
+
+      select {
+        height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--border-subtle);
+        background: var(--inset);
+        color: var(--text-strong);
+        padding: 0 14px;
+      }
+
+      .main-column {
+        display: grid;
+        gap: 20px;
+        min-width: 0;
+        position: relative;
+        z-index: 1;
+      }
+
+      .panel {
+        padding: 18px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .verdict-rail {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+      }
+
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 14px;
+        min-height: 240px;
+      }
+
+      .card, .verdict-card {
+        min-height: 172px;
+        border-radius: 20px;
+        border: 1px solid var(--border-subtle);
+        background: linear-gradient(180deg, rgba(244, 246, 251, 0.85), rgba(255,255,255,0.98));
+        padding: 16px;
+        text-align: left;
+        cursor: pointer;
+        transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+      }
+
+      .card:hover, .card:focus-visible, .verdict-card:hover, .verdict-card:focus-visible {
+        transform: translateY(-1px);
+        border-color: rgba(53, 89, 230, 0.35);
+        box-shadow: 0 16px 28px rgba(15, 23, 42, 0.12);
+        outline: none;
+      }
+
+      .card[data-selected="true"],
+      .verdict-card[data-selected="true"] {
+        border-color: rgba(124, 58, 237, 0.36);
+        box-shadow: 0 18px 30px rgba(124, 58, 237, 0.12);
+      }
+
+      .eyebrow {
+        font-size: 0.74rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .state-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: 0.76rem;
+        font-weight: 600;
+        background: rgba(124, 58, 237, 0.08);
+        color: var(--verdict);
+      }
+
+      .state-chip.live { background: rgba(53, 89, 230, 0.1); color: var(--freeze); }
+      .state-chip.diagnostic_only { background: rgba(201, 137, 0, 0.12); color: var(--caution); }
+      .state-chip.recovery_only { background: rgba(14, 165, 164, 0.14); color: var(--trust); }
+      .state-chip.blocked { background: rgba(194, 65, 65, 0.12); color: var(--blocked); }
+
+      .matrix-table, .detail-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.89rem;
+      }
+
+      .matrix-table th,
+      .matrix-table td,
+      .detail-table th,
+      .detail-table td {
+        padding: 11px 10px;
+        border-bottom: 1px solid var(--border-subtle);
+        vertical-align: top;
+      }
+
+      .matrix-table th, .detail-table th {
+        text-align: left;
+        color: var(--text-muted);
+        font-size: 0.76rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .matrix-table tr[data-selected="true"],
+      .detail-table tr[data-selected="true"] {
+        background: rgba(124, 58, 237, 0.05);
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.83rem;
+      }
+
+      .inspector {
+        padding: 20px;
+        display: grid;
+        gap: 14px;
+        align-content: start;
+        min-width: 0;
+        position: relative;
+        z-index: 0;
+      }
+
+      .inspector-block {
+        padding: 14px;
+        background: var(--inset);
+        border: 1px solid var(--border-subtle);
+        border-radius: 18px;
+      }
+
+      .lower-region {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+        gap: 20px;
+      }
+
+      .parity {
+        font-size: 0.84rem;
+        color: var(--text-muted);
+      }
+
+      @media (max-width: 1200px) {
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 800px) {
+        .lower-region {
+          grid-template-columns: 1fr;
+        }
+
+        .shell {
+          padding: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="masthead">
+        <div class="brand-row">
+          <div class="brand">
+            <div class="monogram" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M3 15V3h6.4c2.4 0 4 1.4 4 3.4 0 1.8-1.1 3-2.8 3.3L15 15h-2.8l-4.1-5H5.4v5H3Zm2.4-7h3.5c1.3 0 2.1-.6 2.1-1.6 0-1.1-.8-1.7-2.1-1.7H5.4V8Z" fill="#3559E6"/>
+              </svg>
+            </div>
+            <div>
+              <h1>Vecells Release Trust Command Center</h1>
+              <p>Premium release-control instrument for freeze tuples, slice trust, and one published authority verdict.</p>
+            </div>
+          </div>
+          <div class="parity" data-testid="masthead-parity"></div>
+        </div>
+        <div class="metric-strip" data-testid="masthead-metrics"></div>
+      </header>
+
+      <div class="workspace">
+        <aside class="left-rail" aria-label="Filters and release verdict scopes">
+          <div class="rail-heading">
+            <h2>Filter Rail</h2>
+            <p>Filter by verdict, trust posture, audience surface, and channel family.</p>
+          </div>
+          <div class="filters">
+            <label>
+              Verdict state
+              <select data-testid="verdict-filter" id="verdict-filter"></select>
+            </label>
+            <label>
+              Trust state
+              <select data-testid="trust-filter" id="trust-filter"></select>
+            </label>
+            <label>
+              Audience surface
+              <select data-testid="surface-filter" id="surface-filter"></select>
+            </label>
+            <label>
+              Channel family
+              <select data-testid="channel-filter" id="channel-filter"></select>
+            </label>
+          </div>
+          <div class="inspector-block">
+            <strong class="eyebrow">Visible parity</strong>
+            <p data-testid="filter-parity" class="parity"></p>
+          </div>
+        </aside>
+
+        <main class="main-column">
+          <section class="panel">
+            <div>
+              <h2>Verdict Rail</h2>
+              <p>All live-authority decisions are rendered as published verdict cards. Selection governs the tuple stack, trust matrix, linkage table, and inspector.</p>
+            </div>
+            <div class="parity" data-testid="verdict-rail-parity"></div>
+            <div class="verdict-rail" data-testid="verdict-rail"></div>
+          </section>
+
+          <section class="panel">
+            <div>
+              <h2>Release Tuple Stack</h2>
+              <p>Each tuple card binds the reviewed package, standards watchlist, approval freeze, and final verdict state for one audience surface and route family.</p>
+            </div>
+            <div class="card-grid" data-testid="tuple-stack"></div>
+          </section>
+
+          <section class="panel">
+            <div>
+              <h2>Slice Trust Matrix</h2>
+              <p>Every row is one required assurance slice. Diagnostic and blocked posture stay visible at row level instead of collapsing into one platform boolean.</p>
+            </div>
+            <div class="parity" data-testid="trust-matrix-parity"></div>
+            <table class="matrix-table" data-testid="trust-matrix">
+              <thead>
+                <tr>
+                  <th>Scenario</th>
+                  <th>Slice</th>
+                  <th>Trust</th>
+                  <th>Completeness</th>
+                  <th>Lower bound</th>
+                  <th>Freshness</th>
+                </tr>
+              </thead>
+              <tbody data-testid="trust-matrix-body"></tbody>
+            </table>
+          </section>
+
+          <div class="lower-region">
+            <section class="panel">
+              <div>
+                <h2>Standards and Linkage</h2>
+                <p>The lower table keeps the reviewed package, watchlist state, and freeze state visible beside the verdict so drift stays explicit.</p>
+              </div>
+              <table class="detail-table" data-testid="watchlist-linkage-table">
+                <thead>
+                  <tr>
+                    <th>Scenario</th>
+                    <th>Review package</th>
+                    <th>Watchlist</th>
+                    <th>Freeze</th>
+                    <th>Verdict</th>
+                  </tr>
+                </thead>
+                <tbody data-testid="watchlist-linkage-body"></tbody>
+              </table>
+            </section>
+
+            <section class="panel">
+              <div>
+                <h2>Validator Table</h2>
+                <p>Validator rows show why the scenario stayed live, diagnostic, recovery-only, or blocked.</p>
+              </div>
+              <table class="detail-table" data-testid="validator-table">
+                <thead>
+                  <tr>
+                    <th>Validator</th>
+                    <th>Status</th>
+                    <th>Detail</th>
+                  </tr>
+                </thead>
+                <tbody data-testid="validator-body"></tbody>
+              </table>
+            </section>
+          </div>
+        </main>
+
+        <aside class="inspector" data-testid="inspector" aria-live="polite"></aside>
+      </div>
+    </div>
+
+    <script id="casebook-data" type="application/json">{"task_id": "par_075", "generated_at": "2026-04-12T00:00:00+00:00", "visual_mode": "Release_Trust_Freeze_Command_Center", "summary": {"case_count": 6, "trust_slice_count": 12, "validator_row_count": 12, "live_count": 1, "diagnostic_only_count": 1, "recovery_only_count": 2, "blocked_count": 2}, "cases": [{"scenarioId": "live_exact_parity_trusted_slices", "title": "Exact tuple with trusted slices keeps calm truth and mutation live.", "audienceSurface": "patient-web", "routeFamilyRef": "rf_patient_home", "channelFamily": "browser_web", "summary": "The approved release tuple, watch tuple, browser channel, and both required trust slices stay exact and current.", "sourceRefs": ["prompt/075.md", "prompt/shared_operating_contract_066_to_075.md", "prompt/AGENT.md", "prompt/checklist.md", "blueprint/phase-0-the-foundation-protocol.md#1.24 ReleaseApprovalFreeze", "blueprint/phase-0-the-foundation-protocol.md#1.24A GovernanceReviewPackage", "blueprint/phase-0-the-foundation-protocol.md#1.24B StandardsDependencyWatchlist", "blueprint/phase-0-the-foundation-protocol.md#1.25 ChannelReleaseFreezeRecord", "blueprint/phase-0-the-foundation-protocol.md#1.26 AssuranceSliceTrustRecord", "blueprint/phase-0-the-foundation-protocol.md#1.26A ReleaseTrustFreezeVerdict", "blueprint/platform-runtime-and-release-blueprint.md#AudienceSurfaceRuntimeBinding", "blueprint/platform-frontend-blueprint.md#Action dispatch, acknowledgement, projection follow-through, and route-local settlement", "blueprint/ux-quiet-clarity-redesign.md#Conceptual redesign strategy / C1. Bounded degraded and frozen calm states", "blueprint/forensic-audit-findings.md#Finding 91", "blueprint/forensic-audit-findings.md#Finding 95", "blueprint/forensic-audit-findings.md#Finding 96", "packages/domains/analytics_assurance/src/assurance-slice-trust-backbone.ts", "packages/domains/identity_access/src/release-trust-freeze-backbone.ts", "packages/release-controls/src/index.ts", "services/command-api/src/release-trust-freeze.ts"], "governanceReviewPackage": {"governanceReviewPackageId": "grp::live_exact_parity_trusted_slices", "scopeTupleHash": "scope_hash::live_exact_parity_trusted_slices", "baselineTupleHash": "baseline_hash::live_exact_parity_trusted_slices", "compiledPolicyBundleRef": "compiled_policy::live_exact_parity_trusted_slices", "releaseWatchTupleRef": "watch_tuple::live_exact_parity_trusted_slices", "watchTupleHash": "watch_tuple_hash::live_exact_parity_trusted_slices", "compilationTupleHash": "compilation_hash::live_exact_parity_trusted_slices", "approvalTupleHash": "approval_hash::live_exact_parity_trusted_slices", "standardsWatchlistHash": "watchlist_hash::live_exact_parity_trusted_slices", "settlementLineageRef": "settlement_lineage::live_exact_parity_trusted_slices", "reviewPackageHash": "review_hash::live_exact_parity_trusted_slices", "packageState": "current", "assembledAt": "2026-04-12T22:00:00Z"}, "standardsWatchlist": {"standardsDependencyWatchlistId": "watch::live_exact_parity_trusted_slices", "candidateBundleHash": "candidate_bundle::live_exact_parity_trusted_slices", "liveBundleHash": "live_bundle::live_exact_parity_trusted_slices", "environmentRef": "staging", "tenantScopeRef": "tenant_scope::live_exact_parity_trusted_slices", "scopeTupleHash": "scope_hash::live_exact_parity_trusted_slices", "reviewPackageHash": "review_hash::live_exact_parity_trusted_slices", "blockingFindingRefs": [], "advisoryFindingRefs": [], "compileGateState": "pass", "promotionGateState": "pass", "watchlistState": "current", "watchlistHash": "watchlist_hash::live_exact_parity_trusted_slices", "generatedAt": "2026-04-12T22:01:00Z"}, "releaseApprovalFreeze": {"releaseApprovalFreezeId": "freeze::live_exact_parity_trusted_slices", "releaseCandidateRef": "release_candidate::live_exact_parity_trusted_slices", "governanceReviewPackageRef": "grp::live_exact_parity_trusted_slices", "standardsDependencyWatchlistRef": "watch::live_exact_parity_trusted_slices", "compiledPolicyBundleRef": "compiled_policy::live_exact_parity_trusted_slices", "baselineTupleHash": "baseline_hash::live_exact_parity_trusted_slices", "scopeTupleHash": "scope_hash::live_exact_parity_trusted_slices", "compilationTupleHash": "compilation_hash::live_exact_parity_trusted_slices", "approvalTupleHash": "approval_hash::live_exact_parity_trusted_slices", "reviewPackageHash": "review_hash::live_exact_parity_trusted_slices", "standardsWatchlistHash": "watchlist_hash::live_exact_parity_trusted_slices", "artifactDigestSetHash": "artifact_digest::live_exact_parity_trusted_slices", "surfaceSchemaSetHash": "surface_schema::live_exact_parity_trusted_slices", "bridgeCapabilitySetHash": "bridge_capability::live_exact_parity_trusted_slices", "migrationPlanHash": "migration_plan::live_exact_parity_trusted_slices", "compatibilityEvidenceRef": "compatibility_evidence::live_exact_parity_trusted_slices", "approvedBy": "approver::live_exact_parity_trusted_slices", "approvedAt": "2026-04-12T22:02:00Z", "freezeState": "active"}, "channelFreeze": {"channelFreezeId": "channel::live_exact_parity_trusted_slices", "channelFamily": "browser_web", "manifestVersionRef": "manifest_version::live_exact_parity_trusted_slices", "releaseApprovalFreezeRef": "freeze::live_exact_parity_trusted_slices", "minimumBridgeCapabilitiesRef": "bridge_floor::live_exact_parity_trusted_slices", "channelState": "monitoring", "effectiveAt": "2026-04-12T22:03:00Z", "updatedAt": "2026-04-12T22:04:00Z"}, "assuranceSlices": [{"sliceTrustId": "slice::live_exact_parity_trusted_slices::1", "sliceNamespace": "patient.surface", "producerScopeRef": "producer_patient_surface", "trustState": "trusted", "completenessState": "complete", "trustScore": 0.968, "trustLowerBound": 0.914, "freshnessScore": 0.971, "coverageScore": 1.0, "lineageScore": 1.0, "replayScore": 1.0, "consistencyScore": 0.964, "hardBlockState": false, "blockingProducerRefs": [], "blockingNamespaceRefs": [], "evaluationModelRef": "assurance_slice_trust_model::par_075_v1", "evaluationInputHash": "hash::live_exact_parity_trusted_slices::1", "evidenceRef": "evidence::live_exact_parity_trusted_slices::1", "effectiveAt": "2026-04-12T22:03:00Z", "reviewDueAt": "2026-04-12T23:00:00Z", "updatedAt": "2026-04-12T22:05:00Z", "reasonCode": "healthy"}, {"sliceTrustId": "slice::live_exact_parity_trusted_slices::2", "sliceNamespace": "patient.continuity", "producerScopeRef": "producer_patient_continuity", "trustState": "trusted", "completenessState": "complete", "trustScore": 0.953, "trustLowerBound": 0.891, "freshnessScore": 0.963, "coverageScore": 1.0, "lineageScore": 0.979, "replayScore": 0.984, "consistencyScore": 0.947, "hardBlockState": false, "blockingProducerRefs": [], "blockingNamespaceRefs": [], "evaluationModelRef": "assurance_slice_trust_model::par_075_v1", "evaluationInputHash": "hash::live_exact_parity_trusted_slices::2", "evidenceRef": "evidence::live_exact_parity_trusted_slices::2", "effectiveAt": "2026-04-12T22:03:00Z", "reviewDueAt": "2026-04-12T23:00:00Z", "updatedAt": "2026-04-12T22:05:00Z", "reasonCode": "healthy"}], "verdict": {"releaseTrustFreezeVerdictId": "verdict::live_exact_parity_trusted_slices", "audienceSurface": "patient-web", "routeFamilyRef": "rf_patient_home", "releaseApprovalFreezeRef": "freeze::live_exact_parity_trusted_slices", "releaseWatchTupleRef": "watch_tuple::live_exact_parity_trusted_slices", "releaseWatchTupleState": "active", "waveGuardrailSnapshotRef": "guardrail::live_exact_parity_trusted_slices", "waveGuardrailState": "green", "runtimePublicationBundleRef": "runtime_bundle::live_exact_parity_trusted_slices", "runtimePublicationState": "published", "releasePublicationParityRef": "release_parity::live_exact_parity_trusted_slices", "releasePublicationParityState": "exact", "requiredChannelFreezeRefs": ["channel::live_exact_parity_trusted_slices"], "requiredAssuranceSliceTrustRefs": ["slice::live_exact_parity_trusted_slices::1", "slice::live_exact_parity_trusted_slices::2"], "provenanceConsumptionState": "publishable", "surfaceAuthorityState": "live", "calmTruthState": "allowed", "mutationAuthorityState": "enabled", "governingRecoveryDispositionRef": "recovery_live_patient_home", "blockerRefs": [], "evaluatedAt": "2026-04-12T22:05:00Z"}, "validators": [{"validator_id": "freeze_tuple_integrity", "status": "pass", "detail": "The active release freeze still matches the reviewed package hash and current watchlist hash."}, {"validator_id": "verdict_live_authority", "status": "pass", "detail": "All required slices remain trusted and the browser channel stays in monitoring posture only."}]}, {"scenarioId": "diagnostic_only_degraded_slice", "title": "Partial trust evidence keeps the surface diagnostic only.", "audienceSurface": "ops-console", "routeFamilyRef": "rf_ops_overview", "channelFamily": "embedded_webview", "summary": "One required operational slice remains partial, so the board can explain and observe but not imply calm or arm live controls.", "sourceRefs": ["prompt/075.md", "prompt/shared_operating_contract_066_to_075.md", "prompt/AGENT.md", "prompt/checklist.md", "blueprint/phase-0-the-foundation-protocol.md#1.24 ReleaseApprovalFreeze", "blueprint/phase-0-the-foundation-protocol.md#1.24A GovernanceReviewPackage", "blueprint/phase-0-the-foundation-protocol.md#1.24B StandardsDependencyWatchlist", "blueprint/phase-0-the-foundation-protocol.md#1.25 ChannelReleaseFreezeRecord", "blueprint/phase-0-the-foundation-protocol.md#1.26 AssuranceSliceTrustRecord", "blueprint/phase-0-the-foundation-protocol.md#1.26A ReleaseTrustFreezeVerdict", "blueprint/platform-runtime-and-release-blueprint.md#AudienceSurfaceRuntimeBinding", "blueprint/platform-frontend-blueprint.md#Action dispatch, acknowledgement, projection follow-through, and route-local settlement", "blueprint/ux-quiet-clarity-redesign.md#Conceptual redesign strategy / C1. Bounded degraded and frozen calm states", "blueprint/forensic-audit-findings.md#Finding 91", "blueprint/forensic-audit-findings.md#Finding 95", "blueprint/forensic-audit-findings.md#Finding 96", "packages/domains/analytics_assurance/src/assurance-slice-trust-backbone.ts", "packages/domains/identity_access/src/release-trust-freeze-backbone.ts", "packages/release-controls/src/index.ts", "services/command-api/src/release-trust-freeze.ts"], "governanceReviewPackage": {"governanceReviewPackageId": "grp::diagnostic_only_degraded_slice", "scopeTupleHash": "scope_hash::diagnostic_only_degraded_slice", "baselineTupleHash": "baseline_hash::diagnostic_only_degraded_slice", "compiledPolicyBundleRef": "compiled_policy::diagnostic_only_degraded_slice", "releaseWatchTupleRef": "watch_tuple::diagnostic_only_degraded_slice", "watchTupleHash": "watch_tuple_hash::diagnostic_only_degraded_slice", "compilationTupleHash": "compilation_hash::diagnostic_only_degraded_slice", "approvalTupleHash": "approval_hash::diagnostic_only_degraded_slice", "standardsWatchlistHash": "watchlist_hash::diagnostic_only_degraded_slice", "settlementLineageRef": "settlement_lineage::diagnostic_only_degraded_slice", "reviewPackageHash": "review_hash::diagnostic_only_degraded_slice", "packageState": "current", "assembledAt": "2026-04-12T22:00:00Z"}, "standardsWatchlist": {"standardsDependencyWatchlistId": "watch::diagnostic_only_degraded_slice", "candidateBundleHash": "candidate_bundle::diagnostic_only_degraded_slice", "liveBundleHash": "live_bundle::diagnostic_only_degraded_slice", "environmentRef": "staging", "tenantScopeRef": "tenant_scope::diagnostic_only_degraded_slice", "scopeTupleHash": "scope_hash::diagnostic_only_degraded_slice", "reviewPackageHash": "review_hash::diagnostic_only_degraded_slice", "blockingFindingRefs": [], "advisoryFindingRefs": [], "compileGateState": "pass", "promotionGateState": "pass", "watchlistState": "current", "watchlistHash": "watchlist_hash::diagnostic_only_degraded_slice", "generatedAt": "2026-04-12T22:01:00Z"}, "releaseApprovalFreeze": {"releaseApprovalFreezeId": "freeze::diagnostic_only_degraded_slice", "releaseCandidateRef": "release_candidate::diagnostic_only_degraded_slice", "governanceReviewPackageRef": "grp::diagnostic_only_degraded_slice", "standardsDependencyWatchlistRef": "watch::diagnostic_only_degraded_slice", "compiledPolicyBundleRef": "compiled_policy::diagnostic_only_degraded_slice", "baselineTupleHash": "baseline_hash::diagnostic_only_degraded_slice", "scopeTupleHash": "scope_hash::diagnostic_only_degraded_slice", "compilationTupleHash": "compilation_hash::diagnostic_only_degraded_slice", "approvalTupleHash": "approval_hash::diagnostic_only_degraded_slice", "reviewPackageHash": "review_hash::diagnostic_only_degraded_slice", "standardsWatchlistHash": "watchlist_hash::diagnostic_only_degraded_slice", "artifactDigestSetHash": "artifact_digest::diagnostic_only_degraded_slice", "surfaceSchemaSetHash": "surface_schema::diagnostic_only_degraded_slice", "bridgeCapabilitySetHash": "bridge_capability::diagnostic_only_degraded_slice", "migrationPlanHash": "migration_plan::diagnostic_only_degraded_slice", "compatibilityEvidenceRef": "compatibility_evidence::diagnostic_only_degraded_slice", "approvedBy": "approver::diagnostic_only_degraded_slice", "approvedAt": "2026-04-12T22:02:00Z", "freezeState": "active"}, "channelFreeze": {"channelFreezeId": "channel::diagnostic_only_degraded_slice", "channelFamily": "embedded_webview", "manifestVersionRef": "manifest_version::diagnostic_only_degraded_slice", "releaseApprovalFreezeRef": "freeze::diagnostic_only_degraded_slice", "minimumBridgeCapabilitiesRef": "bridge_floor::diagnostic_only_degraded_slice", "channelState": "monitoring", "effectiveAt": "2026-04-12T22:03:00Z", "updatedAt": "2026-04-12T22:04:00Z"}, "assuranceSlices": [{"sliceTrustId": "slice::diagnostic_only_degraded_slice::1", "sliceNamespace": "ops.surface", "producerScopeRef": "producer_ops_surface", "trustState": "degraded", "completenessState": "partial", "trustScore": 0.821, "trustLowerBound": 0.641, "freshnessScore": 0.952, "coverageScore": 0.958, "lineageScore": 0.938, "replayScore": 0.925, "consistencyScore": 0.811, "hardBlockState": false, "blockingProducerRefs": [], "blockingNamespaceRefs": [], "evaluationModelRef": "assurance_slice_trust_model::par_075_v1", "evaluationInputHash": "hash::diagnostic_only_degraded_slice::1", "evidenceRef": "evidence::diagnostic_only_degraded_slice::1", "effectiveAt": "2026-04-12T22:03:00Z", "reviewDueAt": "2026-04-12T23:00:00Z", "updatedAt": "2026-04-12T22:05:00Z", "reasonCode": "partial_evidence"}, {"sliceTrustId": "slice::diagnostic_only_degraded_slice::2", "sliceNamespace": "ops.continuity", "producerScopeRef": "producer_ops_continuity", "trustState": "trusted", "completenessState": "complete", "trustScore": 0.945, "trustLowerBound": 0.881, "freshnessScore": 0.964, "coverageScore": 1.0, "lineageScore": 0.972, "replayScore": 0.978, "consistencyScore": 0.934, "hardBlockState": false, "blockingProducerRefs": [], "blockingNamespaceRefs": [], "evaluationModelRef": "assurance_slice_trust_model::par_075_v1", "evaluationInputHash": "hash::diagnostic_only_degraded_slice::2", "evidenceRef": "evidence::diagnostic_only_degraded_slice::2", "effectiveAt": "2026-04-12T22:03:00Z", "reviewDueAt": "2026-04-12T23:00:00Z", "updatedAt": "2026-04-12T22:05:00Z", "reasonCode": "healthy"}], "verdict": {"releaseTrustFreezeVerdictId": "verdict::diagnostic_only_degraded_slice", "audienceSurface": "ops-console", "routeFamilyRef": "rf_ops_overview", "releaseApprovalFreezeRef": "freeze::diagnostic_only_degraded_slice", "releaseWatchTupleRef": "watch_tuple::diagnostic_only_degraded_slice", "releaseWatchTupleState": "active", "waveGuardrailSnapshotRef": "guardrail::diagnostic_only_degraded_slice", "waveGuardrailState": "green", "runtimePublicationBundleRef": "runtime_bundle::diagnostic_only_degraded_slice", "runtimePublicationState": "published", "releasePublicationParityRef": "release_parity::diagnostic_only_degraded_slice", "releasePublicationParityState": "exact", "requiredChannelFreezeRefs": ["channel::diagnostic_only_degraded_slice"], "requiredAssuranceSliceTrustRefs": ["slice::diagnostic_only_degraded_slice::1", "slice::diagnostic_only_degraded_slice::2"], "provenanceConsumptionState": "publishable", "surfaceAuthorityState": "diagnostic_only", "calmTruthState": "suppressed", "mutationAuthorityState": "observe_only", "governingRecoveryDispositionRef": "recovery_ops_diagnostic", "blockerRefs": ["BLOCKER_ASSURANCE_DEGRADED_OPS.SURFACE", "BLOCKER_CALM_OR_WRITABLE_POSTURE_SUPPRESSED"], "evaluatedAt": "2026-04-12T22:05:00Z"}, "validators": [{"validator_id": "slice_threshold_guard", "status": "pass", "detail": "The degraded slice stays below the trusted floor while remaining diagnostically visible."}, {"validator_id": "calm_truth_suppression", "status": "pass", "detail": "The verdict suppresses calm language and writable posture outside the live state."}]}, {"scenarioId": "recovery_only_active_channel_freeze", "title": "Rollback-recommended channel freeze forces governed recovery only.", "audienceSurface": "governance-console", "routeFamilyRef": "rf_governance_release", "channelFamily": "browser_web", "summary": "The release tuple is still exact, but the active channel freeze makes governed rollback posture the only legal authority.", "sourceRefs": ["prompt/075.md", "prompt/shared_operating_contract_066_to_075.md", "prompt/AGENT.md", "prompt/checklist.md", "blueprint/phase-0-the-foundation-protocol.md#1.24 ReleaseApprovalFreeze", "blueprint/phase-0-the-foundation-protocol.md#1.24A GovernanceReviewPackage", "blueprint/phase-0-the-foundation-protocol.md#1.24B StandardsDependencyWatchlist", "blueprint/phase-0-the-foundation-protocol.md#1.25 ChannelReleaseFreezeRecord", "blueprint/phase-0-the-foundation-protocol.md#1.26 AssuranceSliceTrustRecord", "blueprint/phase-0-the-foundation-protocol.md#1.26A ReleaseTrustFreezeVerdict", "blueprint/platform-runtime-and-release-blueprint.md#AudienceSurfaceRuntimeBinding", "blueprint/platform-frontend-blueprint.md#Action dispatch, acknowledgement, projection follow-through, and route-local settlement", "blueprint/ux-quiet-clarity-redesign.md#Conceptual redesign strategy / C1. Bounded degraded and frozen calm states", "blueprint/forensic-audit-findings.md#Finding 91", "blueprint/forensic-audit-findings.md#Finding 95", "blueprint/forensic-audit-findings.md#Finding 96", "packages/domains/analytics_assurance/src/assurance-slice-trust-backbone.ts", "packages/domains/identity_access/src/release-trust-freeze-backbone.ts", "packages/release-controls/src/index.ts", "services/command-api/src/release-trust-freeze.ts"], "governanceReviewPackage": {"governanceReviewPackageId": "grp::recovery_only_active_channel_freeze", "scopeTupleHash": "scope_hash::recovery_only_active_channel_freeze", "baselineTupleHash": "baseline_hash::recovery_only_active_channel_freeze", "compiledPolicyBundleRef": "compiled_policy::recovery_only_active_channel_freeze", "releaseWatchTupleRef": "watch_tuple::recovery_only_active_channel_freeze", "watchTupleHash": "watch_tuple_hash::recovery_only_active_channel_freeze", "compilationTupleHash": "compilation_hash::recovery_only_active_channel_freeze", "approvalTupleHash": "approval_hash::recovery_only_active_channel_freeze", "standardsWatchlistHash": "watchlist_hash::recovery_only_active_channel_freeze", "settlementLineageRef": "settlement_lineage::recovery_only_active_channel_freeze", "reviewPackageHash": "review_hash::recovery_only_active_channel_freeze", "packageState": "current", "assembledAt": "2026-04-12T22:00:00Z"}, "standardsWatchlist": {"standardsDependencyWatchlistId": "watch::recovery_only_active_channel_freeze", "candidateBundleHash": "candidate_bundle::recovery_only_active_channel_freeze", "liveBundleHash": "live_bundle::recovery_only_active_channel_freeze", "environmentRef": "staging", "tenantScopeRef": "tenant_scope::recovery_only_active_channel_freeze", "scopeTupleHash": "scope_hash::recovery_only_active_channel_freeze", "reviewPackageHash": "review_hash::recovery_only_active_channel_freeze", "blockingFindingRefs": [], "advisoryFindingRefs": [], "compileGateState": "pass", "promotionGateState": "pass", "watchlistState": "current", "watchlistHash": "watchlist_hash::recovery_only_active_channel_freeze", "generatedAt": "2026-04-12T22:01:00Z"}, "releaseApprovalFreeze": {"releaseApprovalFreezeId": "freeze::recovery_only_active_channel_freeze", "releaseCandidateRef": "release_candidate::recovery_only_active_channel_freeze", "governanceReviewPackageRef": "grp::recovery_only_active_channel_freeze", "standardsDependencyWatchlistRef": "watch::recovery_only_active_channel_freeze", "compiledPolicyBundleRef": "compiled_policy::recovery_only_active_channel_freeze", "baselineTupleHash": "baseline_hash::recovery_only_active_channel_freeze", "scopeTupleHash": "scope_hash::recovery_only_active_channel_freeze", "compilationTupleHash": "compilation_hash::recovery_only_active_channel_freeze", "approvalTupleHash": "approval_hash::recovery_only_active_channel_freeze", "reviewPackageHash": "review_hash::recovery_only_active_channel_freeze", "standardsWatchlistHash": "watchlist_hash::recovery_only_active_channel_freeze", "artifactDigestSetHash": "artifact_digest::recovery_only_active_channel_freeze", "surfaceSchemaSetHash": "surface_schema::recovery_only_active_channel_freeze", "bridgeCapabilitySetHash": "bridge_capability::recovery_only_active_channel_freeze", "migrationPlanHash": "migration_plan::recovery_only_active_channel_freeze", "compatibilityEvidenceRef": "compatibility_evidence::recovery_only_active_channel_freeze", "approvedBy": "approver::recovery_only_active_channel_freeze", "approvedAt": "2026-04-12T22:02:00Z", "freezeState": "active"}, "channelFreeze": {"channelFreezeId": "channel::recovery_only_active_channel_freeze", "channelFamily": "browser_web", "manifestVersionRef": "manifest_version::recovery_only_active_channel_freeze", "releaseApprovalFreezeRef": "freeze::recovery_only_active_channel_freeze", "minimumBridgeCapabilitiesRef": "bridge_floor::recovery_only_active_channel_freeze", "channelState": "rollback_recommended", "effectiveAt": "2026-04-12T22:03:00Z", "updatedAt": "2026-04-12T22:04:00Z"}, "assuranceSlices": [{"sliceTrustId": "slice::recovery_only_active_channel_freeze::1", "sliceNamespace": "governance.surface", "producerScopeRef": "producer_governance_surface", "trustState": "trusted", "completenessState": "complete", "trustScore": 0.959, "trustLowerBound": 0.903, "freshnessScore": 0.968, "coverageScore": 1.0, "lineageScore": 0.987, "replayScore": 0.981, "consistencyScore": 0.943, "hardBlockState": false, "blockingProducerRefs": [], "blockingNamespaceRefs": [], "evaluationModelRef": "assurance_slice_trust_model::par_075_v1", "evaluationInputHash": "hash::recovery_only_active_channel_freeze::1", "evidenceRef": "evidence::recovery_only_active_channel_freeze::1", "effectiveAt": "2026-04-12T22:03:00Z", "reviewDueAt": "2026-04-12T23:00:00Z", "updatedAt": "2026-04-12T22:05:00Z", "reasonCode": "healthy"}, {"sliceTrustId": "slice::recovery_only_active_channel_freeze::2", "sliceNamespace": "governance.continuity", "producerScopeRef": "producer_governance_continuity", "trustState": "trusted", "completenessState": "complete", "trustScore": 0.948, "trustLowerBound": 0.889, "freshnessScore": 0.958, "coverageScore": 1.0, "lineageScore": 0.975, "replayScore": 0.979, "consistencyScore": 0.932, "hardBlockState": false, "blockingProducerRefs": [], "blockingNamespaceRefs": [], "evaluationModelRef": "assurance_slice_trust_model::par_075_v1", "evaluationInputHash": "hash::recovery_only_active_channel_freeze::2", "evidenceRef": "evidence::recovery_only_active_channel_freeze::2", "effectiveAt": "2026-04-12T22:03:00Z", "reviewDueAt": "2026-04-12T23:00:00Z", "updatedAt": "2026-04-12T22:05:00Z", "reasonCode": "healthy"}], "verdict": {"releaseTrustFreezeVerdictId": "verdict::recovery_only_active_channel_freeze", "audienceSurface": "governance-console", "routeFamilyRef": "rf_governance_release", "releaseApprovalFreezeRef": "freeze::recovery_only_active_channel_freeze", "releaseWatchTupleRef": "watch_tuple::recovery_only_active_channel_freeze", "releaseWatchTupleState": "active", "waveGuardrailSnapshotRef": "guardrail::recovery_only_active_channel_freeze", "waveGuardrailState": "green", "runtimePublicationBundleRef": "runtime_bundle::recovery_only_active_channel_freeze", "runtimePublicationState": "published", "releasePublicationParityRef": "release_parity::recovery_only_active_channel_freeze", "releasePublicationParityState": "exact", "requiredChannelFreezeRefs": ["channel::recovery_only_active_channel_freeze"], "requiredAssuranceSliceTrustRefs": ["slice::recovery_only_active_channel_freeze::1", "slice::recovery_only_active_channel_freeze::2"], "provenanceConsumptionState": "publishable", "surfaceAuthorityState": "recovery_only", "calmTruthState": "suppressed", "mutationAuthorityState": "governed_recovery", "governingRecoveryDispositionRef": "recovery_governance_channel_freeze", "blockerRefs": ["BLOCKER_CHANNEL_FREEZE_ROLLBACK_RECOMMENDED", "BLOCKER_CALM_OR_WRITABLE_POSTURE_SUPPRESSED"], "evaluatedAt": "2026-04-12T22:05:00Z"}, "validators": [{"validator_id": "channel_freeze_authority", "status": "pass", "detail": "An active rollback recommendation prevents live mutation despite exact parity and trusted slices."}, {"validator_id": "recovery_route_binding", "status": "pass", "detail": "The verdict preserves one explicit recovery disposition instead of falling back to detached error posture."}]}, {"scenarioId": "blocked_missing_inputs", "title": "Missing watch and publication inputs fail closed to blocked.", "audienceSurface": "support-workspace", "routeFamilyRef": "rf_support_queue", "channelFamily": "governance_console_bridge", "summary": "The simulator withholds the watch tuple and publication parity, and one slice has not completed a policy-legal evaluation pass.", "sourceRefs": ["prompt/075.md", "prompt/shared_operating_contract_066_to_075.md", "prompt/AGENT.md", "prompt/checklist.md", "blueprint/phase-0-the-foundation-protocol.md#1.24 ReleaseApprovalFreeze", "blueprint/phase-0-the-foundation-protocol.md#1.24A GovernanceReviewPackage", "blueprint/phase-0-the-foundation-protocol.md#1.24B StandardsDependencyWatchlist", "blueprint/phase-0-the-foundation-protocol.md#1.25 ChannelReleaseFreezeRecord", "blueprint/phase-0-the-foundation-protocol.md#1.26 AssuranceSliceTrustRecord", "blueprint/phase-0-the-foundation-protocol.md#1.26A ReleaseTrustFreezeVerdict", "blueprint/platform-runtime-and-release-blueprint.md#AudienceSurfaceRuntimeBinding", "blueprint/platform-frontend-blueprint.md#Action dispatch, acknowledgement, projection follow-through, and route-local settlement", "blueprint/ux-quiet-clarity-redesign.md#Conceptual redesign strategy / C1. Bounded degraded and frozen calm states", "blueprint/forensic-audit-findings.md#Finding 91", "blueprint/forensic-audit-findings.md#Finding 95", "blueprint/forensic-audit-findings.md#Finding 96", "packages/domains/analytics_assurance/src/assurance-slice-trust-backbone.ts", "packages/domains/identity_access/src/release-trust-freeze-backbone.ts", "packages/release-controls/src/index.ts", "services/command-api/src/release-trust-freeze.ts"], "governanceReviewPackage": {"governanceReviewPackageId": "grp::blocked_missing_inputs", "scopeTupleHash": "scope_hash::blocked_missing_inputs", "baselineTupleHash": "baseline_hash::blocked_missing_inputs", "compiledPolicyBundleRef": "compiled_policy::blocked_missing_inputs", "releaseWatchTupleRef": "watch_tuple::blocked_missing_inputs", "watchTupleHash": "watch_tuple_hash::blocked_missing_inputs", "compilationTupleHash": "compilation_hash::blocked_missing_inputs", "approvalTupleHash": "approval_hash::blocked_missing_inputs", "standardsWatchlistHash": "watchlist_hash::blocked_missing_inputs", "settlementLineageRef": "settlement_lineage::blocked_missing_inputs", "reviewPackageHash": "review_hash::blocked_missing_inputs", "packageState": "current", "assembledAt": "2026-04-12T22:00:00Z"}, "standardsWatchlist": {"standardsDependencyWatchlistId": "watch::blocked_missing_inputs", "candidateBundleHash": "candidate_bundle::blocked_missing_inputs", "liveBundleHash": "live_bundle::blocked_missing_inputs", "environmentRef": "staging", "tenantScopeRef": "tenant_scope::blocked_missing_inputs", "scopeTupleHash": "scope_hash::blocked_missing_inputs", "reviewPackageHash": "review_hash::blocked_missing_inputs", "blockingFindingRefs": [], "advisoryFindingRefs": [], "compileGateState": "pass", "promotionGateState": "pass", "watchlistState": "current", "watchlistHash": "watchlist_hash::blocked_missing_inputs", "generatedAt": "2026-04-12T22:01:00Z"}, "releaseApprovalFreeze": {"releaseApprovalFreezeId": "freeze::blocked_missing_inputs", "releaseCandidateRef": "release_candidate::blocked_missing_inputs", "governanceReviewPackageRef": "grp::blocked_missing_inputs", "standardsDependencyWatchlistRef": "watch::blocked_missing_inputs", "compiledPolicyBundleRef": "compiled_policy::blocked_missing_inputs", "baselineTupleHash": "baseline_hash::blocked_missing_inputs", "scopeTupleHash": "scope_hash::blocked_missing_inputs", "compilationTupleHash": "compilation_hash::blocked_missing_inputs", "approvalTupleHash": "approval_hash::blocked_missing_inputs", "reviewPackageHash": "review_hash::blocked_missing_inputs", "standardsWatchlistHash": "watchlist_hash::blocked_missing_inputs", "artifactDigestSetHash": "artifact_digest::blocked_missing_inputs", "surfaceSchemaSetHash": "surface_schema::blocked_missing_inputs", "bridgeCapabilitySetHash": "bridge_capability::blocked_missing_inputs", "migrationPlanHash": "migration_plan::blocked_missing_inputs", "compatibilityEvidenceRef": "compatibility_evidence::blocked_missing_inputs", "approvedBy": "approver::blocked_missing_inputs", "approvedAt": "2026-04-12T22:02:00Z", "freezeState": "active"}, "channelFreeze": {"channelFreezeId": "channel::blocked_missing_inputs", "channelFamily": "governance_console_bridge", "manifestVersionRef": "manifest_version::blocked_missing_inputs", "releaseApprovalFreezeRef": "freeze::blocked_missing_inputs", "minimumBridgeCapabilitiesRef": "bridge_floor::blocked_missing_inputs", "channelState": "monitoring", "effectiveAt": "2026-04-12T22:03:00Z", "updatedAt": "2026-04-12T22:04:00Z"}, "assuranceSlices": [{"sliceTrustId": "slice::blocked_missing_inputs::1", "sliceNamespace": "support-workspace.authority", "producerScopeRef": "producer_support_authority", "trustState": "unknown", "completenessState": "blocked", "trustScore": 0.0, "trustLowerBound": 0.0, "freshnessScore": 0.0, "coverageScore": 0.0, "lineageScore": 0.0, "replayScore": 0.0, "consistencyScore": 0.0, "hardBlockState": true, "blockingProducerRefs": [], "blockingNamespaceRefs": [], "evaluationModelRef": "assurance_slice_trust_model::par_075_v1", "evaluationInputHash": "hash::blocked_missing_inputs::1", "evidenceRef": "evidence::blocked_missing_inputs::1", "effectiveAt": "2026-04-12T22:03:00Z", "reviewDueAt": "2026-04-12T23:00:00Z", "updatedAt": "2026-04-12T22:05:00Z", "reasonCode": "missing_inputs"}, {"sliceTrustId": "slice::blocked_missing_inputs::2", "sliceNamespace": "support-workspace.continuity", "producerScopeRef": "producer_support_continuity", "trustState": "trusted", "completenessState": "complete", "trustScore": 0.942, "trustLowerBound": 0.886, "freshnessScore": 0.955, "coverageScore": 1.0, "lineageScore": 0.976, "replayScore": 0.971, "consistencyScore": 0.929, "hardBlockState": false, "blockingProducerRefs": [], "blockingNamespaceRefs": [], "evaluationModelRef": "assurance_slice_trust_model::par_075_v1", "evaluationInputHash": "hash::blocked_missing_inputs::2", "evidenceRef": "evidence::blocked_missing_inputs::2", "effectiveAt": "2026-04-12T22:03:00Z", "reviewDueAt": "2026-04-12T23:00:00Z", "updatedAt": "2026-04-12T22:05:00Z", "reasonCode": "healthy"}], "verdict": {"releaseTrustFreezeVerdictId": "verdict::blocked_missing_inputs", "audienceSurface": "support-workspace", "routeFamilyRef": "rf_support_queue", "releaseApprovalFreezeRef": "freeze::blocked_missing_inputs", "releaseWatchTupleRef": "watch_tuple::blocked_missing_inputs", "releaseWatchTupleState": "missing", "waveGuardrailSnapshotRef": "guardrail::blocked_missing_inputs", "waveGuardrailState": "green", "runtimePublicationBundleRef": "runtime_bundle::blocked_missing_inputs", "runtimePublicationState": "missing", "releasePublicationParityRef": "release_parity::blocked_missing_inputs", "releasePublicationParityState": "missing", "requiredChannelFreezeRefs": ["channel::blocked_missing_inputs"], "requiredAssuranceSliceTrustRefs": ["slice::blocked_missing_inputs::1", "slice::blocked_missing_inputs::2"], "provenanceConsumptionState": "publishable", "surfaceAuthorityState": "blocked", "calmTruthState": "suppressed", "mutationAuthorityState": "blocked", "governingRecoveryDispositionRef": null, "blockerRefs": ["BLOCKER_RELEASE_WATCH_TUPLE_NOT_ACTIVE", "BLOCKER_RUNTIME_PUBLICATION_NOT_PUBLISHED", "BLOCKER_RELEASE_PARITY_NOT_EXACT", "BLOCKER_ASSURANCE_HARD_SUPPORT-WORKSPACE.AUTHORITY"], "evaluatedAt": "2026-04-12T22:05:00Z"}, "validators": [{"validator_id": "missing_input_block", "status": "pass", "detail": "Absent watch-tuple and publication inputs stop verdict generation from degrading into guesswork."}, {"validator_id": "verdict_fail_closed", "status": "pass", "detail": "The blocked verdict suppresses both calm truth and governed recovery because no bounded recovery path is published."}]}, {"scenarioId": "blocked_standards_watchlist_drift", "title": "Standards watchlist drift supersedes an otherwise valid freeze.", "audienceSurface": "clinical-workspace", "routeFamilyRef": "rf_clinical_workspace", "channelFamily": "clinical_workspace_bridge", "summary": "The freeze tuple stays immutable, but the linked standards watchlist has drifted stale and reopens the approval block.", "sourceRefs": ["prompt/075.md", "prompt/shared_operating_contract_066_to_075.md", "prompt/AGENT.md", "prompt/checklist.md", "blueprint/phase-0-the-foundation-protocol.md#1.24 ReleaseApprovalFreeze", "blueprint/phase-0-the-foundation-protocol.md#1.24A GovernanceReviewPackage", "blueprint/phase-0-the-foundation-protocol.md#1.24B StandardsDependencyWatchlist", "blueprint/phase-0-the-foundation-protocol.md#1.25 ChannelReleaseFreezeRecord", "blueprint/phase-0-the-foundation-protocol.md#1.26 AssuranceSliceTrustRecord", "blueprint/phase-0-the-foundation-protocol.md#1.26A ReleaseTrustFreezeVerdict", "blueprint/platform-runtime-and-release-blueprint.md#AudienceSurfaceRuntimeBinding", "blueprint/platform-frontend-blueprint.md#Action dispatch, acknowledgement, projection follow-through, and route-local settlement", "blueprint/ux-quiet-clarity-redesign.md#Conceptual redesign strategy / C1. Bounded degraded and frozen calm states", "blueprint/forensic-audit-findings.md#Finding 91", "blueprint/forensic-audit-findings.md#Finding 95", "blueprint/forensic-audit-findings.md#Finding 96", "packages/domains/analytics_assurance/src/assurance-slice-trust-backbone.ts", "packages/domains/identity_access/src/release-trust-freeze-backbone.ts", "packages/release-controls/src/index.ts", "services/command-api/src/release-trust-freeze.ts"], "governanceReviewPackage": {"governanceReviewPackageId": "grp::blocked_standards_watchlist_drift", "scopeTupleHash": "scope_hash::blocked_standards_watchlist_drift", "baselineTupleHash": "baseline_hash::blocked_standards_watchlist_drift", "compiledPolicyBundleRef": "compiled_policy::blocked_standards_watchlist_drift", "releaseWatchTupleRef": "watch_tuple::blocked_standards_watchlist_drift", "watchTupleHash": "watch_tuple_hash::blocked_standards_watchlist_drift", "compilationTupleHash": "compilation_hash::blocked_standards_watchlist_drift", "approvalTupleHash": "approval_hash::blocked_standards_watchlist_drift", "standardsWatchlistHash": "watchlist_hash::blocked_standards_watchlist_drift", "settlementLineageRef": "settlement_lineage::blocked_standards_watchlist_drift", "reviewPackageHash": "review_hash::blocked_standards_watchlist_drift", "packageState": "current", "assembledAt": "2026-04-12T22:00:00Z"}, "standardsWatchlist": {"standardsDependencyWatchlistId": "watch::blocked_standards_watchlist_drift", "candidateBundleHash": "candidate_bundle::blocked_standards_watchlist_drift", "liveBundleHash": "live_bundle::blocked_standards_watchlist_drift", "environmentRef": "staging", "tenantScopeRef": "tenant_scope::blocked_standards_watchlist_drift", "scopeTupleHash": "scope_hash::blocked_standards_watchlist_drift", "reviewPackageHash": "review_hash::blocked_standards_watchlist_drift", "blockingFindingRefs": [], "advisoryFindingRefs": [], "compileGateState": "pass", "promotionGateState": "review_required", "watchlistState": "stale", "watchlistHash": "watchlist_hash::blocked_standards_watchlist_drift", "generatedAt": "2026-04-12T22:01:00Z"}, "releaseApprovalFreeze": {"releaseApprovalFreezeId": "freeze::blocked_standards_watchlist_drift", "releaseCandidateRef": "release_candidate::blocked_standards_watchlist_drift", "governanceReviewPackageRef": "grp::blocked_standards_watchlist_drift", "standardsDependencyWatchlistRef": "watch::blocked_standards_watchlist_drift", "compiledPolicyBundleRef": "compiled_policy::blocked_standards_watchlist_drift", "baselineTupleHash": "baseline_hash::blocked_standards_watchlist_drift", "scopeTupleHash": "scope_hash::blocked_standards_watchlist_drift", "compilationTupleHash": "compilation_hash::blocked_standards_watchlist_drift", "approvalTupleHash": "approval_hash::blocked_standards_watchlist_drift", "reviewPackageHash": "review_hash::blocked_standards_watchlist_drift", "standardsWatchlistHash": "watchlist_hash::blocked_standards_watchlist_drift", "artifactDigestSetHash": "artifact_digest::blocked_standards_watchlist_drift", "surfaceSchemaSetHash": "surface_schema::blocked_standards_watchlist_drift", "bridgeCapabilitySetHash": "bridge_capability::blocked_standards_watchlist_drift", "migrationPlanHash": "migration_plan::blocked_standards_watchlist_drift", "compatibilityEvidenceRef": "compatibility_evidence::blocked_standards_watchlist_drift", "approvedBy": "approver::blocked_standards_watchlist_drift", "approvedAt": "2026-04-12T22:02:00Z", "freezeState": "active"}, "channelFreeze": {"channelFreezeId": "channel::blocked_standards_watchlist_drift", "channelFamily": "clinical_workspace_bridge", "manifestVersionRef": "manifest_version::blocked_standards_watchlist_drift", "releaseApprovalFreezeRef": "freeze::blocked_standards_watchlist_drift", "minimumBridgeCapabilitiesRef": "bridge_floor::blocked_standards_watchlist_drift", "channelState": "monitoring", "effectiveAt": "2026-04-12T22:03:00Z", "updatedAt": "2026-04-12T22:04:00Z"}, "assuranceSlices": [{"sliceTrustId": "slice::blocked_standards_watchlist_drift::1", "sliceNamespace": "clinical.surface", "producerScopeRef": "producer_clinical_surface", "trustState": "trusted", "completenessState": "complete", "trustScore": 0.958, "trustLowerBound": 0.905, "freshnessScore": 0.966, "coverageScore": 1.0, "lineageScore": 0.984, "replayScore": 0.98, "consistencyScore": 0.944, "hardBlockState": false, "blockingProducerRefs": [], "blockingNamespaceRefs": [], "evaluationModelRef": "assurance_slice_trust_model::par_075_v1", "evaluationInputHash": "hash::blocked_standards_watchlist_drift::1", "evidenceRef": "evidence::blocked_standards_watchlist_drift::1", "effectiveAt": "2026-04-12T22:03:00Z", "reviewDueAt": "2026-04-12T23:00:00Z", "updatedAt": "2026-04-12T22:05:00Z", "reasonCode": "healthy"}, {"sliceTrustId": "slice::blocked_standards_watchlist_drift::2", "sliceNamespace": "clinical.continuity", "producerScopeRef": "producer_clinical_continuity", "trustState": "trusted", "completenessState": "complete", "trustScore": 0.949, "trustLowerBound": 0.887, "freshnessScore": 0.959, "coverageScore": 1.0, "lineageScore": 0.977, "replayScore": 0.973, "consistencyScore": 0.935, "hardBlockState": false, "blockingProducerRefs": [], "blockingNamespaceRefs": [], "evaluationModelRef": "assurance_slice_trust_model::par_075_v1", "evaluationInputHash": "hash::blocked_standards_watchlist_drift::2", "evidenceRef": "evidence::blocked_standards_watchlist_drift::2", "effectiveAt": "2026-04-12T22:03:00Z", "reviewDueAt": "2026-04-12T23:00:00Z", "updatedAt": "2026-04-12T22:05:00Z", "reasonCode": "healthy"}], "verdict": {"releaseTrustFreezeVerdictId": "verdict::blocked_standards_watchlist_drift", "audienceSurface": "clinical-workspace", "routeFamilyRef": "rf_clinical_workspace", "releaseApprovalFreezeRef": "freeze::blocked_standards_watchlist_drift", "releaseWatchTupleRef": "watch_tuple::blocked_standards_watchlist_drift", "releaseWatchTupleState": "active", "waveGuardrailSnapshotRef": "guardrail::blocked_standards_watchlist_drift", "waveGuardrailState": "green", "runtimePublicationBundleRef": "runtime_bundle::blocked_standards_watchlist_drift", "runtimePublicationState": "published", "releasePublicationParityRef": "release_parity::blocked_standards_watchlist_drift", "releasePublicationParityState": "exact", "requiredChannelFreezeRefs": ["channel::blocked_standards_watchlist_drift"], "requiredAssuranceSliceTrustRefs": ["slice::blocked_standards_watchlist_drift::1", "slice::blocked_standards_watchlist_drift::2"], "provenanceConsumptionState": "publishable", "surfaceAuthorityState": "blocked", "calmTruthState": "suppressed", "mutationAuthorityState": "blocked", "governingRecoveryDispositionRef": null, "blockerRefs": ["DRIFT_STANDARDS_WATCHLIST_NOT_CURRENT", "DRIFT_STANDARDS_PROMOTION_GATE"], "evaluatedAt": "2026-04-12T22:05:00Z"}, "validators": [{"validator_id": "watchlist_drift_guard", "status": "pass", "detail": "The stale watchlist supersedes the freeze even though publication and trust rows still look green in isolation."}, {"validator_id": "fragment_authority_forbidden", "status": "pass", "detail": "The simulator refuses to reconstruct live writability from fragments once the verdict exists."}]}, {"scenarioId": "recovery_only_parity_or_provenance_drift", "title": "Parity or provenance drift suppresses calm truth and writable posture.", "audienceSurface": "patient-web", "routeFamilyRef": "rf_patient_messages", "channelFamily": "embedded_webview", "summary": "The frozen tuple is still present, but parity drift and blocked provenance force a governed recovery path instead of calm success or write access.", "sourceRefs": ["prompt/075.md", "prompt/shared_operating_contract_066_to_075.md", "prompt/AGENT.md", "prompt/checklist.md", "blueprint/phase-0-the-foundation-protocol.md#1.24 ReleaseApprovalFreeze", "blueprint/phase-0-the-foundation-protocol.md#1.24A GovernanceReviewPackage", "blueprint/phase-0-the-foundation-protocol.md#1.24B StandardsDependencyWatchlist", "blueprint/phase-0-the-foundation-protocol.md#1.25 ChannelReleaseFreezeRecord", "blueprint/phase-0-the-foundation-protocol.md#1.26 AssuranceSliceTrustRecord", "blueprint/phase-0-the-foundation-protocol.md#1.26A ReleaseTrustFreezeVerdict", "blueprint/platform-runtime-and-release-blueprint.md#AudienceSurfaceRuntimeBinding", "blueprint/platform-frontend-blueprint.md#Action dispatch, acknowledgement, projection follow-through, and route-local settlement", "blueprint/ux-quiet-clarity-redesign.md#Conceptual redesign strategy / C1. Bounded degraded and frozen calm states", "blueprint/forensic-audit-findings.md#Finding 91", "blueprint/forensic-audit-findings.md#Finding 95", "blueprint/forensic-audit-findings.md#Finding 96", "packages/domains/analytics_assurance/src/assurance-slice-trust-backbone.ts", "packages/domains/identity_access/src/release-trust-freeze-backbone.ts", "packages/release-controls/src/index.ts", "services/command-api/src/release-trust-freeze.ts"], "governanceReviewPackage": {"governanceReviewPackageId": "grp::recovery_only_parity_or_provenance_drift", "scopeTupleHash": "scope_hash::recovery_only_parity_or_provenance_drift", "baselineTupleHash": "baseline_hash::recovery_only_parity_or_provenance_drift", "compiledPolicyBundleRef": "compiled_policy::recovery_only_parity_or_provenance_drift", "releaseWatchTupleRef": "watch_tuple::recovery_only_parity_or_provenance_drift", "watchTupleHash": "watch_tuple_hash::recovery_only_parity_or_provenance_drift", "compilationTupleHash": "compilation_hash::recovery_only_parity_or_provenance_drift", "approvalTupleHash": "approval_hash::recovery_only_parity_or_provenance_drift", "standardsWatchlistHash": "watchlist_hash::recovery_only_parity_or_provenance_drift", "settlementLineageRef": "settlement_lineage::recovery_only_parity_or_provenance_drift", "reviewPackageHash": "review_hash::recovery_only_parity_or_provenance_drift", "packageState": "current", "assembledAt": "2026-04-12T22:00:00Z"}, "standardsWatchlist": {"standardsDependencyWatchlistId": "watch::recovery_only_parity_or_provenance_drift", "candidateBundleHash": "candidate_bundle::recovery_only_parity_or_provenance_drift", "liveBundleHash": "live_bundle::recovery_only_parity_or_provenance_drift", "environmentRef": "staging", "tenantScopeRef": "tenant_scope::recovery_only_parity_or_provenance_drift", "scopeTupleHash": "scope_hash::recovery_only_parity_or_provenance_drift", "reviewPackageHash": "review_hash::recovery_only_parity_or_provenance_drift", "blockingFindingRefs": [], "advisoryFindingRefs": [], "compileGateState": "pass", "promotionGateState": "pass", "watchlistState": "current", "watchlistHash": "watchlist_hash::recovery_only_parity_or_provenance_drift", "generatedAt": "2026-04-12T22:01:00Z"}, "releaseApprovalFreeze": {"releaseApprovalFreezeId": "freeze::recovery_only_parity_or_provenance_drift", "releaseCandidateRef": "release_candidate::recovery_only_parity_or_provenance_drift", "governanceReviewPackageRef": "grp::recovery_only_parity_or_provenance_drift", "standardsDependencyWatchlistRef": "watch::recovery_only_parity_or_provenance_drift", "compiledPolicyBundleRef": "compiled_policy::recovery_only_parity_or_provenance_drift", "baselineTupleHash": "baseline_hash::recovery_only_parity_or_provenance_drift", "scopeTupleHash": "scope_hash::recovery_only_parity_or_provenance_drift", "compilationTupleHash": "compilation_hash::recovery_only_parity_or_provenance_drift", "approvalTupleHash": "approval_hash::recovery_only_parity_or_provenance_drift", "reviewPackageHash": "review_hash::recovery_only_parity_or_provenance_drift", "standardsWatchlistHash": "watchlist_hash::recovery_only_parity_or_provenance_drift", "artifactDigestSetHash": "artifact_digest::recovery_only_parity_or_provenance_drift", "surfaceSchemaSetHash": "surface_schema::recovery_only_parity_or_provenance_drift", "bridgeCapabilitySetHash": "bridge_capability::recovery_only_parity_or_provenance_drift", "migrationPlanHash": "migration_plan::recovery_only_parity_or_provenance_drift", "compatibilityEvidenceRef": "compatibility_evidence::recovery_only_parity_or_provenance_drift", "approvedBy": "approver::recovery_only_parity_or_provenance_drift", "approvedAt": "2026-04-12T22:02:00Z", "freezeState": "active"}, "channelFreeze": {"channelFreezeId": "channel::recovery_only_parity_or_provenance_drift", "channelFamily": "embedded_webview", "manifestVersionRef": "manifest_version::recovery_only_parity_or_provenance_drift", "releaseApprovalFreezeRef": "freeze::recovery_only_parity_or_provenance_drift", "minimumBridgeCapabilitiesRef": "bridge_floor::recovery_only_parity_or_provenance_drift", "channelState": "monitoring", "effectiveAt": "2026-04-12T22:03:00Z", "updatedAt": "2026-04-12T22:04:00Z"}, "assuranceSlices": [{"sliceTrustId": "slice::recovery_only_parity_or_provenance_drift::1", "sliceNamespace": "patient.messages", "producerScopeRef": "producer_patient_messages", "trustState": "trusted", "completenessState": "complete", "trustScore": 0.956, "trustLowerBound": 0.901, "freshnessScore": 0.965, "coverageScore": 1.0, "lineageScore": 0.983, "replayScore": 0.979, "consistencyScore": 0.941, "hardBlockState": false, "blockingProducerRefs": [], "blockingNamespaceRefs": [], "evaluationModelRef": "assurance_slice_trust_model::par_075_v1", "evaluationInputHash": "hash::recovery_only_parity_or_provenance_drift::1", "evidenceRef": "evidence::recovery_only_parity_or_provenance_drift::1", "effectiveAt": "2026-04-12T22:03:00Z", "reviewDueAt": "2026-04-12T23:00:00Z", "updatedAt": "2026-04-12T22:05:00Z", "reasonCode": "healthy"}, {"sliceTrustId": "slice::recovery_only_parity_or_provenance_drift::2", "sliceNamespace": "patient.messages.continuity", "producerScopeRef": "producer_patient_messages_continuity", "trustState": "trusted", "completenessState": "complete", "trustScore": 0.947, "trustLowerBound": 0.885, "freshnessScore": 0.957, "coverageScore": 1.0, "lineageScore": 0.975, "replayScore": 0.971, "consistencyScore": 0.934, "hardBlockState": false, "blockingProducerRefs": [], "blockingNamespaceRefs": [], "evaluationModelRef": "assurance_slice_trust_model::par_075_v1", "evaluationInputHash": "hash::recovery_only_parity_or_provenance_drift::2", "evidenceRef": "evidence::recovery_only_parity_or_provenance_drift::2", "effectiveAt": "2026-04-12T22:03:00Z", "reviewDueAt": "2026-04-12T23:00:00Z", "updatedAt": "2026-04-12T22:05:00Z", "reasonCode": "healthy"}], "verdict": {"releaseTrustFreezeVerdictId": "verdict::recovery_only_parity_or_provenance_drift", "audienceSurface": "patient-web", "routeFamilyRef": "rf_patient_messages", "releaseApprovalFreezeRef": "freeze::recovery_only_parity_or_provenance_drift", "releaseWatchTupleRef": "watch_tuple::recovery_only_parity_or_provenance_drift", "releaseWatchTupleState": "active", "waveGuardrailSnapshotRef": "guardrail::recovery_only_parity_or_provenance_drift", "waveGuardrailState": "green", "runtimePublicationBundleRef": "runtime_bundle::recovery_only_parity_or_provenance_drift", "runtimePublicationState": "published", "releasePublicationParityRef": "release_parity::recovery_only_parity_or_provenance_drift", "releasePublicationParityState": "drifted", "requiredChannelFreezeRefs": ["channel::recovery_only_parity_or_provenance_drift"], "requiredAssuranceSliceTrustRefs": ["slice::recovery_only_parity_or_provenance_drift::1", "slice::recovery_only_parity_or_provenance_drift::2"], "provenanceConsumptionState": "blocked", "surfaceAuthorityState": "recovery_only", "calmTruthState": "suppressed", "mutationAuthorityState": "governed_recovery", "governingRecoveryDispositionRef": "recovery_patient_messages", "blockerRefs": ["BLOCKER_RELEASE_PARITY_NOT_EXACT", "BLOCKER_PROVENANCE_NOT_PUBLISHABLE", "BLOCKER_CALM_OR_WRITABLE_POSTURE_SUPPRESSED"], "evaluatedAt": "2026-04-12T22:05:00Z"}, "validators": [{"validator_id": "parity_drift_suppression", "status": "pass", "detail": "Publication or provenance drift suppresses calm truth even when the required slices remain trusted."}, {"validator_id": "governed_recovery_binding", "status": "pass", "detail": "The verdict keeps one governed recovery route visible instead of silently blocking the same shell."}]}]}</script>
+    <script id="matrix-data" type="application/json">[{"scenario_id": "live_exact_parity_trusted_slices", "audience_surface": "patient-web", "route_family_ref": "rf_patient_home", "channel_family": "browser_web", "channel_state": "monitoring", "slice_trust_id": "slice::live_exact_parity_trusted_slices::1", "slice_namespace": "patient.surface", "producer_scope_ref": "producer_patient_surface", "trust_state": "trusted", "completeness_state": "complete", "trust_score": "0.968", "trust_lower_bound": "0.914", "freshness_score": "0.971", "coverage_score": "1.000", "lineage_score": "1.000", "replay_score": "1.000", "consistency_score": "0.964", "hard_block_state": "false", "surface_authority_state": "live", "calm_truth_state": "allowed", "mutation_authority_state": "enabled", "evaluation_model_ref": "assurance_slice_trust_model::par_075_v1", "evaluation_input_hash": "hash::live_exact_parity_trusted_slices::1", "effective_at": "2026-04-12T22:03:00Z", "review_due_at": "2026-04-12T23:00:00Z", "updated_at": "2026-04-12T22:05:00Z"}, {"scenario_id": "live_exact_parity_trusted_slices", "audience_surface": "patient-web", "route_family_ref": "rf_patient_home", "channel_family": "browser_web", "channel_state": "monitoring", "slice_trust_id": "slice::live_exact_parity_trusted_slices::2", "slice_namespace": "patient.continuity", "producer_scope_ref": "producer_patient_continuity", "trust_state": "trusted", "completeness_state": "complete", "trust_score": "0.953", "trust_lower_bound": "0.891", "freshness_score": "0.963", "coverage_score": "1.000", "lineage_score": "0.979", "replay_score": "0.984", "consistency_score": "0.947", "hard_block_state": "false", "surface_authority_state": "live", "calm_truth_state": "allowed", "mutation_authority_state": "enabled", "evaluation_model_ref": "assurance_slice_trust_model::par_075_v1", "evaluation_input_hash": "hash::live_exact_parity_trusted_slices::2", "effective_at": "2026-04-12T22:03:00Z", "review_due_at": "2026-04-12T23:00:00Z", "updated_at": "2026-04-12T22:05:00Z"}, {"scenario_id": "diagnostic_only_degraded_slice", "audience_surface": "ops-console", "route_family_ref": "rf_ops_overview", "channel_family": "embedded_webview", "channel_state": "monitoring", "slice_trust_id": "slice::diagnostic_only_degraded_slice::1", "slice_namespace": "ops.surface", "producer_scope_ref": "producer_ops_surface", "trust_state": "degraded", "completeness_state": "partial", "trust_score": "0.821", "trust_lower_bound": "0.641", "freshness_score": "0.952", "coverage_score": "0.958", "lineage_score": "0.938", "replay_score": "0.925", "consistency_score": "0.811", "hard_block_state": "false", "surface_authority_state": "diagnostic_only", "calm_truth_state": "suppressed", "mutation_authority_state": "observe_only", "evaluation_model_ref": "assurance_slice_trust_model::par_075_v1", "evaluation_input_hash": "hash::diagnostic_only_degraded_slice::1", "effective_at": "2026-04-12T22:03:00Z", "review_due_at": "2026-04-12T23:00:00Z", "updated_at": "2026-04-12T22:05:00Z"}, {"scenario_id": "diagnostic_only_degraded_slice", "audience_surface": "ops-console", "route_family_ref": "rf_ops_overview", "channel_family": "embedded_webview", "channel_state": "monitoring", "slice_trust_id": "slice::diagnostic_only_degraded_slice::2", "slice_namespace": "ops.continuity", "producer_scope_ref": "producer_ops_continuity", "trust_state": "trusted", "completeness_state": "complete", "trust_score": "0.945", "trust_lower_bound": "0.881", "freshness_score": "0.964", "coverage_score": "1.000", "lineage_score": "0.972", "replay_score": "0.978", "consistency_score": "0.934", "hard_block_state": "false", "surface_authority_state": "diagnostic_only", "calm_truth_state": "suppressed", "mutation_authority_state": "observe_only", "evaluation_model_ref": "assurance_slice_trust_model::par_075_v1", "evaluation_input_hash": "hash::diagnostic_only_degraded_slice::2", "effective_at": "2026-04-12T22:03:00Z", "review_due_at": "2026-04-12T23:00:00Z", "updated_at": "2026-04-12T22:05:00Z"}, {"scenario_id": "recovery_only_active_channel_freeze", "audience_surface": "governance-console", "route_family_ref": "rf_governance_release", "channel_family": "browser_web", "channel_state": "rollback_recommended", "slice_trust_id": "slice::recovery_only_active_channel_freeze::1", "slice_namespace": "governance.surface", "producer_scope_ref": "producer_governance_surface", "trust_state": "trusted", "completeness_state": "complete", "trust_score": "0.959", "trust_lower_bound": "0.903", "freshness_score": "0.968", "coverage_score": "1.000", "lineage_score": "0.987", "replay_score": "0.981", "consistency_score": "0.943", "hard_block_state": "false", "surface_authority_state": "recovery_only", "calm_truth_state": "suppressed", "mutation_authority_state": "governed_recovery", "evaluation_model_ref": "assurance_slice_trust_model::par_075_v1", "evaluation_input_hash": "hash::recovery_only_active_channel_freeze::1", "effective_at": "2026-04-12T22:03:00Z", "review_due_at": "2026-04-12T23:00:00Z", "updated_at": "2026-04-12T22:05:00Z"}, {"scenario_id": "recovery_only_active_channel_freeze", "audience_surface": "governance-console", "route_family_ref": "rf_governance_release", "channel_family": "browser_web", "channel_state": "rollback_recommended", "slice_trust_id": "slice::recovery_only_active_channel_freeze::2", "slice_namespace": "governance.continuity", "producer_scope_ref": "producer_governance_continuity", "trust_state": "trusted", "completeness_state": "complete", "trust_score": "0.948", "trust_lower_bound": "0.889", "freshness_score": "0.958", "coverage_score": "1.000", "lineage_score": "0.975", "replay_score": "0.979", "consistency_score": "0.932", "hard_block_state": "false", "surface_authority_state": "recovery_only", "calm_truth_state": "suppressed", "mutation_authority_state": "governed_recovery", "evaluation_model_ref": "assurance_slice_trust_model::par_075_v1", "evaluation_input_hash": "hash::recovery_only_active_channel_freeze::2", "effective_at": "2026-04-12T22:03:00Z", "review_due_at": "2026-04-12T23:00:00Z", "updated_at": "2026-04-12T22:05:00Z"}, {"scenario_id": "blocked_missing_inputs", "audience_surface": "support-workspace", "route_family_ref": "rf_support_queue", "channel_family": "governance_console_bridge", "channel_state": "monitoring", "slice_trust_id": "slice::blocked_missing_inputs::1", "slice_namespace": "support-workspace.authority", "producer_scope_ref": "producer_support_authority", "trust_state": "unknown", "completeness_state": "blocked", "trust_score": "0.000", "trust_lower_bound": "0.000", "freshness_score": "0.000", "coverage_score": "0.000", "lineage_score": "0.000", "replay_score": "0.000", "consistency_score": "0.000", "hard_block_state": "true", "surface_authority_state": "blocked", "calm_truth_state": "suppressed", "mutation_authority_state": "blocked", "evaluation_model_ref": "assurance_slice_trust_model::par_075_v1", "evaluation_input_hash": "hash::blocked_missing_inputs::1", "effective_at": "2026-04-12T22:03:00Z", "review_due_at": "2026-04-12T23:00:00Z", "updated_at": "2026-04-12T22:05:00Z"}, {"scenario_id": "blocked_missing_inputs", "audience_surface": "support-workspace", "route_family_ref": "rf_support_queue", "channel_family": "governance_console_bridge", "channel_state": "monitoring", "slice_trust_id": "slice::blocked_missing_inputs::2", "slice_namespace": "support-workspace.continuity", "producer_scope_ref": "producer_support_continuity", "trust_state": "trusted", "completeness_state": "complete", "trust_score": "0.942", "trust_lower_bound": "0.886", "freshness_score": "0.955", "coverage_score": "1.000", "lineage_score": "0.976", "replay_score": "0.971", "consistency_score": "0.929", "hard_block_state": "false", "surface_authority_state": "blocked", "calm_truth_state": "suppressed", "mutation_authority_state": "blocked", "evaluation_model_ref": "assurance_slice_trust_model::par_075_v1", "evaluation_input_hash": "hash::blocked_missing_inputs::2", "effective_at": "2026-04-12T22:03:00Z", "review_due_at": "2026-04-12T23:00:00Z", "updated_at": "2026-04-12T22:05:00Z"}, {"scenario_id": "blocked_standards_watchlist_drift", "audience_surface": "clinical-workspace", "route_family_ref": "rf_clinical_workspace", "channel_family": "clinical_workspace_bridge", "channel_state": "monitoring", "slice_trust_id": "slice::blocked_standards_watchlist_drift::1", "slice_namespace": "clinical.surface", "producer_scope_ref": "producer_clinical_surface", "trust_state": "trusted", "completeness_state": "complete", "trust_score": "0.958", "trust_lower_bound": "0.905", "freshness_score": "0.966", "coverage_score": "1.000", "lineage_score": "0.984", "replay_score": "0.980", "consistency_score": "0.944", "hard_block_state": "false", "surface_authority_state": "blocked", "calm_truth_state": "suppressed", "mutation_authority_state": "blocked", "evaluation_model_ref": "assurance_slice_trust_model::par_075_v1", "evaluation_input_hash": "hash::blocked_standards_watchlist_drift::1", "effective_at": "2026-04-12T22:03:00Z", "review_due_at": "2026-04-12T23:00:00Z", "updated_at": "2026-04-12T22:05:00Z"}, {"scenario_id": "blocked_standards_watchlist_drift", "audience_surface": "clinical-workspace", "route_family_ref": "rf_clinical_workspace", "channel_family": "clinical_workspace_bridge", "channel_state": "monitoring", "slice_trust_id": "slice::blocked_standards_watchlist_drift::2", "slice_namespace": "clinical.continuity", "producer_scope_ref": "producer_clinical_continuity", "trust_state": "trusted", "completeness_state": "complete", "trust_score": "0.949", "trust_lower_bound": "0.887", "freshness_score": "0.959", "coverage_score": "1.000", "lineage_score": "0.977", "replay_score": "0.973", "consistency_score": "0.935", "hard_block_state": "false", "surface_authority_state": "blocked", "calm_truth_state": "suppressed", "mutation_authority_state": "blocked", "evaluation_model_ref": "assurance_slice_trust_model::par_075_v1", "evaluation_input_hash": "hash::blocked_standards_watchlist_drift::2", "effective_at": "2026-04-12T22:03:00Z", "review_due_at": "2026-04-12T23:00:00Z", "updated_at": "2026-04-12T22:05:00Z"}, {"scenario_id": "recovery_only_parity_or_provenance_drift", "audience_surface": "patient-web", "route_family_ref": "rf_patient_messages", "channel_family": "embedded_webview", "channel_state": "monitoring", "slice_trust_id": "slice::recovery_only_parity_or_provenance_drift::1", "slice_namespace": "patient.messages", "producer_scope_ref": "producer_patient_messages", "trust_state": "trusted", "completeness_state": "complete", "trust_score": "0.956", "trust_lower_bound": "0.901", "freshness_score": "0.965", "coverage_score": "1.000", "lineage_score": "0.983", "replay_score": "0.979", "consistency_score": "0.941", "hard_block_state": "false", "surface_authority_state": "recovery_only", "calm_truth_state": "suppressed", "mutation_authority_state": "governed_recovery", "evaluation_model_ref": "assurance_slice_trust_model::par_075_v1", "evaluation_input_hash": "hash::recovery_only_parity_or_provenance_drift::1", "effective_at": "2026-04-12T22:03:00Z", "review_due_at": "2026-04-12T23:00:00Z", "updated_at": "2026-04-12T22:05:00Z"}, {"scenario_id": "recovery_only_parity_or_provenance_drift", "audience_surface": "patient-web", "route_family_ref": "rf_patient_messages", "channel_family": "embedded_webview", "channel_state": "monitoring", "slice_trust_id": "slice::recovery_only_parity_or_provenance_drift::2", "slice_namespace": "patient.messages.continuity", "producer_scope_ref": "producer_patient_messages_continuity", "trust_state": "trusted", "completeness_state": "complete", "trust_score": "0.947", "trust_lower_bound": "0.885", "freshness_score": "0.957", "coverage_score": "1.000", "lineage_score": "0.975", "replay_score": "0.971", "consistency_score": "0.934", "hard_block_state": "false", "surface_authority_state": "recovery_only", "calm_truth_state": "suppressed", "mutation_authority_state": "governed_recovery", "evaluation_model_ref": "assurance_slice_trust_model::par_075_v1", "evaluation_input_hash": "hash::recovery_only_parity_or_provenance_drift::2", "effective_at": "2026-04-12T22:03:00Z", "review_due_at": "2026-04-12T23:00:00Z", "updated_at": "2026-04-12T22:05:00Z"}]</script>
+    <script id="manifest-data" type="application/json">{"task_id": "par_075", "generated_at": "2026-04-12T00:00:00+00:00", "captured_on": "2026-04-12", "visual_mode": "Release_Trust_Freeze_Command_Center", "mission": "Publish immutable release-freeze, channel-freeze, slice-trust, and verdict authority artifacts so later runtime and frontend work consume one machine-readable posture contract instead of re-deriving authority from fragments.", "source_precedence": ["prompt/075.md", "prompt/shared_operating_contract_066_to_075.md", "prompt/AGENT.md", "prompt/checklist.md", "blueprint/phase-0-the-foundation-protocol.md#1.24 ReleaseApprovalFreeze", "blueprint/phase-0-the-foundation-protocol.md#1.24A GovernanceReviewPackage", "blueprint/phase-0-the-foundation-protocol.md#1.24B StandardsDependencyWatchlist", "blueprint/phase-0-the-foundation-protocol.md#1.25 ChannelReleaseFreezeRecord", "blueprint/phase-0-the-foundation-protocol.md#1.26 AssuranceSliceTrustRecord", "blueprint/phase-0-the-foundation-protocol.md#1.26A ReleaseTrustFreezeVerdict", "blueprint/platform-runtime-and-release-blueprint.md#AudienceSurfaceRuntimeBinding", "blueprint/platform-frontend-blueprint.md#Action dispatch, acknowledgement, projection follow-through, and route-local settlement", "blueprint/ux-quiet-clarity-redesign.md#Conceptual redesign strategy / C1. Bounded degraded and frozen calm states", "blueprint/forensic-audit-findings.md#Finding 91", "blueprint/forensic-audit-findings.md#Finding 95", "blueprint/forensic-audit-findings.md#Finding 96", "packages/domains/analytics_assurance/src/assurance-slice-trust-backbone.ts", "packages/domains/identity_access/src/release-trust-freeze-backbone.ts", "packages/release-controls/src/index.ts", "services/command-api/src/release-trust-freeze.ts"], "parallel_interface_gaps": ["PARALLEL_INTERFACE_GAP_075_RELEASE_WATCH_TUPLE_PORT", "PARALLEL_INTERFACE_GAP_075_RUNTIME_PARITY_AND_PROVENANCE_PORT"], "summary": {"scenario_count": 6, "release_freeze_count": 6, "channel_freeze_count": 6, "assurance_slice_count": 12, "verdict_count": 6, "validator_row_count": 12, "live_count": 1, "diagnostic_only_count": 1, "recovery_only_count": 2, "blocked_count": 2}, "scenarios": [{"scenario_id": "live_exact_parity_trusted_slices", "title": "Exact tuple with trusted slices keeps calm truth and mutation live.", "audience_surface": "patient-web", "route_family_ref": "rf_patient_home", "channel_family": "browser_web", "watchlist_state": "current", "surface_authority_state": "live", "calm_truth_state": "allowed", "mutation_authority_state": "enabled", "blocker_count": 0}, {"scenario_id": "diagnostic_only_degraded_slice", "title": "Partial trust evidence keeps the surface diagnostic only.", "audience_surface": "ops-console", "route_family_ref": "rf_ops_overview", "channel_family": "embedded_webview", "watchlist_state": "current", "surface_authority_state": "diagnostic_only", "calm_truth_state": "suppressed", "mutation_authority_state": "observe_only", "blocker_count": 2}, {"scenario_id": "recovery_only_active_channel_freeze", "title": "Rollback-recommended channel freeze forces governed recovery only.", "audience_surface": "governance-console", "route_family_ref": "rf_governance_release", "channel_family": "browser_web", "watchlist_state": "current", "surface_authority_state": "recovery_only", "calm_truth_state": "suppressed", "mutation_authority_state": "governed_recovery", "blocker_count": 2}, {"scenario_id": "blocked_missing_inputs", "title": "Missing watch and publication inputs fail closed to blocked.", "audience_surface": "support-workspace", "route_family_ref": "rf_support_queue", "channel_family": "governance_console_bridge", "watchlist_state": "current", "surface_authority_state": "blocked", "calm_truth_state": "suppressed", "mutation_authority_state": "blocked", "blocker_count": 4}, {"scenario_id": "blocked_standards_watchlist_drift", "title": "Standards watchlist drift supersedes an otherwise valid freeze.", "audience_surface": "clinical-workspace", "route_family_ref": "rf_clinical_workspace", "channel_family": "clinical_workspace_bridge", "watchlist_state": "stale", "surface_authority_state": "blocked", "calm_truth_state": "suppressed", "mutation_authority_state": "blocked", "blocker_count": 2}, {"scenario_id": "recovery_only_parity_or_provenance_drift", "title": "Parity or provenance drift suppresses calm truth and writable posture.", "audience_surface": "patient-web", "route_family_ref": "rf_patient_messages", "channel_family": "embedded_webview", "watchlist_state": "current", "surface_authority_state": "recovery_only", "calm_truth_state": "suppressed", "mutation_authority_state": "governed_recovery", "blocker_count": 3}]}</script>
+    <script>
+      const casebook = JSON.parse(document.getElementById("casebook-data").textContent);
+      const matrixRows = JSON.parse(document.getElementById("matrix-data").textContent);
+      const manifest = JSON.parse(document.getElementById("manifest-data").textContent);
+      const cases = casebook.cases;
+
+      const state = {
+        verdict: "all",
+        trust: "all",
+        surface: "all",
+        channel: "all",
+        selectedScenarioId: cases[0]?.scenarioId ?? null,
+      };
+
+      const verdictFilter = document.getElementById("verdict-filter");
+      const trustFilter = document.getElementById("trust-filter");
+      const surfaceFilter = document.getElementById("surface-filter");
+      const channelFilter = document.getElementById("channel-filter");
+      const verdictRail = document.querySelector("[data-testid='verdict-rail']");
+      const tupleStack = document.querySelector("[data-testid='tuple-stack']");
+      const trustMatrixBody = document.querySelector("[data-testid='trust-matrix-body']");
+      const linkageBody = document.querySelector("[data-testid='watchlist-linkage-body']");
+      const validatorBody = document.querySelector("[data-testid='validator-body']");
+      const inspector = document.querySelector("[data-testid='inspector']");
+      const mastheadMetrics = document.querySelector("[data-testid='masthead-metrics']");
+      const mastheadParity = document.querySelector("[data-testid='masthead-parity']");
+      const verdictRailParity = document.querySelector("[data-testid='verdict-rail-parity']");
+      const trustMatrixParity = document.querySelector("[data-testid='trust-matrix-parity']");
+      const filterParity = document.querySelector("[data-testid='filter-parity']");
+
+      document.body.dataset.reducedMotion = String(
+        window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+      );
+
+      function toOptionValues(values) {
+        return ["all", ...Array.from(new Set(values)).sort()];
+      }
+
+      function buildSelect(select, values) {
+        select.innerHTML = "";
+        values.forEach((value) => {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = value === "all" ? "All" : value;
+          select.appendChild(option);
+        });
+      }
+
+      function visibleCases() {
+        return cases.filter((entry) => {
+          if (state.verdict !== "all" && entry.verdict.surfaceAuthorityState !== state.verdict) return false;
+          if (state.surface !== "all" && entry.audienceSurface !== state.surface) return false;
+          if (state.channel !== "all" && entry.channelFamily !== state.channel) return false;
+          if (
+            state.trust !== "all" &&
+            !entry.assuranceSlices.some((slice) => slice.trustState === state.trust)
+          ) return false;
+          return true;
+        });
+      }
+
+      function selectedCase(visible) {
+        if (!visible.some((entry) => entry.scenarioId === state.selectedScenarioId)) {
+          state.selectedScenarioId = visible[0]?.scenarioId ?? null;
+        }
+        return visible.find((entry) => entry.scenarioId === state.selectedScenarioId) ?? null;
+      }
+
+      function metricCard(label, value) {
+        return `<article class="metric"><span>${label}</span><strong>${value}</strong></article>`;
+      }
+
+      function renderMasthead() {
+        mastheadMetrics.innerHTML = [
+          metricCard("Live", manifest.summary.live_count),
+          metricCard("Diagnostic", manifest.summary.diagnostic_only_count),
+          metricCard("Recovery", manifest.summary.recovery_only_count),
+          metricCard("Blocked", manifest.summary.blocked_count),
+        ].join("");
+        mastheadParity.textContent =
+          `${manifest.summary.scenario_count} verdicts, ${manifest.summary.assurance_slice_count} trust rows, ${manifest.summary.validator_row_count} validator rows.`;
+      }
+
+      function renderVerdictRail(visible, selected) {
+        verdictRailParity.textContent = `${visible.length} visible verdict cards.`;
+        verdictRail.innerHTML = visible
+          .map((entry) => {
+            const selectedAttr = String(entry.scenarioId === selected?.scenarioId);
+            return `
+              <button
+                type="button"
+                class="verdict-card"
+                data-testid="verdict-card-${entry.scenarioId}"
+                data-scenario-id="${entry.scenarioId}"
+                data-selected="${selectedAttr}"
+              >
+                <div class="eyebrow">${entry.audienceSurface}</div>
+                <h3>${entry.title}</h3>
+                <p>${entry.summary}</p>
+                <span class="state-chip ${entry.verdict.surfaceAuthorityState}">${entry.verdict.surfaceAuthorityState}</span>
+              </button>
+            `;
+          })
+          .join("");
+        bindSelectionNavigation(verdictRail, visible);
+      }
+
+      function renderTupleStack(visible, selected) {
+        tupleStack.innerHTML = visible
+          .map((entry) => {
+            const freeze = entry.releaseApprovalFreeze;
+            return `
+              <button
+                type="button"
+                class="card"
+                data-testid="tuple-card-${entry.scenarioId}"
+                data-scenario-id="${entry.scenarioId}"
+                data-selected="${String(entry.scenarioId === selected?.scenarioId)}"
+              >
+                <div class="eyebrow">${freeze.releaseApprovalFreezeId}</div>
+                <h3>${entry.routeFamilyRef}</h3>
+                <p>${entry.channelFamily} · watchlist ${entry.standardsWatchlist.watchlistState} · freeze ${freeze.freezeState}</p>
+                <div class="mono">${freeze.reviewPackageHash}</div>
+                <p class="parity">approved by ${freeze.approvedBy} at ${freeze.approvedAt}</p>
+              </button>
+            `;
+          })
+          .join("");
+        bindSelectionNavigation(tupleStack, visible);
+      }
+
+      function renderTrustMatrix(visible, selected) {
+        const visibleIds = new Set(visible.map((entry) => entry.scenarioId));
+        const rows = matrixRows.filter((row) => visibleIds.has(row.scenario_id));
+        trustMatrixParity.textContent = `${rows.length} visible trust rows across ${visible.length} scenarios.`;
+        trustMatrixBody.innerHTML = rows
+          .map((row) => `
+            <tr
+              data-testid="trust-row-${row.scenario_id}-${row.slice_namespace.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}"
+              data-selected="${String(row.scenario_id === selected?.scenarioId)}"
+            >
+              <td>${row.scenario_id}</td>
+              <td><span class="mono">${row.slice_namespace}</span></td>
+              <td>${row.trust_state}</td>
+              <td>${row.completeness_state}</td>
+              <td>${row.trust_lower_bound}</td>
+              <td>${row.freshness_score}</td>
+            </tr>
+          `)
+          .join("");
+      }
+
+      function renderLinkageTable(visible, selected) {
+        linkageBody.innerHTML = visible
+          .map((entry) => `
+            <tr
+              data-testid="linkage-row-${entry.scenarioId}"
+              data-selected="${String(entry.scenarioId === selected?.scenarioId)}"
+            >
+              <td>${entry.scenarioId}</td>
+              <td class="mono">${entry.governanceReviewPackage.governanceReviewPackageId}</td>
+              <td>${entry.standardsWatchlist.watchlistState}</td>
+              <td>${entry.releaseApprovalFreeze.freezeState}</td>
+              <td>${entry.verdict.surfaceAuthorityState}</td>
+            </tr>
+          `)
+          .join("");
+      }
+
+      function renderValidatorTable(selected) {
+        validatorBody.innerHTML = (selected?.validators ?? [])
+          .map((row) => `
+            <tr data-testid="validator-row-${row.validator_id}">
+              <td class="mono">${row.validator_id}</td>
+              <td>${row.status}</td>
+              <td>${row.detail}</td>
+            </tr>
+          `)
+          .join("");
+      }
+
+      function renderInspector(selected) {
+        if (!selected) {
+          inspector.innerHTML = `<div class="inspector-block"><h2>No matching verdict</h2><p>Adjust filters to restore one visible release-trust scenario.</p></div>`;
+          return;
+        }
+        inspector.innerHTML = `
+          <div>
+            <h2>${selected.title}</h2>
+            <p>${selected.summary}</p>
+          </div>
+          <div class="inspector-block">
+            <strong class="eyebrow">Published verdict</strong>
+            <p class="mono">${selected.verdict.releaseTrustFreezeVerdictId}</p>
+            <p>${selected.verdict.surfaceAuthorityState} · calm ${selected.verdict.calmTruthState} · mutation ${selected.verdict.mutationAuthorityState}</p>
+          </div>
+          <div class="inspector-block">
+            <strong class="eyebrow">Freeze tuple</strong>
+            <p class="mono">${selected.releaseApprovalFreeze.releaseApprovalFreezeId}</p>
+            <p>${selected.releaseApprovalFreeze.releaseCandidateRef}</p>
+            <p class="mono">${selected.releaseApprovalFreeze.reviewPackageHash}</p>
+          </div>
+          <div class="inspector-block">
+            <strong class="eyebrow">Watch and parity</strong>
+            <p>${selected.verdict.releaseWatchTupleState} watch · ${selected.verdict.runtimePublicationState} publication · ${selected.verdict.releasePublicationParityState} parity</p>
+            <p>${selected.verdict.provenanceConsumptionState} provenance</p>
+          </div>
+          <div class="inspector-block">
+            <strong class="eyebrow">Blockers</strong>
+            <p>${selected.verdict.blockerRefs.length ? selected.verdict.blockerRefs.join(", ") : "None"}</p>
+          </div>
+        `;
+      }
+
+      function bindSelectionNavigation(container, visible) {
+        container.querySelectorAll("[data-scenario-id]").forEach((button) => {
+          button.addEventListener("click", () => {
+            state.selectedScenarioId = button.dataset.scenarioId;
+            render();
+          });
+          button.addEventListener("keydown", (event) => {
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+            event.preventDefault();
+            const ids = visible.map((entry) => entry.scenarioId);
+            const index = ids.indexOf(button.dataset.scenarioId);
+            const nextIndex =
+              event.key === "ArrowDown"
+                ? Math.min(ids.length - 1, index + 1)
+                : Math.max(0, index - 1);
+            state.selectedScenarioId = ids[nextIndex];
+            render();
+            const nextButton = container.querySelector(
+              `[data-scenario-id="${ids[nextIndex]}"]`,
+            );
+            nextButton?.focus();
+          });
+        });
+      }
+
+      function render() {
+        const visible = visibleCases();
+        const selected = selectedCase(visible);
+        filterParity.textContent = `${visible.length} scenarios remain visible after filtering.`;
+        renderVerdictRail(visible, selected);
+        renderTupleStack(visible, selected);
+        renderTrustMatrix(visible, selected);
+        renderLinkageTable(visible, selected);
+        renderValidatorTable(selected);
+        renderInspector(selected);
+      }
+
+      buildSelect(verdictFilter, toOptionValues(cases.map((entry) => entry.verdict.surfaceAuthorityState)));
+      buildSelect(trustFilter, toOptionValues(matrixRows.map((row) => row.trust_state)));
+      buildSelect(surfaceFilter, toOptionValues(cases.map((entry) => entry.audienceSurface)));
+      buildSelect(channelFilter, toOptionValues(cases.map((entry) => entry.channelFamily)));
+
+      verdictFilter.addEventListener("change", (event) => {
+        state.verdict = event.target.value;
+        render();
+      });
+      trustFilter.addEventListener("change", (event) => {
+        state.trust = event.target.value;
+        render();
+      });
+      surfaceFilter.addEventListener("change", (event) => {
+        state.surface = event.target.value;
+        render();
+      });
+      channelFilter.addEventListener("change", (event) => {
+        state.channel = event.target.value;
+        render();
+      });
+
+      renderMasthead();
+      render();
+    </script>
+  </body>
+</html>

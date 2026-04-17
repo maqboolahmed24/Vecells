@@ -7,7 +7,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..", "..");
 const HTML_PATH = path.join(ROOT, "docs", "external", "37_pharmacy_route_observatory.html");
-const REGISTER_PATH = path.join(ROOT, "data", "analysis", "pharmacy_referral_transport_decision_register.json");
+const REGISTER_PATH = path.join(
+  ROOT,
+  "data",
+  "analysis",
+  "pharmacy_referral_transport_decision_register.json",
+);
 
 const REGISTER = JSON.parse(fs.readFileSync(REGISTER_PATH, "utf8"));
 
@@ -42,7 +47,9 @@ function startStaticServer() {
         return;
       }
       const body = fs.readFileSync(filePath);
-      const contentType = filePath.endsWith(".html") ? "text/html; charset=utf-8" : "application/octet-stream";
+      const contentType = filePath.endsWith(".html")
+        ? "text/html; charset=utf-8"
+        : "application/octet-stream";
       res.writeHead(200, { "Content-Type": contentType });
       res.end(body);
     });
@@ -72,7 +79,10 @@ async function verifyOfficialSource(url, expectedSnippets) {
   assertCondition(response.ok, `Failed to fetch official source ${url}`);
   const html = await response.text();
   for (const snippet of expectedSnippets) {
-    assertCondition(html.includes(snippet), `Official source ${url} no longer contains: ${snippet}`);
+    assertCondition(
+      html.includes(snippet),
+      `Official source ${url} no longer contains: ${snippet}`,
+    );
   }
 }
 
@@ -161,7 +171,9 @@ async function run() {
     }
   } finally {
     await browser.close();
-    await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    await new Promise((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
   }
 }
 

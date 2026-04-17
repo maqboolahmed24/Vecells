@@ -1,0 +1,140 @@
+suite_id: phase1_submission_burst_resilience_168
+generated_at: 2026-04-15T00:00:00Z
+profiles:
+  - id: autosave_burst_168
+    family: autosave_bursts
+    title: Autosave burst across active drafts
+    driver: phase1-node-runner
+    entrypoint: tools/performance/run_phase1_burst_resilience_suite.mjs
+    concurrent_clients: 24
+    operations_per_client: 12
+    peak_rps: 96
+    duration_seconds: 90
+    expected_posture: pending_or_recovery_not_false_saved
+    exact_once_guard: save_settlement_per_client_command
+    browser_truth: quiet strip can show pending or recovery, never calm saved while backend is degraded
+    p95_ms: 650
+    p99_ms: 1200
+    recovery_seconds: 30
+    max_duplicate_side_effects: 0
+    max_false_writable_states: 0
+  - id: submit_burst_exact_once_168
+    family: submit_bursts_replay_storms
+    title: Submit burst and replay storm exact-once side effects
+    driver: phase1-node-runner
+    entrypoint: tools/performance/run_phase1_burst_resilience_suite.mjs
+    concurrent_clients: 32
+    operations_per_client: 1
+    replay_attempts: 12
+    peak_rps: 64
+    duration_seconds: 60
+    expected_posture: authoritative_receipt_or_replay_receipt
+    exact_once_guard: intake_submit_settlement_and_replay_authority
+    browser_truth: one authoritative request shell and one confirmation envelope per submitted draft
+    p95_ms: 900
+    p99_ms: 1600
+    recovery_seconds: 20
+    max_duplicate_side_effects: 0
+    max_false_writable_states: 0
+  - id: upload_scan_backlog_168
+    family: upload_bursts_scan_backlog
+    title: Upload burst with bounded scan backlog continuity
+    driver: phase1-node-runner
+    entrypoint: tools/performance/run_phase1_burst_resilience_suite.mjs
+    concurrent_clients: 18
+    operations_per_client: 4
+    peak_rps: 36
+    duration_seconds: 120
+    expected_posture: upload_degraded_but_draft_continuity_preserved
+    exact_once_guard: attachment_evidence_ref_and_scan_job_id
+    browser_truth: files remain visible as awaiting scan with blocked submit only where policy requires it
+    p95_ms: 1250
+    p99_ms: 2600
+    recovery_seconds: 45
+    max_duplicate_side_effects: 0
+    max_false_writable_states: 0
+  - id: projection_lag_read_model_delay_168
+    family: projection_lag_read_model_delay
+    title: Projection lag and read-model delay without detached errors
+    driver: browser-lab-and-node-runner
+    entrypoint: docs/performance/168_burst_resilience_lab.html
+    concurrent_clients: 16
+    operations_per_client: 3
+    peak_rps: 24
+    duration_seconds: 100
+    expected_posture: stale_read_model_banner_with_receipt_truth
+    exact_once_guard: promoted_request_ref_remains_authoritative
+    browser_truth: no generic detached error; show stale projection and recovery check
+    p95_ms: 800
+    p99_ms: 1800
+    recovery_seconds: 35
+    max_duplicate_side_effects: 0
+    max_false_writable_states: 0
+  - id: notification_backlog_provider_delay_168
+    family: notification_backlog_provider_latency_failure
+    title: Notification backlog and provider delay without premature reassurance
+    driver: phase1-node-runner
+    entrypoint: tools/performance/run_phase1_burst_resilience_suite.mjs
+    concurrent_clients: 20
+    operations_per_client: 2
+    peak_rps: 30
+    duration_seconds: 120
+    expected_posture: request_received_notification_pending
+    exact_once_guard: communication_envelope_idempotency_key
+    browser_truth: receipt can confirm request received but cannot imply notification delivery
+    p95_ms: 1000
+    p99_ms: 2200
+    recovery_seconds: 60
+    max_duplicate_side_effects: 0
+    max_false_writable_states: 0
+  - id: dependency_restart_backpressure_168
+    family: bounded_storage_queue_cache_failures_service_restarts
+    title: Bounded storage queue cache dependency failures and service restarts
+    driver: phase1-node-runner
+    entrypoint: tools/performance/run_phase1_burst_resilience_suite.mjs
+    concurrent_clients: 14
+    operations_per_client: 5
+    peak_rps: 28
+    duration_seconds: 150
+    expected_posture: bounded_degraded_fail_closed_then_recovered
+    exact_once_guard: durable_settlement_before_side_effect_dispatch
+    browser_truth: mutating actions are fenced; read-only continuity remains available
+    p95_ms: 1400
+    p99_ms: 3000
+    recovery_seconds: 75
+    max_duplicate_side_effects: 0
+    max_false_writable_states: 0
+  - id: runtime_publication_route_freeze_drift_168
+    family: runtime_publication_route_freeze_drift
+    title: Runtime publication and route-freeze drift fail-closed
+    driver: browser-lab-and-node-runner
+    entrypoint: docs/performance/168_burst_resilience_lab.html
+    concurrent_clients: 10
+    operations_per_client: 4
+    peak_rps: 20
+    duration_seconds: 110
+    expected_posture: freeze_mismatch_banner_and_mutation_block
+    exact_once_guard: route_intent_binding_and_freeze_ref
+    browser_truth: no writable submit posture under route contract drift
+    p95_ms: 700
+    p99_ms: 1500
+    recovery_seconds: 40
+    max_duplicate_side_effects: 0
+    max_false_writable_states: 0
+  - id: browser_visible_resilience_168
+    family: browser_visible_resilience
+    title: Browser-visible mobile tablet desktop degraded and recovery proof
+    driver: playwright
+    entrypoint: tests/playwright/168_burst_resilience_lab.spec.js
+    concurrent_clients: 3
+    operations_per_client: 5
+    peak_rps: 9
+    duration_seconds: 45
+    expected_posture: responsive_visible_degraded_recovered_and_reduced_motion_equivalent
+    exact_once_guard: diagram_table_parity_for_all_visible_metrics
+    browser_truth: sticky footer focus management and tables match the visual diagram at all breakpoints
+    p95_ms: 500
+    p99_ms: 900
+    recovery_seconds: 20
+    max_duplicate_side_effects: 0
+    max_false_writable_states: 0

@@ -1,6 +1,7 @@
 # 18 Risk Treatment Matrix
 
         | Risk | Status | Control strength | Target due ref | Owner | Primary mitigation | Primary contingency |
+
 | --- | --- | --- | --- | --- | --- | --- |
 | HZ_TELEPHONY_EVIDENCE_INADEQUACY | mitigating | partial | GATE_EXTERNAL_TO_FOUNDATION | ROLE_MANUFACTURER_CSO | DeploymentSafetyCase annex | Hold the linked gate and keep the experience in explicit safety-review or recovery posture. |
 | HZ_DUPLICATE_SUPPRESSION_OR_MERGE | mitigating | partial | seq_028 | ROLE_MANUFACTURER_CSO | HazardLog delta packet | Hold the linked gate and keep the experience in explicit safety-review or recovery posture. |

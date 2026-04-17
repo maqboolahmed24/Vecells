@@ -19,11 +19,7 @@ function assertCondition(condition, message) {
 }
 
 function requiredLiveEnv() {
-  return [
-    "NHS_APP_NAMED_APPROVER",
-    "NHS_APP_ENVIRONMENT_TARGET",
-    "ALLOW_REAL_PROVIDER_MUTATION",
-  ];
+  return ["NHS_APP_NAMED_APPROVER", "NHS_APP_ENVIRONMENT_TARGET", "ALLOW_REAL_PROVIDER_MUTATION"];
 }
 
 function validateLiveGateInputs() {
@@ -46,7 +42,8 @@ async function importPlaywright() {
 
 async function run() {
   const selectorProfile = LIVE_GATES.selector_map.studio_profile;
-  const targetUrl = process.env.NHS_APP_PORTAL_URL ?? LIVE_GATES.dry_run_defaults.default_target_url;
+  const targetUrl =
+    process.env.NHS_APP_PORTAL_URL ?? LIVE_GATES.dry_run_defaults.default_target_url;
   const realMutationRequested = process.env.ALLOW_REAL_PROVIDER_MUTATION === "true";
 
   if (realMutationRequested) {
@@ -63,26 +60,29 @@ async function run() {
   await page.locator(selectorProfile.mode_toggle_actual).click();
 
   if (await page.locator("[data-testid='actual-field-named-approver']").count()) {
-    await page.locator("[data-testid='actual-field-named-approver']").fill(
-      process.env.NHS_APP_NAMED_APPROVER ?? "dry-run-approver",
-    );
+    await page
+      .locator("[data-testid='actual-field-named-approver']")
+      .fill(process.env.NHS_APP_NAMED_APPROVER ?? "dry-run-approver");
   }
   if (await page.locator("[data-testid='actual-field-environment-target']").count()) {
-    await page.locator("[data-testid='actual-field-environment-target']").selectOption(
-      process.env.NHS_APP_ENVIRONMENT_TARGET ?? "sandpit",
-    );
+    await page
+      .locator("[data-testid='actual-field-environment-target']")
+      .selectOption(process.env.NHS_APP_ENVIRONMENT_TARGET ?? "sandpit");
   }
   if (await page.locator("[data-testid='actual-field-allow-mutation']").count()) {
-    await page.locator("[data-testid='actual-field-allow-mutation']").selectOption(
-      realMutationRequested ? "true" : "false",
-    );
+    await page
+      .locator("[data-testid='actual-field-allow-mutation']")
+      .selectOption(realMutationRequested ? "true" : "false");
   }
 
   await page.locator(selectorProfile.gate_board).waitFor();
   await page.locator("[data-testid='actual-submission-notice']").waitFor();
 
   const blockedGateCount = LIVE_GATES.live_gates.filter((gate) => gate.status !== "pass").length;
-  assertCondition(blockedGateCount >= 1, "Dry-run posture drifted: at least one live gate should remain blocked.");
+  assertCondition(
+    blockedGateCount >= 1,
+    "Dry-run posture drifted: at least one live gate should remain blocked.",
+  );
 
   if (realMutationRequested) {
     assertCondition(

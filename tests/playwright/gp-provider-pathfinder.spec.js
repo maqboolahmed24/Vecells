@@ -7,7 +7,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..", "..");
 const HTML_PATH = path.join(ROOT, "docs", "external", "36_gp_provider_pathfinder.html");
-const DECISION_REGISTER_PATH = path.join(ROOT, "data", "analysis", "gp_provider_decision_register.json");
+const DECISION_REGISTER_PATH = path.join(
+  ROOT,
+  "data",
+  "analysis",
+  "gp_provider_decision_register.json",
+);
 const EVIDENCE_PATH = path.join(ROOT, "data", "analysis", "gp_booking_capability_evidence.json");
 
 const DECISION_REGISTER = JSON.parse(fs.readFileSync(DECISION_REGISTER_PATH, "utf8"));
@@ -50,7 +55,9 @@ function startStaticServer() {
         return;
       }
       const body = fs.readFileSync(filePath);
-      const contentType = filePath.endsWith(".html") ? "text/html; charset=utf-8" : "application/octet-stream";
+      const contentType = filePath.endsWith(".html")
+        ? "text/html; charset=utf-8"
+        : "application/octet-stream";
       res.writeHead(200, { "Content-Type": contentType });
       res.end(body);
     });
@@ -86,7 +93,9 @@ async function run() {
   const server = await startStaticServer();
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
-  const url = process.env.GP_PROVIDER_PATHFINDER_URL ?? "http://127.0.0.1:4326/36_gp_provider_pathfinder.html";
+  const url =
+    process.env.GP_PROVIDER_PATHFINDER_URL ??
+    "http://127.0.0.1:4326/36_gp_provider_pathfinder.html";
 
   try {
     await page.goto(url, { waitUntil: "networkidle" });
@@ -103,7 +112,9 @@ async function run() {
     if (watchRows !== 2) {
       throw new Error(`Expected 2 watch-only rows, found ${watchRows}`);
     }
-    await page.locator("[data-testid='path-row-gp_connect_appointment_management_watch_only']").click();
+    await page
+      .locator("[data-testid='path-row-gp_connect_appointment_management_watch_only']")
+      .click();
     await page.locator("[data-testid='path-inspector']").waitFor();
     await page.locator("[data-testid='proof-ladder']").waitFor();
 
@@ -113,7 +124,9 @@ async function run() {
     if (patientRows < 3) {
       throw new Error(`Expected at least 3 patient-self-service rows, found ${patientRows}`);
     }
-    await page.locator("[data-testid='filter-proof-class']").selectOption("authoritative_commit_or_read_after_write");
+    await page
+      .locator("[data-testid='filter-proof-class']")
+      .selectOption("authoritative_commit_or_read_after_write");
     const im1Rows = await page.locator("#matrix-body tr").count();
     if (im1Rows !== 2) {
       throw new Error(`Expected 2 IM1 rows after proof-class filter, found ${im1Rows}`);
@@ -169,7 +182,9 @@ async function run() {
     report.proofClassCount = EVIDENCE.summary.proof_class_count;
   } finally {
     await browser.close();
-    await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    await new Promise((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
   }
 
   if (process.env.SEQ036_REPORT_PATH) {

@@ -59,36 +59,38 @@ async function run() {
   await page.goto(targetUrl, { waitUntil: "networkidle" });
   await page.locator(selectors.mode_toggle_actual).click();
   await page.locator(selectors.page_tab_live_gates).click();
-  await page.locator(selectors.field_vendor).selectOption(
-    process.env.NOTIFICATION_VENDOR_ID ?? PACK.live_gate_pack.allowed_vendor_ids[0],
-  );
-  await page.locator(selectors.field_project_scope).selectOption(
-    process.env.NOTIFICATION_PROJECT_SCOPE ?? PACK.project_scopes[0].project_scope,
-  );
-  await page.locator(selectors.field_sender_ref).selectOption(
-    process.env.NOTIFICATION_SENDER_REF ?? PACK.sender_and_domain_rows[0].identity_ref,
-  );
-  await page.locator(selectors.field_domain_ref).fill(
-    process.env.NOTIFICATION_DOMAIN_REF ?? "placeholder.vecells.example",
-  );
-  await page.locator(selectors.field_callback_base).fill(
-    process.env.NOTIFICATION_CALLBACK_BASE_URL ?? "https://example.invalid/notification",
-  );
-  await page.locator(selectors.field_secret_ref).fill(
-    process.env.NOTIFICATION_WEBHOOK_SECRET_REF ?? "vault://notifications/webhook",
-  );
-  await page.locator(selectors.field_environment).selectOption(
-    process.env.NOTIFICATION_TARGET_ENVIRONMENT ?? "provider_like_preprod",
-  );
-  await page.locator(selectors.field_approver).fill(
-    process.env.NOTIFICATION_NAMED_APPROVER ?? "dry-run approver",
-  );
-  await page.locator(selectors.field_allow_mutation).selectOption(
-    realMutationRequested ? "true" : "false",
-  );
-  await page.locator(selectors.field_allow_spend).selectOption(
-    process.env.ALLOW_SPEND === "true" ? "true" : "false",
-  );
+  await page
+    .locator(selectors.field_vendor)
+    .selectOption(process.env.NOTIFICATION_VENDOR_ID ?? PACK.live_gate_pack.allowed_vendor_ids[0]);
+  await page
+    .locator(selectors.field_project_scope)
+    .selectOption(process.env.NOTIFICATION_PROJECT_SCOPE ?? PACK.project_scopes[0].project_scope);
+  await page
+    .locator(selectors.field_sender_ref)
+    .selectOption(
+      process.env.NOTIFICATION_SENDER_REF ?? PACK.sender_and_domain_rows[0].identity_ref,
+    );
+  await page
+    .locator(selectors.field_domain_ref)
+    .fill(process.env.NOTIFICATION_DOMAIN_REF ?? "placeholder.vecells.example");
+  await page
+    .locator(selectors.field_callback_base)
+    .fill(process.env.NOTIFICATION_CALLBACK_BASE_URL ?? "https://example.invalid/notification");
+  await page
+    .locator(selectors.field_secret_ref)
+    .fill(process.env.NOTIFICATION_WEBHOOK_SECRET_REF ?? "vault://notifications/webhook");
+  await page
+    .locator(selectors.field_environment)
+    .selectOption(process.env.NOTIFICATION_TARGET_ENVIRONMENT ?? "provider_like_preprod");
+  await page
+    .locator(selectors.field_approver)
+    .fill(process.env.NOTIFICATION_NAMED_APPROVER ?? "dry-run approver");
+  await page
+    .locator(selectors.field_allow_mutation)
+    .selectOption(realMutationRequested ? "true" : "false");
+  await page
+    .locator(selectors.field_allow_spend)
+    .selectOption(process.env.ALLOW_SPEND === "true" ? "true" : "false");
 
   const buttonDisabled = await page.locator(selectors.final_submit).isDisabled();
   assertCondition(

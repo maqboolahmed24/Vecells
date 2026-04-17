@@ -7,7 +7,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..", "..");
 const HTML_PATH = path.join(ROOT, "docs", "external", "37_pharmacy_route_observatory.html");
-const REGISTER_PATH = path.join(ROOT, "data", "analysis", "pharmacy_referral_transport_decision_register.json");
+const REGISTER_PATH = path.join(
+  ROOT,
+  "data",
+  "analysis",
+  "pharmacy_referral_transport_decision_register.json",
+);
 
 const REGISTER = JSON.parse(fs.readFileSync(REGISTER_PATH, "utf8"));
 
@@ -54,7 +59,9 @@ function startStaticServer() {
         return;
       }
       const body = fs.readFileSync(filePath);
-      const contentType = filePath.endsWith(".html") ? "text/html; charset=utf-8" : "application/octet-stream";
+      const contentType = filePath.endsWith(".html")
+        ? "text/html; charset=utf-8"
+        : "application/octet-stream";
       res.writeHead(200, { "Content-Type": contentType });
       res.end(body);
     });
@@ -97,7 +104,9 @@ async function run() {
     const initialRows = await page.locator("#matrix-body tr").count();
     const initialParityRows = await page.locator("#parity-body tr").count();
     if (initialRows !== 8 || initialParityRows !== 8) {
-      throw new Error(`Expected 8 rows in both tables, found matrix=${initialRows} parity=${initialParityRows}`);
+      throw new Error(
+        `Expected 8 rows in both tables, found matrix=${initialRows} parity=${initialParityRows}`,
+      );
     }
 
     await page.locator("[data-testid='filter-purpose']").selectOption("visibility");
@@ -108,7 +117,10 @@ async function run() {
 
     await page.locator("[data-testid='route-row-gp_update_record_assured_path']").click();
     const inspectorText = await page.locator("[data-testid='route-inspector']").innerText();
-    if (!inspectorText.includes("consultation summaries") && !inspectorText.includes("consultation summary")) {
+    if (
+      !inspectorText.includes("consultation summaries") &&
+      !inspectorText.includes("consultation summary")
+    ) {
       throw new Error("Inspector no longer reflects Update Record consultation-summary posture.");
     }
     if (!inspectorText.toLowerCase().includes("not for urgent")) {
@@ -131,7 +143,9 @@ async function run() {
     const manualRows = await page.locator("#matrix-body tr").count();
     const parityManualRows = await page.locator("#parity-body tr").count();
     if (manualRows !== 2 || parityManualRows !== 2) {
-      throw new Error(`Expected 2 manual-runbook rows after consent filter, found matrix=${manualRows} parity=${parityManualRows}`);
+      throw new Error(
+        `Expected 2 manual-runbook rows after consent filter, found matrix=${manualRows} parity=${parityManualRows}`,
+      );
     }
 
     const chipText = await page.locator("#matrix-body").innerText();
@@ -169,7 +183,9 @@ async function run() {
 
     const landmarkCount = await page.locator("main, aside, section").count();
     if (landmarkCount < 6) {
-      throw new Error(`Accessibility smoke failed: expected multiple landmarks, found ${landmarkCount}.`);
+      throw new Error(
+        `Accessibility smoke failed: expected multiple landmarks, found ${landmarkCount}.`,
+      );
     }
 
     report.matrixRowCount = initialRows;
@@ -179,7 +195,9 @@ async function run() {
     report.blockingGapCount = REGISTER.summary.blocking_gap_count;
   } finally {
     await browser.close();
-    await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    await new Promise((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
   }
 
   if (process.env.SEQ037_REPORT_PATH) {

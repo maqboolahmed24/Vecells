@@ -1,0 +1,190 @@
+{
+  "task_id": "seq_049",
+  "generated_at": "2026-04-13T14:51:08+00:00",
+  "captured_on": "2026-04-13",
+  "summary": {
+    "policy_count": 7,
+    "adapter_profile_count": 7,
+    "bundle_type_count": 3
+  },
+  "policies": [
+    {
+      "policyId": "FXBP_049_REQUEST_OUTBOUND_DOCUMENT",
+      "representationContractRefs": ["FRC_049_REQUEST_EXTERNAL_INTERCHANGE_V1"],
+      "direction": "outbound",
+      "legalBundleTypes": ["document"],
+      "adapterProfileRefs": ["ACP_049_CLINICAL_REQUEST_INTERCHANGE"],
+      "boundDependencyRefs": [],
+      "correlationKeyFields": ["requestId", "representationSetId", "bundleHash"],
+      "receiptCheckpointRefs": ["AdapterReceiptCheckpoint", "CommandSettlementRecord"],
+      "authoritativeSuccess": "Declared partner acceptance plus durable correlation of the emitted document bundle.",
+      "supersessionBehavior": "New request version or snapshot hash supersedes the older bundle and retires its writable use.",
+      "invalidationBehavior": "Any missing snapshot parity, redaction drift, or route-intent mismatch invalidates the bundle.",
+      "mandatoryProofRefs": ["EvidenceSnapshot", "RequestClosureRecord"],
+      "exchangeStates": ["staged", "dispatched", "accepted", "replayed", "failed", "superseded"],
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#FhirExchangeBundle",
+        "prompt/049.md"
+      ]
+    },
+    {
+      "policyId": "FXBP_049_SECURE_MESSAGE_OUTBOUND_MESSAGE",
+      "representationContractRefs": ["FRC_049_MESSAGE_DISPATCH_EXTERNAL_INTERCHANGE_V1"],
+      "direction": "outbound",
+      "legalBundleTypes": ["message"],
+      "adapterProfileRefs": ["ACP_049_SECURE_MESSAGE_DISPATCH"],
+      "boundDependencyRefs": [
+        "dep_cross_org_secure_messaging_mesh",
+        "dep_origin_practice_ack_rail"
+      ],
+      "correlationKeyFields": [
+        "messageDispatchEnvelopeId",
+        "transportCorrelationKey",
+        "bundleHash"
+      ],
+      "receiptCheckpointRefs": ["AdapterReceiptCheckpoint", "MessageDeliveryEvidenceBundle"],
+      "authoritativeSuccess": "Transport acceptance and delivery evidence must both settle on the same dispatch envelope and correlation key.",
+      "supersessionBehavior": "Settlement upgrades supersede earlier pending companions without rewriting the dispatch envelope.",
+      "invalidationBehavior": "Semantic drift or correlation reuse opens replay collision review and invalidates current confirmation.",
+      "mandatoryProofRefs": ["ConversationCommandSettlement", "MessageDeliveryEvidenceBundle"],
+      "exchangeStates": ["staged", "dispatched", "accepted", "replayed", "failed", "superseded"],
+      "source_refs": [
+        "blueprint/platform-runtime-and-release-blueprint.md#AdapterContractProfile",
+        "blueprint/callback-and-clinician-messaging-loop.md#Clinician message domain / MessageDispatchEnvelope"
+      ]
+    },
+    {
+      "policyId": "FXBP_049_BOOKING_PARTNER_OUTBOUND_MESSAGE",
+      "representationContractRefs": ["FRC_049_BOOKING_CASE_EXTERNAL_INTERCHANGE_V1"],
+      "direction": "outbound",
+      "legalBundleTypes": ["message"],
+      "adapterProfileRefs": ["ACP_049_GP_BOOKING_SUPPLIER_FHIR"],
+      "boundDependencyRefs": [
+        "dep_gp_system_supplier_paths",
+        "dep_local_booking_supplier_adapters"
+      ],
+      "correlationKeyFields": ["bookingCaseId", "commitmentEpoch", "partnerRef", "bundleHash"],
+      "receiptCheckpointRefs": ["AdapterReceiptCheckpoint", "ExternalConfirmationGate"],
+      "authoritativeSuccess": "Only authoritative supplier proof or same-commit read-after-write evidence may settle the bundle as confirmed.",
+      "supersessionBehavior": "New commitment epoch or cancellation supersedes the older bundle.",
+      "invalidationBehavior": "Capability tuple drift, confirmation ambiguity, or gate dispute invalidates writable success posture.",
+      "mandatoryProofRefs": ["BookingProviderAdapterBinding", "ExternalConfirmationGate"],
+      "exchangeStates": ["staged", "dispatched", "accepted", "replayed", "failed", "superseded"],
+      "source_refs": [
+        "blueprint/phase-4-the-booking-engine.md#4E Commit path",
+        "blueprint/platform-runtime-and-release-blueprint.md#AdapterContractProfile"
+      ]
+    },
+    {
+      "policyId": "FXBP_049_HUB_PARTNER_OUTBOUND_MESSAGE",
+      "representationContractRefs": ["FRC_049_HUB_CASE_EXTERNAL_INTERCHANGE_V1"],
+      "direction": "outbound",
+      "legalBundleTypes": ["message"],
+      "adapterProfileRefs": ["ACP_049_HUB_PARTNER_CAPACITY_EXCHANGE"],
+      "boundDependencyRefs": ["dep_network_capacity_partner_feeds", "dep_origin_practice_ack_rail"],
+      "correlationKeyFields": ["hubCoordinationCaseId", "confirmationGateId", "bundleHash"],
+      "receiptCheckpointRefs": [
+        "AdapterReceiptCheckpoint",
+        "ExternalConfirmationGate",
+        "PracticeAcknowledgementRecord"
+      ],
+      "authoritativeSuccess": "Native partner confirmation plus required practice-visibility acknowledgement for the same generation.",
+      "supersessionBehavior": "New hub selection or confirmation epoch supersedes the older partner bundle.",
+      "invalidationBehavior": "Practice-visibility debt, gate dispute, or candidate supersession invalidates the bundle.",
+      "mandatoryProofRefs": ["HubBookingEvidenceBundle", "ExternalConfirmationGate"],
+      "exchangeStates": ["staged", "dispatched", "accepted", "replayed", "failed", "superseded"],
+      "source_refs": [
+        "blueprint/phase-5-the-network-horizon.md#Hub commit algorithm",
+        "blueprint/platform-runtime-and-release-blueprint.md#AdapterContractProfile"
+      ]
+    },
+    {
+      "policyId": "FXBP_049_PHARMACY_REFERRAL_OUTBOUND_MESSAGE",
+      "representationContractRefs": ["FRC_049_PHARMACY_CASE_EXTERNAL_INTERCHANGE_V1"],
+      "direction": "outbound",
+      "legalBundleTypes": ["message", "document"],
+      "adapterProfileRefs": ["ACP_049_PHARMACY_REFERRAL_TRANSPORT"],
+      "boundDependencyRefs": [
+        "dep_pharmacy_referral_transport",
+        "dep_cross_org_secure_messaging_mesh"
+      ],
+      "correlationKeyFields": [
+        "pharmacyCaseId",
+        "dispatchAttemptId",
+        "packageHash",
+        "outboundReferenceSetHash"
+      ],
+      "receiptCheckpointRefs": [
+        "AdapterReceiptCheckpoint",
+        "DispatchProofEnvelope",
+        "ExternalConfirmationGate"
+      ],
+      "authoritativeSuccess": "Dispatch proof must satisfy the active transport assurance profile for the same dispatch attempt and package hash.",
+      "supersessionBehavior": "Any new package hash, provider, or dispatch plan supersedes the older bundle and correlation set.",
+      "invalidationBehavior": "Consent drift, checkpoint drift, bundle hash drift, or contradictory proof invalidates the bundle immediately.",
+      "mandatoryProofRefs": [
+        "PharmacyConsentCheckpoint",
+        "DispatchProofEnvelope",
+        "PharmacyCorrelationRecord"
+      ],
+      "exchangeStates": ["staged", "dispatched", "accepted", "replayed", "failed", "superseded"],
+      "source_refs": [
+        "blueprint/phase-6-the-pharmacy-loop.md#The right internal shape is a transport-neutral PharmacyReferralPackage",
+        "blueprint/platform-runtime-and-release-blueprint.md#AdapterContractProfile"
+      ]
+    },
+    {
+      "policyId": "FXBP_049_PARTNER_CALLBACK_INBOUND_COLLECTION",
+      "representationContractRefs": [
+        "FRC_049_CALLBACK_CASE_PARTNER_CALLBACK_CORRELATION_V1",
+        "FRC_049_BOOKING_CASE_PARTNER_CALLBACK_CORRELATION_V1",
+        "FRC_049_HUB_CASE_PARTNER_CALLBACK_CORRELATION_V1",
+        "FRC_049_PHARMACY_DISPATCH_PARTNER_CALLBACK_CORRELATION_V1"
+      ],
+      "direction": "inbound",
+      "legalBundleTypes": ["collection", "message"],
+      "adapterProfileRefs": ["ACP_049_PARTNER_CALLBACK_INGRESS"],
+      "boundDependencyRefs": ["dep_gp_system_supplier_paths", "dep_pharmacy_outcome_observation"],
+      "correlationKeyFields": [
+        "partnerCorrelationKey",
+        "dispatchAttemptId",
+        "confirmationGateId",
+        "bundleHash"
+      ],
+      "receiptCheckpointRefs": [
+        "AdapterReceiptCheckpoint",
+        "ExternalConfirmationGate",
+        "ReplayCollisionReview"
+      ],
+      "authoritativeSuccess": "A callback is authoritative only when it binds to the current gate or dispatch epoch and survives ordering and collision policy.",
+      "supersessionBehavior": "New confirmation or dispatch epochs supersede older callback collections explicitly.",
+      "invalidationBehavior": "Unknown correlation, reordered semantic drift, or contradictory same-key evidence invalidates the callback bundle.",
+      "mandatoryProofRefs": ["ExternalConfirmationGate", "ReplayCollisionReview"],
+      "exchangeStates": ["staged", "accepted", "replayed", "failed", "superseded"],
+      "source_refs": [
+        "blueprint/platform-runtime-and-release-blueprint.md#AdapterContractProfile",
+        "blueprint/forensic-audit-findings.md#Finding 40 - External outcomes were not modelled as adapter-side event producers"
+      ]
+    },
+    {
+      "policyId": "FXBP_049_AUDIT_COMPANION_EXPORT_DOCUMENT",
+      "representationContractRefs": ["FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1"],
+      "direction": "outbound",
+      "legalBundleTypes": ["document", "collection"],
+      "adapterProfileRefs": ["ACP_049_ASSURANCE_AUDIT_EXPORT"],
+      "boundDependencyRefs": [],
+      "correlationKeyFields": ["auditRecordId", "auditHash", "exportBatchId"],
+      "receiptCheckpointRefs": ["AuditExportCheckpoint"],
+      "authoritativeSuccess": "Export completion is authoritative only when the emitted bundle joins back to the same immutable audit hash chain.",
+      "supersessionBehavior": "New exports append new bundles; they never supersede immutable prior audit truth.",
+      "invalidationBehavior": "Digest drift or missing audit hash join invalidates the export bundle.",
+      "mandatoryProofRefs": ["AuditRecord", "AuditEvidenceReference"],
+      "exchangeStates": ["staged", "dispatched", "accepted", "replayed", "failed"],
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#AuditRecord",
+        "blueprint/platform-runtime-and-release-blueprint.md#Runtime publication completeness / FhirRepresentationContract"
+      ]
+    }
+  ],
+  "exchangeTupleHash": "1023ed1ff510f58d65b99f41cd0e8bc1025bf98d05ed7aabda6beaf1d34b5bbe"
+}

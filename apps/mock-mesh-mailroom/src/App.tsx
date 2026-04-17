@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { VecellLogoLockup } from "@vecells/design-system";
 
 import { meshExecutionPack } from "./generated/meshExecutionPack";
 
@@ -1061,16 +1062,7 @@ export default function App() {
       <header className="posture-banner">
         <section className="panel brand-panel">
           <div className="brand-row">
-            <svg className="wordmark" viewBox="0 0 72 72" aria-hidden="true">
-              <defs>
-                <linearGradient id="meshWordmark" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#155EEF" />
-                  <stop offset="100%" stopColor="#7A5AF8" />
-                </linearGradient>
-              </defs>
-              <rect x="8" y="8" width="56" height="56" rx="18" fill="url(#meshWordmark)" />
-              <path d="M23 44V28h6l7 9 7-9h6v16h-5V35l-8 10-8-10v9z" fill="white" />
-            </svg>
+            <VecellLogoLockup aria-hidden="true" className="wordmark" />
             <div className="brand-copy">
               <div className="ribbon-row">
                 <span className="mock-ribbon">MOCK_MESH_MAILROOM</span>

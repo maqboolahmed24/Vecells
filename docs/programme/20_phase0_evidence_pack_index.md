@@ -1,4 +1,3 @@
-
             # Phase 0 Evidence Pack Index
 
             ## Freshness Summary
@@ -11,6 +10,7 @@
             ## Evidence Table
 
             | Artifact Ref | Class | Task | Freshness | Path |
+
 | --- | --- | --- | --- | --- |
 | requirement_registry.jsonl | source_truth | seq_001 | current | data/analysis/requirement_registry.jsonl |
 | source_manifest.json | source_truth | seq_001 | current | data/analysis/source_manifest.json |

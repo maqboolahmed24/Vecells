@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en" data-ready="false" data-scenario="overview">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Record_Parity_Atlas</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f5f7fb;
+        --panel: #ffffff;
+        --ink: #111827;
+        --muted: #5b6472;
+        --border: #d8e0ea;
+        --blue: #2457c5;
+        --teal: #087a71;
+        --amber: #9a5b00;
+        --red: #a43125;
+        --green: #177245;
+        --lav: #5b5bd6;
+        --shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--ink);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        letter-spacing: 0;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      .atlas {
+        min-height: 100vh;
+      }
+
+      .hero {
+        background: #172033;
+        color: #fff;
+        padding: 28px clamp(16px, 4vw, 48px) 24px;
+      }
+
+      .hero__inner,
+      .content {
+        width: min(1260px, calc(100vw - 32px));
+        margin: 0 auto;
+      }
+
+      .hero h1 {
+        margin: 0 0 10px;
+        font-size: clamp(2rem, 4vw, 4.25rem);
+        line-height: 1.02;
+        letter-spacing: 0;
+      }
+
+      .hero p {
+        max-width: 860px;
+        margin: 0;
+        color: #d9e3f2;
+        font-size: 1rem;
+        line-height: 1.6;
+      }
+
+      .mode-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 32px;
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        border-radius: 6px;
+        padding: 6px 10px;
+        background: rgba(255, 255, 255, 0.08);
+        color: inherit;
+        font-size: 0.88rem;
+      }
+
+      .content {
+        padding: 18px 0 42px;
+      }
+
+      .tabs {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px;
+        margin: 0 0 18px;
+      }
+
+      .tab {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        min-height: 48px;
+        padding: 8px 10px;
+        color: var(--ink);
+        background: var(--panel);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .tab[aria-selected="true"] {
+        border-color: var(--blue);
+        box-shadow: inset 0 0 0 2px rgba(36, 87, 197, 0.18);
+      }
+
+      .tab span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.75rem;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.8fr);
+        gap: 18px;
+      }
+
+      .panel {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+
+      .panel > header {
+        padding: 18px 18px 12px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .kicker {
+        display: block;
+        color: var(--blue);
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      h2,
+      h3 {
+        margin: 4px 0 0;
+        letter-spacing: 0;
+      }
+
+      .panel p {
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .board {
+        padding: 18px;
+      }
+
+      .record-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .record-tile {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px;
+        min-height: 142px;
+        background: #fbfcfe;
+      }
+
+      .record-tile strong {
+        display: block;
+        margin: 4px 0;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 6px;
+        padding: 4px 8px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #fff;
+      }
+
+      .status[data-tone="verified"] {
+        background: var(--green);
+      }
+
+      .status[data-tone="table"] {
+        background: var(--teal);
+      }
+
+      .status[data-tone="placeholder"] {
+        background: var(--amber);
+      }
+
+      .status[data-tone="blocked"] {
+        background: var(--red);
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(260px, 0.7fr);
+        gap: 14px;
+      }
+
+      .steps {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .steps li {
+        display: grid;
+        grid-template-columns: 32px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 10px;
+        background: #fff;
+      }
+
+      .steps b {
+        display: inline-grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #e7efff;
+        color: var(--blue);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+      }
+
+      caption {
+        text-align: left;
+        color: var(--muted);
+        padding: 0 0 8px;
+      }
+
+      th,
+      td {
+        border-top: 1px solid var(--border);
+        padding: 9px 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: #263244;
+      }
+
+      dl {
+        display: grid;
+        grid-template-columns: minmax(120px, 0.45fr) minmax(0, 1fr);
+        gap: 8px 12px;
+        margin: 0;
+      }
+
+      dt {
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      dd {
+        margin: 0;
+      }
+
+      details {
+        margin-top: 14px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: #fbfcfe;
+      }
+
+      summary {
+        cursor: pointer;
+        padding: 10px 12px;
+        font-weight: 800;
+      }
+
+      pre {
+        overflow: auto;
+        margin: 0;
+        padding: 12px;
+        font-size: 0.82rem;
+      }
+
+      .meter {
+        height: 12px;
+        border-radius: 999px;
+        background: #e6edf5;
+        overflow: hidden;
+      }
+
+      .meter span {
+        display: block;
+        height: 100%;
+        width: var(--value);
+        background: var(--lav);
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .action {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 8px 10px;
+        background: #fff;
+      }
+
+      .action[aria-disabled="true"] {
+        color: var(--muted);
+        background: #eef2f7;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.001ms !important;
+          animation-duration: 0.001ms !important;
+        }
+      }
+
+      @media (max-width: 860px) {
+        .tabs,
+        .layout,
+        .split,
+        .record-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .tab {
+          min-height: 44px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="atlas" data-testid="Record_Parity_Atlas" aria-label="Record parity atlas">
+      <section class="hero" aria-label="Record parity header">
+        <div class="hero__inner">
+          <span class="kicker">Record_Parity_Atlas</span>
+          <h1>Health record parity states</h1>
+          <p>
+            Patient record summaries, result detail, document artifacts, chart fallbacks,
+            placeholders, and record-origin follow-up actions share one projection tuple.
+          </p>
+          <div class="mode-row" aria-label="Projection contract chips">
+            <span class="chip">PatientRecordSurfaceContext</span>
+            <span class="chip">RecordArtifactParityWitness</span>
+            <span class="chip">VisualizationParityProjection</span>
+            <span class="chip">PatientRecordContinuityState</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="content">
+        <nav class="tabs" role="tablist" aria-label="Record parity scenarios">
+          <button
+            class="tab"
+            role="tab"
+            type="button"
+            aria-selected="true"
+            data-scenario-button="overview"
+          >
+            Overview <span>summary groups</span>
+          </button>
+          <button
+            class="tab"
+            role="tab"
+            type="button"
+            aria-selected="false"
+            data-scenario-button="result-detail"
+          >
+            Result <span>interpretation order</span>
+          </button>
+          <button
+            class="tab"
+            role="tab"
+            type="button"
+            aria-selected="false"
+            data-scenario-button="document-detail"
+          >
+            Document <span>artifact witness</span>
+          </button>
+          <button
+            class="tab"
+            role="tab"
+            type="button"
+            aria-selected="false"
+            data-scenario-button="parity-verified"
+          >
+            Verified <span>source authority</span>
+          </button>
+          <button
+            class="tab"
+            role="tab"
+            type="button"
+            aria-selected="false"
+            data-scenario-button="degraded-table"
+          >
+            Degraded <span>table authority</span>
+          </button>
+          <button
+            class="tab"
+            role="tab"
+            type="button"
+            aria-selected="false"
+            data-scenario-button="delayed-placeholder"
+          >
+            Delayed <span>placeholder</span>
+          </button>
+          <button
+            class="tab"
+            role="tab"
+            type="button"
+            aria-selected="false"
+            data-scenario-button="step-up-placeholder"
+          >
+            Step-up <span>same shell</span>
+          </button>
+          <button
+            class="tab"
+            role="tab"
+            type="button"
+            aria-selected="false"
+            data-scenario-button="restricted-placeholder"
+          >
+            Restricted <span>no body leak</span>
+          </button>
+          <button
+            class="tab"
+            role="tab"
+            type="button"
+            aria-selected="false"
+            data-scenario-button="source-authority"
+          >
+            Source <span>summary limits</span>
+          </button>
+          <button
+            class="tab"
+            role="tab"
+            type="button"
+            aria-selected="false"
+            data-scenario-button="follow-up-continuity"
+          >
+            Follow-up <span>eligibility</span>
+          </button>
+        </nav>
+
+        <div class="layout">
+          <section class="panel" data-testid="OverviewBoard" aria-label="Overview board">
+            <header>
+              <span class="kicker" id="scenarioKicker">OverviewBoard</span>
+              <h2 id="scenarioTitle">Summary-first overview</h2>
+              <p id="scenarioSummary">
+                The overview keeps every group visible, including delayed-release and step-up
+                placeholders.
+              </p>
+            </header>
+            <div class="board" id="scenarioBody"></div>
+          </section>
+
+          <aside
+            class="panel"
+            data-testid="SourceAuthorityBoard"
+            aria-label="Source authority board"
+          >
+            <header>
+              <span class="kicker">Authority tuple</span>
+              <h2 id="authorityTitle">summary_verified</h2>
+            </header>
+            <div class="board">
+              <dl aria-label="Projection authority details">
+                <dt>Record gate</dt>
+                <dd id="authorityGate">visible</dd>
+                <dt>Source authority</dt>
+                <dd id="authorityState">summary_verified</dd>
+                <dt>Visualization</dt>
+                <dd id="authorityVisual">visual_and_table</dd>
+                <dt>Follow-up</dt>
+                <dd id="authorityFollowUp">available</dd>
+              </dl>
+              <details open>
+                <summary>Projection refs</summary>
+                <pre id="projectionRefs" tabindex="0">
+PatientRecordSurfaceContext
+PatientRecordArtifactProjection
+RecordArtifactParityWitness
+VisualizationFallbackContract
+VisualizationTableContract
+VisualizationParityProjection</pre
+                >
+              </details>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      window.__recordParityAtlasData = {
+        visualMode: "Record_Parity_Atlas",
+        projections: [
+          "PatientRecordSurfaceContext",
+          "PatientResultInterpretationProjection",
+          "PatientResultInsightProjection",
+          "PatientRecordArtifactProjection",
+          "RecordArtifactParityWitness",
+          "PatientRecordFollowUpEligibilityProjection",
+          "PatientRecordContinuityState",
+          "VisualizationFallbackContract",
+          "VisualizationTableContract",
+          "VisualizationParityProjection",
+        ],
+        scenarios: [
+          {
+            id: "overview",
+            region: "OverviewBoard",
+            title: "Summary-first overview",
+            summary:
+              "Latest updates, test results, medicines and allergies, conditions and care plans, letters and documents, and action-needed follow-up stay visible in order.",
+            gate: "visible",
+            authority: "summary_verified",
+            visual: "visual_and_table",
+            followUp: "available",
+            tone: "verified",
+            rows: [
+              ["Latest updates", "1 record", "visible"],
+              ["Test results", "2 records", "one delayed placeholder"],
+              ["Medicines and allergies", "1 record", "visible"],
+              ["Conditions and care plans", "1 record", "visible"],
+              ["Letters and documents", "1 record", "visible"],
+              ["Action-needed follow-up", "1 record", "placeholder"],
+            ],
+          },
+          {
+            id: "result-detail",
+            region: "ResultDetailAnatomy",
+            title: "Result detail anatomy",
+            summary:
+              "PatientResultInterpretationProjection owns the patient-facing explanation and PatientResultInsightProjection is only an alias.",
+            gate: "visible",
+            authority: "summary_verified",
+            visual: "visual_and_table",
+            followUp: "available",
+            tone: "verified",
+            steps: [
+              "what_this_test_is",
+              "latest_result",
+              "what_changed",
+              "patient_next_step",
+              "urgent_help",
+              "technical_details",
+            ],
+          },
+          {
+            id: "document-detail",
+            region: "DocumentArtifactBoard",
+            title: "Document artifact board",
+            summary:
+              "Document summary, preview, download, print, and browser handoff share PatientRecordArtifactProjection and RecordArtifactParityWitness.",
+            gate: "visible",
+            authority: "summary_verified",
+            visual: "summary_only",
+            followUp: "available",
+            tone: "verified",
+          },
+          {
+            id: "parity-verified",
+            region: "ArtifactParityStateBoard",
+            title: "Verified artifact parity",
+            summary:
+              "summary_verified is allowed because the summary digest, source artifact, release gate, visibility envelope, step-up checkpoint, and artifact mode truth agree.",
+            gate: "visible",
+            authority: "summary_verified",
+            visual: "visual_and_table",
+            followUp: "available",
+            tone: "verified",
+          },
+          {
+            id: "degraded-table",
+            region: "ChartTableParityBoard",
+            title: "Chart demoted to table",
+            summary:
+              "The chart cannot remain dominant when summary parity is stale; the table becomes the authority.",
+            gate: "visible",
+            authority: "summary_provisional",
+            visual: "table_only",
+            followUp: "available",
+            tone: "table",
+          },
+          {
+            id: "delayed-placeholder",
+            region: "GatedPlaceholderBoard",
+            title: "Delayed-release placeholder",
+            summary:
+              "The record remains visible, but detail, chart point, download, and body preview are held until release.",
+            gate: "delayed_release",
+            authority: "placeholder_only",
+            visual: "placeholder_only",
+            followUp: "gated",
+            tone: "placeholder",
+          },
+          {
+            id: "step-up-placeholder",
+            region: "GatedPlaceholderBoard",
+            title: "Step-up placeholder",
+            summary:
+              "The selected anchor remains in the same shell while the patient completes the matching step-up checkpoint.",
+            gate: "step_up_required",
+            authority: "placeholder_only",
+            visual: "placeholder_only",
+            followUp: "gated",
+            tone: "placeholder",
+          },
+          {
+            id: "restricted-placeholder",
+            region: "GatedPlaceholderBoard",
+            title: "Restricted placeholder",
+            summary:
+              "Audience-restricted records are not omitted and do not leak body fields, chart points, or attachment detail.",
+            gate: "restricted",
+            authority: "placeholder_only",
+            visual: "placeholder_only",
+            followUp: "gated",
+            tone: "blocked",
+          },
+          {
+            id: "source-authority",
+            region: "SourceAuthorityBoard",
+            title: "Source artifact remains authoritative",
+            summary:
+              "A verified summary is a faithful derivative only for the current tuple; source-only posture labels the file as the source artifact.",
+            gate: "visible",
+            authority: "source_only",
+            visual: "summary_only",
+            followUp: "available",
+            tone: "table",
+          },
+          {
+            id: "follow-up-continuity",
+            region: "FollowUpContinuityBoard",
+            title: "Record-origin follow-up eligibility",
+            summary:
+              "Messaging, callback, booking, request-detail repair, and artifact recovery require an aligned action context token and continuation envelope.",
+            gate: "visible",
+            authority: "summary_verified",
+            visual: "summary_only",
+            followUp: "available",
+            tone: "verified",
+          },
+        ],
+      };
+
+      const body = document.querySelector("#scenarioBody");
+      const buttons = [...document.querySelectorAll("[data-scenario-button]")];
+      const data = window.__recordParityAtlasData;
+
+      function status(text, tone) {
+        return `<span class="status" data-tone="${tone}">${text}</span>`;
+      }
+
+      function renderScenario(scenario) {
+        document.documentElement.dataset.scenario = scenario.id;
+        document.querySelector("#scenarioKicker").textContent = scenario.region;
+        document.querySelector("#scenarioTitle").textContent = scenario.title;
+        document.querySelector("#scenarioSummary").textContent = scenario.summary;
+        document.querySelector("#authorityTitle").textContent = scenario.authority;
+        document.querySelector("#authorityGate").textContent = scenario.gate;
+        document.querySelector("#authorityState").textContent = scenario.authority;
+        document.querySelector("#authorityVisual").textContent = scenario.visual;
+        document.querySelector("#authorityFollowUp").textContent = scenario.followUp;
+        buttons.forEach((button) => {
+          button.setAttribute(
+            "aria-selected",
+            String(button.dataset.scenarioButton === scenario.id),
+          );
+        });
+
+        if (scenario.id === "overview") {
+          body.innerHTML = `<div class="record-grid" aria-label="Record overview groups">${scenario.rows
+            .map(
+              ([group, count, posture]) =>
+                `<article class="record-tile"><span class="kicker">${group}</span><strong>${count}</strong><p>${posture}</p>${status(posture, posture.includes("placeholder") ? "placeholder" : "verified")}</article>`,
+            )
+            .join("")}</div>`;
+          return;
+        }
+
+        if (scenario.steps) {
+          body.innerHTML = `<section class="split" data-testid="ResultDetailAnatomy" aria-label="Result detail anatomy"><ol class="steps">${scenario.steps
+            .map((step, index) => `<li><b>${index + 1}</b><span>${step}</span></li>`)
+            .join(
+              "",
+            )}</ol><div><table><caption>Alias resolution</caption><tbody><tr><th scope="row">Primary</th><td>PatientResultInterpretationProjection</td></tr><tr><th scope="row">Alias</th><td>PatientResultInsightProjection</td></tr><tr><th scope="row">Adapter</th><td>adaptPatientResultInsightProjection</td></tr></tbody></table></div></section>`;
+          return;
+        }
+
+        body.innerHTML = `<section class="split" data-testid="${scenario.region}" aria-label="${scenario.region.replaceAll("_", " ")}"><div><h3>${scenario.title}</h3><p>${scenario.summary}</p><div class="actions" aria-label="Follow-up actions"><button class="action" type="button" aria-disabled="${scenario.followUp !== "available"}">Message</button><button class="action" type="button" aria-disabled="${scenario.followUp !== "available"}">Callback</button><button class="action" type="button" aria-disabled="${scenario.followUp !== "available"}">Book</button><button class="action" type="button" aria-disabled="${scenario.followUp !== "available"}">Repair detail</button><button class="action" type="button" aria-disabled="${scenario.followUp !== "available"}">Recover artifact</button></div></div><div><table><caption>Record parity tuple</caption><tbody><tr><th scope="row">Record gate</th><td>${scenario.gate}</td></tr><tr><th scope="row">Source authority</th><td>${scenario.authority}</td></tr><tr><th scope="row">Visualization parity</th><td>${scenario.visual}</td></tr><tr><th scope="row">Follow-up</th><td>${scenario.followUp}</td></tr></tbody></table><div class="meter" aria-label="Parity confidence"><span style="--value:${scenario.authority === "summary_verified" ? "100%" : scenario.authority === "placeholder_only" ? "28%" : "62%"}"></span></div></div></section>`;
+      }
+
+      buttons.forEach((button, index) => {
+        button.addEventListener("click", () => {
+          renderScenario(
+            data.scenarios.find((scenario) => scenario.id === button.dataset.scenarioButton),
+          );
+        });
+        button.addEventListener("keydown", (event) => {
+          if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+          event.preventDefault();
+          const offset = event.key === "ArrowRight" ? 1 : -1;
+          const next = buttons[(index + offset + buttons.length) % buttons.length];
+          next.focus();
+          next.click();
+        });
+      });
+
+      renderScenario(data.scenarios[0]);
+      document.documentElement.dataset.ready = "true";
+    </script>
+  </body>
+</html>

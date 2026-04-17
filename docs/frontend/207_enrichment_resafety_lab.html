@@ -1,0 +1,998 @@
+<!doctype html>
+<html lang="en" data-ready="false">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>207 Enrichment Resafety Lab</title>
+    <style>
+      :root {
+        --canvas: #f6f8fc;
+        --panel: #ffffff;
+        --inset: #eef2f7;
+        --strong: #0f172a;
+        --text: #334155;
+        --muted: #64748b;
+        --border: #d7dfea;
+        --provenance: #3158e0;
+        --verified: #0f766e;
+        --review: #b7791f;
+        --danger: #b42318;
+        --shadow: 0 26px 80px rgba(15, 23, 42, 0.09);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--canvas);
+      }
+
+      body {
+        margin: 0;
+        background:
+          linear-gradient(135deg, rgba(49, 88, 224, 0.1), transparent 30%),
+          radial-gradient(circle at 72% 8%, rgba(15, 118, 110, 0.13), transparent 31%),
+          radial-gradient(circle at 20% 90%, rgba(183, 121, 31, 0.12), transparent 34%),
+          var(--canvas);
+        color: var(--text);
+        font-family: "Aptos", "Atkinson Hyperlegible", "Segoe UI", sans-serif;
+        overflow-x: hidden;
+      }
+
+      button,
+      table {
+        font: inherit;
+      }
+
+      button {
+        border: 0;
+      }
+
+      button:focus,
+      button:focus-visible,
+      [tabindex]:focus-visible {
+        outline: 3px solid rgba(49, 88, 224, 0.76);
+        outline-offset: 3px;
+      }
+
+      .lab {
+        width: min(100% - 56px, 1540px);
+        max-width: 1540px;
+        margin: 0 auto;
+        padding: 26px 0 44px;
+      }
+
+      .top-band {
+        min-height: 72px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 22px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .eyebrow {
+        margin: 0 0 5px;
+        color: var(--provenance);
+        font-size: 12px;
+        line-height: 16px;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        font-weight: 900;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        color: var(--strong);
+        font-size: 30px;
+        line-height: 36px;
+        letter-spacing: -0.025em;
+      }
+
+      h2 {
+        color: var(--strong);
+        font-size: 22px;
+        line-height: 28px;
+        letter-spacing: -0.015em;
+      }
+
+      h3 {
+        color: var(--strong);
+        font-size: 15px;
+        line-height: 20px;
+      }
+
+      .lede,
+      .small-copy,
+      .matrix-note {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 19px;
+      }
+
+      .suite-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 36px;
+        padding: 0 14px;
+        border: 1px solid rgba(15, 118, 110, 0.26);
+        border-radius: 999px;
+        background: rgba(15, 118, 110, 0.08);
+        color: var(--verified);
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .scenario-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 18px 0;
+      }
+
+      .scenario-button {
+        min-height: 38px;
+        padding: 0 13px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.92);
+        color: var(--text);
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 900;
+        cursor: pointer;
+        transition:
+          transform 140ms ease,
+          border-color 140ms ease,
+          background 140ms ease,
+          color 140ms ease;
+      }
+
+      .scenario-button:hover {
+        transform: translateY(-1px);
+      }
+
+      .scenario-button[aria-pressed="true"] {
+        border-color: rgba(49, 88, 224, 0.38);
+        background: rgba(49, 88, 224, 0.09);
+        color: var(--provenance);
+      }
+
+      .scenario-button[data-alert="true"][aria-pressed="true"] {
+        border-color: rgba(180, 35, 24, 0.32);
+        background: rgba(180, 35, 24, 0.08);
+        color: var(--danger);
+      }
+
+      .lanes {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 18px;
+        align-items: stretch;
+      }
+
+      .lane,
+      .evidence-card,
+      .matrix-panel {
+        min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: 30px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: var(--shadow);
+      }
+
+      .lane {
+        grid-column: span 6;
+        min-height: 560px;
+        padding: 22px;
+      }
+
+      .lane-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: start;
+        padding-bottom: 18px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .seal {
+        display: grid;
+        place-items: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 18px;
+        background:
+          linear-gradient(145deg, rgba(49, 88, 224, 0.16), rgba(15, 118, 110, 0.1)), var(--inset);
+        color: var(--provenance);
+        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 900;
+      }
+
+      .heatband {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .heat-cell {
+        min-height: 92px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: var(--inset);
+      }
+
+      .heat-cell strong,
+      .ledger-row strong,
+      .ladder-step strong,
+      .chain-step strong {
+        display: block;
+        color: var(--strong);
+        font-size: 13px;
+        line-height: 18px;
+      }
+
+      .heat-cell span,
+      .ledger-row span,
+      .ladder-step span,
+      .chain-step span {
+        display: block;
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 16px;
+      }
+
+      .heat-cell[data-state="pass"] {
+        background: rgba(15, 118, 110, 0.08);
+        border-color: rgba(15, 118, 110, 0.24);
+      }
+
+      .heat-cell[data-state="review"] {
+        background: rgba(183, 121, 31, 0.1);
+        border-color: rgba(183, 121, 31, 0.26);
+      }
+
+      .heat-cell[data-state="danger"] {
+        background: rgba(180, 35, 24, 0.08);
+        border-color: rgba(180, 35, 24, 0.22);
+      }
+
+      .provenance-strip {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .ledger-row {
+        min-height: 108px;
+        padding: 14px;
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        background: var(--panel);
+      }
+
+      .ledger-row[data-emphasis="provenance"] {
+        border-color: rgba(49, 88, 224, 0.28);
+        background: rgba(49, 88, 224, 0.06);
+      }
+
+      .ledger-row[data-emphasis="verified"] {
+        border-color: rgba(15, 118, 110, 0.26);
+        background: rgba(15, 118, 110, 0.06);
+      }
+
+      .duplicate-ladder,
+      .resafety-chain {
+        display: grid;
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .ladder-step,
+      .chain-step {
+        position: relative;
+        min-height: 88px;
+        padding: 15px 15px 15px 48px;
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        background: var(--panel);
+      }
+
+      .ladder-step::before,
+      .chain-step::before {
+        content: attr(data-index);
+        position: absolute;
+        left: 14px;
+        top: 16px;
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        background: var(--inset);
+        color: var(--provenance);
+        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
+        font-size: 11px;
+        line-height: 14px;
+        font-weight: 900;
+      }
+
+      .ladder-step[data-active="true"],
+      .chain-step[data-active="true"] {
+        border-color: rgba(49, 88, 224, 0.34);
+        background: rgba(49, 88, 224, 0.06);
+      }
+
+      .chain-step[data-risk="true"] {
+        border-color: rgba(180, 35, 24, 0.32);
+        background: rgba(180, 35, 24, 0.06);
+      }
+
+      .status-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .status-tile {
+        min-height: 74px;
+        padding: 12px;
+        border-radius: 18px;
+        background: var(--inset);
+      }
+
+      .status-tile b {
+        display: block;
+        color: var(--strong);
+        font-size: 12px;
+        line-height: 16px;
+      }
+
+      .status-tile span {
+        display: block;
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 16px;
+      }
+
+      .evidence-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      .evidence-card,
+      .matrix-panel {
+        padding: 20px;
+      }
+
+      .matrix-panel {
+        grid-column: 1 / -1;
+      }
+
+      .card-stat {
+        margin-top: 18px;
+        color: var(--strong);
+        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
+        font-size: 26px;
+        line-height: 32px;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        min-height: 26px;
+        padding: 0 9px;
+        border-radius: 999px;
+        background: var(--inset);
+        color: var(--text);
+        font-size: 12px;
+        line-height: 16px;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        font-weight: 900;
+        overflow-wrap: anywhere;
+        white-space: normal;
+      }
+
+      .chip.provenance {
+        color: var(--provenance);
+        background: rgba(49, 88, 224, 0.08);
+      }
+
+      .chip.verified {
+        color: var(--verified);
+        background: rgba(15, 118, 110, 0.08);
+      }
+
+      .chip.review {
+        color: var(--review);
+        background: rgba(183, 121, 31, 0.1);
+      }
+
+      .chip.danger {
+        color: var(--danger);
+        background: rgba(180, 35, 24, 0.08);
+      }
+
+      table {
+        width: 100%;
+        margin-top: 16px;
+        border-collapse: collapse;
+        table-layout: fixed;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+      }
+
+      th,
+      td {
+        padding: 11px 12px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+        vertical-align: top;
+        font-size: 12px;
+        line-height: 17px;
+        overflow-wrap: anywhere;
+      }
+
+      th {
+        background: var(--inset);
+        color: var(--strong);
+        font-weight: 900;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .mono {
+        font-family: "JetBrains Mono", "SFMono-Regular", monospace;
+      }
+
+      @media (max-width: 1100px) {
+        .lab {
+          width: min(100% - 36px, 1540px);
+        }
+
+        .lane {
+          grid-column: 1 / -1;
+        }
+
+        .evidence-strip {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .matrix-panel {
+          grid-column: 1 / -1;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .lab {
+          width: min(100% - 24px, 1540px);
+          padding-top: 16px;
+        }
+
+        .top-band {
+          grid-template-columns: 1fr;
+          align-items: start;
+          gap: 12px;
+        }
+
+        h1 {
+          font-size: 25px;
+          line-height: 31px;
+        }
+
+        .scenario-tabs {
+          position: sticky;
+          top: 0;
+          z-index: 3;
+          margin: 0 -12px;
+          padding: 12px;
+          background: rgba(246, 248, 252, 0.96);
+          backdrop-filter: blur(12px);
+        }
+
+        .heatband,
+        .provenance-strip,
+        .status-grid,
+        .evidence-strip {
+          grid-template-columns: 1fr;
+        }
+
+        .lane,
+        .evidence-card,
+        .matrix-panel {
+          border-radius: 24px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 1ms !important;
+          animation-duration: 1ms !important;
+          animation-iteration-count: 1 !important;
+        }
+
+        .scenario-button:hover {
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main
+      class="lab"
+      data-testid="Enrichment_Resafety_Lab"
+      data-visual-mode="Enrichment_Resafety_Lab"
+      data-active-case="pds-off"
+    >
+      <section class="top-band" aria-label="Suite summary">
+        <div>
+          <p class="eyebrow">Phase 2 sequence 207</p>
+          <h1>Enrichment and re-safety provenance atlas</h1>
+          <p class="lede">
+            PDS evidence is gated as optional provenance; late phone evidence is frozen,
+            deduplicated, and either reused or re-safety checked without stale calm projection.
+          </p>
+        </div>
+        <div class="suite-pill" data-testid="suite-status">passed: 20 cases | failed: 0</div>
+      </section>
+
+      <nav class="scenario-tabs" aria-label="Scenario tabs">
+        <button class="scenario-button" type="button" data-case="pds-off" aria-pressed="true">
+          PDS off
+        </button>
+        <button class="scenario-button" type="button" data-case="pds-success" aria-pressed="false">
+          PDS success
+        </button>
+        <button
+          class="scenario-button"
+          type="button"
+          data-case="pds-degraded"
+          data-alert="true"
+          aria-pressed="false"
+        >
+          PDS degraded
+        </button>
+        <button
+          class="scenario-button"
+          type="button"
+          data-case="exact-duplicate"
+          aria-pressed="false"
+        >
+          Exact duplicate
+        </button>
+        <button
+          class="scenario-button"
+          type="button"
+          data-case="material-resafety"
+          data-alert="true"
+          aria-pressed="false"
+        >
+          Material re-safety
+        </button>
+      </nav>
+
+      <section class="lanes" id="active-panel" aria-live="polite" data-active-case="pds-off">
+        <article class="lane" aria-labelledby="pds-title">
+          <header class="lane-header">
+            <div>
+              <p class="eyebrow">PDS / provenance</p>
+              <h2 id="pds-title">Feature gate heatband</h2>
+              <p class="small-copy" id="pds-summary">
+                PDS207_FLAG_OFF_LOCAL_ONLY keeps canonical matching local and records a disabled
+                gating decision.
+              </p>
+            </div>
+            <div class="seal" aria-hidden="true">PDS</div>
+          </header>
+
+          <section
+            class="heatband"
+            data-testid="FeatureGateHeatband"
+            aria-label="FeatureGateHeatband"
+          >
+            <div class="heat-cell" data-state="danger">
+              <strong>Gate</strong>
+              <span id="gate-state">feature_flag=off</span>
+            </div>
+            <div class="heat-cell" data-state="pass">
+              <strong>Canonical</strong>
+              <span id="canonical-state">local_matching_continues</span>
+            </div>
+            <div class="heat-cell" data-state="review">
+              <strong>Attempt</strong>
+              <span id="attempt-state">adapter_not_called</span>
+            </div>
+            <div class="heat-cell" data-state="pass">
+              <strong>Mutation</strong>
+              <span id="mutation-state">binding_blocked</span>
+            </div>
+            <div class="heat-cell" data-state="pass">
+              <strong>Status</strong>
+              <span id="patient-state">continue_with_local_match</span>
+            </div>
+          </section>
+
+          <section
+            class="provenance-strip"
+            data-testid="ContactTruthProvenanceStrip"
+            aria-label="ContactTruthProvenanceStrip"
+          >
+            <div class="ledger-row" data-emphasis="provenance">
+              <strong>data class separation</strong>
+              <span id="separation-state">
+                local match refs, NHS login claims, PDS demographics, and communication preferences
+                remain separate.
+              </span>
+            </div>
+            <div class="ledger-row" data-emphasis="verified">
+              <strong>PDS207_ON_SUCCESS_ENRICHED</strong>
+              <span id="pds-case-state">
+                Fresh PDS snapshot stores hashes, digests, refs, freshness, and provenance only.
+              </span>
+            </div>
+            <div class="ledger-row">
+              <strong>conflicting contact details</strong>
+              <span>
+                PDS contact claims are quarantined when they conflict with user preference truth.
+              </span>
+            </div>
+            <div class="ledger-row">
+              <strong>late enrichment after preference change</strong>
+              <span
+                >Change signal queues refresh; it never rolls back user-edited preferences.</span
+              >
+            </div>
+          </section>
+        </article>
+
+        <article class="lane" aria-labelledby="followup-title">
+          <header class="lane-header">
+            <div>
+              <p class="eyebrow">Duplicate / re-safety</p>
+              <h2 id="followup-title">Late evidence chain</h2>
+              <p class="small-copy" id="followup-summary">
+                Exact replay returns the settled chain and does not create a second receipt.
+              </p>
+            </div>
+            <div class="seal" aria-hidden="true">FUP</div>
+          </header>
+
+          <section
+            class="duplicate-ladder"
+            data-testid="DuplicateClassLadder"
+            aria-label="DuplicateClassLadder"
+          >
+            <div class="ladder-step" data-index="01" data-active="true">
+              <strong>exact_replay</strong>
+              <span id="duplicate-class">same phone follow-up payload reuses settled chain.</span>
+            </div>
+            <div class="ladder-step" data-index="02">
+              <strong>semantic_replay</strong>
+              <span>Same underlying facts reuse the existing assimilation record.</span>
+            </div>
+            <div class="ladder-step" data-index="03">
+              <strong>same_request_attach</strong>
+              <span>Accepted continuity witness can extend lineage for new evidence.</span>
+            </div>
+            <div class="ladder-step" data-index="04">
+              <strong>review_required</strong>
+              <span
+                >Closed or identity-held requests block calm projection until review settles.</span
+              >
+            </div>
+          </section>
+
+          <section
+            class="resafety-chain"
+            data-testid="ResafetyTriggerChain"
+            aria-label="ResafetyTriggerChain"
+          >
+            <div class="chain-step" data-index="A" data-active="true">
+              <strong id="resafety-decision">no_re_safety</strong>
+              <span id="resafety-detail"
+                >duplicate evidence does not open a second safety chain.</span
+              >
+            </div>
+            <div class="chain-step" data-index="B">
+              <strong>lineage</strong>
+              <span id="lineage-state">reuse_settled_assimilation_chain</span>
+            </div>
+            <div class="chain-step" data-index="C">
+              <strong>patient visible status</strong>
+              <span id="visible-state">no_new_receipt</span>
+            </div>
+          </section>
+        </article>
+      </section>
+
+      <section class="evidence-strip" data-testid="EvidenceMatrices" aria-label="EvidenceMatrices">
+        <article class="evidence-card">
+          <p class="eyebrow">PDS matrix</p>
+          <h3>10 boundary cases</h3>
+          <p class="matrix-note">
+            Includes flag off, success, no match, ambiguous match, degraded upstream, toggled gate,
+            prior enrichment disabled, guard absent, conflicting contact, and late enrichment.
+          </p>
+          <div class="card-stat">10 / 10</div>
+          <div class="chip-row">
+            <span class="chip provenance">PDS207_DEGRADED_UPSTREAM</span>
+            <span class="chip verified">passed</span>
+          </div>
+        </article>
+
+        <article class="evidence-card">
+          <p class="eyebrow">Follow-up matrix</p>
+          <h3>10 duplicate cases</h3>
+          <p class="matrix-note">
+            Exact replay, provider retry, semantic replay, material symptoms, risk factors, admin
+            metadata, duplicate attachment, late evidence, closed request, and identity hold.
+          </p>
+          <div class="card-stat">10 / 10</div>
+          <div class="chip-row">
+            <span class="chip review">review fences</span>
+            <span class="chip verified">passed</span>
+          </div>
+        </article>
+
+        <article class="evidence-card">
+          <p class="eyebrow">Service proof</p>
+          <h3>Focused command-api run</h3>
+          <p class="matrix-note">
+            `pds-enrichment.integration.test.js` and `phone-followup-resafety.integration.test.js`
+            pass with deterministic mock-now results.
+          </p>
+          <div class="card-stat">13 tests</div>
+          <div class="chip-row">
+            <span class="chip verified">2 files</span>
+            <span class="chip provenance">no live PDS</span>
+            <span class="chip review">blocked_external</span>
+            <span class="chip">not_applicable</span>
+          </div>
+        </article>
+
+        <article class="matrix-panel">
+          <p class="eyebrow">Evidence matrix excerpt</p>
+          <h3>Canonical status, provenance, and re-safety truth</h3>
+          <table aria-label="Evidence matrix excerpt">
+            <thead>
+              <tr>
+                <th scope="col">Case</th>
+                <th scope="col">Truth</th>
+                <th scope="col">Patient status</th>
+                <th scope="col">Invariant</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="mono">PDS207_FLAG_OFF_LOCAL_ONLY</td>
+                <td>Disabled gate, adapter not called.</td>
+                <td>continue_with_local_match</td>
+                <td>No binding mutation.</td>
+              </tr>
+              <tr>
+                <td class="mono">PDS207_ON_SUCCESS_ENRICHED</td>
+                <td>Fresh `pds_fhir` provenance with data class separation.</td>
+                <td>enrichment_available</td>
+                <td>Raw demographics and preferences not overwritten.</td>
+              </tr>
+              <tr>
+                <td class="mono">FUP207_EXACT_REPLAY_PHONE</td>
+                <td>Exact digest returns settled assimilation chain.</td>
+                <td>no_new_receipt</td>
+                <td>No duplicate receipt or preemption.</td>
+              </tr>
+              <tr>
+                <td class="mono">FUP207_LATE_EVIDENCE_RESAFETY</td>
+                <td>Material delta extends lineage with preemption.</td>
+                <td>detail_received_being_checked</td>
+                <td>No stale calm status.</td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const scenarios = {
+        "pds-off": {
+          pdsSummary:
+            "PDS207_FLAG_OFF_LOCAL_ONLY keeps canonical matching local and records a disabled gating decision.",
+          gate: "feature_flag=off",
+          canonical: "local_matching_continues",
+          attempt: "adapter_not_called",
+          mutation: "binding_blocked",
+          patient: "continue_with_local_match",
+          separation:
+            "local match refs, NHS login claims, PDS demographics, and communication preferences remain separate.",
+          pdsCase: "PDS207_FLAG_OFF_LOCAL_ONLY",
+          pdsCaseText: "Disabled-by-default gate prevents provider call.",
+          followupSummary:
+            "Exact replay returns the settled chain and does not create a second receipt.",
+          duplicate: "same phone follow-up payload reuses settled chain.",
+          resafety: "no_re_safety",
+          resafetyDetail: "duplicate evidence does not open a second safety chain.",
+          lineage: "reuse_settled_assimilation_chain",
+          visible: "no_new_receipt",
+          activeDuplicateIndex: 0,
+          activeChainIndex: 0,
+        },
+        "pds-success": {
+          pdsSummary:
+            "PDS207_ON_SUCCESS_ENRICHED records fresh PDS provenance while keeping binding and preference authority separate.",
+          gate: "feature_flag=on guards_passed",
+          canonical: "pds_enrichment_available",
+          attempt: "adapter_matched",
+          mutation: "binding_blocked_preferences_unaffected",
+          patient: "enrichment_available",
+          separation:
+            "data class separation keeps PDS demographics away from contact preference truth.",
+          pdsCase: "PDS207_ON_SUCCESS_ENRICHED",
+          pdsCaseText: "Fresh snapshot stores hashes, digests, refs, freshness, and source refs.",
+          followupSummary:
+            "Duplicate ladder remains stable while enrichment provenance is inspected.",
+          duplicate: "same underlying facts reuse existing record when nothing material changes.",
+          resafety: "no_re_safety",
+          resafetyDetail: "no follow-up material delta in this view.",
+          lineage: "canonical_proceeds_with_pds_evidence",
+          visible: "enrichment_available",
+          activeDuplicateIndex: 1,
+          activeChainIndex: 1,
+        },
+        "pds-degraded": {
+          pdsSummary:
+            "PDS207_DEGRADED_UPSTREAM falls back local-only and labels any stale cache as stale evidence.",
+          gate: "feature_flag=on guards_passed",
+          canonical: "local_matching_continues",
+          attempt: "adapter_timeout",
+          mutation: "degraded_binding_blocked",
+          patient: "local_match_only",
+          separation:
+            "upstream failure is quarantined and cannot masquerade as fresh contact truth.",
+          pdsCase: "PDS207_DEGRADED_UPSTREAM",
+          pdsCaseText:
+            "Timeout or provider failure records fallback reason and provenance penalty.",
+          followupSummary:
+            "Review posture shows degraded evidence cannot expose stale calm status.",
+          duplicate: "review_required when evidence quality or continuity is not safe.",
+          resafety: "manual_review",
+          resafetyDetail: "degraded evidence blocks routine projection until reviewed.",
+          lineage: "lineage_blocked_until_review",
+          visible: "review_pending",
+          activeDuplicateIndex: 3,
+          activeChainIndex: 2,
+        },
+        "exact-duplicate": {
+          pdsSummary:
+            "PDS remains optional while the duplicate ladder demonstrates exact replay collapse.",
+          gate: "feature_flag=off",
+          canonical: "local_matching_continues",
+          attempt: "adapter_not_called",
+          mutation: "binding_blocked",
+          patient: "continue_with_local_match",
+          separation:
+            "PDS cache is ignored while disabled and the duplicate chain returns settled truth.",
+          pdsCase: "PDS207_FLAG_OFF_AFTER_PRIOR_ENRICHMENT",
+          pdsCaseText: "Prior PDS evidence cannot bypass a disabled gate.",
+          followupSummary:
+            "FUP207_EXACT_REPLAY_PHONE returns the settled assimilation chain with no second receipt.",
+          duplicate: "exact digest and idempotency replay collapse the second phone follow-up.",
+          resafety: "no_re_safety",
+          resafetyDetail: "no second preemption, projection hold, or receipt is created.",
+          lineage: "reuse_settled_assimilation_chain",
+          visible: "no_new_receipt",
+          activeDuplicateIndex: 0,
+          activeChainIndex: 0,
+        },
+        "material-resafety": {
+          pdsSummary:
+            "Contact-truth provenance remains separated while material late evidence opens re-safety.",
+          gate: "feature_flag=on guards_passed",
+          canonical: "pds_or_local_truth_proceeds",
+          attempt: "adapter_attempted_when_allowed",
+          mutation: "preference_and_binding_blocked",
+          patient: "refresh_review_queued",
+          separation: "conflicting contact details preserve local user preference truth.",
+          pdsCase: "PDS207_CONFLICTING_CONTACT_DETAILS",
+          pdsCaseText:
+            "PDS contact claims are quarantined when they conflict with local preference truth.",
+          followupSummary:
+            "FUP207_LATE_EVIDENCE_RESAFETY extends lineage with a material delta and freezes calm projection.",
+          duplicate: "same_request_attach with accepted continuity witness extends lineage.",
+          resafety: "re_safety_required",
+          resafetyDetail: "material symptoms or risk factors open a new safety epoch.",
+          lineage: "extend_lineage_with_new_epoch",
+          visible: "detail_received_being_checked",
+          activeDuplicateIndex: 2,
+          activeChainIndex: 0,
+        },
+      };
+
+      const fields = {
+        pdsSummary: document.getElementById("pds-summary"),
+        gate: document.getElementById("gate-state"),
+        canonical: document.getElementById("canonical-state"),
+        attempt: document.getElementById("attempt-state"),
+        mutation: document.getElementById("mutation-state"),
+        patient: document.getElementById("patient-state"),
+        separation: document.getElementById("separation-state"),
+        pdsCase: document.querySelector("[data-emphasis='verified'] strong"),
+        pdsCaseText: document.getElementById("pds-case-state"),
+        followupSummary: document.getElementById("followup-summary"),
+        duplicate: document.getElementById("duplicate-class"),
+        resafety: document.getElementById("resafety-decision"),
+        resafetyDetail: document.getElementById("resafety-detail"),
+        lineage: document.getElementById("lineage-state"),
+        visible: document.getElementById("visible-state"),
+      };
+
+      const root = document.querySelector("[data-testid='Enrichment_Resafety_Lab']");
+      const panel = document.getElementById("active-panel");
+      const buttons = [...document.querySelectorAll("[data-case]")];
+      const ladderSteps = [...document.querySelectorAll(".ladder-step")];
+      const chainSteps = [...document.querySelectorAll(".chain-step")];
+
+      function setScenario(caseName) {
+        const scenario = scenarios[caseName] || scenarios["pds-off"];
+        Object.entries(fields).forEach(([key, element]) => {
+          element.textContent = scenario[key];
+        });
+        buttons.forEach((button) => {
+          button.setAttribute("aria-pressed", String(button.dataset.case === caseName));
+        });
+        ladderSteps.forEach((step, index) => {
+          step.dataset.active = String(index === scenario.activeDuplicateIndex);
+        });
+        chainSteps.forEach((step, index) => {
+          step.dataset.active = String(index === scenario.activeChainIndex);
+          step.dataset.risk = String(caseName === "material-resafety" && index === 0);
+        });
+        root.dataset.activeCase = caseName;
+        panel.dataset.activeCase = caseName;
+      }
+
+      buttons.forEach((button) => {
+        button.addEventListener("click", () => setScenario(button.dataset.case));
+      });
+
+      setScenario("pds-off");
+      document.documentElement.dataset.ready = "true";
+    </script>
+  </body>
+</html>

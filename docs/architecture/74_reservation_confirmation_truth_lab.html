@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reservation Confirmation Truth Lab</title>
+    <style>
+      :root {
+        --canvas: #F8F9FC;
+        --panel: #FFFFFF;
+        --rail: #EEF2F8;
+        --inset: #F4F6FB;
+        --text-strong: #0F172A;
+        --text-default: #1E293B;
+        --text-muted: #667085;
+        --border: #E2E8F0;
+        --reservation: #3559E6;
+        --truth: #0EA5A4;
+        --confirmation: #7C3AED;
+        --warning: #C98900;
+        --blocked: #C24141;
+        --shadow: 0 22px 48px rgba(15, 23, 42, 0.08);
+        --radius-lg: 24px;
+        --transition-fast: 120ms ease;
+        --transition-med: 180ms ease;
+        --transition-slow: 220ms ease;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text-default);
+        background:
+          radial-gradient(circle at top right, rgba(53, 89, 230, 0.08), transparent 26%),
+          linear-gradient(180deg, #fbfcff 0%, var(--canvas) 56%);
+      }
+      body[data-reduced-motion="true"] * {
+        transition: none !important;
+        animation: none !important;
+        scroll-behavior: auto !important;
+      }
+      .shell { max-width: 1500px; margin: 0 auto; padding: 24px; }
+      .masthead {
+        min-height: 72px;
+        display: flex;
+        gap: 18px;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 22px;
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(226, 232, 240, 0.92);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(14px);
+      }
+      .brand { display: flex; align-items: center; gap: 14px; }
+      .brand-mark {
+        width: 42px;
+        height: 42px;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, rgba(53, 89, 230, 0.14), rgba(124, 58, 237, 0.14));
+        border: 1px solid rgba(53, 89, 230, 0.18);
+      }
+      .brand-copy h1 { margin: 0; font-size: 1.08rem; color: var(--text-strong); }
+      .brand-copy p { margin: 4px 0 0; font-size: 0.92rem; color: var(--text-muted); }
+      .masthead-metrics {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(96px, 1fr));
+        gap: 10px;
+        width: min(760px, 100%);
+      }
+      .metric {
+        background: var(--inset);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 10px 12px;
+        min-height: 52px;
+      }
+      .metric-label {
+        font-size: 0.74rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+      }
+      .metric-value {
+        margin-top: 6px;
+        font-size: 1.34rem;
+        font-weight: 700;
+        color: var(--text-strong);
+      }
+      .workspace {
+        margin-top: 22px;
+        display: grid;
+        grid-template-columns: 304px minmax(0, 1fr) 408px;
+        gap: 20px;
+        align-items: start;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow);
+      }
+      .left-rail, .state-rail, .truth-card-strip, .confidence-panel, .inspector, .table-panel {
+        padding: 18px;
+      }
+      .left-rail { background: linear-gradient(180deg, var(--panel), #fbfcff); }
+      .left-rail h2, .center-stack h2, .inspector h2, .table-panel h2 {
+        margin: 0 0 6px;
+        font-size: 0.98rem;
+        color: var(--text-strong);
+      }
+      .panel-subtle {
+        margin: 0 0 14px;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        line-height: 1.45;
+      }
+      .control-group { display: grid; gap: 8px; margin-bottom: 16px; }
+      label { font-size: 0.8rem; font-weight: 600; color: var(--text-default); }
+      select {
+        width: 100%;
+        min-height: 44px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--inset);
+        color: var(--text-default);
+        padding: 0 14px;
+      }
+      select:focus-visible, button:focus-visible {
+        outline: 3px solid rgba(53, 89, 230, 0.18);
+        outline-offset: 2px;
+      }
+      .filter-note {
+        margin-top: 12px;
+        padding: 14px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(53, 89, 230, 0.09), rgba(14, 165, 164, 0.08));
+        color: var(--text-default);
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+      .center-stack { display: grid; gap: 18px; }
+      .state-rail { min-height: 240px; background: linear-gradient(180deg, #ffffff 0%, #f6f8fc 100%); }
+      .state-list { display: grid; gap: 10px; margin-top: 14px; }
+      .state-row {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 10px;
+        align-items: center;
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: var(--rail);
+        border: 1px solid transparent;
+        cursor: pointer;
+      }
+      .state-row[data-selected="true"] {
+        border-color: rgba(53, 89, 230, 0.32);
+        background: rgba(53, 89, 230, 0.08);
+        transform: translateX(2px);
+      }
+      .state-chip { width: 11px; height: 11px; border-radius: 999px; }
+      .chip-held { background: var(--reservation); }
+      .chip-pending_confirmation { background: var(--confirmation); }
+      .chip-confirmed { background: var(--truth); }
+      .chip-disputed { background: var(--blocked); }
+      .chip-expired { background: var(--warning); }
+      .chip-soft_selected { background: #94A3B8; }
+      .parity { margin-top: 12px; color: var(--text-muted); font-size: 0.85rem; line-height: 1.45; }
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 14px;
+      }
+      .truth-card {
+        min-height: 170px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, #ffffff, #f8fafe);
+        padding: 16px;
+        text-align: left;
+        cursor: pointer;
+      }
+      .truth-card:hover { transform: translateY(-1px); border-color: rgba(14, 165, 164, 0.25); }
+      .truth-card[data-selected="true"] {
+        border-color: rgba(14, 165, 164, 0.36);
+        box-shadow: 0 18px 42px rgba(14, 165, 164, 0.12);
+        background: linear-gradient(180deg, rgba(14, 165, 164, 0.06), #ffffff);
+      }
+      .card-topline { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+      .eyebrow {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+      }
+      .card-title { margin: 8px 0 0; font-size: 1rem; color: var(--text-strong); }
+      .card-note { margin: 10px 0 14px; color: var(--text-muted); font-size: 0.88rem; line-height: 1.45; }
+      .pill-row { display: flex; flex-wrap: wrap; gap: 8px; }
+      .pill {
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: var(--rail);
+        color: var(--text-default);
+      }
+      .pill.gate-confirmed { background: rgba(14, 165, 164, 0.14); color: var(--truth); }
+      .pill.gate-pending { background: rgba(124, 58, 237, 0.12); color: var(--confirmation); }
+      .pill.gate-disputed { background: rgba(194, 65, 65, 0.12); color: var(--blocked); }
+      .pill.gate-not_required { background: rgba(148, 163, 184, 0.14); color: var(--text-muted); }
+      .confidence-panel { background: linear-gradient(180deg, rgba(124, 58, 237, 0.08), rgba(255, 255, 255, 0.92)); }
+      .confidence-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 14px;
+      }
+      .confidence-metric {
+        padding: 14px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.84);
+        border: 1px solid rgba(124, 58, 237, 0.12);
+      }
+      .confidence-metric strong {
+        display: block;
+        font-size: 1.1rem;
+        color: var(--text-strong);
+        margin-top: 8px;
+      }
+      .confidence-bar {
+        margin-top: 16px;
+        height: 12px;
+        border-radius: 999px;
+        background: rgba(124, 58, 237, 0.12);
+        overflow: hidden;
+      }
+      .confidence-fill { height: 100%; background: linear-gradient(90deg, var(--confirmation), #a855f7); }
+      .inspector { position: sticky; top: 24px; }
+      .inspector-block { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border); }
+      .inspector-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.82rem; word-break: break-all; }
+      .table-stack { margin-top: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+        vertical-align: top;
+        font-size: 0.85rem;
+      }
+      th {
+        color: var(--text-muted);
+        font-weight: 600;
+        font-size: 0.74rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      tr:last-child td { border-bottom: none; }
+      .status-pass { color: var(--truth); font-weight: 700; }
+      .status-pending { color: var(--confirmation); font-weight: 700; }
+      .status-disputed { color: var(--blocked); font-weight: 700; }
+      .empty-state {
+        padding: 16px;
+        border-radius: 16px;
+        background: var(--inset);
+        color: var(--text-muted);
+      }
+      @media (max-width: 1180px) {
+        .workspace { grid-template-columns: 1fr; }
+        .inspector { position: static; }
+        .table-stack { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <script id="manifest-json" type="application/json">{"task_id":"par_074","generated_at":"2026-04-12T00:00:00+00:00","captured_on":"2026-04-12","visual_mode":"Reservation_Confirmation_Truth_Lab","mission":"Freeze authoritative reservation truth and external confirmation gate law so later booking, hub, and pharmacy surfaces cannot overstate exclusivity, countdowns, or final calmness.","source_precedence":["prompt/074.md","prompt/shared_operating_contract_066_to_075.md","prompt/AGENT.md","prompt/checklist.md","blueprint/phase-0-the-foundation-protocol.md#1.14 CapacityReservation","blueprint/phase-0-the-foundation-protocol.md#1.14A ReservationTruthProjection","blueprint/phase-0-the-foundation-protocol.md#1.15 ExternalConfirmationGate","blueprint/phase-4-the-booking-engine.md#4E. Commit path, revalidation, booking record, and compensation","blueprint/phase-5-the-network-horizon.md#Hub commit and confirmation rules","blueprint/phase-6-the-pharmacy-loop.md#Dispatch proof and confirmation-gate rules","blueprint/forensic-audit-findings.md#Finding 72","blueprint/forensic-audit-findings.md#Finding 73","blueprint/forensic-audit-findings.md#Finding 74","packages/domains/identity_access/src/reservation-confirmation-backbone.ts","services/command-api/src/reservation-confirmation.ts"],"threshold_policy":{"policyRef":"external_confirmation_thresholds::par_074_v1","tauHold":0.55,"tauConfirm":0.82,"deltaConfirm":0.18,"weakManualMinSourceFamilies":2},"summary":{"scenario_count":8,"reservation_count":8,"projection_count":8,"gate_case_count":3,"held_count":1,"pending_confirmation_count":1,"confirmed_count":2,"disputed_count":1,"expired_count":1,"truthful_nonexclusive_count":2,"countdown_enabled_count":1,"final_reassurance_legal_count":2,"evidence_atom_count":10,"validator_row_count":20},"validators":["`ReservationTruthProjection` is the sole user-visible authority for exclusivity, countdowns, and truthful nonexclusive wording.","`soft_selected` may never imply ownership or reserved-for-you language.","Countdown copy is legal only when a real `held` reservation carries a real expiry.","`pending_confirmation`, `disputed`, `released`, and `expired` may not flatten into success.","Weak or manual confirmation requires hard matches, threshold clearance, and at least two source families before `confirmed` is legal.","Contradictory evidence and failed hard matches remain durable and closure-blocking."],"scenarios":[{"scenarioId":"soft_selection_without_hold","title":"Soft selection keeps focus without inventing exclusivity.","reservationState":"soft_selected","commitMode":"truthful_nonexclusive","truthState":"truthful_nonexclusive","displayExclusivityState":"nonexclusive","countdownMode":"none","assuranceLevel":"none","gateState":"not_required","sourceDomain":"booking_local","selectedAnchorRef":"slot_card_074_soft","reservationVersionRef":"reservation::soft_selection_without_hold@v1","truthBasisHash":"d9adaf632fd4709563631e2a97ef3396c12cbefa3605bc16a4565a53f3b7aa5a","activeFencingToken":"b6f50e591a804ffcdf118539243475b0dd2cff45607a6fb59a5ec47437e13b1c","note":"Offer focus stays visible, but the substrate refuses reserved-for-you language."},{"scenarioId":"exclusive_hold_with_real_expiry","title":"Real exclusive hold unlocks the only legal countdown.","reservationState":"held","commitMode":"exclusive_hold","truthState":"exclusive_held","displayExclusivityState":"exclusive","countdownMode":"hold_expiry","assuranceLevel":"strong","gateState":"not_required","sourceDomain":"booking_local","selectedAnchorRef":"slot_card_074_exclusive","reservationVersionRef":"reservation::exclusive_hold_with_real_expiry@v1","truthBasisHash":"abc589a25e25ad157f8b54998e265f8be3ccd384db4c3560c4eda59190194f65","activeFencingToken":"245aa1610d12c7cda0e6de150df67c93aa14d51d4ae52a2ea6affc0c8e4f4040","note":"This is the only visible posture allowed to show reserved-for-you timing."},{"scenarioId":"truthful_nonexclusive_offer","title":"Truthful nonexclusive availability remains actionable without false hold cues.","reservationState":"soft_selected","commitMode":"truthful_nonexclusive","truthState":"truthful_nonexclusive","displayExclusivityState":"nonexclusive","countdownMode":"none","assuranceLevel":"none","gateState":"not_required","sourceDomain":"booking_waitlist","selectedAnchorRef":"waitlist_card_074_truthful","reservationVersionRef":"reservation::truthful_nonexclusive_offer@v1","truthBasisHash":"7825657800e13e3b4335a63bd797f6914781160959a16c5a1f9308862de4d36c","activeFencingToken":"f3cf697ce3895b941b2acb38f09c3783cd795e4ec2c4ab771eeacc897945f7fb","note":"Selection and actionability remain useful without turning freshness into ownership."},{"scenarioId":"immediate_authoritative_confirmation","title":"Immediate authoritative confirmation can settle without a weak gate.","reservationState":"confirmed","commitMode":"exclusive_hold","truthState":"confirmed","displayExclusivityState":"none","countdownMode":"none","assuranceLevel":"strong","gateState":"not_required","sourceDomain":"hub_booking","selectedAnchorRef":"hub_card_074_immediate","reservationVersionRef":"reservation::immediate_authoritative_confirmation@v1","truthBasisHash":"9082bcccb9bb692946b62e77849fb3862979e0dca08bee8f2801ba658a16fdda","activeFencingToken":"25b0740f53d7847eebf88442aad995168f2e1be1eaba955a9b101ecbf04ae16f","note":"A durable provider reference is enough to move directly to confirmed truth."},{"scenarioId":"pending_external_confirmation","title":"Async acceptance remains visibly pending until the gate clears.","reservationState":"pending_confirmation","commitMode":"exclusive_hold","truthState":"pending_confirmation","displayExclusivityState":"none","countdownMode":"none","assuranceLevel":"moderate","gateState":"pending","sourceDomain":"hub_booking","selectedAnchorRef":"hub_card_074_pending","reservationVersionRef":"reservation::pending_external_confirmation@v1","truthBasisHash":"c242e9c987b2b63ad8f2cf885776cc012a9704062cba966672a2f2b4f26907f9","activeFencingToken":"5fadf31c1a658311cf9c40a9cf6ae1901b6e6104b84864e6a92a75d081dbd97c","note":"The user-facing copy must stay provisional until strong enough proof arrives."},{"scenarioId":"contradictory_competing_confirmation","title":"Contradictory evidence remains durable and closure-blocking.","reservationState":"disputed","commitMode":"degraded_manual_pending","truthState":"disputed","displayExclusivityState":"none","countdownMode":"none","assuranceLevel":"weak","gateState":"disputed","sourceDomain":"pharmacy_dispatch","selectedAnchorRef":"pharmacy_row_074_disputed","reservationVersionRef":"reservation::contradictory_competing_confirmation@v1","truthBasisHash":"bf13503aee895ac8577cb52dd79de11800baeed3c5b2ffb7cf3ad96d0e0a8cf5","activeFencingToken":"21d1e58fb4e72f51c5d4b100edb021825bdf376d51e3b9a7fab17cb909b11120","note":"Ambiguous or conflicting truth remains visible instead of being softened into generic pending copy."},{"scenarioId":"weak_manual_two_family_confirmation","title":"Manual confirmation needs independent corroboration before calm copy is legal.","reservationState":"confirmed","commitMode":"degraded_manual_pending","truthState":"confirmed","displayExclusivityState":"none","countdownMode":"none","assuranceLevel":"manual","gateState":"confirmed","sourceDomain":"pharmacy_dispatch","selectedAnchorRef":"pharmacy_row_074_manual_confirmed","reservationVersionRef":"reservation::weak_manual_two_family_confirmation@v1","truthBasisHash":"ad7b74a0ae14006dfdebd83f4e0f9d20af6a4298a19eabc64ee5c92ca8de9014","activeFencingToken":"8d4ad5d68b1af0cfc4f4e71686e1806dd37e0fc5d35335ff78a77293976315f2","note":"Manual and weak pathways become calm only after corroborated, threshold-clearing proof."},{"scenarioId":"expired_hold_without_confirmation","title":"Expired holds degrade in place and remove stale exclusivity immediately.","reservationState":"expired","commitMode":"exclusive_hold","truthState":"expired","displayExclusivityState":"none","countdownMode":"none","assuranceLevel":"none","gateState":"not_required","sourceDomain":"booking_local","selectedAnchorRef":"slot_card_074_expired","reservationVersionRef":"reservation::expired_hold_without_confirmation@v1","truthBasisHash":"0cb825d4d9a41c34c2a6f0f8216afc2d40c5da18a3e7c6a4c360f01936998a9b","activeFencingToken":"87c67a88df1e6f52f26332deb651b587e863a5d735e4e86b0f0e2ceef9386c28","note":"Expired holds do not linger as quiet exclusivity in the UI."}]}</script>
+    <script id="casebook-json" type="application/json">{"task_id":"par_074","generated_at":"2026-04-12T00:00:00+00:00","captured_on":"2026-04-12","visual_mode":"Reservation_Confirmation_Truth_Lab","summary":{"case_count":8,"gate_case_count":3,"contradictory_case_count":1,"manual_case_count":1,"evidence_atom_count":10,"validator_row_count":20},"cases":[{"scenarioId":"soft_selection_without_hold","title":"Soft selection keeps focus without inventing exclusivity.","assuranceLevel":"none","sourceRefs":["prompt/074.md","prompt/shared_operating_contract_066_to_075.md","prompt/AGENT.md","prompt/checklist.md","blueprint/phase-0-the-foundation-protocol.md#1.14 CapacityReservation","blueprint/phase-0-the-foundation-protocol.md#1.14A ReservationTruthProjection","blueprint/phase-0-the-foundation-protocol.md#1.15 ExternalConfirmationGate","blueprint/phase-4-the-booking-engine.md#4E. Commit path, revalidation, booking record, and compensation","blueprint/phase-5-the-network-horizon.md#Hub commit and confirmation rules","blueprint/phase-6-the-pharmacy-loop.md#Dispatch proof and confirmation-gate rules","blueprint/forensic-audit-findings.md#Finding 72","blueprint/forensic-audit-findings.md#Finding 73","blueprint/forensic-audit-findings.md#Finding 74","packages/domains/identity_access/src/reservation-confirmation-backbone.ts","services/command-api/src/reservation-confirmation.ts"],"note":"Offer focus stays visible, but the substrate refuses reserved-for-you language.","reservation":{"reservationId":"reservation::soft_selection_without_hold","capacityIdentityRef":"capacity::soft_selection_without_hold","canonicalReservationKey":"canonical::soft_selection_without_hold","sourceDomain":"booking_local","holderRef":"holder::soft_selection_without_hold","state":"soft_selected","commitMode":"truthful_nonexclusive","reservationVersion":1,"activeFencingToken":"b6f50e591a804ffcdf118539243475b0dd2cff45607a6fb59a5ec47437e13b1c","truthBasisHash":"d9adaf632fd4709563631e2a97ef3396c12cbefa3605bc16a4565a53f3b7aa5a","supplierObservedAt":"2026-04-12T20:00:00Z","revalidatedAt":"2026-04-12T20:00:00Z","expiresAt":null,"confirmedAt":null,"releasedAt":null,"supersededByReservationRef":null,"terminalReasonCode":null},"projection":{"reservationTruthProjectionId":"projection::soft_selection_without_hold","capacityReservationRef":"reservation::soft_selection_without_hold","canonicalReservationKey":"canonical::soft_selection_without_hold","sourceDomain":"booking_local","sourceObjectRef":"offer_session_074_soft","selectedAnchorRef":"slot_card_074_soft","truthState":"truthful_nonexclusive","displayExclusivityState":"nonexclusive","countdownMode":"none","exclusiveUntilAt":null,"reservationVersionRef":"reservation::soft_selection_without_hold@v1","truthBasisHash":"d9adaf632fd4709563631e2a97ef3396c12cbefa3605bc16a4565a53f3b7aa5a","projectionFreshnessEnvelopeRef":"freshness::soft_selection_without_hold","reasonRefs":["selection_is_not_exclusivity"],"generatedAt":"2026-04-12T20:00:00Z","projectionRevision":1},"gate":null,"evidence":[{"evidenceRef":"ev_focus_only","sourceFamily":"selection_focus","polarity":"positive","summary":"Focused card anchor retained for the chosen slot.","hardMatchStatus":"not_applicable","impact":"Selection stays sticky, but exclusivity remains unavailable."}],"validators":[{"validatorId":"soft_selected_never_exclusive","status":"pass","rule":"`soft_selected` is focus posture only.","detail":"The projection renders truthful nonexclusive copy and no countdown."},{"validatorId":"countdown_requires_real_hold","status":"pass","rule":"Countdown copy requires a real held reservation and expiry.","detail":"No hold expiry is shown for selection-only posture."}]},{"scenarioId":"exclusive_hold_with_real_expiry","title":"Real exclusive hold unlocks the only legal countdown.","assuranceLevel":"strong","sourceRefs":["prompt/074.md","prompt/shared_operating_contract_066_to_075.md","prompt/AGENT.md","prompt/checklist.md","blueprint/phase-0-the-foundation-protocol.md#1.14 CapacityReservation","blueprint/phase-0-the-foundation-protocol.md#1.14A ReservationTruthProjection","blueprint/phase-0-the-foundation-protocol.md#1.15 ExternalConfirmationGate","blueprint/phase-4-the-booking-engine.md#4E. Commit path, revalidation, booking record, and compensation","blueprint/phase-5-the-network-horizon.md#Hub commit and confirmation rules","blueprint/phase-6-the-pharmacy-loop.md#Dispatch proof and confirmation-gate rules","blueprint/forensic-audit-findings.md#Finding 72","blueprint/forensic-audit-findings.md#Finding 73","blueprint/forensic-audit-findings.md#Finding 74","packages/domains/identity_access/src/reservation-confirmation-backbone.ts","services/command-api/src/reservation-confirmation.ts"],"note":"This is the only visible posture allowed to show reserved-for-you timing.","reservation":{"reservationId":"reservation::exclusive_hold_with_real_expiry","capacityIdentityRef":"capacity::exclusive_hold_with_real_expiry","canonicalReservationKey":"canonical::exclusive_hold_with_real_expiry","sourceDomain":"booking_local","holderRef":"holder::exclusive_hold_with_real_expiry","state":"held","commitMode":"exclusive_hold","reservationVersion":1,"activeFencingToken":"245aa1610d12c7cda0e6de150df67c93aa14d51d4ae52a2ea6affc0c8e4f4040","truthBasisHash":"abc589a25e25ad157f8b54998e265f8be3ccd384db4c3560c4eda59190194f65","supplierObservedAt":"2026-04-12T20:05:00Z","revalidatedAt":"2026-04-12T20:05:00Z","expiresAt":"2026-04-12T20:14:00Z","confirmedAt":null,"releasedAt":null,"supersededByReservationRef":null,"terminalReasonCode":null},"projection":{"reservationTruthProjectionId":"projection::exclusive_hold_with_real_expiry","capacityReservationRef":"reservation::exclusive_hold_with_real_expiry","canonicalReservationKey":"canonical::exclusive_hold_with_real_expiry","sourceDomain":"booking_local","sourceObjectRef":"offer_session_074_exclusive","selectedAnchorRef":"slot_card_074_exclusive","truthState":"exclusive_held","displayExclusivityState":"exclusive","countdownMode":"hold_expiry","exclusiveUntilAt":"2026-04-12T20:14:00Z","reservationVersionRef":"reservation::exclusive_hold_with_real_expiry@v1","truthBasisHash":"abc589a25e25ad157f8b54998e265f8be3ccd384db4c3560c4eda59190194f65","projectionFreshnessEnvelopeRef":"freshness::exclusive_hold_with_real_expiry","reasonRefs":["real_exclusive_hold"],"generatedAt":"2026-04-12T20:05:00Z","projectionRevision":1},"gate":null,"evidence":[{"evidenceRef":"ev_real_hold_token","sourceFamily":"supplier_hold_token","polarity":"positive","summary":"Supplier-issued hold token bound to the active fencing token.","hardMatchStatus":"not_applicable","impact":"Exclusive language and countdown are legal while the hold remains live."}],"validators":[{"validatorId":"exclusive_requires_hold","status":"pass","rule":"Exclusive copy requires `state = held`, `commitMode = exclusive_hold`, and a real expiry.","detail":"The projection binds to the live hold and its real expiry."},{"validatorId":"client_timer_forbidden","status":"pass","rule":"Client timers and offer TTLs cannot drive hold countdowns.","detail":"The countdown comes from the reservation expiry, not UI-local state."}]},{"scenarioId":"truthful_nonexclusive_offer","title":"Truthful nonexclusive availability remains actionable without false hold cues.","assuranceLevel":"none","sourceRefs":["prompt/074.md","prompt/shared_operating_contract_066_to_075.md","prompt/AGENT.md","prompt/checklist.md","blueprint/phase-0-the-foundation-protocol.md#1.14 CapacityReservation","blueprint/phase-0-the-foundation-protocol.md#1.14A ReservationTruthProjection","blueprint/phase-0-the-foundation-protocol.md#1.15 ExternalConfirmationGate","blueprint/phase-4-the-booking-engine.md#4E. Commit path, revalidation, booking record, and compensation","blueprint/phase-5-the-network-horizon.md#Hub commit and confirmation rules","blueprint/phase-6-the-pharmacy-loop.md#Dispatch proof and confirmation-gate rules","blueprint/forensic-audit-findings.md#Finding 72","blueprint/forensic-audit-findings.md#Finding 73","blueprint/forensic-audit-findings.md#Finding 74","packages/domains/identity_access/src/reservation-confirmation-backbone.ts","services/command-api/src/reservation-confirmation.ts"],"note":"Selection and actionability remain useful without turning freshness into ownership.","reservation":{"reservationId":"reservation::truthful_nonexclusive_offer","capacityIdentityRef":"capacity::truthful_nonexclusive_offer","canonicalReservationKey":"canonical::truthful_nonexclusive_offer","sourceDomain":"booking_waitlist","holderRef":"holder::truthful_nonexclusive_offer","state":"soft_selected","commitMode":"truthful_nonexclusive","reservationVersion":1,"activeFencingToken":"f3cf697ce3895b941b2acb38f09c3783cd795e4ec2c4ab771eeacc897945f7fb","truthBasisHash":"7825657800e13e3b4335a63bd797f6914781160959a16c5a1f9308862de4d36c","supplierObservedAt":"2026-04-12T20:10:00Z","revalidatedAt":"2026-04-12T20:10:00Z","expiresAt":null,"confirmedAt":null,"releasedAt":null,"supersededByReservationRef":null,"terminalReasonCode":null},"projection":{"reservationTruthProjectionId":"projection::truthful_nonexclusive_offer","capacityReservationRef":"reservation::truthful_nonexclusive_offer","canonicalReservationKey":"canonical::truthful_nonexclusive_offer","sourceDomain":"booking_waitlist","sourceObjectRef":"waitlist_offer_074_truthful","selectedAnchorRef":"waitlist_card_074_truthful","truthState":"truthful_nonexclusive","displayExclusivityState":"nonexclusive","countdownMode":"none","exclusiveUntilAt":null,"reservationVersionRef":"reservation::truthful_nonexclusive_offer@v1","truthBasisHash":"7825657800e13e3b4335a63bd797f6914781160959a16c5a1f9308862de4d36c","projectionFreshnessEnvelopeRef":"freshness::truthful_nonexclusive_offer","reasonRefs":["selection_is_not_exclusivity","subject_to_live_confirmation"],"generatedAt":"2026-04-12T20:10:00Z","projectionRevision":1},"gate":null,"evidence":[{"evidenceRef":"ev_live_supplier_window","sourceFamily":"availability_refresh","polarity":"positive","summary":"Live supplier availability says the slot remains currently bookable.","hardMatchStatus":"not_applicable","impact":"CTA remains available, but exclusivity claims stay blocked."}],"validators":[{"validatorId":"truthful_nonexclusive_copy","status":"pass","rule":"`truthful_nonexclusive` must stay explicitly nonexclusive.","detail":"The card copy says available when you book, not reserved."},{"validatorId":"pending_confirmation_not_implied","status":"pass","rule":"No final confirmation or hold reassurance appears without the governing substrate.","detail":"The projection offers actionability without inventing calmness."}]},{"scenarioId":"immediate_authoritative_confirmation","title":"Immediate authoritative confirmation can settle without a weak gate.","assuranceLevel":"strong","sourceRefs":["prompt/074.md","prompt/shared_operating_contract_066_to_075.md","prompt/AGENT.md","prompt/checklist.md","blueprint/phase-0-the-foundation-protocol.md#1.14 CapacityReservation","blueprint/phase-0-the-foundation-protocol.md#1.14A ReservationTruthProjection","blueprint/phase-0-the-foundation-protocol.md#1.15 ExternalConfirmationGate","blueprint/phase-4-the-booking-engine.md#4E. Commit path, revalidation, booking record, and compensation","blueprint/phase-5-the-network-horizon.md#Hub commit and confirmation rules","blueprint/phase-6-the-pharmacy-loop.md#Dispatch proof and confirmation-gate rules","blueprint/forensic-audit-findings.md#Finding 72","blueprint/forensic-audit-findings.md#Finding 73","blueprint/forensic-audit-findings.md#Finding 74","packages/domains/identity_access/src/reservation-confirmation-backbone.ts","services/command-api/src/reservation-confirmation.ts"],"note":"A durable provider reference is enough to move directly to confirmed truth.","reservation":{"reservationId":"reservation::immediate_authoritative_confirmation","capacityIdentityRef":"capacity::immediate_authoritative_confirmation","canonicalReservationKey":"canonical::immediate_authoritative_confirmation","sourceDomain":"hub_booking","holderRef":"holder::immediate_authoritative_confirmation","state":"confirmed","commitMode":"exclusive_hold","reservationVersion":1,"activeFencingToken":"25b0740f53d7847eebf88442aad995168f2e1be1eaba955a9b101ecbf04ae16f","truthBasisHash":"9082bcccb9bb692946b62e77849fb3862979e0dca08bee8f2801ba658a16fdda","supplierObservedAt":"2026-04-12T20:15:00Z","revalidatedAt":"2026-04-12T20:15:00Z","expiresAt":"2026-04-12T20:16:00Z","confirmedAt":"2026-04-12T20:15:06Z","releasedAt":null,"supersededByReservationRef":null,"terminalReasonCode":null},"projection":{"reservationTruthProjectionId":"projection::immediate_authoritative_confirmation","capacityReservationRef":"reservation::immediate_authoritative_confirmation","canonicalReservationKey":"canonical::immediate_authoritative_confirmation","sourceDomain":"hub_booking","sourceObjectRef":"hub_commit_attempt_074_immediate","selectedAnchorRef":"hub_card_074_immediate","truthState":"confirmed","displayExclusivityState":"none","countdownMode":"none","exclusiveUntilAt":null,"reservationVersionRef":"reservation::immediate_authoritative_confirmation@v1","truthBasisHash":"9082bcccb9bb692946b62e77849fb3862979e0dca08bee8f2801ba658a16fdda","projectionFreshnessEnvelopeRef":"freshness::immediate_authoritative_confirmation","reasonRefs":["authoritative_confirmation_seen"],"generatedAt":"2026-04-12T20:15:00Z","projectionRevision":1},"gate":null,"evidence":[{"evidenceRef":"ev_authoritative_provider_reference","sourceFamily":"provider_reference","polarity":"positive","summary":"Durable provider reference observed on the same canonical reservation key.","hardMatchStatus":"satisfied","impact":"Final reassurance is legal without external confirmation ambiguity."}],"validators":[{"validatorId":"strong_path_authoritative_proof","status":"pass","rule":"Immediate authoritative proof may settle without a weak/manual gate.","detail":"The reservation and projection both reach confirmed with durable proof."},{"validatorId":"closure_no_pending_gate","status":"pass","rule":"Closure-blocking ambiguity disappears only when authoritative confirmation exists.","detail":"No pending external gate remains for this strong-path case."}]},{"scenarioId":"pending_external_confirmation","title":"Async acceptance remains visibly pending until the gate clears.","assuranceLevel":"moderate","sourceRefs":["prompt/074.md","prompt/shared_operating_contract_066_to_075.md","prompt/AGENT.md","prompt/checklist.md","blueprint/phase-0-the-foundation-protocol.md#1.14 CapacityReservation","blueprint/phase-0-the-foundation-protocol.md#1.14A ReservationTruthProjection","blueprint/phase-0-the-foundation-protocol.md#1.15 ExternalConfirmationGate","blueprint/phase-4-the-booking-engine.md#4E. Commit path, revalidation, booking record, and compensation","blueprint/phase-5-the-network-horizon.md#Hub commit and confirmation rules","blueprint/phase-6-the-pharmacy-loop.md#Dispatch proof and confirmation-gate rules","blueprint/forensic-audit-findings.md#Finding 72","blueprint/forensic-audit-findings.md#Finding 73","blueprint/forensic-audit-findings.md#Finding 74","packages/domains/identity_access/src/reservation-confirmation-backbone.ts","services/command-api/src/reservation-confirmation.ts"],"note":"The user-facing copy must stay provisional until strong enough proof arrives.","reservation":{"reservationId":"reservation::pending_external_confirmation","capacityIdentityRef":"capacity::pending_external_confirmation","canonicalReservationKey":"canonical::pending_external_confirmation","sourceDomain":"hub_booking","holderRef":"holder::pending_external_confirmation","state":"pending_confirmation","commitMode":"exclusive_hold","reservationVersion":1,"activeFencingToken":"5fadf31c1a658311cf9c40a9cf6ae1901b6e6104b84864e6a92a75d081dbd97c","truthBasisHash":"c242e9c987b2b63ad8f2cf885776cc012a9704062cba966672a2f2b4f26907f9","supplierObservedAt":"2026-04-12T20:20:00Z","revalidatedAt":"2026-04-12T20:20:00Z","expiresAt":"2026-04-12T20:28:00Z","confirmedAt":null,"releasedAt":null,"supersededByReservationRef":null,"terminalReasonCode":null},"projection":{"reservationTruthProjectionId":"projection::pending_external_confirmation","capacityReservationRef":"reservation::pending_external_confirmation","canonicalReservationKey":"canonical::pending_external_confirmation","sourceDomain":"hub_booking","sourceObjectRef":"hub_commit_attempt_074_pending","selectedAnchorRef":"hub_card_074_pending","truthState":"pending_confirmation","displayExclusivityState":"none","countdownMode":"none","exclusiveUntilAt":null,"reservationVersionRef":"reservation::pending_external_confirmation@v1","truthBasisHash":"c242e9c987b2b63ad8f2cf885776cc012a9704062cba966672a2f2b4f26907f9","projectionFreshnessEnvelopeRef":"freshness::pending_external_confirmation","reasonRefs":["awaiting_external_confirmation"],"generatedAt":"2026-04-12T20:20:00Z","projectionRevision":1},"gate":{"gateId":"gate::pending_external_confirmation","state":"pending","transportMode":"partner_api_async","assuranceLevel":"moderate","priorProbability":0.42,"posteriorLogOdds":-0.173271,"confirmationConfidence":0.456791,"competingGateMargin":1.0,"confirmationDeadlineAt":"2026-04-12T20:40:00Z","sourceFamilyRefs":["adapter_receipt"],"requiredHardMatchRefs":["provider_reference_match"],"satisfiedHardMatchRefs":[],"failedHardMatchRefs":[],"contradictoryEvidenceRefs":[]},"evidence":[{"evidenceRef":"ev_074_pending_ack","sourceFamily":"adapter_receipt","polarity":"positive","summary":"Adapter receipt accepted the commit for processing.","hardMatchStatus":"pending","impact":"The booking remains pending confirmation instead of booked."}],"validators":[{"validatorId":"pending_requires_gate","status":"pass","rule":"`pending_confirmation` reservations require an active `ExternalConfirmationGate`.","detail":"The async supplier path retains a visible gate reference."},{"validatorId":"pending_not_final_reassurance","status":"pass","rule":"Pending confirmation may not collapse into final booked truth.","detail":"The confidence stays below the confirm threshold and hard matches remain open."},{"validatorId":"moderate_gate_thresholds","status":"pass","rule":"Moderate assurance paths still need hard matches plus thresholds before confirmation.","detail":"Receipt-only evidence holds the gate in pending state."}]},{"scenarioId":"contradictory_competing_confirmation","title":"Contradictory evidence remains durable and closure-blocking.","assuranceLevel":"weak","sourceRefs":["prompt/074.md","prompt/shared_operating_contract_066_to_075.md","prompt/AGENT.md","prompt/checklist.md","blueprint/phase-0-the-foundation-protocol.md#1.14 CapacityReservation","blueprint/phase-0-the-foundation-protocol.md#1.14A ReservationTruthProjection","blueprint/phase-0-the-foundation-protocol.md#1.15 ExternalConfirmationGate","blueprint/phase-4-the-booking-engine.md#4E. Commit path, revalidation, booking record, and compensation","blueprint/phase-5-the-network-horizon.md#Hub commit and confirmation rules","blueprint/phase-6-the-pharmacy-loop.md#Dispatch proof and confirmation-gate rules","blueprint/forensic-audit-findings.md#Finding 72","blueprint/forensic-audit-findings.md#Finding 73","blueprint/forensic-audit-findings.md#Finding 74","packages/domains/identity_access/src/reservation-confirmation-backbone.ts","services/command-api/src/reservation-confirmation.ts"],"note":"Ambiguous or conflicting truth remains visible instead of being softened into generic pending copy.","reservation":{"reservationId":"reservation::contradictory_competing_confirmation","capacityIdentityRef":"capacity::contradictory_competing_confirmation","canonicalReservationKey":"canonical::contradictory_competing_confirmation","sourceDomain":"pharmacy_dispatch","holderRef":"holder::contradictory_competing_confirmation","state":"disputed","commitMode":"degraded_manual_pending","reservationVersion":1,"activeFencingToken":"21d1e58fb4e72f51c5d4b100edb021825bdf376d51e3b9a7fab17cb909b11120","truthBasisHash":"bf13503aee895ac8577cb52dd79de11800baeed3c5b2ffb7cf3ad96d0e0a8cf5","supplierObservedAt":"2026-04-12T20:25:00Z","revalidatedAt":"2026-04-12T20:25:00Z","expiresAt":null,"confirmedAt":null,"releasedAt":null,"supersededByReservationRef":null,"terminalReasonCode":"CONTRADICTORY_CONFIRMATION_EVIDENCE"},"projection":{"reservationTruthProjectionId":"projection::contradictory_competing_confirmation","capacityReservationRef":"reservation::contradictory_competing_confirmation","canonicalReservationKey":"canonical::contradictory_competing_confirmation","sourceDomain":"pharmacy_dispatch","sourceObjectRef":"dispatch_attempt_074_disputed","selectedAnchorRef":"pharmacy_row_074_disputed","truthState":"disputed","displayExclusivityState":"none","countdownMode":"none","exclusiveUntilAt":null,"reservationVersionRef":"reservation::contradictory_competing_confirmation@v1","truthBasisHash":"bf13503aee895ac8577cb52dd79de11800baeed3c5b2ffb7cf3ad96d0e0a8cf5","projectionFreshnessEnvelopeRef":"freshness::contradictory_competing_confirmation","reasonRefs":["reservation_disputed"],"generatedAt":"2026-04-12T20:25:00Z","projectionRevision":1},"gate":{"gateId":"gate::contradictory_competing_confirmation","state":"disputed","transportMode":"manual_partner_fax","assuranceLevel":"weak","priorProbability":0.5,"posteriorLogOdds":-0.16,"confirmationConfidence":0.460085,"competingGateMargin":-0.279915,"confirmationDeadlineAt":"2026-04-12T20:45:00Z","sourceFamilyRefs":["callback_feed","transport_receipt"],"requiredHardMatchRefs":["package_hash_match","recipient_route_match"],"satisfiedHardMatchRefs":["package_hash_match"],"failedHardMatchRefs":["recipient_route_match"],"contradictoryEvidenceRefs":["ev_074_disputed_conflicting_callback"]},"evidence":[{"evidenceRef":"ev_074_disputed_transport_ack","sourceFamily":"transport_receipt","polarity":"positive","summary":"Transport acceptance arrived for the dispatch attempt.","hardMatchStatus":"partial","impact":"One hard match is satisfied, but confirmation remains incomplete."},{"evidenceRef":"ev_074_disputed_conflicting_callback","sourceFamily":"callback_feed","polarity":"negative","summary":"Conflicting callback rejects the recipient route on the same tuple.","hardMatchStatus":"failed","impact":"The gate becomes disputed and the reservation truth remains blocked."}],"validators":[{"validatorId":"contradiction_forces_dispute","status":"pass","rule":"Contradictory evidence must move the gate to `disputed`.","detail":"The callback conflict remains explicit and durable."},{"validatorId":"hard_match_failure_visible","status":"pass","rule":"Hard-match failure cannot disappear into generic reconciliation text.","detail":"The failed recipient-route match stays in the gate record."},{"validatorId":"competing_margin_blocks_confirmation","status":"pass","rule":"Competing confidence below `deltaConfirm` blocks confirmation.","detail":"The margin stays negative against a competing candidate."}]},{"scenarioId":"weak_manual_two_family_confirmation","title":"Manual confirmation needs independent corroboration before calm copy is legal.","assuranceLevel":"manual","sourceRefs":["prompt/074.md","prompt/shared_operating_contract_066_to_075.md","prompt/AGENT.md","prompt/checklist.md","blueprint/phase-0-the-foundation-protocol.md#1.14 CapacityReservation","blueprint/phase-0-the-foundation-protocol.md#1.14A ReservationTruthProjection","blueprint/phase-0-the-foundation-protocol.md#1.15 ExternalConfirmationGate","blueprint/phase-4-the-booking-engine.md#4E. Commit path, revalidation, booking record, and compensation","blueprint/phase-5-the-network-horizon.md#Hub commit and confirmation rules","blueprint/phase-6-the-pharmacy-loop.md#Dispatch proof and confirmation-gate rules","blueprint/forensic-audit-findings.md#Finding 72","blueprint/forensic-audit-findings.md#Finding 73","blueprint/forensic-audit-findings.md#Finding 74","packages/domains/identity_access/src/reservation-confirmation-backbone.ts","services/command-api/src/reservation-confirmation.ts"],"note":"Manual and weak pathways become calm only after corroborated, threshold-clearing proof.","reservation":{"reservationId":"reservation::weak_manual_two_family_confirmation","capacityIdentityRef":"capacity::weak_manual_two_family_confirmation","canonicalReservationKey":"canonical::weak_manual_two_family_confirmation","sourceDomain":"pharmacy_dispatch","holderRef":"holder::weak_manual_two_family_confirmation","state":"confirmed","commitMode":"degraded_manual_pending","reservationVersion":1,"activeFencingToken":"8d4ad5d68b1af0cfc4f4e71686e1806dd37e0fc5d35335ff78a77293976315f2","truthBasisHash":"ad7b74a0ae14006dfdebd83f4e0f9d20af6a4298a19eabc64ee5c92ca8de9014","supplierObservedAt":"2026-04-12T20:30:00Z","revalidatedAt":"2026-04-12T20:30:00Z","expiresAt":null,"confirmedAt":"2026-04-12T20:32:00Z","releasedAt":null,"supersededByReservationRef":null,"terminalReasonCode":null},"projection":{"reservationTruthProjectionId":"projection::weak_manual_two_family_confirmation","capacityReservationRef":"reservation::weak_manual_two_family_confirmation","canonicalReservationKey":"canonical::weak_manual_two_family_confirmation","sourceDomain":"pharmacy_dispatch","sourceObjectRef":"dispatch_attempt_074_manual_confirmed","selectedAnchorRef":"pharmacy_row_074_manual_confirmed","truthState":"confirmed","displayExclusivityState":"none","countdownMode":"none","exclusiveUntilAt":null,"reservationVersionRef":"reservation::weak_manual_two_family_confirmation@v1","truthBasisHash":"ad7b74a0ae14006dfdebd83f4e0f9d20af6a4298a19eabc64ee5c92ca8de9014","projectionFreshnessEnvelopeRef":"freshness::weak_manual_two_family_confirmation","reasonRefs":["authoritative_confirmation_seen"],"generatedAt":"2026-04-12T20:30:00Z","projectionRevision":1},"gate":{"gateId":"gate::weak_manual_two_family_confirmation","state":"confirmed","transportMode":"manual_partner_phone","assuranceLevel":"manual","priorProbability":0.48,"posteriorLogOdds":1.978381,"confirmationConfidence":0.878507,"competingGateMargin":0.878507,"confirmationDeadlineAt":"2026-04-12T20:50:00Z","sourceFamilyRefs":["document_scan","phone_witness"],"requiredHardMatchRefs":["package_hash_match","patient_identity_match"],"satisfiedHardMatchRefs":["package_hash_match","patient_identity_match"],"failedHardMatchRefs":[],"contradictoryEvidenceRefs":[]},"evidence":[{"evidenceRef":"ev_074_manual_phone_witness","sourceFamily":"phone_witness","polarity":"positive","summary":"Phone witness confirms the patient identity on the same tuple.","hardMatchStatus":"satisfied","impact":"One independent family contributes a positive hard match."},{"evidenceRef":"ev_074_manual_document_scan","sourceFamily":"document_scan","polarity":"positive","summary":"Document scan proves the package hash against the outbound artifact.","hardMatchStatus":"satisfied","impact":"Second independent family clears corroboration and hard-match law."}],"validators":[{"validatorId":"manual_requires_two_families","status":"pass","rule":"Weak or manual paths require at least two independent source families.","detail":"Phone witness and document scan corroborate the same attempt."},{"validatorId":"manual_requires_hard_matches","status":"pass","rule":"Required hard matches must be satisfied before weak/manual confirmation may settle.","detail":"Both package and identity matches are satisfied."},{"validatorId":"manual_requires_tau_confirm","status":"pass","rule":"Weak/manual confirmation still needs `tauConfirm` and `deltaConfirm` thresholds.","detail":"The confidence clears `tauConfirm` and the margin stays above `deltaConfirm`."},{"validatorId":"manual_final_reassurance","status":"pass","rule":"Final reassurance is legal only after the gate is confirmed.","detail":"The reservation and gate both reach confirmed state."}]},{"scenarioId":"expired_hold_without_confirmation","title":"Expired holds degrade in place and remove stale exclusivity immediately.","assuranceLevel":"none","sourceRefs":["prompt/074.md","prompt/shared_operating_contract_066_to_075.md","prompt/AGENT.md","prompt/checklist.md","blueprint/phase-0-the-foundation-protocol.md#1.14 CapacityReservation","blueprint/phase-0-the-foundation-protocol.md#1.14A ReservationTruthProjection","blueprint/phase-0-the-foundation-protocol.md#1.15 ExternalConfirmationGate","blueprint/phase-4-the-booking-engine.md#4E. Commit path, revalidation, booking record, and compensation","blueprint/phase-5-the-network-horizon.md#Hub commit and confirmation rules","blueprint/phase-6-the-pharmacy-loop.md#Dispatch proof and confirmation-gate rules","blueprint/forensic-audit-findings.md#Finding 72","blueprint/forensic-audit-findings.md#Finding 73","blueprint/forensic-audit-findings.md#Finding 74","packages/domains/identity_access/src/reservation-confirmation-backbone.ts","services/command-api/src/reservation-confirmation.ts"],"note":"Expired holds do not linger as quiet exclusivity in the UI.","reservation":{"reservationId":"reservation::expired_hold_without_confirmation","capacityIdentityRef":"capacity::expired_hold_without_confirmation","canonicalReservationKey":"canonical::expired_hold_without_confirmation","sourceDomain":"booking_local","holderRef":"holder::expired_hold_without_confirmation","state":"expired","commitMode":"exclusive_hold","reservationVersion":1,"activeFencingToken":"87c67a88df1e6f52f26332deb651b587e863a5d735e4e86b0f0e2ceef9386c28","truthBasisHash":"0cb825d4d9a41c34c2a6f0f8216afc2d40c5da18a3e7c6a4c360f01936998a9b","supplierObservedAt":"2026-04-12T20:35:00Z","revalidatedAt":"2026-04-12T20:35:00Z","expiresAt":"2026-04-12T20:36:00Z","confirmedAt":null,"releasedAt":null,"supersededByReservationRef":null,"terminalReasonCode":"HOLD_EXPIRED"},"projection":{"reservationTruthProjectionId":"projection::expired_hold_without_confirmation","capacityReservationRef":"reservation::expired_hold_without_confirmation","canonicalReservationKey":"canonical::expired_hold_without_confirmation","sourceDomain":"booking_local","sourceObjectRef":"offer_session_074_expired","selectedAnchorRef":"slot_card_074_expired","truthState":"expired","displayExclusivityState":"none","countdownMode":"none","exclusiveUntilAt":null,"reservationVersionRef":"reservation::expired_hold_without_confirmation@v1","truthBasisHash":"0cb825d4d9a41c34c2a6f0f8216afc2d40c5da18a3e7c6a4c360f01936998a9b","projectionFreshnessEnvelopeRef":"freshness::expired_hold_without_confirmation","reasonRefs":["reservation_expired"],"generatedAt":"2026-04-12T20:35:00Z","projectionRevision":1},"gate":null,"evidence":[{"evidenceRef":"ev_hold_expired","sourceFamily":"reservation_timeout","polarity":"negative","summary":"The real hold expiry passed without authoritative confirmation.","hardMatchStatus":"not_applicable","impact":"Stale exclusivity and countdown copy are suppressed in place."}],"validators":[{"validatorId":"expired_degrades_immediately","status":"pass","rule":"Expired reservations degrade the projection immediately.","detail":"The truth state is expired and no countdown survives."},{"validatorId":"expired_not_silent_success","status":"pass","rule":"Expired or released truth may not flatten into success.","detail":"The terminal reason remains visible and closure-blocking calmness stays off."}]}]}</script>
+    <script id="matrix-json" type="application/json">[{"scenario_id":"soft_selection_without_hold","title":"Soft selection keeps focus without inventing exclusivity.","reservation_state":"soft_selected","commit_mode":"truthful_nonexclusive","truth_state":"truthful_nonexclusive","display_exclusivity_state":"nonexclusive","countdown_mode":"none","assurance_level":"none","gate_state":"not_required","source_domain":"booking_local","source_object_ref":"offer_session_074_soft","selected_anchor_ref":"slot_card_074_soft","reservation_version_ref":"reservation::soft_selection_without_hold@v1","truth_basis_hash":"d9adaf632fd4709563631e2a97ef3396c12cbefa3605bc16a4565a53f3b7aa5a","active_fencing_token":"b6f50e591a804ffcdf118539243475b0dd2cff45607a6fb59a5ec47437e13b1c","exclusive_until_at":"","confirmation_confidence":"","competing_gate_margin":"","source_family_count":0,"countdown_legal":"no","final_reassurance_legal":"no","note":"Offer focus stays visible, but the substrate refuses reserved-for-you language."},{"scenario_id":"exclusive_hold_with_real_expiry","title":"Real exclusive hold unlocks the only legal countdown.","reservation_state":"held","commit_mode":"exclusive_hold","truth_state":"exclusive_held","display_exclusivity_state":"exclusive","countdown_mode":"hold_expiry","assurance_level":"strong","gate_state":"not_required","source_domain":"booking_local","source_object_ref":"offer_session_074_exclusive","selected_anchor_ref":"slot_card_074_exclusive","reservation_version_ref":"reservation::exclusive_hold_with_real_expiry@v1","truth_basis_hash":"abc589a25e25ad157f8b54998e265f8be3ccd384db4c3560c4eda59190194f65","active_fencing_token":"245aa1610d12c7cda0e6de150df67c93aa14d51d4ae52a2ea6affc0c8e4f4040","exclusive_until_at":"2026-04-12T20:14:00Z","confirmation_confidence":"","competing_gate_margin":"","source_family_count":0,"countdown_legal":"yes","final_reassurance_legal":"no","note":"This is the only visible posture allowed to show reserved-for-you timing."},{"scenario_id":"truthful_nonexclusive_offer","title":"Truthful nonexclusive availability remains actionable without false hold cues.","reservation_state":"soft_selected","commit_mode":"truthful_nonexclusive","truth_state":"truthful_nonexclusive","display_exclusivity_state":"nonexclusive","countdown_mode":"none","assurance_level":"none","gate_state":"not_required","source_domain":"booking_waitlist","source_object_ref":"waitlist_offer_074_truthful","selected_anchor_ref":"waitlist_card_074_truthful","reservation_version_ref":"reservation::truthful_nonexclusive_offer@v1","truth_basis_hash":"7825657800e13e3b4335a63bd797f6914781160959a16c5a1f9308862de4d36c","active_fencing_token":"f3cf697ce3895b941b2acb38f09c3783cd795e4ec2c4ab771eeacc897945f7fb","exclusive_until_at":"","confirmation_confidence":"","competing_gate_margin":"","source_family_count":0,"countdown_legal":"no","final_reassurance_legal":"no","note":"Selection and actionability remain useful without turning freshness into ownership."},{"scenario_id":"immediate_authoritative_confirmation","title":"Immediate authoritative confirmation can settle without a weak gate.","reservation_state":"confirmed","commit_mode":"exclusive_hold","truth_state":"confirmed","display_exclusivity_state":"none","countdown_mode":"none","assurance_level":"strong","gate_state":"not_required","source_domain":"hub_booking","source_object_ref":"hub_commit_attempt_074_immediate","selected_anchor_ref":"hub_card_074_immediate","reservation_version_ref":"reservation::immediate_authoritative_confirmation@v1","truth_basis_hash":"9082bcccb9bb692946b62e77849fb3862979e0dca08bee8f2801ba658a16fdda","active_fencing_token":"25b0740f53d7847eebf88442aad995168f2e1be1eaba955a9b101ecbf04ae16f","exclusive_until_at":"","confirmation_confidence":"","competing_gate_margin":"","source_family_count":0,"countdown_legal":"no","final_reassurance_legal":"yes","note":"A durable provider reference is enough to move directly to confirmed truth."},{"scenario_id":"pending_external_confirmation","title":"Async acceptance remains visibly pending until the gate clears.","reservation_state":"pending_confirmation","commit_mode":"exclusive_hold","truth_state":"pending_confirmation","display_exclusivity_state":"none","countdown_mode":"none","assurance_level":"moderate","gate_state":"pending","source_domain":"hub_booking","source_object_ref":"hub_commit_attempt_074_pending","selected_anchor_ref":"hub_card_074_pending","reservation_version_ref":"reservation::pending_external_confirmation@v1","truth_basis_hash":"c242e9c987b2b63ad8f2cf885776cc012a9704062cba966672a2f2b4f26907f9","active_fencing_token":"5fadf31c1a658311cf9c40a9cf6ae1901b6e6104b84864e6a92a75d081dbd97c","exclusive_until_at":"","confirmation_confidence":0.456791,"competing_gate_margin":1.0,"source_family_count":1,"countdown_legal":"no","final_reassurance_legal":"no","note":"The user-facing copy must stay provisional until strong enough proof arrives."},{"scenario_id":"contradictory_competing_confirmation","title":"Contradictory evidence remains durable and closure-blocking.","reservation_state":"disputed","commit_mode":"degraded_manual_pending","truth_state":"disputed","display_exclusivity_state":"none","countdown_mode":"none","assurance_level":"weak","gate_state":"disputed","source_domain":"pharmacy_dispatch","source_object_ref":"dispatch_attempt_074_disputed","selected_anchor_ref":"pharmacy_row_074_disputed","reservation_version_ref":"reservation::contradictory_competing_confirmation@v1","truth_basis_hash":"bf13503aee895ac8577cb52dd79de11800baeed3c5b2ffb7cf3ad96d0e0a8cf5","active_fencing_token":"21d1e58fb4e72f51c5d4b100edb021825bdf376d51e3b9a7fab17cb909b11120","exclusive_until_at":"","confirmation_confidence":0.460085,"competing_gate_margin":-0.279915,"source_family_count":2,"countdown_legal":"no","final_reassurance_legal":"no","note":"Ambiguous or conflicting truth remains visible instead of being softened into generic pending copy."},{"scenario_id":"weak_manual_two_family_confirmation","title":"Manual confirmation needs independent corroboration before calm copy is legal.","reservation_state":"confirmed","commit_mode":"degraded_manual_pending","truth_state":"confirmed","display_exclusivity_state":"none","countdown_mode":"none","assurance_level":"manual","gate_state":"confirmed","source_domain":"pharmacy_dispatch","source_object_ref":"dispatch_attempt_074_manual_confirmed","selected_anchor_ref":"pharmacy_row_074_manual_confirmed","reservation_version_ref":"reservation::weak_manual_two_family_confirmation@v1","truth_basis_hash":"ad7b74a0ae14006dfdebd83f4e0f9d20af6a4298a19eabc64ee5c92ca8de9014","active_fencing_token":"8d4ad5d68b1af0cfc4f4e71686e1806dd37e0fc5d35335ff78a77293976315f2","exclusive_until_at":"","confirmation_confidence":0.878507,"competing_gate_margin":0.878507,"source_family_count":2,"countdown_legal":"no","final_reassurance_legal":"yes","note":"Manual and weak pathways become calm only after corroborated, threshold-clearing proof."},{"scenario_id":"expired_hold_without_confirmation","title":"Expired holds degrade in place and remove stale exclusivity immediately.","reservation_state":"expired","commit_mode":"exclusive_hold","truth_state":"expired","display_exclusivity_state":"none","countdown_mode":"none","assurance_level":"none","gate_state":"not_required","source_domain":"booking_local","source_object_ref":"offer_session_074_expired","selected_anchor_ref":"slot_card_074_expired","reservation_version_ref":"reservation::expired_hold_without_confirmation@v1","truth_basis_hash":"0cb825d4d9a41c34c2a6f0f8216afc2d40c5da18a3e7c6a4c360f01936998a9b","active_fencing_token":"87c67a88df1e6f52f26332deb651b587e863a5d735e4e86b0f0e2ceef9386c28","exclusive_until_at":"","confirmation_confidence":"","competing_gate_margin":"","source_family_count":0,"countdown_legal":"no","final_reassurance_legal":"no","note":"Expired holds do not linger as quiet exclusivity in the UI."}]</script>
+    <div class="shell">
+      <header class="masthead" role="banner">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <rect x="1.5" y="1.5" width="21" height="21" rx="8" stroke="#3559E6"></rect>
+              <path d="M7 17V7h5.2c2.7 0 4.1 1.2 4.1 3.2 0 1.3-.7 2.2-1.8 2.7L17 17h-2.8l-2.2-3.6H9.4V17H7Zm2.4-5.7h2.4c1.2 0 1.9-.4 1.9-1.3 0-.9-.7-1.4-1.9-1.4H9.4v2.7Z" fill="#0F172A"></path>
+            </svg>
+          </div>
+          <div class="brand-copy">
+            <h1>Vecells Reservation Confirmation Truth Lab</h1>
+            <p>Reservation_Confirmation_Truth_Lab</p>
+          </div>
+        </div>
+        <div class="masthead-metrics">
+          <div class="metric"><div class="metric-label">Held</div><div class="metric-value" data-testid="masthead-held-count">0</div></div>
+          <div class="metric"><div class="metric-label">Pending</div><div class="metric-value" data-testid="masthead-pending-count">0</div></div>
+          <div class="metric"><div class="metric-label">Confirmed</div><div class="metric-value" data-testid="masthead-confirmed-count">0</div></div>
+          <div class="metric"><div class="metric-label">Disputed</div><div class="metric-value" data-testid="masthead-disputed-count">0</div></div>
+          <div class="metric"><div class="metric-label">Expired</div><div class="metric-value" data-testid="masthead-expired-count">0</div></div>
+        </div>
+      </header>
+      <div class="workspace">
+        <aside class="panel left-rail" aria-label="Filter rail">
+          <h2>Truth filters</h2>
+          <p class="panel-subtle">Filter by canonical reservation state, commit mode, and assurance level. The selected truth card drives every downstream panel.</p>
+          <div class="control-group">
+            <label for="state-filter">Reservation state</label>
+            <select id="state-filter" data-testid="state-filter">
+              <option value="all">All states</option>
+              <option value="soft_selected">Soft selected</option>
+              <option value="held">Held</option>
+              <option value="pending_confirmation">Pending confirmation</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="disputed">Disputed</option>
+              <option value="expired">Expired</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label for="commit-mode-filter">Commit mode</label>
+            <select id="commit-mode-filter" data-testid="commit-mode-filter">
+              <option value="all">All commit modes</option>
+              <option value="exclusive_hold">exclusive_hold</option>
+              <option value="truthful_nonexclusive">truthful_nonexclusive</option>
+              <option value="degraded_manual_pending">degraded_manual_pending</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label for="assurance-filter">Assurance level</label>
+            <select id="assurance-filter" data-testid="assurance-filter">
+              <option value="all">All assurance levels</option>
+              <option value="strong">strong</option>
+              <option value="moderate">moderate</option>
+              <option value="weak">weak</option>
+              <option value="manual">manual</option>
+              <option value="none">none</option>
+            </select>
+          </div>
+          <div class="filter-note">Calmness is never inferred from card focus, browser timers, or transport acceptance alone. This board only advertises what the canonical reservation and gate truth currently permit.</div>
+        </aside>
+        <main class="center-stack">
+          <section class="panel state-rail" data-testid="state-rail">
+            <h2>Reservation-state rail</h2>
+            <p class="panel-subtle">Visible scenarios grouped by authoritative reservation posture.</p>
+            <div class="state-list" id="state-list"></div>
+            <div class="parity" data-testid="state-rail-parity"></div>
+          </section>
+          <section class="panel truth-card-strip" data-testid="truth-card-strip">
+            <h2>Truth card strip</h2>
+            <p class="panel-subtle">Each card binds one reservation, one truth projection, and the currently governing assurance posture.</p>
+            <div class="card-grid" id="card-grid"></div>
+          </section>
+          <section class="panel confidence-panel" data-testid="confidence-panel">
+            <h2>Confirmation-confidence panel</h2>
+            <p class="panel-subtle">Gate confidence, competing margin, and source-family corroboration for the selected scenario.</p>
+            <div id="confidence-content"></div>
+            <div class="parity" data-testid="confidence-parity"></div>
+          </section>
+          <div class="table-stack">
+            <section class="panel table-panel" data-testid="evidence-table">
+              <h2>Evidence table</h2>
+              <p class="panel-subtle">Positive, negative, and contradictory atoms bound to the selected truth tuple.</p>
+              <div id="evidence-content"></div>
+            </section>
+            <section class="panel table-panel" data-testid="validator-table">
+              <h2>Validator table</h2>
+              <p class="panel-subtle">Fail-closed rule outcomes for the selected scenario.</p>
+              <div id="validator-content"></div>
+            </section>
+          </div>
+        </main>
+        <aside class="panel inspector" data-testid="inspector" aria-label="Inspector">
+          <h2>Inspector</h2>
+          <p class="panel-subtle">Reservation, projection, and gate details for the selected scenario.</p>
+          <div id="inspector-content"></div>
+        </aside>
+      </div>
+    </div>
+    <script>
+      const manifest = JSON.parse(document.getElementById("manifest-json").textContent);
+      const casebook = JSON.parse(document.getElementById("casebook-json").textContent);
+      const matrixRows = JSON.parse(document.getElementById("matrix-json").textContent);
+      const cases = casebook.cases;
+      const uiState = {
+        stateFilter: "all",
+        commitModeFilter: "all",
+        assuranceFilter: "all",
+        selectedScenarioId: cases[0] ? cases[0].scenarioId : null,
+      };
+      const stateOrder = ["soft_selected", "held", "pending_confirmation", "confirmed", "disputed", "expired"];
+      const stateLabels = {
+        soft_selected: "Soft selected",
+        held: "Held",
+        pending_confirmation: "Pending confirmation",
+        confirmed: "Confirmed",
+        disputed: "Disputed",
+        expired: "Expired",
+      };
+
+      function setReducedMotion() {
+        const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        document.body.setAttribute("data-reduced-motion", reduced ? "true" : "false");
+      }
+      setReducedMotion();
+      window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener?.("change", setReducedMotion);
+
+      function visibleCases() {
+        return cases.filter((entry) => {
+          if (uiState.stateFilter !== "all" && entry.reservation.state !== uiState.stateFilter) return false;
+          if (uiState.commitModeFilter !== "all" && entry.reservation.commitMode !== uiState.commitModeFilter) return false;
+          if (uiState.assuranceFilter !== "all" && entry.assuranceLevel !== uiState.assuranceFilter) return false;
+          return true;
+        });
+      }
+
+      function ensureSelection(visible) {
+        if (!visible.length) {
+          uiState.selectedScenarioId = null;
+          return;
+        }
+        if (!visible.some((entry) => entry.scenarioId === uiState.selectedScenarioId)) {
+          uiState.selectedScenarioId = visible[0].scenarioId;
+        }
+      }
+
+      function selectedCase(visible) {
+        return visible.find((entry) => entry.scenarioId === uiState.selectedScenarioId) || null;
+      }
+
+      function renderMasthead(visible) {
+        const count = (stateKey) => visible.filter((entry) => entry.reservation.state === stateKey).length;
+        document.querySelector("[data-testid='masthead-held-count']").textContent = String(count("held"));
+        document.querySelector("[data-testid='masthead-pending-count']").textContent = String(count("pending_confirmation"));
+        document.querySelector("[data-testid='masthead-confirmed-count']").textContent = String(count("confirmed"));
+        document.querySelector("[data-testid='masthead-disputed-count']").textContent = String(count("disputed"));
+        document.querySelector("[data-testid='masthead-expired-count']").textContent = String(count("expired"));
+      }
+
+      function renderStateRail(visible, selected) {
+        const counts = new Map();
+        visible.forEach((entry) => counts.set(entry.reservation.state, (counts.get(entry.reservation.state) || 0) + 1));
+        const mount = document.getElementById("state-list");
+        mount.innerHTML = "";
+        stateOrder.forEach((stateKey) => {
+          if (!counts.has(stateKey)) return;
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "state-row";
+          button.setAttribute("data-testid", `state-rail-item-${stateKey}`);
+          button.setAttribute("data-selected", selected && selected.reservation.state === stateKey ? "true" : "false");
+          button.innerHTML = `<span class="state-chip chip-${stateKey}"></span><span>${stateLabels[stateKey] || stateKey}</span><strong>${counts.get(stateKey)}</strong>`;
+          button.addEventListener("click", () => {
+            const match = visible.find((entry) => entry.reservation.state === stateKey);
+            if (match) {
+              uiState.selectedScenarioId = match.scenarioId;
+              render();
+            }
+          });
+          mount.appendChild(button);
+        });
+        document.querySelector("[data-testid='state-rail-parity']").textContent = `${visible.length} visible scenarios across ${counts.size} reservation states.`;
+      }
+
+      function pill(text, extraClass) {
+        return `<span class="pill ${extraClass || ""}">${text}</span>`;
+      }
+
+      function renderCards(visible, selected) {
+        const mount = document.getElementById("card-grid");
+        mount.innerHTML = "";
+        if (!visible.length) {
+          mount.innerHTML = '<div class="empty-state">No scenarios match the current filter set.</div>';
+          return;
+        }
+        visible.forEach((entry, index) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "truth-card";
+          button.setAttribute("data-testid", `truth-card-${entry.scenarioId}`);
+          button.setAttribute("data-selected", selected && selected.scenarioId === entry.scenarioId ? "true" : "false");
+          button.setAttribute("aria-pressed", selected && selected.scenarioId === entry.scenarioId ? "true" : "false");
+          button.dataset.index = String(index);
+          const gateState = entry.gate ? entry.gate.state : "not_required";
+          button.innerHTML = `
+            <div class="card-topline">
+              <div>
+                <div class="eyebrow">${entry.reservation.state.replaceAll("_", " ")}</div>
+                <h3 class="card-title">${entry.title}</h3>
+              </div>
+              ${pill(entry.assuranceLevel, "")}
+            </div>
+            <p class="card-note">${entry.note}</p>
+            <div class="pill-row">
+              ${pill(entry.projection.truthState, "")}
+              ${pill(entry.reservation.commitMode, "")}
+              ${pill(entry.gate ? entry.gate.state : "no gate", `gate-${gateState}`)}
+            </div>
+          `;
+          button.addEventListener("click", () => {
+            uiState.selectedScenarioId = entry.scenarioId;
+            render();
+          });
+          button.addEventListener("keydown", (event) => {
+            if (!["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp"].includes(event.key)) return;
+            event.preventDefault();
+            const currentIndex = visible.findIndex((candidate) => candidate.scenarioId === entry.scenarioId);
+            const nextIndex = Math.min(Math.max(currentIndex + (event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1), 0), visible.length - 1);
+            const next = visible[nextIndex];
+            if (!next) return;
+            uiState.selectedScenarioId = next.scenarioId;
+            render();
+            requestAnimationFrame(() => {
+              document.querySelector(`[data-testid="truth-card-${next.scenarioId}"]`)?.focus();
+            });
+          });
+          mount.appendChild(button);
+        });
+      }
+
+      function renderConfidencePanel(selected) {
+        const mount = document.getElementById("confidence-content");
+        const parity = document.querySelector("[data-testid='confidence-parity']");
+        if (!selected) {
+          mount.innerHTML = '<div class="empty-state">Select a scenario to inspect confidence posture.</div>';
+          parity.textContent = "No visible scenario is currently selected.";
+          return;
+        }
+        if (!selected.gate) {
+          mount.innerHTML = '<div class="empty-state">This path does not require an external confirmation gate. Final reassurance is controlled directly by authoritative reservation proof.</div>';
+          parity.textContent = "No external confirmation gate is required for the selected scenario.";
+          return;
+        }
+        const confidence = Number(selected.gate.confirmationConfidence);
+        const margin = Number(selected.gate.competingGateMargin);
+        mount.innerHTML = `
+          <div class="confidence-grid">
+            <div class="confidence-metric">Confidence<strong>${(confidence * 100).toFixed(1)}%</strong></div>
+            <div class="confidence-metric">Competing margin<strong>${margin.toFixed(2)}</strong></div>
+            <div class="confidence-metric">Gate state<strong>${selected.gate.state}</strong></div>
+          </div>
+          <div class="confidence-bar" aria-hidden="true"><div class="confidence-fill" style="width:${Math.max(0, Math.min(confidence * 100, 100)).toFixed(1)}%"></div></div>
+        `;
+        parity.textContent = `Gate ${selected.gate.state} at ${(confidence * 100).toFixed(1)}% confidence with ${selected.gate.sourceFamilyRefs.length} source families.`;
+      }
+
+      function definitionRow(label, value, className) {
+        return `<div><div class="eyebrow">${label}</div><div class="${className || ""}">${value}</div></div>`;
+      }
+
+      function renderInspector(selected) {
+        const mount = document.getElementById("inspector-content");
+        if (!selected) {
+          mount.innerHTML = '<div class="empty-state">No scenario selected.</div>';
+          return;
+        }
+        const reservation = selected.reservation;
+        const projection = selected.projection;
+        const gate = selected.gate;
+        const gateHtml = gate
+          ? `<div class="inspector-grid">
+              ${definitionRow("Gate ID", gate.gateId, "mono")}
+              ${definitionRow("State", gate.state, "")}
+              ${definitionRow("Assurance", gate.assuranceLevel, "")}
+              ${definitionRow("Deadline", gate.confirmationDeadlineAt, "mono")}
+            </div>`
+          : '<div class="empty-state">No gate required for the selected scenario.</div>';
+        mount.innerHTML = `
+          <div>
+            <div class="eyebrow">${selected.scenarioId}</div>
+            <h3 class="card-title">${selected.title}</h3>
+            <p class="panel-subtle">${selected.note}</p>
+          </div>
+          <div class="inspector-block">
+            <h2>Reservation</h2>
+            <div class="inspector-grid">
+              ${definitionRow("State", reservation.state, "")}
+              ${definitionRow("Commit mode", reservation.commitMode, "")}
+              ${definitionRow("Source domain", reservation.sourceDomain, "")}
+              ${definitionRow("Version ref", projection.reservationVersionRef, "mono")}
+            </div>
+            <div class="inspector-grid" style="margin-top:12px;">
+              ${definitionRow("Truth hash", projection.truthBasisHash, "mono")}
+              ${definitionRow("Fencing token", reservation.activeFencingToken, "mono")}
+            </div>
+          </div>
+          <div class="inspector-block">
+            <h2>Projection</h2>
+            <div class="inspector-grid">
+              ${definitionRow("Truth state", projection.truthState, "")}
+              ${definitionRow("Display", projection.displayExclusivityState, "")}
+              ${definitionRow("Countdown", projection.countdownMode, "")}
+              ${definitionRow("Selected anchor", projection.selectedAnchorRef, "mono")}
+            </div>
+          </div>
+          <div class="inspector-block"><h2>Gate</h2>${gateHtml}</div>
+        `;
+      }
+
+      function renderEvidence(selected) {
+        const mount = document.getElementById("evidence-content");
+        if (!selected || !selected.evidence.length) {
+          mount.innerHTML = '<div class="empty-state">No external evidence atoms are required for this scenario.</div>';
+          return;
+        }
+        const rows = selected.evidence.map((row, index) => `
+          <tr data-testid="evidence-row-${index}">
+            <td class="mono">${row.evidenceRef}</td>
+            <td>${row.sourceFamily}</td>
+            <td>${row.polarity}</td>
+            <td>${row.hardMatchStatus}</td>
+            <td>${row.impact}</td>
+          </tr>
+        `).join("");
+        mount.innerHTML = `<table><thead><tr><th>Evidence</th><th>Family</th><th>Polarity</th><th>Hard match</th><th>Impact</th></tr></thead><tbody>${rows}</tbody></table>`;
+      }
+
+      function renderValidators(selected) {
+        const mount = document.getElementById("validator-content");
+        if (!selected || !selected.validators.length) {
+          mount.innerHTML = '<div class="empty-state">No validator rows are available.</div>';
+          return;
+        }
+        const rows = selected.validators.map((row, index) => `
+          <tr data-testid="validator-row-${index}">
+            <td class="mono">${row.validatorId}</td>
+            <td class="status-${row.status}">${row.status}</td>
+            <td>${row.rule}</td>
+            <td>${row.detail}</td>
+          </tr>
+        `).join("");
+        mount.innerHTML = `<table><thead><tr><th>Validator</th><th>Status</th><th>Rule</th><th>Detail</th></tr></thead><tbody>${rows}</tbody></table>`;
+      }
+
+      function render() {
+        const visible = visibleCases();
+        ensureSelection(visible);
+        const selected = selectedCase(visible);
+        renderMasthead(visible);
+        renderStateRail(visible, selected);
+        renderCards(visible, selected);
+        renderConfidencePanel(selected);
+        renderInspector(selected);
+        renderEvidence(selected);
+        renderValidators(selected);
+      }
+
+      document.getElementById("state-filter").addEventListener("change", (event) => {
+        uiState.stateFilter = event.target.value;
+        render();
+      });
+      document.getElementById("commit-mode-filter").addEventListener("change", (event) => {
+        uiState.commitModeFilter = event.target.value;
+        render();
+      });
+      document.getElementById("assurance-filter").addEventListener("change", (event) => {
+        uiState.assuranceFilter = event.target.value;
+        render();
+      });
+
+      render();
+    </script>
+  </body>
+</html>

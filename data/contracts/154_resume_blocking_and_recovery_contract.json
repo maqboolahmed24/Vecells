@@ -1,0 +1,103 @@
+{
+  "taskId": "par_154",
+  "contractId": "PHASE1_PROMOTED_DRAFT_RESUME_BLOCKING_CONTRACT_V1",
+  "schemaVersion": "PHASE1_PROMOTED_DRAFT_RESUME_BLOCKING_CONTRACT_V1",
+  "sourceRefs": [
+    "prompt/154.md",
+    "prompt/shared_operating_contract_146_to_155.md",
+    "docs/architecture/154_promoted_draft_supersession_and_resume_blocking.md",
+    "docs/architecture/154_post_promotion_resume_resolution_matrix.md",
+    "packages/domains/identity_access/src/draft-session-autosave-backbone.ts",
+    "services/command-api/src/intake-submit.ts"
+  ],
+  "gapResolutionRefs": [
+    "GAP_RESOLVED_POST_PROMOTION_RECOVERY_ROUTE_ENTRY_V1"
+  ],
+  "authoritativeObjects": [
+    "AccessGrantSupersessionRecord",
+    "DraftSessionLease",
+    "DraftRecoveryRecord",
+    "DraftContinuityEvidenceProjection",
+    "SubmissionPromotionRecord",
+    "Request",
+    "RequestLineage"
+  ],
+  "grantSupersession": {
+    "causeClass": "draft_promoted",
+    "mustRunInSamePromotionTransaction": true,
+    "grantFamily": "draft_resume_minimal",
+    "idempotencyLaw": "exact_once_same_promoted_request",
+    "reasonCodes": [
+      "DRAFT_PROMOTED_IMMUTABLE_SUBMIT_BOUNDARY",
+      "GAP_RESOLVED_POST_PROMOTION_RECOVERY_ROUTE_ENTRY_V1"
+    ]
+  },
+  "leaseSupersession": {
+    "releaseReason": "draft_promoted",
+    "mustInvalidateForegroundAndBackgroundLeases": true,
+    "lateBackgroundMutationState": "blocked"
+  },
+  "routeEntry": {
+    "schemaVersion": "PHASE1_PROMOTED_DRAFT_RESOLUTION_V1",
+    "authorityStates": [
+      "draft_mutable",
+      "request_redirect",
+      "recovery_only",
+      "denied_scope"
+    ],
+    "targetIntents": [
+      "resume_draft",
+      "open_request_receipt",
+      "open_request_status",
+      "open_urgent_guidance",
+      "resume_recovery",
+      "blocked_policy"
+    ],
+    "proofStates": [
+      "grant_valid",
+      "grant_superseded_same_lineage",
+      "lease_same_lineage",
+      "none"
+    ],
+    "targetResolutionRules": [
+      {
+        "requestCondition": "urgent_diverted_or_has_urgent_settlement",
+        "targetIntent": "open_urgent_guidance",
+        "targetPathPattern": "/intake/requests/:requestPublicId/urgent-guidance"
+      },
+      {
+        "requestCondition": "triage_active_or_handoff_or_outcome_or_closed",
+        "targetIntent": "open_request_status",
+        "targetPathPattern": "/intake/requests/:requestPublicId/status"
+      },
+      {
+        "requestCondition": "routine_receipt_or_triage_ready",
+        "targetIntent": "open_request_receipt",
+        "targetPathPattern": "/intake/requests/:requestPublicId/receipt"
+      }
+    ]
+  },
+  "recoveryLaw": {
+    "promotedRequestRecoveryReason": "promoted_request_available",
+    "sameLineageProofRequiredForRequestRedirect": true,
+    "requestExistenceMayLeakWithoutLawfulProof": false,
+    "deniedScopeReasonCode": "PROMOTED_REQUEST_VIEW_NOT_GRANTED",
+    "fallbackRecoveryReasonCode": "DRAFT_ROUTE_ENTRY_RECOVERY_REQUIRED"
+  },
+  "replayLaw": {
+    "acceptedSubmitReplayIgnoresPostPromotionValidationDrift": true,
+    "rawReplayHashIncludesContinuityRefs": [
+      "latestMutationRef",
+      "latestSettlementRef",
+      "latestMergePlanRef"
+    ],
+    "rawReplayHashExcludes": [
+      "validationVerdictHash"
+    ]
+  },
+  "nonNegotiables": {
+    "promotedLineageMayReopenMutableDraft": false,
+    "frontendMayInferPostPromotionTruthFromLocalState": false,
+    "sameLineageContinuationMustStayBounded": true
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "taskId": "par_179",
+  "schemaVersion": "170.phase2.trust.v1",
+  "policyVersion": "phase2-binding-authority-v1",
+  "serviceRef": "services/command-api/src/identity-binding-authority.ts",
+  "migrationRef": "services/command-api/migrations/094_phase2_identity_binding_authority.sql",
+  "parallelInterfaceGaps": [
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_BINDING_SOLE_AUTHORITY_V1",
+      "closure": "IdentityBindingAuthority is the only writer for binding versions and current pointers."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_BINDING_APPEND_ONLY_VERSION_CHAIN_V1",
+      "closure": "Every accepted command appends a new IdentityBindingVersion."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_BINDING_CURRENT_POINTER_CAS_V1",
+      "closure": "Current pointer updates require expected-version compare-and-set."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_BINDING_DERIVED_PATIENT_REF_TRANSACTION_V1",
+      "closure": "Request and episode patient refs advance through DerivedPatientRefSettlement in the same authority transaction."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_BINDING_IDEMPOTENT_COMMAND_REPLAY_V1",
+      "closure": "Duplicate idempotency keys return the recorded BindingCommandSettlement."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_BINDING_FREEZE_AWARE_REFUSAL_V1",
+      "closure": "Active freeze holds block ordinary binding commands and allow authorized repair outcomes."
+    }
+  ],
+  "cases": [
+    {
+      "caseId": "BINDING179_VERIFIED_BIND_ADVANCES_LINEAGE",
+      "intentType": "verified_bind",
+      "expectedDecision": "accepted",
+      "expectedBindingState": "verified_patient",
+      "expectedDerivedRefAction": "advance_request_and_episode_refs",
+      "expectedReasonCodes": [
+        "BINDING_179_ACCEPTED_APPEND_ONLY",
+        "BINDING_179_CURRENT_POINTER_CAS",
+        "BINDING_179_DERIVED_PATIENT_REF_ADVANCED"
+      ]
+    },
+    {
+      "caseId": "BINDING179_IDEMPOTENT_REPLAY",
+      "intentType": "candidate_refresh",
+      "duplicateIdempotencyKey": true,
+      "expectedDecision": "replayed",
+      "expectedNewBindingVersion": false,
+      "expectedReasonCodes": ["BINDING_179_REPLAY_RETURNED"]
+    },
+    {
+      "caseId": "BINDING179_STALE_CAS_REJECTED",
+      "intentType": "claim_confirmed",
+      "expectedCurrentVersionMatches": false,
+      "expectedDecision": "cas_conflict",
+      "expectedNewBindingVersion": false,
+      "expectedReasonCodes": [
+        "BINDING_179_STALE_EXPECTED_VERSION",
+        "BINDING_179_CAS_CONFLICT_REFUSED"
+      ]
+    },
+    {
+      "caseId": "BINDING179_FREEZE_BLOCKS_ORDINARY",
+      "intentType": "verified_bind",
+      "activeFreezeHold": true,
+      "repairAuthorized": false,
+      "expectedDecision": "freeze_blocked",
+      "expectedNewBindingVersion": false,
+      "expectedReasonCodes": ["BINDING_179_FREEZE_ACTIVE_REFUSED"]
+    },
+    {
+      "caseId": "BINDING179_CORRECTION_SUPERSEDES",
+      "intentType": "correction_applied",
+      "activeFreezeHold": true,
+      "repairAuthorized": true,
+      "expectedDecision": "accepted",
+      "expectedBindingState": "corrected",
+      "expectedSupersessionLink": true,
+      "expectedReasonCodes": [
+        "BINDING_179_REPAIR_AUTHORITY_RELEASED",
+        "BINDING_179_DERIVED_PATIENT_REF_ADVANCED"
+      ]
+    },
+    {
+      "caseId": "BINDING179_REVOKE_CLEARS_LINEAGE",
+      "intentType": "revoked",
+      "expectedDecision": "accepted",
+      "expectedBindingState": "revoked",
+      "expectedDerivedRefAction": "clear_request_and_episode_refs",
+      "expectedReasonCodes": ["BINDING_179_REVOKED"]
+    }
+  ]
+}

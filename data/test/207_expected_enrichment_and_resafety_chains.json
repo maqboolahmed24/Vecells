@@ -1,0 +1,149 @@
+{
+  "taskId": "seq_207",
+  "schemaVersion": "phase2-enrichment-resafety-suite-v1",
+  "visualMode": "Enrichment_Resafety_Lab",
+  "statusVocabulary": ["passed", "failed", "blocked_external", "not_applicable"],
+  "requiredCounters": [
+    "PDS feature flag off stays local-only",
+    "PDS successful enrichment preserves provenance",
+    "PDS no match or ambiguity falls back local-only",
+    "PDS degraded upstream cannot mutate binding",
+    "PDS active request uses captured gate",
+    "PDS disabled after prior enrichment ignores cache",
+    "PDS guard absence blocks provider call",
+    "PDS contact conflicts preserve local preferences",
+    "duplicate exact replay collapses",
+    "duplicate attachment does not re-trigger safety",
+    "material late evidence triggers re-safety",
+    "closed or identity-held late evidence blocks calm projection"
+  ],
+  "pdsChain": [
+    {
+      "step": "gate",
+      "authority": "PdsEnrichmentOrchestrator",
+      "mustAttemptAdapterWhenDenied": false,
+      "mustMutateBinding": false
+    },
+    {
+      "step": "adapter",
+      "authority": "PdsAdapter",
+      "allowedResultStates": ["matched", "not_found", "timeout", "provider_error", "parse_error"],
+      "mustStoreRawDemographics": false
+    },
+    {
+      "step": "normalize",
+      "authority": "PdsEnrichmentOrchestrator",
+      "allowedStoredClasses": ["hashes", "digests", "refs", "freshness", "provenance"],
+      "mustOverwriteCommunicationPreferences": false
+    },
+    {
+      "step": "settle",
+      "authority": "PatientLinker",
+      "mustProceedWithoutPds": true,
+      "mustTreatPdsAsBindingAuthority": false
+    }
+  ],
+  "followupChain": [
+    {
+      "step": "freeze",
+      "authority": "PhoneFollowupResafetyService",
+      "mustCreateSecondReceipt": false
+    },
+    {
+      "step": "duplicate",
+      "authority": "FollowupDuplicateEvaluation",
+      "allowedClasses": [
+        "exact_replay",
+        "exact_retry_collapse",
+        "semantic_replay",
+        "same_request_attach",
+        "duplicate_attachment",
+        "review_required"
+      ]
+    },
+    {
+      "step": "materiality",
+      "authority": "MaterialDeltaAssessment",
+      "mustTriggerResafetyForMaterialClinicalChange": true
+    },
+    {
+      "step": "projection",
+      "authority": "PhoneFollowupProjectionHold",
+      "mustExposeStaleCalmStatus": false
+    }
+  ],
+  "expectedEvents": [
+    {
+      "eventName": "pds.gating_decision.recorded",
+      "counter": "PDS feature flag off stays local-only",
+      "mustExposePhi": false,
+      "mustDuplicateWork": false
+    },
+    {
+      "eventName": "pds.enrichment.completed",
+      "counter": "PDS successful enrichment preserves provenance",
+      "mustExposePhi": false,
+      "mustDuplicateWork": false
+    },
+    {
+      "eventName": "pds.enrichment.fallback",
+      "counter": "PDS no match or ambiguity falls back local-only",
+      "mustExposePhi": false,
+      "mustDuplicateWork": false
+    },
+    {
+      "eventName": "pds.enrichment.fallback.degraded",
+      "counter": "PDS degraded upstream cannot mutate binding",
+      "mustExposePhi": false,
+      "mustDuplicateWork": false
+    },
+    {
+      "eventName": "pds.gating_decision.captured",
+      "counter": "PDS active request uses captured gate",
+      "mustExposePhi": false,
+      "mustDuplicateWork": false
+    },
+    {
+      "eventName": "pds.cache.ignored.disabled",
+      "counter": "PDS disabled after prior enrichment ignores cache",
+      "mustExposePhi": false,
+      "mustDuplicateWork": false
+    },
+    {
+      "eventName": "pds.provider_call.blocked_by_guard",
+      "counter": "PDS guard absence blocks provider call",
+      "mustExposePhi": false,
+      "mustDuplicateWork": false
+    },
+    {
+      "eventName": "pds.contact_conflict.quarantined",
+      "counter": "PDS contact conflicts preserve local preferences",
+      "mustExposePhi": false,
+      "mustDuplicateWork": false
+    },
+    {
+      "eventName": "followup.exact_replay.returned",
+      "counter": "duplicate exact replay collapses",
+      "mustExposePhi": false,
+      "mustDuplicateWork": false
+    },
+    {
+      "eventName": "followup.duplicate_attachment.no_resafety",
+      "counter": "duplicate attachment does not re-trigger safety",
+      "mustExposePhi": false,
+      "mustDuplicateWork": false
+    },
+    {
+      "eventName": "followup.material_delta.resafety_opened",
+      "counter": "material late evidence triggers re-safety",
+      "mustExposePhi": false,
+      "mustDuplicateWork": false
+    },
+    {
+      "eventName": "followup.projection_hold.review_pending",
+      "counter": "closed or identity-held late evidence blocks calm projection",
+      "mustExposePhi": false,
+      "mustDuplicateWork": false
+    }
+  ]
+}

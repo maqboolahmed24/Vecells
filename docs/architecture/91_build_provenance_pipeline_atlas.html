@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Build Provenance Pipeline Atlas</title>
+    <style>
+      :root {
+        --canvas: #F7F9FC;
+        --panel: #FFFFFF;
+        --rail: #EEF2F7;
+        --inset: #F4F7FB;
+        --text-strong: #0F172A;
+        --text: #1E293B;
+        --muted: #64748B;
+        --border: #E2E8F0;
+        --build: #2563EB;
+        --provenance: #0EA5A4;
+        --quarantine: #C24141;
+        --warning: #D97706;
+        --published: #059669;
+        --revoked: #7C3AED;
+        --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: linear-gradient(180deg, var(--canvas), #eef4fb);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      body[data-reduced-motion="true"] * {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+      }
+      .page {
+        max-width: 1580px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 4;
+        display: grid;
+        grid-template-columns: 1.2fr repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        min-height: 76px;
+        padding: 16px 20px;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--border);
+      }
+      .wordmark {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 700;
+        color: var(--text-strong);
+      }
+      .monogram {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--build), var(--provenance));
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 14px;
+        letter-spacing: 0.08em;
+      }
+      .stat {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 12px 14px;
+        box-shadow: var(--shadow);
+      }
+      .stat-label {
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .stat-value {
+        display: block;
+        margin-top: 6px;
+        color: var(--text-strong);
+        font-size: 24px;
+        font-weight: 700;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 324px minmax(0, 1fr) 420px;
+        gap: 20px;
+        align-items: start;
+        margin-top: 20px;
+      }
+      nav, .canvas-panel, aside, .table-panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        box-shadow: var(--shadow);
+      }
+      nav {
+        padding: 18px;
+        position: sticky;
+        top: 92px;
+      }
+      .filter-group {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .filter-group label {
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      select {
+        height: 44px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0 12px;
+        background: var(--inset);
+        color: var(--text);
+      }
+      main {
+        display: grid;
+        gap: 20px;
+      }
+      .canvas-panel {
+        padding: 18px;
+        min-height: 320px;
+      }
+      .panel-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .panel-title h2 {
+        margin: 0;
+        font-size: 18px;
+        color: var(--text-strong);
+      }
+      .panel-title span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .lane {
+        display: grid;
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .lane-step {
+        padding: 14px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, var(--inset), #fff);
+        border: 1px solid var(--border);
+      }
+      .lane-step strong {
+        display: block;
+        color: var(--text-strong);
+        margin-bottom: 6px;
+      }
+      .card-wall {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+      }
+      .run-card, .timeline-button, .row-button {
+        width: 100%;
+        text-align: left;
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 16px;
+        cursor: pointer;
+        color: inherit;
+        transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+      }
+      .run-card:hover, .timeline-button:hover, .row-button:hover,
+      .run-card:focus-visible, .timeline-button:focus-visible, .row-button:focus-visible {
+        outline: none;
+        transform: translateY(-1px);
+        box-shadow: 0 12px 24px rgba(37, 99, 235, 0.12);
+        border-color: var(--build);
+      }
+      .run-card[data-selected="true"], .timeline-button[data-selected="true"], tr[data-selected="true"] .row-button {
+        border-color: var(--build);
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+      }
+      .run-card {
+        padding: 16px;
+        display: grid;
+        gap: 10px;
+      }
+      .card-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .card-mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 88px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #fff;
+      }
+      .badge-publishable, .badge-verified {
+        background: var(--published);
+      }
+      .badge-quarantined {
+        background: var(--quarantine);
+      }
+      .badge-revoked {
+        background: var(--revoked);
+      }
+      .badge-superseded {
+        background: var(--warning);
+      }
+      .badge-blocked, .badge-drifted {
+        background: var(--build);
+      }
+      .timeline {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+      }
+      .timeline-button {
+        padding: 14px;
+        background: linear-gradient(180deg, #fff, var(--inset));
+      }
+      aside {
+        padding: 18px;
+        position: sticky;
+        top: 92px;
+      }
+      .inspector-grid {
+        display: grid;
+        gap: 12px;
+      }
+      .inspector-block {
+        background: var(--inset);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 14px;
+      }
+      .inspector-block h3 {
+        margin: 0 0 8px;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      .lower-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+      }
+      .table-panel {
+        padding: 18px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th, td {
+        padding: 10px 8px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+      th {
+        text-align: left;
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+      @media (max-width: 1240px) {
+        .layout {
+          grid-template-columns: 280px minmax(0, 1fr);
+        }
+        aside {
+          grid-column: 1 / -1;
+          position: static;
+        }
+        .lower-grid {
+          grid-template-columns: 1fr;
+        }
+        .lane {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 860px) {
+        header {
+          grid-template-columns: 1fr 1fr;
+        }
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        nav {
+          position: static;
+        }
+        .lane {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <div class="wordmark">
+          <div class="monogram" aria-hidden="true">BP</div>
+          <div>
+            <div>Vecells</div>
+            <div class="card-mono">Build_Provenance_Pipeline_Atlas</div>
+          </div>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Active Build</span>
+          <span class="stat-value" id="stat-active-build">-</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Quarantined Artifacts</span>
+          <span class="stat-value" id="stat-quarantined">-</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Revoked Artifacts</span>
+          <span class="stat-value" id="stat-revoked">-</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Gate Failure Alerts</span>
+          <span class="stat-value" id="stat-alerts">-</span>
+        </div>
+      </header>
+      <div class="layout">
+        <nav aria-label="Pipeline filters">
+          <div class="filter-group">
+            <label for="filter-environment">Environment</label>
+            <select id="filter-environment" data-testid="filter-environment"></select>
+          </div>
+          <div class="filter-group">
+            <label for="filter-gate">Gate</label>
+            <select id="filter-gate" data-testid="filter-gate"></select>
+          </div>
+          <div class="filter-group">
+            <label for="filter-artifact-state">Artifact state</label>
+            <select id="filter-artifact-state" data-testid="filter-artifact-state"></select>
+          </div>
+          <div class="filter-group">
+            <label for="filter-provenance-state">Provenance state</label>
+            <select id="filter-provenance-state" data-testid="filter-provenance-state"></select>
+          </div>
+          <div class="filter-group">
+            <label for="filter-build-family">Build family</label>
+            <select id="filter-build-family" data-testid="filter-build-family"></select>
+          </div>
+        </nav>
+        <main>
+          <section class="canvas-panel" data-testid="pipeline-lane" aria-labelledby="lane-title">
+            <div class="panel-title">
+              <h2 id="lane-title">Pipeline lane</h2>
+              <span id="lane-parity">0 visible gates</span>
+            </div>
+            <div class="lane" id="lane"></div>
+            <div class="sr-only" id="lane-text-parity"></div>
+          </section>
+          <section class="canvas-panel" data-testid="provenance-card-wall" aria-labelledby="card-title">
+            <div class="panel-title">
+              <h2 id="card-title">Provenance state cards</h2>
+              <span id="card-parity">0 visible builds</span>
+            </div>
+            <div class="card-wall" id="card-wall"></div>
+            <div class="sr-only" id="card-text-parity"></div>
+          </section>
+          <section class="canvas-panel" data-testid="decision-timeline" aria-labelledby="timeline-title">
+            <div class="panel-title">
+              <h2 id="timeline-title">Quarantine and publish timeline</h2>
+              <span id="timeline-parity">0 visible decisions</span>
+            </div>
+            <div class="timeline" id="timeline"></div>
+            <div class="sr-only" id="timeline-text-parity"></div>
+          </section>
+          <div class="lower-grid">
+            <section class="table-panel" data-testid="run-table">
+              <div class="panel-title">
+                <h2>Pipeline runs</h2>
+                <span id="run-table-parity">0 rows</span>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Run</th>
+                    <th>Ring</th>
+                    <th>State</th>
+                    <th>Gate</th>
+                  </tr>
+                </thead>
+                <tbody id="run-table-body"></tbody>
+              </table>
+            </section>
+            <section class="table-panel" data-testid="policy-table">
+              <div class="panel-title">
+                <h2>Provenance and policy</h2>
+                <span id="policy-table-parity">0 rules</span>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Trigger</th>
+                    <th>Artifact</th>
+                    <th>Runtime</th>
+                    <th>Decision</th>
+                  </tr>
+                </thead>
+                <tbody id="policy-table-body"></tbody>
+              </table>
+            </section>
+          </div>
+        </main>
+        <aside data-testid="inspector" aria-labelledby="inspector-title">
+          <div class="panel-title">
+            <h2 id="inspector-title">Inspector</h2>
+            <span id="inspector-subtitle">Select a build</span>
+          </div>
+          <div class="inspector-grid" id="inspector-grid"></div>
+        </aside>
+      </div>
+    </div>
+    <script>
+      const PACK = {"manifest":{"task_id":"par_091","generated_at":"2026-04-13T14:51:09+00:00","captured_on":"2026-04-13","visual_mode":"Build_Provenance_Pipeline_Atlas","mission":"Provision the Vecells CI/CD, signed build provenance, quarantine, and non-production promotion baseline so artifact trust is machine-readable and fail closed.","source_precedence":["prompt/091.md","prompt/shared_operating_contract_086_to_095.md","prompt/AGENT.md","prompt/checklist.md","blueprint/platform-runtime-and-release-blueprint.md#BuildProvenanceRecord","blueprint/platform-runtime-and-release-blueprint.md#ReleasePublicationParityRecord","blueprint/platform-runtime-and-release-blueprint.md#RuntimePublicationBundle","blueprint/platform-runtime-and-release-blueprint.md#Security baseline contract","blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract","blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract","blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract","blueprint/phase-0-the-foundation-protocol.md#1.38 RuntimePublicationBundle","blueprint/forensic-audit-findings.md#Finding 91","blueprint/forensic-audit-findings.md#Finding 95","blueprint/forensic-audit-findings.md#Finding 96","blueprint/forensic-audit-findings.md#Finding 103","blueprint/forensic-audit-findings.md#Finding 104","blueprint/forensic-audit-findings.md#Finding 112","blueprint/forensic-audit-findings.md#Finding 113","data/analysis/verification_scenarios.json","data/analysis/release_contract_verification_matrix.json","data/analysis/release_publication_parity_rules.json","data/analysis/secret_class_manifest.json","data/analysis/runtime_topology_manifest.json","data/analysis/gateway_bff_surfaces.json","data/analysis/api_contract_registry_manifest.json","data/analysis/design_contract_publication_bundles.json","data/analysis/supply_chain_and_provenance_matrix.json","data/analysis/dependency_watchlist.json"],"summary":{"workflow_count":2,"build_family_count":8,"pipeline_run_count":8,"gate_count":8,"gate_evidence_count":64,"quarantine_rule_count":6,"publish_hook_count":16,"verified_count":4,"quarantined_count":1,"revoked_count":1,"superseded_count":1,"drifted_count":1,"publishable_artifact_count":3,"blocked_artifact_count":2},"release_contract_verification_matrix_ref":"data/analysis/release_contract_verification_matrix.json","release_publication_parity_rules_ref":"data/analysis/release_publication_parity_rules.json","secret_class_manifest_ref":"data/analysis/secret_class_manifest.json","runtime_topology_manifest_ref":"data/analysis/runtime_topology_manifest.json","gateway_surface_manifest_ref":"data/analysis/gateway_bff_surfaces.json","design_contract_publication_ref":"data/analysis/design_contract_publication_bundles.json","buildFamilies":[{"buildFamilyRef":"bf_foundation_monorepo_full","label":"Foundation monorepo bundle","artifactKind":"workspace_bundle_manifest","artifactRoots":["package.json","pnpm-lock.yaml","pnpm-workspace.yaml","nx.json","tsconfig.base.json"],"surfaceRefs":[],"surfaceLabels":[],"allowedEnvironmentRings":["ci-preview","integration","preprod"],"requiredGateRefs":["dependency_resolve","lint_type_unit","build_package","sbom_dependency_policy","provenance_sign","provenance_verify","runtime_publish_gate","nonprod_promotion_gate"],"verificationScenarioRef":"VS_058_CI_PREVIEW_V1","releaseRef":"RC_CI_PREVIEW_V1","releaseContractVerificationMatrixRef":"RCVM_CI_PREVIEW_V1","runtimePublicationBundleRef":"RPB_CI_PREVIEW_V1","releasePublicationParityRef":"parity::rc_ci_preview_v1","releaseApprovalFreezeRef":"raf::rc_ci_preview_v1","signingSecretClassRef":"RELEASE_PROVENANCE_SIGNING_KEY_REF","signingAccessPolicyRef":"ap_ci_release_attestation","publishDescriptorRef":"pd_foundation_monorepo","requiresTopologyPublish":true,"source_refs":["prompt/091.md#Implementation deliverables to create","data/analysis/verification_scenarios.json","data/analysis/secret_class_manifest.json","data/analysis/gateway_bff_surfaces.json"]},{"buildFamilyRef":"bf_published_gateway_bundle","label":"Published gateway bundle","artifactKind":"service_bundle_manifest","artifactRoots":["services/api-gateway","packages/api-contracts","packages/release-controls"],"surfaceRefs":["gws_patient_intake_web","gws_patient_home"],"surfaceLabels":["Patient intake entry gateway","Patient home and spotlight gateway"],"allowedEnvironmentRings":["ci-preview","integration","preprod"],"requiredGateRefs":["dependency_resolve","lint_type_unit","build_package","sbom_dependency_policy","provenance_sign","provenance_verify","runtime_publish_gate","nonprod_promotion_gate"],"verificationScenarioRef":"VS_058_CI_PREVIEW_V1","releaseRef":"RC_CI_PREVIEW_V1","releaseContractVerificationMatrixRef":"RCVM_CI_PREVIEW_V1","runtimePublicationBundleRef":"RPB_CI_PREVIEW_V1","releasePublicationParityRef":"parity::rc_ci_preview_v1","releaseApprovalFreezeRef":"raf::rc_ci_preview_v1","signingSecretClassRef":"RELEASE_PROVENANCE_SIGNING_KEY_REF","signingAccessPolicyRef":"ap_ci_release_attestation","publishDescriptorRef":"pd_published_gateway","requiresTopologyPublish":true,"source_refs":["prompt/091.md#Implementation deliverables to create","data/analysis/verification_scenarios.json","data/analysis/secret_class_manifest.json","data/analysis/gateway_bff_surfaces.json"]},{"buildFamilyRef":"bf_command_runtime_bundle","label":"Command orchestration bundle","artifactKind":"service_bundle_manifest","artifactRoots":["services/command-api","packages/domain-kernel","packages/release-controls"],"surfaceRefs":[],"surfaceLabels":[],"allowedEnvironmentRings":["ci-preview","integration","preprod"],"requiredGateRefs":["dependency_resolve","lint_type_unit","build_package","sbom_dependency_policy","provenance_sign","provenance_verify","runtime_publish_gate","nonprod_promotion_gate"],"verificationScenarioRef":"VS_058_CI_PREVIEW_V1","releaseRef":"RC_CI_PREVIEW_V1","releaseContractVerificationMatrixRef":"RCVM_CI_PREVIEW_V1","runtimePublicationBundleRef":"RPB_CI_PREVIEW_V1","releasePublicationParityRef":"parity::rc_ci_preview_v1","releaseApprovalFreezeRef":"raf::rc_ci_preview_v1","signingSecretClassRef":"RELEASE_PROVENANCE_SIGNING_KEY_REF","signingAccessPolicyRef":"ap_ci_release_attestation","publishDescriptorRef":"pd_command_runtime","requiresTopologyPublish":true,"source_refs":["prompt/091.md#Implementation deliverables to create","data/analysis/verification_scenarios.json","data/analysis/secret_class_manifest.json","data/analysis/gateway_bff_surfaces.json"]},{"buildFamilyRef":"bf_projection_runtime_bundle","label":"Projection rebuild bundle","artifactKind":"service_bundle_manifest","artifactRoots":["services/projection-worker","packages/release-controls","packages/fhir-mapping"],"surfaceRefs":[],"surfaceLabels":[],"allowedEnvironmentRings":["ci-preview","integration","preprod"],"requiredGateRefs":["dependency_resolve","lint_type_unit","build_package","sbom_dependency_policy","provenance_sign","provenance_verify","runtime_publish_gate","nonprod_promotion_gate"],"verificationScenarioRef":"VS_058_CI_PREVIEW_V1","releaseRef":"RC_CI_PREVIEW_V1","releaseContractVerificationMatrixRef":"RCVM_CI_PREVIEW_V1","runtimePublicationBundleRef":"RPB_CI_PREVIEW_V1","releasePublicationParityRef":"parity::rc_ci_preview_v1","releaseApprovalFreezeRef":"raf::rc_ci_preview_v1","signingSecretClassRef":"RELEASE_PROVENANCE_SIGNING_KEY_REF","signingAccessPolicyRef":"ap_ci_release_attestation","publishDescriptorRef":"pd_projection_runtime","requiresTopologyPublish":true,"source_refs":["prompt/091.md#Implementation deliverables to create","data/analysis/verification_scenarios.json","data/analysis/secret_class_manifest.json","data/analysis/gateway_bff_surfaces.json"]},{"buildFamilyRef":"bf_notification_runtime_bundle","label":"Notification dispatch bundle","artifactKind":"service_bundle_manifest","artifactRoots":["services/notification-worker","packages/release-controls"],"surfaceRefs":[],"surfaceLabels":[],"allowedEnvironmentRings":["ci-preview","integration","preprod"],"requiredGateRefs":["dependency_resolve","lint_type_unit","build_package","sbom_dependency_policy","provenance_sign","provenance_verify","runtime_publish_gate","nonprod_promotion_gate"],"verificationScenarioRef":"VS_058_CI_PREVIEW_V1","releaseRef":"RC_CI_PREVIEW_V1","releaseContractVerificationMatrixRef":"RCVM_CI_PREVIEW_V1","runtimePublicationBundleRef":"RPB_CI_PREVIEW_V1","releasePublicationParityRef":"parity::rc_ci_preview_v1","releaseApprovalFreezeRef":"raf::rc_ci_preview_v1","signingSecretClassRef":"RELEASE_PROVENANCE_SIGNING_KEY_REF","signingAccessPolicyRef":"ap_ci_release_attestation","publishDescriptorRef":"pd_notification_runtime","requiresTopologyPublish":true,"source_refs":["prompt/091.md#Implementation deliverables to create","data/analysis/verification_scenarios.json","data/analysis/secret_class_manifest.json","data/analysis/gateway_bff_surfaces.json"]},{"buildFamilyRef":"bf_adapter_simulator_bundle","label":"Adapter simulator bundle","artifactKind":"service_bundle_manifest","artifactRoots":["services/adapter-simulators","packages/release-controls"],"surfaceRefs":[],"surfaceLabels":[],"allowedEnvironmentRings":["local","ci-preview","integration"],"requiredGateRefs":["dependency_resolve","lint_type_unit","build_package","sbom_dependency_policy","provenance_sign","provenance_verify","runtime_publish_gate","nonprod_promotion_gate"],"verificationScenarioRef":"VS_058_CI_PREVIEW_V1","releaseRef":"RC_CI_PREVIEW_V1","releaseContractVerificationMatrixRef":"RCVM_CI_PREVIEW_V1","runtimePublicationBundleRef":"RPB_CI_PREVIEW_V1","releasePublicationParityRef":"parity::rc_ci_preview_v1","releaseApprovalFreezeRef":"raf::rc_ci_preview_v1","signingSecretClassRef":"RELEASE_PROVENANCE_SIGNING_KEY_REF","signingAccessPolicyRef":"ap_ci_release_attestation","publishDescriptorRef":"pd_adapter_simulators","requiresTopologyPublish":false,"source_refs":["prompt/091.md#Implementation deliverables to create","data/analysis/verification_scenarios.json","data/analysis/secret_class_manifest.json","data/analysis/gateway_bff_surfaces.json"]},{"buildFamilyRef":"bf_browser_contract_bundle","label":"Browser contract bundle","artifactKind":"contract_bundle_manifest","artifactRoots":["apps/patient-web","apps/clinical-workspace","packages/design-system","packages/api-contracts"],"surfaceRefs":["gws_patient_home","gws_clinician_workspace"],"surfaceLabels":["Patient home and spotlight gateway","Clinical Workspace queue and task canvas gateway"],"allowedEnvironmentRings":["ci-preview","integration","preprod"],"requiredGateRefs":["dependency_resolve","lint_type_unit","build_package","sbom_dependency_policy","provenance_sign","provenance_verify","runtime_publish_gate","nonprod_promotion_gate"],"verificationScenarioRef":"VS_058_CI_PREVIEW_V1","releaseRef":"RC_CI_PREVIEW_V1","releaseContractVerificationMatrixRef":"RCVM_CI_PREVIEW_V1","runtimePublicationBundleRef":"RPB_CI_PREVIEW_V1","releasePublicationParityRef":"parity::rc_ci_preview_v1","releaseApprovalFreezeRef":"raf::rc_ci_preview_v1","signingSecretClassRef":"RELEASE_PROVENANCE_SIGNING_KEY_REF","signingAccessPolicyRef":"ap_ci_release_attestation","publishDescriptorRef":"pd_browser_contracts","requiresTopologyPublish":true,"source_refs":["prompt/091.md#Implementation deliverables to create","data/analysis/verification_scenarios.json","data/analysis/secret_class_manifest.json","data/analysis/gateway_bff_surfaces.json"]},{"buildFamilyRef":"bf_release_control_bundle","label":"Release-control bundle","artifactKind":"control_plane_manifest","artifactRoots":["packages/release-controls","tools/analysis",".github/workflows"],"surfaceRefs":["gws_operations_board","gws_governance_shell"],"surfaceLabels":["Operations board gateway","Governance and Admin shell gateway"],"allowedEnvironmentRings":["local","ci-preview","integration","preprod","production"],"requiredGateRefs":["dependency_resolve","lint_type_unit","build_package","sbom_dependency_policy","provenance_sign","provenance_verify","runtime_publish_gate","nonprod_promotion_gate"],"verificationScenarioRef":"VS_058_CI_PREVIEW_V1","releaseRef":"RC_CI_PREVIEW_V1","releaseContractVerificationMatrixRef":"RCVM_CI_PREVIEW_V1","runtimePublicationBundleRef":"RPB_CI_PREVIEW_V1","releasePublicationParityRef":"parity::rc_ci_preview_v1","releaseApprovalFreezeRef":"raf::rc_ci_preview_v1","signingSecretClassRef":"RELEASE_PROVENANCE_SIGNING_KEY_REF","signingAccessPolicyRef":"ap_ci_release_attestation","publishDescriptorRef":"pd_release_controls","requiresTopologyPublish":true,"source_refs":["prompt/091.md#Implementation deliverables to create","data/analysis/verification_scenarios.json","data/analysis/secret_class_manifest.json","data/analysis/gateway_bff_surfaces.json"]}],"gateDefinitions":[{"gateRef":"dependency_resolve","sequence":1,"label":"Dependency resolve","category":"dependency","failureDisposition":"block_pipeline","publishedEvidenceType":"dependency-resolution-manifest"},{"gateRef":"lint_type_unit","sequence":2,"label":"Lint, type, and unit","category":"static","failureDisposition":"block_pipeline","publishedEvidenceType":"foundation-gate-record"},{"gateRef":"build_package","sequence":3,"label":"Deterministic build package","category":"build","failureDisposition":"block_pipeline","publishedEvidenceType":"artifact-bundle-manifest"},{"gateRef":"sbom_dependency_policy","sequence":4,"label":"SBOM and dependency policy","category":"supply_chain","failureDisposition":"quarantine_artifact","publishedEvidenceType":"sbom-and-policy-verdict"},{"gateRef":"provenance_sign","sequence":5,"label":"Provenance sign","category":"provenance","failureDisposition":"quarantine_artifact","publishedEvidenceType":"signed-provenance-record"},{"gateRef":"provenance_verify","sequence":6,"label":"Provenance verify","category":"provenance","failureDisposition":"quarantine_artifact","publishedEvidenceType":"provenance-verification-verdict"},{"gateRef":"runtime_publish_gate","sequence":7,"label":"Runtime publication gate","category":"publication","failureDisposition":"block_publish","publishedEvidenceType":"publish-decision-record"},{"gateRef":"nonprod_promotion_gate","sequence":8,"label":"Non-production promotion gate","category":"promotion","failureDisposition":"block_promotion","publishedEvidenceType":"promotion-decision-record"}],"pipelineRuns":[{"pipelineExecutionRef":"run_foundation_ci_preview_verified","buildProvenanceRecordRef":"bpr::run_foundation_ci_preview_verified","environmentRing":"ci-preview","buildFamilyRef":"bf_foundation_monorepo_full","releaseRef":"RC_CI_PREVIEW_V1","verificationScenarioRef":"VS_058_CI_PREVIEW_V1","releaseContractVerificationMatrixRef":"RCVM_CI_PREVIEW_V1","runtimePublicationBundleRef":"RPB_CI_PREVIEW_V1","releasePublicationParityRef":"parity::rc_ci_preview_v1","releaseApprovalFreezeRef":"raf::rc_ci_preview_v1","artifactSetDigest":"e11ef386818cf7e8","sbomDigest":"5899a6c73d3df8ae","artifactState":"publishable","provenanceState":"verified","runtimeConsumptionState":"publishable","decisionState":"promotable","dominantGateRef":"nonprod_promotion_gate","gateEvidenceRefs":["gate-evidence::run_foundation_ci_preview_verified::dependency_resolve","gate-evidence::run_foundation_ci_preview_verified::lint_type_unit","gate-evidence::run_foundation_ci_preview_verified::build_package","gate-evidence::run_foundation_ci_preview_verified::sbom_dependency_policy","gate-evidence::run_foundation_ci_preview_verified::provenance_sign","gate-evidence::run_foundation_ci_preview_verified::provenance_verify","gate-evidence::run_foundation_ci_preview_verified::runtime_publish_gate","gate-evidence::run_foundation_ci_preview_verified::nonprod_promotion_gate"],"quarantineReasonRefs":[],"supersedesBuildProvenanceRecordRef":null,"artifactDigests":[{"artifactId":"bf_foundation_monorepo_full::bundle","artifactKind":"workspace_bundle_manifest","artifactDigest":"e11ef386818cf7e8","artifactRoots":["package.json","pnpm-lock.yaml","pnpm-workspace.yaml","nx.json","tsconfig.base.json"]}],"source_refs":["prompt/091.md#At minimum, implement these authoritative capabilities","data/analysis/verification_scenarios.json"]},{"pipelineExecutionRef":"run_gateway_integration_quarantined_dependency","buildProvenanceRecordRef":"bpr::run_gateway_integration_quarantined_dependency","environmentRing":"integration","buildFamilyRef":"bf_published_gateway_bundle","releaseRef":"RC_INTEGRATION_V1","verificationScenarioRef":"VS_058_INTEGRATION_V1","releaseContractVerificationMatrixRef":"RCVM_INTEGRATION_V1","runtimePublicationBundleRef":"RPB_INTEGRATION_V1","releasePublicationParityRef":"parity::rc_integration_v1","releaseApprovalFreezeRef":"raf::rc_integration_v1","artifactSetDigest":"a9f77e36fbf19bf6","sbomDigest":"13d2531d82e71506","artifactState":"quarantined","provenanceState":"quarantined","runtimeConsumptionState":"quarantined","decisionState":"quarantined","dominantGateRef":"sbom_dependency_policy","gateEvidenceRefs":["gate-evidence::run_gateway_integration_quarantined_dependency::dependency_resolve","gate-evidence::run_gateway_integration_quarantined_dependency::lint_type_unit","gate-evidence::run_gateway_integration_quarantined_dependency::build_package","gate-evidence::run_gateway_integration_quarantined_dependency::sbom_dependency_policy","gate-evidence::run_gateway_integration_quarantined_dependency::provenance_sign","gate-evidence::run_gateway_integration_quarantined_dependency::provenance_verify","gate-evidence::run_gateway_integration_quarantined_dependency::runtime_publish_gate","gate-evidence::run_gateway_integration_quarantined_dependency::nonprod_promotion_gate"],"quarantineReasonRefs":["DEPENDENCY_POLICY_BLOCKED"],"supersedesBuildProvenanceRecordRef":null,"artifactDigests":[{"artifactId":"bf_published_gateway_bundle::bundle","artifactKind":"service_bundle_manifest","artifactDigest":"a9f77e36fbf19bf6","artifactRoots":["services/api-gateway","packages/api-contracts","packages/release-controls"]}],"source_refs":["prompt/091.md#At minimum, implement these authoritative capabilities","data/analysis/verification_scenarios.json"]},{"pipelineExecutionRef":"run_command_preprod_revoked","buildProvenanceRecordRef":"bpr::run_command_preprod_revoked","environmentRing":"preprod","buildFamilyRef":"bf_command_runtime_bundle","releaseRef":"RC_PREPROD_V1","verificationScenarioRef":"VS_058_PREPROD_V1","releaseContractVerificationMatrixRef":"RCVM_PREPROD_V1","runtimePublicationBundleRef":"RPB_PREPROD_V1","releasePublicationParityRef":"parity::rc_preprod_v1","releaseApprovalFreezeRef":"raf::rc_preprod_v1","artifactSetDigest":"7653ee42609a24a3","sbomDigest":"581daa24d47ce018","artifactState":"revoked","provenanceState":"revoked","runtimeConsumptionState":"revoked","decisionState":"revoked","dominantGateRef":"provenance_verify","gateEvidenceRefs":["gate-evidence::run_command_preprod_revoked::dependency_resolve","gate-evidence::run_command_preprod_revoked::lint_type_unit","gate-evidence::run_command_preprod_revoked::build_package","gate-evidence::run_command_preprod_revoked::sbom_dependency_policy","gate-evidence::run_command_preprod_revoked::provenance_sign","gate-evidence::run_command_preprod_revoked::provenance_verify","gate-evidence::run_command_preprod_revoked::runtime_publish_gate","gate-evidence::run_command_preprod_revoked::nonprod_promotion_gate"],"quarantineReasonRefs":["PROVENANCE_REVOKED"],"supersedesBuildProvenanceRecordRef":null,"artifactDigests":[{"artifactId":"bf_command_runtime_bundle::bundle","artifactKind":"service_bundle_manifest","artifactDigest":"7653ee42609a24a3","artifactRoots":["services/command-api","packages/domain-kernel","packages/release-controls"]}],"source_refs":["prompt/091.md#At minimum, implement these authoritative capabilities","data/analysis/verification_scenarios.json"]},{"pipelineExecutionRef":"run_projection_integration_superseded","buildProvenanceRecordRef":"bpr::run_projection_integration_superseded","environmentRing":"integration","buildFamilyRef":"bf_projection_runtime_bundle","releaseRef":"RC_INTEGRATION_V1","verificationScenarioRef":"VS_058_INTEGRATION_V1","releaseContractVerificationMatrixRef":"RCVM_INTEGRATION_V1","runtimePublicationBundleRef":"RPB_INTEGRATION_V1","releasePublicationParityRef":"parity::rc_integration_v1","releaseApprovalFreezeRef":"raf::rc_integration_v1","artifactSetDigest":"a0469652bb03ed92","sbomDigest":"451a812748395cbd","artifactState":"superseded","provenanceState":"superseded","runtimeConsumptionState":"superseded","decisionState":"superseded","dominantGateRef":"runtime_publish_gate","gateEvidenceRefs":["gate-evidence::run_projection_integration_superseded::dependency_resolve","gate-evidence::run_projection_integration_superseded::lint_type_unit","gate-evidence::run_projection_integration_superseded::build_package","gate-evidence::run_projection_integration_superseded::sbom_dependency_policy","gate-evidence::run_projection_integration_superseded::provenance_sign","gate-evidence::run_projection_integration_superseded::provenance_verify","gate-evidence::run_projection_integration_superseded::runtime_publish_gate","gate-evidence::run_projection_integration_superseded::nonprod_promotion_gate"],"quarantineReasonRefs":["PROVENANCE_SUPERSEDED"],"supersedesBuildProvenanceRecordRef":"bpr::run_foundation_ci_preview_verified","artifactDigests":[{"artifactId":"bf_projection_runtime_bundle::bundle","artifactKind":"service_bundle_manifest","artifactDigest":"a0469652bb03ed92","artifactRoots":["services/projection-worker","packages/release-controls","packages/fhir-mapping"]}],"source_refs":["prompt/091.md#At minimum, implement these authoritative capabilities","data/analysis/verification_scenarios.json"]},{"pipelineExecutionRef":"run_browser_ci_preview_drifted","buildProvenanceRecordRef":"bpr::run_browser_ci_preview_drifted","environmentRing":"ci-preview","buildFamilyRef":"bf_browser_contract_bundle","releaseRef":"RC_CI_PREVIEW_V1","verificationScenarioRef":"VS_058_CI_PREVIEW_V1","releaseContractVerificationMatrixRef":"RCVM_CI_PREVIEW_V1","runtimePublicationBundleRef":"RPB_CI_PREVIEW_V1","releasePublicationParityRef":"parity::rc_ci_preview_v1","releaseApprovalFreezeRef":"raf::rc_ci_preview_v1","artifactSetDigest":"7fc78d797b144bba","sbomDigest":"e252797c18ebf793","artifactState":"blocked","provenanceState":"drifted","runtimeConsumptionState":"blocked","decisionState":"blocked","dominantGateRef":"provenance_verify","gateEvidenceRefs":["gate-evidence::run_browser_ci_preview_drifted::dependency_resolve","gate-evidence::run_browser_ci_preview_drifted::lint_type_unit","gate-evidence::run_browser_ci_preview_drifted::build_package","gate-evidence::run_browser_ci_preview_drifted::sbom_dependency_policy","gate-evidence::run_browser_ci_preview_drifted::provenance_sign","gate-evidence::run_browser_ci_preview_drifted::provenance_verify","gate-evidence::run_browser_ci_preview_drifted::runtime_publish_gate","gate-evidence::run_browser_ci_preview_drifted::nonprod_promotion_gate"],"quarantineReasonRefs":["SCHEMA_SET_DRIFT"],"supersedesBuildProvenanceRecordRef":null,"artifactDigests":[{"artifactId":"bf_browser_contract_bundle::bundle","artifactKind":"contract_bundle_manifest","artifactDigest":"7fc78d797b144bba","artifactRoots":["apps/patient-web","apps/clinical-workspace","packages/design-system","packages/api-contracts"]}],"source_refs":["prompt/091.md#At minimum, implement these authoritative capabilities","data/analysis/verification_scenarios.json"]},{"pipelineExecutionRef":"run_notification_preprod_verified","buildProvenanceRecordRef":"bpr::run_notification_preprod_verified","environmentRing":"preprod","buildFamilyRef":"bf_notification_runtime_bundle","releaseRef":"RC_PREPROD_V1","verificationScenarioRef":"VS_058_PREPROD_V1","releaseContractVerificationMatrixRef":"RCVM_PREPROD_V1","runtimePublicationBundleRef":"RPB_PREPROD_V1","releasePublicationParityRef":"parity::rc_preprod_v1","releaseApprovalFreezeRef":"raf::rc_preprod_v1","artifactSetDigest":"de5af0f58dd275ab","sbomDigest":"267a9916028f0f38","artifactState":"publishable","provenanceState":"verified","runtimeConsumptionState":"publishable","decisionState":"promotable","dominantGateRef":"nonprod_promotion_gate","gateEvidenceRefs":["gate-evidence::run_notification_preprod_verified::dependency_resolve","gate-evidence::run_notification_preprod_verified::lint_type_unit","gate-evidence::run_notification_preprod_verified::build_package","gate-evidence::run_notification_preprod_verified::sbom_dependency_policy","gate-evidence::run_notification_preprod_verified::provenance_sign","gate-evidence::run_notification_preprod_verified::provenance_verify","gate-evidence::run_notification_preprod_verified::runtime_publish_gate","gate-evidence::run_notification_preprod_verified::nonprod_promotion_gate"],"quarantineReasonRefs":[],"supersedesBuildProvenanceRecordRef":null,"artifactDigests":[{"artifactId":"bf_notification_runtime_bundle::bundle","artifactKind":"service_bundle_manifest","artifactDigest":"de5af0f58dd275ab","artifactRoots":["services/notification-worker","packages/release-controls"]}],"source_refs":["prompt/091.md#At minimum, implement these authoritative capabilities","data/analysis/verification_scenarios.json"]},{"pipelineExecutionRef":"run_release_controls_local_verified","buildProvenanceRecordRef":"bpr::run_release_controls_local_verified","environmentRing":"local","buildFamilyRef":"bf_release_control_bundle","releaseRef":"RC_LOCAL_V1","verificationScenarioRef":"VS_058_LOCAL_V1","releaseContractVerificationMatrixRef":"RCVM_LOCAL_V1","runtimePublicationBundleRef":"RPB_LOCAL_V1","releasePublicationParityRef":"parity::rc_local_v1","releaseApprovalFreezeRef":"raf::rc_local_v1","artifactSetDigest":"9141179b086cd3a7","sbomDigest":"5c19d19c6bfbdc38","artifactState":"publishable","provenanceState":"verified","runtimeConsumptionState":"publishable","decisionState":"local_only","dominantGateRef":"provenance_verify","gateEvidenceRefs":["gate-evidence::run_release_controls_local_verified::dependency_resolve","gate-evidence::run_release_controls_local_verified::lint_type_unit","gate-evidence::run_release_controls_local_verified::build_package","gate-evidence::run_release_controls_local_verified::sbom_dependency_policy","gate-evidence::run_release_controls_local_verified::provenance_sign","gate-evidence::run_release_controls_local_verified::provenance_verify","gate-evidence::run_release_controls_local_verified::runtime_publish_gate","gate-evidence::run_release_controls_local_verified::nonprod_promotion_gate"],"quarantineReasonRefs":[],"supersedesBuildProvenanceRecordRef":null,"artifactDigests":[{"artifactId":"bf_release_control_bundle::bundle","artifactKind":"control_plane_manifest","artifactDigest":"9141179b086cd3a7","artifactRoots":["packages/release-controls","tools/analysis",".github/workflows"]}],"source_refs":["prompt/091.md#At minimum, implement these authoritative capabilities","data/analysis/verification_scenarios.json"]},{"pipelineExecutionRef":"run_release_controls_production_blocked","buildProvenanceRecordRef":"bpr::run_release_controls_production_blocked","environmentRing":"production","buildFamilyRef":"bf_release_control_bundle","releaseRef":"RC_PRODUCTION_V1","verificationScenarioRef":"VS_058_PRODUCTION_V1","releaseContractVerificationMatrixRef":"RCVM_PRODUCTION_V1","runtimePublicationBundleRef":"RPB_PRODUCTION_V1","releasePublicationParityRef":"parity::rc_production_v1","releaseApprovalFreezeRef":"raf::rc_production_v1","artifactSetDigest":"e8504158f4670de6","sbomDigest":"5cd7232477b060c8","artifactState":"blocked","provenanceState":"verified","runtimeConsumptionState":"blocked","decisionState":"blocked","dominantGateRef":"nonprod_promotion_gate","gateEvidenceRefs":["gate-evidence::run_release_controls_production_blocked::dependency_resolve","gate-evidence::run_release_controls_production_blocked::lint_type_unit","gate-evidence::run_release_controls_production_blocked::build_package","gate-evidence::run_release_controls_production_blocked::sbom_dependency_policy","gate-evidence::run_release_controls_production_blocked::provenance_sign","gate-evidence::run_release_controls_production_blocked::provenance_verify","gate-evidence::run_release_controls_production_blocked::runtime_publish_gate","gate-evidence::run_release_controls_production_blocked::nonprod_promotion_gate"],"quarantineReasonRefs":["MANUAL_DEPLOY_BYPASS_ATTEMPT"],"supersedesBuildProvenanceRecordRef":null,"artifactDigests":[{"artifactId":"bf_release_control_bundle::bundle","artifactKind":"control_plane_manifest","artifactDigest":"e8504158f4670de6","artifactRoots":["packages/release-controls","tools/analysis",".github/workflows"]}],"source_refs":["prompt/091.md#At minimum, implement these authoritative capabilities","data/analysis/verification_scenarios.json"]}],"gateEvidence":[{"gateEvidenceRef":"gate-evidence::run_foundation_ci_preview_verified::dependency_resolve","pipelineExecutionRef":"run_foundation_ci_preview_verified","environmentRing":"ci-preview","buildFamilyRef":"bf_foundation_monorepo_full","gateRef":"dependency_resolve","gateLabel":"Dependency resolve","state":"passed","evidenceDigest":"8fa2eeed08511563","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_foundation_ci_preview_verified::lint_type_unit","pipelineExecutionRef":"run_foundation_ci_preview_verified","environmentRing":"ci-preview","buildFamilyRef":"bf_foundation_monorepo_full","gateRef":"lint_type_unit","gateLabel":"Lint, type, and unit","state":"passed","evidenceDigest":"aabed6208aa85480","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_foundation_ci_preview_verified::build_package","pipelineExecutionRef":"run_foundation_ci_preview_verified","environmentRing":"ci-preview","buildFamilyRef":"bf_foundation_monorepo_full","gateRef":"build_package","gateLabel":"Deterministic build package","state":"passed","evidenceDigest":"0f44ef4392d9ce83","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_foundation_ci_preview_verified::sbom_dependency_policy","pipelineExecutionRef":"run_foundation_ci_preview_verified","environmentRing":"ci-preview","buildFamilyRef":"bf_foundation_monorepo_full","gateRef":"sbom_dependency_policy","gateLabel":"SBOM and dependency policy","state":"passed","evidenceDigest":"c3084fe6fdd70715","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_foundation_ci_preview_verified::provenance_sign","pipelineExecutionRef":"run_foundation_ci_preview_verified","environmentRing":"ci-preview","buildFamilyRef":"bf_foundation_monorepo_full","gateRef":"provenance_sign","gateLabel":"Provenance sign","state":"passed","evidenceDigest":"afaa2a082e9e5b43","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_foundation_ci_preview_verified::provenance_verify","pipelineExecutionRef":"run_foundation_ci_preview_verified","environmentRing":"ci-preview","buildFamilyRef":"bf_foundation_monorepo_full","gateRef":"provenance_verify","gateLabel":"Provenance verify","state":"passed","evidenceDigest":"c44fd08828bd46a8","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_foundation_ci_preview_verified::runtime_publish_gate","pipelineExecutionRef":"run_foundation_ci_preview_verified","environmentRing":"ci-preview","buildFamilyRef":"bf_foundation_monorepo_full","gateRef":"runtime_publish_gate","gateLabel":"Runtime publication gate","state":"passed","evidenceDigest":"7b16482a0100fefc","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_foundation_ci_preview_verified::nonprod_promotion_gate","pipelineExecutionRef":"run_foundation_ci_preview_verified","environmentRing":"ci-preview","buildFamilyRef":"bf_foundation_monorepo_full","gateRef":"nonprod_promotion_gate","gateLabel":"Non-production promotion gate","state":"passed","evidenceDigest":"de1199292c506f44","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_gateway_integration_quarantined_dependency::dependency_resolve","pipelineExecutionRef":"run_gateway_integration_quarantined_dependency","environmentRing":"integration","buildFamilyRef":"bf_published_gateway_bundle","gateRef":"dependency_resolve","gateLabel":"Dependency resolve","state":"passed","evidenceDigest":"8b688c6361e57487","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_gateway_integration_quarantined_dependency::lint_type_unit","pipelineExecutionRef":"run_gateway_integration_quarantined_dependency","environmentRing":"integration","buildFamilyRef":"bf_published_gateway_bundle","gateRef":"lint_type_unit","gateLabel":"Lint, type, and unit","state":"passed","evidenceDigest":"0779187c0ff3d2ad","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_gateway_integration_quarantined_dependency::build_package","pipelineExecutionRef":"run_gateway_integration_quarantined_dependency","environmentRing":"integration","buildFamilyRef":"bf_published_gateway_bundle","gateRef":"build_package","gateLabel":"Deterministic build package","state":"passed","evidenceDigest":"250f8b0ef15cb758","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_gateway_integration_quarantined_dependency::sbom_dependency_policy","pipelineExecutionRef":"run_gateway_integration_quarantined_dependency","environmentRing":"integration","buildFamilyRef":"bf_published_gateway_bundle","gateRef":"sbom_dependency_policy","gateLabel":"SBOM and dependency policy","state":"quarantined","evidenceDigest":"199766a9adc04ae4","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_gateway_integration_quarantined_dependency::provenance_sign","pipelineExecutionRef":"run_gateway_integration_quarantined_dependency","environmentRing":"integration","buildFamilyRef":"bf_published_gateway_bundle","gateRef":"provenance_sign","gateLabel":"Provenance sign","state":"passed","evidenceDigest":"8ab9a2baac069883","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_gateway_integration_quarantined_dependency::provenance_verify","pipelineExecutionRef":"run_gateway_integration_quarantined_dependency","environmentRing":"integration","buildFamilyRef":"bf_published_gateway_bundle","gateRef":"provenance_verify","gateLabel":"Provenance verify","state":"passed","evidenceDigest":"773ef7c0512f53c2","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_gateway_integration_quarantined_dependency::runtime_publish_gate","pipelineExecutionRef":"run_gateway_integration_quarantined_dependency","environmentRing":"integration","buildFamilyRef":"bf_published_gateway_bundle","gateRef":"runtime_publish_gate","gateLabel":"Runtime publication gate","state":"passed","evidenceDigest":"2174f8b620cab031","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_gateway_integration_quarantined_dependency::nonprod_promotion_gate","pipelineExecutionRef":"run_gateway_integration_quarantined_dependency","environmentRing":"integration","buildFamilyRef":"bf_published_gateway_bundle","gateRef":"nonprod_promotion_gate","gateLabel":"Non-production promotion gate","state":"passed","evidenceDigest":"bb8bc91934ce05ce","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_command_preprod_revoked::dependency_resolve","pipelineExecutionRef":"run_command_preprod_revoked","environmentRing":"preprod","buildFamilyRef":"bf_command_runtime_bundle","gateRef":"dependency_resolve","gateLabel":"Dependency resolve","state":"passed","evidenceDigest":"cc5968ebb29f807c","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_command_preprod_revoked::lint_type_unit","pipelineExecutionRef":"run_command_preprod_revoked","environmentRing":"preprod","buildFamilyRef":"bf_command_runtime_bundle","gateRef":"lint_type_unit","gateLabel":"Lint, type, and unit","state":"passed","evidenceDigest":"2a339a6f190aedc0","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_command_preprod_revoked::build_package","pipelineExecutionRef":"run_command_preprod_revoked","environmentRing":"preprod","buildFamilyRef":"bf_command_runtime_bundle","gateRef":"build_package","gateLabel":"Deterministic build package","state":"passed","evidenceDigest":"221dd8c24b16bb67","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_command_preprod_revoked::sbom_dependency_policy","pipelineExecutionRef":"run_command_preprod_revoked","environmentRing":"preprod","buildFamilyRef":"bf_command_runtime_bundle","gateRef":"sbom_dependency_policy","gateLabel":"SBOM and dependency policy","state":"passed","evidenceDigest":"bc2c8c01e86cfb1b","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_command_preprod_revoked::provenance_sign","pipelineExecutionRef":"run_command_preprod_revoked","environmentRing":"preprod","buildFamilyRef":"bf_command_runtime_bundle","gateRef":"provenance_sign","gateLabel":"Provenance sign","state":"passed","evidenceDigest":"17c206f2047f33a9","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_command_preprod_revoked::provenance_verify","pipelineExecutionRef":"run_command_preprod_revoked","environmentRing":"preprod","buildFamilyRef":"bf_command_runtime_bundle","gateRef":"provenance_verify","gateLabel":"Provenance verify","state":"blocked","evidenceDigest":"2c38cb7dd9368d0e","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_command_preprod_revoked::runtime_publish_gate","pipelineExecutionRef":"run_command_preprod_revoked","environmentRing":"preprod","buildFamilyRef":"bf_command_runtime_bundle","gateRef":"runtime_publish_gate","gateLabel":"Runtime publication gate","state":"passed","evidenceDigest":"f4b95d2dec46de91","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_command_preprod_revoked::nonprod_promotion_gate","pipelineExecutionRef":"run_command_preprod_revoked","environmentRing":"preprod","buildFamilyRef":"bf_command_runtime_bundle","gateRef":"nonprod_promotion_gate","gateLabel":"Non-production promotion gate","state":"passed","evidenceDigest":"564209a44535eb2a","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_projection_integration_superseded::dependency_resolve","pipelineExecutionRef":"run_projection_integration_superseded","environmentRing":"integration","buildFamilyRef":"bf_projection_runtime_bundle","gateRef":"dependency_resolve","gateLabel":"Dependency resolve","state":"passed","evidenceDigest":"d48c858943d1c5c1","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_projection_integration_superseded::lint_type_unit","pipelineExecutionRef":"run_projection_integration_superseded","environmentRing":"integration","buildFamilyRef":"bf_projection_runtime_bundle","gateRef":"lint_type_unit","gateLabel":"Lint, type, and unit","state":"passed","evidenceDigest":"58f98c384a80127e","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_projection_integration_superseded::build_package","pipelineExecutionRef":"run_projection_integration_superseded","environmentRing":"integration","buildFamilyRef":"bf_projection_runtime_bundle","gateRef":"build_package","gateLabel":"Deterministic build package","state":"passed","evidenceDigest":"717b5ecea0c6d4fd","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_projection_integration_superseded::sbom_dependency_policy","pipelineExecutionRef":"run_projection_integration_superseded","environmentRing":"integration","buildFamilyRef":"bf_projection_runtime_bundle","gateRef":"sbom_dependency_policy","gateLabel":"SBOM and dependency policy","state":"passed","evidenceDigest":"236e0ded58fa11e0","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_projection_integration_superseded::provenance_sign","pipelineExecutionRef":"run_projection_integration_superseded","environmentRing":"integration","buildFamilyRef":"bf_projection_runtime_bundle","gateRef":"provenance_sign","gateLabel":"Provenance sign","state":"passed","evidenceDigest":"794dede992cac2f1","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_projection_integration_superseded::provenance_verify","pipelineExecutionRef":"run_projection_integration_superseded","environmentRing":"integration","buildFamilyRef":"bf_projection_runtime_bundle","gateRef":"provenance_verify","gateLabel":"Provenance verify","state":"passed","evidenceDigest":"54fddad9868744a1","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_projection_integration_superseded::runtime_publish_gate","pipelineExecutionRef":"run_projection_integration_superseded","environmentRing":"integration","buildFamilyRef":"bf_projection_runtime_bundle","gateRef":"runtime_publish_gate","gateLabel":"Runtime publication gate","state":"blocked","evidenceDigest":"2c95463cc34c11eb","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_projection_integration_superseded::nonprod_promotion_gate","pipelineExecutionRef":"run_projection_integration_superseded","environmentRing":"integration","buildFamilyRef":"bf_projection_runtime_bundle","gateRef":"nonprod_promotion_gate","gateLabel":"Non-production promotion gate","state":"passed","evidenceDigest":"fb03e5e4ac4791b9","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_browser_ci_preview_drifted::dependency_resolve","pipelineExecutionRef":"run_browser_ci_preview_drifted","environmentRing":"ci-preview","buildFamilyRef":"bf_browser_contract_bundle","gateRef":"dependency_resolve","gateLabel":"Dependency resolve","state":"passed","evidenceDigest":"f83b4a9330e6dc5a","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_browser_ci_preview_drifted::lint_type_unit","pipelineExecutionRef":"run_browser_ci_preview_drifted","environmentRing":"ci-preview","buildFamilyRef":"bf_browser_contract_bundle","gateRef":"lint_type_unit","gateLabel":"Lint, type, and unit","state":"passed","evidenceDigest":"32fc1f73ec3049c8","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_browser_ci_preview_drifted::build_package","pipelineExecutionRef":"run_browser_ci_preview_drifted","environmentRing":"ci-preview","buildFamilyRef":"bf_browser_contract_bundle","gateRef":"build_package","gateLabel":"Deterministic build package","state":"passed","evidenceDigest":"ae3c3f29e27c71a6","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_browser_ci_preview_drifted::sbom_dependency_policy","pipelineExecutionRef":"run_browser_ci_preview_drifted","environmentRing":"ci-preview","buildFamilyRef":"bf_browser_contract_bundle","gateRef":"sbom_dependency_policy","gateLabel":"SBOM and dependency policy","state":"passed","evidenceDigest":"76b976119b2bc1ce","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_browser_ci_preview_drifted::provenance_sign","pipelineExecutionRef":"run_browser_ci_preview_drifted","environmentRing":"ci-preview","buildFamilyRef":"bf_browser_contract_bundle","gateRef":"provenance_sign","gateLabel":"Provenance sign","state":"passed","evidenceDigest":"4846daa3bf34bf07","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_browser_ci_preview_drifted::provenance_verify","pipelineExecutionRef":"run_browser_ci_preview_drifted","environmentRing":"ci-preview","buildFamilyRef":"bf_browser_contract_bundle","gateRef":"provenance_verify","gateLabel":"Provenance verify","state":"blocked","evidenceDigest":"479543232973c8fc","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_browser_ci_preview_drifted::runtime_publish_gate","pipelineExecutionRef":"run_browser_ci_preview_drifted","environmentRing":"ci-preview","buildFamilyRef":"bf_browser_contract_bundle","gateRef":"runtime_publish_gate","gateLabel":"Runtime publication gate","state":"passed","evidenceDigest":"162e28bde207576b","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_browser_ci_preview_drifted::nonprod_promotion_gate","pipelineExecutionRef":"run_browser_ci_preview_drifted","environmentRing":"ci-preview","buildFamilyRef":"bf_browser_contract_bundle","gateRef":"nonprod_promotion_gate","gateLabel":"Non-production promotion gate","state":"passed","evidenceDigest":"b815c3d9f855f390","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_notification_preprod_verified::dependency_resolve","pipelineExecutionRef":"run_notification_preprod_verified","environmentRing":"preprod","buildFamilyRef":"bf_notification_runtime_bundle","gateRef":"dependency_resolve","gateLabel":"Dependency resolve","state":"passed","evidenceDigest":"d5c6b33d71fce467","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_notification_preprod_verified::lint_type_unit","pipelineExecutionRef":"run_notification_preprod_verified","environmentRing":"preprod","buildFamilyRef":"bf_notification_runtime_bundle","gateRef":"lint_type_unit","gateLabel":"Lint, type, and unit","state":"passed","evidenceDigest":"9e29ebbceefa8856","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_notification_preprod_verified::build_package","pipelineExecutionRef":"run_notification_preprod_verified","environmentRing":"preprod","buildFamilyRef":"bf_notification_runtime_bundle","gateRef":"build_package","gateLabel":"Deterministic build package","state":"passed","evidenceDigest":"929456290bc3923f","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_notification_preprod_verified::sbom_dependency_policy","pipelineExecutionRef":"run_notification_preprod_verified","environmentRing":"preprod","buildFamilyRef":"bf_notification_runtime_bundle","gateRef":"sbom_dependency_policy","gateLabel":"SBOM and dependency policy","state":"passed","evidenceDigest":"fc052c2115872f0d","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_notification_preprod_verified::provenance_sign","pipelineExecutionRef":"run_notification_preprod_verified","environmentRing":"preprod","buildFamilyRef":"bf_notification_runtime_bundle","gateRef":"provenance_sign","gateLabel":"Provenance sign","state":"passed","evidenceDigest":"9021f346c1c55783","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_notification_preprod_verified::provenance_verify","pipelineExecutionRef":"run_notification_preprod_verified","environmentRing":"preprod","buildFamilyRef":"bf_notification_runtime_bundle","gateRef":"provenance_verify","gateLabel":"Provenance verify","state":"passed","evidenceDigest":"309d4862e229dd58","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_notification_preprod_verified::runtime_publish_gate","pipelineExecutionRef":"run_notification_preprod_verified","environmentRing":"preprod","buildFamilyRef":"bf_notification_runtime_bundle","gateRef":"runtime_publish_gate","gateLabel":"Runtime publication gate","state":"passed","evidenceDigest":"4dfd742ad63a6bc9","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_notification_preprod_verified::nonprod_promotion_gate","pipelineExecutionRef":"run_notification_preprod_verified","environmentRing":"preprod","buildFamilyRef":"bf_notification_runtime_bundle","gateRef":"nonprod_promotion_gate","gateLabel":"Non-production promotion gate","state":"passed","evidenceDigest":"9043893a43c64be1","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_release_controls_local_verified::dependency_resolve","pipelineExecutionRef":"run_release_controls_local_verified","environmentRing":"local","buildFamilyRef":"bf_release_control_bundle","gateRef":"dependency_resolve","gateLabel":"Dependency resolve","state":"passed","evidenceDigest":"8cc4cbf7f98eecfa","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_release_controls_local_verified::lint_type_unit","pipelineExecutionRef":"run_release_controls_local_verified","environmentRing":"local","buildFamilyRef":"bf_release_control_bundle","gateRef":"lint_type_unit","gateLabel":"Lint, type, and unit","state":"passed","evidenceDigest":"11fa186c328e41a3","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_release_controls_local_verified::build_package","pipelineExecutionRef":"run_release_controls_local_verified","environmentRing":"local","buildFamilyRef":"bf_release_control_bundle","gateRef":"build_package","gateLabel":"Deterministic build package","state":"passed","evidenceDigest":"069287446caff505","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_release_controls_local_verified::sbom_dependency_policy","pipelineExecutionRef":"run_release_controls_local_verified","environmentRing":"local","buildFamilyRef":"bf_release_control_bundle","gateRef":"sbom_dependency_policy","gateLabel":"SBOM and dependency policy","state":"passed","evidenceDigest":"b7e6581c3779e7c2","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_release_controls_local_verified::provenance_sign","pipelineExecutionRef":"run_release_controls_local_verified","environmentRing":"local","buildFamilyRef":"bf_release_control_bundle","gateRef":"provenance_sign","gateLabel":"Provenance sign","state":"passed","evidenceDigest":"ddfbead3577a7ba8","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_release_controls_local_verified::provenance_verify","pipelineExecutionRef":"run_release_controls_local_verified","environmentRing":"local","buildFamilyRef":"bf_release_control_bundle","gateRef":"provenance_verify","gateLabel":"Provenance verify","state":"passed","evidenceDigest":"cbaf8c8612d26544","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_release_controls_local_verified::runtime_publish_gate","pipelineExecutionRef":"run_release_controls_local_verified","environmentRing":"local","buildFamilyRef":"bf_release_control_bundle","gateRef":"runtime_publish_gate","gateLabel":"Runtime publication gate","state":"passed","evidenceDigest":"4d1b4f4475af0280","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_release_controls_local_verified::nonprod_promotion_gate","pipelineExecutionRef":"run_release_controls_local_verified","environmentRing":"local","buildFamilyRef":"bf_release_control_bundle","gateRef":"nonprod_promotion_gate","gateLabel":"Non-production promotion gate","state":"passed","evidenceDigest":"b86fe46f3f084f41","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_release_controls_production_blocked::dependency_resolve","pipelineExecutionRef":"run_release_controls_production_blocked","environmentRing":"production","buildFamilyRef":"bf_release_control_bundle","gateRef":"dependency_resolve","gateLabel":"Dependency resolve","state":"passed","evidenceDigest":"6dbce196cc68b081","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_release_controls_production_blocked::lint_type_unit","pipelineExecutionRef":"run_release_controls_production_blocked","environmentRing":"production","buildFamilyRef":"bf_release_control_bundle","gateRef":"lint_type_unit","gateLabel":"Lint, type, and unit","state":"passed","evidenceDigest":"1de64f50bc8d1491","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_release_controls_production_blocked::build_package","pipelineExecutionRef":"run_release_controls_production_blocked","environmentRing":"production","buildFamilyRef":"bf_release_control_bundle","gateRef":"build_package","gateLabel":"Deterministic build package","state":"passed","evidenceDigest":"f9acb4437e726e28","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_release_controls_production_blocked::sbom_dependency_policy","pipelineExecutionRef":"run_release_controls_production_blocked","environmentRing":"production","buildFamilyRef":"bf_release_control_bundle","gateRef":"sbom_dependency_policy","gateLabel":"SBOM and dependency policy","state":"passed","evidenceDigest":"9de234b701463fa2","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_release_controls_production_blocked::provenance_sign","pipelineExecutionRef":"run_release_controls_production_blocked","environmentRing":"production","buildFamilyRef":"bf_release_control_bundle","gateRef":"provenance_sign","gateLabel":"Provenance sign","state":"passed","evidenceDigest":"ae7978c344ec8728","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_release_controls_production_blocked::provenance_verify","pipelineExecutionRef":"run_release_controls_production_blocked","environmentRing":"production","buildFamilyRef":"bf_release_control_bundle","gateRef":"provenance_verify","gateLabel":"Provenance verify","state":"passed","evidenceDigest":"70e2bcaca20aa7b0","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_release_controls_production_blocked::runtime_publish_gate","pipelineExecutionRef":"run_release_controls_production_blocked","environmentRing":"production","buildFamilyRef":"bf_release_control_bundle","gateRef":"runtime_publish_gate","gateLabel":"Runtime publication gate","state":"passed","evidenceDigest":"a3cf5e494c7c3a82","recordedAt":"2026-04-13T14:51:09+00:00"},{"gateEvidenceRef":"gate-evidence::run_release_controls_production_blocked::nonprod_promotion_gate","pipelineExecutionRef":"run_release_controls_production_blocked","environmentRing":"production","buildFamilyRef":"bf_release_control_bundle","gateRef":"nonprod_promotion_gate","gateLabel":"Non-production promotion gate","state":"blocked","evidenceDigest":"ac0555726834cf49","recordedAt":"2026-04-13T14:51:09+00:00"}],"buildProvenanceRecords":[{"buildProvenanceRecordId":"bpr::run_foundation_ci_preview_verified","buildFamilyRef":"bf_foundation_monorepo_full","releaseRef":"RC_CI_PREVIEW_V1","verificationScenarioRef":"VS_058_CI_PREVIEW_V1","environmentRing":"ci-preview","runtimeTopologyManifestRef":"data/analysis/runtime_topology_manifest.json","runtimePublicationBundleRef":"RPB_CI_PREVIEW_V1","releasePublicationParityRef":"parity::rc_ci_preview_v1","artifactDigests":[{"artifactId":"bf_foundation_monorepo_full::bundle","artifactKind":"workspace_bundle_manifest","artifactDigest":"e11ef386818cf7e8","artifactRoots":["package.json","pnpm-lock.yaml","pnpm-workspace.yaml","nx.json","tsconfig.base.json"]}],"artifactSetDigest":"e11ef386818cf7e8","sbomDigest":"5899a6c73d3df8ae","sbomRef":"sbom::run_foundation_ci_preview_verified","dependencyPolicyVerdictRef":"dep-policy::run_foundation_ci_preview_verified","gateEvidenceRefs":["gate-evidence::run_foundation_ci_preview_verified::dependency_resolve","gate-evidence::run_foundation_ci_preview_verified::lint_type_unit","gate-evidence::run_foundation_ci_preview_verified::build_package","gate-evidence::run_foundation_ci_preview_verified::sbom_dependency_policy","gate-evidence::run_foundation_ci_preview_verified::provenance_sign","gate-evidence::run_foundation_ci_preview_verified::provenance_verify","gate-evidence::run_foundation_ci_preview_verified::runtime_publish_gate","gate-evidence::run_foundation_ci_preview_verified::nonprod_promotion_gate"],"signingSecretClassRef":"RELEASE_PROVENANCE_SIGNING_KEY_REF","signatureAlgorithm":"hmac-sha256-mock-safe-v1","canonicalDigest":"b62653e6bb39bd7c","signature":"763fe3f00f62b40f","provenanceState":"verified","runtimeConsumptionState":"publishable","artifactState":"publishable","quarantineReasonRefs":[],"revokedAt":null,"revocationReasonRef":null,"supersededByBuildProvenanceRecordRef":null,"signedAt":"2026-04-13T14:51:09+00:00","source_refs":["blueprint/platform-runtime-and-release-blueprint.md#BuildProvenanceRecord","prompt/091.md#Implementation deliverables to create"]},{"buildProvenanceRecordId":"bpr::run_gateway_integration_quarantined_dependency","buildFamilyRef":"bf_published_gateway_bundle","releaseRef":"RC_INTEGRATION_V1","verificationScenarioRef":"VS_058_INTEGRATION_V1","environmentRing":"integration","runtimeTopologyManifestRef":"data/analysis/runtime_topology_manifest.json","runtimePublicationBundleRef":"RPB_INTEGRATION_V1","releasePublicationParityRef":"parity::rc_integration_v1","artifactDigests":[{"artifactId":"bf_published_gateway_bundle::bundle","artifactKind":"service_bundle_manifest","artifactDigest":"a9f77e36fbf19bf6","artifactRoots":["services/api-gateway","packages/api-contracts","packages/release-controls"]}],"artifactSetDigest":"a9f77e36fbf19bf6","sbomDigest":"13d2531d82e71506","sbomRef":"sbom::run_gateway_integration_quarantined_dependency","dependencyPolicyVerdictRef":"dep-policy::run_gateway_integration_quarantined_dependency","gateEvidenceRefs":["gate-evidence::run_gateway_integration_quarantined_dependency::dependency_resolve","gate-evidence::run_gateway_integration_quarantined_dependency::lint_type_unit","gate-evidence::run_gateway_integration_quarantined_dependency::build_package","gate-evidence::run_gateway_integration_quarantined_dependency::sbom_dependency_policy","gate-evidence::run_gateway_integration_quarantined_dependency::provenance_sign","gate-evidence::run_gateway_integration_quarantined_dependency::provenance_verify","gate-evidence::run_gateway_integration_quarantined_dependency::runtime_publish_gate","gate-evidence::run_gateway_integration_quarantined_dependency::nonprod_promotion_gate"],"signingSecretClassRef":"RELEASE_PROVENANCE_SIGNING_KEY_REF","signatureAlgorithm":"hmac-sha256-mock-safe-v1","canonicalDigest":"e3850b2f342ba623","signature":"35a9b487acdbd822","provenanceState":"quarantined","runtimeConsumptionState":"quarantined","artifactState":"quarantined","quarantineReasonRefs":["DEPENDENCY_POLICY_BLOCKED"],"revokedAt":null,"revocationReasonRef":null,"supersededByBuildProvenanceRecordRef":null,"signedAt":"2026-04-13T14:51:09+00:00","source_refs":["blueprint/platform-runtime-and-release-blueprint.md#BuildProvenanceRecord","prompt/091.md#Implementation deliverables to create"]},{"buildProvenanceRecordId":"bpr::run_command_preprod_revoked","buildFamilyRef":"bf_command_runtime_bundle","releaseRef":"RC_PREPROD_V1","verificationScenarioRef":"VS_058_PREPROD_V1","environmentRing":"preprod","runtimeTopologyManifestRef":"data/analysis/runtime_topology_manifest.json","runtimePublicationBundleRef":"RPB_PREPROD_V1","releasePublicationParityRef":"parity::rc_preprod_v1","artifactDigests":[{"artifactId":"bf_command_runtime_bundle::bundle","artifactKind":"service_bundle_manifest","artifactDigest":"7653ee42609a24a3","artifactRoots":["services/command-api","packages/domain-kernel","packages/release-controls"]}],"artifactSetDigest":"7653ee42609a24a3","sbomDigest":"581daa24d47ce018","sbomRef":"sbom::run_command_preprod_revoked","dependencyPolicyVerdictRef":"dep-policy::run_command_preprod_revoked","gateEvidenceRefs":["gate-evidence::run_command_preprod_revoked::dependency_resolve","gate-evidence::run_command_preprod_revoked::lint_type_unit","gate-evidence::run_command_preprod_revoked::build_package","gate-evidence::run_command_preprod_revoked::sbom_dependency_policy","gate-evidence::run_command_preprod_revoked::provenance_sign","gate-evidence::run_command_preprod_revoked::provenance_verify","gate-evidence::run_command_preprod_revoked::runtime_publish_gate","gate-evidence::run_command_preprod_revoked::nonprod_promotion_gate"],"signingSecretClassRef":"RELEASE_PROVENANCE_SIGNING_KEY_REF","signatureAlgorithm":"hmac-sha256-mock-safe-v1","canonicalDigest":"020960be726dfdaf","signature":"7561c4b50e6d7b01","provenanceState":"revoked","runtimeConsumptionState":"revoked","artifactState":"revoked","quarantineReasonRefs":["PROVENANCE_REVOKED"],"revokedAt":"2026-04-13T14:51:09+00:00","revocationReasonRef":"PROVENANCE_REVOKED","supersededByBuildProvenanceRecordRef":null,"signedAt":"2026-04-13T14:51:09+00:00","source_refs":["blueprint/platform-runtime-and-release-blueprint.md#BuildProvenanceRecord","prompt/091.md#Implementation deliverables to create"]},{"buildProvenanceRecordId":"bpr::run_projection_integration_superseded","buildFamilyRef":"bf_projection_runtime_bundle","releaseRef":"RC_INTEGRATION_V1","verificationScenarioRef":"VS_058_INTEGRATION_V1","environmentRing":"integration","runtimeTopologyManifestRef":"data/analysis/runtime_topology_manifest.json","runtimePublicationBundleRef":"RPB_INTEGRATION_V1","releasePublicationParityRef":"parity::rc_integration_v1","artifactDigests":[{"artifactId":"bf_projection_runtime_bundle::bundle","artifactKind":"service_bundle_manifest","artifactDigest":"a0469652bb03ed92","artifactRoots":["services/projection-worker","packages/release-controls","packages/fhir-mapping"]}],"artifactSetDigest":"a0469652bb03ed92","sbomDigest":"451a812748395cbd","sbomRef":"sbom::run_projection_integration_superseded","dependencyPolicyVerdictRef":"dep-policy::run_projection_integration_superseded","gateEvidenceRefs":["gate-evidence::run_projection_integration_superseded::dependency_resolve","gate-evidence::run_projection_integration_superseded::lint_type_unit","gate-evidence::run_projection_integration_superseded::build_package","gate-evidence::run_projection_integration_superseded::sbom_dependency_policy","gate-evidence::run_projection_integration_superseded::provenance_sign","gate-evidence::run_projection_integration_superseded::provenance_verify","gate-evidence::run_projection_integration_superseded::runtime_publish_gate","gate-evidence::run_projection_integration_superseded::nonprod_promotion_gate"],"signingSecretClassRef":"RELEASE_PROVENANCE_SIGNING_KEY_REF","signatureAlgorithm":"hmac-sha256-mock-safe-v1","canonicalDigest":"33db7d6d5703a289","signature":"418d9aa0feb96a36","provenanceState":"superseded","runtimeConsumptionState":"superseded","artifactState":"superseded","quarantineReasonRefs":["PROVENANCE_SUPERSEDED"],"revokedAt":null,"revocationReasonRef":null,"supersededByBuildProvenanceRecordRef":"bpr::run_foundation_ci_preview_verified","signedAt":"2026-04-13T14:51:09+00:00","source_refs":["blueprint/platform-runtime-and-release-blueprint.md#BuildProvenanceRecord","prompt/091.md#Implementation deliverables to create"]},{"buildProvenanceRecordId":"bpr::run_browser_ci_preview_drifted","buildFamilyRef":"bf_browser_contract_bundle","releaseRef":"RC_CI_PREVIEW_V1","verificationScenarioRef":"VS_058_CI_PREVIEW_V1","environmentRing":"ci-preview","runtimeTopologyManifestRef":"data/analysis/runtime_topology_manifest.json","runtimePublicationBundleRef":"RPB_CI_PREVIEW_V1","releasePublicationParityRef":"parity::rc_ci_preview_v1","artifactDigests":[{"artifactId":"bf_browser_contract_bundle::bundle","artifactKind":"contract_bundle_manifest","artifactDigest":"7fc78d797b144bba","artifactRoots":["apps/patient-web","apps/clinical-workspace","packages/design-system","packages/api-contracts"]}],"artifactSetDigest":"7fc78d797b144bba","sbomDigest":"e252797c18ebf793","sbomRef":"sbom::run_browser_ci_preview_drifted","dependencyPolicyVerdictRef":"dep-policy::run_browser_ci_preview_drifted","gateEvidenceRefs":["gate-evidence::run_browser_ci_preview_drifted::dependency_resolve","gate-evidence::run_browser_ci_preview_drifted::lint_type_unit","gate-evidence::run_browser_ci_preview_drifted::build_package","gate-evidence::run_browser_ci_preview_drifted::sbom_dependency_policy","gate-evidence::run_browser_ci_preview_drifted::provenance_sign","gate-evidence::run_browser_ci_preview_drifted::provenance_verify","gate-evidence::run_browser_ci_preview_drifted::runtime_publish_gate","gate-evidence::run_browser_ci_preview_drifted::nonprod_promotion_gate"],"signingSecretClassRef":"RELEASE_PROVENANCE_SIGNING_KEY_REF","signatureAlgorithm":"hmac-sha256-mock-safe-v1","canonicalDigest":"8e3968ea58db46be","signature":"7894160f792b0215","provenanceState":"drifted","runtimeConsumptionState":"blocked","artifactState":"blocked","quarantineReasonRefs":["SCHEMA_SET_DRIFT"],"revokedAt":null,"revocationReasonRef":null,"supersededByBuildProvenanceRecordRef":null,"signedAt":"2026-04-13T14:51:09+00:00","source_refs":["blueprint/platform-runtime-and-release-blueprint.md#BuildProvenanceRecord","prompt/091.md#Implementation deliverables to create"]},{"buildProvenanceRecordId":"bpr::run_notification_preprod_verified","buildFamilyRef":"bf_notification_runtime_bundle","releaseRef":"RC_PREPROD_V1","verificationScenarioRef":"VS_058_PREPROD_V1","environmentRing":"preprod","runtimeTopologyManifestRef":"data/analysis/runtime_topology_manifest.json","runtimePublicationBundleRef":"RPB_PREPROD_V1","releasePublicationParityRef":"parity::rc_preprod_v1","artifactDigests":[{"artifactId":"bf_notification_runtime_bundle::bundle","artifactKind":"service_bundle_manifest","artifactDigest":"de5af0f58dd275ab","artifactRoots":["services/notification-worker","packages/release-controls"]}],"artifactSetDigest":"de5af0f58dd275ab","sbomDigest":"267a9916028f0f38","sbomRef":"sbom::run_notification_preprod_verified","dependencyPolicyVerdictRef":"dep-policy::run_notification_preprod_verified","gateEvidenceRefs":["gate-evidence::run_notification_preprod_verified::dependency_resolve","gate-evidence::run_notification_preprod_verified::lint_type_unit","gate-evidence::run_notification_preprod_verified::build_package","gate-evidence::run_notification_preprod_verified::sbom_dependency_policy","gate-evidence::run_notification_preprod_verified::provenance_sign","gate-evidence::run_notification_preprod_verified::provenance_verify","gate-evidence::run_notification_preprod_verified::runtime_publish_gate","gate-evidence::run_notification_preprod_verified::nonprod_promotion_gate"],"signingSecretClassRef":"RELEASE_PROVENANCE_SIGNING_KEY_REF","signatureAlgorithm":"hmac-sha256-mock-safe-v1","canonicalDigest":"6603c94463b3ea96","signature":"d2d43632fbfdb354","provenanceState":"verified","runtimeConsumptionState":"publishable","artifactState":"publishable","quarantineReasonRefs":[],"revokedAt":null,"revocationReasonRef":null,"supersededByBuildProvenanceRecordRef":null,"signedAt":"2026-04-13T14:51:09+00:00","source_refs":["blueprint/platform-runtime-and-release-blueprint.md#BuildProvenanceRecord","prompt/091.md#Implementation deliverables to create"]},{"buildProvenanceRecordId":"bpr::run_release_controls_local_verified","buildFamilyRef":"bf_release_control_bundle","releaseRef":"RC_LOCAL_V1","verificationScenarioRef":"VS_058_LOCAL_V1","environmentRing":"local","runtimeTopologyManifestRef":"data/analysis/runtime_topology_manifest.json","runtimePublicationBundleRef":"RPB_LOCAL_V1","releasePublicationParityRef":"parity::rc_local_v1","artifactDigests":[{"artifactId":"bf_release_control_bundle::bundle","artifactKind":"control_plane_manifest","artifactDigest":"9141179b086cd3a7","artifactRoots":["packages/release-controls","tools/analysis",".github/workflows"]}],"artifactSetDigest":"9141179b086cd3a7","sbomDigest":"5c19d19c6bfbdc38","sbomRef":"sbom::run_release_controls_local_verified","dependencyPolicyVerdictRef":"dep-policy::run_release_controls_local_verified","gateEvidenceRefs":["gate-evidence::run_release_controls_local_verified::dependency_resolve","gate-evidence::run_release_controls_local_verified::lint_type_unit","gate-evidence::run_release_controls_local_verified::build_package","gate-evidence::run_release_controls_local_verified::sbom_dependency_policy","gate-evidence::run_release_controls_local_verified::provenance_sign","gate-evidence::run_release_controls_local_verified::provenance_verify","gate-evidence::run_release_controls_local_verified::runtime_publish_gate","gate-evidence::run_release_controls_local_verified::nonprod_promotion_gate"],"signingSecretClassRef":"RELEASE_PROVENANCE_SIGNING_KEY_REF","signatureAlgorithm":"hmac-sha256-mock-safe-v1","canonicalDigest":"db3353cce6fe53d9","signature":"e94f8afc79651acf","provenanceState":"verified","runtimeConsumptionState":"publishable","artifactState":"publishable","quarantineReasonRefs":[],"revokedAt":null,"revocationReasonRef":null,"supersededByBuildProvenanceRecordRef":null,"signedAt":"2026-04-13T14:51:09+00:00","source_refs":["blueprint/platform-runtime-and-release-blueprint.md#BuildProvenanceRecord","prompt/091.md#Implementation deliverables to create"]},{"buildProvenanceRecordId":"bpr::run_release_controls_production_blocked","buildFamilyRef":"bf_release_control_bundle","releaseRef":"RC_PRODUCTION_V1","verificationScenarioRef":"VS_058_PRODUCTION_V1","environmentRing":"production","runtimeTopologyManifestRef":"data/analysis/runtime_topology_manifest.json","runtimePublicationBundleRef":"RPB_PRODUCTION_V1","releasePublicationParityRef":"parity::rc_production_v1","artifactDigests":[{"artifactId":"bf_release_control_bundle::bundle","artifactKind":"control_plane_manifest","artifactDigest":"e8504158f4670de6","artifactRoots":["packages/release-controls","tools/analysis",".github/workflows"]}],"artifactSetDigest":"e8504158f4670de6","sbomDigest":"5cd7232477b060c8","sbomRef":"sbom::run_release_controls_production_blocked","dependencyPolicyVerdictRef":"dep-policy::run_release_controls_production_blocked","gateEvidenceRefs":["gate-evidence::run_release_controls_production_blocked::dependency_resolve","gate-evidence::run_release_controls_production_blocked::lint_type_unit","gate-evidence::run_release_controls_production_blocked::build_package","gate-evidence::run_release_controls_production_blocked::sbom_dependency_policy","gate-evidence::run_release_controls_production_blocked::provenance_sign","gate-evidence::run_release_controls_production_blocked::provenance_verify","gate-evidence::run_release_controls_production_blocked::runtime_publish_gate","gate-evidence::run_release_controls_production_blocked::nonprod_promotion_gate"],"signingSecretClassRef":"RELEASE_PROVENANCE_SIGNING_KEY_REF","signatureAlgorithm":"hmac-sha256-mock-safe-v1","canonicalDigest":"46da8ff5c5ddc61d","signature":"e7b8368ac8a93f7d","provenanceState":"verified","runtimeConsumptionState":"blocked","artifactState":"blocked","quarantineReasonRefs":["MANUAL_DEPLOY_BYPASS_ATTEMPT"],"revokedAt":null,"revocationReasonRef":null,"supersededByBuildProvenanceRecordRef":null,"signedAt":"2026-04-13T14:51:09+00:00","source_refs":["blueprint/platform-runtime-and-release-blueprint.md#BuildProvenanceRecord","prompt/091.md#Implementation deliverables to create"]}],"publishHooks":[{"publishHookRef":"pd_foundation_monorepo::integration","buildFamilyRef":"bf_foundation_monorepo_full","targetRing":"integration","requiresProvenanceState":"verified","requiresRuntimeConsumptionState":"publishable","requiresParityState":"exact","requiresGateRef":"nonprod_promotion_gate","notes":"Mock-now hook writes machine-readable promotion decisions now; par_094 later binds the final RuntimePublicationBundle publication records."},{"publishHookRef":"pd_foundation_monorepo::preprod","buildFamilyRef":"bf_foundation_monorepo_full","targetRing":"preprod","requiresProvenanceState":"verified","requiresRuntimeConsumptionState":"publishable","requiresParityState":"exact","requiresGateRef":"nonprod_promotion_gate","notes":"Mock-now hook writes machine-readable promotion decisions now; par_094 later binds the final RuntimePublicationBundle publication records."},{"publishHookRef":"pd_published_gateway::integration","buildFamilyRef":"bf_published_gateway_bundle","targetRing":"integration","requiresProvenanceState":"verified","requiresRuntimeConsumptionState":"publishable","requiresParityState":"exact","requiresGateRef":"nonprod_promotion_gate","notes":"Mock-now hook writes machine-readable promotion decisions now; par_094 later binds the final RuntimePublicationBundle publication records."},{"publishHookRef":"pd_published_gateway::preprod","buildFamilyRef":"bf_published_gateway_bundle","targetRing":"preprod","requiresProvenanceState":"verified","requiresRuntimeConsumptionState":"publishable","requiresParityState":"exact","requiresGateRef":"nonprod_promotion_gate","notes":"Mock-now hook writes machine-readable promotion decisions now; par_094 later binds the final RuntimePublicationBundle publication records."},{"publishHookRef":"pd_command_runtime::integration","buildFamilyRef":"bf_command_runtime_bundle","targetRing":"integration","requiresProvenanceState":"verified","requiresRuntimeConsumptionState":"publishable","requiresParityState":"exact","requiresGateRef":"nonprod_promotion_gate","notes":"Mock-now hook writes machine-readable promotion decisions now; par_094 later binds the final RuntimePublicationBundle publication records."},{"publishHookRef":"pd_command_runtime::preprod","buildFamilyRef":"bf_command_runtime_bundle","targetRing":"preprod","requiresProvenanceState":"verified","requiresRuntimeConsumptionState":"publishable","requiresParityState":"exact","requiresGateRef":"nonprod_promotion_gate","notes":"Mock-now hook writes machine-readable promotion decisions now; par_094 later binds the final RuntimePublicationBundle publication records."},{"publishHookRef":"pd_projection_runtime::integration","buildFamilyRef":"bf_projection_runtime_bundle","targetRing":"integration","requiresProvenanceState":"verified","requiresRuntimeConsumptionState":"publishable","requiresParityState":"exact","requiresGateRef":"nonprod_promotion_gate","notes":"Mock-now hook writes machine-readable promotion decisions now; par_094 later binds the final RuntimePublicationBundle publication records."},{"publishHookRef":"pd_projection_runtime::preprod","buildFamilyRef":"bf_projection_runtime_bundle","targetRing":"preprod","requiresProvenanceState":"verified","requiresRuntimeConsumptionState":"publishable","requiresParityState":"exact","requiresGateRef":"nonprod_promotion_gate","notes":"Mock-now hook writes machine-readable promotion decisions now; par_094 later binds the final RuntimePublicationBundle publication records."},{"publishHookRef":"pd_notification_runtime::integration","buildFamilyRef":"bf_notification_runtime_bundle","targetRing":"integration","requiresProvenanceState":"verified","requiresRuntimeConsumptionState":"publishable","requiresParityState":"exact","requiresGateRef":"nonprod_promotion_gate","notes":"Mock-now hook writes machine-readable promotion decisions now; par_094 later binds the final RuntimePublicationBundle publication records."},{"publishHookRef":"pd_notification_runtime::preprod","buildFamilyRef":"bf_notification_runtime_bundle","targetRing":"preprod","requiresProvenanceState":"verified","requiresRuntimeConsumptionState":"publishable","requiresParityState":"exact","requiresGateRef":"nonprod_promotion_gate","notes":"Mock-now hook writes machine-readable promotion decisions now; par_094 later binds the final RuntimePublicationBundle publication records."},{"publishHookRef":"pd_adapter_simulators::integration","buildFamilyRef":"bf_adapter_simulator_bundle","targetRing":"integration","requiresProvenanceState":"verified","requiresRuntimeConsumptionState":"publishable","requiresParityState":"exact","requiresGateRef":"nonprod_promotion_gate","notes":"Mock-now hook writes machine-readable promotion decisions now; par_094 later binds the final RuntimePublicationBundle publication records."},{"publishHookRef":"pd_adapter_simulators::preprod","buildFamilyRef":"bf_adapter_simulator_bundle","targetRing":"preprod","requiresProvenanceState":"verified","requiresRuntimeConsumptionState":"publishable","requiresParityState":"exact","requiresGateRef":"nonprod_promotion_gate","notes":"Mock-now hook writes machine-readable promotion decisions now; par_094 later binds the final RuntimePublicationBundle publication records."},{"publishHookRef":"pd_browser_contracts::integration","buildFamilyRef":"bf_browser_contract_bundle","targetRing":"integration","requiresProvenanceState":"verified","requiresRuntimeConsumptionState":"publishable","requiresParityState":"exact","requiresGateRef":"nonprod_promotion_gate","notes":"Mock-now hook writes machine-readable promotion decisions now; par_094 later binds the final RuntimePublicationBundle publication records."},{"publishHookRef":"pd_browser_contracts::preprod","buildFamilyRef":"bf_browser_contract_bundle","targetRing":"preprod","requiresProvenanceState":"verified","requiresRuntimeConsumptionState":"publishable","requiresParityState":"exact","requiresGateRef":"nonprod_promotion_gate","notes":"Mock-now hook writes machine-readable promotion decisions now; par_094 later binds the final RuntimePublicationBundle publication records."},{"publishHookRef":"pd_release_controls::integration","buildFamilyRef":"bf_release_control_bundle","targetRing":"integration","requiresProvenanceState":"verified","requiresRuntimeConsumptionState":"publishable","requiresParityState":"exact","requiresGateRef":"nonprod_promotion_gate","notes":"Mock-now hook writes machine-readable promotion decisions now; par_094 later binds the final RuntimePublicationBundle publication records."},{"publishHookRef":"pd_release_controls::preprod","buildFamilyRef":"bf_release_control_bundle","targetRing":"preprod","requiresProvenanceState":"verified","requiresRuntimeConsumptionState":"publishable","requiresParityState":"exact","requiresGateRef":"nonprod_promotion_gate","notes":"Mock-now hook writes machine-readable promotion decisions now; par_094 later binds the final RuntimePublicationBundle publication records."}],"resolved_findings":[{"findingRef":"Finding 91","closure":"Build provenance, parity, and publish gating now stay on one machine-readable release tuple."},{"findingRef":"Finding 95","closure":"Promotion hooks bind parity and recovery posture rather than green-job folklore."},{"findingRef":"Finding 96","closure":"Operations and governance builds now publish explicit blocked, quarantined, and revoked provenance states."},{"findingRef":"Finding 103","closure":"Dependency and standards watch evidence now ride inside the provenance and promotion record shape."},{"findingRef":"Finding 104","closure":"Continuity-proof and gate evidence are published as records, not commentary."},{"findingRef":"Finding 112","closure":"Promotion and publish decisions are machine-readable and fail closed when provenance or readiness drifts."},{"findingRef":"Finding 113","closure":"Assurance admissibility is anchored through immutable provenance, SBOM, and gate-evidence records."}],"assumptions":[{"assumptionRef":"ASSUMPTION_091_MOCK_SIGNING_IS_HMAC_SHAPED_LIKE_LIVE_ATTESTATION","statement":"The mock-now rehearsal uses HMAC signing backed by the CI attestation secret class, while keeping the same canonical digest, quarantine, revocation, and publish-decision record shape that production KMS or HSM attestation will preserve later."},{"assumptionRef":"ASSUMPTION_091_WORKSPACE_MANIFEST_PACKAGING_STANDS_IN_FOR_LATER_OCI_PACKAGES","statement":"The local rehearsal packages deterministic workspace bundle manifests now; later OCI or regional registry packaging may swap transport format without changing artifact identity, provenance, or publish-decision law."}],"follow_on_dependencies":[{"dependencyRef":"FOLLOW_ON_DEPENDENCY_094_RUNTIME_PUBLICATION_BUNDLE_FINAL_BINDING","owningTaskRef":"par_094","scope":"The mock-now promotion hook pins current runtime publication refs, but the final bundle publication and parity lift remains owned by par_094."},{"dependencyRef":"FOLLOW_ON_DEPENDENCY_097_WATCH_TUPLE_WAVE_ACTIONING","owningTaskRef":"par_097","scope":"par_091 publishes gate evidence and promotion hooks only; live-wave widening, pause, rollback, and watch tuple actioning remains owned by par_097."}]},"matrixRows":[{"row_id":"local::dependency_resolve","environment_ring":"local","gate_ref":"dependency_resolve","gate_sequence":1,"gate_label":"Dependency resolve","gate_category":"dependency","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_pipeline","published_evidence_type":"dependency-resolution-manifest","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"local::lint_type_unit","environment_ring":"local","gate_ref":"lint_type_unit","gate_sequence":2,"gate_label":"Lint, type, and unit","gate_category":"static","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_pipeline","published_evidence_type":"foundation-gate-record","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"local::build_package","environment_ring":"local","gate_ref":"build_package","gate_sequence":3,"gate_label":"Deterministic build package","gate_category":"build","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_pipeline","published_evidence_type":"artifact-bundle-manifest","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"local::sbom_dependency_policy","environment_ring":"local","gate_ref":"sbom_dependency_policy","gate_sequence":4,"gate_label":"SBOM and dependency policy","gate_category":"supply_chain","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"quarantine_artifact","published_evidence_type":"sbom-and-policy-verdict","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"local::provenance_sign","environment_ring":"local","gate_ref":"provenance_sign","gate_sequence":5,"gate_label":"Provenance sign","gate_category":"provenance","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"quarantine_artifact","published_evidence_type":"signed-provenance-record","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"local::provenance_verify","environment_ring":"local","gate_ref":"provenance_verify","gate_sequence":6,"gate_label":"Provenance verify","gate_category":"provenance","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"quarantine_artifact","published_evidence_type":"provenance-verification-verdict","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"local::runtime_publish_gate","environment_ring":"local","gate_ref":"runtime_publish_gate","gate_sequence":7,"gate_label":"Runtime publication gate","gate_category":"publication","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_publish","published_evidence_type":"publish-decision-record","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"local::nonprod_promotion_gate","environment_ring":"local","gate_ref":"nonprod_promotion_gate","gate_sequence":8,"gate_label":"Non-production promotion gate","gate_category":"promotion","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_promotion","published_evidence_type":"promotion-decision-record","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"ci-preview::dependency_resolve","environment_ring":"ci-preview","gate_ref":"dependency_resolve","gate_sequence":1,"gate_label":"Dependency resolve","gate_category":"dependency","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_pipeline","published_evidence_type":"dependency-resolution-manifest","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"ci-preview::lint_type_unit","environment_ring":"ci-preview","gate_ref":"lint_type_unit","gate_sequence":2,"gate_label":"Lint, type, and unit","gate_category":"static","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_pipeline","published_evidence_type":"foundation-gate-record","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"ci-preview::build_package","environment_ring":"ci-preview","gate_ref":"build_package","gate_sequence":3,"gate_label":"Deterministic build package","gate_category":"build","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_pipeline","published_evidence_type":"artifact-bundle-manifest","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"ci-preview::sbom_dependency_policy","environment_ring":"ci-preview","gate_ref":"sbom_dependency_policy","gate_sequence":4,"gate_label":"SBOM and dependency policy","gate_category":"supply_chain","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"quarantine_artifact","published_evidence_type":"sbom-and-policy-verdict","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"ci-preview::provenance_sign","environment_ring":"ci-preview","gate_ref":"provenance_sign","gate_sequence":5,"gate_label":"Provenance sign","gate_category":"provenance","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"quarantine_artifact","published_evidence_type":"signed-provenance-record","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"ci-preview::provenance_verify","environment_ring":"ci-preview","gate_ref":"provenance_verify","gate_sequence":6,"gate_label":"Provenance verify","gate_category":"provenance","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"quarantine_artifact","published_evidence_type":"provenance-verification-verdict","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"ci-preview::runtime_publish_gate","environment_ring":"ci-preview","gate_ref":"runtime_publish_gate","gate_sequence":7,"gate_label":"Runtime publication gate","gate_category":"publication","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_publish","published_evidence_type":"publish-decision-record","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"ci-preview::nonprod_promotion_gate","environment_ring":"ci-preview","gate_ref":"nonprod_promotion_gate","gate_sequence":8,"gate_label":"Non-production promotion gate","gate_category":"promotion","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_promotion","published_evidence_type":"promotion-decision-record","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"integration::dependency_resolve","environment_ring":"integration","gate_ref":"dependency_resolve","gate_sequence":1,"gate_label":"Dependency resolve","gate_category":"dependency","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_pipeline","published_evidence_type":"dependency-resolution-manifest","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"integration::lint_type_unit","environment_ring":"integration","gate_ref":"lint_type_unit","gate_sequence":2,"gate_label":"Lint, type, and unit","gate_category":"static","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_pipeline","published_evidence_type":"foundation-gate-record","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"integration::build_package","environment_ring":"integration","gate_ref":"build_package","gate_sequence":3,"gate_label":"Deterministic build package","gate_category":"build","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_pipeline","published_evidence_type":"artifact-bundle-manifest","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"integration::sbom_dependency_policy","environment_ring":"integration","gate_ref":"sbom_dependency_policy","gate_sequence":4,"gate_label":"SBOM and dependency policy","gate_category":"supply_chain","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"quarantine_artifact","published_evidence_type":"sbom-and-policy-verdict","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"integration::provenance_sign","environment_ring":"integration","gate_ref":"provenance_sign","gate_sequence":5,"gate_label":"Provenance sign","gate_category":"provenance","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"quarantine_artifact","published_evidence_type":"signed-provenance-record","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"integration::provenance_verify","environment_ring":"integration","gate_ref":"provenance_verify","gate_sequence":6,"gate_label":"Provenance verify","gate_category":"provenance","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"quarantine_artifact","published_evidence_type":"provenance-verification-verdict","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"integration::runtime_publish_gate","environment_ring":"integration","gate_ref":"runtime_publish_gate","gate_sequence":7,"gate_label":"Runtime publication gate","gate_category":"publication","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_publish","published_evidence_type":"publish-decision-record","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"integration::nonprod_promotion_gate","environment_ring":"integration","gate_ref":"nonprod_promotion_gate","gate_sequence":8,"gate_label":"Non-production promotion gate","gate_category":"promotion","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_promotion","published_evidence_type":"promotion-decision-record","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"preprod::dependency_resolve","environment_ring":"preprod","gate_ref":"dependency_resolve","gate_sequence":1,"gate_label":"Dependency resolve","gate_category":"dependency","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_pipeline","published_evidence_type":"dependency-resolution-manifest","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"preprod::lint_type_unit","environment_ring":"preprod","gate_ref":"lint_type_unit","gate_sequence":2,"gate_label":"Lint, type, and unit","gate_category":"static","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_pipeline","published_evidence_type":"foundation-gate-record","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"preprod::build_package","environment_ring":"preprod","gate_ref":"build_package","gate_sequence":3,"gate_label":"Deterministic build package","gate_category":"build","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_pipeline","published_evidence_type":"artifact-bundle-manifest","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"preprod::sbom_dependency_policy","environment_ring":"preprod","gate_ref":"sbom_dependency_policy","gate_sequence":4,"gate_label":"SBOM and dependency policy","gate_category":"supply_chain","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"quarantine_artifact","published_evidence_type":"sbom-and-policy-verdict","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"preprod::provenance_sign","environment_ring":"preprod","gate_ref":"provenance_sign","gate_sequence":5,"gate_label":"Provenance sign","gate_category":"provenance","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"quarantine_artifact","published_evidence_type":"signed-provenance-record","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"preprod::provenance_verify","environment_ring":"preprod","gate_ref":"provenance_verify","gate_sequence":6,"gate_label":"Provenance verify","gate_category":"provenance","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"quarantine_artifact","published_evidence_type":"provenance-verification-verdict","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"preprod::runtime_publish_gate","environment_ring":"preprod","gate_ref":"runtime_publish_gate","gate_sequence":7,"gate_label":"Runtime publication gate","gate_category":"publication","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_publish","published_evidence_type":"publish-decision-record","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"preprod::nonprod_promotion_gate","environment_ring":"preprod","gate_ref":"nonprod_promotion_gate","gate_sequence":8,"gate_label":"Non-production promotion gate","gate_category":"promotion","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_promotion","published_evidence_type":"promotion-decision-record","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"production::dependency_resolve","environment_ring":"production","gate_ref":"dependency_resolve","gate_sequence":1,"gate_label":"Dependency resolve","gate_category":"dependency","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_pipeline","published_evidence_type":"dependency-resolution-manifest","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"production::lint_type_unit","environment_ring":"production","gate_ref":"lint_type_unit","gate_sequence":2,"gate_label":"Lint, type, and unit","gate_category":"static","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_pipeline","published_evidence_type":"foundation-gate-record","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"production::build_package","environment_ring":"production","gate_ref":"build_package","gate_sequence":3,"gate_label":"Deterministic build package","gate_category":"build","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_pipeline","published_evidence_type":"artifact-bundle-manifest","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"production::sbom_dependency_policy","environment_ring":"production","gate_ref":"sbom_dependency_policy","gate_sequence":4,"gate_label":"SBOM and dependency policy","gate_category":"supply_chain","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"quarantine_artifact","published_evidence_type":"sbom-and-policy-verdict","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"production::provenance_sign","environment_ring":"production","gate_ref":"provenance_sign","gate_sequence":5,"gate_label":"Provenance sign","gate_category":"provenance","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"quarantine_artifact","published_evidence_type":"signed-provenance-record","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"production::provenance_verify","environment_ring":"production","gate_ref":"provenance_verify","gate_sequence":6,"gate_label":"Provenance verify","gate_category":"provenance","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"quarantine_artifact","published_evidence_type":"provenance-verification-verdict","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"production::runtime_publish_gate","environment_ring":"production","gate_ref":"runtime_publish_gate","gate_sequence":7,"gate_label":"Runtime publication gate","gate_category":"publication","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_publish","published_evidence_type":"publish-decision-record","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"},{"row_id":"production::nonprod_promotion_gate","environment_ring":"production","gate_ref":"nonprod_promotion_gate","gate_sequence":8,"gate_label":"Non-production promotion gate","gate_category":"promotion","build_family_scope":"bf_foundation_monorepo_full|bf_published_gateway_bundle|bf_command_runtime_bundle|bf_projection_runtime_bundle|bf_notification_runtime_bundle|bf_adapter_simulator_bundle|bf_browser_contract_bundle|bf_release_control_bundle","failure_disposition":"block_promotion","published_evidence_type":"promotion-decision-record","signing_secret_class_ref":"RELEASE_PROVENANCE_SIGNING_KEY_REF","quarantine_policy_ref":"artifact_quarantine_policy_v1","source_refs":"prompt/091.md|blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"}],"quarantinePolicy":{"task_id":"par_091","generated_at":"2026-04-13T14:51:09+00:00","captured_on":"2026-04-13","visual_mode":"Build_Provenance_Pipeline_Atlas","policyId":"artifact_quarantine_policy_v1","rules":[{"ruleRef":"qr_signature_invalid","triggerRef":"SIGNATURE_MISMATCH","artifactState":"quarantined","runtimeConsumptionState":"quarantined","publishDecisionState":"quarantined","supersessionAllowed":false,"operatorAction":"quarantine_and_rebuild"},{"ruleRef":"qr_dependency_policy_blocked","triggerRef":"DEPENDENCY_POLICY_BLOCKED","artifactState":"quarantined","runtimeConsumptionState":"quarantined","publishDecisionState":"quarantined","supersessionAllowed":true,"operatorAction":"quarantine_and_remediate"},{"ruleRef":"qr_schema_set_drift","triggerRef":"SCHEMA_SET_DRIFT","artifactState":"blocked","runtimeConsumptionState":"blocked","publishDecisionState":"blocked","supersessionAllowed":true,"operatorAction":"rebuild_after_schema_alignment"},{"ruleRef":"qr_provenance_revoked","triggerRef":"PROVENANCE_REVOKED","artifactState":"revoked","runtimeConsumptionState":"revoked","publishDecisionState":"revoked","supersessionAllowed":false,"operatorAction":"revoke_and_replace"},{"ruleRef":"qr_provenance_superseded","triggerRef":"PROVENANCE_SUPERSEDED","artifactState":"superseded","runtimeConsumptionState":"superseded","publishDecisionState":"superseded","supersessionAllowed":false,"operatorAction":"retain_read_only_history"},{"ruleRef":"qr_manual_bypass_attempt","triggerRef":"MANUAL_DEPLOY_BYPASS_ATTEMPT","artifactState":"blocked","runtimeConsumptionState":"blocked","publishDecisionState":"blocked","supersessionAllowed":false,"operatorAction":"fail_closed_and_alert"}],"source_refs":["prompt/091.md#Mandatory gap closures you must perform","blueprint/platform-runtime-and-release-blueprint.md#BuildProvenanceRecord","blueprint/platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract"]}};
+      const RUNS = PACK.manifest.pipelineRuns;
+      const GATES = PACK.manifest.gateDefinitions;
+      const RULES = PACK.quarantinePolicy.rules;
+      const FAMILY_MAP = Object.fromEntries(PACK.manifest.buildFamilies.map((row) => [row.buildFamilyRef, row]));
+      const GATE_MAP = Object.fromEntries(GATES.map((row) => [row.gateRef, row]));
+      const REDUCED_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      document.body.setAttribute("data-reduced-motion", REDUCED_MOTION ? "true" : "false");
+
+      const filters = {
+        environment: document.querySelector("[data-testid='filter-environment']"),
+        gate: document.querySelector("[data-testid='filter-gate']"),
+        artifactState: document.querySelector("[data-testid='filter-artifact-state']"),
+        provenanceState: document.querySelector("[data-testid='filter-provenance-state']"),
+        buildFamily: document.querySelector("[data-testid='filter-build-family']"),
+      };
+
+      const lane = document.getElementById("lane");
+      const cardWall = document.getElementById("card-wall");
+      const timeline = document.getElementById("timeline");
+      const runTableBody = document.getElementById("run-table-body");
+      const policyTableBody = document.getElementById("policy-table-body");
+      const inspectorGrid = document.getElementById("inspector-grid");
+
+      let selectedRunId = RUNS[0]?.pipelineExecutionRef ?? null;
+
+      function uniqueValues(items, key) {
+        return [...new Set(items.map((item) => item[key]).filter(Boolean))];
+      }
+
+      function buildOptions(select, values) {
+        select.innerHTML = "";
+        const all = document.createElement("option");
+        all.value = "all";
+        all.textContent = "All";
+        select.appendChild(all);
+        values.forEach((value) => {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = value;
+          select.appendChild(option);
+        });
+      }
+
+      function filteredRuns() {
+        return RUNS.filter((run) => {
+          return (
+            (filters.environment.value === "all" || run.environmentRing === filters.environment.value) &&
+            (filters.gate.value === "all" || run.dominantGateRef === filters.gate.value) &&
+            (filters.artifactState.value === "all" || run.artifactState === filters.artifactState.value) &&
+            (filters.provenanceState.value === "all" || run.provenanceState === filters.provenanceState.value) &&
+            (filters.buildFamily.value === "all" || run.buildFamilyRef === filters.buildFamily.value)
+          );
+        });
+      }
+
+      function makeBadge(value) {
+        const span = document.createElement("span");
+        span.className = `badge badge-${value}`;
+        span.textContent = value;
+        return span;
+      }
+
+      function ensureSelection(rows) {
+        if (!rows.some((row) => row.pipelineExecutionRef === selectedRunId)) {
+          selectedRunId = rows[0]?.pipelineExecutionRef ?? null;
+        }
+      }
+
+      function renderLane(rows) {
+        lane.innerHTML = "";
+        GATES.forEach((gate) => {
+          const count = rows.filter((row) => row.dominantGateRef === gate.gateRef).length;
+          const blocked = rows.filter(
+            (row) => row.dominantGateRef === gate.gateRef && row.provenanceState !== "verified",
+          ).length;
+          const card = document.createElement("div");
+          card.className = "lane-step";
+          card.innerHTML = `<strong>${gate.label}</strong><div>${count} visible builds</div><div class="card-mono">${blocked} non-green states</div>`;
+          lane.appendChild(card);
+        });
+        document.getElementById("lane-parity").textContent = `${GATES.length} visible gates`;
+        document.getElementById("lane-text-parity").textContent = `Visible gate count ${GATES.length}.`;
+      }
+
+      function renderCards(rows) {
+        cardWall.innerHTML = "";
+        rows.forEach((row) => {
+          const family = FAMILY_MAP[row.buildFamilyRef];
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "run-card";
+          button.dataset.testid = `provenance-card-${row.pipelineExecutionRef}`;
+          button.dataset.selected = String(row.pipelineExecutionRef === selectedRunId);
+          button.innerHTML = `
+            <div class="card-top">
+              <div>
+                <div><strong>${family.label}</strong></div>
+                <div class="card-mono">${row.pipelineExecutionRef}</div>
+              </div>
+              <span class="badge badge-${row.provenanceState}">${row.provenanceState}</span>
+            </div>
+            <div>${row.environmentRing} · ${GATE_MAP[row.dominantGateRef].label}</div>
+            <div class="card-top">
+              <span class="badge badge-${row.artifactState}">${row.artifactState}</span>
+              <span class="card-mono">${row.buildProvenanceRecordRef}</span>
+            </div>
+          `;
+          button.addEventListener("click", () => {
+            selectedRunId = row.pipelineExecutionRef;
+            render();
+          });
+          cardWall.appendChild(button);
+        });
+        document.getElementById("card-parity").textContent = `${rows.length} visible builds`;
+        document.getElementById("card-text-parity").textContent = `Visible build count ${rows.length}.`;
+      }
+
+      function renderTimeline(rows) {
+        timeline.innerHTML = "";
+        rows.forEach((row) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "timeline-button";
+          button.dataset.testid = `timeline-item-${row.pipelineExecutionRef}`;
+          button.dataset.selected = String(row.pipelineExecutionRef === selectedRunId);
+          button.innerHTML = `
+            <div><strong>${row.environmentRing}</strong></div>
+            <div>${row.decisionState}</div>
+            <div class="card-mono">${row.quarantineReasonRefs.join(", ") || "clean publish path"}</div>
+          `;
+          button.addEventListener("click", () => {
+            selectedRunId = row.pipelineExecutionRef;
+            render();
+          });
+          timeline.appendChild(button);
+        });
+        document.getElementById("timeline-parity").textContent = `${rows.length} visible decisions`;
+        document.getElementById("timeline-text-parity").textContent = `Visible decision count ${rows.length}.`;
+      }
+
+      function moveSelection(fromRunId, delta, rows) {
+        const index = rows.findIndex((row) => row.pipelineExecutionRef === fromRunId);
+        const next = rows[index + delta];
+        if (next) {
+          selectedRunId = next.pipelineExecutionRef;
+          render();
+          const button = document.querySelector(`[data-testid="run-row-${next.pipelineExecutionRef}"] .row-button`);
+          if (button) {
+            button.focus();
+          }
+        }
+      }
+
+      function renderRunTable(rows) {
+        runTableBody.innerHTML = "";
+        rows.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.dataset.testid = `run-row-${row.pipelineExecutionRef}`;
+          tr.dataset.selected = String(row.pipelineExecutionRef === selectedRunId);
+          tr.innerHTML = `
+            <td>
+              <button type="button" class="row-button">
+                <strong>${row.pipelineExecutionRef}</strong>
+              </button>
+            </td>
+            <td>${row.environmentRing}</td>
+            <td></td>
+            <td>${GATE_MAP[row.dominantGateRef].label}</td>
+          `;
+          const cell = tr.children[2];
+          cell.appendChild(makeBadge(row.provenanceState));
+          const button = tr.querySelector(".row-button");
+          button.addEventListener("click", () => {
+            selectedRunId = row.pipelineExecutionRef;
+            render();
+          });
+          button.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              moveSelection(row.pipelineExecutionRef, 1, rows);
+            }
+            if (event.key === "ArrowUp") {
+              event.preventDefault();
+              moveSelection(row.pipelineExecutionRef, -1, rows);
+            }
+          });
+          runTableBody.appendChild(tr);
+        });
+        document.getElementById("run-table-parity").textContent = `${rows.length} rows`;
+      }
+
+      function renderPolicyTable() {
+        policyTableBody.innerHTML = "";
+        RULES.forEach((rule) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${rule.triggerRef}</td>
+            <td>${rule.artifactState}</td>
+            <td>${rule.runtimeConsumptionState}</td>
+            <td>${rule.publishDecisionState}</td>
+          `;
+          policyTableBody.appendChild(tr);
+        });
+        document.getElementById("policy-table-parity").textContent = `${RULES.length} rules`;
+      }
+
+      function renderInspector(rows) {
+        const selected = rows.find((row) => row.pipelineExecutionRef === selectedRunId) ?? rows[0];
+        if (!selected) {
+          inspectorGrid.innerHTML = "<div class='inspector-block'><h3>No build selected</h3><div>Filter combinations hid every build.</div></div>";
+          return;
+        }
+        const family = FAMILY_MAP[selected.buildFamilyRef];
+        const reasons = selected.quarantineReasonRefs.length
+          ? selected.quarantineReasonRefs.join(", ")
+          : "No quarantine or block reasons.";
+        document.getElementById("inspector-subtitle").textContent = selected.pipelineExecutionRef;
+        inspectorGrid.innerHTML = `
+          <div class="inspector-block">
+            <h3>Build identity</h3>
+            <div><strong>${family.label}</strong></div>
+            <div class="card-mono">${selected.buildProvenanceRecordRef}</div>
+            <div>${selected.environmentRing} · ${selected.releaseRef}</div>
+          </div>
+          <div class="inspector-block">
+            <h3>State</h3>
+            <div>${selected.artifactState} artifact</div>
+            <div>${selected.provenanceState} provenance</div>
+            <div>${selected.runtimeConsumptionState} runtime consumption</div>
+          </div>
+          <div class="inspector-block">
+            <h3>Gate and decision</h3>
+            <div>${GATE_MAP[selected.dominantGateRef].label}</div>
+            <div>${selected.decisionState}</div>
+            <div class="card-mono">${reasons}</div>
+          </div>
+          <div class="inspector-block">
+            <h3>Tuple refs</h3>
+            <div class="card-mono">${selected.runtimePublicationBundleRef}</div>
+            <div class="card-mono">${selected.releasePublicationParityRef}</div>
+            <div class="card-mono">${selected.releaseContractVerificationMatrixRef}</div>
+          </div>
+        `;
+      }
+
+      function renderStats(rows) {
+        const active = rows.find((row) => row.provenanceState === "verified") ?? rows[0];
+        document.getElementById("stat-active-build").textContent = active ? active.pipelineExecutionRef : "none";
+        document.getElementById("stat-quarantined").textContent = rows.filter((row) => row.artifactState === "quarantined").length;
+        document.getElementById("stat-revoked").textContent = rows.filter((row) => row.artifactState === "revoked").length;
+        document.getElementById("stat-alerts").textContent = rows.filter((row) => row.provenanceState !== "verified").length;
+      }
+
+      function render() {
+        const rows = filteredRuns();
+        ensureSelection(rows);
+        renderLane(rows);
+        renderCards(rows);
+        renderTimeline(rows);
+        renderRunTable(rows);
+        renderPolicyTable();
+        renderInspector(rows);
+        renderStats(rows);
+      }
+
+      buildOptions(filters.environment, uniqueValues(RUNS, "environmentRing"));
+      buildOptions(filters.gate, uniqueValues(RUNS, "dominantGateRef"));
+      buildOptions(filters.artifactState, uniqueValues(RUNS, "artifactState"));
+      buildOptions(filters.provenanceState, uniqueValues(RUNS, "provenanceState"));
+      buildOptions(filters.buildFamily, uniqueValues(RUNS, "buildFamilyRef"));
+      Object.values(filters).forEach((select) => select.addEventListener("change", render));
+      renderPolicyTable();
+      render();
+    </script>
+  </body>
+</html>

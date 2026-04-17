@@ -1,0 +1,125 @@
+{
+  "taskId": "par_178",
+  "schemaVersion": "172.phase2.patient-link.v1",
+  "policyVersion": "phase2-patient-link-v1",
+  "serviceRef": "services/command-api/src/patient-linker.ts",
+  "migrationRef": "services/command-api/migrations/093_phase2_patient_linker.sql",
+  "parallelInterfaceGaps": [
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_LINKER_CALIBRATED_DECISION_V1",
+      "closure": "PatientLinkDecision emits calibrated probabilities, confidence bounds, and threshold refs."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_LINKER_RUNNER_UP_COMPETITION_V1",
+      "closure": "Runner-up upper bound and gap_logit are checked before verified or provisional output."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_LINKER_DRIFT_FAIL_CLOSED_V1",
+      "closure": "Missing calibration and out-of-domain drift cannot auto-link."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_LINKER_PDS_OPTIONAL_SEAM_V1",
+      "closure": "PDS enrichment is disabled by default and local matching remains primary."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_LINKER_CONTACT_PREF_SEPARATION_V1",
+      "closure": "contactClaims, pdsDemographics, and patientPreferredComms remain separate domains."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_LINKER_AUTHORITY_INTENT_PORT_V1",
+      "closure": "The linker emits authority intents and does not settle binding truth."
+    }
+  ],
+  "decisionExamples": [
+    {
+      "caseId": "LINK178_VERIFIED_BIND_EXACT",
+      "routeSensitivityFamily": "authenticated_request_status",
+      "winnerCandidateRef": "patient_ref_178_a",
+      "runnerUpCandidateRef": null,
+      "confidenceModelState": "calibrated",
+      "linkState": "verified_patient",
+      "decisionClass": "verified_bind",
+      "identityBindingAuthorityIntent": "submit_verified_bind",
+      "minimumChecks": {
+        "winnerLowerBoundPass": true,
+        "runnerUpCeilingPass": true,
+        "gapLogitPass": true,
+        "subjectProofFloorPass": true,
+        "driftPass": true,
+        "policyAllowsAutoLink": true
+      },
+      "reasonCodes": ["LINK_172_STATUS_AUTO_LINK_ALLOWED"]
+    },
+    {
+      "caseId": "LINK178_PROVISIONAL_DRAFT_POLICY",
+      "routeSensitivityFamily": "signed_in_draft_start",
+      "winnerCandidateRef": "patient_ref_178_a",
+      "runnerUpCandidateRef": null,
+      "confidenceModelState": "calibrated",
+      "linkState": "provisional_verified",
+      "decisionClass": "provisional_verify",
+      "identityBindingAuthorityIntent": "submit_provisional_verify",
+      "minimumChecks": {
+        "winnerLowerBoundPass": true,
+        "runnerUpCeilingPass": true,
+        "gapLogitPass": true,
+        "subjectProofFloorPass": true,
+        "driftPass": true,
+        "policyAllowsAutoLink": false
+      },
+      "reasonCodes": ["LINK_172_DRAFT_PROVISIONAL_ONLY"]
+    },
+    {
+      "caseId": "LINK178_AMBIGUOUS_RUNNER_UP",
+      "routeSensitivityFamily": "authenticated_request_status",
+      "winnerCandidateRef": "patient_ref_178_a",
+      "runnerUpCandidateRef": "patient_ref_178_runner",
+      "confidenceModelState": "calibrated",
+      "linkState": "ambiguous",
+      "decisionClass": "manual_review_required",
+      "identityBindingAuthorityIntent": "submit_candidate_refresh",
+      "minimumChecks": {
+        "winnerLowerBoundPass": true,
+        "runnerUpCeilingPass": false,
+        "gapLogitPass": false,
+        "subjectProofFloorPass": true,
+        "driftPass": true,
+        "policyAllowsAutoLink": true
+      },
+      "reasonCodes": ["LINK_172_RUNNER_UP_TOO_CLOSE"]
+    },
+    {
+      "caseId": "LINK178_NO_CANDIDATE",
+      "routeSensitivityFamily": "sms_continuation",
+      "winnerCandidateRef": "none",
+      "runnerUpCandidateRef": null,
+      "confidenceModelState": "drift_review",
+      "linkState": "none",
+      "decisionClass": "candidate_refresh",
+      "identityBindingAuthorityIntent": "submit_candidate_refresh",
+      "reasonCodes": ["LINK_172_NO_CANDIDATE_LIMITED_MODE"]
+    }
+  ],
+  "patientFacingStateMap": [
+    {
+      "linkState": "verified_patient",
+      "patientFacingState": "signed_in_ready",
+      "safeReveal": "masked_account_shell_only"
+    },
+    {
+      "linkState": "provisional_verified",
+      "patientFacingState": "details_found_confirmation_needed",
+      "safeReveal": "masked_candidate_summary_only"
+    },
+    {
+      "linkState": "ambiguous",
+      "patientFacingState": "unable_to_confidently_match",
+      "safeReveal": "no_candidate_comparison_reveal"
+    },
+    {
+      "linkState": "none",
+      "patientFacingState": "limited_or_provisional_mode",
+      "safeReveal": "no_patient_specific_reveal"
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "taskId": "par_144",
+  "capturedOn": "2026-04-14",
+  "contractRef": "SEAM_143_DRAFT_AUTOSAVE_AND_RESUME_STATE",
+  "cases": [
+    {
+      "caseId": "PAR144_CREATE_AND_AUTOSAVE_REPLAY",
+      "trigger": "same clientCommandId and idempotencyKey replay after a previously accepted PATCH",
+      "expectedAckState": "saved_authoritative",
+      "expectedMutationBehavior": "replay_existing_mutation_record",
+      "expectedContinuityState": "stable_writable",
+      "expectedReasonCodes": []
+    },
+    {
+      "caseId": "PAR144_BACKGROUND_TAB_MUTATION_BLOCKED",
+      "trigger": "background_read_only lease attempts a PATCH",
+      "expectedAckState": "recovery_required",
+      "expectedRecoveryReason": "grant_scope_drift",
+      "expectedContinuityState": "recovery_only",
+      "expectedReasonCodes": ["BACKGROUND_LEASE_MUTATION_FORBIDDEN"]
+    },
+    {
+      "caseId": "PAR144_STALE_VERSION_MERGE_PLAN",
+      "trigger": "PATCH arrives with draftVersion behind authoritativeDraftVersion",
+      "expectedAckState": "merge_required",
+      "expectedMergePlanState": "open",
+      "expectedContinuityState": "recovery_only",
+      "expectedReasonCodes": ["DRAFT_VERSION_CONFLICT"]
+    },
+    {
+      "caseId": "PAR144_RUNTIME_OR_TOKEN_DRIFT",
+      "trigger": "resume token remains structurally valid but session/binding/freeze/runtime tuple drifts",
+      "expectedAckState": "recovery_required",
+      "expectedRecoveryReason": "identity_rebind_required",
+      "expectedContinuityState": "recovery_only",
+      "expectedReasonCodes": [
+        "SESSION_EPOCH_DRIFT",
+        "SUBJECT_BINDING_VERSION_DRIFT",
+        "RELEASE_FREEZE_DRIFT",
+        "CHANNEL_FREEZE_DRIFT",
+        "AUDIENCE_RUNTIME_DRIFT"
+      ]
+    },
+    {
+      "caseId": "PAR144_PROMOTED_DRAFT_SUPERSESSION",
+      "trigger": "governed promotion commits for the same SubmissionEnvelope lineage",
+      "expectedAckState": "recovery_required",
+      "expectedRecoveryReason": "promoted_request_available",
+      "expectedContinuityState": "blocked",
+      "expectedReasonCodes": ["PROMOTED_REQUEST_AVAILABLE"]
+    }
+  ]
+}

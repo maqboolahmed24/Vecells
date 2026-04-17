@@ -1,0 +1,128 @@
+{
+  "taskId": "par_153",
+  "contractId": "PHASE1_CONFIRMATION_DISPATCH_CONTRACT_V1",
+  "schemaVersion": "PHASE1_CONFIRMATION_DISPATCH_CONTRACT_V1",
+  "gapResolutionRefs": [
+    "GAP_RESOLVED_PHASE1_CONFIRMATION_COMMUNICATION_CHAIN_V1",
+    "GAP_RESOLVED_PHASE1_CONFIRMATION_RECEIPT_BRIDGE_V1",
+    "GAP_RESOLVED_PHASE1_CONFIRMATION_OBSERVABILITY_V1"
+  ],
+  "sourceRefs": [
+    "prompt/153.md",
+    "prompt/shared_operating_contract_146_to_155.md",
+    "data/contracts/152_patient_receipt_consistency_envelope.json",
+    "docs/architecture/153_confirmation_dispatch_design.md",
+    "docs/architecture/153_notification_observability_and_alerting.md",
+    "services/command-api/migrations/089_phase1_confirmation_dispatch_and_observability.sql"
+  ],
+  "authoritativeObjects": [
+    "Phase1ConfirmationCommunicationEnvelope",
+    "Phase1ConfirmationTransportSettlement",
+    "Phase1ConfirmationDeliveryEvidence",
+    "Phase1ConfirmationReceiptBridge",
+    "ReachabilityAssessmentRecord",
+    "PatientReceiptConsistencyEnvelope"
+  ],
+  "requiredUpstreamReceiptEvent": "communication.receipt.enveloped",
+  "emittedEvents": [
+    "communication.queued",
+    "communication.command.settled",
+    "communication.delivery.evidence.recorded",
+    "communication.callback.outcome.recorded"
+  ],
+  "dispatchEligibilityStates": [
+    "dispatchable",
+    "blocked_route_truth"
+  ],
+  "queueStates": [
+    "queued",
+    "dispatching",
+    "delivery_pending",
+    "delivered",
+    "failed",
+    "disputed",
+    "expired"
+  ],
+  "transportAckStates": [
+    "not_started",
+    "accepted",
+    "rejected",
+    "timed_out"
+  ],
+  "deliveryEvidenceStates": [
+    "pending",
+    "delivered",
+    "failed",
+    "disputed",
+    "expired"
+  ],
+  "authoritativeOutcomeStates": [
+    "awaiting_delivery_truth",
+    "delivery_confirmed",
+    "recovery_required"
+  ],
+  "patientPostureStates": [
+    "queued",
+    "delivery_pending",
+    "delivered",
+    "recovery_required"
+  ],
+  "queueingLaw": {
+    "onlyAfterAuthoritativeRoutineHandoff": true,
+    "requiresTriageTaskRef": true,
+    "requiresReceiptEnvelopeRef": true,
+    "enqueueIdempotencyKeyTemplate": "confirm_dispatch::<requestRef>::<receiptEnvelopeRef>",
+    "submitReplayMustReturnSameEnvelope": true
+  },
+  "routeTruthLaw": {
+    "staleBlockedOrDisputedRoutesMustBlockDispatch": true,
+    "transportAcceptanceIsWeakEvidenceOnly": true,
+    "deliveryEvidenceRequiredForCalmOutcome": true,
+    "blockedActionScopeRefs": [
+      "status_view",
+      "contact_route_repair"
+    ]
+  },
+  "retryPolicy": {
+    "providerMode": "simulator_first",
+    "maxAttempts": 3,
+    "backoffSeconds": [
+      60,
+      300,
+      900
+    ],
+    "retryableTransportOutcomes": [
+      "timed_out"
+    ],
+    "terminalTransportOutcomes": [
+      "rejected"
+    ],
+    "terminalDeliveryEvidenceStates": [
+      "failed",
+      "disputed",
+      "expired"
+    ]
+  },
+  "observabilityLaw": {
+    "metricsSchemaVersion": "PHASE1_CONFIRMATION_NOTIFICATION_METRICS_V1",
+    "requiredMetrics": [
+      "dispatch_queued_rate",
+      "provider_acceptance_rate",
+      "delivery_evidence_rate",
+      "bounce_failure_rate",
+      "queue_depth",
+      "queue_blockage",
+      "end_to_end_confirmation_latency_p95_ms",
+      "receipt_recovery_required_count"
+    ],
+    "disclosureFence": "UITelemetryDisclosureFence",
+    "redactedFieldFamilies": [
+      "maskedContactField",
+      "maskedRouteField",
+      "auditLinkField",
+      "controlPlaneField",
+      "publicDescriptor"
+    ],
+    "alertRouteRef": "ALERT_COMMUNICATION_AND_CALLBACK_HEALTH"
+  }
+}

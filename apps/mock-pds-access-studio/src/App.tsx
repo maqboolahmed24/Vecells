@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { VecellLogoLockup } from "@vecells/design-system";
 
 import { pdsAccessPack } from "./generated/pdsAccessPack";
 
@@ -914,11 +915,7 @@ function App() {
       <header className="posture-banner panel" data-testid="posture-banner">
         <div className="brand-panel">
           <div className="brand-row">
-            <svg viewBox="0 0 64 64" className="wordmark" aria-hidden="true">
-              <rect width="64" height="64" rx="18" fill="#f4f7fb" />
-              <path d="M18 18h12l8 13 8-13h12L40 46h-8L18 18Z" fill="#0f5cc0" />
-              <path d="M24 47h16" stroke="#127a6a" strokeWidth="4" strokeLinecap="round" />
-            </svg>
+            <VecellLogoLockup aria-hidden="true" className="wordmark" />
             <div>
               <div className="ribbon-row">
                 <span className="mock-ribbon">MOCK_PDS_SANDBOX</span>

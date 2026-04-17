@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>215 Patient Home, Requests, and Detail Atlas</title>
+    <style>
+      :root {
+        --canvas: #f6f8fb;
+        --panel: #ffffff;
+        --tint: #eef3f9;
+        --strong: #102033;
+        --text: #425466;
+        --border: #d9e1ea;
+        --accent: #495fea;
+        --teal: #0e8c87;
+        --amber: #b7791f;
+        --red: #b42318;
+        --green: #127a5a;
+        --rhythm: 8px;
+        --top-band: 64px;
+        --mobile-top-band: 56px;
+        --page-max: 1240px;
+        --detail-side: 304px;
+        --gutter: 32px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--strong);
+        font-family: Inter, "Segoe UI", sans-serif;
+      }
+
+      header {
+        min-height: var(--top-band);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 0 32px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.94);
+        position: sticky;
+        top: 0;
+        z-index: 2;
+      }
+
+      main {
+        width: min(100%, var(--page-max));
+        margin: 0 auto;
+        padding: 32px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      p,
+      li,
+      td,
+      th {
+        line-height: 1.5;
+      }
+
+      button {
+        min-height: 44px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--panel);
+        color: var(--strong);
+        font: inherit;
+        cursor: pointer;
+      }
+
+      button[aria-selected="true"] {
+        background: var(--strong);
+        color: #ffffff;
+      }
+
+      button:focus-visible,
+      article:focus-visible {
+        outline: 3px solid var(--strong);
+        outline-offset: 3px;
+      }
+
+      .atlas-shell {
+        display: grid;
+        gap: 24px;
+      }
+
+      .scenario-rail {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      .board {
+        display: none;
+        gap: 24px;
+      }
+
+      .board[data-active="true"] {
+        display: grid;
+      }
+
+      .surface,
+      .card,
+      .rail,
+      .detail,
+      .placeholder,
+      .matrix {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      .surface {
+        padding: 32px;
+      }
+
+      .hero {
+        min-height: 280px;
+        display: grid;
+        align-content: center;
+        gap: 16px;
+        border-left: 6px solid var(--accent);
+      }
+
+      .quiet {
+        border-left-color: var(--teal);
+      }
+
+      .hero h2 {
+        max-width: 760px;
+        margin-bottom: 0;
+        font-size: 3rem;
+        line-height: 1.05;
+        letter-spacing: 0;
+      }
+
+      .hero p,
+      .card p,
+      .placeholder p,
+      .matrix p {
+        color: var(--text);
+      }
+
+      .primary {
+        width: fit-content;
+        padding: 11px 16px;
+        background: var(--accent);
+        color: #ffffff;
+      }
+
+      .compact-grid,
+      .placeholder-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .card,
+      .placeholder,
+      .matrix,
+      .rail,
+      .detail {
+        padding: 18px;
+      }
+
+      .request-layout {
+        display: grid;
+        grid-template-columns: 392px minmax(0, 1fr);
+        gap: var(--gutter);
+        align-items: start;
+      }
+
+      .detail-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) var(--detail-side);
+        gap: var(--gutter);
+        align-items: start;
+      }
+
+      .row {
+        min-height: 88px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #ffffff;
+      }
+
+      .row[data-selected="true"] {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(73, 95, 234, 0.14);
+      }
+
+      .lineage ol {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        padding: 0;
+        list-style: none;
+      }
+
+      .lineage li {
+        min-height: 86px;
+        padding: 12px;
+        border-radius: 8px;
+        background: var(--tint);
+      }
+
+      .matrix table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .matrix th,
+      .matrix td {
+        padding: 10px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .badge {
+        display: inline-flex;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: var(--tint);
+        color: var(--strong);
+        font-weight: 800;
+      }
+
+      @media (max-width: 760px) {
+        header {
+          min-height: var(--mobile-top-band);
+          align-items: flex-start;
+          flex-direction: column;
+          padding: 12px 16px;
+        }
+
+        main {
+          padding: 16px;
+        }
+
+        .request-layout,
+        .detail-layout,
+        .compact-grid,
+        .placeholder-grid,
+        .lineage ol {
+          grid-template-columns: 1fr;
+        }
+
+        .hero {
+          padding: 22px;
+        }
+
+        .hero h2 {
+          font-size: 2rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation-duration: 0.01ms !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <strong>Quiet_Casework_Premium</strong>
+        <span> / Patient_Home_Requests_Detail_Atlas</span>
+      </div>
+      <nav aria-label="Atlas routes">
+        <span class="badge">/home</span>
+        <span class="badge">/requests</span>
+        <span class="badge">/requests/:requestId</span>
+      </nav>
+    </header>
+
+    <main data-testid="Patient_Home_Requests_Detail_Atlas">
+      <h1>Patient home, requests, and detail atlas</h1>
+      <div class="atlas-shell">
+        <div
+          class="scenario-rail"
+          data-testid="ScenarioRail"
+          role="tablist"
+          aria-label="Atlas scenarios"
+        >
+          <button data-scenario-button="home-spotlight" role="tab" aria-selected="true">
+            Home spotlight
+          </button>
+          <button data-scenario-button="quiet-home" role="tab" aria-selected="false">
+            Quiet home
+          </button>
+          <button data-scenario-button="requests-index" role="tab" aria-selected="false">
+            Requests index
+          </button>
+          <button data-scenario-button="request-detail" role="tab" aria-selected="false">
+            Request detail
+          </button>
+          <button data-scenario-button="placeholders" role="tab" aria-selected="false">
+            Placeholders
+          </button>
+          <button data-scenario-button="responsive" role="tab" aria-selected="false">
+            Responsive matrix
+          </button>
+        </div>
+
+        <section
+          class="board"
+          data-board="home-spotlight"
+          data-active="true"
+          data-testid="HomeSpotlightBoard"
+        >
+          <article class="surface hero" data-testid="HomeSpotlightCard">
+            <span class="badge">PatientSpotlightDecisionProjection</span>
+            <h2>Your dermatology request needs one reply</h2>
+            <p>
+              The home spotlight promotes exactly one patient-owned action. Other request,
+              appointment, record, and message surfaces stay compact or placeholder-only.
+            </p>
+            <p>
+              PatientRequestReturnBundle preserves the selected request when the spotlight opens
+              detail.
+            </p>
+            <button class="primary">Reply with more information</button>
+          </article>
+          <section
+            class="compact-grid"
+            aria-label="Home compact 2x2 grid"
+            data-testid="HomeCompactGrid"
+          >
+            <article class="card">
+              <h3>Active requests</h3>
+              <p>1 reply needed from PatientRequestsIndexProjection.</p>
+            </article>
+            <article class="card">
+              <h3>Appointments</h3>
+              <p>Future child surface placeholder.</p>
+            </article>
+            <article class="card">
+              <h3>Record updates</h3>
+              <p>Future health-record placeholder.</p>
+            </article>
+            <article class="card">
+              <h3>Unread messages</h3>
+              <p>Future communications placeholder.</p>
+            </article>
+          </section>
+        </section>
+
+        <section class="board" data-board="quiet-home" data-testid="QuietHomeBoard">
+          <article class="surface hero quiet" data-testid="QuietHomePanel">
+            <span class="badge">PatientQuietHomeDecision</span>
+            <h2>No action is needed right now</h2>
+            <p>
+              Quiet home is a positive all-clear decision. It appears only when request, callback,
+              records, and communications projections are complete enough to prove no patient-owned
+              action is due.
+            </p>
+          </article>
+          <section class="compact-grid" aria-label="Quiet compact 2x2 grid">
+            <article class="card">
+              <h3>Active requests</h3>
+              <p>Readable summaries remain available.</p>
+            </article>
+            <article class="card">
+              <h3>Appointments</h3>
+              <p>No invented appointment data.</p>
+            </article>
+            <article class="card">
+              <h3>Record updates</h3>
+              <p>No hidden record alert.</p>
+            </article>
+            <article class="card">
+              <h3>Unread messages</h3>
+              <p>No synthetic inbox count.</p>
+            </article>
+          </section>
+        </section>
+
+        <section class="board" data-board="requests-index" data-testid="RequestsIndexBoard">
+          <div class="request-layout">
+            <aside class="rail" data-testid="RequestIndexRail" aria-label="Request index rail">
+              <span class="badge">PatientRequestsIndexProjection</span>
+              <h2>Requests</h2>
+              <div class="row" data-selected="true">
+                <strong>Dermatology request</strong><span>Reply needed</span>
+              </div>
+              <div class="row"><strong>Admin request</strong><span>In progress</span></div>
+              <div class="row"><strong>Phone callback</strong><span>Placeholder</span></div>
+              <div class="row"><strong>Prescription question</strong><span>Complete</span></div>
+            </aside>
+            <section class="detail" data-testid="RequestsDetailPlaceholder">
+              <h2>Selected request opens here</h2>
+              <p>
+                The index stores selectedFilterRef, selectedAnchorRef, and
+                selectedRequestReturnBundleRef before detail navigation.
+              </p>
+            </section>
+          </div>
+        </section>
+
+        <section class="board" data-board="request-detail" data-testid="RequestDetailBoard">
+          <div class="detail-layout">
+            <div>
+              <section class="surface lineage" data-testid="RequestLineageStrip">
+                <span class="badge">PatientRequestLineageProjection</span>
+                <h2>Same request context</h2>
+                <ol>
+                  <li><strong>request_211_a</strong><br />Reply needed</li>
+                  <li><strong>tuple_4557ef16</strong><br />Selected anchor tuple</li>
+                  <li><strong>Updated today, 10:45</strong><br />Canonical truth</li>
+                </ol>
+              </section>
+              <section class="surface hero" data-testid="RequestDetailHero">
+                <span class="badge">PatientRequestDetailProjection</span>
+                <h2>Dermatology request</h2>
+                <p>
+                  The detail hero shows patient-safe status and summary while staff-only reasoning
+                  stays outside the patient route.
+                </p>
+              </section>
+            </div>
+            <aside class="surface" data-testid="DecisionDock">
+              <span class="badge">PatientNextActionProjection</span>
+              <h2>Next safe action</h2>
+              <p>Reply with more information</p>
+              <button class="primary">Focus governed placeholder</button>
+            </aside>
+          </div>
+        </section>
+
+        <section class="board" data-board="placeholders" data-testid="PlaceholderBoard">
+          <section class="placeholder-grid" aria-label="Governed child surface placeholders">
+            <article class="placeholder" tabindex="-1" data-testid="GovernedPlaceholderCard">
+              <span class="badge">more_info</span>
+              <h3>More information response</h3>
+              <p>PARALLEL_INTERFACE_GAP_CROSSCUTTING_REQUEST_CONTEXT</p>
+            </article>
+            <article class="placeholder" tabindex="-1">
+              <span class="badge">callback</span>
+              <h3>Callback status</h3>
+              <p>PatientCallbackStatusProjection pending</p>
+            </article>
+            <article class="placeholder" tabindex="-1">
+              <span class="badge">records</span>
+              <h3>Record follow-up</h3>
+              <p>PARALLEL_INTERFACE_GAP_CROSSCUTTING_RECORDS</p>
+            </article>
+            <article class="placeholder" tabindex="-1">
+              <span class="badge">communications</span>
+              <h3>Communications thread</h3>
+              <p>PatientCommunicationsTimelineProjection placeholder</p>
+            </article>
+          </section>
+        </section>
+
+        <section class="board" data-board="responsive" data-testid="ResponsiveMatrixBoard">
+          <section class="matrix" data-testid="MatrixShelf" aria-label="Responsive layout matrix">
+            <h2>Responsive layout matrix</h2>
+            <p>
+              NHS service manual, GOV.UK Check answers, WCAG 2.2, and Playwright screenshots guide
+              this evidence.
+            </p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Route</th>
+                  <th>Desktop</th>
+                  <th>Mobile</th>
+                  <th>Focus</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>/home</td>
+                  <td>spotlight plus 2x2 grid</td>
+                  <td>single column</td>
+                  <td>primary action</td>
+                </tr>
+                <tr>
+                  <td>/requests</td>
+                  <td>rail plus pane</td>
+                  <td>rail then pane</td>
+                  <td>selected row</td>
+                </tr>
+                <tr>
+                  <td>/requests/:requestId</td>
+                  <td>minmax(0, 1fr) 304px</td>
+                  <td>single column</td>
+                  <td>heading then dock</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      window.__patientCaseworkAtlasData = {
+        visualMode: "Quiet_Casework_Premium",
+        scenarios: [
+          "home-spotlight",
+          "quiet-home",
+          "requests-index",
+          "request-detail",
+          "placeholders",
+          "responsive",
+        ],
+        projections: [
+          "PatientSpotlightDecisionProjection",
+          "PatientQuietHomeDecision",
+          "PatientRequestsIndexProjection",
+          "PatientRequestDetailProjection",
+          "PatientRequestReturnBundle",
+        ],
+      };
+
+      const buttons = Array.from(document.querySelectorAll("[data-scenario-button]"));
+      const boards = Array.from(document.querySelectorAll("[data-board]"));
+
+      function selectScenario(id) {
+        document.documentElement.dataset.scenario = id;
+        for (const button of buttons) {
+          button.setAttribute("aria-selected", String(button.dataset.scenarioButton === id));
+        }
+        for (const board of boards) {
+          board.dataset.active = String(board.dataset.board === id);
+        }
+      }
+
+      for (const button of buttons) {
+        button.addEventListener("click", () => selectScenario(button.dataset.scenarioButton));
+        button.addEventListener("keydown", (event) => {
+          const current = buttons.indexOf(button);
+          if (event.key === "ArrowRight") {
+            event.preventDefault();
+            const next = buttons[(current + 1) % buttons.length];
+            next.focus();
+            selectScenario(next.dataset.scenarioButton);
+          }
+          if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            const next = buttons[(current - 1 + buttons.length) % buttons.length];
+            next.focus();
+            selectScenario(next.dataset.scenarioButton);
+          }
+        });
+      }
+
+      selectScenario("home-spotlight");
+      document.documentElement.dataset.ready = "true";
+    </script>
+  </body>
+</html>

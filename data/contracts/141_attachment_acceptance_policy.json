@@ -1,0 +1,351 @@
+{
+  "taskId": "seq_141",
+  "generatedAt": "2026-04-14T12:37:32Z",
+  "capturedOn": "2026-04-14",
+  "visualMode": "Attachment_Evidence_Rail",
+  "policyId": "AAP_141_PHASE1_ATTACHMENT_POLICY_V1",
+  "draftSchemaVersion": "INTAKE_DRAFT_VIEW_V1",
+  "requestTypes": [
+    "Symptoms",
+    "Meds",
+    "Admin",
+    "Results"
+  ],
+  "sourcePrecedence": [
+    "prompt/141.md",
+    "prompt/shared_operating_contract_136_to_145.md",
+    "prompt/AGENT.md",
+    "prompt/checklist.md",
+    "blueprint/phase-1-the-red-flag-gate.md#1D. Attachment ingestion pipeline",
+    "blueprint/phase-1-the-red-flag-gate.md#1E. Submit normalization and synchronous safety engine",
+    "blueprint/phase-0-the-foundation-protocol.md#ArtifactPresentationContract",
+    "blueprint/phase-0-the-foundation-protocol.md#ArtifactModeTruthProjection",
+    "blueprint/phase-0-the-foundation-protocol.md#OutboundNavigationGrant",
+    "blueprint/platform-frontend-blueprint.md#1.19A ArtifactStage",
+    "blueprint/forensic-audit-findings.md#Finding 61 - The event catalogue lacked attachment-quarantine events",
+    "docs/architecture/109_artifact_presentation_shell.md",
+    "docs/integrations/129_adapter_simulator_validation.md",
+    "docs/architecture/139_web_intake_journey_contract.md",
+    "docs/api/139_phase1_submission_schema_lock.md",
+    "docs/architecture/140_request_type_taxonomy.md",
+    "data/contracts/139_intake_draft_view.schema.json",
+    "data/contracts/139_intake_event_catalog.json",
+    "data/contracts/140_request_type_taxonomy.json",
+    "data/integration/adapter_validation_results.json"
+  ],
+  "upstreamInputs": [
+    "data/contracts/139_intake_draft_view.schema.json",
+    "data/contracts/139_intake_event_catalog.json",
+    "data/contracts/140_request_type_taxonomy.json",
+    "docs/architecture/109_artifact_presentation_shell.md",
+    "data/integration/adapter_validation_results.json"
+  ],
+  "quarantineFirstUploadAlgorithm": [
+    "initiate upload",
+    "return signed target + attachmentPublicId",
+    "direct browser upload to quarantine store",
+    "scan MIME/extension/size/malware/integrity",
+    "promote safe files to durable storage",
+    "create Attachment record + DocumentReference",
+    "update draft projection",
+    "emit intake.attachment.added"
+  ],
+  "attachmentPublicIdPattern": "^att_[a-z0-9]{10,32}$",
+  "acceptedMimeFamilies": [
+    "image/jpeg",
+    "image/png",
+    "image/heic",
+    "application/pdf"
+  ],
+  "maxAcceptedBytes": 15728640,
+  "maxInlinePreviewBytes": 8388608,
+  "acceptanceRules": [
+    {
+      "ruleRef": "ATTACH_RULE_IMAGE_JPEG_PNG",
+      "label": "Quiet inline image evidence",
+      "allowedExtensions": [
+        ".jpg",
+        ".jpeg",
+        ".png"
+      ],
+      "allowedMimeFamilies": [
+        "image/jpeg",
+        "image/png"
+      ],
+      "maxBytes": 15728640,
+      "maxInlinePreviewBytes": 8388608,
+      "previewEligibility": "governed_preview_if_clean_and_within_inline_budget",
+      "directCameraCaptureSupport": true,
+      "duplicateIdempotencyPolicyRef": "DUP_141_CHECKSUM_LINEAGE_REPLAY"
+    },
+    {
+      "ruleRef": "ATTACH_RULE_IMAGE_HEIC",
+      "label": "Mobile HEIC capture with derivative fallback",
+      "allowedExtensions": [
+        ".heic"
+      ],
+      "allowedMimeFamilies": [
+        "image/heic"
+      ],
+      "maxBytes": 15728640,
+      "maxInlinePreviewBytes": 8388608,
+      "previewEligibility": "preview_derivative_required_then_governed_preview_or_placeholder",
+      "directCameraCaptureSupport": true,
+      "duplicateIdempotencyPolicyRef": "DUP_141_CHECKSUM_LINEAGE_REPLAY"
+    },
+    {
+      "ruleRef": "ATTACH_RULE_PDF",
+      "label": "Structured PDF evidence",
+      "allowedExtensions": [
+        ".pdf"
+      ],
+      "allowedMimeFamilies": [
+        "application/pdf"
+      ],
+      "maxBytes": 15728640,
+      "maxInlinePreviewBytes": 8388608,
+      "previewEligibility": "governed_preview_if_clean_and_within_inline_budget",
+      "directCameraCaptureSupport": false,
+      "duplicateIdempotencyPolicyRef": "DUP_141_CHECKSUM_LINEAGE_REPLAY"
+    }
+  ],
+  "duplicateUploadPolicy": {
+    "policyRef": "DUP_141_CHECKSUM_LINEAGE_REPLAY",
+    "idempotencyScope": "draftPublicId + checksumSha256 + byteSize + contentType",
+    "sameLineageBehavior": "reuse_existing_attachment_public_id_and_document_reference",
+    "duplicateEventBehavior": "no_second_intake.attachment.added_event",
+    "userExperienceBehavior": "focus_existing_card_and_show_duplicate_notice",
+    "fingerprintUnavailableBehavior": "retry_without_dedupe_until_quarantine_write_is_authoritative"
+  },
+  "classificationOutcomes": [
+    {
+      "outcome": "accepted_safe",
+      "outcomeRef": "ATTACH_OUTCOME_ACCEPTED_SAFE",
+      "terminalScanState": "clean_promoted",
+      "quarantineState": "not_quarantined",
+      "artifactStageMode": "governed_preview",
+      "currentSafeMode": "governed_preview",
+      "documentReferenceState": "created",
+      "emittedEventNames": [
+        "intake.attachment.added"
+      ],
+      "safetyMeaningState": "preserved_supporting_evidence",
+      "downstreamDisposition": "routine_submit_allowed",
+      "patientVisiblePosture": "safe_preview_ready"
+    },
+    {
+      "outcome": "preview_unavailable_but_file_kept",
+      "outcomeRef": "ATTACH_OUTCOME_PREVIEW_UNAVAILABLE_BUT_FILE_KEPT",
+      "terminalScanState": "clean_promoted_preview_deferred",
+      "quarantineState": "not_quarantined",
+      "artifactStageMode": "placeholder_only",
+      "currentSafeMode": "placeholder_only",
+      "documentReferenceState": "created",
+      "emittedEventNames": [
+        "intake.attachment.added"
+      ],
+      "safetyMeaningState": "preserved_supporting_evidence",
+      "downstreamDisposition": "routine_submit_allowed",
+      "patientVisiblePosture": "safe_placeholder_same_shell"
+    },
+    {
+      "outcome": "retryable_transfer_failure",
+      "outcomeRef": "ATTACH_OUTCOME_RETRYABLE_TRANSFER_FAILURE",
+      "terminalScanState": "transfer_retry_required",
+      "quarantineState": "not_started",
+      "artifactStageMode": "recovery_only",
+      "currentSafeMode": "recovery_only",
+      "documentReferenceState": "not_created",
+      "emittedEventNames": [],
+      "safetyMeaningState": "not_yet_captured",
+      "downstreamDisposition": "retry_before_submit",
+      "patientVisiblePosture": "local_card_recovery"
+    },
+    {
+      "outcome": "quarantined_malware",
+      "outcomeRef": "ATTACH_OUTCOME_QUARANTINED_MALWARE",
+      "terminalScanState": "quarantined_malware",
+      "quarantineState": "quarantined",
+      "artifactStageMode": "recovery_only",
+      "currentSafeMode": "recovery_only",
+      "documentReferenceState": "not_created",
+      "emittedEventNames": [
+        "intake.attachment.quarantined"
+      ],
+      "safetyMeaningState": "unresolved_fail_closed_review",
+      "downstreamDisposition": "replace_or_remove_then_review",
+      "patientVisiblePosture": "quarantine_visible_same_shell"
+    },
+    {
+      "outcome": "quarantined_integrity_failure",
+      "outcomeRef": "ATTACH_OUTCOME_QUARANTINED_INTEGRITY_FAILURE",
+      "terminalScanState": "quarantined_integrity_failure",
+      "quarantineState": "quarantined",
+      "artifactStageMode": "recovery_only",
+      "currentSafeMode": "recovery_only",
+      "documentReferenceState": "not_created",
+      "emittedEventNames": [
+        "intake.attachment.quarantined"
+      ],
+      "safetyMeaningState": "unresolved_fail_closed_review",
+      "downstreamDisposition": "replace_or_remove_then_review",
+      "patientVisiblePosture": "quarantine_visible_same_shell"
+    },
+    {
+      "outcome": "quarantined_unsupported_type",
+      "outcomeRef": "ATTACH_OUTCOME_QUARANTINED_UNSUPPORTED_TYPE",
+      "terminalScanState": "quarantined_unsupported_type",
+      "quarantineState": "quarantined",
+      "artifactStageMode": "recovery_only",
+      "currentSafeMode": "recovery_only",
+      "documentReferenceState": "not_created",
+      "emittedEventNames": [
+        "intake.attachment.quarantined"
+      ],
+      "safetyMeaningState": "unresolved_fail_closed_review",
+      "downstreamDisposition": "replace_or_remove_then_review",
+      "patientVisiblePosture": "quarantine_visible_same_shell"
+    },
+    {
+      "outcome": "quarantined_unreadable",
+      "outcomeRef": "ATTACH_OUTCOME_QUARANTINED_UNREADABLE",
+      "terminalScanState": "quarantined_unreadable",
+      "quarantineState": "quarantined",
+      "artifactStageMode": "recovery_only",
+      "currentSafeMode": "recovery_only",
+      "documentReferenceState": "not_created",
+      "emittedEventNames": [
+        "intake.attachment.quarantined"
+      ],
+      "safetyMeaningState": "unresolved_fail_closed_review",
+      "downstreamDisposition": "replace_or_remove_then_review",
+      "patientVisiblePosture": "quarantine_visible_same_shell"
+    },
+    {
+      "outcome": "quarantined_size_exceeded",
+      "outcomeRef": "ATTACH_OUTCOME_QUARANTINED_SIZE_EXCEEDED",
+      "terminalScanState": "quarantined_size_exceeded",
+      "quarantineState": "quarantined",
+      "artifactStageMode": "recovery_only",
+      "currentSafeMode": "recovery_only",
+      "documentReferenceState": "not_created",
+      "emittedEventNames": [
+        "intake.attachment.quarantined"
+      ],
+      "safetyMeaningState": "unresolved_fail_closed_review",
+      "downstreamDisposition": "replace_or_remove_then_review",
+      "patientVisiblePosture": "quarantine_visible_same_shell"
+    }
+  ],
+  "eventPolicy": [
+    {
+      "eventName": "intake.attachment.added",
+      "emittedWhen": "The file is scanned clean, promoted to durable storage, Attachment is created, and DocumentReference is linked.",
+      "schemaArtifactPath": "packages/event-contracts/schemas/intake/intake.attachment.added.v1.schema.json"
+    },
+    {
+      "eventName": "intake.attachment.quarantined",
+      "emittedWhen": "The file is unsafe, unreadable, unsupported, oversized, or fails integrity checks after reaching quarantine.",
+      "schemaArtifactPath": "packages/event-contracts/schemas/intake/intake.attachment.quarantined.v1.schema.json"
+    }
+  ],
+  "artifactPresentationContract": {
+    "artifactPresentationContractId": "APC_141_INTAKE_ATTACHMENT_V1",
+    "artifactRefPattern": "att_*",
+    "audienceSurface": "patient_public_intake",
+    "primaryMode": "structured_summary",
+    "previewVisibility": "governed_preview",
+    "fullBodyMode": "forbidden",
+    "summarySafetyTier": "verified_or_provisional",
+    "inlinePreviewContractRef": "IPC_141_ATTACHMENT_INLINE_PREVIEW_V1",
+    "downloadContractRef": "DLC_141_ATTACHMENT_DOWNLOAD_V1",
+    "printContractRef": "PRC_141_ATTACHMENT_PRINT_FORBIDDEN_V1",
+    "handoffContractRef": "HOC_141_ATTACHMENT_HANDOFF_V1",
+    "placeholderContractRef": "PLC_141_ATTACHMENT_PLACEHOLDER_V1",
+    "redactionPolicyRef": "RDP_141_ATTACHMENT_MINIMUM_NECESSARY_V1",
+    "maxInlineBytes": 8388608,
+    "requiresStepUpForFullBody": false,
+    "allowedFallbackModes": [
+      "structured_summary",
+      "placeholder_only",
+      "recovery_only"
+    ],
+    "channelSpecificNoticeRef": "CSN_141_ATTACHMENT_BROWSER_AND_EMBEDDED_V1",
+    "rawStorageUrlsForbidden": true
+  },
+  "outboundNavigationGrantPolicy": {
+    "policyRef": "ONG_141_INTAKE_ATTACHMENT_HANDOFF_V1",
+    "grantRequiredFor": [
+      "open_in_browser",
+      "download",
+      "external_handoff"
+    ],
+    "destinationClasses": [
+      "browser_overlay",
+      "external_browser"
+    ],
+    "sameShellReturnRequired": true,
+    "staleGrantBehavior": "fail_closed_to_same_shell_placeholder_or_recovery",
+    "rawStorageUrlsForbidden": true
+  },
+  "mockNowExecution": {
+    "scannerRuntimeState": "blocked",
+    "scannerGapRef": "GAP_MISSING_SIMULATOR_RUNTIME_ADP_MALWARE_ARTIFACT_SCANNING_V1",
+    "summary": "Local fixtures, quarantine storage stubs, derivative stubs, and scanner stubs prove the contract now without claiming production accreditation."
+  },
+  "actualProductionStrategyLater": {
+    "summary": "Later production scanners and object stores must preserve the same attachmentPublicId, scan states, event names, and governed artifact-mode law.",
+    "canStrengthenDetection": true,
+    "mayRelaxPolicy": false
+  },
+  "gapResolutions": [
+    {
+      "gapId": "GAP_RESOLUTION_141_ATTACHMENT_IS_A_GOVERNED_SUBSYSTEM",
+      "summary": "Attachment upload now has a frozen acceptance, quarantine, dedupe, and artifact-mode contract instead of being treated as a generic form helper."
+    },
+    {
+      "gapId": "GAP_RESOLUTION_141_PREVIEW_REQUIRES_CONTRACT_AND_GRANT",
+      "summary": "Preview, open, download, and browser handoff are bound to ArtifactPresentationContract and OutboundNavigationGrant; raw storage URLs are forbidden."
+    },
+    {
+      "gapId": "GAP_RESOLUTION_141_TRANSFER_FAILURE_IS_NOT_SAFETY_SUCCESS",
+      "summary": "Retryable transfer failure remains a local recovery state and never masquerades as accepted clinical evidence or silent nonclinical success."
+    },
+    {
+      "gapId": "GAP_RESOLUTION_141_DUPLICATE_UPLOADS_REUSE_THE_SAME_EVIDENCE",
+      "summary": "Exact duplicate uploads within the same draft lineage replay to the same attachment card and durable evidence record instead of creating silent duplicates."
+    },
+    {
+      "gapId": "GAP_RESOLUTION_141_QUARANTINE_STAYS_VISIBLE_IN_THE_SAME_SHELL",
+      "summary": "Quarantined or preview-degraded attachments remain visible with local replace or remove actions so the intake shell keeps continuity and the user sees the governing posture."
+    }
+  ],
+  "assumptions": [
+    {
+      "assumptionId": "ASSUMPTION_141_QUARANTINE_STORAGE_IS_PRIVATE_ONLY",
+      "summary": "Quarantine object storage is private, non-browsable, and never exposed directly to the browser or embedded host."
+    },
+    {
+      "assumptionId": "ASSUMPTION_141_DERIVATIVE_GENERATION_IS_NON_AUTHORITATIVE",
+      "summary": "Image preview derivatives improve the inline experience, but derivative success never substitutes for the authoritative source file or scan state."
+    }
+  ],
+  "conflicts": [
+    {
+      "conflictId": "CONFLICT_141_PRODUCTION_SCANNERS_MAY_STRENGTHEN_BUT_NOT_RELAX",
+      "summary": "Later production scanners may add stronger threat, metadata, or integrity detection, but they may not weaken the fail-closed acceptance and quarantine outcomes frozen here."
+    }
+  ],
+  "risks": [
+    {
+      "riskId": "RISK_141_DERIVATIVE_FAILURE_COULD_HIDE_CLINICAL_CONTEXT",
+      "summary": "If derivative generation fails, clinically relevant evidence could disappear from the patient journey unless the card stays visible with explicit placeholder and replacement guidance.",
+      "mitigation": "Route derivative failure to preview_unavailable_but_file_kept or fail_closed_review, preserve the card in the same shell, and keep governed open or download only when the current contract tuple permits it."
+    },
+    {
+      "riskId": "RISK_141_SCANNER_TIMEOUT_COULD_BE_MISTAKEN_FOR_ACCEPTANCE",
+      "summary": "Scanner timeout or unreadable output could be mistaken for an ordinary upload error and allow unsafe evidence to travel onward.",
+      "mitigation": "Distinctly separate retryable transfer failure from unreadable, integrity-failed, and quarantined states, and route unresolved safety meaning into fail_closed_review."
+    }
+  ]
+}

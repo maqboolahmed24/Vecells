@@ -6,7 +6,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..", "..");
 const PLACEHOLDERS = JSON.parse(
-  fs.readFileSync(path.join(ROOT, "data", "analysis", "nhs_login_actual_credential_placeholders.json"), "utf8"),
+  fs.readFileSync(
+    path.join(ROOT, "data", "analysis", "nhs_login_actual_credential_placeholders.json"),
+    "utf8",
+  ),
 );
 
 // This harness is intentionally driven by the data-driven selector map in
@@ -74,18 +77,27 @@ async function run() {
   await page.locator(selectorProfile.redaction_notice).waitFor();
 
   if (await page.locator(namedApproverField).count()) {
-    await page.locator(namedApproverField).fill(process.env.NHS_LOGIN_NAMED_APPROVER ?? "dry-run-approver");
+    await page
+      .locator(namedApproverField)
+      .fill(process.env.NHS_LOGIN_NAMED_APPROVER ?? "dry-run-approver");
   }
   if (await page.locator(environmentField).count()) {
-    await page.locator(environmentField).fill(process.env.NHS_LOGIN_ENVIRONMENT_TARGET ?? "integration");
+    await page
+      .locator(environmentField)
+      .fill(process.env.NHS_LOGIN_ENVIRONMENT_TARGET ?? "integration");
   }
   if (await page.locator(mutationField).count()) {
     await page.locator(mutationField).fill(realMutationRequested ? "true" : "false");
   }
 
   if (!realMutationRequested) {
-    const blockedGateCount = PLACEHOLDERS.live_gates.filter((gate) => gate.status !== "pass").length;
-    assertCondition(blockedGateCount >= 1, "Dry-run posture drifted: at least one live gate should remain blocked.");
+    const blockedGateCount = PLACEHOLDERS.live_gates.filter(
+      (gate) => gate.status !== "pass",
+    ).length;
+    assertCondition(
+      blockedGateCount >= 1,
+      "Dry-run posture drifted: at least one live gate should remain blocked.",
+    );
   }
 
   if (realMutationRequested) {

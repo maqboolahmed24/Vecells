@@ -1,0 +1,699 @@
+{
+  "task_id": "par_084",
+  "generated_at": "2026-04-13T14:51:06+00:00",
+  "mode": "Runtime_Network_Trust_Atlas",
+  "assumptions": [
+    {
+      "assumption_ref": "ASSUMPTION_IAC_TOOL_TERRAFORM_OR_OPENTOFU",
+      "value": "terraform_or_opentofu",
+      "reason": "No conflicting ADR pins a vendor-specific runtime IaC tool in the repository.",
+      "source_refs": [
+        "prompt/084.md#Execution steps",
+        "docs/architecture/11_cloud_region_and_residency_decision.md#Environment Ring Binding"
+      ]
+    },
+    {
+      "assumption_ref": "ASSUMPTION_PROVIDER_NEUTRAL_NETWORK_PRIMITIVES",
+      "value": "provider_neutral_vpc_equivalent_segments",
+      "reason": "Task 011 froze UK region roles without binding the repo to a specific cloud SKU vocabulary.",
+      "source_refs": [
+        "prompt/011.md#Execution steps",
+        "docs/architecture/11_cloud_region_and_residency_decision.md#Region Scorecard"
+      ]
+    }
+  ],
+  "summary": {
+    "allowlist_count": 9,
+    "environment_overlay_count": 45,
+    "family_coverage_count": 9,
+    "external_destination_count": 5,
+    "follow_on_dependency_count": 5
+  },
+  "follow_on_dependencies": [
+    {
+      "dependency_ref": "FOLLOW_ON_DEPENDENCY_086_OBJECT_STORAGE_PRIVATE_ENDPOINTS",
+      "owning_task_ref": "par_086",
+      "scope": "Object storage private endpoints and retention bucket pathing.",
+      "notes": "par_084 publishes the data-plane network seam only; bucket resources remain owned by par_086."
+    },
+    {
+      "dependency_ref": "FOLLOW_ON_DEPENDENCY_087_EVENT_BUS_PRIVATE_DISPATCH",
+      "owning_task_ref": "par_087",
+      "scope": "Queueing, outbox/inbox brokers, and integration dispatch private connectivity.",
+      "notes": "par_084 preserves route domains and workload-family segmentation for these paths without provisioning the bus."
+    },
+    {
+      "dependency_ref": "FOLLOW_ON_DEPENDENCY_088_CACHE_LIVE_UPDATE_SEGMENTS",
+      "owning_task_ref": "par_088",
+      "scope": "Cache plane and live-update transport overlays.",
+      "notes": "The stateful-data trust zone stays explicit, but cache and live channel resources remain owned by par_088."
+    },
+    {
+      "dependency_ref": "FOLLOW_ON_DEPENDENCY_089_SECRETS_KMS_WORKLOAD_IDENTITY",
+      "owning_task_ref": "par_089",
+      "scope": "Secret broker, KMS custody, and concrete workload-identity credential minting.",
+      "notes": "par_084 marks every service as workload-identity-ready; par_089 owns real credential issuance and rotation."
+    },
+    {
+      "dependency_ref": "FOLLOW_ON_DEPENDENCY_090_PUBLISHED_GATEWAY_EDGE_ATTACHMENTS",
+      "owning_task_ref": "par_090",
+      "scope": "Audience-specific gateway ingress attachments and public origin publication.",
+      "notes": "par_084 provisions only the published-gateway trust boundary and browser bridge law."
+    }
+  ],
+  "allowlists": [
+    {
+      "egress_allowlist_ref": "eal_public_edge_internal_only",
+      "display_name": "Public edge internal-only egress",
+      "family_refs": [
+        "wf_public_edge_ingress"
+      ],
+      "default_action": "deny",
+      "scope_class": "internal_only",
+      "allowed_internal_target_refs": [
+        "wf_shell_delivery_static_publication",
+        "wf_shell_delivery_published_gateway"
+      ],
+      "blocked_internal_target_refs": [
+        "wf_command_orchestration",
+        "wf_projection_read_models",
+        "wf_integration_dispatch",
+        "wf_data_stateful_plane"
+      ],
+      "external_destinations": [],
+      "enforcement_refs": [
+        "terraform_private_egress_policy",
+        "trust_zone_boundary_matrix",
+        "local_network_policy_manifest"
+      ],
+      "drift_action": "mark_stale_and_freeze_writable",
+      "source_refs": [
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Non-negotiable Rules",
+        "blueprint/platform-runtime-and-release-blueprint.md#TrustZoneBoundary"
+      ]
+    },
+    {
+      "egress_allowlist_ref": "eal_shell_publication_none",
+      "display_name": "Shell publication no-runtime-egress",
+      "family_refs": [
+        "wf_shell_delivery_static_publication"
+      ],
+      "default_action": "deny",
+      "scope_class": "no_runtime_egress",
+      "allowed_internal_target_refs": [],
+      "blocked_internal_target_refs": [
+        "wf_command_orchestration",
+        "wf_projection_read_models",
+        "wf_integration_dispatch",
+        "wf_data_stateful_plane"
+      ],
+      "external_destinations": [],
+      "enforcement_refs": [
+        "terraform_private_egress_policy",
+        "trust_zone_boundary_matrix",
+        "local_network_policy_manifest"
+      ],
+      "drift_action": "mark_stale_and_freeze_writable",
+      "source_refs": [
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings",
+        "blueprint/platform-runtime-and-release-blueprint.md#RuntimeTopologyManifest"
+      ]
+    },
+    {
+      "egress_allowlist_ref": "eal_gateway_internal_only",
+      "display_name": "Gateway internal-only egress",
+      "family_refs": [
+        "wf_shell_delivery_published_gateway"
+      ],
+      "default_action": "deny",
+      "scope_class": "internal_only",
+      "allowed_internal_target_refs": [
+        "wf_command_orchestration",
+        "wf_projection_read_models",
+        "wf_assurance_security_control"
+      ],
+      "blocked_internal_target_refs": [
+        "wf_integration_dispatch",
+        "wf_integration_simulation_lab",
+        "wf_data_stateful_plane"
+      ],
+      "external_destinations": [],
+      "enforcement_refs": [
+        "terraform_private_egress_policy",
+        "trust_zone_boundary_matrix",
+        "local_network_policy_manifest"
+      ],
+      "drift_action": "mark_stale_and_freeze_writable",
+      "source_refs": [
+        "docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Browser Boundary Law",
+        "blueprint/platform-runtime-and-release-blueprint.md#GatewayBffSurface"
+      ]
+    },
+    {
+      "egress_allowlist_ref": "eal_command_to_internal_planes_only",
+      "display_name": "Command to internal planes only",
+      "family_refs": [
+        "wf_command_orchestration"
+      ],
+      "default_action": "deny",
+      "scope_class": "internal_only",
+      "allowed_internal_target_refs": [
+        "wf_data_stateful_plane",
+        "wf_integration_dispatch",
+        "wf_integration_simulation_lab",
+        "wf_assurance_security_control"
+      ],
+      "blocked_internal_target_refs": [
+        "public_internet",
+        "browser",
+        "wf_public_edge_ingress"
+      ],
+      "external_destinations": [],
+      "enforcement_refs": [
+        "terraform_private_egress_policy",
+        "trust_zone_boundary_matrix",
+        "local_network_policy_manifest"
+      ],
+      "drift_action": "mark_stale_and_freeze_writable",
+      "source_refs": [
+        "docs/architecture/13_backend_runtime_service_baseline.md#Baseline Law",
+        "blueprint/platform-runtime-and-release-blueprint.md#RuntimeWorkloadFamily"
+      ]
+    },
+    {
+      "egress_allowlist_ref": "eal_projection_to_internal_planes_only",
+      "display_name": "Projection to internal planes only",
+      "family_refs": [
+        "wf_projection_read_models"
+      ],
+      "default_action": "deny",
+      "scope_class": "internal_only",
+      "allowed_internal_target_refs": [
+        "wf_data_stateful_plane",
+        "wf_assurance_security_control"
+      ],
+      "blocked_internal_target_refs": [
+        "public_internet",
+        "wf_integration_dispatch",
+        "browser"
+      ],
+      "external_destinations": [],
+      "enforcement_refs": [
+        "terraform_private_egress_policy",
+        "trust_zone_boundary_matrix",
+        "local_network_policy_manifest"
+      ],
+      "drift_action": "mark_stale_and_freeze_writable",
+      "source_refs": [
+        "docs/architecture/13_backend_runtime_service_baseline.md#Baseline Law",
+        "blueprint/platform-runtime-and-release-blueprint.md#RuntimeWorkloadFamily"
+      ]
+    },
+    {
+      "egress_allowlist_ref": "eal_declared_external_dependencies_only",
+      "display_name": "Declared external dependencies only",
+      "family_refs": [
+        "wf_integration_dispatch"
+      ],
+      "default_action": "deny",
+      "scope_class": "declared_external_dependencies",
+      "allowed_internal_target_refs": [
+        "provider_dependencies_named_in_manifest",
+        "wf_data_stateful_plane",
+        "wf_assurance_security_control"
+      ],
+      "blocked_internal_target_refs": [
+        "undeclared_provider_endpoints",
+        "browser",
+        "wf_public_edge_ingress"
+      ],
+      "external_destinations": [
+        {
+          "destination_ref": "dest_nhs_login_sandbox",
+          "service_class": "identity_and_auth_provider",
+          "environment_modes": {
+            "local": "simulator_only",
+            "ci-preview": "simulator_or_sandbox",
+            "integration": "sandbox_required",
+            "preprod": "follow_on_cutover_required",
+            "production": "follow_on_cutover_required"
+          }
+        },
+        {
+          "destination_ref": "dest_im1_pairing_sandbox",
+          "service_class": "gp_record_and_pairing_adapter",
+          "environment_modes": {
+            "local": "simulator_only",
+            "ci-preview": "simulator_or_sandbox",
+            "integration": "sandbox_required",
+            "preprod": "follow_on_cutover_required",
+            "production": "follow_on_cutover_required"
+          }
+        },
+        {
+          "destination_ref": "dest_mesh_mailbox",
+          "service_class": "mesh_dispatch",
+          "environment_modes": {
+            "local": "simulator_only",
+            "ci-preview": "simulator_or_sandbox",
+            "integration": "sandbox_required",
+            "preprod": "follow_on_cutover_required",
+            "production": "follow_on_cutover_required"
+          }
+        },
+        {
+          "destination_ref": "dest_telephony_vendor",
+          "service_class": "telephony_and_callback",
+          "environment_modes": {
+            "local": "simulator_only",
+            "ci-preview": "simulator_only",
+            "integration": "sandbox_required",
+            "preprod": "follow_on_cutover_required",
+            "production": "follow_on_cutover_required"
+          }
+        },
+        {
+          "destination_ref": "dest_notifications_vendor",
+          "service_class": "email_and_sms_notifications",
+          "environment_modes": {
+            "local": "simulator_only",
+            "ci-preview": "simulator_only",
+            "integration": "sandbox_required",
+            "preprod": "follow_on_cutover_required",
+            "production": "follow_on_cutover_required"
+          }
+        }
+      ],
+      "enforcement_refs": [
+        "terraform_private_egress_policy",
+        "trust_zone_boundary_matrix",
+        "local_network_policy_manifest"
+      ],
+      "drift_action": "mark_stale_and_freeze_writable",
+      "source_refs": [
+        "docs/external/39_browser_automation_retry_policy.md",
+        "blueprint/platform-runtime-and-release-blueprint.md#RuntimeWorkloadFamily"
+      ]
+    },
+    {
+      "egress_allowlist_ref": "eal_integration_simulator_internal_only",
+      "display_name": "Simulator internal-only egress",
+      "family_refs": [
+        "wf_integration_simulation_lab"
+      ],
+      "default_action": "deny",
+      "scope_class": "internal_only",
+      "allowed_internal_target_refs": [
+        "wf_command_orchestration",
+        "wf_assurance_security_control"
+      ],
+      "blocked_internal_target_refs": [
+        "live_provider_endpoints",
+        "wf_data_stateful_plane",
+        "browser"
+      ],
+      "external_destinations": [],
+      "enforcement_refs": [
+        "terraform_private_egress_policy",
+        "trust_zone_boundary_matrix",
+        "local_network_policy_manifest"
+      ],
+      "drift_action": "mark_stale_and_freeze_writable",
+      "source_refs": [
+        "services/adapter-simulators/manifests/README.md",
+        "docs/external/38_local_adapter_simulator_backlog.md"
+      ]
+    },
+    {
+      "egress_allowlist_ref": "eal_data_internal_only",
+      "display_name": "Data plane internal-only egress",
+      "family_refs": [
+        "wf_data_stateful_plane"
+      ],
+      "default_action": "deny",
+      "scope_class": "internal_only",
+      "allowed_internal_target_refs": [],
+      "blocked_internal_target_refs": [
+        "browser",
+        "public_internet",
+        "provider_endpoints"
+      ],
+      "external_destinations": [],
+      "enforcement_refs": [
+        "terraform_private_egress_policy",
+        "trust_zone_boundary_matrix",
+        "local_network_policy_manifest"
+      ],
+      "drift_action": "mark_stale_and_freeze_writable",
+      "source_refs": [
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Non-negotiable Rules",
+        "blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract"
+      ]
+    },
+    {
+      "egress_allowlist_ref": "eal_assurance_to_internal_planes_only",
+      "display_name": "Assurance to internal planes only",
+      "family_refs": [
+        "wf_assurance_security_control"
+      ],
+      "default_action": "deny",
+      "scope_class": "internal_only",
+      "allowed_internal_target_refs": [
+        "wf_data_stateful_plane"
+      ],
+      "blocked_internal_target_refs": [
+        "browser",
+        "provider_endpoints",
+        "wf_public_edge_ingress"
+      ],
+      "external_destinations": [],
+      "enforcement_refs": [
+        "terraform_private_egress_policy",
+        "trust_zone_boundary_matrix",
+        "local_network_policy_manifest"
+      ],
+      "drift_action": "mark_stale_and_freeze_writable",
+      "source_refs": [
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Supply Chain Law",
+        "blueprint/phase-9-the-assurance-ledger.md#9F. Resilience architecture, restore orchestration, and chaos programme"
+      ]
+    }
+  ],
+  "environment_overlays": [
+    {
+      "environment_ring": "local",
+      "egress_allowlist_ref": "eal_public_edge_internal_only",
+      "scope_class": "internal_only",
+      "mode": "simulator_internal_only",
+      "egress_broker_ref": "docker_compose_bridge"
+    },
+    {
+      "environment_ring": "ci-preview",
+      "egress_allowlist_ref": "eal_public_edge_internal_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_ci-preview_broker"
+    },
+    {
+      "environment_ring": "integration",
+      "egress_allowlist_ref": "eal_public_edge_internal_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_integration_broker"
+    },
+    {
+      "environment_ring": "preprod",
+      "egress_allowlist_ref": "eal_public_edge_internal_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_preprod_broker"
+    },
+    {
+      "environment_ring": "production",
+      "egress_allowlist_ref": "eal_public_edge_internal_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_production_broker"
+    },
+    {
+      "environment_ring": "local",
+      "egress_allowlist_ref": "eal_shell_publication_none",
+      "scope_class": "no_runtime_egress",
+      "mode": "no_runtime_egress",
+      "egress_broker_ref": "docker_compose_bridge"
+    },
+    {
+      "environment_ring": "ci-preview",
+      "egress_allowlist_ref": "eal_shell_publication_none",
+      "scope_class": "no_runtime_egress",
+      "mode": "no_runtime_egress",
+      "egress_broker_ref": "nat_ci-preview_broker"
+    },
+    {
+      "environment_ring": "integration",
+      "egress_allowlist_ref": "eal_shell_publication_none",
+      "scope_class": "no_runtime_egress",
+      "mode": "no_runtime_egress",
+      "egress_broker_ref": "nat_integration_broker"
+    },
+    {
+      "environment_ring": "preprod",
+      "egress_allowlist_ref": "eal_shell_publication_none",
+      "scope_class": "no_runtime_egress",
+      "mode": "no_runtime_egress",
+      "egress_broker_ref": "nat_preprod_broker"
+    },
+    {
+      "environment_ring": "production",
+      "egress_allowlist_ref": "eal_shell_publication_none",
+      "scope_class": "no_runtime_egress",
+      "mode": "no_runtime_egress",
+      "egress_broker_ref": "nat_production_broker"
+    },
+    {
+      "environment_ring": "local",
+      "egress_allowlist_ref": "eal_gateway_internal_only",
+      "scope_class": "internal_only",
+      "mode": "simulator_internal_only",
+      "egress_broker_ref": "docker_compose_bridge"
+    },
+    {
+      "environment_ring": "ci-preview",
+      "egress_allowlist_ref": "eal_gateway_internal_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_ci-preview_broker"
+    },
+    {
+      "environment_ring": "integration",
+      "egress_allowlist_ref": "eal_gateway_internal_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_integration_broker"
+    },
+    {
+      "environment_ring": "preprod",
+      "egress_allowlist_ref": "eal_gateway_internal_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_preprod_broker"
+    },
+    {
+      "environment_ring": "production",
+      "egress_allowlist_ref": "eal_gateway_internal_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_production_broker"
+    },
+    {
+      "environment_ring": "local",
+      "egress_allowlist_ref": "eal_command_to_internal_planes_only",
+      "scope_class": "internal_only",
+      "mode": "simulator_internal_only",
+      "egress_broker_ref": "docker_compose_bridge"
+    },
+    {
+      "environment_ring": "ci-preview",
+      "egress_allowlist_ref": "eal_command_to_internal_planes_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_ci-preview_broker"
+    },
+    {
+      "environment_ring": "integration",
+      "egress_allowlist_ref": "eal_command_to_internal_planes_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_integration_broker"
+    },
+    {
+      "environment_ring": "preprod",
+      "egress_allowlist_ref": "eal_command_to_internal_planes_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_preprod_broker"
+    },
+    {
+      "environment_ring": "production",
+      "egress_allowlist_ref": "eal_command_to_internal_planes_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_production_broker"
+    },
+    {
+      "environment_ring": "local",
+      "egress_allowlist_ref": "eal_projection_to_internal_planes_only",
+      "scope_class": "internal_only",
+      "mode": "simulator_internal_only",
+      "egress_broker_ref": "docker_compose_bridge"
+    },
+    {
+      "environment_ring": "ci-preview",
+      "egress_allowlist_ref": "eal_projection_to_internal_planes_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_ci-preview_broker"
+    },
+    {
+      "environment_ring": "integration",
+      "egress_allowlist_ref": "eal_projection_to_internal_planes_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_integration_broker"
+    },
+    {
+      "environment_ring": "preprod",
+      "egress_allowlist_ref": "eal_projection_to_internal_planes_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_preprod_broker"
+    },
+    {
+      "environment_ring": "production",
+      "egress_allowlist_ref": "eal_projection_to_internal_planes_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_production_broker"
+    },
+    {
+      "environment_ring": "local",
+      "egress_allowlist_ref": "eal_declared_external_dependencies_only",
+      "scope_class": "declared_external_dependencies",
+      "mode": "follow_on_cutover_required",
+      "egress_broker_ref": "docker_compose_bridge"
+    },
+    {
+      "environment_ring": "ci-preview",
+      "egress_allowlist_ref": "eal_declared_external_dependencies_only",
+      "scope_class": "declared_external_dependencies",
+      "mode": "simulator_or_sandbox",
+      "egress_broker_ref": "nat_ci-preview_broker"
+    },
+    {
+      "environment_ring": "integration",
+      "egress_allowlist_ref": "eal_declared_external_dependencies_only",
+      "scope_class": "declared_external_dependencies",
+      "mode": "simulator_or_sandbox",
+      "egress_broker_ref": "nat_integration_broker"
+    },
+    {
+      "environment_ring": "preprod",
+      "egress_allowlist_ref": "eal_declared_external_dependencies_only",
+      "scope_class": "declared_external_dependencies",
+      "mode": "follow_on_cutover_required",
+      "egress_broker_ref": "nat_preprod_broker"
+    },
+    {
+      "environment_ring": "production",
+      "egress_allowlist_ref": "eal_declared_external_dependencies_only",
+      "scope_class": "declared_external_dependencies",
+      "mode": "follow_on_cutover_required",
+      "egress_broker_ref": "nat_production_broker"
+    },
+    {
+      "environment_ring": "local",
+      "egress_allowlist_ref": "eal_integration_simulator_internal_only",
+      "scope_class": "internal_only",
+      "mode": "simulator_internal_only",
+      "egress_broker_ref": "docker_compose_bridge"
+    },
+    {
+      "environment_ring": "ci-preview",
+      "egress_allowlist_ref": "eal_integration_simulator_internal_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_ci-preview_broker"
+    },
+    {
+      "environment_ring": "integration",
+      "egress_allowlist_ref": "eal_integration_simulator_internal_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_integration_broker"
+    },
+    {
+      "environment_ring": "preprod",
+      "egress_allowlist_ref": "eal_integration_simulator_internal_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_preprod_broker"
+    },
+    {
+      "environment_ring": "production",
+      "egress_allowlist_ref": "eal_integration_simulator_internal_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_production_broker"
+    },
+    {
+      "environment_ring": "local",
+      "egress_allowlist_ref": "eal_data_internal_only",
+      "scope_class": "internal_only",
+      "mode": "simulator_internal_only",
+      "egress_broker_ref": "docker_compose_bridge"
+    },
+    {
+      "environment_ring": "ci-preview",
+      "egress_allowlist_ref": "eal_data_internal_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_ci-preview_broker"
+    },
+    {
+      "environment_ring": "integration",
+      "egress_allowlist_ref": "eal_data_internal_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_integration_broker"
+    },
+    {
+      "environment_ring": "preprod",
+      "egress_allowlist_ref": "eal_data_internal_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_preprod_broker"
+    },
+    {
+      "environment_ring": "production",
+      "egress_allowlist_ref": "eal_data_internal_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_production_broker"
+    },
+    {
+      "environment_ring": "local",
+      "egress_allowlist_ref": "eal_assurance_to_internal_planes_only",
+      "scope_class": "internal_only",
+      "mode": "simulator_internal_only",
+      "egress_broker_ref": "docker_compose_bridge"
+    },
+    {
+      "environment_ring": "ci-preview",
+      "egress_allowlist_ref": "eal_assurance_to_internal_planes_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_ci-preview_broker"
+    },
+    {
+      "environment_ring": "integration",
+      "egress_allowlist_ref": "eal_assurance_to_internal_planes_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_integration_broker"
+    },
+    {
+      "environment_ring": "preprod",
+      "egress_allowlist_ref": "eal_assurance_to_internal_planes_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_preprod_broker"
+    },
+    {
+      "environment_ring": "production",
+      "egress_allowlist_ref": "eal_assurance_to_internal_planes_only",
+      "scope_class": "internal_only",
+      "mode": "internal_only",
+      "egress_broker_ref": "nat_production_broker"
+    }
+  ]
+}

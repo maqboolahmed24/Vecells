@@ -35,21 +35,25 @@ async function run() {
     waitUntil: "networkidle",
   });
 
-  await page.locator("[data-testid='actual-field-mvp-evidence-url']").fill(
-    "https://vecells.example/demo/im1",
-  );
+  await page
+    .locator("[data-testid='actual-field-mvp-evidence-url']")
+    .fill("https://vecells.example/demo/im1");
   await page.locator("[data-testid='actual-field-sponsor-name']").fill("Programme Sponsor");
   await page.locator("[data-testid='actual-field-commercial-owner']").fill("Commercial Owner");
   await page.locator("[data-testid='actual-field-named-approver']").fill("Named Approver");
   await page.locator("[data-testid='actual-field-environment-target']").fill("supported_test");
   await page.locator("[data-testid='refresh-provider-roster']").click();
 
-  await page.locator("[data-testid='gate-row-LIVE_GATE_PROVIDER_ROSTER_REFRESH_REQUIRED']").waitFor();
+  await page
+    .locator("[data-testid='gate-row-LIVE_GATE_PROVIDER_ROSTER_REFRESH_REQUIRED']")
+    .waitFor();
   await page.locator("[data-testid='actual-field-allow-mutation']").selectOption("true");
 
   const submitDisabled = await page.locator("[data-testid='dry-run-submit']").isDisabled();
   if (!submitDisabled) {
-    throw new Error("Dry-run submit should remain disabled while the external foundation gate is blocked.");
+    throw new Error(
+      "Dry-run submit should remain disabled while the external foundation gate is blocked.",
+    );
   }
 
   const blockedText = await page

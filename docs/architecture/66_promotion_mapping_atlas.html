@@ -1,0 +1,794 @@
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>66 Promotion Mapping Atlas</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f6f8fc;
+        --panel: #ffffff;
+        --rail: #eef2f7;
+        --inset: #f3f6fb;
+        --text-strong: #0f172a;
+        --text-default: #1e293b;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+        --promotion: #3559e6;
+        --envelope: #0ea5a4;
+        --replay: #7c3aed;
+        --warning: #c98900;
+        --blocked: #c24141;
+        --shadow: 0 20px 44px rgba(15, 23, 42, 0.08);
+        --radius: 22px;
+        --mono: "SFMono-Regular", ui-monospace, monospace;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: radial-gradient(circle at top left, rgba(53, 89, 230, 0.08), transparent 28%),
+          linear-gradient(180deg, #f8faff 0%, var(--canvas) 100%);
+        color: var(--text-default);
+      }
+      body[data-reduced-motion="true"] * {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+      .shell {
+        max-width: 1520px;
+        margin: 0 auto;
+        padding: 0 24px 32px;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 72px;
+        padding: 16px 0;
+        background: rgba(246, 248, 252, 0.92);
+        backdrop-filter: blur(18px);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .brand svg {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--promotion), #5f7ff0);
+        box-shadow: 0 12px 28px rgba(53, 89, 230, 0.26);
+      }
+      .brand h1 {
+        margin: 0;
+        font-size: 1.05rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(120px, 1fr));
+        gap: 12px;
+      }
+      .metric {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 10px 14px;
+        box-shadow: var(--shadow);
+      }
+      .metric strong {
+        display: block;
+        font-size: 1.2rem;
+        color: var(--text-strong);
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 312px minmax(0, 1fr) 400px;
+        gap: 20px;
+        align-items: start;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+      .rail,
+      .inspector {
+        position: sticky;
+        top: 96px;
+        padding: 18px;
+      }
+      .rail {
+        background: var(--rail);
+      }
+      .controls {
+        display: grid;
+        gap: 12px;
+      }
+      label {
+        display: grid;
+        gap: 6px;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      select,
+      button.card,
+      button.table-row {
+        min-height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        font: inherit;
+      }
+      select {
+        background: var(--panel);
+        padding: 0 12px;
+        color: var(--text-default);
+      }
+      .card-list {
+        display: grid;
+        gap: 12px;
+        margin-top: 18px;
+      }
+      button.card,
+      button.table-row {
+        width: 100%;
+        text-align: left;
+        background: var(--panel);
+        padding: 14px 16px;
+        cursor: pointer;
+        transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+      }
+      button.card:hover,
+      button.card:focus-visible,
+      button.table-row:hover,
+      button.table-row:focus-visible {
+        transform: translateY(-2px);
+        border-color: var(--promotion);
+        box-shadow: 0 12px 26px rgba(53, 89, 230, 0.14);
+        outline: none;
+      }
+      button.card[data-selected="true"],
+      button.table-row[data-selected="true"] {
+        border-color: var(--promotion);
+        box-shadow: inset 0 0 0 1px rgba(53, 89, 230, 0.16), 0 14px 28px rgba(53, 89, 230, 0.16);
+      }
+      .canvas {
+        display: grid;
+        gap: 20px;
+      }
+      .bridge {
+        min-height: 260px;
+        padding: 20px;
+      }
+      .bridge-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        align-items: center;
+      }
+      .bridge-node {
+        background: var(--inset);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 18px;
+        min-height: 132px;
+        position: relative;
+      }
+      .bridge-node::after {
+        content: "→";
+        position: absolute;
+        top: 50%;
+        right: -18px;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        font-size: 1.2rem;
+      }
+      .bridge-node:last-child::after { display: none; }
+      .bridge-node h3,
+      .inspector h2,
+      .matrix h2,
+      .rail h2 {
+        margin: 0 0 10px;
+        font-size: 0.92rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+      }
+      .bridge-node strong,
+      .ribbon-token strong,
+      .inspector strong {
+        display: block;
+        color: var(--text-strong);
+      }
+      .mono {
+        font-family: var(--mono);
+        word-break: break-all;
+      }
+      .parity-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 16px;
+      }
+      .parity-cell {
+        padding: 12px;
+        border-radius: 14px;
+        background: var(--inset);
+        border: 1px solid var(--border);
+        font-size: 0.9rem;
+      }
+      .ribbon {
+        padding: 18px 20px;
+      }
+      .ribbon-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .ribbon-token {
+        padding: 14px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(53, 89, 230, 0.06), rgba(124, 58, 237, 0.04));
+        border: 1px solid var(--border);
+      }
+      .matrix {
+        padding: 18px 20px;
+      }
+      .matrix-shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+        gap: 18px;
+      }
+      .table-shell {
+        background: var(--inset);
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        padding: 14px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+      }
+      th, td {
+        padding: 10px 8px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        font-size: 0.78rem;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        background: rgba(53, 89, 230, 0.08);
+        color: var(--promotion);
+      }
+      .chip.blocked {
+        background: rgba(194, 65, 65, 0.12);
+        color: var(--blocked);
+      }
+      .chip.warning {
+        background: rgba(201, 137, 0, 0.12);
+        color: var(--warning);
+      }
+      ul.compact {
+        margin: 8px 0 0;
+        padding-left: 18px;
+      }
+      @media (max-width: 1200px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        .rail, .inspector {
+          position: static;
+        }
+        .matrix-shell {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header aria-label="Promotion atlas masthead">
+        <div class="brand">
+          <svg viewBox="0 0 40 40" aria-hidden="true">
+            <path d="M10 28V12h6.2l4.1 7.1L24.4 12H30v16h-4.4V19l-4.7 7.5h-1.2L15 19v9H10z" fill="#fff" />
+          </svg>
+          <div>
+            <div style="font-size:0.78rem;color:#64748b;letter-spacing:0.08em;text-transform:uppercase;">Vecells</div>
+            <h1>Promotion Mapping Atlas</h1>
+          </div>
+        </div>
+        <div class="metrics" aria-label="Promotion metrics">
+          <div class="metric">
+            <span style="color:#64748b;font-size:0.8rem;">Promotions</span>
+            <strong data-testid="metric-promotion-total">0</strong>
+          </div>
+          <div class="metric">
+            <span style="color:#64748b;font-size:0.8rem;">Replay Returns</span>
+            <strong data-testid="metric-replay-total">0</strong>
+          </div>
+          <div class="metric">
+            <span style="color:#64748b;font-size:0.8rem;">Blocked Anomalies</span>
+            <strong data-testid="metric-anomaly-total">0</strong>
+          </div>
+        </div>
+      </header>
+
+      <main class="layout">
+        <aside class="panel rail" aria-label="Promotion filters">
+          <h2>Filters</h2>
+          <div class="controls">
+            <label>Envelope State
+              <select data-testid="state-filter" id="state-filter"></select>
+            </label>
+            <label>Replay Class
+              <select data-testid="replay-filter" id="replay-filter"></select>
+            </label>
+            <label>Channel Profile
+              <select data-testid="channel-filter" id="channel-filter"></select>
+            </label>
+          </div>
+          <div class="card-list" data-testid="promotion-card-list"></div>
+        </aside>
+
+        <section class="canvas">
+          <section class="panel bridge" data-testid="bridge-diagram" aria-labelledby="bridge-title">
+            <h2 id="bridge-title">Envelope To Request Bridge</h2>
+            <div class="bridge-grid" id="bridge-grid"></div>
+            <div class="parity-grid" data-testid="bridge-parity-table" id="bridge-parity"></div>
+          </section>
+
+          <section class="panel ribbon" data-testid="continuity-ribbon" aria-labelledby="continuity-title">
+            <h2 id="continuity-title">Continuity Key Ribbon</h2>
+            <div class="ribbon-grid" id="continuity-grid"></div>
+          </section>
+
+          <section class="panel matrix" aria-labelledby="matrix-title">
+            <h2 id="matrix-title">Mapping And Replay Tables</h2>
+            <div class="matrix-shell">
+              <div class="table-shell">
+                <table data-testid="mapping-table" id="mapping-table">
+                  <thead>
+                    <tr>
+                      <th>Envelope</th>
+                      <th>Promotion</th>
+                      <th>Request</th>
+                      <th>Replay</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mapping-body"></tbody>
+                </table>
+              </div>
+              <div class="table-shell">
+                <table data-testid="replay-case-table" id="replay-case-table">
+                  <thead>
+                    <tr>
+                      <th>Replay Case</th>
+                      <th>Lookup</th>
+                      <th>Outcome</th>
+                    </tr>
+                  </thead>
+                  <tbody id="replay-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <aside class="panel inspector" data-testid="inspector" aria-live="polite"></aside>
+      </main>
+    </div>
+
+    <script>
+      const MANIFEST_URL = "../../data/analysis/submission_promotion_record_manifest.json";
+      const CASEBOOK_URL = "../../data/analysis/promotion_replay_casebook.json";
+      const MATRIX_URL = "../../data/analysis/envelope_to_request_mapping_matrix.csv";
+
+      const state = {
+        manifest: null,
+        mappingRows: [],
+        replayCases: [],
+        filters: { envelopeState: "all", replayClass: "all", channelProfile: "all" },
+        selectedMappingId: null,
+        selectedReplayCaseId: null,
+      };
+
+      function parseCsv(text) {
+        const rows = [];
+        let field = "";
+        let row = [];
+        let inQuotes = false;
+        for (let index = 0; index < text.length; index += 1) {
+          const character = text[index];
+          const nextCharacter = text[index + 1];
+          if (character === '"') {
+            if (inQuotes && nextCharacter === '"') {
+              field += '"';
+              index += 1;
+            } else {
+              inQuotes = !inQuotes;
+            }
+            continue;
+          }
+          if (character === "," && !inQuotes) {
+            row.push(field);
+            field = "";
+            continue;
+          }
+          if ((character === "\n" || character === "\r") && !inQuotes) {
+            if (character === "\r" && nextCharacter === "\n") {
+              index += 1;
+            }
+            if (field.length > 0 || row.length > 0) {
+              row.push(field);
+              rows.push(row);
+              row = [];
+              field = "";
+            }
+            continue;
+          }
+          field += character;
+        }
+        if (field.length > 0 || row.length > 0) {
+          row.push(field);
+          rows.push(row);
+        }
+        const [header, ...body] = rows;
+        return body.map((values) =>
+          Object.fromEntries(header.map((column, index) => [column, values[index] ?? ""])),
+        );
+      }
+
+      function uniqueOptions(values) {
+        return ["all", ...Array.from(new Set(values)).sort()];
+      }
+
+      function applyFilters() {
+        return state.manifest.promotion_boundaries.filter((row) => {
+          if (
+            state.filters.envelopeState !== "all" &&
+            row.envelopeState !== state.filters.envelopeState
+          ) {
+            return false;
+          }
+          if (
+            state.filters.replayClass !== "all" &&
+            row.replayClass !== state.filters.replayClass
+          ) {
+            return false;
+          }
+          if (
+            state.filters.channelProfile !== "all" &&
+            row.channelProfile !== state.filters.channelProfile
+          ) {
+            return false;
+          }
+          return true;
+        });
+      }
+
+      function selectedBoundary(filteredRows) {
+        const match = filteredRows.find(
+          (row) => row.promotionMappingId === state.selectedMappingId,
+        );
+        if (match) {
+          return match;
+        }
+        state.selectedMappingId = filteredRows[0]?.promotionMappingId ?? null;
+        return filteredRows[0] ?? null;
+      }
+
+      function renderControls() {
+        const stateFilter = document.getElementById("state-filter");
+        const replayFilter = document.getElementById("replay-filter");
+        const channelFilter = document.getElementById("channel-filter");
+
+        const stateOptions = uniqueOptions(
+          state.manifest.promotion_boundaries.map((row) => row.envelopeState),
+        );
+        const replayOptions = uniqueOptions(
+          state.manifest.promotion_boundaries.map((row) => row.replayClass),
+        );
+        const channelOptions = uniqueOptions(
+          state.manifest.promotion_boundaries.map((row) => row.channelProfile),
+        );
+
+        const fill = (element, options, current) => {
+          element.innerHTML = options
+            .map((value) => {
+              const label = value === "all" ? "All" : value;
+              const selected = value === current ? " selected" : "";
+              return `<option value="${value}"${selected}>${label}</option>`;
+            })
+            .join("");
+        };
+
+        fill(stateFilter, stateOptions, state.filters.envelopeState);
+        fill(replayFilter, replayOptions, state.filters.replayClass);
+        fill(channelFilter, channelOptions, state.filters.channelProfile);
+
+        stateFilter.onchange = (event) => {
+          state.filters.envelopeState = event.target.value;
+          render();
+        };
+        replayFilter.onchange = (event) => {
+          state.filters.replayClass = event.target.value;
+          render();
+        };
+        channelFilter.onchange = (event) => {
+          state.filters.channelProfile = event.target.value;
+          render();
+        };
+      }
+
+      function renderMetrics() {
+        document.querySelector("[data-testid='metric-promotion-total']").textContent =
+          String(
+            state.manifest.promotion_boundaries.filter((row) => row.recordStatus === "committed")
+              .length,
+          );
+        document.querySelector("[data-testid='metric-replay-total']").textContent =
+          String(state.replayCases.length);
+        document.querySelector("[data-testid='metric-anomaly-total']").textContent =
+          String(
+            state.manifest.promotion_boundaries.filter((row) => row.recordStatus !== "committed")
+              .length,
+          );
+      }
+
+      function renderCards(filteredRows) {
+        const container = document.querySelector("[data-testid='promotion-card-list']");
+        container.innerHTML = "";
+        filteredRows.forEach((row, index) => {
+          const button = document.createElement("button");
+          button.className = "card";
+          button.type = "button";
+          button.dataset.testid = `promotion-card-${row.promotionMappingId}`;
+          button.dataset.selected = String(row.promotionMappingId === state.selectedMappingId);
+          button.dataset.mappingId = row.promotionMappingId;
+          button.innerHTML = `
+            <strong>${row.promotionMappingId}</strong>
+            <div style="margin-top:6px;color:#64748b;">${row.envelopeState} · ${row.channelProfile}</div>
+            <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+              <span class="chip ${row.recordStatus === "blocked" ? "blocked" : ""}">${row.recordStatus}</span>
+              <span class="chip ${row.anomalyStatus !== "clear" ? "warning" : ""}">${row.replayClass}</span>
+            </div>
+          `;
+          button.setAttribute("data-testid", `promotion-card-${row.promotionMappingId}`);
+          button.addEventListener("click", () => {
+            state.selectedMappingId = row.promotionMappingId;
+            render();
+          });
+          button.addEventListener("keydown", (event) => {
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+              return;
+            }
+            event.preventDefault();
+            const nextIndex =
+              event.key === "ArrowDown"
+                ? Math.min(index + 1, filteredRows.length - 1)
+                : Math.max(index - 1, 0);
+            state.selectedMappingId = filteredRows[nextIndex].promotionMappingId;
+            render();
+            requestAnimationFrame(() => {
+              document
+                .querySelector(
+                  `[data-testid="promotion-card-${filteredRows[nextIndex].promotionMappingId}"]`,
+                )
+                ?.focus();
+            });
+          });
+          container.appendChild(button);
+        });
+      }
+
+      function renderBridge(boundary) {
+        const bridgeGrid = document.getElementById("bridge-grid");
+        const bridgeParity = document.getElementById("bridge-parity");
+        const nodes = [
+          ["Envelope", boundary.envelopeId, boundary.envelopeState, "envelope"],
+          ["Promotion", boundary.promotionRecordId || "blocked", boundary.recordStatus, "promotion"],
+          ["Request Lineage", boundary.requestLineageId || "not minted", boundary.replayClass, "replay"],
+          ["Request", boundary.requestId || "not minted", boundary.requestShellHandoff, "request"],
+        ];
+        bridgeGrid.innerHTML = nodes
+          .map(
+            ([label, value, note, accent], index) => `
+              <div class="bridge-node" data-testid="bridge-node-${index}">
+                <h3>${label}</h3>
+                <strong class="mono">${value}</strong>
+                <div style="margin-top:10px;color:#64748b;">${note}</div>
+                <div style="margin-top:12px;color:${accent === "promotion" ? "var(--promotion)" : accent === "replay" ? "var(--replay)" : accent === "envelope" ? "var(--envelope)" : "var(--text-default)"};font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em;">${accent}</div>
+              </div>
+            `,
+          )
+          .join("");
+        bridgeParity.innerHTML = nodes
+          .map(
+            ([label, value, note], index) => `
+              <div class="parity-cell" data-testid="bridge-parity-row-${index}">
+                <strong>${label}</strong>
+                <div class="mono" style="margin-top:6px;">${value}</div>
+                <div style="margin-top:6px;color:#64748b;">${note}</div>
+              </div>
+            `,
+          )
+          .join("");
+      }
+
+      function renderContinuity(boundary) {
+        const container = document.getElementById("continuity-grid");
+        const tokens = [
+          ["sourceLineageRef", boundary.sourceLineageRef],
+          ["receiptConsistencyKey", boundary.receiptConsistencyKey],
+          ["statusConsistencyKey", boundary.statusConsistencyKey],
+          ["patientJourneyLineageRef", boundary.patientJourneyLineageRef || "blocked"],
+        ];
+        container.innerHTML = tokens
+          .map(
+            ([label, value]) => `
+              <div class="ribbon-token" data-testid="continuity-token-${label}">
+                <span style="font-size:0.76rem;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">${label}</span>
+                <strong class="mono" style="margin-top:8px;">${value}</strong>
+              </div>
+            `,
+          )
+          .join("");
+      }
+
+      function renderInspector(boundary, linkedCases) {
+        const inspector = document.querySelector("[data-testid='inspector']");
+        inspector.innerHTML = `
+          <h2>Selected Promotion Boundary</h2>
+          <strong>${boundary.promotionMappingId}</strong>
+          <div style="margin-top:14px;display:grid;gap:10px;">
+            <div><span style="color:#64748b;">Envelope</span><div class="mono">${boundary.envelopeId}</div></div>
+            <div><span style="color:#64748b;">Promotion Record</span><div class="mono">${boundary.promotionRecordId || "blocked"}</div></div>
+            <div><span style="color:#64748b;">Request</span><div class="mono">${boundary.requestId || "not minted"}</div></div>
+            <div><span style="color:#64748b;">Request Shell Handoff</span><div>${boundary.requestShellHandoff}</div></div>
+            <div><span style="color:#64748b;">Superseded Access Grants</span><div class="mono">${boundary.supersededAccessGrantRefs.join(", ") || "none"}</div></div>
+            <div><span style="color:#64748b;">Superseded Draft Leases</span><div class="mono">${boundary.supersededDraftLeaseRefs.join(", ") || "none"}</div></div>
+          </div>
+          <h2 style="margin-top:18px;">Linked Replay Cases</h2>
+          <ul class="compact">
+            ${linkedCases.map((caseRow) => `<li><strong>${caseRow.caseId}</strong> · ${caseRow.expectedOutcome}</li>`).join("")}
+          </ul>
+        `;
+      }
+
+      function renderTables(filteredRows, selected) {
+        const mappingBody = document.getElementById("mapping-body");
+        const replayBody = document.getElementById("replay-body");
+        const selectedCases = state.replayCases.filter(
+          (caseRow) => caseRow.promotionMappingId === selected.promotionMappingId,
+        );
+
+        mappingBody.innerHTML = "";
+        filteredRows.forEach((row, index) => {
+          const tableRow = document.createElement("tr");
+          const cell = document.createElement("td");
+          cell.colSpan = 4;
+          const button = document.createElement("button");
+          button.className = "table-row";
+          button.type = "button";
+          button.dataset.testid = `mapping-row-${row.promotionMappingId}`;
+          button.dataset.selected = String(row.promotionMappingId === selected.promotionMappingId);
+          button.innerHTML = `
+            <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 0.9fr;gap:10px;">
+              <span class="mono">${row.envelopeId}</span>
+              <span class="mono">${row.promotionRecordId || "blocked"}</span>
+              <span class="mono">${row.requestId || "not minted"}</span>
+              <span>${row.replayClass}</span>
+            </div>
+          `;
+          button.setAttribute("data-testid", `mapping-row-${row.promotionMappingId}`);
+          button.addEventListener("click", () => {
+            state.selectedMappingId = row.promotionMappingId;
+            render();
+          });
+          button.addEventListener("keydown", (event) => {
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+              return;
+            }
+            event.preventDefault();
+            const nextIndex =
+              event.key === "ArrowDown"
+                ? Math.min(index + 1, filteredRows.length - 1)
+                : Math.max(index - 1, 0);
+            state.selectedMappingId = filteredRows[nextIndex].promotionMappingId;
+            render();
+            requestAnimationFrame(() => {
+              document
+                .querySelector(
+                  `[data-testid="mapping-row-${filteredRows[nextIndex].promotionMappingId}"]`,
+                )
+                ?.focus();
+            });
+          });
+          cell.appendChild(button);
+          tableRow.appendChild(cell);
+          mappingBody.appendChild(tableRow);
+        });
+
+        replayBody.innerHTML = "";
+        selectedCases.forEach((caseRow) => {
+          const row = document.createElement("tr");
+          row.setAttribute("data-testid", `replay-row-${caseRow.caseId}`);
+          row.dataset.linked = "true";
+          row.innerHTML = `
+            <td>${caseRow.caseId}</td>
+            <td>${caseRow.lookupField}</td>
+            <td>${caseRow.expectedOutcome}</td>
+          `;
+          replayBody.appendChild(row);
+        });
+      }
+
+      function render() {
+        renderMetrics();
+        renderControls();
+        const filteredRows = applyFilters();
+        renderCards(filteredRows);
+        const selected = selectedBoundary(filteredRows);
+        if (!selected) {
+          document.getElementById("bridge-grid").innerHTML = "";
+          document.getElementById("bridge-parity").innerHTML = "";
+          document.getElementById("continuity-grid").innerHTML = "";
+          document.querySelector("[data-testid='inspector']").innerHTML = "<h2>No promotion boundary matches the current filters.</h2>";
+          document.getElementById("mapping-body").innerHTML = "";
+          document.getElementById("replay-body").innerHTML = "";
+          return;
+        }
+        const linkedCases = state.replayCases.filter(
+          (caseRow) => caseRow.promotionMappingId === selected.promotionMappingId,
+        );
+        renderBridge(selected);
+        renderContinuity(selected);
+        renderInspector(selected, linkedCases);
+        renderTables(filteredRows, selected);
+      }
+
+      async function boot() {
+        const [manifestResponse, casebookResponse, matrixResponse] = await Promise.all([
+          fetch(MANIFEST_URL),
+          fetch(CASEBOOK_URL),
+          fetch(MATRIX_URL),
+        ]);
+        state.manifest = await manifestResponse.json();
+        state.replayCases = (await casebookResponse.json()).replayCases;
+        state.mappingRows = parseCsv(await matrixResponse.text());
+        state.selectedMappingId = state.manifest.promotion_boundaries[0].promotionMappingId;
+        state.selectedReplayCaseId = state.replayCases[0].caseId;
+        document.body.dataset.reducedMotion = String(
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+        );
+        render();
+      }
+
+      boot();
+    </script>
+  </body>
+</html>

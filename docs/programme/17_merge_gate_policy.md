@@ -1,4 +1,3 @@
-
             # 17 Merge Gate Policy
 
             Merge gates are evidence-driven, not title-driven. A gate is only ready when its incoming milestone work is complete and the bound artifact, dependency, risk-posture, and conformance refs are current.
@@ -12,6 +11,7 @@
             ## Gate Matrix
 
             | Gate | Type | Scope | Incoming | Status | Artifacts | Rules |
+
 | --- | --- | --- | --- | --- | --- | --- |
 | GATE_PLAN_EXTERNAL_ENTRY | phase_entry | current | MS_PLAN_DISCOVERY_BASELINE, MS_PLAN_EXECUTION_GRAPH, MS_PLAN_RISK_AND_TRACEABILITY_FOUNDATION | in_progress | programme_milestones.json; master_risk_register.json; requirement_task_traceability.csv; phase0_gate_verdict.json | RULE_SEQ_SCOPE_AWARE_ORDER; RULE_LONG_LEAD_VISIBLE |
 | GATE_EXTERNAL_TO_FOUNDATION | external_readiness | current | MS_EXT_STRATEGY_AND_ACCOUNT_PLAN, MS_EXT_NHS_LOGIN_ONBOARDING, MS_EXT_IM1_SCAL_READINESS, MS_EXT_MESH_ACCESS, MS_EXT_COMMS_AND_SCAN_VENDORS, MS_EXT_PROVIDER_PATHS_AND_EVIDENCE, MS_EXT_SIMULATOR_AND_MANUAL_GATE_FREEZE | blocked | external_dependencies.json; external_assurance_obligations.csv; dependency_simulator_strategy.json; integration_assumption_freeze | RULE_LONG_LEAD_VISIBLE; RULE_DEFERRED_PHASE7_NO_PROXY |

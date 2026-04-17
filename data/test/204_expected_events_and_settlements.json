@@ -1,0 +1,118 @@
+{
+  "taskId": "seq_204",
+  "schemaVersion": "phase2-auth-session-suite-v1",
+  "visualMode": "Auth_Session_Assurance_Lab",
+  "mockBackedNow": true,
+  "liveProviderLater": {
+    "status": "not_applicable",
+    "rule": "Reuse the same transaction names, route continuity tuples, session epoch semantics, and settlement vocabulary when live provider integration is enabled."
+  },
+  "requiredCounters": [
+    "callback accepted",
+    "callback replay blocked",
+    "callback mapped to settled transaction",
+    "session rotated",
+    "session expired idle",
+    "session expired absolute",
+    "logout completed",
+    "stale-tab write denied",
+    "wrong-patient hold entered",
+    "wrong-patient hold released",
+    "PHI suppressed due to hold or mismatch"
+  ],
+  "expectedEvents": [
+    {
+      "counter": "callback accepted",
+      "eventName": "identity.auth.callback.accepted.v1",
+      "settlement": "success",
+      "mustCreateSecondSession": false
+    },
+    {
+      "counter": "callback replay blocked",
+      "eventName": "identity.auth.callback.replay_blocked.v1",
+      "settlement": "duplicate_replay_blocked",
+      "mustCreateSecondSession": false
+    },
+    {
+      "counter": "callback mapped to settled transaction",
+      "eventName": "identity.auth.callback.mapped_to_settlement.v1",
+      "settlement": "settled_transaction_reused",
+      "mustCreateSecondSession": false
+    },
+    {
+      "counter": "session rotated",
+      "eventName": "identity.session.rotated.v1",
+      "settlement": "new_epoch_current_old_epoch_invalid",
+      "mustCreateSecondSession": false
+    },
+    {
+      "counter": "session expired idle",
+      "eventName": "identity.session.expired_idle.v1",
+      "settlement": "same_shell_recovery",
+      "mustCreateSecondSession": false
+    },
+    {
+      "counter": "session expired absolute",
+      "eventName": "identity.session.expired_absolute.v1",
+      "settlement": "signed_out_recovery",
+      "mustCreateSecondSession": false
+    },
+    {
+      "counter": "logout completed",
+      "eventName": "identity.session.logout_completed.v1",
+      "settlement": "logout_absorbing_terminal",
+      "mustCreateSecondSession": false
+    },
+    {
+      "counter": "stale-tab write denied",
+      "eventName": "identity.session.stale_tab_write_denied.v1",
+      "settlement": "read_only_recovery",
+      "mustCreateSecondSession": false
+    },
+    {
+      "counter": "wrong-patient hold entered",
+      "eventName": "identity.wrong_patient.hold_entered.v1",
+      "settlement": "identity_hold_entered",
+      "mustCreateSecondSession": false
+    },
+    {
+      "counter": "wrong-patient hold released",
+      "eventName": "identity.wrong_patient.hold_released.v1",
+      "settlement": "current_binding_required_before_writable_return",
+      "mustCreateSecondSession": false
+    },
+    {
+      "counter": "PHI suppressed due to hold or mismatch",
+      "eventName": "identity.hold.phi_suppressed.v1",
+      "settlement": "summary_only",
+      "mustCreateSecondSession": false
+    }
+  ],
+  "settlementRules": [
+    {
+      "ruleId": "AUTH204_EXACT_ONCE_CALLBACK",
+      "description": "A callback can create at most one live local session epoch; duplicates map to the existing settlement or bounded recovery."
+    },
+    {
+      "ruleId": "AUTH204_LOGOUT_ABSORBING",
+      "description": "Logout is an absorbing terminal state for writable posture until a fresh lawful auth flow completes."
+    },
+    {
+      "ruleId": "AUTH204_SAME_SHELL_BOUNDED",
+      "description": "Recovery can preserve shell, route lineage, selected anchor, and last safe summary, but not mutable CTA or stale PHI."
+    },
+    {
+      "ruleId": "AUTH204_BINDING_CURRENTNESS",
+      "description": "Writable action routing after wrong-patient hold release requires the authoritative resulting binding to be current."
+    }
+  ],
+  "serviceEvidence": {
+    "targetedServiceCommand": "pnpm --filter @vecells/command-api exec vitest run tests/auth-bridge.integration.test.js tests/session-governor.integration.test.js tests/identity-binding-authority.integration.test.js tests/authenticated-portal-projections.integration.test.js tests/identity-repair-chain.integration.test.js",
+    "targetedResult": {
+      "status": "passed",
+      "testFilesPassed": 5,
+      "testsPassed": 27
+    },
+    "repositoryOwnedDefectFinding": "absent_for_204_auth_session_boundary"
+  }
+}

@@ -30,8 +30,7 @@ async function run() {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1200 } });
   const baseUrl =
-    process.env.MOCK_MESH_MAILROOM_URL ??
-    "http://127.0.0.1:4179/?page=Proof_and_Replay_Inspector";
+    process.env.MOCK_MESH_MAILROOM_URL ?? "http://127.0.0.1:4179/?page=Proof_and_Replay_Inspector";
 
   await page.goto(baseUrl, { waitUntil: "networkidle" });
 

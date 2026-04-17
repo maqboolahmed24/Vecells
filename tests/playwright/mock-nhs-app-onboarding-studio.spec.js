@@ -37,10 +37,12 @@ async function run() {
 
   await page.locator("[data-testid='stage-rail']").waitFor();
   await page.locator("[data-testid='field-q01_company_name']").fill("Vecells");
-  await page.locator("[data-testid='field-q03_product_overview']").fill(
-    "Playwright rehearsal proving one portal, two shells, and deferred embedded readiness.",
-  );
-  await page.locator("[data-testid='field-q14_commissioned_by_nhs_body']").selectOption("to_be_confirmed");
+  await page
+    .locator("[data-testid='field-q03_product_overview']")
+    .fill("Playwright rehearsal proving one portal, two shells, and deferred embedded readiness.");
+  await page
+    .locator("[data-testid='field-q14_commissioned_by_nhs_body']")
+    .selectOption("to_be_confirmed");
   await page.locator("[data-testid='field-q18_nhs_login_posture']").selectOption("integrating");
   await page.locator("[data-testid='eligibility-chip-crit_deferred_scope_boundary']").click();
 

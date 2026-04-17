@@ -1,0 +1,119 @@
+{
+  "policyVersion": "phase2-pds-enrichment-v1",
+  "defaultPosture": "disabled_by_default",
+  "cases": [
+    {
+      "caseId": "PDS183_DISABLED_MODE_LOCAL_MATCHING",
+      "outcomeState": "disabled",
+      "adapterCalled": false,
+      "localFlowContinuation": "local_matching_only",
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_PDS_FEATURE_FLAG_GATING_V1",
+      "assertions": [
+        "feature flag defaults off",
+        "PDS lookup is not called",
+        "PatientLinker local matching continues"
+      ]
+    },
+    {
+      "caseId": "PDS183_MISSING_ONBOARDING",
+      "outcomeState": "policy_denied",
+      "adapterCalled": false,
+      "localFlowContinuation": "local_matching_only",
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_PDS_ONBOARDING_LEGAL_BASIS_V1",
+      "assertions": [
+        "PDS FHIR onboarding must be complete",
+        "PDS access approval must be complete",
+        "DSPT and secure network posture must be complete",
+        "purpose/use-case ref must be present"
+      ]
+    },
+    {
+      "caseId": "PDS183_SUCCESS_NORMALIZATION",
+      "outcomeState": "enriched",
+      "adapterCalled": true,
+      "freshnessState": "fresh",
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_PDS_PROVIDER_PORT_V1",
+      "assertions": [
+        "PdsAdapter normalizes PDS FHIR Patient resource",
+        "snapshot stores hashes digests refs and timestamps",
+        "raw PDS demographic payload is not persisted"
+      ]
+    },
+    {
+      "caseId": "PDS183_TIMEOUT_FAILS_LOCAL_ONLY",
+      "outcomeState": "provider_unavailable",
+      "adapterCalled": true,
+      "freshnessState": "not_available",
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_PDS_STALE_CACHE_FALLBACK_V1",
+      "assertions": [
+        "timeout does not block local matching",
+        "outcome includes provider timeout reason",
+        "no binding or ownership mutation occurs"
+      ]
+    },
+    {
+      "caseId": "PDS183_STALE_CACHE_MARKED_STALE",
+      "outcomeState": "stale_cache_used",
+      "adapterCalled": true,
+      "freshnessState": "stale",
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_PDS_STALE_CACHE_FALLBACK_V1",
+      "assertions": [
+        "stale cache can be returned only with stale reason code",
+        "stale cache carries provenance penalty",
+        "stale cache cannot masquerade as fresh evidence"
+      ]
+    },
+    {
+      "caseId": "PDS183_DATA_CLASS_SEPARATION",
+      "outcomeState": "enriched",
+      "adapterCalled": true,
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_PDS_DATA_CLASS_SEPARATION_V1",
+      "assertions": [
+        "authoritativeLocalBindingStateRef remains null",
+        "localMatchEvidenceRefs are separate",
+        "nhsLoginSubjectClaimRefs are separate",
+        "pdsDemographicEvidenceRef is separate",
+        "communicationPreferenceRef remains null"
+      ]
+    },
+    {
+      "caseId": "PDS183_NO_DIRECT_EXTERNAL_AUTHORITY",
+      "outcomeState": "enriched",
+      "adapterCalled": true,
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_PDS_NO_DIRECT_BINDING_AUTHORITY_BYPASS_V1",
+      "assertions": [
+        "bindingMutationProhibited is true",
+        "no patientRef mutation occurs",
+        "IdentityBindingAuthority remains the only durable binding authority"
+      ]
+    },
+    {
+      "caseId": "PDS183_CHANGE_NOTIFICATION_QUEUED",
+      "outcomeState": "queued_refresh",
+      "adapterCalled": false,
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_PDS_CHANGE_NOTIFICATION_SEAM_V1",
+      "assertions": [
+        "PDS notification is a change signal only",
+        "queued refresh ref is bounded",
+        "mutationProhibited is true"
+      ]
+    }
+  ],
+  "gapClosures": [
+    "PARALLEL_INTERFACE_GAP_PHASE2_PDS_PROVIDER_PORT_V1",
+    "PARALLEL_INTERFACE_GAP_PHASE2_PDS_FEATURE_FLAG_GATING_V1",
+    "PARALLEL_INTERFACE_GAP_PHASE2_PDS_ONBOARDING_LEGAL_BASIS_V1",
+    "PARALLEL_INTERFACE_GAP_PHASE2_PDS_DATA_CLASS_SEPARATION_V1",
+    "PARALLEL_INTERFACE_GAP_PHASE2_PDS_NO_DIRECT_BINDING_AUTHORITY_BYPASS_V1",
+    "PARALLEL_INTERFACE_GAP_PHASE2_PDS_STALE_CACHE_FALLBACK_V1",
+    "PARALLEL_INTERFACE_GAP_PHASE2_PDS_CHANGE_NOTIFICATION_SEAM_V1"
+  ],
+  "dataClassSeparation": {
+    "authoritativeLocalBindingStateRef": null,
+    "localMatchEvidenceRefs": "refs_only",
+    "nhsLoginSubjectClaimRefs": "separate_refs_only",
+    "pdsDemographicEvidenceRef": "pds_only_ref",
+    "communicationPreferenceRef": null,
+    "changeNotificationRefs": "change_signal_refs_only"
+  }
+}

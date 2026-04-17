@@ -6,7 +6,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..", "..");
 const PACK = JSON.parse(
-  fs.readFileSync(path.join(ROOT, "data", "analysis", "35_evidence_processing_lab_pack.json"), "utf8"),
+  fs.readFileSync(
+    path.join(ROOT, "data", "analysis", "35_evidence_processing_lab_pack.json"),
+    "utf8",
+  ),
 );
 
 function assertCondition(condition, message) {
@@ -59,40 +62,51 @@ async function run() {
   await page.goto(targetUrl, { waitUntil: "networkidle" });
   await page.locator(selectors.mode_toggle_actual).click();
   await page.locator(selectors.page_tab_live_gates).click();
-  await page.locator(selectors.field_vendor).selectOption(
-    process.env.EVIDENCE_PROVIDER_VENDOR_ID ?? PACK.live_gate_pack.allowed_vendor_ids[0],
-  );
-  await page.locator(selectors.field_project_scope).selectOption(
-    process.env.EVIDENCE_PROJECT_SCOPE ?? PACK.project_scopes[0].project_scope,
-  );
-  await page.locator(selectors.field_region_policy).selectOption(
-    process.env.EVIDENCE_REGION_POLICY_REF ?? PACK.region_policies[1].region_policy_ref,
-  );
-  await page.locator(selectors.field_retention_policy).selectOption(
-    process.env.EVIDENCE_RETENTION_POLICY_REF ?? PACK.retention_policies[0].retention_policy_ref,
-  );
-  await page.locator(selectors.field_callback_base).fill(
-    process.env.EVIDENCE_WEBHOOK_BASE_URL ?? "https://example.invalid/evidence-gate",
-  );
-  await page.locator(selectors.field_secret_ref).fill(
-    process.env.EVIDENCE_WEBHOOK_SECRET_REF ?? "vault://evidence/provider/webhook",
-  );
-  await page.locator(selectors.field_bucket_ref).fill(
-    process.env.EVIDENCE_STORAGE_BUCKET_REF ?? "s3://vecells-evidence-nonprod",
-  );
-  await page.locator(selectors.field_scan_policy).selectOption(
-    process.env.EVIDENCE_SCAN_POLICY_REF ?? PACK.scan_and_quarantine_policy_rows[0].scan_policy_ref,
-  );
-  await page.locator(selectors.field_environment).selectOption(
-    process.env.EVIDENCE_TARGET_ENVIRONMENT ?? "provider_like_preprod",
-  );
-  await page.locator(selectors.field_approver).fill(
-    process.env.EVIDENCE_NAMED_APPROVER ?? "dry-run approver",
-  );
-  await page.locator(selectors.field_allow_mutation).selectOption(realMutationRequested ? "true" : "false");
-  await page.locator(selectors.field_allow_spend).selectOption(
-    process.env.ALLOW_SPEND === "true" ? "true" : "false",
-  );
+  await page
+    .locator(selectors.field_vendor)
+    .selectOption(
+      process.env.EVIDENCE_PROVIDER_VENDOR_ID ?? PACK.live_gate_pack.allowed_vendor_ids[0],
+    );
+  await page
+    .locator(selectors.field_project_scope)
+    .selectOption(process.env.EVIDENCE_PROJECT_SCOPE ?? PACK.project_scopes[0].project_scope);
+  await page
+    .locator(selectors.field_region_policy)
+    .selectOption(
+      process.env.EVIDENCE_REGION_POLICY_REF ?? PACK.region_policies[1].region_policy_ref,
+    );
+  await page
+    .locator(selectors.field_retention_policy)
+    .selectOption(
+      process.env.EVIDENCE_RETENTION_POLICY_REF ?? PACK.retention_policies[0].retention_policy_ref,
+    );
+  await page
+    .locator(selectors.field_callback_base)
+    .fill(process.env.EVIDENCE_WEBHOOK_BASE_URL ?? "https://example.invalid/evidence-gate");
+  await page
+    .locator(selectors.field_secret_ref)
+    .fill(process.env.EVIDENCE_WEBHOOK_SECRET_REF ?? "vault://evidence/provider/webhook");
+  await page
+    .locator(selectors.field_bucket_ref)
+    .fill(process.env.EVIDENCE_STORAGE_BUCKET_REF ?? "s3://vecells-evidence-nonprod");
+  await page
+    .locator(selectors.field_scan_policy)
+    .selectOption(
+      process.env.EVIDENCE_SCAN_POLICY_REF ??
+        PACK.scan_and_quarantine_policy_rows[0].scan_policy_ref,
+    );
+  await page
+    .locator(selectors.field_environment)
+    .selectOption(process.env.EVIDENCE_TARGET_ENVIRONMENT ?? "provider_like_preprod");
+  await page
+    .locator(selectors.field_approver)
+    .fill(process.env.EVIDENCE_NAMED_APPROVER ?? "dry-run approver");
+  await page
+    .locator(selectors.field_allow_mutation)
+    .selectOption(realMutationRequested ? "true" : "false");
+  await page
+    .locator(selectors.field_allow_spend)
+    .selectOption(process.env.ALLOW_SPEND === "true" ? "true" : "false");
 
   const buttonDisabled = await page.locator(selectors.final_submit).isDisabled();
   assertCondition(

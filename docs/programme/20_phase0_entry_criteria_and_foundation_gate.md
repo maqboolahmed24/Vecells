@@ -1,4 +1,3 @@
-
             # Phase 0 Entry Criteria And Foundation Gate
 
             ## Outcome
@@ -14,6 +13,7 @@
             ## Criteria Summary
 
             | Criterion | Class | Status | Task Refs | Decisive Note |
+
 | --- | --- | --- | --- | --- |
 | CRIT_SRC_001 | Source Truth | pass | seq_001, seq_002 | 1453 canonical requirements are registered across 32 blueprint sources, with 29 reconciliation rows and 90 canonical aliases. |
 | CRIT_SCOPE_001 | Scope | pass | seq_003, seq_016, seq_017 | The current delivery baseline is Phases 0 to 6, Phase 8, and Phase 9, with Phase 7 retained as a deferred NHS App embedded-channel expansion. |

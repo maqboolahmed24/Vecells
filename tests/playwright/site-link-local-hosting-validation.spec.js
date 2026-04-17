@@ -63,7 +63,10 @@ async function run() {
   }
 
   const hostedPreview = PACK.local_hosting_profile;
-  if (JSON.stringify(assetlinksResponse.payload) !== JSON.stringify(hostedPreview.generated_assetlinks)) {
+  if (
+    JSON.stringify(assetlinksResponse.payload) !==
+    JSON.stringify(hostedPreview.generated_assetlinks)
+  ) {
     throw new Error("Hosted assetlinks payload drifted from the generated local baseline.");
   }
   if (JSON.stringify(aasaResponse.payload) !== JSON.stringify(hostedPreview.generated_aasa)) {

@@ -1,0 +1,123 @@
+{
+  "task_id": "par_064",
+  "generated_at": "2026-04-12T00:00:00+00:00",
+  "captured_on": "2026-04-12",
+  "source_precedence": [
+    "prompt/064.md",
+    "prompt/shared_operating_contract_056_to_065.md",
+    "blueprint/phase-0-the-foundation-protocol.md#FhirRepresentationContract",
+    "blueprint/phase-0-the-foundation-protocol.md#FhirRepresentationSet",
+    "blueprint/phase-0-the-foundation-protocol.md#FhirResourceRecord",
+    "blueprint/phase-0-the-foundation-protocol.md#FhirExchangeBundle",
+    "blueprint/phase-0-the-foundation-protocol.md#4.3 FHIR mapping law",
+    "blueprint/platform-runtime-and-release-blueprint.md#AdapterContractProfile",
+    "blueprint/platform-runtime-and-release-blueprint.md#Data persistence and migration contract",
+    "blueprint/forensic-audit-findings.md#Finding-03",
+    "data/analysis/fhir_representation_contracts.json",
+    "data/analysis/fhir_exchange_bundle_policies.json",
+    "data/analysis/fhir_identifier_and_status_policies.json"
+  ],
+  "summary": {
+    "representation_contract_count": 13,
+    "governing_aggregate_type_count": 10,
+    "canonical_resource_type_count": 8,
+    "bundle_policy_ref_count": 7,
+    "persistence_table_count": 4,
+    "schema_count": 3,
+    "implementation_file_count": 12,
+    "invariant_count": 7
+  },
+  "resource_types": [
+    "AuditEvent",
+    "Bundle",
+    "Communication",
+    "Consent",
+    "DocumentReference",
+    "Provenance",
+    "ServiceRequest",
+    "Task"
+  ],
+  "persistence_tables": [
+    "fhir_representation_contracts",
+    "fhir_representation_sets",
+    "fhir_resource_records",
+    "fhir_exchange_bundles"
+  ],
+  "schemas": [
+    "packages/fhir-mapping/schemas/fhir-representation-set.schema.json",
+    "packages/fhir-mapping/schemas/fhir-resource-record.schema.json",
+    "packages/fhir-mapping/schemas/fhir-exchange-bundle.schema.json"
+  ],
+  "implementation_files": [
+    "packages/fhir-mapping/src/representation-compiler.ts",
+    "packages/fhir-mapping/src/index.ts",
+    "packages/fhir-mapping/tests/representation-compiler.test.ts",
+    "packages/fhir-mapping/tests/public-api.test.ts",
+    "packages/fhir-mapping/schemas/fhir-representation-set.schema.json",
+    "packages/fhir-mapping/schemas/fhir-resource-record.schema.json",
+    "packages/fhir-mapping/schemas/fhir-exchange-bundle.schema.json",
+    "services/command-api/src/fhir-mapping.ts",
+    "services/command-api/tests/fhir-mapping.integration.test.js",
+    "services/command-api/migrations/064_fhir_mapping_compiler.sql",
+    "tools/analysis/build_fhir_mapping_compiler.py",
+    "tools/analysis/validate_fhir_mapping_compiler.py"
+  ],
+  "invariants": [
+    {
+      "invariant_id": "INV_064_DOMAIN_FIRST_AUTHORITY",
+      "scope": "FhirRepresentationContract",
+      "rule": "Domain aggregates remain authoritative and FHIR is derived representation only.",
+      "enforced_by": "packages/fhir-mapping/src/representation-compiler.ts::FhirRepresentationContractRecord.normalize",
+      "verified_by": "packages/fhir-mapping/tests/representation-compiler.test.ts",
+      "source_refs": "blueprint/phase-0-the-foundation-protocol.md#FhirRepresentationContract; prompt/064.md"
+    },
+    {
+      "invariant_id": "INV_064_PUBLISHED_CONTRACT_ONLY",
+      "scope": "FhirRepresentationContract",
+      "rule": "Runtime materialization may read only published active representation contract rows.",
+      "enforced_by": "packages/fhir-mapping/src/representation-compiler.ts::FhirRepresentationContractRecord.publish",
+      "verified_by": "packages/fhir-mapping/tests/representation-compiler.test.ts",
+      "source_refs": "blueprint/platform-runtime-and-release-blueprint.md#AdapterContractProfile; prompt/064.md"
+    },
+    {
+      "invariant_id": "INV_064_REPLAY_SAFE_SET_IDS",
+      "scope": "FhirRepresentationSet",
+      "rule": "The same aggregate version rematerializes the same representation set identity and resource membership.",
+      "enforced_by": "packages/fhir-mapping/src/representation-compiler.ts::FhirRepresentationCompiler.materializeRepresentationSet",
+      "verified_by": "packages/fhir-mapping/tests/representation-compiler.test.ts",
+      "source_refs": "blueprint/phase-0-the-foundation-protocol.md#FhirRepresentationSet; blueprint/phase-0-the-foundation-protocol.md#Tests that must pass before 0B is done"
+    },
+    {
+      "invariant_id": "INV_064_IDENTIFIER_STABILITY",
+      "scope": "FhirResourceRecord",
+      "rule": "Logical ids, version ids, and identifier sets are deterministic under replay and may not silently fork.",
+      "enforced_by": "packages/fhir-mapping/src/representation-compiler.ts::deterministicResourceId; packages/fhir-mapping/src/representation-compiler.ts::deterministicVersionId",
+      "verified_by": "packages/fhir-mapping/tests/representation-compiler.test.ts",
+      "source_refs": "prompt/064.md; blueprint/phase-0-the-foundation-protocol.md#FhirResourceRecord"
+    },
+    {
+      "invariant_id": "INV_064_BUNDLE_TYPE_GUARD",
+      "scope": "FhirExchangeBundle",
+      "rule": "Only declared and supported bundle types may be emitted at the adapter boundary.",
+      "enforced_by": "packages/fhir-mapping/src/representation-compiler.ts::allowedBundleTypeSet; packages/fhir-mapping/src/representation-compiler.ts::FhirRepresentationCompiler.materializeRepresentationSet",
+      "verified_by": "packages/fhir-mapping/tests/representation-compiler.test.ts",
+      "source_refs": "blueprint/phase-0-the-foundation-protocol.md#FhirExchangeBundle; prompt/064.md"
+    },
+    {
+      "invariant_id": "INV_064_APPEND_ONLY_SUPERSESSION",
+      "scope": "FhirRepresentationSet",
+      "rule": "New aggregate versions supersede prior representation rows append-only instead of rewriting history in place.",
+      "enforced_by": "packages/fhir-mapping/src/representation-compiler.ts::appendVersionedRecord; packages/fhir-mapping/src/representation-compiler.ts::FhirRepresentationSetRecord.supersede",
+      "verified_by": "packages/fhir-mapping/tests/representation-compiler.test.ts; services/command-api/tests/fhir-mapping.integration.test.js",
+      "source_refs": "prompt/064.md; blueprint/phase-0-the-foundation-protocol.md#FhirRepresentationSet"
+    },
+    {
+      "invariant_id": "INV_064_ADAPTER_CONSUMPTION_GUARD",
+      "scope": "FhirExchangeBundle",
+      "rule": "Adapters may consume only the published contract rows and bundle types their profile explicitly allows.",
+      "enforced_by": "packages/fhir-mapping/src/representation-compiler.ts::authorizeAdapterConsumption",
+      "verified_by": "packages/fhir-mapping/tests/representation-compiler.test.ts",
+      "source_refs": "blueprint/platform-runtime-and-release-blueprint.md#AdapterContractProfile; blueprint/phase-0-the-foundation-protocol.md#FhirExchangeBundle"
+    }
+  ]
+}

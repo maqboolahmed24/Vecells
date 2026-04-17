@@ -1,0 +1,861 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Release Candidate Freeze Board</title>
+    <style>
+      :root {
+        --canvas: #F7F8FA;
+        --panel: #FFFFFF;
+        --inset: #E8EEF3;
+        --border: rgba(36, 49, 61, 0.12);
+        --text-strong: #0F1720;
+        --text: #24313D;
+        --text-muted: #5E6B78;
+        --accent-frozen: #5B61F6;
+        --accent-compatible: #117A55;
+        --accent-review: #B7791F;
+        --accent-blocked: #B42318;
+        --shadow: 0 22px 50px rgba(15, 23, 32, 0.08);
+        --radius-xl: 24px;
+        --radius-lg: 18px;
+        --radius-md: 14px;
+        --radius-sm: 12px;
+      }
+      * { box-sizing: border-box; }
+      html { background: var(--canvas); }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at right top, rgba(91, 97, 246, 0.08), transparent 30%),
+          radial-gradient(circle at left 18%, rgba(17, 122, 85, 0.06), transparent 24%),
+          linear-gradient(180deg, var(--canvas), #f1f4f8);
+        color: var(--text);
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+      }
+      body[data-reduced-motion="true"] * {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+      h1, h2, h3, .wordmark {
+        font-family: "Iowan Old Style", "Palatino Linotype", serif;
+      }
+      button, select { font: inherit; }
+      .page { max-width: 1560px; margin: 0 auto; padding: 0 20px 40px; }
+      .page,
+      .page > *,
+      .masthead > *,
+      .layout > *,
+      .stack,
+      .panel,
+      .table-scroll {
+        min-width: 0;
+      }
+      .masthead {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        height: 72px;
+        display: grid;
+        grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 220px));
+        gap: 14px;
+        align-items: center;
+        padding: 12px 0;
+        background: rgba(247, 248, 250, 0.94);
+        backdrop-filter: blur(14px);
+      }
+      .brand,
+      .summary-pill,
+      .panel,
+      .rail,
+      .inspector {
+        background: rgba(255, 255, 255, 0.94);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+      }
+      .brand,
+      .summary-pill {
+        min-height: 48px;
+        border-radius: 999px;
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .wordmark {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 20px;
+      }
+      .frozen-mark {
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, rgba(91, 97, 246, 0.16), rgba(17, 122, 85, 0.12));
+      }
+      .brand-copy,
+      .summary-copy { display: grid; gap: 2px; }
+      .brand-mode,
+      .summary-label,
+      .meta-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--text-muted);
+      }
+      .brand-title,
+      .summary-value {
+        font-size: 18px;
+        color: var(--text-strong);
+        font-weight: 700;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 272px minmax(0, 1fr) 404px;
+        gap: 20px;
+        margin-top: 20px;
+        align-items: start;
+      }
+      .rail,
+      .inspector {
+        position: sticky;
+        top: 92px;
+        border-radius: var(--radius-xl);
+        padding: 18px;
+      }
+      .rail { display: grid; gap: 18px; }
+      .rail-group {
+        display: grid;
+        gap: 10px;
+      }
+      .rail select {
+        min-height: 44px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        background: var(--panel);
+        padding: 0 12px;
+      }
+      .stack {
+        display: grid;
+        gap: 20px;
+      }
+      .panel {
+        border-radius: var(--radius-xl);
+        padding: 18px;
+      }
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: baseline;
+        margin-bottom: 14px;
+      }
+      .panel-header h2,
+      .inspector h2 {
+        margin: 0;
+        font-size: 20px;
+        color: var(--text-strong);
+      }
+      .caption,
+      .inspector-note {
+        margin: 0;
+        color: var(--text-muted);
+        line-height: 1.55;
+      }
+      .tuple-braid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+      }
+      .tuple-button,
+      .ring-button,
+      .blocker-button {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: linear-gradient(180deg, rgba(232, 238, 243, 0.52), rgba(255, 255, 255, 0.98));
+        color: var(--text);
+        text-align: left;
+        padding: 14px;
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+      }
+      .tuple-button:hover,
+      .ring-button:hover,
+      .blocker-button:hover,
+      .tuple-button:focus-visible,
+      .ring-button:focus-visible,
+      .blocker-button:focus-visible {
+        transform: translateY(-1px);
+        border-color: rgba(91, 97, 246, 0.48);
+        outline: none;
+      }
+      .tuple-button[data-selected="true"],
+      .ring-button[data-selected="true"],
+      .blocker-button[data-selected="true"] {
+        border-color: rgba(91, 97, 246, 0.62);
+        box-shadow: 0 18px 32px rgba(91, 97, 246, 0.14);
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .state-exact { background: rgba(17, 122, 85, 0.14); color: var(--accent-compatible); }
+      .state-partial { background: rgba(183, 121, 31, 0.14); color: var(--accent-review); }
+      .state-stale,
+      .state-blocked { background: rgba(180, 35, 24, 0.14); color: var(--accent-blocked); }
+      .mono {
+        font-family: "SFMono-Regular", "SF Mono", "Menlo", monospace;
+        font-size: 12px;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .ring-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 11px 12px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+      th {
+        text-align: left;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+      }
+      tr[data-selected="true"] { background: rgba(91, 97, 246, 0.08); }
+      .table-scroll {
+        overflow-x: auto;
+      }
+      .inspector dl {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin: 0;
+      }
+      .inspector dd {
+        margin: 0;
+        color: var(--text-strong);
+      }
+      .inspector-block {
+        display: grid;
+        gap: 8px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border);
+      }
+      .list {
+        display: grid;
+        gap: 8px;
+      }
+      .list-item {
+        padding: 10px 12px;
+        border-radius: var(--radius-sm);
+        background: rgba(232, 238, 243, 0.48);
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+      @media (max-width: 1280px) {
+        .layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .rail,
+        .inspector {
+          position: static;
+        }
+        .masthead {
+          grid-template-columns: minmax(0, 1fr);
+          height: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="masthead">
+        <div class="brand">
+          <div class="wordmark">
+            <span class="frozen-mark" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M4 5h10M4 9h10M4 13h10" stroke="#5B61F6" stroke-width="1.6" stroke-linecap="round"/>
+                <circle cx="6" cy="5" r="1.5" fill="#117A55"/>
+                <circle cx="12" cy="9" r="1.5" fill="#5B61F6"/>
+                <circle cx="8" cy="13" r="1.5" fill="#B42318"/>
+              </svg>
+            </span>
+            <div class="brand-copy">
+              <span class="brand-mode">Vecells • Release_Candidate_Freeze_Board</span>
+              <span class="brand-title">Frozen Tuple Dossier</span>
+            </div>
+          </div>
+          <span class="badge state-exact" data-testid="candidate-verdict-badge">Exact</span>
+        </div>
+        <div class="summary-pill">
+          <div class="summary-copy">
+            <span class="summary-label">Candidate</span>
+            <span class="summary-value" data-testid="summary-release-ref"></span>
+          </div>
+          <span class="mono" data-testid="summary-tuple-hash"></span>
+        </div>
+        <div class="summary-pill">
+          <div class="summary-copy">
+            <span class="summary-label">Ring States</span>
+            <span class="summary-value" data-testid="summary-ring-counts"></span>
+          </div>
+        </div>
+        <div class="summary-pill">
+          <div class="summary-copy">
+            <span class="summary-label">Active Blockers</span>
+            <span class="summary-value" data-testid="summary-blocker-count"></span>
+          </div>
+        </div>
+      </header>
+      <div class="layout">
+        <nav class="rail" aria-label="Release candidate filters">
+          <div class="rail-group">
+            <div class="meta-label">Candidate</div>
+            <button class="tuple-button" type="button" data-testid="candidate-entry" data-focus-group="candidate"></button>
+          </div>
+          <div class="rail-group">
+            <label class="meta-label" for="ring-filter">Ring focus</label>
+            <select id="ring-filter" data-testid="filter-ring">
+              <option value="all">All rings</option>
+            </select>
+          </div>
+          <div class="rail-group">
+            <label class="meta-label" for="blocker-filter">Blocker state</label>
+            <select id="blocker-filter" data-testid="filter-blocker-state">
+              <option value="all">All states</option>
+              <option value="blocked">Blocked</option>
+              <option value="stale">Stale</option>
+              <option value="partial">Partial</option>
+            </select>
+          </div>
+          <p class="caption">The frozen tuple is exact. Ring compatibility is not. Select a ring or blocker to inspect why the current Phase 0 candidate still cannot claim equivalence outside local.</p>
+        </nav>
+        <main class="stack">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Tuple Braid</h2>
+              <span class="meta-label">One exact dossier</span>
+            </div>
+            <div class="tuple-braid" data-testid="tuple-braid"></div>
+            <div class="table-scroll">
+              <table data-testid="tuple-table">
+                <thead>
+                  <tr><th>Frozen member</th><th>Reference</th><th>State</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Environment Ring Ladder</h2>
+              <span class="meta-label">Fingerprint-bound</span>
+            </div>
+            <div class="ring-grid" data-testid="ring-ladder"></div>
+            <div class="table-scroll">
+              <table data-testid="ring-table">
+                <thead>
+                  <tr><th>Ring</th><th>Overall</th><th>Fingerprint</th><th>Publication/parity</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Compatibility Matrix</h2>
+              <span class="meta-label">Diagram and table parity</span>
+            </div>
+            <div class="table-scroll">
+              <table data-testid="compatibility-table">
+                <thead>
+                  <tr><th>Dimension</th><th>State</th><th>Subject</th><th>Evidence</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Blocker Matrix</h2>
+              <span class="meta-label">Machine-readable and explicit</span>
+            </div>
+            <div class="table-scroll">
+              <table data-testid="blocker-matrix">
+                <thead>
+                  <tr><th>Blocker</th><th>Ring</th><th>Dimension</th><th>State</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Evidence Table</h2>
+              <span class="meta-label">Inspectable basis</span>
+            </div>
+            <div class="table-scroll">
+              <table data-testid="evidence-table">
+                <thead>
+                  <tr><th>Kind</th><th>Reference</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+        </main>
+        <aside class="inspector" data-testid="inspector" tabindex="0">
+          <h2>Inspector</h2>
+          <p class="inspector-note">Selection sync keeps the tuple braid, ring ladder, blocker matrix, and evidence table on one exact current object.</p>
+          <div class="inspector-block">
+            <span class="meta-label">Selected object</span>
+            <div id="inspector-title"></div>
+          </div>
+          <div class="inspector-block">
+            <span class="meta-label">Summary</span>
+            <div id="inspector-summary"></div>
+          </div>
+          <div class="inspector-block">
+            <span class="meta-label">Key refs</span>
+            <dl id="inspector-refs"></dl>
+          </div>
+          <div class="inspector-block">
+            <span class="meta-label">Reason refs</span>
+            <div class="list" id="inspector-reasons"></div>
+          </div>
+        </aside>
+      </div>
+    </div>
+    <script>
+      const boardData = {"taskId": "seq_131", "visualMode": "Release_Candidate_Freeze_Board", "generatedAt": "2026-04-14T06:35:23+00:00", "releaseCandidate": {"releaseRef": "RC_LOCAL_V1", "releaseApprovalFreezeRef": "RAF_LOCAL_V1", "artifactDigestRefs": ["artifact::service_api_gateway::sha256::10ded78704143b14", "artifact::service_command_api::sha256::ead0a67f8c0acaa0", "artifact::service_projection_worker::sha256::3fbab76baf339066", "artifact::service_notification_worker::sha256::cdfe7b6567b9a074", "artifact::service_adapter_simulators::sha256::6480758e25744858", "artifact::artifact_browser_shell_bundle_local::sha256::ceb4c79f9effb772", "artifact::artifact_compiled_policy_bundle_local::sha256::4a57eb4d56909563"], "artifactDigestEntries": [{"artifactId": "service_api_gateway", "artifactPath": "services/api-gateway", "artifactKind": "service", "sha256Ref": "10ded78704143b14"}, {"artifactId": "service_command_api", "artifactPath": "services/command-api", "artifactKind": "service", "sha256Ref": "ead0a67f8c0acaa0"}, {"artifactId": "service_projection_worker", "artifactPath": "services/projection-worker", "artifactKind": "service", "sha256Ref": "3fbab76baf339066"}, {"artifactId": "service_notification_worker", "artifactPath": "services/notification-worker", "artifactKind": "service", "sha256Ref": "cdfe7b6567b9a074"}, {"artifactId": "service_adapter_simulators", "artifactPath": "services/adapter-simulators", "artifactKind": "service", "sha256Ref": "6480758e25744858"}, {"artifactId": "artifact_browser_shell_bundle_local", "artifactPath": "apps", "artifactKind": "shell_bundle", "sha256Ref": "ceb4c79f9effb772"}, {"artifactId": "artifact_compiled_policy_bundle_local", "artifactPath": "packages/release-controls", "artifactKind": "policy_bundle", "sha256Ref": "4a57eb4d56909563"}], "bundleHashRefs": ["bundle::topology::d72ab3af8a8923a4", "bundle::frontend::1b880eb517e7758e", "bundle::design::96391f19d147f0c2", "bundle::schemas::f6eab0f256506f41", "bundle::events::42c877ed53989199", "bundle::fhir::299f32ac5a02a098"], "bundleFreezeDigestRef": "4490af647ed440da", "compilationTupleHash": "0bab371bd97f01a1", "routeContractDigestRefs": ["route-contract-digest::075a587f75dd6140", "route-contract-digest::0c3f5379003113dd", "route-contract-digest::0e97c3fa53827030", "route-contract-digest::18ba0ccb66d87e46", "route-contract-digest::1cc1dec07cef679b", "route-contract-digest::1d6568de625d11d7", "route-contract-digest::1fa3e732e4fc0324", "route-contract-digest::2d606dd6c4a611ba", "route-contract-digest::38c5b384f42b5db5", "route-contract-digest::4da5dfea81d00289", "route-contract-digest::730a376de0865bfc", "route-contract-digest::7db1352efbb452ac", "route-contract-digest::867d5ac3839b7610", "route-contract-digest::af49f9a731cdce4f", "route-contract-digest::bb48256e84d94a26", "route-contract-digest::c069a7c5796f018e", "route-contract-digest::d953bc6f78f90130", "route-contract-digest::e3337c22d948b876", "route-contract-digest::fd48882445e2ce91"], "frontendContractDigestRefs": ["24f459511b04bbff", "32f8de8782baeeb1", "72b30aaa1b840b41", "7733d342f9a8beea", "bc8b9c518239913e", "c70c54ede66441c6", "dbbfb1f5f7fbb981", "dc03ce0c025e5cd1", "eedf9ec304b21cd0"], "designContractDigestRefs": ["0975f264474e14e3", "5f8f5f0ff692aa98", "793689faafb9990a", "973eb095a23d3f91", "a7e89226ec28b6b5", "c71f96c0cba3e81d", "d1de5b8bf4766054", "e27e77568367e5db", "f28e43bf102aeb5d"], "designContractLintVerdictRefs": ["dclv::clinical_workspace::pending", "dclv::governance_admin::pending", "dclv::hub_desk::pending", "dclv::operations_console::pending", "dclv::patient_authenticated_portal::pending", "dclv::patient_public_entry::pending", "dclv::patient_transaction_recovery::pending", "dclv::pharmacy_console::pending", "dclv::support_workspace::pending"], "runtimePublicationBundleRef": "rpb::local::authoritative", "releasePublicationParityRef": "rpp::local::authoritative", "releaseContractVerificationMatrixRef": "RCVM_LOCAL_V1", "releaseContractMatrixHash": "76b66ed13a3a4bce", "bridgeCapabilityEvidenceRefs": ["MBCS_LOCAL_V1", "CMS_LOCAL_V1", "CHFR_LOCAL_BROWSER_V1", "CHFR_LOCAL_PARTNER_CALLBACK_V1"], "schemaMigrationPlanRef": "SMP_LOCAL_V1", "projectionBackfillPlanRef": "PBP_LOCAL_V1", "environmentCompatibilityEvidenceRefs": ["ECE_131_LOCAL", "ECE_131_CI_PREVIEW", "ECE_131_INTEGRATION", "ECE_131_PREPROD", "ECE_131_PRODUCTION"], "ringFingerprintRefs": ["EBF_LOCAL_V1", "EBF_CI_PREVIEW_V1", "EBF_INTEGRATION_V1", "EBF_PREPROD_V1", "EBF_PRODUCTION_V1"], "freezeVerdict": "exact", "reasonRefs": ["FZB_131_LOCAL_SUMMARY", "FZB_131_CI_PREVIEW_SUMMARY", "FZB_131_INTEGRATION_SUMMARY", "FZB_131_PREPROD_SUMMARY", "FZB_131_PRODUCTION_SUMMARY", "FZB_131_CI_PREVIEW_LEGACY_RELEASE_ROW_DRIFT"], "notes": ["The frozen candidate is exact for the current local simulator-backed tuple: parity, runtime publication, baseline fingerprint, migration posture, release watch, and restore posture all agree.", "The environment evidence remains intentionally non-equivalent above local; higher rings stay blocked or stale until the published parity, baseline fingerprint, migration, and restore rows recover.", "Gateway-facing browser posture stays bounded even under an exact tuple because seq_130 still publishes accessibility, design-lint, and browser-posture ceilings instead of publishable-live truth."], "gitRef": "refs/tags/vecells-2026-04-11-local", "behaviorContractSetRef": "BCS_PLATFORM_V1", "surfaceSchemaSetRef": "SSS_PLATFORM_V1", "runtimeTopologyManifestRef": "data/analysis/runtime_topology_manifest.json", "topologyTupleHash": "d72ab3af8a8923a4", "environmentBaselineFingerprintRef": "EBF_LOCAL_V1", "baselineTupleHash": "af03431e5c9f2caf", "approvalTupleHash": "f139d28cddfe4864", "watchTupleHash": "9e419df51ddbbe289935c8f50152d2c69039cc8e9b6a443f83be09f054094779", "activeReleaseWatchTupleRefs": ["RWT_LOCAL_V1"], "releaseWatchScenarioId": "LOCAL_SATISFIED", "requiredAssuranceSliceRefs": ["asr_runtime_topology_tuple", "asr_release_watch_tuple", "asr_restore_readiness"], "recoveryDispositionSetRef": "RDS_LOCAL_V1", "continuityEvidenceContractRefs": ["SCF_050_CLINICAL_WORKSPACE_V1", "SCF_050_GOVERNANCE_ADMIN_V1", "SCF_050_HUB_DESK_V1", "SCF_050_OPERATIONS_CONSOLE_V1", "SCF_050_PATIENT_AUTHENTICATED_PORTAL_V1", "SCF_050_PATIENT_PUBLIC_ENTRY_V1", "SCF_050_PATIENT_TRANSACTION_RECOVERY_V1", "SCF_050_PHARMACY_CONSOLE_V1", "SCF_050_SUPPORT_WORKSPACE_V1"], "continuityEvidenceDigestRefs": ["continuity-digest::608f45cac389d96f8e4980f7d842a5eb2a57c12c221f94d042184c49ba08c88a", "continuity-digest::a0220de2746bd5c560cca8036ba1f4b14aa8f45ba0083e2642373a49ba235a83", "continuity-digest::a6b2ad66142cc48edd1602e45b8a382ce9e7aee1968a0c89423a4249ba259df2", "continuity-digest::f73483a13e9b41ef6ebd5f04727d950b53f79c4379321738423a4049ba259a8c"], "provenanceRef": "BPR_LOCAL_V1", "provenanceScenarioId": "LOCAL_VERIFIED_BASELINE", "sbomRef": "SBOM_LOCAL_V1", "promotionIntentRefs": ["PIE_LOCAL_V1"], "channelManifestSetRef": "CMS_LOCAL_V1", "minimumBridgeCapabilitySetRef": "MBCS_LOCAL_V1", "waveState": "draft", "routeExposureState": "constrained", "publicationState": "published", "candidateTupleHash": "2e53f4f150b013001b0f21abdb744e6073c97f9348d743ba155fc39d771336f9", "source_refs": ["data/analysis/runtime_publication_bundles.json#RC_LOCAL_V1", "data/analysis/release_publication_parity_records.json#RC_LOCAL_V1", "data/analysis/release_contract_verification_matrix.json#RCVM_LOCAL_V1", "data/analysis/environment_ring_policy.json#EBF_LOCAL_V1", "data/analysis/release_watch_pipeline_catalog.json#LOCAL_SATISFIED", "data/analysis/resilience_baseline_catalog.json#LOCAL_EXACT_READY", "data/analysis/migration_backfill_control_catalog.json#LOCAL_READY"]}, "ringSummaries": [{"environmentCompatibilityRef": "ECE_131_LOCAL", "environmentRing": "local", "releaseRef": "RC_LOCAL_V1", "overallCompatibilityState": "partial", "runtimePublicationBundleRef": "rpb::local::authoritative", "releasePublicationParityRef": "rpp::local::authoritative", "environmentBaselineFingerprintRef": "EBF_LOCAL_V1", "ringFingerprintState": "aligned", "dimensionStates": {"runtime_publication_and_parity": "exact", "runtime_topology": "exact", "workload_families": "exact", "trust_zone_boundaries": "exact", "gateway_surfaces": "partial", "channel_bridge_capabilities": "exact", "migration_backfill_posture": "exact", "observability_restore_posture": "exact"}, "blockerRefs": ["FZB_131_LOCAL_GATEWAY_SURFACES"], "notes": "This ring summary is derived from the exact matrix rows below and is allowed to stay non-exact only if the blockers remain explicit."}, {"environmentCompatibilityRef": "ECE_131_CI_PREVIEW", "environmentRing": "ci-preview", "releaseRef": "RC_CI_PREVIEW_V1", "overallCompatibilityState": "blocked", "runtimePublicationBundleRef": "rpb::ci-preview::authoritative", "releasePublicationParityRef": "rpp::ci-preview::authoritative", "environmentBaselineFingerprintRef": "EBF_CI_PREVIEW_V1", "ringFingerprintState": "aligned", "dimensionStates": {"runtime_publication_and_parity": "stale", "runtime_topology": "exact", "workload_families": "exact", "trust_zone_boundaries": "exact", "gateway_surfaces": "blocked", "channel_bridge_capabilities": "exact", "migration_backfill_posture": "stale", "observability_restore_posture": "blocked"}, "blockerRefs": ["FZB_131_CI_PREVIEW_RUNTIME_PUBLICATION_AND_PARITY", "FZB_131_CI_PREVIEW_GATEWAY_SURFACES", "FZB_131_CI_PREVIEW_MIGRATION_BACKFILL_POSTURE", "FZB_131_CI_PREVIEW_OBSERVABILITY_RESTORE_POSTURE"], "notes": "This ring summary is derived from the exact matrix rows below and is allowed to stay non-exact only if the blockers remain explicit."}, {"environmentCompatibilityRef": "ECE_131_INTEGRATION", "environmentRing": "integration", "releaseRef": "RC_INTEGRATION_V1", "overallCompatibilityState": "blocked", "runtimePublicationBundleRef": "rpb::integration::authoritative", "releasePublicationParityRef": "rpp::integration::authoritative", "environmentBaselineFingerprintRef": "EBF_INTEGRATION_V1", "ringFingerprintState": "drifted", "dimensionStates": {"runtime_publication_and_parity": "blocked", "runtime_topology": "blocked", "workload_families": "blocked", "trust_zone_boundaries": "blocked", "gateway_surfaces": "blocked", "channel_bridge_capabilities": "blocked", "migration_backfill_posture": "blocked", "observability_restore_posture": "blocked"}, "blockerRefs": ["FZB_131_INTEGRATION_RUNTIME_PUBLICATION_AND_PARITY", "FZB_131_INTEGRATION_RUNTIME_TOPOLOGY", "FZB_131_INTEGRATION_WORKLOAD_FAMILIES", "FZB_131_INTEGRATION_TRUST_ZONE_BOUNDARIES", "FZB_131_INTEGRATION_GATEWAY_SURFACES", "FZB_131_INTEGRATION_CHANNEL_BRIDGE_CAPABILITIES", "FZB_131_INTEGRATION_MIGRATION_BACKFILL_POSTURE", "FZB_131_INTEGRATION_OBSERVABILITY_RESTORE_POSTURE"], "notes": "This ring summary is derived from the exact matrix rows below and is allowed to stay non-exact only if the blockers remain explicit."}, {"environmentCompatibilityRef": "ECE_131_PREPROD", "environmentRing": "preprod", "releaseRef": "RC_PREPROD_V1", "overallCompatibilityState": "blocked", "runtimePublicationBundleRef": "rpb::preprod::authoritative", "releasePublicationParityRef": "rpp::preprod::authoritative", "environmentBaselineFingerprintRef": "EBF_PREPROD_V1", "ringFingerprintState": "drifted", "dimensionStates": {"runtime_publication_and_parity": "blocked", "runtime_topology": "blocked", "workload_families": "blocked", "trust_zone_boundaries": "blocked", "gateway_surfaces": "blocked", "channel_bridge_capabilities": "blocked", "migration_backfill_posture": "blocked", "observability_restore_posture": "blocked"}, "blockerRefs": ["FZB_131_PREPROD_RUNTIME_PUBLICATION_AND_PARITY", "FZB_131_PREPROD_RUNTIME_TOPOLOGY", "FZB_131_PREPROD_WORKLOAD_FAMILIES", "FZB_131_PREPROD_TRUST_ZONE_BOUNDARIES", "FZB_131_PREPROD_GATEWAY_SURFACES", "FZB_131_PREPROD_CHANNEL_BRIDGE_CAPABILITIES", "FZB_131_PREPROD_MIGRATION_BACKFILL_POSTURE", "FZB_131_PREPROD_OBSERVABILITY_RESTORE_POSTURE"], "notes": "This ring summary is derived from the exact matrix rows below and is allowed to stay non-exact only if the blockers remain explicit."}, {"environmentCompatibilityRef": "ECE_131_PRODUCTION", "environmentRing": "production", "releaseRef": "RC_PRODUCTION_V1", "overallCompatibilityState": "blocked", "runtimePublicationBundleRef": "rpb::production::authoritative", "releasePublicationParityRef": "rpp::production::authoritative", "environmentBaselineFingerprintRef": "EBF_PRODUCTION_V1", "ringFingerprintState": "drifted", "dimensionStates": {"runtime_publication_and_parity": "stale", "runtime_topology": "blocked", "workload_families": "blocked", "trust_zone_boundaries": "blocked", "gateway_surfaces": "blocked", "channel_bridge_capabilities": "blocked", "migration_backfill_posture": "blocked", "observability_restore_posture": "blocked"}, "blockerRefs": ["FZB_131_PRODUCTION_RUNTIME_PUBLICATION_AND_PARITY", "FZB_131_PRODUCTION_RUNTIME_TOPOLOGY", "FZB_131_PRODUCTION_WORKLOAD_FAMILIES", "FZB_131_PRODUCTION_TRUST_ZONE_BOUNDARIES", "FZB_131_PRODUCTION_GATEWAY_SURFACES", "FZB_131_PRODUCTION_CHANNEL_BRIDGE_CAPABILITIES", "FZB_131_PRODUCTION_MIGRATION_BACKFILL_POSTURE", "FZB_131_PRODUCTION_OBSERVABILITY_RESTORE_POSTURE"], "notes": "This ring summary is derived from the exact matrix rows below and is allowed to stay non-exact only if the blockers remain explicit."}], "matrixRows": [{"compatibility_row_id": "ECM_131_LOCAL_RUNTIME_PUBLICATION_AND_PARITY", "environment_compatibility_ref": "ECE_131_LOCAL", "environment_ring": "local", "release_ref": "RC_LOCAL_V1", "dimension_code": "runtime_publication_and_parity", "dimension_label": "Runtime publication and parity", "compatibility_state": "exact", "raw_publication_state": "published", "raw_parity_state": "exact", "subject_ref": "rpb::local::authoritative", "subject_label": "Local", "environment_baseline_fingerprint_ref": "EBF_LOCAL_V1", "runtime_publication_bundle_ref": "rpb::local::authoritative", "release_publication_parity_ref": "rpp::local::authoritative", "evidence_refs": ["data/analysis/runtime_publication_bundles.json", "data/analysis/release_publication_parity_records.json"], "recovery_obligation_refs": ["RDS_LOCAL_V1"], "notes": "Published runtime truth stays exact only while parity, publication, and provenance consumption stay aligned.", "blocker_refs": []}, {"compatibility_row_id": "ECM_131_LOCAL_RUNTIME_TOPOLOGY", "environment_compatibility_ref": "ECE_131_LOCAL", "environment_ring": "local", "release_ref": "RC_LOCAL_V1", "dimension_code": "runtime_topology", "dimension_label": "Runtime topology", "compatibility_state": "exact", "raw_publication_state": "published", "raw_parity_state": "exact", "subject_ref": "d72ab3af8a8923a4", "subject_label": "9 workload families", "environment_baseline_fingerprint_ref": "EBF_LOCAL_V1", "runtime_publication_bundle_ref": "rpb::local::authoritative", "release_publication_parity_ref": "rpp::local::authoritative", "evidence_refs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/environment_ring_policy.json"], "recovery_obligation_refs": ["RDS_LOCAL_V1"], "notes": "EnvironmentBaselineFingerprint alignment is mandatory before a ring can claim it still matches the approved runtime shape.", "blocker_refs": []}, {"compatibility_row_id": "ECM_131_LOCAL_WORKLOAD_FAMILIES", "environment_compatibility_ref": "ECE_131_LOCAL", "environment_ring": "local", "release_ref": "RC_LOCAL_V1", "dimension_code": "workload_families", "dimension_label": "Workload families", "compatibility_state": "exact", "raw_publication_state": "published", "raw_parity_state": "exact", "subject_ref": "wf_public_edge_ingress;wf_shell_delivery_static_publication;wf_shell_delivery_published_gateway;wf_command_orchestration;wf_projection_read_models;wf_integration_dispatch;wf_integration_simulation_lab;wf_data_stateful_plane;wf_assurance_security_control", "subject_label": "9 workload families", "environment_baseline_fingerprint_ref": "EBF_LOCAL_V1", "runtime_publication_bundle_ref": "rpb::local::authoritative", "release_publication_parity_ref": "rpp::local::authoritative", "evidence_refs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/environment_ring_policy.json"], "recovery_obligation_refs": ["RDS_LOCAL_V1"], "notes": "Every ring must preserve the same declared workload-family estate and service-identity map.", "blocker_refs": []}, {"compatibility_row_id": "ECM_131_LOCAL_TRUST_ZONE_BOUNDARIES", "environment_compatibility_ref": "ECE_131_LOCAL", "environment_ring": "local", "release_ref": "RC_LOCAL_V1", "dimension_code": "trust_zone_boundaries", "dimension_label": "Trust-zone boundaries", "compatibility_state": "exact", "raw_publication_state": "published", "raw_parity_state": "exact", "subject_ref": "tzb_application_core_to_assurance_security;tzb_application_core_to_integration_perimeter;tzb_application_core_to_stateful_data;tzb_assurance_security_to_stateful_data;tzb_integration_perimeter_to_assurance_security;tzb_integration_perimeter_to_stateful_data;tzb_public_edge_to_published_gateway;tzb_public_edge_to_shell_delivery;tzb_published_gateway_to_application_core;tzb_published_gateway_to_assurance_security", "subject_label": "10 trust boundaries", "environment_baseline_fingerprint_ref": "EBF_LOCAL_V1", "runtime_publication_bundle_ref": "rpb::local::authoritative", "release_publication_parity_ref": "rpp::local::authoritative", "evidence_refs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/region_resilience_matrix.json"], "recovery_obligation_refs": ["RDS_LOCAL_V1"], "notes": "Ring equivalence is invalid if the trust-zone and boundary inventory drifts.", "blocker_refs": []}, {"compatibility_row_id": "ECM_131_LOCAL_GATEWAY_SURFACES", "environment_compatibility_ref": "ECE_131_LOCAL", "environment_ring": "local", "release_ref": "RC_LOCAL_V1", "dimension_code": "gateway_surfaces", "dimension_label": "Gateway surfaces", "compatibility_state": "partial", "raw_publication_state": "published", "raw_parity_state": "exact", "subject_ref": "gws_patient_intake_web;gws_patient_intake_phone;gws_patient_secure_link_recovery;gws_patient_home;gws_patient_requests;gws_patient_appointments;gws_patient_health_record;gws_patient_messages;gws_patient_embedded_shell;gws_clinician_workspace;gws_clinician_workspace_child;gws_practice_ops_workspace;gws_hub_queue;gws_hub_case_management;gws_pharmacy_console;gws_support_ticket_workspace;gws_support_replay_observe;gws_support_assisted_capture;gws_operations_board;gws_operations_drilldown;gws_governance_shell;gws_assistive_sidecar", "subject_label": "22 gateway surfaces", "environment_baseline_fingerprint_ref": "EBF_LOCAL_V1", "runtime_publication_bundle_ref": "rpb::local::authoritative", "release_publication_parity_ref": "rpp::local::authoritative", "evidence_refs": ["data/analysis/surface_authority_verdicts.json", "data/analysis/release_publication_parity_records.json"], "recovery_obligation_refs": ["RDS_LOCAL_V1"], "notes": "The local ring keeps one exact tuple but current gateway-backed surfaces remain bounded by design lint, accessibility, and browser posture ceilings.", "blocker_refs": ["FZB_131_LOCAL_GATEWAY_SURFACES"]}, {"compatibility_row_id": "ECM_131_LOCAL_CHANNEL_BRIDGE_CAPABILITIES", "environment_compatibility_ref": "ECE_131_LOCAL", "environment_ring": "local", "release_ref": "RC_LOCAL_V1", "dimension_code": "channel_bridge_capabilities", "dimension_label": "Channel and bridge assumptions", "compatibility_state": "exact", "raw_publication_state": "published", "raw_parity_state": "exact", "subject_ref": "MBCS_LOCAL_V1", "subject_label": "CMS_LOCAL_V1", "environment_baseline_fingerprint_ref": "EBF_LOCAL_V1", "runtime_publication_bundle_ref": "rpb::local::authoritative", "release_publication_parity_ref": "rpp::local::authoritative", "evidence_refs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/runtime_publication_bundles.json"], "recovery_obligation_refs": ["RDS_LOCAL_V1"], "notes": "Channel manifests and minimum bridge floors are part of the environment baseline, not optional sidecars.", "blocker_refs": []}, {"compatibility_row_id": "ECM_131_LOCAL_MIGRATION_BACKFILL_POSTURE", "environment_compatibility_ref": "ECE_131_LOCAL", "environment_ring": "local", "release_ref": "RC_LOCAL_V1", "dimension_code": "migration_backfill_posture", "dimension_label": "Migration and backfill posture", "compatibility_state": "exact", "raw_publication_state": "published", "raw_parity_state": "exact", "subject_ref": "SMP_LOCAL_V1", "subject_label": "PBP_LOCAL_V1", "environment_baseline_fingerprint_ref": "EBF_LOCAL_V1", "runtime_publication_bundle_ref": "rpb::local::authoritative", "release_publication_parity_ref": "rpp::local::authoritative", "evidence_refs": ["data/analysis/migration_backfill_control_catalog.json", "data/analysis/release_publication_parity_records.json"], "recovery_obligation_refs": ["RDS_LOCAL_V1"], "notes": "The local seeded tuple proves expand-migrate-contract, dual-read comparison, and contractive cutover without blocking patient request routes.", "blocker_refs": []}, {"compatibility_row_id": "ECM_131_LOCAL_OBSERVABILITY_RESTORE_POSTURE", "environment_compatibility_ref": "ECE_131_LOCAL", "environment_ring": "local", "release_ref": "RC_LOCAL_V1", "dimension_code": "observability_restore_posture", "dimension_label": "Observability and restore posture", "compatibility_state": "exact", "raw_publication_state": "published", "raw_parity_state": "exact", "subject_ref": "LOCAL_VERIFIED_BASELINE", "subject_label": "ORS_101_LOCAL_EXACT_AND_READY", "environment_baseline_fingerprint_ref": "EBF_LOCAL_V1", "runtime_publication_bundle_ref": "rpb::local::authoritative", "release_publication_parity_ref": "rpp::local::authoritative", "evidence_refs": ["data/analysis/build_provenance_integrity_catalog.json", "data/analysis/release_watch_pipeline_catalog.json", "data/analysis/resilience_baseline_catalog.json"], "recovery_obligation_refs": ["RDS_LOCAL_V1"], "notes": "Release-watch probes and restore evidence are both satisfied for the selected ring.", "blocker_refs": []}, {"compatibility_row_id": "ECM_131_CI_PREVIEW_RUNTIME_PUBLICATION_AND_PARITY", "environment_compatibility_ref": "ECE_131_CI_PREVIEW", "environment_ring": "ci-preview", "release_ref": "RC_CI_PREVIEW_V1", "dimension_code": "runtime_publication_and_parity", "dimension_label": "Runtime publication and parity", "compatibility_state": "stale", "raw_publication_state": "stale", "raw_parity_state": "stale", "subject_ref": "rpb::ci-preview::authoritative", "subject_label": "CI Preview", "environment_baseline_fingerprint_ref": "EBF_CI_PREVIEW_V1", "runtime_publication_bundle_ref": "rpb::ci-preview::authoritative", "release_publication_parity_ref": "rpp::ci-preview::authoritative", "evidence_refs": ["data/analysis/runtime_publication_bundles.json", "data/analysis/release_publication_parity_records.json"], "recovery_obligation_refs": ["RDS_CI_PREVIEW_V1"], "notes": "Published runtime truth stays exact only while parity, publication, and provenance consumption stay aligned.", "blocker_refs": ["FZB_131_CI_PREVIEW_RUNTIME_PUBLICATION_AND_PARITY"]}, {"compatibility_row_id": "ECM_131_CI_PREVIEW_RUNTIME_TOPOLOGY", "environment_compatibility_ref": "ECE_131_CI_PREVIEW", "environment_ring": "ci-preview", "release_ref": "RC_CI_PREVIEW_V1", "dimension_code": "runtime_topology", "dimension_label": "Runtime topology", "compatibility_state": "exact", "raw_publication_state": "stale", "raw_parity_state": "stale", "subject_ref": "57e2b872eedab4e4", "subject_label": "9 workload families", "environment_baseline_fingerprint_ref": "EBF_CI_PREVIEW_V1", "runtime_publication_bundle_ref": "rpb::ci-preview::authoritative", "release_publication_parity_ref": "rpp::ci-preview::authoritative", "evidence_refs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/environment_ring_policy.json"], "recovery_obligation_refs": ["RDS_CI_PREVIEW_V1"], "notes": "EnvironmentBaselineFingerprint alignment is mandatory before a ring can claim it still matches the approved runtime shape.", "blocker_refs": []}, {"compatibility_row_id": "ECM_131_CI_PREVIEW_WORKLOAD_FAMILIES", "environment_compatibility_ref": "ECE_131_CI_PREVIEW", "environment_ring": "ci-preview", "release_ref": "RC_CI_PREVIEW_V1", "dimension_code": "workload_families", "dimension_label": "Workload families", "compatibility_state": "exact", "raw_publication_state": "stale", "raw_parity_state": "stale", "subject_ref": "wf_public_edge_ingress;wf_shell_delivery_static_publication;wf_shell_delivery_published_gateway;wf_command_orchestration;wf_projection_read_models;wf_integration_dispatch;wf_integration_simulation_lab;wf_data_stateful_plane;wf_assurance_security_control", "subject_label": "9 workload families", "environment_baseline_fingerprint_ref": "EBF_CI_PREVIEW_V1", "runtime_publication_bundle_ref": "rpb::ci-preview::authoritative", "release_publication_parity_ref": "rpp::ci-preview::authoritative", "evidence_refs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/environment_ring_policy.json"], "recovery_obligation_refs": ["RDS_CI_PREVIEW_V1"], "notes": "Every ring must preserve the same declared workload-family estate and service-identity map.", "blocker_refs": []}, {"compatibility_row_id": "ECM_131_CI_PREVIEW_TRUST_ZONE_BOUNDARIES", "environment_compatibility_ref": "ECE_131_CI_PREVIEW", "environment_ring": "ci-preview", "release_ref": "RC_CI_PREVIEW_V1", "dimension_code": "trust_zone_boundaries", "dimension_label": "Trust-zone boundaries", "compatibility_state": "exact", "raw_publication_state": "stale", "raw_parity_state": "stale", "subject_ref": "tzb_application_core_to_assurance_security;tzb_application_core_to_integration_perimeter;tzb_application_core_to_stateful_data;tzb_assurance_security_to_stateful_data;tzb_integration_perimeter_to_assurance_security;tzb_integration_perimeter_to_stateful_data;tzb_public_edge_to_published_gateway;tzb_public_edge_to_shell_delivery;tzb_published_gateway_to_application_core;tzb_published_gateway_to_assurance_security", "subject_label": "10 trust boundaries", "environment_baseline_fingerprint_ref": "EBF_CI_PREVIEW_V1", "runtime_publication_bundle_ref": "rpb::ci-preview::authoritative", "release_publication_parity_ref": "rpp::ci-preview::authoritative", "evidence_refs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/region_resilience_matrix.json"], "recovery_obligation_refs": ["RDS_CI_PREVIEW_V1"], "notes": "Ring equivalence is invalid if the trust-zone and boundary inventory drifts.", "blocker_refs": []}, {"compatibility_row_id": "ECM_131_CI_PREVIEW_GATEWAY_SURFACES", "environment_compatibility_ref": "ECE_131_CI_PREVIEW", "environment_ring": "ci-preview", "release_ref": "RC_CI_PREVIEW_V1", "dimension_code": "gateway_surfaces", "dimension_label": "Gateway surfaces", "compatibility_state": "blocked", "raw_publication_state": "stale", "raw_parity_state": "stale", "subject_ref": "gws_patient_intake_web;gws_patient_intake_phone;gws_patient_secure_link_recovery;gws_patient_home;gws_patient_requests;gws_patient_appointments;gws_patient_health_record;gws_patient_messages;gws_patient_embedded_shell;gws_clinician_workspace;gws_clinician_workspace_child;gws_practice_ops_workspace;gws_hub_queue;gws_hub_case_management;gws_pharmacy_console;gws_support_ticket_workspace;gws_support_replay_observe;gws_support_assisted_capture;gws_operations_board;gws_operations_drilldown;gws_governance_shell;gws_assistive_sidecar", "subject_label": "22 gateway surfaces", "environment_baseline_fingerprint_ref": "EBF_CI_PREVIEW_V1", "runtime_publication_bundle_ref": "rpb::ci-preview::authoritative", "release_publication_parity_ref": "rpp::ci-preview::authoritative", "evidence_refs": ["data/analysis/surface_authority_verdicts.json", "data/analysis/release_publication_parity_records.json"], "recovery_obligation_refs": ["RDS_CI_PREVIEW_V1"], "notes": "No non-local ring can expose gateway surfaces as compatible while runtime publication, restore, or parity evidence is blocked.", "blocker_refs": ["FZB_131_CI_PREVIEW_GATEWAY_SURFACES"]}, {"compatibility_row_id": "ECM_131_CI_PREVIEW_CHANNEL_BRIDGE_CAPABILITIES", "environment_compatibility_ref": "ECE_131_CI_PREVIEW", "environment_ring": "ci-preview", "release_ref": "RC_CI_PREVIEW_V1", "dimension_code": "channel_bridge_capabilities", "dimension_label": "Channel and bridge assumptions", "compatibility_state": "exact", "raw_publication_state": "stale", "raw_parity_state": "stale", "subject_ref": "MBCS_CI_PREVIEW_V1", "subject_label": "CMS_CI_PREVIEW_V1", "environment_baseline_fingerprint_ref": "EBF_CI_PREVIEW_V1", "runtime_publication_bundle_ref": "rpb::ci-preview::authoritative", "release_publication_parity_ref": "rpp::ci-preview::authoritative", "evidence_refs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/runtime_publication_bundles.json"], "recovery_obligation_refs": ["RDS_CI_PREVIEW_V1"], "notes": "Channel manifests and minimum bridge floors are part of the environment baseline, not optional sidecars.", "blocker_refs": []}, {"compatibility_row_id": "ECM_131_CI_PREVIEW_MIGRATION_BACKFILL_POSTURE", "environment_compatibility_ref": "ECE_131_CI_PREVIEW", "environment_ring": "ci-preview", "release_ref": "RC_CI_PREVIEW_V1", "dimension_code": "migration_backfill_posture", "dimension_label": "Migration and backfill posture", "compatibility_state": "stale", "raw_publication_state": "stale", "raw_parity_state": "stale", "subject_ref": "SMP_CI_PREVIEW_V1", "subject_label": "PBP_CI_PREVIEW_V1", "environment_baseline_fingerprint_ref": "EBF_CI_PREVIEW_V1", "runtime_publication_bundle_ref": "rpb::ci-preview::authoritative", "release_publication_parity_ref": "rpp::ci-preview::authoritative", "evidence_refs": ["data/analysis/migration_backfill_control_catalog.json", "data/analysis/release_publication_parity_records.json"], "recovery_obligation_refs": ["RDS_CI_PREVIEW_V1"], "notes": "Preview remains fail-closed because the current ci-preview publication bundle is already stale and cannot authorize schema or backfill work.", "blocker_refs": ["FZB_131_CI_PREVIEW_MIGRATION_BACKFILL_POSTURE"]}, {"compatibility_row_id": "ECM_131_CI_PREVIEW_OBSERVABILITY_RESTORE_POSTURE", "environment_compatibility_ref": "ECE_131_CI_PREVIEW", "environment_ring": "ci-preview", "release_ref": "RC_CI_PREVIEW_V1", "dimension_code": "observability_restore_posture", "dimension_label": "Observability and restore posture", "compatibility_state": "blocked", "raw_publication_state": "stale", "raw_parity_state": "stale", "subject_ref": "CI_PREVIEW_VERIFIED_BROWSER_SCOPE", "subject_label": "ORS_101_CI-PREVIEW_MISSING_BACKUP_MANIFEST", "environment_baseline_fingerprint_ref": "EBF_CI_PREVIEW_V1", "runtime_publication_bundle_ref": "rpb::ci-preview::authoritative", "release_publication_parity_ref": "rpp::ci-preview::authoritative", "evidence_refs": ["data/analysis/build_provenance_integrity_catalog.json", "data/analysis/release_watch_pipeline_catalog.json", "data/analysis/resilience_baseline_catalog.json"], "recovery_obligation_refs": ["RDS_CI_PREVIEW_V1"], "notes": "Restore authority is blocked by missing manifests, blocked proof, tuple drift, or assurance freeze posture.", "blocker_refs": ["FZB_131_CI_PREVIEW_OBSERVABILITY_RESTORE_POSTURE"]}, {"compatibility_row_id": "ECM_131_INTEGRATION_RUNTIME_PUBLICATION_AND_PARITY", "environment_compatibility_ref": "ECE_131_INTEGRATION", "environment_ring": "integration", "release_ref": "RC_INTEGRATION_V1", "dimension_code": "runtime_publication_and_parity", "dimension_label": "Runtime publication and parity", "compatibility_state": "blocked", "raw_publication_state": "conflict", "raw_parity_state": "conflict", "subject_ref": "rpb::integration::authoritative", "subject_label": "Integration", "environment_baseline_fingerprint_ref": "EBF_INTEGRATION_V1", "runtime_publication_bundle_ref": "rpb::integration::authoritative", "release_publication_parity_ref": "rpp::integration::authoritative", "evidence_refs": ["data/analysis/runtime_publication_bundles.json", "data/analysis/release_publication_parity_records.json"], "recovery_obligation_refs": ["RDS_INTEGRATION_V1"], "notes": "Published runtime truth stays exact only while parity, publication, and provenance consumption stay aligned.", "blocker_refs": ["FZB_131_INTEGRATION_RUNTIME_PUBLICATION_AND_PARITY"]}, {"compatibility_row_id": "ECM_131_INTEGRATION_RUNTIME_TOPOLOGY", "environment_compatibility_ref": "ECE_131_INTEGRATION", "environment_ring": "integration", "release_ref": "RC_INTEGRATION_V1", "dimension_code": "runtime_topology", "dimension_label": "Runtime topology", "compatibility_state": "blocked", "raw_publication_state": "conflict", "raw_parity_state": "conflict", "subject_ref": "2848305b9a588e0a", "subject_label": "9 workload families", "environment_baseline_fingerprint_ref": "EBF_INTEGRATION_V1", "runtime_publication_bundle_ref": "rpb::integration::authoritative", "release_publication_parity_ref": "rpp::integration::authoritative", "evidence_refs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/environment_ring_policy.json"], "recovery_obligation_refs": ["RDS_INTEGRATION_V1"], "notes": "EnvironmentBaselineFingerprint alignment is mandatory before a ring can claim it still matches the approved runtime shape.", "blocker_refs": ["FZB_131_INTEGRATION_RUNTIME_TOPOLOGY"]}, {"compatibility_row_id": "ECM_131_INTEGRATION_WORKLOAD_FAMILIES", "environment_compatibility_ref": "ECE_131_INTEGRATION", "environment_ring": "integration", "release_ref": "RC_INTEGRATION_V1", "dimension_code": "workload_families", "dimension_label": "Workload families", "compatibility_state": "blocked", "raw_publication_state": "conflict", "raw_parity_state": "conflict", "subject_ref": "wf_public_edge_ingress;wf_shell_delivery_static_publication;wf_shell_delivery_published_gateway;wf_command_orchestration;wf_projection_read_models;wf_integration_dispatch;wf_integration_simulation_lab;wf_data_stateful_plane;wf_assurance_security_control", "subject_label": "9 workload families", "environment_baseline_fingerprint_ref": "EBF_INTEGRATION_V1", "runtime_publication_bundle_ref": "rpb::integration::authoritative", "release_publication_parity_ref": "rpp::integration::authoritative", "evidence_refs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/environment_ring_policy.json"], "recovery_obligation_refs": ["RDS_INTEGRATION_V1"], "notes": "Every ring must preserve the same declared workload-family estate and service-identity map.", "blocker_refs": ["FZB_131_INTEGRATION_WORKLOAD_FAMILIES"]}, {"compatibility_row_id": "ECM_131_INTEGRATION_TRUST_ZONE_BOUNDARIES", "environment_compatibility_ref": "ECE_131_INTEGRATION", "environment_ring": "integration", "release_ref": "RC_INTEGRATION_V1", "dimension_code": "trust_zone_boundaries", "dimension_label": "Trust-zone boundaries", "compatibility_state": "blocked", "raw_publication_state": "conflict", "raw_parity_state": "conflict", "subject_ref": "tzb_application_core_to_assurance_security;tzb_application_core_to_integration_perimeter;tzb_application_core_to_stateful_data;tzb_assurance_security_to_stateful_data;tzb_integration_perimeter_to_assurance_security;tzb_integration_perimeter_to_stateful_data;tzb_public_edge_to_published_gateway;tzb_public_edge_to_shell_delivery;tzb_published_gateway_to_application_core;tzb_published_gateway_to_assurance_security", "subject_label": "10 trust boundaries", "environment_baseline_fingerprint_ref": "EBF_INTEGRATION_V1", "runtime_publication_bundle_ref": "rpb::integration::authoritative", "release_publication_parity_ref": "rpp::integration::authoritative", "evidence_refs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/region_resilience_matrix.json"], "recovery_obligation_refs": ["RDS_INTEGRATION_V1"], "notes": "Ring equivalence is invalid if the trust-zone and boundary inventory drifts.", "blocker_refs": ["FZB_131_INTEGRATION_TRUST_ZONE_BOUNDARIES"]}, {"compatibility_row_id": "ECM_131_INTEGRATION_GATEWAY_SURFACES", "environment_compatibility_ref": "ECE_131_INTEGRATION", "environment_ring": "integration", "release_ref": "RC_INTEGRATION_V1", "dimension_code": "gateway_surfaces", "dimension_label": "Gateway surfaces", "compatibility_state": "blocked", "raw_publication_state": "conflict", "raw_parity_state": "conflict", "subject_ref": "gws_patient_intake_web;gws_patient_intake_phone;gws_patient_secure_link_recovery;gws_patient_home;gws_patient_requests;gws_patient_appointments;gws_patient_health_record;gws_patient_messages;gws_patient_embedded_shell;gws_clinician_workspace;gws_clinician_workspace_child;gws_practice_ops_workspace;gws_hub_queue;gws_hub_case_management;gws_pharmacy_console;gws_support_ticket_workspace;gws_support_replay_observe;gws_support_assisted_capture;gws_operations_board;gws_operations_drilldown;gws_governance_shell;gws_assistive_sidecar", "subject_label": "22 gateway surfaces", "environment_baseline_fingerprint_ref": "EBF_INTEGRATION_V1", "runtime_publication_bundle_ref": "rpb::integration::authoritative", "release_publication_parity_ref": "rpp::integration::authoritative", "evidence_refs": ["data/analysis/surface_authority_verdicts.json", "data/analysis/release_publication_parity_records.json"], "recovery_obligation_refs": ["RDS_INTEGRATION_V1"], "notes": "No non-local ring can expose gateway surfaces as compatible while runtime publication, restore, or parity evidence is blocked.", "blocker_refs": ["FZB_131_INTEGRATION_GATEWAY_SURFACES"]}, {"compatibility_row_id": "ECM_131_INTEGRATION_CHANNEL_BRIDGE_CAPABILITIES", "environment_compatibility_ref": "ECE_131_INTEGRATION", "environment_ring": "integration", "release_ref": "RC_INTEGRATION_V1", "dimension_code": "channel_bridge_capabilities", "dimension_label": "Channel and bridge assumptions", "compatibility_state": "blocked", "raw_publication_state": "conflict", "raw_parity_state": "conflict", "subject_ref": "MBCS_INTEGRATION_V1", "subject_label": "CMS_INTEGRATION_V1", "environment_baseline_fingerprint_ref": "EBF_INTEGRATION_V1", "runtime_publication_bundle_ref": "rpb::integration::authoritative", "release_publication_parity_ref": "rpp::integration::authoritative", "evidence_refs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/runtime_publication_bundles.json"], "recovery_obligation_refs": ["RDS_INTEGRATION_V1"], "notes": "Channel manifests and minimum bridge floors are part of the environment baseline, not optional sidecars.", "blocker_refs": ["FZB_131_INTEGRATION_CHANNEL_BRIDGE_CAPABILITIES"]}, {"compatibility_row_id": "ECM_131_INTEGRATION_MIGRATION_BACKFILL_POSTURE", "environment_compatibility_ref": "ECE_131_INTEGRATION", "environment_ring": "integration", "release_ref": "RC_INTEGRATION_V1", "dimension_code": "migration_backfill_posture", "dimension_label": "Migration and backfill posture", "compatibility_state": "blocked", "raw_publication_state": "conflict", "raw_parity_state": "conflict", "subject_ref": "SMP_INTEGRATION_V1", "subject_label": "PBP_INTEGRATION_V1", "environment_baseline_fingerprint_ref": "EBF_INTEGRATION_V1", "runtime_publication_bundle_ref": "rpb::integration::authoritative", "release_publication_parity_ref": "rpp::integration::authoritative", "evidence_refs": ["data/analysis/migration_backfill_control_catalog.json", "data/analysis/release_publication_parity_records.json"], "recovery_obligation_refs": ["RDS_INTEGRATION_V1"], "notes": "Integration cannot start because the runtime tuple is in conflict and the backfill runner refuses to treat the projection worker as business truth.", "blocker_refs": ["FZB_131_INTEGRATION_MIGRATION_BACKFILL_POSTURE"]}, {"compatibility_row_id": "ECM_131_INTEGRATION_OBSERVABILITY_RESTORE_POSTURE", "environment_compatibility_ref": "ECE_131_INTEGRATION", "environment_ring": "integration", "release_ref": "RC_INTEGRATION_V1", "dimension_code": "observability_restore_posture", "dimension_label": "Observability and restore posture", "compatibility_state": "blocked", "raw_publication_state": "conflict", "raw_parity_state": "conflict", "subject_ref": "INTEGRATION_SIGNATURE_DRIFT_QUARANTINED", "subject_label": "ORS_101_INTEGRATION_BLOCKED_RESTORE_PROOF", "environment_baseline_fingerprint_ref": "EBF_INTEGRATION_V1", "runtime_publication_bundle_ref": "rpb::integration::authoritative", "release_publication_parity_ref": "rpp::integration::authoritative", "evidence_refs": ["data/analysis/build_provenance_integrity_catalog.json", "data/analysis/release_watch_pipeline_catalog.json", "data/analysis/resilience_baseline_catalog.json"], "recovery_obligation_refs": ["RDS_INTEGRATION_V1"], "notes": "Restore authority is blocked by missing manifests, blocked proof, tuple drift, or assurance freeze posture.", "blocker_refs": ["FZB_131_INTEGRATION_OBSERVABILITY_RESTORE_POSTURE"]}, {"compatibility_row_id": "ECM_131_PREPROD_RUNTIME_PUBLICATION_AND_PARITY", "environment_compatibility_ref": "ECE_131_PREPROD", "environment_ring": "preprod", "release_ref": "RC_PREPROD_V1", "dimension_code": "runtime_publication_and_parity", "dimension_label": "Runtime publication and parity", "compatibility_state": "blocked", "raw_publication_state": "withdrawn", "raw_parity_state": "withdrawn", "subject_ref": "rpb::preprod::authoritative", "subject_label": "Preprod", "environment_baseline_fingerprint_ref": "EBF_PREPROD_V1", "runtime_publication_bundle_ref": "rpb::preprod::authoritative", "release_publication_parity_ref": "rpp::preprod::authoritative", "evidence_refs": ["data/analysis/runtime_publication_bundles.json", "data/analysis/release_publication_parity_records.json"], "recovery_obligation_refs": ["RDS_PREPROD_V1"], "notes": "Published runtime truth stays exact only while parity, publication, and provenance consumption stay aligned.", "blocker_refs": ["FZB_131_PREPROD_RUNTIME_PUBLICATION_AND_PARITY"]}, {"compatibility_row_id": "ECM_131_PREPROD_RUNTIME_TOPOLOGY", "environment_compatibility_ref": "ECE_131_PREPROD", "environment_ring": "preprod", "release_ref": "RC_PREPROD_V1", "dimension_code": "runtime_topology", "dimension_label": "Runtime topology", "compatibility_state": "blocked", "raw_publication_state": "withdrawn", "raw_parity_state": "withdrawn", "subject_ref": "94728acd97f0913b", "subject_label": "16 workload families", "environment_baseline_fingerprint_ref": "EBF_PREPROD_V1", "runtime_publication_bundle_ref": "rpb::preprod::authoritative", "release_publication_parity_ref": "rpp::preprod::authoritative", "evidence_refs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/environment_ring_policy.json"], "recovery_obligation_refs": ["RDS_PREPROD_V1"], "notes": "EnvironmentBaselineFingerprint alignment is mandatory before a ring can claim it still matches the approved runtime shape.", "blocker_refs": ["FZB_131_PREPROD_RUNTIME_TOPOLOGY"]}, {"compatibility_row_id": "ECM_131_PREPROD_WORKLOAD_FAMILIES", "environment_compatibility_ref": "ECE_131_PREPROD", "environment_ring": "preprod", "release_ref": "RC_PREPROD_V1", "dimension_code": "workload_families", "dimension_label": "Workload families", "compatibility_state": "blocked", "raw_publication_state": "withdrawn", "raw_parity_state": "withdrawn", "subject_ref": "wf_public_edge_ingress;wf_shell_delivery_static_publication;wf_shell_delivery_published_gateway;wf_command_orchestration;wf_projection_read_models;wf_integration_dispatch;wf_data_stateful_plane;wf_assurance_security_control;wf_public_edge_ingress;wf_shell_delivery_static_publication;wf_shell_delivery_published_gateway;wf_command_orchestration;wf_projection_read_models;wf_integration_dispatch;wf_data_stateful_plane;wf_assurance_security_control", "subject_label": "16 workload families", "environment_baseline_fingerprint_ref": "EBF_PREPROD_V1", "runtime_publication_bundle_ref": "rpb::preprod::authoritative", "release_publication_parity_ref": "rpp::preprod::authoritative", "evidence_refs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/environment_ring_policy.json"], "recovery_obligation_refs": ["RDS_PREPROD_V1"], "notes": "Every ring must preserve the same declared workload-family estate and service-identity map.", "blocker_refs": ["FZB_131_PREPROD_WORKLOAD_FAMILIES"]}, {"compatibility_row_id": "ECM_131_PREPROD_TRUST_ZONE_BOUNDARIES", "environment_compatibility_ref": "ECE_131_PREPROD", "environment_ring": "preprod", "release_ref": "RC_PREPROD_V1", "dimension_code": "trust_zone_boundaries", "dimension_label": "Trust-zone boundaries", "compatibility_state": "blocked", "raw_publication_state": "withdrawn", "raw_parity_state": "withdrawn", "subject_ref": "tzb_application_core_to_assurance_security;tzb_application_core_to_integration_perimeter;tzb_application_core_to_stateful_data;tzb_assurance_security_to_stateful_data;tzb_integration_perimeter_to_assurance_security;tzb_integration_perimeter_to_stateful_data;tzb_public_edge_to_published_gateway;tzb_public_edge_to_shell_delivery;tzb_published_gateway_to_application_core;tzb_published_gateway_to_assurance_security", "subject_label": "10 trust boundaries", "environment_baseline_fingerprint_ref": "EBF_PREPROD_V1", "runtime_publication_bundle_ref": "rpb::preprod::authoritative", "release_publication_parity_ref": "rpp::preprod::authoritative", "evidence_refs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/region_resilience_matrix.json"], "recovery_obligation_refs": ["RDS_PREPROD_V1"], "notes": "Ring equivalence is invalid if the trust-zone and boundary inventory drifts.", "blocker_refs": ["FZB_131_PREPROD_TRUST_ZONE_BOUNDARIES"]}, {"compatibility_row_id": "ECM_131_PREPROD_GATEWAY_SURFACES", "environment_compatibility_ref": "ECE_131_PREPROD", "environment_ring": "preprod", "release_ref": "RC_PREPROD_V1", "dimension_code": "gateway_surfaces", "dimension_label": "Gateway surfaces", "compatibility_state": "blocked", "raw_publication_state": "withdrawn", "raw_parity_state": "withdrawn", "subject_ref": "gws_patient_intake_web;gws_patient_intake_phone;gws_patient_secure_link_recovery;gws_patient_home;gws_patient_requests;gws_patient_appointments;gws_patient_health_record;gws_patient_messages;gws_patient_embedded_shell;gws_clinician_workspace;gws_clinician_workspace_child;gws_practice_ops_workspace;gws_hub_queue;gws_hub_case_management;gws_pharmacy_console;gws_support_ticket_workspace;gws_support_replay_observe;gws_support_assisted_capture;gws_operations_board;gws_operations_drilldown;gws_governance_shell;gws_assistive_sidecar", "subject_label": "22 gateway surfaces", "environment_baseline_fingerprint_ref": "EBF_PREPROD_V1", "runtime_publication_bundle_ref": "rpb::preprod::authoritative", "release_publication_parity_ref": "rpp::preprod::authoritative", "evidence_refs": ["data/analysis/surface_authority_verdicts.json", "data/analysis/release_publication_parity_records.json"], "recovery_obligation_refs": ["RDS_PREPROD_V1"], "notes": "No non-local ring can expose gateway surfaces as compatible while runtime publication, restore, or parity evidence is blocked.", "blocker_refs": ["FZB_131_PREPROD_GATEWAY_SURFACES"]}, {"compatibility_row_id": "ECM_131_PREPROD_CHANNEL_BRIDGE_CAPABILITIES", "environment_compatibility_ref": "ECE_131_PREPROD", "environment_ring": "preprod", "release_ref": "RC_PREPROD_V1", "dimension_code": "channel_bridge_capabilities", "dimension_label": "Channel and bridge assumptions", "compatibility_state": "blocked", "raw_publication_state": "withdrawn", "raw_parity_state": "withdrawn", "subject_ref": "MBCS_PREPROD_V1", "subject_label": "CMS_PREPROD_V1", "environment_baseline_fingerprint_ref": "EBF_PREPROD_V1", "runtime_publication_bundle_ref": "rpb::preprod::authoritative", "release_publication_parity_ref": "rpp::preprod::authoritative", "evidence_refs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/runtime_publication_bundles.json"], "recovery_obligation_refs": ["RDS_PREPROD_V1"], "notes": "Channel manifests and minimum bridge floors are part of the environment baseline, not optional sidecars.", "blocker_refs": ["FZB_131_PREPROD_CHANNEL_BRIDGE_CAPABILITIES"]}, {"compatibility_row_id": "ECM_131_PREPROD_MIGRATION_BACKFILL_POSTURE", "environment_compatibility_ref": "ECE_131_PREPROD", "environment_ring": "preprod", "release_ref": "RC_PREPROD_V1", "dimension_code": "migration_backfill_posture", "dimension_label": "Migration and backfill posture", "compatibility_state": "blocked", "raw_publication_state": "withdrawn", "raw_parity_state": "withdrawn", "subject_ref": "SMP_PREPROD_V1", "subject_label": "PBP_PREPROD_V1", "environment_baseline_fingerprint_ref": "EBF_PREPROD_V1", "runtime_publication_bundle_ref": "rpb::preprod::authoritative", "release_publication_parity_ref": "rpp::preprod::authoritative", "evidence_refs": ["data/analysis/migration_backfill_control_catalog.json", "data/analysis/release_publication_parity_records.json"], "recovery_obligation_refs": ["RDS_PREPROD_V1"], "notes": "Withdrawn publication authority blocks support replay migration entirely; no backfill or route live posture is inferred from historical rows.", "blocker_refs": ["FZB_131_PREPROD_MIGRATION_BACKFILL_POSTURE"]}, {"compatibility_row_id": "ECM_131_PREPROD_OBSERVABILITY_RESTORE_POSTURE", "environment_compatibility_ref": "ECE_131_PREPROD", "environment_ring": "preprod", "release_ref": "RC_PREPROD_V1", "dimension_code": "observability_restore_posture", "dimension_label": "Observability and restore posture", "compatibility_state": "blocked", "raw_publication_state": "withdrawn", "raw_parity_state": "withdrawn", "subject_ref": "PREPROD_BINDING_DRIFT_QUARANTINED", "subject_label": "ORS_101_PREPROD_TUPLE_DRIFT", "environment_baseline_fingerprint_ref": "EBF_PREPROD_V1", "runtime_publication_bundle_ref": "rpb::preprod::authoritative", "release_publication_parity_ref": "rpp::preprod::authoritative", "evidence_refs": ["data/analysis/build_provenance_integrity_catalog.json", "data/analysis/release_watch_pipeline_catalog.json", "data/analysis/resilience_baseline_catalog.json"], "recovery_obligation_refs": ["RDS_PREPROD_V1"], "notes": "Restore authority is blocked by missing manifests, blocked proof, tuple drift, or assurance freeze posture.", "blocker_refs": ["FZB_131_PREPROD_OBSERVABILITY_RESTORE_POSTURE"]}, {"compatibility_row_id": "ECM_131_PRODUCTION_RUNTIME_PUBLICATION_AND_PARITY", "environment_compatibility_ref": "ECE_131_PRODUCTION", "environment_ring": "production", "release_ref": "RC_PRODUCTION_V1", "dimension_code": "runtime_publication_and_parity", "dimension_label": "Runtime publication and parity", "compatibility_state": "stale", "raw_publication_state": "stale", "raw_parity_state": "stale", "subject_ref": "rpb::production::authoritative", "subject_label": "Production", "environment_baseline_fingerprint_ref": "EBF_PRODUCTION_V1", "runtime_publication_bundle_ref": "rpb::production::authoritative", "release_publication_parity_ref": "rpp::production::authoritative", "evidence_refs": ["data/analysis/runtime_publication_bundles.json", "data/analysis/release_publication_parity_records.json"], "recovery_obligation_refs": ["RDS_PRODUCTION_V1"], "notes": "Published runtime truth stays exact only while parity, publication, and provenance consumption stay aligned.", "blocker_refs": ["FZB_131_PRODUCTION_RUNTIME_PUBLICATION_AND_PARITY"]}, {"compatibility_row_id": "ECM_131_PRODUCTION_RUNTIME_TOPOLOGY", "environment_compatibility_ref": "ECE_131_PRODUCTION", "environment_ring": "production", "release_ref": "RC_PRODUCTION_V1", "dimension_code": "runtime_topology", "dimension_label": "Runtime topology", "compatibility_state": "blocked", "raw_publication_state": "stale", "raw_parity_state": "stale", "subject_ref": "f2a1a973d6123f1e", "subject_label": "16 workload families", "environment_baseline_fingerprint_ref": "EBF_PRODUCTION_V1", "runtime_publication_bundle_ref": "rpb::production::authoritative", "release_publication_parity_ref": "rpp::production::authoritative", "evidence_refs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/environment_ring_policy.json"], "recovery_obligation_refs": ["RDS_PRODUCTION_V1"], "notes": "EnvironmentBaselineFingerprint alignment is mandatory before a ring can claim it still matches the approved runtime shape.", "blocker_refs": ["FZB_131_PRODUCTION_RUNTIME_TOPOLOGY"]}, {"compatibility_row_id": "ECM_131_PRODUCTION_WORKLOAD_FAMILIES", "environment_compatibility_ref": "ECE_131_PRODUCTION", "environment_ring": "production", "release_ref": "RC_PRODUCTION_V1", "dimension_code": "workload_families", "dimension_label": "Workload families", "compatibility_state": "blocked", "raw_publication_state": "stale", "raw_parity_state": "stale", "subject_ref": "wf_public_edge_ingress;wf_shell_delivery_static_publication;wf_shell_delivery_published_gateway;wf_command_orchestration;wf_projection_read_models;wf_integration_dispatch;wf_data_stateful_plane;wf_assurance_security_control;wf_public_edge_ingress;wf_shell_delivery_static_publication;wf_shell_delivery_published_gateway;wf_command_orchestration;wf_projection_read_models;wf_integration_dispatch;wf_data_stateful_plane;wf_assurance_security_control", "subject_label": "16 workload families", "environment_baseline_fingerprint_ref": "EBF_PRODUCTION_V1", "runtime_publication_bundle_ref": "rpb::production::authoritative", "release_publication_parity_ref": "rpp::production::authoritative", "evidence_refs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/environment_ring_policy.json"], "recovery_obligation_refs": ["RDS_PRODUCTION_V1"], "notes": "Every ring must preserve the same declared workload-family estate and service-identity map.", "blocker_refs": ["FZB_131_PRODUCTION_WORKLOAD_FAMILIES"]}, {"compatibility_row_id": "ECM_131_PRODUCTION_TRUST_ZONE_BOUNDARIES", "environment_compatibility_ref": "ECE_131_PRODUCTION", "environment_ring": "production", "release_ref": "RC_PRODUCTION_V1", "dimension_code": "trust_zone_boundaries", "dimension_label": "Trust-zone boundaries", "compatibility_state": "blocked", "raw_publication_state": "stale", "raw_parity_state": "stale", "subject_ref": "tzb_application_core_to_assurance_security;tzb_application_core_to_integration_perimeter;tzb_application_core_to_stateful_data;tzb_assurance_security_to_stateful_data;tzb_integration_perimeter_to_assurance_security;tzb_integration_perimeter_to_stateful_data;tzb_public_edge_to_published_gateway;tzb_public_edge_to_shell_delivery;tzb_published_gateway_to_application_core;tzb_published_gateway_to_assurance_security", "subject_label": "10 trust boundaries", "environment_baseline_fingerprint_ref": "EBF_PRODUCTION_V1", "runtime_publication_bundle_ref": "rpb::production::authoritative", "release_publication_parity_ref": "rpp::production::authoritative", "evidence_refs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/region_resilience_matrix.json"], "recovery_obligation_refs": ["RDS_PRODUCTION_V1"], "notes": "Ring equivalence is invalid if the trust-zone and boundary inventory drifts.", "blocker_refs": ["FZB_131_PRODUCTION_TRUST_ZONE_BOUNDARIES"]}, {"compatibility_row_id": "ECM_131_PRODUCTION_GATEWAY_SURFACES", "environment_compatibility_ref": "ECE_131_PRODUCTION", "environment_ring": "production", "release_ref": "RC_PRODUCTION_V1", "dimension_code": "gateway_surfaces", "dimension_label": "Gateway surfaces", "compatibility_state": "blocked", "raw_publication_state": "stale", "raw_parity_state": "stale", "subject_ref": "gws_patient_intake_web;gws_patient_intake_phone;gws_patient_secure_link_recovery;gws_patient_home;gws_patient_requests;gws_patient_appointments;gws_patient_health_record;gws_patient_messages;gws_patient_embedded_shell;gws_clinician_workspace;gws_clinician_workspace_child;gws_practice_ops_workspace;gws_hub_queue;gws_hub_case_management;gws_pharmacy_console;gws_support_ticket_workspace;gws_support_replay_observe;gws_support_assisted_capture;gws_operations_board;gws_operations_drilldown;gws_governance_shell;gws_assistive_sidecar", "subject_label": "22 gateway surfaces", "environment_baseline_fingerprint_ref": "EBF_PRODUCTION_V1", "runtime_publication_bundle_ref": "rpb::production::authoritative", "release_publication_parity_ref": "rpp::production::authoritative", "evidence_refs": ["data/analysis/surface_authority_verdicts.json", "data/analysis/release_publication_parity_records.json"], "recovery_obligation_refs": ["RDS_PRODUCTION_V1"], "notes": "No non-local ring can expose gateway surfaces as compatible while runtime publication, restore, or parity evidence is blocked.", "blocker_refs": ["FZB_131_PRODUCTION_GATEWAY_SURFACES"]}, {"compatibility_row_id": "ECM_131_PRODUCTION_CHANNEL_BRIDGE_CAPABILITIES", "environment_compatibility_ref": "ECE_131_PRODUCTION", "environment_ring": "production", "release_ref": "RC_PRODUCTION_V1", "dimension_code": "channel_bridge_capabilities", "dimension_label": "Channel and bridge assumptions", "compatibility_state": "blocked", "raw_publication_state": "stale", "raw_parity_state": "stale", "subject_ref": "MBCS_PRODUCTION_V1", "subject_label": "CMS_PRODUCTION_V1", "environment_baseline_fingerprint_ref": "EBF_PRODUCTION_V1", "runtime_publication_bundle_ref": "rpb::production::authoritative", "release_publication_parity_ref": "rpp::production::authoritative", "evidence_refs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/runtime_publication_bundles.json"], "recovery_obligation_refs": ["RDS_PRODUCTION_V1"], "notes": "Channel manifests and minimum bridge floors are part of the environment baseline, not optional sidecars.", "blocker_refs": ["FZB_131_PRODUCTION_CHANNEL_BRIDGE_CAPABILITIES"]}, {"compatibility_row_id": "ECM_131_PRODUCTION_MIGRATION_BACKFILL_POSTURE", "environment_compatibility_ref": "ECE_131_PRODUCTION", "environment_ring": "production", "release_ref": "RC_PRODUCTION_V1", "dimension_code": "migration_backfill_posture", "dimension_label": "Migration and backfill posture", "compatibility_state": "blocked", "raw_publication_state": "stale", "raw_parity_state": "stale", "subject_ref": "SMP_PRODUCTION_V1", "subject_label": "PBP_PRODUCTION_V1", "environment_baseline_fingerprint_ref": "EBF_PRODUCTION_V1", "runtime_publication_bundle_ref": "rpb::production::authoritative", "release_publication_parity_ref": "rpp::production::authoritative", "evidence_refs": ["data/analysis/migration_backfill_control_catalog.json", "data/analysis/release_publication_parity_records.json"], "recovery_obligation_refs": ["RDS_PRODUCTION_V1"], "notes": "No governed migration or backfill evidence is published for this ring.", "blocker_refs": ["FZB_131_PRODUCTION_MIGRATION_BACKFILL_POSTURE"]}, {"compatibility_row_id": "ECM_131_PRODUCTION_OBSERVABILITY_RESTORE_POSTURE", "environment_compatibility_ref": "ECE_131_PRODUCTION", "environment_ring": "production", "release_ref": "RC_PRODUCTION_V1", "dimension_code": "observability_restore_posture", "dimension_label": "Observability and restore posture", "compatibility_state": "blocked", "raw_publication_state": "stale", "raw_parity_state": "stale", "subject_ref": "PRODUCTION_REVOKED_WITHDRAWN", "subject_label": "missing_readiness_snapshot", "environment_baseline_fingerprint_ref": "EBF_PRODUCTION_V1", "runtime_publication_bundle_ref": "rpb::production::authoritative", "release_publication_parity_ref": "rpp::production::authoritative", "evidence_refs": ["data/analysis/build_provenance_integrity_catalog.json", "data/analysis/release_watch_pipeline_catalog.json", "data/analysis/resilience_baseline_catalog.json"], "recovery_obligation_refs": ["RDS_PRODUCTION_V1"], "notes": "No ring-specific restore rehearsal or operational readiness snapshot is published for this environment.", "blocker_refs": ["FZB_131_PRODUCTION_OBSERVABILITY_RESTORE_POSTURE"]}], "blockers": [{"blockerId": "FZB_131_LOCAL_GATEWAY_SURFACES", "environmentRing": "local", "releaseRef": "RC_LOCAL_V1", "dimensionCode": "gateway_surfaces", "dimensionLabel": "Gateway surfaces", "compatibilityState": "partial", "severity": "warning", "title": "Local Gateway surfaces partial", "summary": "The local ring keeps one exact tuple but current gateway-backed surfaces remain bounded by design lint, accessibility, and browser posture ceilings.", "relatedMatrixRowId": "ECM_131_LOCAL_GATEWAY_SURFACES", "evidenceRefs": ["data/analysis/surface_authority_verdicts.json", "data/analysis/release_publication_parity_records.json"], "recoveryObligationRefs": ["RDS_LOCAL_V1"], "rawPublicationState": "published", "rawParityState": "exact"}, {"blockerId": "FZB_131_LOCAL_SUMMARY", "environmentRing": "local", "releaseRef": "RC_LOCAL_V1", "dimensionCode": "environment_summary", "dimensionLabel": "Environment summary", "compatibilityState": "partial", "severity": "warning", "title": "Local compatibility summary partial", "summary": "Local remains partial because one or more ring dimensions are not exact. Promotion cannot treat the ring as equivalent until those rows recover.", "relatedMatrixRowId": null, "evidenceRefs": ["ECE_131_LOCAL", "data/release/environment_compatibility_matrix.csv"], "recoveryObligationRefs": ["RDS_LOCAL_V1"], "blockingReasonRefs": ["FZB_131_LOCAL_GATEWAY_SURFACES"]}, {"blockerId": "FZB_131_CI_PREVIEW_RUNTIME_PUBLICATION_AND_PARITY", "environmentRing": "ci-preview", "releaseRef": "RC_CI_PREVIEW_V1", "dimensionCode": "runtime_publication_and_parity", "dimensionLabel": "Runtime publication and parity", "compatibilityState": "stale", "severity": "blocked", "title": "CI Preview Runtime publication and parity stale", "summary": "Published runtime truth stays exact only while parity, publication, and provenance consumption stay aligned.", "relatedMatrixRowId": "ECM_131_CI_PREVIEW_RUNTIME_PUBLICATION_AND_PARITY", "evidenceRefs": ["data/analysis/runtime_publication_bundles.json", "data/analysis/release_publication_parity_records.json"], "recoveryObligationRefs": ["RDS_CI_PREVIEW_V1"], "rawPublicationState": "stale", "rawParityState": "stale"}, {"blockerId": "FZB_131_CI_PREVIEW_GATEWAY_SURFACES", "environmentRing": "ci-preview", "releaseRef": "RC_CI_PREVIEW_V1", "dimensionCode": "gateway_surfaces", "dimensionLabel": "Gateway surfaces", "compatibilityState": "blocked", "severity": "blocked", "title": "CI Preview Gateway surfaces blocked", "summary": "No non-local ring can expose gateway surfaces as compatible while runtime publication, restore, or parity evidence is blocked.", "relatedMatrixRowId": "ECM_131_CI_PREVIEW_GATEWAY_SURFACES", "evidenceRefs": ["data/analysis/surface_authority_verdicts.json", "data/analysis/release_publication_parity_records.json"], "recoveryObligationRefs": ["RDS_CI_PREVIEW_V1"], "rawPublicationState": "stale", "rawParityState": "stale"}, {"blockerId": "FZB_131_CI_PREVIEW_MIGRATION_BACKFILL_POSTURE", "environmentRing": "ci-preview", "releaseRef": "RC_CI_PREVIEW_V1", "dimensionCode": "migration_backfill_posture", "dimensionLabel": "Migration and backfill posture", "compatibilityState": "stale", "severity": "blocked", "title": "CI Preview Migration and backfill posture stale", "summary": "Preview remains fail-closed because the current ci-preview publication bundle is already stale and cannot authorize schema or backfill work.", "relatedMatrixRowId": "ECM_131_CI_PREVIEW_MIGRATION_BACKFILL_POSTURE", "evidenceRefs": ["data/analysis/migration_backfill_control_catalog.json", "data/analysis/release_publication_parity_records.json"], "recoveryObligationRefs": ["RDS_CI_PREVIEW_V1"], "rawPublicationState": "stale", "rawParityState": "stale"}, {"blockerId": "FZB_131_CI_PREVIEW_OBSERVABILITY_RESTORE_POSTURE", "environmentRing": "ci-preview", "releaseRef": "RC_CI_PREVIEW_V1", "dimensionCode": "observability_restore_posture", "dimensionLabel": "Observability and restore posture", "compatibilityState": "blocked", "severity": "blocked", "title": "CI Preview Observability and restore posture blocked", "summary": "Restore authority is blocked by missing manifests, blocked proof, tuple drift, or assurance freeze posture.", "relatedMatrixRowId": "ECM_131_CI_PREVIEW_OBSERVABILITY_RESTORE_POSTURE", "evidenceRefs": ["data/analysis/build_provenance_integrity_catalog.json", "data/analysis/release_watch_pipeline_catalog.json", "data/analysis/resilience_baseline_catalog.json"], "recoveryObligationRefs": ["RDS_CI_PREVIEW_V1"], "rawPublicationState": "stale", "rawParityState": "stale"}, {"blockerId": "FZB_131_CI_PREVIEW_SUMMARY", "environmentRing": "ci-preview", "releaseRef": "RC_CI_PREVIEW_V1", "dimensionCode": "environment_summary", "dimensionLabel": "Environment summary", "compatibilityState": "blocked", "severity": "blocked", "title": "CI Preview compatibility summary blocked", "summary": "CI Preview remains blocked because one or more ring dimensions are not exact. Promotion cannot treat the ring as equivalent until those rows recover.", "relatedMatrixRowId": null, "evidenceRefs": ["ECE_131_CI_PREVIEW", "data/release/environment_compatibility_matrix.csv"], "recoveryObligationRefs": ["RDS_CI_PREVIEW_V1"], "blockingReasonRefs": ["FZB_131_CI_PREVIEW_RUNTIME_PUBLICATION_AND_PARITY", "FZB_131_CI_PREVIEW_GATEWAY_SURFACES", "FZB_131_CI_PREVIEW_MIGRATION_BACKFILL_POSTURE", "FZB_131_CI_PREVIEW_OBSERVABILITY_RESTORE_POSTURE"]}, {"blockerId": "FZB_131_INTEGRATION_RUNTIME_PUBLICATION_AND_PARITY", "environmentRing": "integration", "releaseRef": "RC_INTEGRATION_V1", "dimensionCode": "runtime_publication_and_parity", "dimensionLabel": "Runtime publication and parity", "compatibilityState": "blocked", "severity": "blocked", "title": "Integration Runtime publication and parity blocked", "summary": "Published runtime truth stays exact only while parity, publication, and provenance consumption stay aligned.", "relatedMatrixRowId": "ECM_131_INTEGRATION_RUNTIME_PUBLICATION_AND_PARITY", "evidenceRefs": ["data/analysis/runtime_publication_bundles.json", "data/analysis/release_publication_parity_records.json"], "recoveryObligationRefs": ["RDS_INTEGRATION_V1"], "rawPublicationState": "conflict", "rawParityState": "conflict"}, {"blockerId": "FZB_131_INTEGRATION_RUNTIME_TOPOLOGY", "environmentRing": "integration", "releaseRef": "RC_INTEGRATION_V1", "dimensionCode": "runtime_topology", "dimensionLabel": "Runtime topology", "compatibilityState": "blocked", "severity": "blocked", "title": "Integration Runtime topology blocked", "summary": "EnvironmentBaselineFingerprint alignment is mandatory before a ring can claim it still matches the approved runtime shape.", "relatedMatrixRowId": "ECM_131_INTEGRATION_RUNTIME_TOPOLOGY", "evidenceRefs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/environment_ring_policy.json"], "recoveryObligationRefs": ["RDS_INTEGRATION_V1"], "rawPublicationState": "conflict", "rawParityState": "conflict"}, {"blockerId": "FZB_131_INTEGRATION_WORKLOAD_FAMILIES", "environmentRing": "integration", "releaseRef": "RC_INTEGRATION_V1", "dimensionCode": "workload_families", "dimensionLabel": "Workload families", "compatibilityState": "blocked", "severity": "blocked", "title": "Integration Workload families blocked", "summary": "Every ring must preserve the same declared workload-family estate and service-identity map.", "relatedMatrixRowId": "ECM_131_INTEGRATION_WORKLOAD_FAMILIES", "evidenceRefs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/environment_ring_policy.json"], "recoveryObligationRefs": ["RDS_INTEGRATION_V1"], "rawPublicationState": "conflict", "rawParityState": "conflict"}, {"blockerId": "FZB_131_INTEGRATION_TRUST_ZONE_BOUNDARIES", "environmentRing": "integration", "releaseRef": "RC_INTEGRATION_V1", "dimensionCode": "trust_zone_boundaries", "dimensionLabel": "Trust-zone boundaries", "compatibilityState": "blocked", "severity": "blocked", "title": "Integration Trust-zone boundaries blocked", "summary": "Ring equivalence is invalid if the trust-zone and boundary inventory drifts.", "relatedMatrixRowId": "ECM_131_INTEGRATION_TRUST_ZONE_BOUNDARIES", "evidenceRefs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/region_resilience_matrix.json"], "recoveryObligationRefs": ["RDS_INTEGRATION_V1"], "rawPublicationState": "conflict", "rawParityState": "conflict"}, {"blockerId": "FZB_131_INTEGRATION_GATEWAY_SURFACES", "environmentRing": "integration", "releaseRef": "RC_INTEGRATION_V1", "dimensionCode": "gateway_surfaces", "dimensionLabel": "Gateway surfaces", "compatibilityState": "blocked", "severity": "blocked", "title": "Integration Gateway surfaces blocked", "summary": "No non-local ring can expose gateway surfaces as compatible while runtime publication, restore, or parity evidence is blocked.", "relatedMatrixRowId": "ECM_131_INTEGRATION_GATEWAY_SURFACES", "evidenceRefs": ["data/analysis/surface_authority_verdicts.json", "data/analysis/release_publication_parity_records.json"], "recoveryObligationRefs": ["RDS_INTEGRATION_V1"], "rawPublicationState": "conflict", "rawParityState": "conflict"}, {"blockerId": "FZB_131_INTEGRATION_CHANNEL_BRIDGE_CAPABILITIES", "environmentRing": "integration", "releaseRef": "RC_INTEGRATION_V1", "dimensionCode": "channel_bridge_capabilities", "dimensionLabel": "Channel and bridge assumptions", "compatibilityState": "blocked", "severity": "blocked", "title": "Integration Channel and bridge assumptions blocked", "summary": "Channel manifests and minimum bridge floors are part of the environment baseline, not optional sidecars.", "relatedMatrixRowId": "ECM_131_INTEGRATION_CHANNEL_BRIDGE_CAPABILITIES", "evidenceRefs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/runtime_publication_bundles.json"], "recoveryObligationRefs": ["RDS_INTEGRATION_V1"], "rawPublicationState": "conflict", "rawParityState": "conflict"}, {"blockerId": "FZB_131_INTEGRATION_MIGRATION_BACKFILL_POSTURE", "environmentRing": "integration", "releaseRef": "RC_INTEGRATION_V1", "dimensionCode": "migration_backfill_posture", "dimensionLabel": "Migration and backfill posture", "compatibilityState": "blocked", "severity": "blocked", "title": "Integration Migration and backfill posture blocked", "summary": "Integration cannot start because the runtime tuple is in conflict and the backfill runner refuses to treat the projection worker as business truth.", "relatedMatrixRowId": "ECM_131_INTEGRATION_MIGRATION_BACKFILL_POSTURE", "evidenceRefs": ["data/analysis/migration_backfill_control_catalog.json", "data/analysis/release_publication_parity_records.json"], "recoveryObligationRefs": ["RDS_INTEGRATION_V1"], "rawPublicationState": "conflict", "rawParityState": "conflict"}, {"blockerId": "FZB_131_INTEGRATION_OBSERVABILITY_RESTORE_POSTURE", "environmentRing": "integration", "releaseRef": "RC_INTEGRATION_V1", "dimensionCode": "observability_restore_posture", "dimensionLabel": "Observability and restore posture", "compatibilityState": "blocked", "severity": "blocked", "title": "Integration Observability and restore posture blocked", "summary": "Restore authority is blocked by missing manifests, blocked proof, tuple drift, or assurance freeze posture.", "relatedMatrixRowId": "ECM_131_INTEGRATION_OBSERVABILITY_RESTORE_POSTURE", "evidenceRefs": ["data/analysis/build_provenance_integrity_catalog.json", "data/analysis/release_watch_pipeline_catalog.json", "data/analysis/resilience_baseline_catalog.json"], "recoveryObligationRefs": ["RDS_INTEGRATION_V1"], "rawPublicationState": "conflict", "rawParityState": "conflict"}, {"blockerId": "FZB_131_INTEGRATION_SUMMARY", "environmentRing": "integration", "releaseRef": "RC_INTEGRATION_V1", "dimensionCode": "environment_summary", "dimensionLabel": "Environment summary", "compatibilityState": "blocked", "severity": "blocked", "title": "Integration compatibility summary blocked", "summary": "Integration remains blocked because one or more ring dimensions are not exact. Promotion cannot treat the ring as equivalent until those rows recover.", "relatedMatrixRowId": null, "evidenceRefs": ["ECE_131_INTEGRATION", "data/release/environment_compatibility_matrix.csv"], "recoveryObligationRefs": ["RDS_INTEGRATION_V1"], "blockingReasonRefs": ["FZB_131_INTEGRATION_RUNTIME_PUBLICATION_AND_PARITY", "FZB_131_INTEGRATION_RUNTIME_TOPOLOGY", "FZB_131_INTEGRATION_WORKLOAD_FAMILIES", "FZB_131_INTEGRATION_TRUST_ZONE_BOUNDARIES", "FZB_131_INTEGRATION_GATEWAY_SURFACES", "FZB_131_INTEGRATION_CHANNEL_BRIDGE_CAPABILITIES", "FZB_131_INTEGRATION_MIGRATION_BACKFILL_POSTURE", "FZB_131_INTEGRATION_OBSERVABILITY_RESTORE_POSTURE"]}, {"blockerId": "FZB_131_PREPROD_RUNTIME_PUBLICATION_AND_PARITY", "environmentRing": "preprod", "releaseRef": "RC_PREPROD_V1", "dimensionCode": "runtime_publication_and_parity", "dimensionLabel": "Runtime publication and parity", "compatibilityState": "blocked", "severity": "blocked", "title": "Preprod Runtime publication and parity blocked", "summary": "Published runtime truth stays exact only while parity, publication, and provenance consumption stay aligned.", "relatedMatrixRowId": "ECM_131_PREPROD_RUNTIME_PUBLICATION_AND_PARITY", "evidenceRefs": ["data/analysis/runtime_publication_bundles.json", "data/analysis/release_publication_parity_records.json"], "recoveryObligationRefs": ["RDS_PREPROD_V1"], "rawPublicationState": "withdrawn", "rawParityState": "withdrawn"}, {"blockerId": "FZB_131_PREPROD_RUNTIME_TOPOLOGY", "environmentRing": "preprod", "releaseRef": "RC_PREPROD_V1", "dimensionCode": "runtime_topology", "dimensionLabel": "Runtime topology", "compatibilityState": "blocked", "severity": "blocked", "title": "Preprod Runtime topology blocked", "summary": "EnvironmentBaselineFingerprint alignment is mandatory before a ring can claim it still matches the approved runtime shape.", "relatedMatrixRowId": "ECM_131_PREPROD_RUNTIME_TOPOLOGY", "evidenceRefs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/environment_ring_policy.json"], "recoveryObligationRefs": ["RDS_PREPROD_V1"], "rawPublicationState": "withdrawn", "rawParityState": "withdrawn"}, {"blockerId": "FZB_131_PREPROD_WORKLOAD_FAMILIES", "environmentRing": "preprod", "releaseRef": "RC_PREPROD_V1", "dimensionCode": "workload_families", "dimensionLabel": "Workload families", "compatibilityState": "blocked", "severity": "blocked", "title": "Preprod Workload families blocked", "summary": "Every ring must preserve the same declared workload-family estate and service-identity map.", "relatedMatrixRowId": "ECM_131_PREPROD_WORKLOAD_FAMILIES", "evidenceRefs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/environment_ring_policy.json"], "recoveryObligationRefs": ["RDS_PREPROD_V1"], "rawPublicationState": "withdrawn", "rawParityState": "withdrawn"}, {"blockerId": "FZB_131_PREPROD_TRUST_ZONE_BOUNDARIES", "environmentRing": "preprod", "releaseRef": "RC_PREPROD_V1", "dimensionCode": "trust_zone_boundaries", "dimensionLabel": "Trust-zone boundaries", "compatibilityState": "blocked", "severity": "blocked", "title": "Preprod Trust-zone boundaries blocked", "summary": "Ring equivalence is invalid if the trust-zone and boundary inventory drifts.", "relatedMatrixRowId": "ECM_131_PREPROD_TRUST_ZONE_BOUNDARIES", "evidenceRefs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/region_resilience_matrix.json"], "recoveryObligationRefs": ["RDS_PREPROD_V1"], "rawPublicationState": "withdrawn", "rawParityState": "withdrawn"}, {"blockerId": "FZB_131_PREPROD_GATEWAY_SURFACES", "environmentRing": "preprod", "releaseRef": "RC_PREPROD_V1", "dimensionCode": "gateway_surfaces", "dimensionLabel": "Gateway surfaces", "compatibilityState": "blocked", "severity": "blocked", "title": "Preprod Gateway surfaces blocked", "summary": "No non-local ring can expose gateway surfaces as compatible while runtime publication, restore, or parity evidence is blocked.", "relatedMatrixRowId": "ECM_131_PREPROD_GATEWAY_SURFACES", "evidenceRefs": ["data/analysis/surface_authority_verdicts.json", "data/analysis/release_publication_parity_records.json"], "recoveryObligationRefs": ["RDS_PREPROD_V1"], "rawPublicationState": "withdrawn", "rawParityState": "withdrawn"}, {"blockerId": "FZB_131_PREPROD_CHANNEL_BRIDGE_CAPABILITIES", "environmentRing": "preprod", "releaseRef": "RC_PREPROD_V1", "dimensionCode": "channel_bridge_capabilities", "dimensionLabel": "Channel and bridge assumptions", "compatibilityState": "blocked", "severity": "blocked", "title": "Preprod Channel and bridge assumptions blocked", "summary": "Channel manifests and minimum bridge floors are part of the environment baseline, not optional sidecars.", "relatedMatrixRowId": "ECM_131_PREPROD_CHANNEL_BRIDGE_CAPABILITIES", "evidenceRefs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/runtime_publication_bundles.json"], "recoveryObligationRefs": ["RDS_PREPROD_V1"], "rawPublicationState": "withdrawn", "rawParityState": "withdrawn"}, {"blockerId": "FZB_131_PREPROD_MIGRATION_BACKFILL_POSTURE", "environmentRing": "preprod", "releaseRef": "RC_PREPROD_V1", "dimensionCode": "migration_backfill_posture", "dimensionLabel": "Migration and backfill posture", "compatibilityState": "blocked", "severity": "blocked", "title": "Preprod Migration and backfill posture blocked", "summary": "Withdrawn publication authority blocks support replay migration entirely; no backfill or route live posture is inferred from historical rows.", "relatedMatrixRowId": "ECM_131_PREPROD_MIGRATION_BACKFILL_POSTURE", "evidenceRefs": ["data/analysis/migration_backfill_control_catalog.json", "data/analysis/release_publication_parity_records.json"], "recoveryObligationRefs": ["RDS_PREPROD_V1"], "rawPublicationState": "withdrawn", "rawParityState": "withdrawn"}, {"blockerId": "FZB_131_PREPROD_OBSERVABILITY_RESTORE_POSTURE", "environmentRing": "preprod", "releaseRef": "RC_PREPROD_V1", "dimensionCode": "observability_restore_posture", "dimensionLabel": "Observability and restore posture", "compatibilityState": "blocked", "severity": "blocked", "title": "Preprod Observability and restore posture blocked", "summary": "Restore authority is blocked by missing manifests, blocked proof, tuple drift, or assurance freeze posture.", "relatedMatrixRowId": "ECM_131_PREPROD_OBSERVABILITY_RESTORE_POSTURE", "evidenceRefs": ["data/analysis/build_provenance_integrity_catalog.json", "data/analysis/release_watch_pipeline_catalog.json", "data/analysis/resilience_baseline_catalog.json"], "recoveryObligationRefs": ["RDS_PREPROD_V1"], "rawPublicationState": "withdrawn", "rawParityState": "withdrawn"}, {"blockerId": "FZB_131_PREPROD_SUMMARY", "environmentRing": "preprod", "releaseRef": "RC_PREPROD_V1", "dimensionCode": "environment_summary", "dimensionLabel": "Environment summary", "compatibilityState": "blocked", "severity": "blocked", "title": "Preprod compatibility summary blocked", "summary": "Preprod remains blocked because one or more ring dimensions are not exact. Promotion cannot treat the ring as equivalent until those rows recover.", "relatedMatrixRowId": null, "evidenceRefs": ["ECE_131_PREPROD", "data/release/environment_compatibility_matrix.csv"], "recoveryObligationRefs": ["RDS_PREPROD_V1"], "blockingReasonRefs": ["FZB_131_PREPROD_RUNTIME_PUBLICATION_AND_PARITY", "FZB_131_PREPROD_RUNTIME_TOPOLOGY", "FZB_131_PREPROD_WORKLOAD_FAMILIES", "FZB_131_PREPROD_TRUST_ZONE_BOUNDARIES", "FZB_131_PREPROD_GATEWAY_SURFACES", "FZB_131_PREPROD_CHANNEL_BRIDGE_CAPABILITIES", "FZB_131_PREPROD_MIGRATION_BACKFILL_POSTURE", "FZB_131_PREPROD_OBSERVABILITY_RESTORE_POSTURE"]}, {"blockerId": "FZB_131_PRODUCTION_RUNTIME_PUBLICATION_AND_PARITY", "environmentRing": "production", "releaseRef": "RC_PRODUCTION_V1", "dimensionCode": "runtime_publication_and_parity", "dimensionLabel": "Runtime publication and parity", "compatibilityState": "stale", "severity": "blocked", "title": "Production Runtime publication and parity stale", "summary": "Published runtime truth stays exact only while parity, publication, and provenance consumption stay aligned.", "relatedMatrixRowId": "ECM_131_PRODUCTION_RUNTIME_PUBLICATION_AND_PARITY", "evidenceRefs": ["data/analysis/runtime_publication_bundles.json", "data/analysis/release_publication_parity_records.json"], "recoveryObligationRefs": ["RDS_PRODUCTION_V1"], "rawPublicationState": "stale", "rawParityState": "stale"}, {"blockerId": "FZB_131_PRODUCTION_RUNTIME_TOPOLOGY", "environmentRing": "production", "releaseRef": "RC_PRODUCTION_V1", "dimensionCode": "runtime_topology", "dimensionLabel": "Runtime topology", "compatibilityState": "blocked", "severity": "blocked", "title": "Production Runtime topology blocked", "summary": "EnvironmentBaselineFingerprint alignment is mandatory before a ring can claim it still matches the approved runtime shape.", "relatedMatrixRowId": "ECM_131_PRODUCTION_RUNTIME_TOPOLOGY", "evidenceRefs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/environment_ring_policy.json"], "recoveryObligationRefs": ["RDS_PRODUCTION_V1"], "rawPublicationState": "stale", "rawParityState": "stale"}, {"blockerId": "FZB_131_PRODUCTION_WORKLOAD_FAMILIES", "environmentRing": "production", "releaseRef": "RC_PRODUCTION_V1", "dimensionCode": "workload_families", "dimensionLabel": "Workload families", "compatibilityState": "blocked", "severity": "blocked", "title": "Production Workload families blocked", "summary": "Every ring must preserve the same declared workload-family estate and service-identity map.", "relatedMatrixRowId": "ECM_131_PRODUCTION_WORKLOAD_FAMILIES", "evidenceRefs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/environment_ring_policy.json"], "recoveryObligationRefs": ["RDS_PRODUCTION_V1"], "rawPublicationState": "stale", "rawParityState": "stale"}, {"blockerId": "FZB_131_PRODUCTION_TRUST_ZONE_BOUNDARIES", "environmentRing": "production", "releaseRef": "RC_PRODUCTION_V1", "dimensionCode": "trust_zone_boundaries", "dimensionLabel": "Trust-zone boundaries", "compatibilityState": "blocked", "severity": "blocked", "title": "Production Trust-zone boundaries blocked", "summary": "Ring equivalence is invalid if the trust-zone and boundary inventory drifts.", "relatedMatrixRowId": "ECM_131_PRODUCTION_TRUST_ZONE_BOUNDARIES", "evidenceRefs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/region_resilience_matrix.json"], "recoveryObligationRefs": ["RDS_PRODUCTION_V1"], "rawPublicationState": "stale", "rawParityState": "stale"}, {"blockerId": "FZB_131_PRODUCTION_GATEWAY_SURFACES", "environmentRing": "production", "releaseRef": "RC_PRODUCTION_V1", "dimensionCode": "gateway_surfaces", "dimensionLabel": "Gateway surfaces", "compatibilityState": "blocked", "severity": "blocked", "title": "Production Gateway surfaces blocked", "summary": "No non-local ring can expose gateway surfaces as compatible while runtime publication, restore, or parity evidence is blocked.", "relatedMatrixRowId": "ECM_131_PRODUCTION_GATEWAY_SURFACES", "evidenceRefs": ["data/analysis/surface_authority_verdicts.json", "data/analysis/release_publication_parity_records.json"], "recoveryObligationRefs": ["RDS_PRODUCTION_V1"], "rawPublicationState": "stale", "rawParityState": "stale"}, {"blockerId": "FZB_131_PRODUCTION_CHANNEL_BRIDGE_CAPABILITIES", "environmentRing": "production", "releaseRef": "RC_PRODUCTION_V1", "dimensionCode": "channel_bridge_capabilities", "dimensionLabel": "Channel and bridge assumptions", "compatibilityState": "blocked", "severity": "blocked", "title": "Production Channel and bridge assumptions blocked", "summary": "Channel manifests and minimum bridge floors are part of the environment baseline, not optional sidecars.", "relatedMatrixRowId": "ECM_131_PRODUCTION_CHANNEL_BRIDGE_CAPABILITIES", "evidenceRefs": ["data/analysis/runtime_topology_manifest.json", "data/analysis/runtime_publication_bundles.json"], "recoveryObligationRefs": ["RDS_PRODUCTION_V1"], "rawPublicationState": "stale", "rawParityState": "stale"}, {"blockerId": "FZB_131_PRODUCTION_MIGRATION_BACKFILL_POSTURE", "environmentRing": "production", "releaseRef": "RC_PRODUCTION_V1", "dimensionCode": "migration_backfill_posture", "dimensionLabel": "Migration and backfill posture", "compatibilityState": "blocked", "severity": "blocked", "title": "Production Migration and backfill posture blocked", "summary": "No governed migration or backfill evidence is published for this ring.", "relatedMatrixRowId": "ECM_131_PRODUCTION_MIGRATION_BACKFILL_POSTURE", "evidenceRefs": ["data/analysis/migration_backfill_control_catalog.json", "data/analysis/release_publication_parity_records.json"], "recoveryObligationRefs": ["RDS_PRODUCTION_V1"], "rawPublicationState": "stale", "rawParityState": "stale"}, {"blockerId": "FZB_131_PRODUCTION_OBSERVABILITY_RESTORE_POSTURE", "environmentRing": "production", "releaseRef": "RC_PRODUCTION_V1", "dimensionCode": "observability_restore_posture", "dimensionLabel": "Observability and restore posture", "compatibilityState": "blocked", "severity": "blocked", "title": "Production Observability and restore posture blocked", "summary": "No ring-specific restore rehearsal or operational readiness snapshot is published for this environment.", "relatedMatrixRowId": "ECM_131_PRODUCTION_OBSERVABILITY_RESTORE_POSTURE", "evidenceRefs": ["data/analysis/build_provenance_integrity_catalog.json", "data/analysis/release_watch_pipeline_catalog.json", "data/analysis/resilience_baseline_catalog.json"], "recoveryObligationRefs": ["RDS_PRODUCTION_V1"], "rawPublicationState": "stale", "rawParityState": "stale"}, {"blockerId": "FZB_131_PRODUCTION_SUMMARY", "environmentRing": "production", "releaseRef": "RC_PRODUCTION_V1", "dimensionCode": "environment_summary", "dimensionLabel": "Environment summary", "compatibilityState": "blocked", "severity": "blocked", "title": "Production compatibility summary blocked", "summary": "Production remains blocked because one or more ring dimensions are not exact. Promotion cannot treat the ring as equivalent until those rows recover.", "relatedMatrixRowId": null, "evidenceRefs": ["ECE_131_PRODUCTION", "data/release/environment_compatibility_matrix.csv"], "recoveryObligationRefs": ["RDS_PRODUCTION_V1"], "blockingReasonRefs": ["FZB_131_PRODUCTION_RUNTIME_PUBLICATION_AND_PARITY", "FZB_131_PRODUCTION_RUNTIME_TOPOLOGY", "FZB_131_PRODUCTION_WORKLOAD_FAMILIES", "FZB_131_PRODUCTION_TRUST_ZONE_BOUNDARIES", "FZB_131_PRODUCTION_GATEWAY_SURFACES", "FZB_131_PRODUCTION_CHANNEL_BRIDGE_CAPABILITIES", "FZB_131_PRODUCTION_MIGRATION_BACKFILL_POSTURE", "FZB_131_PRODUCTION_OBSERVABILITY_RESTORE_POSTURE"]}, {"blockerId": "FZB_131_CI_PREVIEW_LEGACY_RELEASE_ROW_DRIFT", "environmentRing": "ci-preview", "releaseRef": "RC_CI_PREVIEW_V1", "dimensionCode": "legacy_release_candidate_drift", "dimensionLabel": "Legacy release-candidate drift", "compatibilityState": "blocked", "severity": "blocked", "title": "CI preview release row overruns later parity truth", "summary": "The earlier release-candidate row still reports ci-preview as exact while the published parity record, runtime bundle, migration runner, and resilience pack all treat the ring as stale or blocked. The freeze pack binds to the later published truth.", "relatedMatrixRowId": "ECM_131_CI_PREVIEW_RUNTIME_PUBLICATION_AND_PARITY", "evidenceRefs": ["data/analysis/runtime_publication_bundles.json", "data/analysis/release_publication_parity_records.json", "data/analysis/migration_backfill_control_catalog.json", "data/analysis/resilience_baseline_catalog.json"], "recoveryObligationRefs": ["RDS_CI_PREVIEW_V1"]}], "summary": {"freezeVerdict": "exact", "ringCount": 5, "exactRingCount": 0, "partialRingCount": 1, "blockedOrStaleRingCount": 4, "blockerCount": 35, "localSurfaceSummary": {"row_count": 23, "inventoried_surface_count": 22, "route_family_count": 20, "publishable_live_count": 0, "recovery_only_count": 7, "partial_count": 13, "blocked_count": 3, "drifted_count": 0, "calm_allowed_count": 0, "calm_suppressed_count": 21, "diagnostic_only_count": 2, "writable_allowed_count": 0, "writable_blocked_count": 16, "writable_recovery_only_count": 7}, "selectedWatchScenarioId": "LOCAL_SATISFIED", "selectedResilienceScenarioId": "LOCAL_EXACT_READY", "selectedMigrationScenarioId": "LOCAL_READY"}, "stateBadges": {"exact": "Exact", "partial": "Partial", "stale": "Stale", "blocked": "Blocked"}};
+      const ringFilter = document.querySelector("[data-testid='filter-ring']");
+      const blockerFilter = document.querySelector("[data-testid='filter-blocker-state']");
+      const candidateEntry = document.querySelector("[data-testid='candidate-entry']");
+      const tupleBraid = document.querySelector("[data-testid='tuple-braid']");
+      const tupleTableBody = document.querySelector("[data-testid='tuple-table'] tbody");
+      const ringGrid = document.querySelector("[data-testid='ring-ladder']");
+      const ringTableBody = document.querySelector("[data-testid='ring-table'] tbody");
+      const compatibilityTableBody = document.querySelector("[data-testid='compatibility-table'] tbody");
+      const blockerTableBody = document.querySelector("[data-testid='blocker-matrix'] tbody");
+      const evidenceTableBody = document.querySelector("[data-testid='evidence-table'] tbody");
+      const inspectorTitle = document.getElementById("inspector-title");
+      const inspectorSummary = document.getElementById("inspector-summary");
+      const inspectorRefs = document.getElementById("inspector-refs");
+      const inspectorReasons = document.getElementById("inspector-reasons");
+
+      const releaseCandidate = boardData.releaseCandidate;
+      const ringSummaries = boardData.ringSummaries;
+      const matrixRows = boardData.matrixRows;
+      const blockers = boardData.blockers;
+      const selectedState = { kind: "candidate", id: releaseCandidate.releaseRef };
+
+      const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const syncReducedMotion = () => {
+        document.body.dataset.reducedMotion = reducedMotionQuery.matches ? "true" : "false";
+      };
+      syncReducedMotion();
+      reducedMotionQuery.addEventListener("change", syncReducedMotion);
+
+      document.querySelector("[data-testid='summary-release-ref']").textContent = releaseCandidate.releaseRef;
+      document.querySelector("[data-testid='summary-tuple-hash']").textContent = releaseCandidate.candidateTupleHash.slice(0, 12);
+      document.querySelector("[data-testid='summary-blocker-count']").textContent = String(blockers.length);
+      candidateEntry.innerHTML = `
+        <div class="meta-label">Selected candidate</div>
+        <div style="display:grid;gap:8px;">
+          <strong>${releaseCandidate.releaseRef}</strong>
+          <span class="mono">${releaseCandidate.releaseApprovalFreezeRef}</span>
+        </div>
+      `;
+      candidateEntry.addEventListener("click", () => selectCandidate());
+
+      const ringCountCopy = ringSummaries.reduce((acc, ring) => {
+        acc[ring.overallCompatibilityState] = (acc[ring.overallCompatibilityState] || 0) + 1;
+        return acc;
+      }, {});
+      document.querySelector("[data-testid='summary-ring-counts']").textContent =
+        `${ringCountCopy.exact || 0} exact / ${ringCountCopy.partial || 0} partial / ${(ringCountCopy.blocked || 0) + (ringCountCopy.stale || 0)} blocked`;
+
+      for (const ring of ringSummaries) {
+        const option = document.createElement("option");
+        option.value = ring.environmentRing;
+        option.textContent = ring.environmentRing;
+        ringFilter.append(option);
+      }
+
+      const tupleStages = [
+        {
+          id: "candidate",
+          title: "Candidate",
+          summary: releaseCandidate.releaseRef,
+          detail: releaseCandidate.gitRef,
+        },
+        {
+          id: "freeze",
+          title: "Freeze",
+          summary: releaseCandidate.releaseApprovalFreezeRef,
+          detail: releaseCandidate.compilationTupleHash,
+        },
+        {
+          id: "publication",
+          title: "Publication",
+          summary: releaseCandidate.runtimePublicationBundleRef,
+          detail: releaseCandidate.releasePublicationParityRef,
+        },
+        {
+          id: "verification",
+          title: "Verification",
+          summary: releaseCandidate.releaseContractVerificationMatrixRef,
+          detail: releaseCandidate.releaseContractMatrixHash,
+        },
+        {
+          id: "promotion",
+          title: "Ring evidence",
+          summary: `${ringSummaries.length} rings`,
+          detail: releaseCandidate.environmentCompatibilityEvidenceRefs.length + " refs",
+        },
+      ];
+
+      tupleStages.forEach((stage, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "tuple-button";
+        button.dataset.testid = `tuple-button-${stage.id}`;
+        button.dataset.focusGroup = "tuple";
+        button.dataset.focusIndex = String(index);
+        button.innerHTML = `
+          <div class="meta-label">${stage.title}</div>
+          <div style="display:grid;gap:8px;">
+            <strong>${stage.summary}</strong>
+            <span class="mono">${stage.detail}</span>
+          </div>
+        `;
+        button.addEventListener("click", () => selectCandidate(stage.id));
+        button.addEventListener("keydown", (event) => handleGroupArrows(event, ".tuple-button"));
+        tupleBraid.append(button);
+      });
+
+      const tupleTableRows = [
+        ["releaseRef", releaseCandidate.releaseRef, releaseCandidate.freezeVerdict],
+        ["releaseApprovalFreezeRef", releaseCandidate.releaseApprovalFreezeRef, "exact"],
+        ["runtimePublicationBundleRef", releaseCandidate.runtimePublicationBundleRef, "exact"],
+        ["releasePublicationParityRef", releaseCandidate.releasePublicationParityRef, "exact"],
+        ["environmentCompatibilityEvidenceRefs", String(releaseCandidate.environmentCompatibilityEvidenceRefs.length), "mixed"],
+      ];
+      tupleTableRows.forEach((row) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${row[0]}</td><td class="mono">${row[1]}</td><td>${row[2]}</td>`;
+        tupleTableBody.append(tr);
+      });
+
+      function renderRingRows() {
+        ringGrid.innerHTML = "";
+        ringTableBody.innerHTML = "";
+        const activeRingFilter = ringFilter.value;
+        for (const [index, ring] of ringSummaries.entries()) {
+          if (activeRingFilter !== "all" && activeRingFilter !== ring.environmentRing) continue;
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "ring-button";
+          button.dataset.focusGroup = "ring";
+          button.dataset.focusIndex = String(index);
+          button.dataset.testid = `ring-row-${ring.environmentRing}`;
+          button.innerHTML = `
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;">
+              <strong>${ring.environmentRing}</strong>
+              <span class="badge state-${ring.overallCompatibilityState}">${ring.overallCompatibilityState}</span>
+            </div>
+            <div class="list" style="margin-top:10px;">
+              <div class="list-item"><span class="meta-label">Fingerprint</span><div class="mono">${ring.environmentBaselineFingerprintRef}</div></div>
+              <div class="list-item"><span class="meta-label">Publication</span><div>${ring.dimensionStates.runtime_publication_and_parity}</div></div>
+            </div>
+          `;
+          button.addEventListener("click", () => selectRing(ring.environmentRing));
+          button.addEventListener("keydown", (event) => handleGroupArrows(event, ".ring-button"));
+          ringGrid.append(button);
+
+          const tr = document.createElement("tr");
+          tr.dataset.testid = `ring-table-row-${ring.environmentRing}`;
+          tr.innerHTML = `
+            <td>${ring.environmentRing}</td>
+            <td>${ring.overallCompatibilityState}</td>
+            <td class="mono">${ring.ringFingerprintState}</td>
+            <td>${ring.dimensionStates.runtime_publication_and_parity}</td>
+          `;
+          ringTableBody.append(tr);
+        }
+      }
+
+      function renderCompatibilityRows() {
+        compatibilityTableBody.innerHTML = "";
+        const rows = matrixRows.filter((row) => {
+          const activeRingFilter = ringFilter.value;
+          if (activeRingFilter !== "all" && row.environment_ring !== activeRingFilter) return false;
+          if (selectedState.kind === "ring" && row.environment_ring !== selectedState.id) return false;
+          if (selectedState.kind === "blocker") {
+            const blocker = blockers.find((item) => item.blockerId === selectedState.id);
+            return blocker ? row.compatibility_row_id === blocker.relatedMatrixRowId : false;
+          }
+          return selectedState.kind === "candidate" ? row.environment_ring === "local" : true;
+        });
+        rows.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.dataset.selected = selectedState.kind === "blocker"
+            ? String(blockers.find((item) => item.blockerId === selectedState.id)?.relatedMatrixRowId === row.compatibility_row_id)
+            : String(selectedState.kind === "ring" && selectedState.id === row.environment_ring);
+          tr.innerHTML = `
+            <td>${row.dimension_label}</td>
+            <td><span class="badge state-${row.compatibility_state}">${row.compatibility_state}</span></td>
+            <td class="mono">${row.subject_ref}</td>
+            <td>${row.evidence_refs.join("<br />")}</td>
+          `;
+          compatibilityTableBody.append(tr);
+        });
+      }
+
+      function renderBlockers() {
+        blockerTableBody.innerHTML = "";
+        const activeRingFilter = ringFilter.value;
+        const activeStateFilter = blockerFilter.value;
+        blockers
+          .filter((blocker) => {
+            if (activeRingFilter !== "all" && blocker.environmentRing !== activeRingFilter) return false;
+            if (activeStateFilter !== "all" && blocker.compatibilityState !== activeStateFilter) return false;
+            if (selectedState.kind === "ring" && blocker.environmentRing !== selectedState.id) return false;
+            return true;
+          })
+          .forEach((blocker, index) => {
+            const tr = document.createElement("tr");
+            tr.dataset.testid = `blocker-table-row-${blocker.blockerId}`;
+            tr.dataset.selected = String(selectedState.kind === "blocker" && selectedState.id === blocker.blockerId);
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "blocker-button";
+            button.dataset.testid = `blocker-row-${blocker.blockerId}`;
+            button.dataset.focusGroup = "blocker";
+            button.dataset.focusIndex = String(index);
+            button.innerHTML = `
+              <div style="display:grid;gap:8px;">
+                <strong>${blocker.blockerId}</strong>
+                <span>${blocker.title}</span>
+              </div>
+            `;
+            button.addEventListener("click", () => selectBlocker(blocker.blockerId));
+            button.addEventListener("keydown", (event) => handleGroupArrows(event, ".blocker-button"));
+            const blockerCell = document.createElement("td");
+            blockerCell.append(button);
+            tr.append(blockerCell);
+            const ringCell = document.createElement("td");
+            ringCell.textContent = blocker.environmentRing;
+            tr.append(ringCell);
+            const dimensionCell = document.createElement("td");
+            dimensionCell.textContent = blocker.dimensionLabel;
+            tr.append(dimensionCell);
+            const stateCell = document.createElement("td");
+            stateCell.innerHTML = `<span class="badge state-${blocker.compatibilityState}">${blocker.compatibilityState}</span>`;
+            tr.append(stateCell);
+            blockerTableBody.append(tr);
+          });
+      }
+
+      function renderEvidenceRows(kind, item) {
+        evidenceTableBody.innerHTML = "";
+        let rows = [];
+        if (kind === "candidate") {
+          rows = [
+            ["releaseRef", releaseCandidate.releaseRef],
+            ["releaseApprovalFreezeRef", releaseCandidate.releaseApprovalFreezeRef],
+            ["runtimePublicationBundleRef", releaseCandidate.runtimePublicationBundleRef],
+            ["releasePublicationParityRef", releaseCandidate.releasePublicationParityRef],
+            ["releaseContractVerificationMatrixRef", releaseCandidate.releaseContractVerificationMatrixRef],
+            ["environmentCompatibilityEvidenceRefs", releaseCandidate.environmentCompatibilityEvidenceRefs.join(", ")],
+          ];
+        } else if (kind === "ring") {
+          rows = [
+            ["environmentCompatibilityRef", item.environmentCompatibilityRef],
+            ["environmentBaselineFingerprintRef", item.environmentBaselineFingerprintRef],
+            ["runtimePublicationBundleRef", item.runtimePublicationBundleRef],
+            ["releasePublicationParityRef", item.releasePublicationParityRef],
+            ["blockerRefs", item.blockerRefs.join(", ") || "none"],
+          ];
+        } else if (kind === "blocker") {
+          rows = [
+            ["blockerId", item.blockerId],
+            ["dimension", item.dimensionLabel],
+            ["evidenceRefs", item.evidenceRefs.join(", ")],
+            ["recoveryObligationRefs", (item.recoveryObligationRefs || []).join(", ") || "none"],
+          ];
+        }
+        rows.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td>${row[0]}</td><td class="mono">${row[1]}</td>`;
+          evidenceTableBody.append(tr);
+        });
+      }
+
+      function renderInspector(kind, item) {
+        inspectorTitle.innerHTML = "";
+        inspectorSummary.innerHTML = "";
+        inspectorRefs.innerHTML = "";
+        inspectorReasons.innerHTML = "";
+
+        if (kind === "candidate") {
+          inspectorTitle.innerHTML = `<strong>${releaseCandidate.releaseRef}</strong> <span class="badge state-${releaseCandidate.freezeVerdict}">${releaseCandidate.freezeVerdict}</span>`;
+          inspectorSummary.innerHTML = `<p>${releaseCandidate.notes[0]}</p>`;
+          [
+            ["releaseApprovalFreezeRef", releaseCandidate.releaseApprovalFreezeRef],
+            ["runtimePublicationBundleRef", releaseCandidate.runtimePublicationBundleRef],
+            ["releasePublicationParityRef", releaseCandidate.releasePublicationParityRef],
+            ["compilationTupleHash", releaseCandidate.compilationTupleHash],
+          ].forEach(([label, value]) => {
+            inspectorRefs.innerHTML += `<dt class="meta-label">${label}</dt><dd class="mono">${value}</dd>`;
+          });
+          releaseCandidate.reasonRefs.forEach((reason) => {
+            inspectorReasons.innerHTML += `<div class="list-item mono">${reason}</div>`;
+          });
+        }
+        if (kind === "ring") {
+          inspectorTitle.innerHTML = `<strong>${item.environmentRing}</strong> <span class="badge state-${item.overallCompatibilityState}">${item.overallCompatibilityState}</span>`;
+          inspectorSummary.innerHTML = `<p>${item.notes}</p>`;
+          [
+            ["environmentCompatibilityRef", item.environmentCompatibilityRef],
+            ["environmentBaselineFingerprintRef", item.environmentBaselineFingerprintRef],
+            ["runtimePublicationBundleRef", item.runtimePublicationBundleRef],
+            ["releasePublicationParityRef", item.releasePublicationParityRef],
+          ].forEach(([label, value]) => {
+            inspectorRefs.innerHTML += `<dt class="meta-label">${label}</dt><dd class="mono">${value}</dd>`;
+          });
+          item.blockerRefs.forEach((reason) => {
+            inspectorReasons.innerHTML += `<div class="list-item mono">${reason}</div>`;
+          });
+        }
+        if (kind === "blocker") {
+          inspectorTitle.innerHTML = `<strong>${item.blockerId}</strong> <span class="badge state-${item.compatibilityState}">${item.compatibilityState}</span>`;
+          inspectorSummary.innerHTML = `<p>${item.summary}</p>`;
+          [
+            ["environmentRing", item.environmentRing],
+            ["dimensionLabel", item.dimensionLabel],
+            ["relatedMatrixRowId", item.relatedMatrixRowId || "summary-only"],
+          ].forEach(([label, value]) => {
+            inspectorRefs.innerHTML += `<dt class="meta-label">${label}</dt><dd class="mono">${value}</dd>`;
+          });
+          (item.blockingReasonRefs || []).forEach((reason) => {
+            inspectorReasons.innerHTML += `<div class="list-item mono">${reason}</div>`;
+          });
+          if (!item.blockingReasonRefs || !item.blockingReasonRefs.length) {
+            inspectorReasons.innerHTML = `<div class="list-item mono">${item.blockerId}</div>`;
+          }
+        }
+      }
+
+      function syncSelectionState() {
+        document.querySelectorAll(".tuple-button").forEach((button) => {
+          button.dataset.selected = String(selectedState.kind === "candidate");
+        });
+        candidateEntry.dataset.selected = String(selectedState.kind === "candidate");
+        document.querySelectorAll(".ring-button").forEach((button) => {
+          const testid = button.dataset.testid.replace("ring-row-", "");
+          button.dataset.selected = String(selectedState.kind === "ring" && selectedState.id === testid);
+        });
+        document.querySelectorAll("[data-testid^='ring-table-row-']").forEach((row) => {
+          const testid = row.dataset.testid.replace("ring-table-row-", "");
+          row.dataset.selected = String(
+            (selectedState.kind === "ring" && selectedState.id === testid) ||
+            (selectedState.kind === "blocker" && blockers.find((item) => item.blockerId === selectedState.id)?.environmentRing === testid)
+          );
+        });
+        document.querySelectorAll(".blocker-button").forEach((button) => {
+          const blockerId = button.dataset.testid.replace("blocker-row-", "");
+          button.dataset.selected = String(selectedState.kind === "blocker" && selectedState.id === blockerId);
+        });
+      }
+
+      function selectCandidate() {
+        selectedState.kind = "candidate";
+        selectedState.id = releaseCandidate.releaseRef;
+        syncSelectionState();
+        renderCompatibilityRows();
+        renderBlockers();
+        renderEvidenceRows("candidate", releaseCandidate);
+        renderInspector("candidate", releaseCandidate);
+      }
+
+      function selectRing(ring) {
+        selectedState.kind = "ring";
+        selectedState.id = ring;
+        const item = ringSummaries.find((entry) => entry.environmentRing === ring);
+        syncSelectionState();
+        renderCompatibilityRows();
+        renderBlockers();
+        renderEvidenceRows("ring", item);
+        renderInspector("ring", item);
+      }
+
+      function selectBlocker(blockerId) {
+        selectedState.kind = "blocker";
+        selectedState.id = blockerId;
+        const blocker = blockers.find((entry) => entry.blockerId === blockerId);
+        syncSelectionState();
+        renderCompatibilityRows();
+        renderBlockers();
+        renderEvidenceRows("blocker", blocker);
+        renderInspector("blocker", blocker);
+      }
+
+      function handleGroupArrows(event, selector) {
+        const keys = ["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"];
+        if (!keys.includes(event.key)) return;
+        const buttons = [...document.querySelectorAll(selector)];
+        const currentIndex = buttons.indexOf(event.currentTarget);
+        if (currentIndex === -1) return;
+        event.preventDefault();
+        const delta = event.key === "ArrowUp" || event.key === "ArrowLeft" ? -1 : 1;
+        const nextIndex = Math.min(buttons.length - 1, Math.max(0, currentIndex + delta));
+        buttons[nextIndex].focus();
+        buttons[nextIndex].click();
+      }
+
+      ringFilter.addEventListener("change", () => {
+        renderRingRows();
+        renderCompatibilityRows();
+        renderBlockers();
+      });
+      blockerFilter.addEventListener("change", renderBlockers);
+
+      renderRingRows();
+      selectCandidate();
+    </script>
+  </body>
+</html>

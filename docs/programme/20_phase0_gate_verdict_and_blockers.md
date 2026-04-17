@@ -1,4 +1,3 @@
-
             # Phase 0 Gate Verdict And Blockers
 
             ## Primary Verdict
@@ -10,6 +9,7 @@
             ## Blockers And Warnings
 
             | Blocker | State | Severity | Summary | Required Action |
+
 | --- | --- | --- | --- | --- |
 | BLOCKER_P0_EXT_GATE_BLOCKED | blocked | high | Current-baseline external-readiness gate is still blocked, so 0A may not start. | Complete seq_021-seq_040, publish the integration assumption freeze, and re-evaluate GATE_EXTERNAL_TO_FOUNDATION. |
 | BLOCKER_P0_IDENTITY_AND_WRONG_PATIENT_PROOF | blocked | high | Identity, onboarding, and wrong-patient safeguards still depend on external proof not yet captured. | Publish NHS login onboarding evidence, IM1 prerequisite proof, and explicit wrong-patient mitigation evidence before moving the gate. |
@@ -20,6 +20,7 @@
             ## Internal Gate Status
 
             | Gate | Scope | Verdict | From | To | Control-Plane Obligations |
+
 | --- | --- | --- | --- | --- | --- |
 | GATE_P0_ENTRY_0A | phase0_entry | withheld | GATE_EXTERNAL_TO_FOUNDATION | 0A | LifecycleCoordinator, RouteIntentBinding, CommandSettlementRecord, AudienceSurfaceRuntimeBinding |
 | GATE_P0_0A_TO_0B | phase0_internal_subphase | withheld | 0A | 0B | LifecycleCoordinator, RouteIntentBinding, AudienceSurfaceRuntimeBinding |

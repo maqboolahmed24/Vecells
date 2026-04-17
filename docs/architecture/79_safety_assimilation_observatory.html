@@ -1,0 +1,1175 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Safety Assimilation Observatory</title>
+    <style>
+      :root {
+        --canvas: #f7f9fc;
+        --panel: #ffffff;
+        --rail: #eef2f7;
+        --inset: #f4f7fb;
+        --text-strong: #0f172a;
+        --text-default: #1e293b;
+        --text-muted: #64748b;
+        --border-subtle: #e2e8f0;
+        --evidence: #2563eb;
+        --safety: #7c3aed;
+        --urgent: #c24141;
+        --residual: #d97706;
+        --cleared: #059669;
+        --shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+        --radius-lg: 24px;
+        --radius-md: 18px;
+        --radius-sm: 14px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at top left, rgba(37, 99, 235, 0.09), transparent 32%),
+          radial-gradient(circle at top right, rgba(124, 58, 237, 0.08), transparent 28%),
+          var(--canvas);
+        color: var(--text-default);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      body[data-reduced-motion="true"] * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+
+      .shell {
+        max-width: 1560px;
+        margin: 0 auto;
+        padding: 0 20px 28px;
+      }
+
+      .masthead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        height: 76px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 12px 20px;
+        margin-bottom: 16px;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.72);
+        background: rgba(247, 249, 252, 0.92);
+        backdrop-filter: blur(18px);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 300px;
+      }
+
+      .monogram {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--evidence), var(--safety));
+        display: grid;
+        place-items: center;
+        color: white;
+        box-shadow: var(--shadow);
+      }
+
+      .brand-copy strong {
+        display: block;
+        color: var(--text-strong);
+        font-size: 0.98rem;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+      }
+
+      .brand-copy span {
+        color: var(--text-muted);
+        font-size: 0.88rem;
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        min-width: 760px;
+      }
+
+      .metric {
+        padding: 10px 14px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+      }
+
+      .metric label {
+        display: block;
+        color: var(--text-muted);
+        font-size: 0.74rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 6px;
+      }
+
+      .metric strong {
+        color: var(--text-strong);
+        font-size: 1.2rem;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 324px minmax(0, 1fr) 416px;
+        gap: 18px;
+        align-items: start;
+      }
+
+      .panel,
+      .rail-panel {
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+
+      .rail-panel {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(244, 247, 251, 0.98));
+      }
+
+      .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .section-head h2,
+      .section-head h3,
+      .section-head h4 {
+        margin: 0;
+        color: var(--text-strong);
+        font-size: 0.96rem;
+      }
+
+      .section-head p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 0.82rem;
+      }
+
+      .left-rail {
+        display: grid;
+        gap: 16px;
+      }
+
+      .left-rail .rail-panel {
+        padding: 18px;
+      }
+
+      .filter-stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .filter-stack label {
+        display: grid;
+        gap: 6px;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+      }
+
+      select {
+        height: 44px;
+        padding: 0 14px;
+        border-radius: 14px;
+        border: 1px solid var(--border-subtle);
+        background: var(--panel);
+        color: var(--text-strong);
+        font: inherit;
+        transition: border-color 180ms ease, box-shadow 180ms ease;
+      }
+
+      select:focus,
+      button:focus {
+        outline: none;
+        border-color: rgba(37, 99, 235, 0.5);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+      }
+
+      .legend {
+        display: grid;
+        gap: 10px;
+      }
+
+      .legend-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text-muted);
+        font-size: 0.82rem;
+      }
+
+      .legend-chip {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+      }
+
+      .center {
+        display: grid;
+        gap: 18px;
+      }
+
+      .visual-zone {
+        min-height: 300px;
+        display: grid;
+        gap: 18px;
+      }
+
+      .panel-inner {
+        padding: 20px;
+      }
+
+      .ribbon-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 12px;
+      }
+
+      .scenario-card,
+      .table-row {
+        width: 100%;
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        background: var(--panel);
+        color: inherit;
+        text-align: left;
+        cursor: pointer;
+        transition:
+          transform 120ms ease,
+          border-color 120ms ease,
+          box-shadow 120ms ease,
+          background 180ms ease;
+      }
+
+      .scenario-card:hover,
+      .table-row:hover {
+        transform: translateY(-1px);
+        border-color: rgba(37, 99, 235, 0.3);
+      }
+
+      .scenario-card[data-selected="true"],
+      .table-row[data-selected="true"] {
+        border-color: rgba(37, 99, 235, 0.42);
+        box-shadow: 0 12px 28px rgba(37, 99, 235, 0.12);
+        background: linear-gradient(180deg, rgba(37, 99, 235, 0.05), rgba(124, 58, 237, 0.04));
+      }
+
+      .scenario-card {
+        padding: 16px;
+      }
+
+      .card-eyebrow,
+      .mono {
+        font-family:
+          "SFMono-Regular", ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
+      }
+
+      .card-eyebrow {
+        color: var(--text-muted);
+        font-size: 0.74rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .scenario-card strong {
+        display: block;
+        margin: 8px 0;
+        color: var(--text-strong);
+        font-size: 0.94rem;
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .chip {
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: var(--inset);
+        color: var(--text-default);
+        font-size: 0.76rem;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+      }
+
+      .chip.urgent {
+        color: var(--urgent);
+        background: rgba(194, 65, 65, 0.08);
+      }
+
+      .chip.residual {
+        color: var(--residual);
+        background: rgba(217, 119, 6, 0.08);
+      }
+
+      .chip.clear {
+        color: var(--cleared);
+        background: rgba(5, 150, 105, 0.08);
+      }
+
+      .heat-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .heat-row {
+        display: grid;
+        grid-template-columns: minmax(180px, 220px) repeat(5, minmax(0, 1fr));
+        gap: 8px;
+        align-items: center;
+      }
+
+      .heat-label,
+      .heat-cell {
+        padding: 12px;
+        border-radius: 16px;
+        border: 1px solid var(--border-subtle);
+      }
+
+      .heat-label {
+        background: var(--inset);
+        color: var(--text-strong);
+        font-size: 0.82rem;
+      }
+
+      .heat-cell {
+        min-height: 54px;
+        display: grid;
+        place-items: center;
+        font-size: 0.8rem;
+        color: var(--text-strong);
+      }
+
+      .heat-cell[data-level="0"] {
+        background: rgba(226, 232, 240, 0.42);
+      }
+
+      .heat-cell[data-level="1"] {
+        background: rgba(37, 99, 235, 0.12);
+      }
+
+      .heat-cell[data-level="2"] {
+        background: rgba(124, 58, 237, 0.16);
+      }
+
+      .heat-cell[data-level="3"] {
+        background: rgba(194, 65, 65, 0.16);
+      }
+
+      .heat-row[data-selected="true"] .heat-label,
+      .heat-row[data-selected="true"] .heat-cell {
+        border-color: rgba(37, 99, 235, 0.35);
+      }
+
+      .ladder {
+        display: grid;
+        gap: 10px;
+      }
+
+      .ladder-step {
+        display: grid;
+        grid-template-columns: 34px 1fr auto;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        border-radius: var(--radius-md);
+        background: var(--inset);
+        border: 1px solid var(--border-subtle);
+      }
+
+      .ladder-step[data-active="true"] {
+        border-color: rgba(194, 65, 65, 0.32);
+        background: rgba(194, 65, 65, 0.07);
+      }
+
+      .step-index {
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        background: rgba(15, 23, 42, 0.08);
+        color: var(--text-strong);
+        font-weight: 700;
+      }
+
+      .step-state {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+
+      .lower-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 18px;
+      }
+
+      .table-panel .panel-inner {
+        padding: 18px;
+      }
+
+      .table-stack {
+        display: grid;
+        gap: 10px;
+      }
+
+      .table-row {
+        padding: 14px;
+      }
+
+      .table-row strong {
+        display: block;
+        color: var(--text-strong);
+        margin-bottom: 4px;
+      }
+
+      .table-row span {
+        color: var(--text-muted);
+        font-size: 0.82rem;
+      }
+
+      .inspector {
+        position: sticky;
+        top: 92px;
+      }
+
+      .inspector .panel-inner {
+        display: grid;
+        gap: 18px;
+      }
+
+      .inspector-block {
+        padding: 16px;
+        border-radius: var(--radius-md);
+        background: var(--inset);
+        border: 1px solid var(--border-subtle);
+      }
+
+      .inspector-block h4 {
+        margin: 0 0 10px;
+        color: var(--text-strong);
+        font-size: 0.88rem;
+      }
+
+      .inspector-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 6px 0;
+        font-size: 0.82rem;
+      }
+
+      .inspector-line span:first-child {
+        color: var(--text-muted);
+      }
+
+      .parity {
+        margin-top: 12px;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        line-height: 1.5;
+      }
+
+      @media (max-width: 1180px) {
+        .layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .metrics {
+          min-width: 0;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .inspector {
+          position: static;
+        }
+      }
+
+      @media (max-width: 860px) {
+        .masthead {
+          height: auto;
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .metrics {
+          width: 100%;
+        }
+
+        .lower-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .heat-row {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body data-reduced-motion="false">
+    <header class="masthead">
+      <div class="brand" aria-label="Vecells safety assimilation observatory">
+        <div class="monogram" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M5 7.5C5 5.57 6.57 4 8.5 4H15.5V7H8.5C8.22 7 8 7.22 8 7.5C8 7.78 8.22 8 8.5 8H13.5C16.54 8 19 10.46 19 13.5C19 16.54 16.54 19 13.5 19H4.5V16H13.5C14.88 16 16 14.88 16 13.5C16 12.12 14.88 11 13.5 11H8.5C6.57 11 5 9.43 5 7.5Z" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="brand-copy">
+          <strong>Vecells</strong>
+          <span>Safety_Assimilation_Observatory</span>
+        </div>
+      </div>
+      <div class="metrics" aria-label="headline metrics">
+        <div class="metric">
+          <label>Pending Assimilations</label>
+          <strong data-testid="metric-pending">0</strong>
+        </div>
+        <div class="metric">
+          <label>Urgent-Preempted Lineages</label>
+          <strong data-testid="metric-urgent">0</strong>
+        </div>
+        <div class="metric">
+          <label>Residual-Risk Count</label>
+          <strong data-testid="metric-residual">0</strong>
+        </div>
+        <div class="metric">
+          <label>Replay-Coalesced Count</label>
+          <strong data-testid="metric-replay">0</strong>
+        </div>
+      </div>
+    </header>
+
+    <div class="shell">
+      <main class="layout">
+        <aside class="left-rail">
+          <section class="rail-panel panel-inner">
+            <div class="section-head">
+              <div>
+                <h2>Ingress Filters</h2>
+                <p>Bound the active evidence lineage without losing canonical safety truth.</p>
+              </div>
+            </div>
+            <div class="filter-stack">
+              <label>
+                Ingress Source
+                <select data-testid="source-filter" id="source-filter"></select>
+              </label>
+              <label>
+                Trigger Decision
+                <select data-testid="trigger-filter" id="trigger-filter"></select>
+              </label>
+              <label>
+                Safety State
+                <select data-testid="safety-filter" id="safety-filter"></select>
+              </label>
+              <label>
+                Urgent Diversion
+                <select data-testid="urgent-filter" id="urgent-filter"></select>
+              </label>
+            </div>
+          </section>
+          <section class="rail-panel panel-inner">
+            <div class="section-head">
+              <div>
+                <h3>Instrument Legend</h3>
+                <p>Color and shape stay subordinate to immutable settlement truth.</p>
+              </div>
+            </div>
+            <div class="legend">
+              <div class="legend-row"><span class="legend-chip" style="background: var(--evidence);"></span>Evidence ingress and lineage supersession</div>
+              <div class="legend-row"><span class="legend-chip" style="background: var(--safety);"></span>Safety rule impact and epoch movement</div>
+              <div class="legend-row"><span class="legend-chip" style="background: var(--urgent);"></span>Urgent diversion required or issued</div>
+              <div class="legend-row"><span class="legend-chip" style="background: var(--residual);"></span>Residual review or blocked manual review</div>
+              <div class="legend-row"><span class="legend-chip" style="background: var(--cleared);"></span>Settled with no re-safety</div>
+            </div>
+          </section>
+        </aside>
+
+        <section class="center">
+          <div class="visual-zone">
+            <section class="panel">
+              <div class="panel-inner">
+                <div class="section-head">
+                  <div>
+                    <h3>Evidence Lineage Ribbon</h3>
+                    <p>One ribbon per canonical ingress outcome, ordered by assimilation settlement.</p>
+                  </div>
+                </div>
+                <div class="ribbon-grid" data-testid="evidence-ribbon" id="evidence-ribbon"></div>
+                <p class="parity" data-testid="evidence-ribbon-parity">
+                  Textual parity: every ribbon card echoes attachment disposition, replay posture, and trigger decision so the chart never hides the audit trail.
+                </p>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-inner">
+                <div class="section-head">
+                  <div>
+                    <h3>Rule Impact Heat Surface</h3>
+                    <p>Impacted-rule groups are shown as bounded recomputation rather than whole-pack rescoring.</p>
+                  </div>
+                </div>
+                <div class="heat-grid" data-testid="rule-heat-surface" id="rule-heat-surface"></div>
+                <p class="parity" data-testid="rule-heat-surface-parity">
+                  Textual parity: the heat surface maps every visible scenario to rule-group intensity so keyboard and screen-reader users can inspect the same incremental rule truth.
+                </p>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-inner">
+                <div class="section-head">
+                  <div>
+                    <h3>Urgent Diversion Decision Ladder</h3>
+                    <p>Urgent required and urgent issued stay separate, durable steps.</p>
+                  </div>
+                </div>
+                <div class="ladder" data-testid="urgent-ladder" id="urgent-ladder"></div>
+                <p class="parity" data-testid="urgent-ladder-parity">
+                  Textual parity: the ladder only shows an issued terminal step when the selected scenario carries one settled urgent-diversion record.
+                </p>
+              </div>
+            </section>
+          </div>
+
+          <section class="lower-grid">
+            <section class="panel table-panel">
+              <div class="panel-inner">
+                <div class="section-head">
+                  <div>
+                    <h3>Assimilation Table</h3>
+                    <p>Canonical attachment, replay, and material-delta posture for every ingress.</p>
+                  </div>
+                </div>
+                <div class="table-stack" data-testid="assimilation-table" id="assimilation-table"></div>
+              </div>
+            </section>
+            <section class="panel table-panel">
+              <div class="panel-inner">
+                <div class="section-head">
+                  <div>
+                    <h3>Safety Decision Table</h3>
+                    <p>Preemption, safety outcome, and urgent-diversion state remain explicitly separated.</p>
+                  </div>
+                </div>
+                <div class="table-stack" data-testid="safety-table" id="safety-table"></div>
+              </div>
+            </section>
+          </section>
+        </section>
+
+        <aside class="inspector" data-testid="inspector">
+          <section class="panel">
+            <div class="panel-inner" id="inspector-panel"></div>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <script id="observatory-data" type="application/json">
+      {
+        "scenarios": [
+          {
+            "scenarioId": "post_submit_reply_no_material_change",
+            "sourceDomain": "patient_reply",
+            "attachmentDisposition": "derivative_only",
+            "assimilationState": "settled_no_re_safety",
+            "triggerDecision": "no_re_safety",
+            "dominantEvidenceClass": "operationally_material_nonclinical",
+            "decisionOutcome": null,
+            "requestedSafetyState": null,
+            "urgentDiversionState": "none",
+            "replayDisposition": "distinct",
+            "selectionDigest": "assimilation_safety_evidenceAssimilation_0001",
+            "impactedRuleGroups": []
+          },
+          {
+            "scenarioId": "reply_clinically_material_forces_resafety",
+            "sourceDomain": "patient_reply",
+            "attachmentDisposition": "new_snapshot",
+            "assimilationState": "settled_triggered",
+            "triggerDecision": "re_safety_required",
+            "dominantEvidenceClass": "potentially_clinical",
+            "decisionOutcome": "residual_review",
+            "requestedSafetyState": "residual_risk_flagged",
+            "urgentDiversionState": "none",
+            "replayDisposition": "distinct",
+            "selectionDigest": "assimilation_safety_evidenceAssimilation_0002",
+            "impactedRuleGroups": ["clinical_red_flags"]
+          },
+          {
+            "scenarioId": "contradictory_low_assurance_cannot_clear_prior_urgent",
+            "sourceDomain": "patient_reply",
+            "attachmentDisposition": "hold_pending_review",
+            "assimilationState": "settled_triggered",
+            "triggerDecision": "re_safety_required",
+            "dominantEvidenceClass": "potentially_clinical",
+            "decisionOutcome": "urgent_required",
+            "requestedSafetyState": "urgent_diversion_required",
+            "urgentDiversionState": "pending",
+            "replayDisposition": "distinct",
+            "selectionDigest": "assimilation_safety_evidenceAssimilation_0003",
+            "impactedRuleGroups": ["clinical_red_flags", "contradiction_burden"]
+          },
+          {
+            "scenarioId": "callback_outcome_triggers_urgent_diversion",
+            "sourceDomain": "callback_outcome",
+            "attachmentDisposition": "hold_pending_review",
+            "assimilationState": "settled_triggered",
+            "triggerDecision": "re_safety_required",
+            "dominantEvidenceClass": "contact_safety_relevant",
+            "decisionOutcome": "urgent_live",
+            "requestedSafetyState": "urgent_diversion_required",
+            "urgentDiversionState": "issued",
+            "replayDisposition": "distinct",
+            "selectionDigest": "assimilation_safety_evidenceAssimilation_0004",
+            "impactedRuleGroups": ["contact_failures"]
+          },
+          {
+            "scenarioId": "support_capture_changes_contact_safety_meaning",
+            "sourceDomain": "support_capture",
+            "attachmentDisposition": "hold_pending_review",
+            "assimilationState": "settled_triggered",
+            "triggerDecision": "re_safety_required",
+            "dominantEvidenceClass": "contact_safety_relevant",
+            "decisionOutcome": "urgent_review",
+            "requestedSafetyState": "urgent_diversion_required",
+            "urgentDiversionState": "pending",
+            "replayDisposition": "distinct",
+            "selectionDigest": "assimilation_safety_evidenceAssimilation_0005",
+            "impactedRuleGroups": ["contact_failures"]
+          },
+          {
+            "scenarioId": "weak_pharmacy_outcome_forces_manual_review",
+            "sourceDomain": "pharmacy_return",
+            "attachmentDisposition": "hold_pending_review",
+            "assimilationState": "blocked_manual_review",
+            "triggerDecision": "blocked_manual_review",
+            "dominantEvidenceClass": "potentially_clinical",
+            "decisionOutcome": "fallback_manual_review",
+            "requestedSafetyState": "residual_risk_flagged",
+            "urgentDiversionState": "none",
+            "replayDisposition": "distinct",
+            "selectionDigest": "assimilation_safety_evidenceAssimilation_0006",
+            "impactedRuleGroups": ["consent_and_pharmacy"]
+          },
+          {
+            "scenarioId": "exact_replay_returns_existing_assimilation",
+            "sourceDomain": "patient_reply",
+            "attachmentDisposition": "hold_pending_review",
+            "assimilationState": "settled_triggered",
+            "triggerDecision": "re_safety_required",
+            "dominantEvidenceClass": "potentially_clinical",
+            "decisionOutcome": "residual_review",
+            "requestedSafetyState": "residual_risk_flagged",
+            "urgentDiversionState": "none",
+            "replayDisposition": "exact_replay",
+            "selectionDigest": "assimilation_safety_evidenceAssimilation_0007",
+            "impactedRuleGroups": ["clinical_red_flags"]
+          },
+          {
+            "scenarioId": "overlapping_inflight_assimilation_coalesces",
+            "sourceDomain": "async_enrichment",
+            "attachmentDisposition": "hold_pending_review",
+            "assimilationState": "pending_preemption",
+            "triggerDecision": "coalesced_with_pending_preemption",
+            "dominantEvidenceClass": "potentially_clinical",
+            "decisionOutcome": null,
+            "requestedSafetyState": null,
+            "urgentDiversionState": "none",
+            "replayDisposition": "coalesced_inflight",
+            "selectionDigest": "assimilation_safety_evidenceAssimilation_0008",
+            "impactedRuleGroups": []
+          }
+        ],
+        "ruleGroups": [
+          "clinical_red_flags",
+          "contact_failures",
+          "contradiction_burden",
+          "consent_and_pharmacy",
+          "chronology_shifts"
+        ]
+      }
+    </script>
+    <script>
+      const data = JSON.parse(document.getElementById("observatory-data").textContent);
+      const state = {
+        filters: {
+          source: "all",
+          trigger: "all",
+          safety: "all",
+          urgent: "all"
+        },
+        selectedScenarioId: data.scenarios[0]?.scenarioId ?? null
+      };
+
+      const sourceFilter = document.getElementById("source-filter");
+      const triggerFilter = document.getElementById("trigger-filter");
+      const safetyFilter = document.getElementById("safety-filter");
+      const urgentFilter = document.getElementById("urgent-filter");
+      const ribbon = document.getElementById("evidence-ribbon");
+      const heatSurface = document.getElementById("rule-heat-surface");
+      const urgentLadder = document.getElementById("urgent-ladder");
+      const assimilationTable = document.getElementById("assimilation-table");
+      const safetyTable = document.getElementById("safety-table");
+      const inspectorPanel = document.getElementById("inspector-panel");
+
+      const labels = {
+        no_re_safety: "No re-safety",
+        re_safety_required: "Re-safety required",
+        blocked_manual_review: "Blocked manual review",
+        coalesced_with_pending_preemption: "Coalesced pending preemption"
+      };
+
+      function populateSelect(select, values) {
+        select.innerHTML = values
+          .map((value) => `<option value="${value}">${value === "all" ? "All" : value}</option>`)
+          .join("");
+      }
+
+      populateSelect(sourceFilter, ["all", ...new Set(data.scenarios.map((scenario) => scenario.sourceDomain))]);
+      populateSelect(triggerFilter, ["all", ...new Set(data.scenarios.map((scenario) => scenario.triggerDecision))]);
+      populateSelect(
+        safetyFilter,
+        ["all", ...new Set(data.scenarios.map((scenario) => scenario.requestedSafetyState ?? "none"))]
+      );
+      populateSelect(
+        urgentFilter,
+        ["all", ...new Set(data.scenarios.map((scenario) => scenario.urgentDiversionState))]
+      );
+
+      function filteredScenarios() {
+        return data.scenarios.filter((scenario) => {
+          if (state.filters.source !== "all" && scenario.sourceDomain !== state.filters.source) {
+            return false;
+          }
+          if (state.filters.trigger !== "all" && scenario.triggerDecision !== state.filters.trigger) {
+            return false;
+          }
+          if (
+            state.filters.safety !== "all" &&
+            (scenario.requestedSafetyState ?? "none") !== state.filters.safety
+          ) {
+            return false;
+          }
+          if (state.filters.urgent !== "all" && scenario.urgentDiversionState !== state.filters.urgent) {
+            return false;
+          }
+          return true;
+        });
+      }
+
+      function ensureSelection(scenarios) {
+        if (!scenarios.some((scenario) => scenario.scenarioId === state.selectedScenarioId)) {
+          state.selectedScenarioId = scenarios[0]?.scenarioId ?? null;
+        }
+      }
+
+      function scenarioById(scenarioId) {
+        return data.scenarios.find((scenario) => scenario.scenarioId === scenarioId) ?? null;
+      }
+
+      function chipClass(scenario) {
+        if (scenario.requestedSafetyState === "urgent_diversion_required") {
+          return "urgent";
+        }
+        if (scenario.requestedSafetyState === "residual_risk_flagged") {
+          return "residual";
+        }
+        return "clear";
+      }
+
+      function syncMetrics(scenarios) {
+        document.querySelector("[data-testid='metric-pending']").textContent = String(
+          scenarios.filter((scenario) =>
+            ["pending_preemption", "blocked_manual_review"].includes(scenario.assimilationState)
+          ).length
+        );
+        document.querySelector("[data-testid='metric-urgent']").textContent = String(
+          scenarios.filter((scenario) => scenario.requestedSafetyState === "urgent_diversion_required").length
+        );
+        document.querySelector("[data-testid='metric-residual']").textContent = String(
+          scenarios.filter((scenario) => scenario.requestedSafetyState === "residual_risk_flagged").length
+        );
+        document.querySelector("[data-testid='metric-replay']").textContent = String(
+          scenarios.filter((scenario) => scenario.replayDisposition !== "distinct").length
+        );
+      }
+
+      function renderRibbon(scenarios) {
+        ribbon.innerHTML = scenarios
+          .map((scenario) => {
+            const selected = scenario.scenarioId === state.selectedScenarioId;
+            return `
+              <button
+                type="button"
+                class="scenario-card"
+                data-testid="ribbon-card-${scenario.scenarioId}"
+                data-scenario-id="${scenario.scenarioId}"
+                data-selected="${selected}"
+              >
+                <span class="card-eyebrow">${scenario.sourceDomain}</span>
+                <strong>${scenario.scenarioId.replaceAll("_", " ")}</strong>
+                <div class="mono">${scenario.selectionDigest}</div>
+                <div class="chip-row">
+                  <span class="chip">${scenario.attachmentDisposition}</span>
+                  <span class="chip">${labels[scenario.triggerDecision] ?? scenario.triggerDecision}</span>
+                  <span class="chip ${chipClass(scenario)}">${scenario.requestedSafetyState ?? "no safety"}</span>
+                </div>
+              </button>
+            `;
+          })
+          .join("");
+      }
+
+      function renderHeatSurface(scenarios) {
+        heatSurface.innerHTML = scenarios
+          .map((scenario) => {
+            const selected = scenario.scenarioId === state.selectedScenarioId;
+            const cells = data.ruleGroups
+              .map((group) => {
+                const active = scenario.impactedRuleGroups.includes(group);
+                const level = scenario.requestedSafetyState === "urgent_diversion_required" && active
+                  ? 3
+                  : scenario.requestedSafetyState === "residual_risk_flagged" && active
+                    ? 2
+                    : active
+                      ? 1
+                      : 0;
+                return `<div class="heat-cell" data-level="${level}">${active ? "hit" : "idle"}</div>`;
+              })
+              .join("");
+            return `
+              <div
+                class="heat-row"
+                data-testid="heat-row-${scenario.scenarioId}"
+                data-scenario-id="${scenario.scenarioId}"
+                data-selected="${selected}"
+              >
+                <div class="heat-label">${scenario.scenarioId.replaceAll("_", " ")}</div>
+                ${cells}
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      function renderLadder(selectedScenario) {
+        const steps = [
+          {
+            title: "Assimilation settled",
+            active: Boolean(selectedScenario?.assimilationState),
+            state: selectedScenario?.assimilationState ?? "none"
+          },
+          {
+            title: "Material delta",
+            active: selectedScenario?.triggerDecision !== "no_re_safety",
+            state: selectedScenario?.triggerDecision ?? "none"
+          },
+          {
+            title: "Safety decision",
+            active: Boolean(selectedScenario?.decisionOutcome),
+            state: selectedScenario?.decisionOutcome ?? "none"
+          },
+          {
+            title: "Urgent issuance",
+            active: selectedScenario?.urgentDiversionState === "pending" || selectedScenario?.urgentDiversionState === "issued",
+            state: selectedScenario?.urgentDiversionState ?? "none"
+          }
+        ];
+        urgentLadder.innerHTML = steps
+          .map(
+            (step, index) => `
+              <div class="ladder-step" data-active="${step.active}">
+                <div class="step-index">${index + 1}</div>
+                <div>
+                  <strong>${step.title}</strong>
+                  <div class="step-state">${step.state}</div>
+                </div>
+                <div class="mono">${selectedScenario?.selectionDigest ?? "none"}</div>
+              </div>
+            `
+          )
+          .join("");
+      }
+
+      function renderTables(scenarios) {
+        assimilationTable.innerHTML = scenarios
+          .map((scenario) => {
+            const selected = scenario.scenarioId === state.selectedScenarioId;
+            return `
+              <button
+                type="button"
+                class="table-row"
+                data-testid="assimilation-row-${scenario.scenarioId}"
+                data-scenario-id="${scenario.scenarioId}"
+                data-selected="${selected}"
+              >
+                <strong>${scenario.scenarioId.replaceAll("_", " ")}</strong>
+                <span>${scenario.attachmentDisposition} · ${scenario.assimilationState} · ${scenario.replayDisposition}</span>
+              </button>
+            `;
+          })
+          .join("");
+
+        safetyTable.innerHTML = scenarios
+          .map((scenario) => {
+            const selected = scenario.scenarioId === state.selectedScenarioId;
+            return `
+              <button
+                type="button"
+                class="table-row"
+                data-testid="safety-row-${scenario.scenarioId}"
+                data-scenario-id="${scenario.scenarioId}"
+                data-selected="${selected}"
+              >
+                <strong>${scenario.scenarioId.replaceAll("_", " ")}</strong>
+                <span>${scenario.decisionOutcome ?? "no safety decision"} · ${scenario.urgentDiversionState}</span>
+              </button>
+            `;
+          })
+          .join("");
+      }
+
+      function renderInspector(selectedScenario) {
+        if (!selectedScenario) {
+          inspectorPanel.innerHTML = "<p>No scenario selected.</p>";
+          return;
+        }
+        inspectorPanel.innerHTML = `
+          <div class="section-head">
+            <div>
+              <h3>${selectedScenario.scenarioId.replaceAll("_", " ")}</h3>
+              <p class="mono">${selectedScenario.selectionDigest}</p>
+            </div>
+          </div>
+          <section class="inspector-block">
+            <h4>Selected Lineage</h4>
+            <div class="inspector-line"><span>Source domain</span><strong>${selectedScenario.sourceDomain}</strong></div>
+            <div class="inspector-line"><span>Attachment</span><strong>${selectedScenario.attachmentDisposition}</strong></div>
+            <div class="inspector-line"><span>Replay</span><strong>${selectedScenario.replayDisposition}</strong></div>
+          </section>
+          <section class="inspector-block">
+            <h4>Material Delta</h4>
+            <div class="inspector-line"><span>Trigger</span><strong>${selectedScenario.triggerDecision}</strong></div>
+            <div class="inspector-line"><span>Assimilation state</span><strong>${selectedScenario.assimilationState}</strong></div>
+            <div class="inspector-line"><span>Rule groups</span><strong>${selectedScenario.impactedRuleGroups.join(", ") || "none"}</strong></div>
+          </section>
+          <section class="inspector-block">
+            <h4>Current Safety Epoch</h4>
+            <div class="inspector-line"><span>Evidence class</span><strong>${selectedScenario.dominantEvidenceClass}</strong></div>
+            <div class="inspector-line"><span>Safety state</span><strong>${selectedScenario.requestedSafetyState ?? "no safety"}</strong></div>
+            <div class="inspector-line"><span>Urgent diversion</span><strong>${selectedScenario.urgentDiversionState}</strong></div>
+          </section>
+          <section class="inspector-block">
+            <h4>Diversion Status</h4>
+            <div class="inspector-line"><span>Decision outcome</span><strong>${selectedScenario.decisionOutcome ?? "none"}</strong></div>
+            <div class="inspector-line"><span>Issued state</span><strong>${selectedScenario.urgentDiversionState}</strong></div>
+            <div class="inspector-line"><span>Routine continuation</span><strong>${selectedScenario.urgentDiversionState === "issued" || selectedScenario.requestedSafetyState === null ? "not blocked by urgent issuance" : "blocked"}</strong></div>
+          </section>
+        `;
+      }
+
+      function render() {
+        const scenarios = filteredScenarios();
+        ensureSelection(scenarios);
+        const selectedScenario = scenarioById(state.selectedScenarioId);
+        syncMetrics(scenarios);
+        renderRibbon(scenarios);
+        renderHeatSurface(scenarios);
+        renderLadder(selectedScenario);
+        renderTables(scenarios);
+        renderInspector(selectedScenario);
+      }
+
+      function selectScenario(scenarioId) {
+        state.selectedScenarioId = scenarioId;
+        render();
+      }
+
+      function moveSelection(offset, anchorScenarioId = state.selectedScenarioId) {
+        const scenarios = filteredScenarios();
+        const index = scenarios.findIndex((scenario) => scenario.scenarioId === anchorScenarioId);
+        const nextIndex = Math.min(Math.max(index + offset, 0), scenarios.length - 1);
+        if (scenarios[nextIndex]) {
+          selectScenario(scenarios[nextIndex].scenarioId);
+          requestAnimationFrame(() => {
+            const button = document.querySelector(`[data-scenario-id="${scenarios[nextIndex].scenarioId}"]`);
+            button?.focus();
+          });
+        }
+      }
+
+      document.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-scenario-id]");
+        if (!button) {
+          return;
+        }
+        selectScenario(button.getAttribute("data-scenario-id"));
+      });
+
+      document.addEventListener("keydown", (event) => {
+        const inScenarioControl = event.target.closest("[data-scenario-id]");
+        if (!inScenarioControl) {
+          return;
+        }
+        const anchorScenarioId = inScenarioControl.getAttribute("data-scenario-id");
+        if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+          event.preventDefault();
+          moveSelection(1, anchorScenarioId);
+        }
+        if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+          event.preventDefault();
+          moveSelection(-1, anchorScenarioId);
+        }
+      });
+
+      [
+        [sourceFilter, "source"],
+        [triggerFilter, "trigger"],
+        [safetyFilter, "safety"],
+        [urgentFilter, "urgent"]
+      ].forEach(([element, key]) => {
+        element.addEventListener("change", () => {
+          state.filters[key] = element.value;
+          render();
+        });
+      });
+
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        document.body.setAttribute("data-reduced-motion", "true");
+      }
+
+      render();
+    </script>
+  </body>
+</html>

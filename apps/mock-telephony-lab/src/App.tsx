@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { VecellLogoLockup } from "@vecells/design-system";
 
 import { telephonyLabPack } from "./generated/telephonyLabPack";
 
@@ -449,16 +450,7 @@ function App() {
       <header className="posture-banner">
         <section className="panel brand-panel">
           <div className="brand-row">
-            <svg className="wordmark" viewBox="0 0 64 64" aria-hidden="true">
-              <defs>
-                <linearGradient id="voiceMark" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#0B57D0" />
-                  <stop offset="100%" stopColor="#7A5AF8" />
-                </linearGradient>
-              </defs>
-              <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#voiceMark)" />
-              <path d="M18 23h8l6 12 6-18 8 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <VecellLogoLockup aria-hidden="true" className="wordmark" />
             <div className="brand-copy">
               <div className="ribbon-row">
                 <span className="mock-ribbon">MOCK_TELEPHONY_LAB</span>

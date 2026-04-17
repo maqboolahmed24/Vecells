@@ -16,6 +16,7 @@ const scenarioMap = new Map(PACK.transcript_scenarios.map((row) => [row.scenario
 
 let jobs = PACK.seeded_transcript_jobs.map((row) => JSON.parse(JSON.stringify(row)));
 let nextOrdinal = 5000;
+const IDEMPOTENCY_INDEX = new Map();
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -70,6 +71,7 @@ function buildJob(jobId, profile, scenario) {
     webhook_signature_state: scenario.webhook_signature_state,
     quality_band: scenario.quality_band,
     coverage_class: scenario.coverage_class,
+    idempotency_key: "",
     superseded_by_ref: "",
     summary: scenario.summary,
     timeline_events: materializeTimeline(jobId, scenario.timeline_templates, createdAt),
@@ -87,11 +89,27 @@ function simulateJob(payload) {
   if (!scenario) {
     return { ok: false, status: 422, error: "Unknown transcript scenario." };
   }
+  const idempotencyKey = String(payload.idempotency_key ?? payload.idempotencyKey ?? "").trim();
+  if (idempotencyKey) {
+    const replayKey = `${profile.job_profile_id}::${scenario.scenario_id}::${idempotencyKey}`;
+    const existingJobId = IDEMPOTENCY_INDEX.get(replayKey);
+    if (existingJobId) {
+      const existingJob = jobs.find((row) => row.job_id === existingJobId);
+      if (existingJob) {
+        return { ok: true, status: 200, exactReplay: true, job: clone(existingJob), jobs: listJobs() };
+      }
+      IDEMPOTENCY_INDEX.delete(replayKey);
+    }
+  }
   nextOrdinal += 1;
   const jobId = `TRJ-${nextOrdinal}`;
   const job = buildJob(jobId, profile, scenario);
+  job.idempotency_key = idempotencyKey;
   jobs.unshift(job);
-  return { ok: true, status: 201, job: clone(job), jobs: listJobs() };
+  if (idempotencyKey) {
+    IDEMPOTENCY_INDEX.set(`${profile.job_profile_id}::${scenario.scenario_id}::${idempotencyKey}`, jobId);
+  }
+  return { ok: true, status: 201, exactReplay: false, job: clone(job), jobs: listJobs() };
 }
 
 function retryWebhook(jobId) {

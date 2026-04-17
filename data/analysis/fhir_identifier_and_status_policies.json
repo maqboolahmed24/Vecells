@@ -1,0 +1,457 @@
+{
+  "task_id": "seq_049",
+  "generated_at": "2026-04-13T14:51:08+00:00",
+  "captured_on": "2026-04-13",
+  "summary": {
+    "identifier_policy_count": 7,
+    "status_mapping_policy_count": 8,
+    "cardinality_policy_count": 7,
+    "redaction_policy_count": 4,
+    "companion_artifact_policy_count": 5,
+    "replay_policy_count": 6,
+    "supersession_policy_count": 7,
+    "callback_correlation_policy_count": 4,
+    "blocked_lifecycle_owner_count": 8,
+    "assumption_count": 2
+  },
+  "identifierPolicies": [
+    {
+      "policyId": "IDPOL_049_REQUEST_VERSION_FINGERPRINT",
+      "label": "Request version fingerprint",
+      "description": "Task logical ids are derived from request lineage and the aggregate version hash.",
+      "stableInputs": [
+        "requestId",
+        "requestVersion",
+        "representationPurpose"
+      ],
+      "versionRule": "Logical id is stable per aggregate version; new version emits new versionId only."
+    },
+    {
+      "policyId": "IDPOL_049_SNAPSHOT_HASH_DOCUMENT",
+      "label": "Snapshot hash document key",
+      "description": "DocumentReference identifiers are tied to the frozen evidence snapshot hash and artifact hash set.",
+      "stableInputs": [
+        "evidenceSnapshotId",
+        "snapshotHash",
+        "artifactSetHash"
+      ],
+      "versionRule": "New snapshot hash emits a new DocumentReference version and supersedes prior set membership."
+    },
+    {
+      "policyId": "IDPOL_049_TRANSPORT_CORRELATION_RECORD",
+      "label": "Transport correlation key",
+      "description": "Communication identifiers bind dispatch or callback correlation tokens to the governing case and attempt.",
+      "stableInputs": [
+        "governingCaseId",
+        "transportCorrelationKey",
+        "dispatchAttemptId"
+      ],
+      "versionRule": "Duplicate transport receipts update the same logical id; semantic drift opens replay collision review."
+    },
+    {
+      "policyId": "IDPOL_049_EXTERNAL_COMMITMENT_CASE",
+      "label": "External commitment case key",
+      "description": "ServiceRequest identifiers bind one external commitment epoch to the governing booking or hub case.",
+      "stableInputs": [
+        "caseId",
+        "commitmentEpoch",
+        "partnerRef"
+      ],
+      "versionRule": "Authoritative commitment refresh increments versionId while preserving case lineage."
+    },
+    {
+      "policyId": "IDPOL_049_PHARMACY_PACKAGE_FINGERPRINT",
+      "label": "Pharmacy package fingerprint",
+      "description": "Referral identifiers bind the frozen package hash, consent checkpoint, and selected provider tuple.",
+      "stableInputs": [
+        "pharmacyCaseId",
+        "packageHash",
+        "consentCheckpointId",
+        "providerRef"
+      ],
+      "versionRule": "Changing package hash, provider, or consent checkpoint forces new logical ids and plan supersession."
+    },
+    {
+      "policyId": "IDPOL_049_CONSENT_SCOPE_FINGERPRINT",
+      "label": "Consent scope fingerprint",
+      "description": "FHIR Consent identifiers bind the chosen provider, scope hash, and consent checkpoint generation.",
+      "stableInputs": [
+        "consentRecordId",
+        "providerRef",
+        "referralScopeHash",
+        "selectionBindingHash"
+      ],
+      "versionRule": "Withdrawal or supersession issues a new version tied to the next checkpoint state."
+    },
+    {
+      "policyId": "IDPOL_049_AUDIT_CHAIN_HASH",
+      "label": "Audit chain hash",
+      "description": "Audit companion resources derive identifiers from the immutable audit chain hash and causal join token.",
+      "stableInputs": [
+        "auditRecordId",
+        "auditHash",
+        "causalToken"
+      ],
+      "versionRule": "Companion audit rows are append-only; they never mutate prior logical ids in place."
+    }
+  ],
+  "statusMappingPolicies": [
+    {
+      "policyId": "STPOL_049_REQUEST_TASK_LIFECYCLE",
+      "label": "Request task lifecycle mapping",
+      "resourceType": "Task",
+      "mappings": {
+        "submitted": "requested",
+        "triage_ready": "ready",
+        "triage_active": "in-progress",
+        "handoff_active": "in-progress",
+        "outcome_recorded": "completed",
+        "closed": "completed"
+      }
+    },
+    {
+      "policyId": "STPOL_049_EVIDENCE_DOCUMENT_REFERENCE",
+      "label": "Evidence document mapping",
+      "resourceType": "DocumentReference",
+      "mappings": {
+        "created": "current",
+        "superseded": "superseded",
+        "quarantined": "entered-in-error"
+      }
+    },
+    {
+      "policyId": "STPOL_049_MESSAGE_COMMUNICATION",
+      "label": "Message and callback communication mapping",
+      "resourceType": "Communication",
+      "mappings": {
+        "queued": "preparation",
+        "delivery_recorded": "in-progress",
+        "outcome_recorded": "completed",
+        "disputed": "stopped"
+      }
+    },
+    {
+      "policyId": "STPOL_049_BOOKING_COMMITMENT",
+      "label": "Booking commitment mapping",
+      "resourceType": "ServiceRequest",
+      "mappings": {
+        "commit_started": "active",
+        "confirmation_pending": "active",
+        "commit_confirmed": "completed",
+        "commit_ambiguous": "on-hold",
+        "cancelled": "revoked"
+      }
+    },
+    {
+      "policyId": "STPOL_049_HUB_COMMITMENT",
+      "label": "Hub commitment mapping",
+      "resourceType": "ServiceRequest",
+      "mappings": {
+        "offer_created": "draft",
+        "offer_accepted": "active",
+        "confirmation_pending": "on-hold",
+        "externally_confirmed": "completed",
+        "return_required": "revoked"
+      }
+    },
+    {
+      "policyId": "STPOL_049_PHARMACY_REFERRAL",
+      "label": "Pharmacy referral mapping",
+      "resourceType": "ServiceRequest",
+      "mappings": {
+        "package_ready": "active",
+        "dispatch_pending": "on-hold",
+        "referred": "completed",
+        "outcome_reconciliation_pending": "on-hold",
+        "resolved": "completed",
+        "bounce_back": "revoked"
+      }
+    },
+    {
+      "policyId": "STPOL_049_CONSENT_CHECKPOINT",
+      "label": "Consent checkpoint mapping",
+      "resourceType": "Consent",
+      "mappings": {
+        "satisfied": "active",
+        "expiring": "active",
+        "renewal_required": "inactive",
+        "withdrawn": "inactive",
+        "revoked_post_dispatch": "inactive"
+      }
+    },
+    {
+      "policyId": "STPOL_049_AUDIT_COMPANION",
+      "label": "Audit companion mapping",
+      "resourceType": "AuditEvent",
+      "mappings": {
+        "recorded": "final",
+        "break_glass": "final",
+        "export_generated": "final"
+      }
+    }
+  ],
+  "cardinalityPolicies": [
+    {
+      "policyId": "CARDPOL_049_REQUEST_ONE_TASK_MANY_DOCS",
+      "label": "One task plus bounded document set",
+      "description": "One Request aggregate version emits exactly one primary Task and zero or more supporting DocumentReference rows."
+    },
+    {
+      "policyId": "CARDPOL_049_SNAPSHOT_MANY_DOCREFS",
+      "label": "Snapshot document fan-out",
+      "description": "One EvidenceSnapshot may emit many DocumentReference rows but all belong to one representation set hash."
+    },
+    {
+      "policyId": "CARDPOL_049_SINGLE_COMMUNICATION_PER_DISPATCH",
+      "label": "Single communication per dispatch or callback epoch",
+      "description": "Each dispatch or callback epoch emits at most one current Communication companion at a time."
+    },
+    {
+      "policyId": "CARDPOL_049_SINGLE_SERVICE_REQUEST_COMMITMENT",
+      "label": "Single commitment per case epoch",
+      "description": "Each booking, hub, or pharmacy commitment epoch may emit one current ServiceRequest with companion resources."
+    },
+    {
+      "policyId": "CARDPOL_049_PHARMACY_REFERRAL_PACKAGE_SET",
+      "label": "Referral package set",
+      "description": "Each pharmacy package hash emits one ServiceRequest plus bounded supporting Communication, Consent, DocumentReference, Provenance, and AuditEvent rows."
+    },
+    {
+      "policyId": "CARDPOL_049_SINGLE_CONSENT_PER_CHECKPOINT_VERSION",
+      "label": "Single consent per checkpoint version",
+      "description": "Each PharmacyConsentCheckpoint version emits one current Consent row with append-only supersession."
+    },
+    {
+      "policyId": "CARDPOL_049_SINGLE_AUDIT_EVENT_PLUS_PROVENANCE",
+      "label": "Single audit companion pair",
+      "description": "Each immutable audit join emits one AuditEvent and one Provenance row only."
+    }
+  ],
+  "redactionPolicies": [
+    {
+      "policyId": "REDPOL_049_REFERENCE_ONLY_ARTIFACTS",
+      "label": "Reference-only artifacts",
+      "description": "Payloads carry governed artifact refs, checksums, and masked descriptors only; no binary bodies or transcript text."
+    },
+    {
+      "policyId": "REDPOL_049_MINIMAL_PARTNER_INTERCHANGE",
+      "label": "Minimal partner interchange",
+      "description": "Only partner-required structured fields and declared profile elements may cross the boundary."
+    },
+    {
+      "policyId": "REDPOL_049_CALLBACK_CORRELATION_MINIMAL",
+      "label": "Callback correlation minimal disclosure",
+      "description": "Inbound callback correlation exposes only partner correlation tokens, declared identifiers, and checkpoint posture."
+    },
+    {
+      "policyId": "REDPOL_049_AUDIT_COMPANION_MASKED",
+      "label": "Audit companion masked detail",
+      "description": "FHIR AuditEvent and Provenance carry masked operator and actor descriptors while the immutable internal audit row stays authoritative."
+    }
+  ],
+  "companionArtifactPolicies": [
+    {
+      "policyId": "COMPPOL_049_DOCUMENT_REFERENCE_BINARY_REFS",
+      "label": "DocumentReference binary refs",
+      "description": "DocumentReference rows may reference Attachment object keys, checksums, and malware/quarantine posture but not inline payload bodies."
+    },
+    {
+      "policyId": "COMPPOL_049_PARTNER_EXCHANGE_MANIFEST",
+      "label": "Partner exchange manifest",
+      "description": "External bundles may carry an omission/redaction manifest that traces every excluded artifact or field to policy."
+    },
+    {
+      "policyId": "COMPPOL_049_CALLBACK_RECEIPT_REFS",
+      "label": "Callback receipt refs",
+      "description": "Callback bundles must join to receipt checkpoints and replay-collision evidence instead of local receipt booleans."
+    },
+    {
+      "policyId": "COMPPOL_049_DISPATCH_MANIFEST_AND_OMISSIONS",
+      "label": "Dispatch manifest and omissions",
+      "description": "Pharmacy referral transport may include manifest evidence describing redactions or transport-specific omissions without rewriting the frozen canonical set."
+    },
+    {
+      "policyId": "COMPPOL_049_AUDIT_HASH_JOIN",
+      "label": "Audit hash join",
+      "description": "Audit companions must keep the immutable audit hash join and provenance linkage explicit."
+    }
+  ],
+  "replayPolicies": [
+    {
+      "policyId": "REPLAYPOL_049_AGGREGATE_VERSION_STABLE_SET",
+      "label": "Stable set by aggregate version",
+      "stableMembershipOnReplay": true,
+      "description": "Replaying the same aggregate version rematerializes the same resource membership and identifier set."
+    },
+    {
+      "policyId": "REPLAYPOL_049_SNAPSHOT_HASH_STABLE_DOCS",
+      "label": "Stable docs by snapshot hash",
+      "stableMembershipOnReplay": true,
+      "description": "EvidenceSnapshot replay reproduces the same DocumentReference collection while snapshot hash inputs are unchanged."
+    },
+    {
+      "policyId": "REPLAYPOL_049_TRANSPORT_CORRELATION_STABLE_CALLBACK_SET",
+      "label": "Stable callback set by transport correlation",
+      "stableMembershipOnReplay": true,
+      "description": "Duplicate or reordered callbacks target the same representation set until semantic drift forces collision review."
+    },
+    {
+      "policyId": "REPLAYPOL_049_COMMITMENT_PROOF_STABLE_SERVICE_REQUEST",
+      "label": "Stable commitment by proof tuple",
+      "stableMembershipOnReplay": true,
+      "description": "Booking and hub commitment replay reproduces the same ServiceRequest membership until the authoritative commitment tuple changes."
+    },
+    {
+      "policyId": "REPLAYPOL_049_PACKAGE_HASH_STABLE_REFERRAL_SET",
+      "label": "Stable referral by package hash",
+      "stableMembershipOnReplay": true,
+      "description": "The same pharmacy package hash, consent checkpoint, and provider tuple must rematerialize the same referral set."
+    },
+    {
+      "policyId": "REPLAYPOL_049_AUDIT_HASH_APPEND_ONLY",
+      "label": "Append-only audit replay",
+      "stableMembershipOnReplay": true,
+      "description": "Audit companion replay may append new exports but may not silently fork prior audit companions for the same audit hash."
+    }
+  ],
+  "supersessionPolicies": [
+    {
+      "policyId": "SUPPOL_049_APPEND_ONLY_BY_AGGREGATE_VERSION",
+      "label": "Append-only by aggregate version",
+      "description": "New aggregate versions append new representation sets and explicitly supersede prior versions without mutating history."
+    },
+    {
+      "policyId": "SUPPOL_049_DOCUMENT_REF_SUPERSESSION_ON_SNAPSHOT_REPLACEMENT",
+      "label": "Snapshot replacement supersedes documents",
+      "description": "Superseding an EvidenceSnapshot invalidates the older DocumentReference membership while preserving immutable prior rows."
+    },
+    {
+      "policyId": "SUPPOL_049_COMMUNICATION_SUPERSESSION_ON_SETTLEMENT_REVISION",
+      "label": "Communication supersession on settlement revision",
+      "description": "Communication companions supersede only when the same dispatch or callback epoch receives a stronger settlement or contradiction."
+    },
+    {
+      "policyId": "SUPPOL_049_COMMITMENT_SUPERSESSION_ON_AUTHORITATIVE_REFRESH",
+      "label": "Commitment supersession on authoritative refresh",
+      "description": "Booking and hub ServiceRequest resources supersede only on authoritative refresh or cancellation evidence."
+    },
+    {
+      "policyId": "SUPPOL_049_CALLBACK_SUPERSESSION_ON_GATE_ROTATION",
+      "label": "Callback supersession on gate rotation",
+      "description": "Callback correlation representations supersede only when a new confirmation gate or correlation epoch replaces the old one."
+    },
+    {
+      "policyId": "SUPPOL_049_CONSENT_INVALIDATION_ON_CHECKPOINT_DRIFT",
+      "label": "Consent invalidation on checkpoint drift",
+      "description": "Consent drift, withdrawal, or renewed checkpoint invalidates the prior current Consent row and requires a new representation set."
+    },
+    {
+      "policyId": "SUPPOL_049_AUDIT_APPEND_ONLY_COMPANION",
+      "label": "Audit append-only companion",
+      "description": "Audit companions never rewrite the underlying audit truth; new exports append a new companion row with the same causal join."
+    }
+  ],
+  "callbackCorrelationPolicies": [
+    {
+      "policyId": "CALLPOL_049_NONE",
+      "label": "No callback correlation",
+      "description": "Clinical persistence-only contracts do not participate in partner callback correlation."
+    },
+    {
+      "policyId": "CALLPOL_049_TRANSPORT_CORRELATION_KEYS",
+      "label": "Transport correlation keys",
+      "description": "Message or callback companions correlate via declared transport tokens and durable receipt checkpoints only."
+    },
+    {
+      "policyId": "CALLPOL_049_EXTERNAL_CONFIRMATION_GATE",
+      "label": "External confirmation gate correlation",
+      "description": "Callback representations bind to one current ExternalConfirmationGate and may not infer final success from transport acceptance alone."
+    },
+    {
+      "policyId": "CALLPOL_049_DISPATCH_ATTEMPT_AND_OUTBOUND_REFERENCE_HASH",
+      "label": "Dispatch attempt and outbound reference hash",
+      "description": "Pharmacy callback and proof correlation bind to the active dispatch attempt, dispatch plan hash, and outbound reference set hash."
+    }
+  ],
+  "prohibitedLifecycleOwners": [
+    {
+      "objectType": "AccessGrant",
+      "blockedReason": "Access grants are internal capability truth and may not surface as FHIR lifecycle owners.",
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#On the FHIR side, the mapping layer must now be explicit and replayable"
+      ]
+    },
+    {
+      "objectType": "CapabilityDecision",
+      "blockedReason": "CapabilityDecision is internal trust law and may not be flattened into FHIR status.",
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#On the FHIR side, the mapping layer must now be explicit and replayable"
+      ]
+    },
+    {
+      "objectType": "Session",
+      "blockedReason": "Session is local authority and never partner-visible FHIR lifecycle truth.",
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#On the FHIR side, the mapping layer must now be explicit and replayable"
+      ]
+    },
+    {
+      "objectType": "RequestLifecycleLease",
+      "blockedReason": "Lease ownership and takeover are control-plane facts, not FHIR statuses.",
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#On the FHIR side, the mapping layer must now be explicit and replayable"
+      ]
+    },
+    {
+      "objectType": "CapacityReservation",
+      "blockedReason": "Reservation truth remains internal and may not be replaced by FHIR commitment state.",
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#On the FHIR side, the mapping layer must now be explicit and replayable"
+      ]
+    },
+    {
+      "objectType": "AudienceSurfaceRuntimeBinding",
+      "blockedReason": "Browser/runtime parity tuples are release controls, not clinical resources.",
+      "source_refs": [
+        "blueprint/platform-runtime-and-release-blueprint.md#AudienceSurfaceRuntimeBinding"
+      ]
+    },
+    {
+      "objectType": "ReleasePublicationParityRecord",
+      "blockedReason": "Publication parity remains release control truth and may not leak into FHIR authority.",
+      "source_refs": [
+        "blueprint/platform-runtime-and-release-blueprint.md#ReleasePublicationParityRecord"
+      ]
+    },
+    {
+      "objectType": "ReleaseTrustFreezeVerdict",
+      "blockedReason": "Trust and freeze posture are control-plane decisions, not FHIR-owned lifecycle state.",
+      "source_refs": [
+        "blueprint/platform-runtime-and-release-blueprint.md#ReleaseTrustFreezeVerdict"
+      ]
+    }
+  ],
+  "assumptions": [
+    {
+      "assumptionId": "ASSUMPTION_049_AUDIT_RECORD_RESOLVES_FROM_PHASE0_AND_EVENT_REGISTRY",
+      "state": "watch",
+      "statement": "The seq_006 object catalog does not currently carry a first-class AuditRecord row, so seq_049 resolves AuditRecord authority from Phase 0 and the seq_048 audit event contracts until seq_053 publishes the authoritative audit ledger pack.",
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#AuditRecord",
+        "data/analysis/canonical_event_contracts.json#audit.recorded",
+        "prompt/053.md"
+      ]
+    },
+    {
+      "assumptionId": "ASSUMPTION_049_EVIDENCE_SNAPSHOT_MATERIALIZATION_STAYS_IN_INTAKE_SAFETY",
+      "state": "watch",
+      "statement": "EvidenceSnapshot ownership is still marked `unknown` in the seq_006 catalog, so seq_049 anchors representation materialization to `intake_safety` because request snapshot freeze, attachment quarantine, and representation emission already converge there.",
+      "source_refs": [
+        "data/analysis/object_catalog.json#EvidenceSnapshot",
+        "data/analysis/canonical_event_contracts.json#request.snapshot.created",
+        "data/analysis/canonical_event_contracts.json#request.representation.emitted"
+      ]
+    }
+  ],
+  "policyTupleHash": "3d09e58e18cf96cbe94f931a09953579acc1f70f24ab00ee9a521247eee313a8"
+}

@@ -1,0 +1,128 @@
+{
+  "taskId": "par_219_crosscutting_track_backend_build_controlled_resend_delivery_repair_and_support_replay_foundations",
+  "schemaVersion": "219.crosscutting.support-repair-replay.v1",
+  "visualMode": "Support_Replay_Control_Atlas",
+  "owner": "support_backend",
+  "sourceFiles": [
+    "services/command-api/src/support-repair-and-replay.ts",
+    "services/command-api/src/service-definition.ts",
+    "docs/architecture/219_controlled_resend_delivery_repair_and_replay_design.md",
+    "docs/security/219_controlled_resend_replay_webhook_and_metadata_controls.md"
+  ],
+  "routeSurfaces": [
+    "POST /ops/support/tickets/:supportTicketId/communication-repair/preview",
+    "POST /ops/support/tickets/:supportTicketId/communication-repair/commit",
+    "POST /ops/support/tickets/:supportTicketId/replay/start",
+    "POST /ops/support/tickets/:supportTicketId/replay/release",
+    "GET /ops/support/tickets/:supportTicketId/timeline",
+    "GET /ops/support/tickets/:supportTicketId/restore-status"
+  ],
+  "objects": [
+    "SupportOmnichannelTimelineProjection",
+    "SupportMutationAttempt",
+    "SupportActionRecord",
+    "SupportActionSettlement",
+    "CommunicationReplayRecord",
+    "SupportReplayCheckpoint",
+    "SupportReplayEvidenceBoundary",
+    "SupportReplayDeltaReview",
+    "SupportReplayReleaseDecision",
+    "SupportReplayRestoreSettlement",
+    "SupportRouteIntentToken",
+    "SupportContinuityEvidenceProjection",
+    "SupportReadOnlyFallbackProjection",
+    "SupportActionWorkbenchProjection",
+    "SupportReachabilityPostureProjection",
+    "SupportRepairChainView",
+    "MessageDispatchEnvelope",
+    "MessageDeliveryEvidenceBundle",
+    "ThreadExpectationEnvelope",
+    "ThreadResolutionGate",
+    "AdapterReceiptCheckpoint",
+    "ProviderSafeMetadataBundle"
+  ],
+  "idempotencyLaw": {
+    "dedupeTuple": [
+      "supportTicketId",
+      "governingThreadTupleHash",
+      "governingSubthreadTupleHash",
+      "repairKind"
+    ],
+    "reuseWhileLive": true,
+    "externalEffectBudget": 1,
+    "settlementRequiredBeforeFreshEffect": true,
+    "repairKinds": [
+      "controlled_resend",
+      "reissue",
+      "channel_change",
+      "callback_reschedule",
+      "attachment_recovery"
+    ]
+  },
+  "canonicalChainRequirements": [
+    "MessageDispatchEnvelope",
+    "MessageDeliveryEvidenceBundle",
+    "ThreadExpectationEnvelope",
+    "ThreadResolutionGate",
+    "SupportLineageBinding",
+    "SupportLineageScopeMember",
+    "governingThreadTupleHash",
+    "governingSubthreadTupleHash"
+  ],
+  "freshRepairAuthorization": {
+    "threadResolutionGateAllows": ["repair_route", "reopen"],
+    "deliveryEvidenceAllows": ["failed", "expired", "disputed"],
+    "otherwise": "denied_scope_or_read_only_fallback"
+  },
+  "replayReleaseProofs": [
+    "SupportReplayDeltaReview",
+    "freshTicketVersion",
+    "SupportRouteIntentToken.live",
+    "reacquiredActionLease",
+    "SupportContinuityEvidenceProjection.trusted",
+    "current SupportLineageBinding",
+    "same mask scope",
+    "no pending external settlement"
+  ],
+  "providerMetadataPolicy": {
+    "allowOnly": [
+      "category=support_repair_notice",
+      "customArgs.correlation_id",
+      "customArgs.dispatch_ref_hash",
+      "customArgs.support_attempt_ref_hash",
+      "uniqueArgs.correlation_id",
+      "uniqueArgs.chain_ref_hash",
+      "localLookupRef"
+    ],
+    "forbidden": [
+      "sendgrid.categories.phi",
+      "sendgrid.categories.direct_patient_identifier",
+      "sendgrid.unique_args.phi",
+      "sendgrid.unique_args.direct_patient_identifier",
+      "sendgrid.custom_args.phi",
+      "sendgrid.custom_args.direct_patient_identifier",
+      "twilio.status_callback_url.phi_query_param",
+      "twilio.status_callback_url.direct_patient_identifier"
+    ],
+    "webhookSignatureMechanisms": {
+      "twilio": "X-Twilio-Signature",
+      "sendgrid": "X-Twilio-Email-Event-Webhook-Signature"
+    }
+  },
+  "reasonCodes": [
+    "SUPPORT_219_REPAIR_CHAIN_CANONICAL_COMMUNICATION_BOUND",
+    "SUPPORT_219_REPAIR_DEDUPE_REUSED_LIVE_ATTEMPT",
+    "SUPPORT_219_REPAIR_AWAITING_EXTERNAL_SETTLEMENT",
+    "SUPPORT_219_REPAIR_DENIED_BY_THREAD_RESOLUTION_GATE",
+    "SUPPORT_219_REPAIR_STALE_RECOVERABLE",
+    "SUPPORT_219_REPAIR_MANUAL_HANDOFF_REQUIRED",
+    "SUPPORT_219_REPAIR_PROVIDER_CALLBACK_SIGNATURE_VALIDATED",
+    "SUPPORT_219_REPAIR_PROVIDER_CALLBACK_SIGNATURE_REJECTED",
+    "SUPPORT_219_PROVIDER_METADATA_SAFE_CORRELATION_ONLY",
+    "SUPPORT_219_REPLAY_CHECKPOINT_FROZEN",
+    "SUPPORT_219_REPLAY_BOUNDARY_EXCLUDES_DRAFTS_AND_LATER_PROOF",
+    "SUPPORT_219_REPLAY_RELEASE_DELTA_REVIEW_REQUIRED",
+    "SUPPORT_219_REPLAY_RESTORE_LIVE_CONTROLS_REARMED",
+    "SUPPORT_219_REPLAY_RESTORE_BLOCKED_READ_ONLY_FALLBACK"
+  ]
+}

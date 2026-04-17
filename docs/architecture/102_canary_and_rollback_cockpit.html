@@ -1,0 +1,985 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Canary And Rollback Cockpit</title>
+    <style>
+      :root {
+        --canvas: #f3f6f8;
+        --panel: rgba(255, 255, 255, 0.94);
+        --panel-soft: #eef3f5;
+        --border: #d5dee5;
+        --text-strong: #13222d;
+        --text-default: #243846;
+        --text-muted: #607483;
+        --shadow: 0 24px 56px rgba(19, 34, 45, 0.08);
+        --preview: #475569;
+        --accepted: #2563eb;
+        --observed: #0f766e;
+        --satisfied: #0f8f62;
+        --constrained: #b76a00;
+        --rollback: #c83d4a;
+        --superseded: #7c3aed;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+        color: var(--text-default);
+        background:
+          radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 28%),
+          radial-gradient(circle at top right, rgba(124, 58, 237, 0.08), transparent 24%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(243, 246, 248, 1)),
+          var(--canvas);
+      }
+
+      body[data-reduced-motion="true"] * {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+      }
+
+      h1,
+      h2,
+      h3,
+      p,
+      dl,
+      dd,
+      dt {
+        margin: 0;
+      }
+
+      .shell {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 18px 24px 30px;
+      }
+
+      .masthead,
+      .panel,
+      .rail,
+      .inspector {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+      }
+
+      .masthead {
+        position: sticky;
+        top: 12px;
+        z-index: 20;
+        padding: 18px 22px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .brand-row,
+      .metric-row,
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .monogram {
+        width: 46px;
+        height: 46px;
+        border-radius: 15px;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(37, 99, 235, 0.16);
+        background: linear-gradient(
+          135deg,
+          rgba(37, 99, 235, 0.13),
+          rgba(124, 58, 237, 0.1)
+        );
+      }
+
+      .subtle {
+        color: var(--text-muted);
+        line-height: 1.5;
+        max-width: 68ch;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.78rem;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+      }
+
+      .metric-row {
+        gap: 12px;
+      }
+
+      .metric {
+        min-width: 170px;
+        padding: 10px 12px;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: var(--panel-soft);
+      }
+
+      .metric span {
+        display: block;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 6px;
+        color: var(--text-strong);
+        font-size: 1.34rem;
+      }
+
+      .workspace {
+        margin-top: 20px;
+        display: grid;
+        grid-template-columns: 320px minmax(0, 1fr) 390px;
+        gap: 20px;
+        align-items: start;
+      }
+
+      .rail,
+      .panel,
+      .inspector {
+        padding: 20px;
+      }
+
+      .rail {
+        display: grid;
+        gap: 16px;
+        align-content: start;
+        background: linear-gradient(180deg, rgba(238, 243, 245, 0.94), rgba(255, 255, 255, 1));
+      }
+
+      .main-column {
+        min-width: 0;
+        display: grid;
+        gap: 20px;
+      }
+
+      .filters,
+      .scenario-list,
+      .state-grid,
+      .history-list,
+      .audit-list,
+      .spectrum-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .state-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .spectrum-grid {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+      }
+
+      .state-card,
+      .timeline-item,
+      .scenario-card,
+      .spectrum-card,
+      .audit-item {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(246, 249, 251, 0.96), rgba(255, 255, 255, 0.98));
+        padding: 16px;
+      }
+
+      .state-card h3,
+      .timeline-item h3,
+      .scenario-card h3,
+      .spectrum-card h3,
+      .audit-item h3 {
+        font-size: 0.98rem;
+      }
+
+      .state-card p,
+      .timeline-item p,
+      .scenario-card p,
+      .spectrum-card p,
+      .audit-item p {
+        margin-top: 8px;
+        color: var(--text-muted);
+        line-height: 1.45;
+      }
+
+      .scenario-card {
+        display: grid;
+        gap: 8px;
+        text-align: left;
+        width: 100%;
+        cursor: pointer;
+        scroll-margin-top: 120px;
+      }
+
+      .scenario-card[data-selected="true"] {
+        border-color: rgba(37, 99, 235, 0.45);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.13);
+      }
+
+      .badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 0.74rem;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        background: var(--panel-soft);
+        color: var(--text-strong);
+      }
+
+      [data-state="preview"] {
+        border-color: rgba(71, 85, 105, 0.25);
+      }
+
+      .badge[data-state="preview"] {
+        color: var(--preview);
+      }
+
+      [data-state="accepted"] {
+        border-color: rgba(37, 99, 235, 0.25);
+      }
+
+      .badge[data-state="accepted"] {
+        color: var(--accepted);
+      }
+
+      [data-state="observed"] {
+        border-color: rgba(15, 118, 110, 0.24);
+      }
+
+      .badge[data-state="observed"] {
+        color: var(--observed);
+      }
+
+      [data-state="satisfied"] {
+        border-color: rgba(15, 143, 98, 0.25);
+      }
+
+      .badge[data-state="satisfied"] {
+        color: var(--satisfied);
+      }
+
+      [data-state="constrained"],
+      [data-state="blocked"] {
+        border-color: rgba(183, 106, 0, 0.26);
+      }
+
+      .badge[data-state="constrained"],
+      .badge[data-state="blocked"] {
+        color: var(--constrained);
+      }
+
+      [data-state="rollback_required"] {
+        border-color: rgba(200, 61, 74, 0.28);
+      }
+
+      .badge[data-state="rollback_required"] {
+        color: var(--rollback);
+      }
+
+      [data-state="superseded"] {
+        border-color: rgba(124, 58, 237, 0.26);
+      }
+
+      .badge[data-state="superseded"] {
+        color: var(--superseded);
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+      }
+
+      select {
+        appearance: none;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 10px 12px;
+        background: white;
+        color: var(--text-strong);
+        font: inherit;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        text-align: left;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(213, 222, 229, 0.8);
+        vertical-align: top;
+      }
+
+      th {
+        font-size: 0.74rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .double-panel {
+        display: grid;
+        gap: 20px;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      }
+
+      .inspector dl {
+        display: grid;
+        gap: 14px;
+      }
+
+      .inspector div {
+        border-bottom: 1px solid rgba(213, 222, 229, 0.7);
+        padding-bottom: 12px;
+      }
+
+      .inspector dt {
+        font-size: 0.77rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+      }
+
+      .inspector dd {
+        line-height: 1.5;
+      }
+
+      .empty {
+        padding: 18px;
+        border-radius: 18px;
+        border: 1px dashed var(--border);
+        color: var(--text-muted);
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      @media (max-width: 1320px) {
+        .workspace {
+          grid-template-columns: minmax(250px, 320px) minmax(0, 1fr);
+        }
+
+        .inspector {
+          grid-column: 1 / -1;
+        }
+      }
+
+      @media (max-width: 1100px) {
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+
+        .state-grid,
+        .double-panel,
+        .spectrum-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 720px) {
+        .shell {
+          padding: 14px;
+        }
+
+        .masthead,
+        .rail,
+        .panel,
+        .inspector {
+          border-radius: 20px;
+          padding: 16px;
+        }
+
+        .state-grid,
+        .double-panel,
+        .spectrum-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="masthead" data-testid="canary-masthead">
+        <div class="brand-row">
+          <div class="brand">
+            <div class="monogram" aria-hidden="true">
+              <strong>W</strong>
+            </div>
+            <div>
+              <p class="mono">Signal Atlas Live / non-production wave control</p>
+              <h1>Canary And Rollback Cockpit</h1>
+            </div>
+          </div>
+          <p class="subtle">
+            One canonical rehearsal surface for canary start, widen, pause, rollback,
+            rollforward, and kill-switch posture. The cockpit stays bound to the same
+            preview, receipt, observation, settlement, and audit objects used by the
+            runtime harness.
+          </p>
+        </div>
+        <div class="metric-row" id="metric-row"></div>
+        <p class="mono" id="captured-on"></p>
+      </header>
+
+      <main class="workspace">
+        <aside class="rail" data-testid="scenario-rail">
+          <section aria-labelledby="filters-heading">
+            <div class="panel-header">
+              <div>
+                <p class="mono">Filters</p>
+                <h2 id="filters-heading">Scope the rehearsal set</h2>
+              </div>
+            </div>
+            <div class="filters">
+              <label for="filter-environment">
+                Environment ring
+                <select data-testid="filter-environment" id="filter-environment"></select>
+              </label>
+              <label for="filter-action">
+                Action type
+                <select data-testid="filter-action" id="filter-action"></select>
+              </label>
+              <label for="filter-cockpit-state">
+                Cockpit state
+                <select data-testid="filter-cockpit-state" id="filter-cockpit-state"></select>
+              </label>
+            </div>
+          </section>
+
+          <section aria-labelledby="scenario-heading">
+            <div class="panel-header">
+              <div>
+                <p class="mono">Scenarios</p>
+                <h2 id="scenario-heading">Select a wave action</h2>
+              </div>
+            </div>
+            <div class="scenario-list" id="scenario-list"></div>
+          </section>
+        </aside>
+
+        <div class="main-column">
+          <section class="panel" aria-labelledby="spectrum-heading">
+            <div class="panel-header">
+              <div>
+                <p class="mono">State spectrum</p>
+                <h2 id="spectrum-heading">Canonical cockpit states</h2>
+              </div>
+            </div>
+            <div class="spectrum-grid">
+              <article class="spectrum-card" data-state="preview">
+                <div class="badge-row"><span class="badge" data-state="preview">preview</span></div>
+                <h3>Preview</h3>
+                <p>The impact preview exists, but execution has not yet been accepted.</p>
+              </article>
+              <article class="spectrum-card" data-state="accepted">
+                <div class="badge-row"><span class="badge" data-state="accepted">accepted</span></div>
+                <h3>Accepted</h3>
+                <p>The action is executed and waiting on dwell or observation proof.</p>
+              </article>
+              <article class="spectrum-card" data-state="observed">
+                <div class="badge-row"><span class="badge" data-state="observed">observed</span></div>
+                <h3>Observed</h3>
+                <p>The action captured evidence, but the final posture remains guarded.</p>
+              </article>
+              <article class="spectrum-card" data-state="satisfied">
+                <div class="badge-row"><span class="badge" data-state="satisfied">satisfied</span></div>
+                <h3>Satisfied</h3>
+                <p>The tuple, readiness, and observation evidence converge cleanly.</p>
+              </article>
+              <article class="spectrum-card" data-state="constrained">
+                <div class="badge-row"><span class="badge" data-state="constrained">constrained</span></div>
+                <h3>Constrained</h3>
+                <p>The action remains executable or observable, but blockers still shape posture.</p>
+              </article>
+              <article class="spectrum-card" data-state="rollback_required">
+                <div class="badge-row">
+                  <span class="badge" data-state="rollback_required">rollback required</span>
+                </div>
+                <h3>Rollback Required</h3>
+                <p>The action is accepted and the resulting state demands rollback completion.</p>
+              </article>
+              <article class="spectrum-card" data-state="superseded">
+                <div class="badge-row">
+                  <span class="badge" data-state="superseded">superseded</span>
+                </div>
+                <h3>Superseded</h3>
+                <p>An older tuple preview was explicitly replaced before widening or rollforward.</p>
+              </article>
+            </div>
+          </section>
+
+          <section class="panel" data-testid="state-grid" aria-labelledby="state-heading">
+            <div class="panel-header">
+              <div>
+                <p class="mono">Selected scenario</p>
+                <h2 id="state-heading">Guardrail, preview, observation, settlement</h2>
+              </div>
+            </div>
+            <div class="state-grid" id="state-grid-cards"></div>
+          </section>
+
+          <section class="panel" data-testid="history-panel" aria-labelledby="history-heading">
+            <div class="panel-header">
+              <div>
+                <p class="mono">Timeline</p>
+                <h2 id="history-heading">Phase-by-phase action history</h2>
+              </div>
+            </div>
+            <div class="history-list" id="history-list"></div>
+          </section>
+
+          <section class="double-panel">
+            <section class="panel" data-testid="guardrail-table" aria-labelledby="guardrail-heading">
+              <div class="panel-header">
+                <div>
+                  <p class="mono">Blockers</p>
+                  <h2 id="guardrail-heading">Guardrail and settlement reasons</h2>
+                </div>
+              </div>
+              <div id="guardrail-table-container"></div>
+            </section>
+
+            <section class="panel" data-testid="audit-panel" aria-labelledby="audit-heading">
+              <div class="panel-header">
+                <div>
+                  <p class="mono">Audit</p>
+                  <h2 id="audit-heading">Append-only action trail</h2>
+                </div>
+              </div>
+              <div class="audit-list" id="audit-list"></div>
+            </section>
+          </section>
+        </div>
+
+        <aside class="inspector" data-testid="inspector" aria-labelledby="inspector-heading">
+          <div class="panel-header">
+            <div>
+              <p class="mono">Inspector</p>
+              <h2 id="inspector-heading">Tuple and rollback bindings</h2>
+            </div>
+          </div>
+          <div id="inspector-grid"></div>
+        </aside>
+      </main>
+    </div>
+
+    <script>
+      const state = {
+        data: { records: [], history_rows: [], summary: {} },
+        filtered: [],
+        selectedScenarioId: null,
+      };
+
+      const elements = {
+        metricRow: document.getElementById("metric-row"),
+        capturedOn: document.getElementById("captured-on"),
+        filterEnvironment: document.getElementById("filter-environment"),
+        filterAction: document.getElementById("filter-action"),
+        filterCockpitState: document.getElementById("filter-cockpit-state"),
+        scenarioList: document.getElementById("scenario-list"),
+        stateGridCards: document.getElementById("state-grid-cards"),
+        historyList: document.getElementById("history-list"),
+        guardrailTableContainer: document.getElementById("guardrail-table-container"),
+        auditList: document.getElementById("audit-list"),
+        inspectorGrid: document.getElementById("inspector-grid"),
+      };
+
+      function setReducedMotionFlag() {
+        const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+        const apply = () => {
+          document.body.dataset.reducedMotion = media.matches ? "true" : "false";
+        };
+        apply();
+        media.addEventListener?.("change", apply);
+      }
+
+      function byScenarioId(scenarioId) {
+        return state.data.records.find((row) => row.scenarioId === scenarioId) ?? null;
+      }
+
+      function createBadge(label, value) {
+        return `<span class="badge" data-state="${value}">${label}</span>`;
+      }
+
+      function renderMetrics() {
+        const summary = state.data.summary;
+        elements.capturedOn.textContent = `captured ${state.data.captured_on}`;
+        elements.metricRow.innerHTML = [
+          ["Scenarios", summary.scenario_count],
+          ["Green", summary.green_guardrail_count],
+          ["Frozen", summary.frozen_guardrail_count],
+          ["Accepted", summary.accepted_count],
+          ["Satisfied", summary.satisfied_count],
+          ["Rollback", summary.rollback_required_count],
+        ]
+          .map(
+            ([label, value]) => `
+              <div class="metric">
+                <span>${label}</span>
+                <strong>${value}</strong>
+              </div>
+            `,
+          )
+          .join("");
+      }
+
+      function populateFilters() {
+        const environments = ["all", ...new Set(state.data.records.map((row) => row.environmentRing))];
+        const actions = [
+          "all",
+          "canary_start",
+          "widen",
+          "pause",
+          "rollback",
+          "rollforward",
+          "kill_switch",
+        ];
+        const cockpitStates = [
+          "all",
+          "accepted",
+          "satisfied",
+          "constrained",
+          "rollback_required",
+        ];
+        elements.filterEnvironment.innerHTML = environments
+          .map((value) => `<option value="${value}">${value}</option>`)
+          .join("");
+        elements.filterAction.innerHTML = actions
+          .map((value) => `<option value="${value}">${value}</option>`)
+          .join("");
+        elements.filterCockpitState.innerHTML = cockpitStates
+          .map((value) => `<option value="${value}">${value}</option>`)
+          .join("");
+      }
+
+      function applyFilters() {
+        const environment = elements.filterEnvironment.value;
+        const action = elements.filterAction.value;
+        const cockpitState = elements.filterCockpitState.value;
+        state.filtered = state.data.records.filter((row) => {
+          if (environment !== "all" && row.environmentRing !== environment) {
+            return false;
+          }
+          if (action !== "all" && row.actionType !== action) {
+            return false;
+          }
+          if (cockpitState !== "all" && row.settlement.cockpitState !== cockpitState) {
+            return false;
+          }
+          return true;
+        });
+        if (!state.filtered.some((row) => row.scenarioId === state.selectedScenarioId)) {
+          state.selectedScenarioId = state.filtered[0]?.scenarioId ?? null;
+        }
+        renderScenarioRail();
+        renderSelectedScenario();
+      }
+
+      function renderScenarioRail() {
+        if (state.filtered.length === 0) {
+          elements.scenarioList.innerHTML = `<div class="empty">No scenarios match the current filters.</div>`;
+          return;
+        }
+        elements.scenarioList.innerHTML = state.filtered
+          .map(
+            (row, index) => `
+              <button
+                class="scenario-card"
+                type="button"
+                data-testid="scenario-card-${row.scenarioId}"
+                data-scenario-id="${row.scenarioId}"
+                data-state="${row.settlement.cockpitState}"
+                data-selected="${row.scenarioId === state.selectedScenarioId}"
+                data-index="${index}"
+              >
+                <div class="badge-row">
+                  ${createBadge(row.actionType.replaceAll("_", " "), row.settlement.cockpitState)}
+                  ${createBadge(row.settlement.cockpitState.replaceAll("_", " "), row.settlement.cockpitState)}
+                </div>
+                <h3>${row.title}</h3>
+                <p>${row.environmentRing} / ${row.releaseRef}</p>
+                <p class="mono">${row.scenarioId}</p>
+              </button>
+            `,
+          )
+          .join("");
+        elements.scenarioList.querySelectorAll(".scenario-card").forEach((button) => {
+          button.addEventListener("click", () => {
+            state.selectedScenarioId = button.dataset.scenarioId;
+            renderScenarioRail();
+            renderSelectedScenario();
+          });
+          button.addEventListener("keydown", (event) => {
+            const buttons = [...elements.scenarioList.querySelectorAll(".scenario-card")];
+            const currentIndex = Number(button.dataset.index ?? 0);
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              const next = buttons[currentIndex + 1];
+              if (next) {
+                next.focus();
+                next.click();
+              }
+            }
+            if (event.key === "ArrowUp") {
+              event.preventDefault();
+              const prev = buttons[currentIndex - 1];
+              if (prev) {
+                prev.focus();
+                prev.click();
+              }
+            }
+          });
+        });
+      }
+
+      function renderStateGrid(record) {
+        const cards = [
+          {
+            title: "Guardrail",
+            state: record.guardrailSnapshot.guardrailState,
+            body: record.guardrailSnapshot.waveGuardrailSnapshotId,
+            detail: `${record.guardrailSnapshot.blockerRefs.length} blockers / ${record.guardrailSnapshot.warningRefs.length} warnings`,
+          },
+          {
+            title: "Preview",
+            state: record.impactPreview.previewState,
+            body: record.impactPreview.waveActionImpactPreviewId,
+            detail: `${record.actionType} / ${record.impactPreview.blastRadius.blastRadiusClass} blast radius`,
+          },
+          {
+            title: "Observation",
+            state: record.observationWindow.observationState,
+            body: record.observationWindow.waveActionObservationWindowId,
+            detail: `${record.context.currentTupleHash} -> ${record.context.targetTupleHash}`,
+          },
+          {
+            title: "Settlement",
+            state: record.settlement.cockpitState,
+            body: record.settlement.waveActionSettlementId,
+            detail: `${record.executionReceipt.executionState} / ${record.settlement.settlementState}`,
+          },
+        ];
+        elements.stateGridCards.innerHTML = cards
+          .map(
+            (card) => `
+              <article class="state-card" data-state="${card.state}">
+                <div class="badge-row">${createBadge(card.state.replaceAll("_", " "), card.state)}</div>
+                <h3>${card.title}</h3>
+                <p>${card.body}</p>
+                <p class="mono">${card.detail}</p>
+              </article>
+            `,
+          )
+          .join("");
+      }
+
+      function renderHistory(record) {
+        const rows = state.data.history_rows.filter((row) => row.scenarioId === record.scenarioId);
+        elements.historyList.innerHTML = rows
+          .map(
+            (row) => `
+              <article class="timeline-item" data-state="${row.state}">
+                <div class="badge-row">
+                  ${createBadge(row.phase, row.state)}
+                  ${createBadge(row.state.replaceAll("_", " "), row.state)}
+                </div>
+                <h3>${row.summary}</h3>
+                <p>${row.ref}</p>
+                <p class="mono">${row.recordedAt}</p>
+              </article>
+            `,
+          )
+          .join("");
+      }
+
+      function renderGuardrailTable(record) {
+        const rows = [
+          ...record.guardrailSnapshot.blockerRefs.map((ref) => ({
+            kind: "guardrail blocker",
+            ref,
+            state: record.guardrailSnapshot.guardrailState === "green" ? "preview" : "constrained",
+          })),
+          ...record.guardrailSnapshot.warningRefs.map((ref) => ({
+            kind: "guardrail warning",
+            ref,
+            state: "constrained",
+          })),
+          ...record.settlement.blockerRefs.map((ref) => ({
+            kind: "settlement blocker",
+            ref,
+            state: record.settlement.cockpitState,
+          })),
+        ];
+        elements.guardrailTableContainer.innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>Kind</th>
+                <th>Reference</th>
+                <th>State</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows
+                .map(
+                  (row) => `
+                    <tr data-kind="${row.kind}">
+                      <td>${row.kind}</td>
+                      <td>${row.ref}</td>
+                      <td>${createBadge(row.state.replaceAll("_", " "), row.state)}</td>
+                    </tr>
+                  `,
+                )
+                .join("")}
+            </tbody>
+          </table>
+        `;
+      }
+
+      function renderAudit(record) {
+        elements.auditList.innerHTML = record.auditTrail
+          .map(
+            (row) => `
+              <article class="audit-item" data-state="${row.cockpitState}">
+                <div class="badge-row">
+                  ${createBadge(row.auditKind.replaceAll("_", " "), row.cockpitState)}
+                  ${createBadge(row.cockpitState.replaceAll("_", " "), row.cockpitState)}
+                </div>
+                <h3>${row.actionType}</h3>
+                <p>${row.reasonRefs.join(", ") || "No extra reasons."}</p>
+                <p class="mono">${row.recordedAt}</p>
+              </article>
+            `,
+          )
+          .join("");
+      }
+
+      function renderInspector(record) {
+        elements.inspectorGrid.innerHTML = `
+          <dl>
+            <div>
+              <dt>Scenario</dt>
+              <dd>${record.scenarioId}</dd>
+            </div>
+            <div>
+              <dt>Description</dt>
+              <dd>${record.description}</dd>
+            </div>
+            <div>
+              <dt>Tuple hashes</dt>
+              <dd class="mono">${record.context.currentTupleHash} -> ${record.context.targetTupleHash}</dd>
+            </div>
+            <div>
+              <dt>Rollback target</dt>
+              <dd class="mono">${record.context.rollbackTargetPublicationBundleRef ?? "none"}</dd>
+            </div>
+            <div>
+              <dt>Recovery disposition</dt>
+              <dd>${record.context.recoveryDispositionState}</dd>
+            </div>
+            <div>
+              <dt>Rollback evidence</dt>
+              <dd>${record.context.rollbackReadinessEvidenceRefs.join(", ")}</dd>
+            </div>
+            <div>
+              <dt>Runbook bindings</dt>
+              <dd>${record.context.rollbackRunbookBindingRefs.join(", ")}</dd>
+            </div>
+            <div>
+              <dt>Blast radius</dt>
+              <dd>${record.impactPreview.blastRadius.blastRadiusClass} / ${record.impactPreview.blastRadius.affectedRouteFamilyRefs.join(", ")}</dd>
+            </div>
+            <div>
+              <dt>Superseded preview</dt>
+              <dd>${record.supersededImpactPreview ? record.supersededImpactPreview.waveActionImpactPreviewId : "No superseded predecessor preview for this scenario."}</dd>
+            </div>
+            <div>
+              <dt>Source refs</dt>
+              <dd>${record.context.sourceRefs.join(", ")}</dd>
+            </div>
+          </dl>
+        `;
+      }
+
+      function renderSelectedScenario() {
+        const record = byScenarioId(state.selectedScenarioId);
+        if (!record) {
+          elements.stateGridCards.innerHTML = `<div class="empty">Select a scenario to inspect the wave action.</div>`;
+          elements.historyList.innerHTML = "";
+          elements.guardrailTableContainer.innerHTML = "";
+          elements.auditList.innerHTML = "";
+          elements.inspectorGrid.innerHTML = "";
+          return;
+        }
+        renderStateGrid(record);
+        renderHistory(record);
+        renderGuardrailTable(record);
+        renderAudit(record);
+        renderInspector(record);
+      }
+
+      async function init() {
+        setReducedMotionFlag();
+        const response = await fetch("../../data/analysis/canary_scenario_catalog.json");
+        state.data = await response.json();
+        populateFilters();
+        renderMetrics();
+        applyFilters();
+        ["change", "input"].forEach((eventName) => {
+          elements.filterEnvironment.addEventListener(eventName, applyFilters);
+          elements.filterAction.addEventListener(eventName, applyFilters);
+          elements.filterCockpitState.addEventListener(eventName, applyFilters);
+        });
+      }
+
+      init().catch((error) => {
+        console.error(error);
+        elements.scenarioList.innerHTML = `<div class="empty">Failed to load canary scenario catalog.</div>`;
+      });
+    </script>
+  </body>
+</html>

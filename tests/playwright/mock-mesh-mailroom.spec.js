@@ -54,10 +54,14 @@ async function run() {
 
   await page.locator("[data-testid='page-tab-Mailbox_Application_Pack']").click();
   await page.locator("[data-testid='actual-field-named-approver']").fill("dry-run approver");
-  await page.locator("[data-testid='actual-field-environment-target']").fill("path_to_live_integration");
+  await page
+    .locator("[data-testid='actual-field-environment-target']")
+    .fill("path_to_live_integration");
   await page.locator("[data-testid='actual-field-owner-ods']").fill("VEC01");
   await page.locator("[data-testid='actual-field-manager-mode']").selectOption("self_managed");
-  await page.locator("[data-testid='actual-field-workflow-contact']").fill("Named MESH team contact");
+  await page
+    .locator("[data-testid='actual-field-workflow-contact']")
+    .fill("Named MESH team contact");
   await page.locator("[data-testid='actual-field-allow-mutation']").selectOption("false");
   await page.locator("[data-testid='actual-field-allow-spend']").selectOption("false");
   const disabled = await page.locator("[data-testid='actual-submit-button']").isDisabled();

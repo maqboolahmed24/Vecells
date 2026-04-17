@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Settlement Envelope Atlas</title>
+    <style>
+      :root {
+        --canvas: #F7F9FC;
+        --panel: #FFFFFF;
+        --rail: #EEF2F8;
+        --inset: #F4F6FB;
+        --text-strong: #0F172A;
+        --text-default: #1E293B;
+        --text-muted: #667085;
+        --border: #E2E8F0;
+        --settlement: #3559E6;
+        --pending: #0EA5A4;
+        --recovery: #7C3AED;
+        --warning: #C98900;
+        --blocked: #C24141;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: var(--canvas);
+        color: var(--text-default);
+      }
+      body[data-reduced-motion="true"] * { transition: none !important; animation: none !important; }
+      header {
+        height: 72px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 20px;
+        align-items: center;
+        padding: 0 24px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(255,255,255,0.86);
+        backdrop-filter: blur(14px);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      .brand {
+        display: inline-flex;
+        gap: 12px;
+        align-items: center;
+        font-weight: 700;
+        color: var(--text-strong);
+      }
+      .brand svg {
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        background: linear-gradient(140deg, var(--settlement), #1D4ED8);
+        color: white;
+        padding: 8px;
+      }
+      .masthead-metrics {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .metric {
+        border: 1px solid var(--border);
+        background: var(--panel);
+        border-radius: 14px;
+        padding: 10px 14px;
+        min-width: 118px;
+      }
+      .metric strong { display: block; color: var(--text-strong); }
+      main {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 20px;
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr) 410px;
+        gap: 18px;
+      }
+      aside, section, .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+      }
+      aside {
+        padding: 18px;
+        height: fit-content;
+        position: sticky;
+        top: 92px;
+      }
+      .filter-group { display: grid; gap: 12px; margin-bottom: 16px; }
+      label { display: grid; gap: 6px; font-size: 13px; color: var(--text-muted); }
+      select {
+        height: 44px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--inset);
+        padding: 0 12px;
+        color: var(--text-strong);
+      }
+      .canvas { display: grid; gap: 18px; }
+      .quadrant, .rail, .grid-panel, .table-panel {
+        padding: 18px;
+      }
+      .quadrant { min-height: 250px; }
+      .quad-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 14px;
+      }
+      .quad-cell {
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: var(--inset);
+        padding: 16px;
+      }
+      .quad-cell strong { display: block; font-size: 24px; color: var(--text-strong); }
+      .rail {
+        min-height: 180px;
+        background: linear-gradient(180deg, rgba(53, 89, 230, 0.08), transparent);
+      }
+      .rail-items {
+        display: grid;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .rail-item {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 12px;
+      }
+      .card {
+        min-height: 170px;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        padding: 16px;
+        text-align: left;
+        cursor: pointer;
+        transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+      }
+      .card[data-selected="true"] {
+        border-color: var(--settlement);
+        box-shadow: 0 18px 40px rgba(53, 89, 230, 0.12);
+        transform: translateY(-2px);
+      }
+      .card code, .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .inspector {
+        padding: 18px;
+        position: sticky;
+        top: 92px;
+        height: fit-content;
+        transition: transform 220ms ease;
+      }
+      .key-value {
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 13px;
+      }
+      .lower {
+        grid-column: 2 / 4;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
+        gap: 18px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th, td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+        vertical-align: top;
+      }
+      tr[data-selected="true"] {
+        background: rgba(53, 89, 230, 0.08);
+      }
+      .parity {
+        margin-top: 12px;
+        color: var(--text-muted);
+        font-size: 13px;
+      }
+      .chip {
+        display: inline-flex;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        background: var(--rail);
+      }
+      @media (max-width: 1120px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+        .lower {
+          grid-column: auto;
+          grid-template-columns: 1fr;
+        }
+        aside, .inspector {
+          position: static;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M5 7h9c2.3 0 4 1.5 4 3.6S16.3 14 14 14H8v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M5 17h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <div>
+          <div>Vecells</div>
+          <div style="font-size:12px;color:var(--text-muted);font-weight:500;">Settlement_Envelope_Atlas</div>
+        </div>
+      </div>
+      <div class="masthead-metrics" data-testid="masthead-metrics"></div>
+    </header>
+    <main>
+      <aside aria-label="Filters">
+        <div class="filter-group">
+          <label>Result
+            <select data-testid="result-filter"></select>
+          </label>
+          <label>Authoritative outcome
+            <select data-testid="outcome-filter"></select>
+          </label>
+          <label>Recovery state
+            <select data-testid="recovery-filter"></select>
+          </label>
+        </div>
+        <p class="parity">Use the filters to inspect how settlement truth maps into one published same-shell envelope without collapsing the four dimensions.</p>
+      </aside>
+
+      <div class="canvas">
+        <section class="quadrant panel" data-testid="quadrant">
+          <h2 style="margin:0;color:var(--text-strong);">Four-axis settlement quadrant</h2>
+          <div class="quad-grid" data-testid="quadrant-grid"></div>
+          <p class="parity" data-testid="quadrant-parity"></p>
+        </section>
+
+        <section class="rail panel" data-testid="revision-rail">
+          <h2 style="margin:0;color:var(--text-strong);">Revision rail</h2>
+          <div class="rail-items" data-testid="revision-rail-items"></div>
+          <p class="parity">Every visible revision stays legible as a monotone chain. No revision may create a competing success head.</p>
+        </section>
+
+        <section class="grid-panel panel">
+          <h2 style="margin:0 0 12px;color:var(--text-strong);">Settlement revisions</h2>
+          <div class="cards" data-testid="settlement-card-grid"></div>
+        </section>
+      </div>
+
+      <aside class="inspector" data-testid="inspector" aria-live="polite"></aside>
+
+      <div class="lower">
+        <section class="table-panel panel">
+          <h2 style="margin:0 0 12px;color:var(--text-strong);">Settlement to transition mapping</h2>
+          <table data-testid="mapping-table">
+            <thead>
+              <tr>
+                <th>Settlement</th>
+                <th>Local ack</th>
+                <th>Processing</th>
+                <th>Observation</th>
+                <th>Envelope outcome</th>
+              </tr>
+            </thead>
+            <tbody data-testid="mapping-table-body"></tbody>
+          </table>
+        </section>
+
+        <section class="table-panel panel">
+          <h2 style="margin:0 0 12px;color:var(--text-strong);">Validator table</h2>
+          <table data-testid="validator-table">
+            <thead>
+              <tr><th>Validator</th><th>Status</th></tr>
+            </thead>
+            <tbody data-testid="validator-table-body"></tbody>
+          </table>
+        </section>
+      </div>
+    </main>
+    <script>
+      const MANIFEST_URL = "../../data/analysis/command_settlement_manifest.json";
+      const MATRIX_URL = "../../data/analysis/settlement_to_transition_matrix.csv";
+      const CASEBOOK_URL = "../../data/analysis/settlement_supersession_casebook.json";
+      const state = {
+        manifest: null,
+        rows: [],
+        casebook: null,
+        resultFilter: "all",
+        outcomeFilter: "all",
+        recoveryFilter: "all",
+        selectedSettlementId: null,
+      };
+
+      document.body.dataset.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "true" : "false";
+
+      const resultFilterEl = document.querySelector("[data-testid='result-filter']");
+      const outcomeFilterEl = document.querySelector("[data-testid='outcome-filter']");
+      const recoveryFilterEl = document.querySelector("[data-testid='recovery-filter']");
+
+      function parseCsv(text) {
+        const [headerLine, ...lines] = text.trim().split(/\r?\n/);
+        const headers = headerLine.split(",");
+        return lines.filter(Boolean).map((line) => {
+          const values = line.split(",");
+          const row = {};
+          headers.forEach((header, index) => {
+            row[header] = values[index] ?? "";
+          });
+          return row;
+        });
+      }
+
+      function uniqueValues(key) {
+        return [...new Set(state.rows.map((row) => row[key]).filter(Boolean))].sort();
+      }
+
+      function selectedSettlement() {
+        return state.rows.find((row) => row.settlement_id === state.selectedSettlementId) ?? state.rows[0] ?? null;
+      }
+
+      function visibleRows() {
+        return state.rows.filter((row) => {
+          const recoveryRequired = row.envelope_outcome_state === "recovery_required" ? "recovery_required" : "no_recovery";
+          return (state.resultFilter === "all" || row.result === state.resultFilter) &&
+            (state.outcomeFilter === "all" || row.envelope_outcome_state === state.outcomeFilter) &&
+            (state.recoveryFilter === "all" || recoveryRequired === state.recoveryFilter);
+        });
+      }
+
+      function renderFilters() {
+        const resultOptions = ["all", ...uniqueValues("result")];
+        const outcomeOptions = ["all", ...uniqueValues("envelope_outcome_state")];
+        const recoveryOptions = ["all", "recovery_required", "no_recovery"];
+        for (const [element, options, selected] of [
+          [resultFilterEl, resultOptions, state.resultFilter],
+          [outcomeFilterEl, outcomeOptions, state.outcomeFilter],
+          [recoveryFilterEl, recoveryOptions, state.recoveryFilter],
+        ]) {
+          element.innerHTML = options.map((option) => `<option value="${option}" ${option === selected ? "selected" : ""}>${option}</option>`).join("");
+        }
+      }
+
+      function renderMasthead(rows) {
+        const settled = rows.filter((row) => row.envelope_outcome_state === "settled").length;
+        const pending = rows.filter((row) => row.envelope_outcome_state === "pending").length;
+        const review = rows.filter((row) => row.envelope_outcome_state === "review_required").length;
+        const recovery = rows.filter((row) => row.envelope_outcome_state === "recovery_required").length;
+        document.querySelector("[data-testid='masthead-metrics']").innerHTML = [
+          ["Pending", pending],
+          ["Settled", settled],
+          ["Review", review],
+          ["Recovery", recovery],
+        ].map(([label, count]) => `<div class="metric"><span>${label}</span><strong>${count}</strong></div>`).join("");
+      }
+
+      function renderQuadrant(rows) {
+        const cells = [
+          ["Settled", rows.filter((row) => row.envelope_outcome_state === "settled").length],
+          ["Pending", rows.filter((row) => row.envelope_outcome_state === "pending").length],
+          ["Review required", rows.filter((row) => row.envelope_outcome_state === "review_required").length],
+          ["Recovery required", rows.filter((row) => row.envelope_outcome_state === "recovery_required").length],
+        ];
+        document.querySelector("[data-testid='quadrant-grid']").innerHTML = cells.map(([label, count]) => `<div class="quad-cell"><span>${label}</span><strong>${count}</strong></div>`).join("");
+        document.querySelector("[data-testid='quadrant-parity']").textContent = `${rows.length} visible settlement revisions. The quadrant counts reflect authoritative envelope outcomes, not local acknowledgement alone.`;
+      }
+
+      function renderCards(rows) {
+        const selected = selectedSettlement();
+        const container = document.querySelector("[data-testid='settlement-card-grid']");
+        container.innerHTML = rows.map((row, index) => `
+          <button
+            class="card"
+            data-testid="settlement-card-${row.settlement_id}"
+            data-index="${index}"
+            data-selected="${selected && selected.settlement_id === row.settlement_id}"
+          >
+            <div class="chip">${row.envelope_outcome_state}</div>
+            <h3 style="margin:12px 0 8px;color:var(--text-strong);font-size:16px;">${row.headline}</h3>
+            <div class="mono">${row.settlement_id}</div>
+            <p style="margin:10px 0 0;color:var(--text-muted);font-size:13px;">${row.result} · local ack ${row.local_ack_state} · processing ${row.processing_acceptance_state}</p>
+          </button>
+        `).join("");
+        container.querySelectorAll("button").forEach((button) => {
+          button.addEventListener("click", () => {
+            state.selectedSettlementId = button.dataset.testid.replace("settlement-card-", "");
+            render();
+          });
+          button.addEventListener("keydown", (event) => {
+            const buttons = [...container.querySelectorAll("button")];
+            const index = Number(button.dataset.index || "0");
+            if (event.key === "ArrowDown") {
+              const next = buttons[Math.min(index + 1, buttons.length - 1)];
+              if (next) {
+                state.selectedSettlementId = next.dataset.testid.replace("settlement-card-", "");
+                render();
+                next.focus();
+                event.preventDefault();
+              }
+            }
+            if (event.key === "ArrowUp") {
+              const previous = buttons[Math.max(index - 1, 0)];
+              if (previous) {
+                state.selectedSettlementId = previous.dataset.testid.replace("settlement-card-", "");
+                render();
+                previous.focus();
+                event.preventDefault();
+              }
+            }
+          });
+        });
+      }
+
+      function renderRevisionRail(rows) {
+        const selected = selectedSettlement();
+        const chain = rows.filter((row) => row.action_record_ref === selected?.action_record_ref);
+        document.querySelector("[data-testid='revision-rail-items']").innerHTML = chain.map((row) => `
+          <div class="rail-item" data-selected="${selected && selected.settlement_id === row.settlement_id}">
+            <span class="chip">${row.envelope_outcome_state}</span>
+            <span>${row.settlement_id}</span>
+            <span>${row.supersedes_settlement_ref ? "supersedes" : "origin"}</span>
+          </div>
+        `).join("");
+      }
+
+      function renderInspector() {
+        const selected = selectedSettlement();
+        if (!selected) {
+          return;
+        }
+        document.querySelector("[data-testid='inspector']").innerHTML = `
+          <h2 style="margin-top:0;color:var(--text-strong);">${selected.settlement_id}</h2>
+          <div class="key-value"><strong>Scenario</strong><span>${selected.scenario_id}</span></div>
+          <div class="key-value"><strong>Action</strong><span class="mono">${selected.action_record_ref}</span></div>
+          <div class="key-value"><strong>Result</strong><span>${selected.result}</span></div>
+          <div class="key-value"><strong>Processing</strong><span>${selected.processing_acceptance_state}</span></div>
+          <div class="key-value"><strong>Observation</strong><span>${selected.external_observation_state}</span></div>
+          <div class="key-value"><strong>Envelope outcome</strong><span>${selected.envelope_outcome_state}</span></div>
+          <div class="key-value"><strong>Proof</strong><span>${selected.authoritative_proof_class}</span></div>
+          <div class="key-value"><strong>Recovery ref</strong><span>${selected.same_shell_recovery_ref || "none"}</span></div>
+          <div class="key-value"><strong>Anchor</strong><span>${selected.last_safe_anchor_ref || "none"}</span></div>
+          <div class="key-value"><strong>Summary tier</strong><span>${selected.allowed_summary_tier || "none"}</span></div>
+          <div class="key-value"><strong>Quiet eligible</strong><span>${selected.quiet_eligible_at || "not yet"}</span></div>
+          <div class="key-value"><strong>Recorded</strong><span>${selected.recorded_at}</span></div>
+        `;
+      }
+
+      function renderMappingTable(rows) {
+        const selected = selectedSettlement();
+        const body = document.querySelector("[data-testid='mapping-table-body']");
+        body.innerHTML = rows.map((row) => `
+          <tr data-testid="mapping-row-${row.settlement_id}" data-selected="${selected && selected.settlement_id === row.settlement_id}">
+            <td class="mono">${row.settlement_id}</td>
+            <td>${row.local_ack_state}</td>
+            <td>${row.processing_acceptance_state}</td>
+            <td>${row.external_observation_state}</td>
+            <td>${row.envelope_outcome_state}</td>
+          </tr>
+        `).join("");
+      }
+
+      function renderValidatorTable() {
+        const body = document.querySelector("[data-testid='validator-table-body']");
+        body.innerHTML = state.manifest.validators.map((validator) => `
+          <tr>
+            <td>${validator.description}</td>
+            <td><span class="chip">${validator.status}</span></td>
+          </tr>
+        `).join("");
+      }
+
+      function render() {
+        const rows = visibleRows();
+        if (!state.selectedSettlementId || !rows.some((row) => row.settlement_id === state.selectedSettlementId)) {
+          state.selectedSettlementId = rows[0]?.settlement_id ?? null;
+        }
+        renderFilters();
+        renderMasthead(rows);
+        renderQuadrant(rows);
+        renderCards(rows);
+        renderRevisionRail(rows);
+        renderInspector();
+        renderMappingTable(rows);
+        renderValidatorTable();
+      }
+
+      async function boot() {
+        const [manifest, matrixText, casebook] = await Promise.all([
+          fetch(MANIFEST_URL).then((response) => response.json()),
+          fetch(MATRIX_URL).then((response) => response.text()),
+          fetch(CASEBOOK_URL).then((response) => response.json()),
+        ]);
+        state.manifest = manifest;
+        state.rows = parseCsv(matrixText);
+        state.casebook = casebook;
+        state.selectedSettlementId = state.rows[0]?.settlement_id ?? null;
+        resultFilterEl.addEventListener("change", (event) => {
+          state.resultFilter = event.target.value;
+          render();
+        });
+        outcomeFilterEl.addEventListener("change", (event) => {
+          state.outcomeFilter = event.target.value;
+          render();
+        });
+        recoveryFilterEl.addEventListener("change", (event) => {
+          state.recoveryFilter = event.target.value;
+          render();
+        });
+        render();
+      }
+
+      boot();
+    </script>
+  </body>
+</html>

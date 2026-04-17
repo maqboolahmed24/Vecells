@@ -47,7 +47,9 @@ function startStaticServer() {
         return;
       }
       const body = fs.readFileSync(filePath);
-      const contentType = filePath.endsWith(".html") ? "text/html; charset=utf-8" : "application/octet-stream";
+      const contentType = filePath.endsWith(".html")
+        ? "text/html; charset=utf-8"
+        : "application/octet-stream";
       res.writeHead(200, { "Content-Type": contentType });
       res.end(body);
     });
@@ -65,7 +67,9 @@ async function run() {
   const server = await startStaticServer();
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
-  const baseUrl = process.env.VENDOR_SIGNAL_FABRIC_ATLAS_URL ?? "http://127.0.0.1:4317/31_vendor_signal_fabric_atlas.html";
+  const baseUrl =
+    process.env.VENDOR_SIGNAL_FABRIC_ATLAS_URL ??
+    "http://127.0.0.1:4317/31_vendor_signal_fabric_atlas.html";
 
   try {
     await page.goto(baseUrl, { waitUntil: "networkidle" });
@@ -123,7 +127,9 @@ async function run() {
     }
   } finally {
     await browser.close();
-    await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    await new Promise((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
   }
 }
 

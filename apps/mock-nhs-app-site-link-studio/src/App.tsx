@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { VecellLogoWordmark } from "@vecells/design-system";
 
 import { siteLinkPack } from "./generated/siteLinkPack";
 
@@ -697,7 +698,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <div className="top-banner">
-        <span className="vecells-mark">Vecells</span>
+        <VecellLogoWordmark aria-hidden="true" className="vecells-mark" />
         <span className="mock-ribbon">MOCK_SITE_LINKS</span>
         <span className="quiet-note">
           Site-link rehearsal only. Real Android/iOS values stay placeholder-only until the NHS App team issues them.

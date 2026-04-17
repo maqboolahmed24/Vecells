@@ -1,0 +1,506 @@
+{
+  "taskId": "seq_203",
+  "schemaVersion": "203.phase2.signal-provider.v1",
+  "manifestVersion": "signal-provider-config-2026-04-15.v1",
+  "visualMode": "Signal_Edge_Control_Board",
+  "sourceContractRefs": [
+    "docs/external/31_vendor_universe_telephony_sms_email.md",
+    "docs/external/32_telephony_webhook_and_recording_config_strategy.md",
+    "docs/external/33_sender_domain_and_webhook_strategy.md",
+    "docs/security/187_webhook_signature_validation_and_provider_boundary_controls.md",
+    "docs/api/187_telephony_provider_webhook_contract.md"
+  ],
+  "officialGuidanceRefs": [
+    {
+      "provider": "twilio",
+      "topic": "webhook request validation",
+      "url": "https://www.twilio.com/docs/usage/webhooks/webhooks-security"
+    },
+    {
+      "provider": "twilio",
+      "topic": "voice status callbacks",
+      "url": "https://www.twilio.com/docs/voice/api/call-resource"
+    },
+    {
+      "provider": "twilio",
+      "topic": "messaging status callbacks",
+      "url": "https://www.twilio.com/docs/messaging/guides/track-outbound-message-status"
+    },
+    {
+      "provider": "vonage",
+      "topic": "signed messages and webhook authenticity",
+      "url": "https://developer.vonage.com/en/getting-started/concepts/signing-messages"
+    },
+    {
+      "provider": "vonage",
+      "topic": "webhook answer and event URLs",
+      "url": "https://developer.vonage.com/en/getting-started/concepts/webhooks"
+    },
+    {
+      "provider": "mailgun",
+      "topic": "event webhooks and HMAC signatures",
+      "url": "https://documentation.mailgun.com/docs/mailgun/user-manual/events/webhooks"
+    },
+    {
+      "provider": "sendgrid",
+      "topic": "signed event webhook security features",
+      "url": "https://www.twilio.com/docs/sendgrid/for-developers/tracking-events/getting-started-event-webhook-security-features"
+    }
+  ],
+  "environmentSet": [
+    {
+      "environmentId": "local",
+      "hostAlias": "http://127.0.0.1:0",
+      "providerMutationAllowed": false,
+      "evidenceMode": "local_redacted_screenshot"
+    },
+    {
+      "environmentId": "sandbox_twin",
+      "hostAlias": "https://signal-sandbox-twin.vecells.invalid",
+      "providerMutationAllowed": false,
+      "evidenceMode": "mock_console_redacted_screenshot"
+    },
+    {
+      "environmentId": "provider_candidate",
+      "hostAlias": "https://signal-provider-candidate.vecells.invalid",
+      "providerMutationAllowed": false,
+      "evidenceMode": "dry_run_selector_capture_only"
+    },
+    {
+      "environmentId": "live_candidate",
+      "hostAlias": "https://signal-live-candidate.vecells.invalid",
+      "providerMutationAllowed": false,
+      "evidenceMode": "blocked_until_approved"
+    }
+  ],
+  "internalBoundary": {
+    "providerPayloadSemanticsStopAtEdge": true,
+    "normalizedEventOnlyDownstream": true,
+    "forbiddenCallbackTargets": [
+      "/worker",
+      "/queue",
+      "/admin",
+      "/private",
+      "/internal/worker",
+      "/internal/queue"
+    ],
+    "edgeOnlyRule": "Provider consoles must target only /edge/signal/* callback paths. Internal workers consume normalized events after signature, replay, and redaction controls pass."
+  },
+  "providerFamilies": [
+    {
+      "family": "telephony",
+      "displayName": "Telephony voice and IVR",
+      "mockProvider": "vecells_internal_voice_twin",
+      "actualCandidates": ["twilio_voice", "vonage_voice"],
+      "callbackTargets": [
+        {
+          "endpointId": "edge.signal.telephony.provider_callback.v1",
+          "callbackUrlPath": "/edge/signal/telephony/provider-callback",
+          "endpointScope": "edge",
+          "environmentIds": ["local", "sandbox_twin", "provider_candidate", "live_candidate"],
+          "adapterContractRef": "docs/api/187_telephony_provider_webhook_contract.md",
+          "acceptsProviderPayload": true,
+          "downstreamPayload": "NormalizedTelephonyEvent",
+          "requiredEvents": [
+            "call_status_initiated",
+            "call_status_ringing",
+            "call_status_answered",
+            "ivr_gather_completed",
+            "call_status_completed",
+            "recording_status_available",
+            "recording_status_failed"
+          ]
+        }
+      ],
+      "signatureVerification": {
+        "required": true,
+        "providerSchemes": [
+          {
+            "provider": "vecells_internal_voice_twin",
+            "scheme": "vecells-hmac-sha256",
+            "requiredHeadersOrFields": [
+              "x-vecells-simulator-signature",
+              "x-vecells-simulator-timestamp"
+            ],
+            "credentialRef": "credential://phase2/signal/voice-twin/hmac"
+          },
+          {
+            "provider": "twilio_voice",
+            "scheme": "twilio-request-validator",
+            "requiredHeadersOrFields": ["x-twilio-signature", "raw-url", "raw-form-or-body"],
+            "credentialRef": "credential://phase2/signal/twilio/auth-token"
+          },
+          {
+            "provider": "vonage_voice",
+            "scheme": "vonage-signed-request",
+            "requiredHeadersOrFields": ["authorization-or-signature", "timestamp-or-jwt-claims"],
+            "credentialRef": "credential://phase2/signal/vonage/signing-material"
+          }
+        ],
+        "missingSignatureOutcome": "reject_401_quarantine_raw_receipt_no_normalized_event"
+      },
+      "replayProtection": {
+        "required": true,
+        "replayWindowSeconds": 300,
+        "idempotencyKey": "provider|provider_event_id|provider_call_id|event_type|occurred_at",
+        "collisionOutcome": "reject_same_key_different_digest"
+      },
+      "eventSubscriptions": [
+        {
+          "eventKey": "call_status_initiated",
+          "mandatory": true,
+          "canonicalEvent": "call_started",
+          "authoritativeEffect": "open_call_session"
+        },
+        {
+          "eventKey": "call_status_ringing",
+          "mandatory": true,
+          "canonicalEvent": "call_started",
+          "authoritativeEffect": "preserve_provider_progress"
+        },
+        {
+          "eventKey": "call_status_answered",
+          "mandatory": true,
+          "canonicalEvent": "call_started",
+          "authoritativeEffect": "mark_voice_connected"
+        },
+        {
+          "eventKey": "ivr_gather_completed",
+          "mandatory": true,
+          "canonicalEvent": "menu_selection_captured",
+          "authoritativeEffect": "capture_menu_choice_without_closing_call"
+        },
+        {
+          "eventKey": "call_status_completed",
+          "mandatory": true,
+          "canonicalEvent": "call_abandoned_or_completed",
+          "authoritativeEffect": "close_provider_leg_not_request_lineage"
+        },
+        {
+          "eventKey": "recording_status_available",
+          "mandatory": true,
+          "canonicalEvent": "recording_available",
+          "authoritativeEffect": "launch_recording_fetch_worker_after_edge_verification"
+        },
+        {
+          "eventKey": "recording_status_failed",
+          "mandatory": true,
+          "canonicalEvent": "provider_error_recorded",
+          "authoritativeEffect": "create_degraded_recording_readiness_state"
+        }
+      ]
+    },
+    {
+      "family": "sms",
+      "displayName": "SMS delivery rail",
+      "mockProvider": "vecells_internal_sms_rail_twin",
+      "actualCandidates": ["twilio_sms", "vonage_sms"],
+      "callbackTargets": [
+        {
+          "endpointId": "edge.signal.sms.status_callback.v1",
+          "callbackUrlPath": "/edge/signal/sms/status-callback",
+          "endpointScope": "edge",
+          "environmentIds": ["local", "sandbox_twin", "provider_candidate", "live_candidate"],
+          "adapterContractRef": "docs/external/33_sender_domain_and_webhook_strategy.md",
+          "acceptsProviderPayload": true,
+          "downstreamPayload": "NormalizedMessageDeliveryEvent",
+          "requiredEvents": [
+            "sms_status_accepted",
+            "sms_status_queued",
+            "sms_status_sent",
+            "sms_status_delivered",
+            "sms_status_failed",
+            "sms_status_undelivered",
+            "sms_status_expired"
+          ]
+        }
+      ],
+      "signatureVerification": {
+        "required": true,
+        "providerSchemes": [
+          {
+            "provider": "vecells_internal_sms_rail_twin",
+            "scheme": "vecells-hmac-sha256",
+            "requiredHeadersOrFields": [
+              "x-vecells-simulator-signature",
+              "x-vecells-simulator-timestamp"
+            ],
+            "credentialRef": "credential://phase2/signal/sms-twin/hmac"
+          },
+          {
+            "provider": "twilio_sms",
+            "scheme": "twilio-request-validator",
+            "requiredHeadersOrFields": ["x-twilio-signature", "raw-url", "raw-form-or-body"],
+            "credentialRef": "credential://phase2/signal/twilio/auth-token"
+          },
+          {
+            "provider": "vonage_sms",
+            "scheme": "vonage-signature",
+            "requiredHeadersOrFields": ["signature", "timestamp", "nonce-or-message-id"],
+            "credentialRef": "credential://phase2/signal/vonage/signing-material"
+          }
+        ],
+        "missingSignatureOutcome": "reject_401_quarantine_raw_receipt_no_delivery_event"
+      },
+      "replayProtection": {
+        "required": true,
+        "replayWindowSeconds": 300,
+        "idempotencyKey": "provider|provider_message_id|recipient_route_hash|status|occurred_at",
+        "collisionOutcome": "reject_same_key_different_digest"
+      },
+      "eventSubscriptions": [
+        {
+          "eventKey": "sms_status_accepted",
+          "mandatory": true,
+          "canonicalEvent": "message_accepted",
+          "authoritativeEffect": "prove_provider_acceptance"
+        },
+        {
+          "eventKey": "sms_status_queued",
+          "mandatory": true,
+          "canonicalEvent": "message_in_progress",
+          "authoritativeEffect": "retain_delivery_pending"
+        },
+        {
+          "eventKey": "sms_status_sent",
+          "mandatory": true,
+          "canonicalEvent": "message_in_progress",
+          "authoritativeEffect": "retain_delivery_pending"
+        },
+        {
+          "eventKey": "sms_status_delivered",
+          "mandatory": true,
+          "canonicalEvent": "message_delivered",
+          "authoritativeEffect": "settle_delivery_success"
+        },
+        {
+          "eventKey": "sms_status_failed",
+          "mandatory": true,
+          "canonicalEvent": "message_failed",
+          "authoritativeEffect": "open_reachability_repair"
+        },
+        {
+          "eventKey": "sms_status_undelivered",
+          "mandatory": true,
+          "canonicalEvent": "message_failed",
+          "authoritativeEffect": "open_reachability_repair"
+        },
+        {
+          "eventKey": "sms_status_expired",
+          "mandatory": true,
+          "canonicalEvent": "message_expired",
+          "authoritativeEffect": "expire_continuation_offer_without_replay"
+        }
+      ]
+    },
+    {
+      "family": "email",
+      "displayName": "Email event rail",
+      "mockProvider": "vecells_internal_email_rail_twin",
+      "actualCandidates": ["mailgun_email", "sendgrid_email"],
+      "callbackTargets": [
+        {
+          "endpointId": "edge.signal.email.event_webhook.v1",
+          "callbackUrlPath": "/edge/signal/email/event-webhook",
+          "endpointScope": "edge",
+          "environmentIds": ["local", "sandbox_twin", "provider_candidate", "live_candidate"],
+          "adapterContractRef": "docs/external/33_sender_domain_and_webhook_strategy.md",
+          "acceptsProviderPayload": true,
+          "downstreamPayload": "NormalizedMessageDeliveryEvent",
+          "requiredEvents": [
+            "email_event_accepted",
+            "email_event_delivered",
+            "email_event_deferred",
+            "email_event_dropped",
+            "email_event_bounced",
+            "email_event_complained",
+            "email_event_opened_non_authoritative",
+            "email_event_clicked_non_authoritative"
+          ]
+        }
+      ],
+      "signatureVerification": {
+        "required": true,
+        "providerSchemes": [
+          {
+            "provider": "vecells_internal_email_rail_twin",
+            "scheme": "vecells-hmac-sha256",
+            "requiredHeadersOrFields": [
+              "x-vecells-simulator-signature",
+              "x-vecells-simulator-timestamp"
+            ],
+            "credentialRef": "credential://phase2/signal/email-twin/hmac"
+          },
+          {
+            "provider": "mailgun_email",
+            "scheme": "mailgun-timestamp-token-signature-hmac",
+            "requiredHeadersOrFields": ["timestamp", "token", "signature"],
+            "credentialRef": "credential://phase2/signal/mailgun/webhook-signing-key"
+          },
+          {
+            "provider": "sendgrid_email",
+            "scheme": "sendgrid-ecdsa-event-webhook",
+            "requiredHeadersOrFields": [
+              "x-twilio-email-event-webhook-signature",
+              "x-twilio-email-event-webhook-timestamp",
+              "raw-body"
+            ],
+            "credentialRef": "credential://phase2/signal/sendgrid/public-key"
+          }
+        ],
+        "missingSignatureOutcome": "reject_401_quarantine_raw_receipt_no_delivery_event"
+      },
+      "replayProtection": {
+        "required": true,
+        "replayWindowSeconds": 300,
+        "idempotencyKey": "provider|message_id|event_type|event_timestamp|recipient_route_hash",
+        "collisionOutcome": "reject_same_key_different_digest"
+      },
+      "eventSubscriptions": [
+        {
+          "eventKey": "email_event_accepted",
+          "mandatory": true,
+          "canonicalEvent": "message_accepted",
+          "authoritativeEffect": "prove_provider_acceptance"
+        },
+        {
+          "eventKey": "email_event_delivered",
+          "mandatory": true,
+          "canonicalEvent": "message_delivered",
+          "authoritativeEffect": "settle_delivery_success"
+        },
+        {
+          "eventKey": "email_event_deferred",
+          "mandatory": true,
+          "canonicalEvent": "message_in_progress",
+          "authoritativeEffect": "retain_delivery_pending"
+        },
+        {
+          "eventKey": "email_event_dropped",
+          "mandatory": true,
+          "canonicalEvent": "message_failed",
+          "authoritativeEffect": "open_reachability_repair"
+        },
+        {
+          "eventKey": "email_event_bounced",
+          "mandatory": true,
+          "canonicalEvent": "message_failed",
+          "authoritativeEffect": "open_reachability_repair"
+        },
+        {
+          "eventKey": "email_event_complained",
+          "mandatory": true,
+          "canonicalEvent": "message_complaint",
+          "authoritativeEffect": "suppress_channel_until_review"
+        },
+        {
+          "eventKey": "email_event_opened_non_authoritative",
+          "mandatory": false,
+          "canonicalEvent": "message_engagement_hint",
+          "authoritativeEffect": "non_authoritative_metric_only"
+        },
+        {
+          "eventKey": "email_event_clicked_non_authoritative",
+          "mandatory": false,
+          "canonicalEvent": "message_engagement_hint",
+          "authoritativeEffect": "non_authoritative_metric_only"
+        }
+      ]
+    }
+  ],
+  "callbackTargets": [
+    {
+      "endpointId": "edge.signal.telephony.provider_callback.v1",
+      "family": "telephony",
+      "callbackUrlPath": "/edge/signal/telephony/provider-callback",
+      "endpointScope": "edge",
+      "adapterContractRef": "docs/api/187_telephony_provider_webhook_contract.md",
+      "signatureVerificationRequired": true,
+      "replayProtectionRequired": true,
+      "providerPayloadLeaksPastEdge": false
+    },
+    {
+      "endpointId": "edge.signal.sms.status_callback.v1",
+      "family": "sms",
+      "callbackUrlPath": "/edge/signal/sms/status-callback",
+      "endpointScope": "edge",
+      "adapterContractRef": "docs/external/33_sender_domain_and_webhook_strategy.md",
+      "signatureVerificationRequired": true,
+      "replayProtectionRequired": true,
+      "providerPayloadLeaksPastEdge": false
+    },
+    {
+      "endpointId": "edge.signal.email.event_webhook.v1",
+      "family": "email",
+      "callbackUrlPath": "/edge/signal/email/event-webhook",
+      "endpointScope": "edge",
+      "adapterContractRef": "docs/external/33_sender_domain_and_webhook_strategy.md",
+      "signatureVerificationRequired": true,
+      "replayProtectionRequired": true,
+      "providerPayloadLeaksPastEdge": false
+    }
+  ],
+  "redactionRules": {
+    "redactedScreenshotRequired": true,
+    "forbiddenEvidenceTokens": [
+      "auth_token",
+      "api_key",
+      "private_key",
+      "plain-provider-password-token",
+      "raw-route-phone-token"
+    ],
+    "masking": [
+      {
+        "field": "callbackUrlHost",
+        "replacement": "https://[REDACTED-HOST]"
+      },
+      {
+        "field": "providerCredentialRef",
+        "replacement": "credential://[REDACTED]"
+      },
+      {
+        "field": "phoneOrEmailDestination",
+        "replacement": "[ROUTE-HASH-ONLY]"
+      }
+    ]
+  },
+  "liveMutationGate": {
+    "allowLiveMutationFlag": "ALLOW_SIGNAL_PROVIDER_MUTATION",
+    "liveMutationAllowedByDefault": false,
+    "requiredPreconditions": [
+      "explicit_live_mutation_flag_true",
+      "target_environment_declared",
+      "provider_family_declared",
+      "credential_refs_resolve_from_approved_secret_manager",
+      "named_approver_recorded",
+      "signature_preflight_passed",
+      "replay_preflight_passed",
+      "rollback_snapshot_captured",
+      "redaction_plan_enabled"
+    ],
+    "blockedActions": [
+      "buy_number",
+      "verify_sender",
+      "change_dns",
+      "enable_billable_feature",
+      "register_non_edge_callback"
+    ]
+  },
+  "rollbackStrategy": {
+    "snapshotBeforeMutation": true,
+    "rollbackManifestRequired": true,
+    "rollbackEvidenceRef": "output/playwright/203-signal-provider-console-harness-evidence.json",
+    "revertRule": "restore previous provider callback URL and event subscription bundle, then re-run signature and replay probes before clearing gate"
+  },
+  "browserAutomation": {
+    "harness": "tools/playwright/203_signal_provider_console_harness.ts",
+    "selectorManifest": "data/contracts/203_signal_provider_selector_manifests.json",
+    "controlBoard": "docs/frontend/203_signal_edge_control_board.html",
+    "dryRunOnlyByDefault": true,
+    "evidenceOutputs": [
+      "output/playwright/203-signal-provider-console-harness.png",
+      "output/playwright/203-signal-provider-console-harness-evidence.json",
+      "output/playwright/203-signal-provider-selector-snapshot.json"
+    ]
+  }
+}

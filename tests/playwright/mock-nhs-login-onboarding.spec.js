@@ -6,7 +6,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..", "..");
 const PACK = JSON.parse(
-  fs.readFileSync(path.join(ROOT, "data", "analysis", "nhs_login_application_field_map.json"), "utf8"),
+  fs.readFileSync(
+    path.join(ROOT, "data", "analysis", "nhs_login_application_field_map.json"),
+    "utf8",
+  ),
 );
 
 // Autosave, mode toggle, blockers, evidence, keyboard, responsive, reduced motion,
@@ -43,7 +46,9 @@ async function run() {
 
   await page.locator("[data-testid='stage-rail']").waitFor();
   await page.locator("[data-testid='field-fld_service_name']").fill("Vecells rehearsal");
-  await page.locator("[data-testid='field-fld_service_summary']").fill("Autosave proof from Playwright rehearsal.");
+  await page
+    .locator("[data-testid='field-fld_service_summary']")
+    .fill("Autosave proof from Playwright rehearsal.");
   await page.locator("[data-testid='field-fld_patient_eligibility']").fill("Patients in England.");
   await page.locator("[data-testid='next-stage-button']").click();
   await page.locator("[data-testid='checkpoint-toggle-chk_internal_eligibility_review']").click();

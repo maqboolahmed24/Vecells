@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { VecellLogoLockup } from "@vecells/design-system";
 import { nhsLoginPack } from "./generated/nhsLoginPack";
 
 type Mode = "mock" | "actual";
@@ -279,12 +280,9 @@ export default function App() {
             <div className="title-row">
               <div>
                 <div className="wordmark-row">
-                  <svg viewBox="0 0 64 64" aria-hidden="true">
-                    <path d="M12 32c0-11 9-20 20-20h20v12H32a8 8 0 0 0 0 16h8v12h-8c-11 0-20-9-20-20Z" fill="#2F5BFF" />
-                    <path d="M52 20v24c0 4.4-3.6 8-8 8h-4V12h4c4.4 0 8 3.6 8 8Z" fill="#6E59D9" />
-                  </svg>
+                  <VecellLogoLockup aria-hidden="true" className="wordmark-lockup" />
                   <div>
-                    <div className="mono-meta">Vecells / Partner_Access_Atelier</div>
+                    <div className="mono-meta">vecell / Partner_Access_Atelier</div>
                     <h1>{currentStage.label}</h1>
                   </div>
                 </div>

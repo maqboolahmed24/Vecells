@@ -1,0 +1,1220 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Seed And Simulator Studio</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #F7F8FC;
+        --rail: #EEF2F8;
+        --panel: #FFFFFF;
+        --inset: #F4F6FB;
+        --text-strong: #0F172A;
+        --text-default: #1E293B;
+        --text-muted: #667085;
+        --border-subtle: #E2E8F0;
+        --border-default: #CBD5E1;
+        --primary: #3559E6;
+        --scenario: #0EA5A4;
+        --simulator: #7C3AED;
+        --recovery: #0F9D58;
+        --warning: #C98900;
+        --blocked: #C24141;
+        --shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+        --transition-fast: 120ms ease;
+        --transition-filter: 180ms ease;
+        --transition-panel: 220ms ease;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(53, 89, 230, 0.08), transparent 28%),
+          radial-gradient(circle at top right, rgba(14, 165, 164, 0.06), transparent 24%),
+          var(--canvas);
+        color: var(--text-default);
+      }
+
+      body[data-reduced-motion="true"] *,
+      body[data-reduced-motion="true"] *::before,
+      body[data-reduced-motion="true"] *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .shell {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 0 20px 28px;
+      }
+
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        min-height: 72px;
+        padding: 16px 0;
+        backdrop-filter: blur(18px);
+        background: rgba(247, 248, 252, 0.92);
+        border-bottom: 1px solid rgba(203, 213, 225, 0.7);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .brand-mark {
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 14px;
+        background: linear-gradient(160deg, rgba(53, 89, 230, 0.12), rgba(124, 58, 237, 0.16));
+        color: var(--primary);
+        font-weight: 700;
+        border: 1px solid rgba(53, 89, 230, 0.18);
+      }
+
+      .brand-copy h1 {
+        margin: 0;
+        font-size: 15px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .brand-copy p {
+        margin: 2px 0 0;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      .masthead-metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(110px, 1fr));
+        gap: 10px;
+      }
+
+      .metric {
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(203, 213, 225, 0.7);
+        border-radius: 16px;
+        padding: 10px 12px;
+        box-shadow: 0 10px 18px rgba(15, 23, 42, 0.04);
+      }
+
+      .metric-label {
+        display: block;
+        color: var(--text-muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .metric-value {
+        display: block;
+        margin-top: 4px;
+        color: var(--text-strong);
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr) 396px;
+        gap: 18px;
+        align-items: start;
+        margin-top: 22px;
+      }
+
+      aside,
+      main {
+        min-width: 0;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border-default);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+      }
+
+      .rail {
+        padding: 18px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(238, 242, 248, 0.88));
+      }
+
+      .filter-group + .filter-group {
+        margin-top: 16px;
+      }
+
+      .filter-group label,
+      .section-heading {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      select,
+      button,
+      .table-row {
+        transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+      }
+
+      select {
+        width: 100%;
+        min-height: 44px;
+        padding: 0 12px;
+        border-radius: 14px;
+        border: 1px solid var(--border-default);
+        background: var(--panel);
+        color: var(--text-default);
+        font: inherit;
+      }
+
+      .filter-note {
+        margin-top: 18px;
+        padding: 14px;
+        border-radius: 18px;
+        background: var(--inset);
+        border: 1px solid var(--border-subtle);
+        color: var(--text-muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .canvas {
+        display: grid;
+        gap: 18px;
+      }
+
+      .diagram-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        min-height: 620px;
+      }
+
+      .diagram-panel {
+        padding: 20px;
+        display: grid;
+        gap: 18px;
+        align-content: start;
+      }
+
+      .diagram-surface {
+        padding: 18px;
+        border-radius: 20px;
+        background: var(--inset);
+        border: 1px solid var(--border-subtle);
+        min-height: 260px;
+      }
+
+      .flow-track {
+        display: grid;
+        gap: 12px;
+      }
+
+      .flow-node {
+        position: relative;
+        padding: 14px 16px;
+        border-radius: 16px;
+        border: 1px solid rgba(53, 89, 230, 0.18);
+        background: rgba(53, 89, 230, 0.06);
+        color: var(--text-strong);
+      }
+
+      .flow-node::after {
+        content: "→";
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--primary);
+        font-weight: 700;
+      }
+
+      .flow-node:last-child::after {
+        content: "";
+      }
+
+      .diagram-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .diagram-table th,
+      .diagram-table td,
+      .data-table th,
+      .data-table td {
+        text-align: left;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-subtle);
+        vertical-align: top;
+        font-size: 12px;
+      }
+
+      .diagram-table th,
+      .data-table th {
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-size: 11px;
+      }
+
+      .sim-diagram {
+        display: grid;
+        gap: 12px;
+      }
+
+      .sim-node {
+        display: grid;
+        gap: 6px;
+        padding: 14px;
+        border-radius: 16px;
+        background: rgba(124, 58, 237, 0.07);
+        border: 1px solid rgba(124, 58, 237, 0.18);
+      }
+
+      .sim-node-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        border: 1px solid transparent;
+        white-space: nowrap;
+      }
+
+      .badge.happy {
+        color: var(--recovery);
+        background: rgba(15, 157, 88, 0.08);
+        border-color: rgba(15, 157, 88, 0.18);
+      }
+
+      .badge.degraded {
+        color: var(--warning);
+        background: rgba(201, 137, 0, 0.12);
+        border-color: rgba(201, 137, 0, 0.2);
+      }
+
+      .badge.blocked {
+        color: var(--blocked);
+        background: rgba(194, 65, 65, 0.1);
+        border-color: rgba(194, 65, 65, 0.18);
+      }
+
+      .badge.recovery {
+        color: var(--simulator);
+        background: rgba(124, 58, 237, 0.09);
+        border-color: rgba(124, 58, 237, 0.18);
+      }
+
+      .badge.outline {
+        color: var(--text-default);
+        border-color: var(--border-default);
+        background: var(--panel);
+      }
+
+      .case-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 14px;
+        padding: 18px;
+      }
+
+      .case-card {
+        min-height: 170px;
+        display: grid;
+        gap: 12px;
+        padding: 18px;
+        border-radius: 20px;
+        border: 1px solid var(--border-default);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 246, 251, 0.96));
+        cursor: pointer;
+      }
+
+      .case-card:hover,
+      .case-card:focus-visible,
+      .table-row:hover,
+      .table-row:focus-visible {
+        border-color: rgba(53, 89, 230, 0.34);
+        transform: translateY(-1px);
+        outline: none;
+      }
+
+      .case-card[data-selected="true"],
+      .table-row[data-selected="true"] {
+        border-color: var(--primary);
+        box-shadow: 0 14px 26px rgba(53, 89, 230, 0.16);
+      }
+
+      .case-title {
+        margin: 0;
+        color: var(--text-strong);
+        font-size: 16px;
+      }
+
+      .case-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      code,
+      .mono {
+        font-family: "SFMono-Regular", SFMono-Regular, ui-monospace, Menlo, Consolas, monospace;
+      }
+
+      .inspector {
+        position: sticky;
+        top: 94px;
+        padding: 18px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .inspector-card {
+        padding: 16px;
+        border-radius: 20px;
+        background: var(--inset);
+        border: 1px solid var(--border-subtle);
+      }
+
+      .inspector-title {
+        margin: 0 0 8px;
+        color: var(--text-strong);
+        font-size: 16px;
+      }
+
+      .inspector-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 8px;
+        font-size: 13px;
+      }
+
+      .inspector-list strong {
+        color: var(--text-strong);
+      }
+
+      .comparison-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .comparison-row {
+        display: grid;
+        grid-template-columns: 80px 1fr;
+        gap: 10px;
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px solid var(--border-subtle);
+        background: var(--panel);
+      }
+
+      .data-grid {
+        display: grid;
+        gap: 18px;
+      }
+
+      .data-panel {
+        padding: 18px;
+      }
+
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .table-row {
+        cursor: pointer;
+      }
+
+      .defect-strip {
+        display: grid;
+        gap: 10px;
+      }
+
+      .defect-chip {
+        padding: 12px 14px;
+        border-radius: 16px;
+        border: 1px solid var(--border-subtle);
+        background: var(--inset);
+      }
+
+      @media (max-width: 1180px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .inspector {
+          position: static;
+        }
+
+        .diagram-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body data-surface-mode="Seed_And_Simulator_Studio">
+    <div class="shell">
+      <header aria-label="Studio masthead">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M7.2 6.2h9.6M7.2 12h9.6M7.2 17.8h9.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M9 4.8c-2 0-3.5 1-3.5 2.6S7 10 9 10h6c2 0 3.5 1 3.5 2.6S17 15.2 15 15.2H9c-2 0-3.5 1-3.5 2.6S7 20.4 9 20.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="brand-copy">
+            <h1>Vecells</h1>
+            <p>Seed And Simulator Studio</p>
+          </div>
+        </div>
+        <div class="masthead-metrics" data-testid="masthead-metrics"></div>
+      </header>
+
+      <div class="layout">
+        <aside class="panel rail" aria-label="Filters">
+          <div class="filter-group">
+            <label for="persona-filter">Persona</label>
+            <select id="persona-filter" data-testid="persona-filter"></select>
+          </div>
+          <div class="filter-group">
+            <label for="channel-filter">Channel</label>
+            <select id="channel-filter" data-testid="channel-filter"></select>
+          </div>
+          <div class="filter-group">
+            <label for="continuity-filter">Continuity Control</label>
+            <select id="continuity-filter" data-testid="continuity-filter"></select>
+          </div>
+          <div class="filter-group">
+            <label for="simulator-filter">Simulator</label>
+            <select id="simulator-filter" data-testid="simulator-filter"></select>
+          </div>
+          <div class="filter-group">
+            <label for="posture-filter">Posture Class</label>
+            <select id="posture-filter" data-testid="posture-filter"></select>
+          </div>
+          <div class="filter-note" data-testid="filter-note">
+            Curated Phase 0 gallery. Filters change the visible case corpus, simulator perimeter, and seed truth tables together.
+          </div>
+        </aside>
+
+        <main class="canvas">
+          <section class="diagram-grid">
+            <section class="panel diagram-panel">
+              <div>
+                <span class="section-heading">Case Flow Map</span>
+                <div class="diagram-surface" data-testid="case-flow-map"></div>
+              </div>
+              <table class="diagram-table" data-testid="case-flow-parity-table">
+                <thead>
+                  <tr><th>Axis transition</th><th>Meaning</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </section>
+
+            <section class="panel diagram-panel">
+              <div>
+                <span class="section-heading">Simulator Boundary Diagram</span>
+                <div class="diagram-surface" data-testid="simulator-boundary-diagram"></div>
+              </div>
+              <table class="diagram-table" data-testid="simulator-parity-table">
+                <thead>
+                  <tr><th>Simulator</th><th>Dependency</th><th>Type</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </section>
+          </section>
+
+          <section class="panel">
+            <div class="case-grid" data-testid="case-grid"></div>
+          </section>
+
+          <section class="data-grid">
+            <section class="panel data-panel">
+              <div class="section-heading">Seed Dataset Matrix</div>
+              <table class="data-table" data-testid="seed-matrix-table">
+                <thead>
+                  <tr>
+                    <th>Seed object</th>
+                    <th>Type</th>
+                    <th>State</th>
+                    <th>Truth refs</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </section>
+
+            <section class="panel data-panel">
+              <div class="section-heading">Fault Injection Matrix</div>
+              <table class="data-table" data-testid="fault-matrix-table">
+                <thead>
+                  <tr>
+                    <th>Simulator</th>
+                    <th>Fault mode</th>
+                    <th>Expected effect</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </section>
+
+            <section class="panel data-panel">
+              <div class="section-heading">Continuity Control Matrix</div>
+              <table class="data-table" data-testid="continuity-matrix-table">
+                <thead>
+                  <tr>
+                    <th>Control</th>
+                    <th>Coverage ref</th>
+                    <th>Goal</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </section>
+
+            <section class="panel data-panel">
+              <div class="section-heading">Defect Strip</div>
+              <div class="defect-strip" data-testid="defect-strip"></div>
+            </section>
+          </section>
+        </main>
+
+        <aside class="panel inspector" data-testid="inspector" aria-label="Inspector"></aside>
+      </div>
+    </div>
+
+    <script type="module">
+      const PATHS = {
+        referenceCase: "../../data/analysis/reference_case_catalog.json",
+        simulatorCatalog: "../../data/analysis/simulator_contract_catalog.json",
+        seedMatrix: "../../data/analysis/seed_dataset_matrix.csv",
+        faultMatrix: "../../data/analysis/simulator_fault_injection_matrix.csv",
+        continuityMatrix: "../../data/analysis/reference_case_to_continuity_control_matrix.csv",
+      };
+
+      const state = {
+        persona: "all",
+        channel: "all",
+        continuity: "all",
+        simulator: "all",
+        posture: "all",
+        selectedCaseId: null,
+        selectedSeedRowId: null,
+        selectedFaultRowId: null,
+        selectedContinuityRowId: null,
+      };
+
+      const elements = {
+        masthead: document.querySelector("[data-testid='masthead-metrics']"),
+        personaFilter: document.querySelector("[data-testid='persona-filter']"),
+        channelFilter: document.querySelector("[data-testid='channel-filter']"),
+        continuityFilter: document.querySelector("[data-testid='continuity-filter']"),
+        simulatorFilter: document.querySelector("[data-testid='simulator-filter']"),
+        postureFilter: document.querySelector("[data-testid='posture-filter']"),
+        caseGrid: document.querySelector("[data-testid='case-grid']"),
+        caseFlowMap: document.querySelector("[data-testid='case-flow-map']"),
+        caseFlowParity: document.querySelector("[data-testid='case-flow-parity-table'] tbody"),
+        simulatorDiagram: document.querySelector("[data-testid='simulator-boundary-diagram']"),
+        simulatorParity: document.querySelector("[data-testid='simulator-parity-table'] tbody"),
+        seedTable: document.querySelector("[data-testid='seed-matrix-table'] tbody"),
+        faultTable: document.querySelector("[data-testid='fault-matrix-table'] tbody"),
+        continuityTable: document.querySelector("[data-testid='continuity-matrix-table'] tbody"),
+        defectStrip: document.querySelector("[data-testid='defect-strip']"),
+        inspector: document.querySelector("[data-testid='inspector']"),
+      };
+
+      const postureClasses = ["happy", "degraded", "blocked", "recovery"];
+
+      function parseCsv(text) {
+        const rows = [];
+        let field = "";
+        let row = [];
+        let inQuotes = false;
+        for (let index = 0; index < text.length; index += 1) {
+          const character = text[index];
+          const nextCharacter = text[index + 1];
+          if (character === '"') {
+            if (inQuotes && nextCharacter === '"') {
+              field += '"';
+              index += 1;
+            } else {
+              inQuotes = !inQuotes;
+            }
+            continue;
+          }
+          if (character === "," && !inQuotes) {
+            row.push(field);
+            field = "";
+            continue;
+          }
+          if ((character === "\n" || character === "\r") && !inQuotes) {
+            if (character === "\r" && nextCharacter === "\n") {
+              index += 1;
+            }
+            if (field.length > 0 || row.length > 0) {
+              row.push(field);
+              rows.push(row);
+              row = [];
+              field = "";
+            }
+            continue;
+          }
+          field += character;
+        }
+        if (field.length > 0 || row.length > 0) {
+          row.push(field);
+          rows.push(row);
+        }
+        const [header, ...body] = rows;
+        return body.map((values) =>
+          Object.fromEntries(header.map((column, index) => [column, values[index] ?? ""])),
+        );
+      }
+
+      function uniqueSorted(values) {
+        return [...new Set(values.filter(Boolean))].sort((left, right) => left.localeCompare(right));
+      }
+
+      function optionMarkup(value, label) {
+        return `<option value="${value}">${label}</option>`;
+      }
+
+      function postureBadge(value, label = value) {
+        return `<span class="badge ${value}">${label.replaceAll("_", " ")}</span>`;
+      }
+
+      function outlineBadge(label) {
+        return `<span class="badge outline">${label}</span>`;
+      }
+
+      function splitList(value) {
+        return value ? value.split("; ").filter(Boolean) : [];
+      }
+
+      function populateFilters(data) {
+        const personaOptions = ["all", ...uniqueSorted(data.referenceCases.map((item) => item.persona))];
+        const channelOptions = ["all", ...uniqueSorted(data.referenceCases.map((item) => item.channelProfile))];
+        const continuityOptions = [
+          "all",
+          ...uniqueSorted(
+            data.referenceCases.flatMap((item) => item.requiredContinuityControlRefs),
+          ),
+        ];
+        const simulatorOptions = [
+          "all",
+          ...uniqueSorted(data.referenceCases.flatMap((item) => item.requiredSimulatorRefs)),
+        ];
+        const postureOptions = ["all", ...postureClasses];
+
+        elements.personaFilter.innerHTML = personaOptions
+          .map((value) => optionMarkup(value, value === "all" ? "All personas" : value))
+          .join("");
+        elements.channelFilter.innerHTML = channelOptions
+          .map((value) => optionMarkup(value, value === "all" ? "All channels" : value))
+          .join("");
+        elements.continuityFilter.innerHTML = continuityOptions
+          .map((value) => optionMarkup(value, value === "all" ? "All continuity controls" : value))
+          .join("");
+        elements.simulatorFilter.innerHTML = simulatorOptions
+          .map((value) => optionMarkup(value, value === "all" ? "All simulators" : value))
+          .join("");
+        elements.postureFilter.innerHTML = postureOptions
+          .map((value) => optionMarkup(value, value === "all" ? "All posture classes" : value))
+          .join("");
+      }
+
+      function filteredCases(data) {
+        return data.referenceCases.filter((item) => {
+          if (state.persona !== "all" && item.persona !== state.persona) return false;
+          if (state.channel !== "all" && item.channelProfile !== state.channel) return false;
+          if (
+            state.continuity !== "all" &&
+            !item.requiredContinuityControlRefs.includes(state.continuity)
+          ) {
+            return false;
+          }
+          if (
+            state.simulator !== "all" &&
+            !item.requiredSimulatorRefs.includes(state.simulator)
+          ) {
+            return false;
+          }
+          if (state.posture !== "all" && item.postureClass !== state.posture) return false;
+          return true;
+        });
+      }
+
+      function ensureSelection(cases) {
+        if (!cases.length) {
+          state.selectedCaseId = null;
+          return null;
+        }
+        const selected = cases.find((item) => item.referenceCaseId === state.selectedCaseId);
+        if (selected) {
+          return selected;
+        }
+        state.selectedCaseId = cases[0].referenceCaseId;
+        return cases[0];
+      }
+
+      function simulatorLookup(simulators) {
+        return Object.fromEntries(simulators.map((item) => [item.simulatorId, item]));
+      }
+
+      function renderMasthead(cases) {
+        const simulatorCount = uniqueSorted(
+          cases.flatMap((item) => item.requiredSimulatorRefs),
+        ).length;
+        const continuityCount = uniqueSorted(
+          cases.flatMap((item) => item.requiredContinuityControlRefs),
+        ).length;
+        const degradedCount = cases.filter((item) => item.postureClass === "degraded").length;
+        const metrics = [
+          ["Reference cases", String(cases.length)],
+          ["Simulators", String(simulatorCount)],
+          ["Degraded cases", String(degradedCount)],
+          ["Continuity controls", String(continuityCount)],
+        ];
+        elements.masthead.innerHTML = metrics
+          .map(
+            ([label, value]) => `
+              <div class="metric">
+                <span class="metric-label">${label}</span>
+                <span class="metric-value">${value}</span>
+              </div>
+            `,
+          )
+          .join("");
+      }
+
+      function renderCaseCards(cases) {
+        elements.caseGrid.innerHTML = cases
+          .map(
+            (item) => `
+              <button
+                type="button"
+                class="case-card"
+                data-testid="case-card-${item.referenceCaseId}"
+                data-case-id="${item.referenceCaseId}"
+                data-selected="${String(item.referenceCaseId === state.selectedCaseId)}"
+              >
+                <div class="case-meta">
+                  <span class="mono">${item.caseCode}</span>
+                  ${postureBadge(item.postureClass)}
+                </div>
+                <h2 class="case-title">${item.title}</h2>
+                <div class="case-meta">
+                  <span>${item.persona}</span>
+                  <span>${item.releaseVerificationUse}</span>
+                </div>
+                <div class="badge-row">
+                  ${item.requiredContinuityControlRefs.map((value) => outlineBadge(value)).join("")}
+                </div>
+                <div class="case-meta">
+                  <span>${item.requiredSimulatorRefs.length} simulators</span>
+                  <span>${item.routeFamily}</span>
+                </div>
+              </button>
+            `,
+          )
+          .join("");
+
+        elements.caseGrid.querySelectorAll("[data-case-id]").forEach((button) => {
+          button.addEventListener("click", () => {
+            state.selectedCaseId = button.getAttribute("data-case-id");
+            renderAll(window.__studioData);
+          });
+          button.addEventListener("keydown", (event) => {
+            if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;
+            event.preventDefault();
+            const visible = [...elements.caseGrid.querySelectorAll("[data-case-id]")];
+            const index = visible.indexOf(button);
+            const nextIndex =
+              event.key === "ArrowDown"
+                ? Math.min(index + 1, visible.length - 1)
+                : Math.max(index - 1, 0);
+            const target = visible[nextIndex];
+            if (!target) return;
+            state.selectedCaseId = target.getAttribute("data-case-id");
+            renderAll(window.__studioData);
+            requestAnimationFrame(() => target.focus());
+          });
+        });
+      }
+
+      function renderCaseFlow(selectedCase) {
+        elements.caseFlowMap.innerHTML = `
+          <div class="flow-track">
+            ${selectedCase.expectedStateAxisTransitions
+              .map(
+                (value, index) => `
+                  <div class="flow-node" data-testid="flow-node-${index}">
+                    <div class="mono">${value}</div>
+                  </div>
+                `,
+              )
+              .join("")}
+          </div>
+        `;
+        elements.caseFlowParity.innerHTML = selectedCase.expectedStateAxisTransitions
+          .map(
+            (value) => `
+              <tr>
+                <td class="mono">${value}</td>
+                <td>Case flow remains tied to the current aggregate and recovery tuple.</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function renderSimulatorDiagram(selectedCase, simulators) {
+        const selectedSimulators = selectedCase.requiredSimulatorRefs.map((id) => simulators[id]);
+        elements.simulatorDiagram.innerHTML = `
+          <div class="sim-diagram">
+            ${selectedSimulators
+              .map(
+                (item) => `
+                  <div class="sim-node" data-testid="sim-node-${item.simulatorId}">
+                    <div class="sim-node-header">
+                      <strong class="mono">${item.simulatorId}</strong>
+                      ${outlineBadge(item.simulatorType)}
+                    </div>
+                    <div>${item.dependencyCode}</div>
+                    <div class="badge-row">
+                      ${outlineBadge("Mock now")}
+                      ${outlineBadge("Actual later")}
+                    </div>
+                  </div>
+                `,
+              )
+              .join("")}
+          </div>
+        `;
+        elements.simulatorParity.innerHTML = selectedSimulators
+          .map(
+            (item) => `
+              <tr>
+                <td class="mono">${item.simulatorId}</td>
+                <td class="mono">${item.dependencyCode}</td>
+                <td>${item.simulatorType}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function renderInspector(selectedCase, simulators) {
+        const selectedSimulators = selectedCase.requiredSimulatorRefs.map((id) => simulators[id]);
+        elements.inspector.innerHTML = `
+          <section class="inspector-card">
+            <span class="section-heading">Selected Reference Case</span>
+            <h2 class="inspector-title">${selectedCase.title}</h2>
+            <ul class="inspector-list">
+              <li><strong>Case</strong> <span class="mono">${selectedCase.caseCode}</span></li>
+              <li><strong>Route</strong> <span class="mono">${selectedCase.routeFamily}</span></li>
+              <li><strong>Release use</strong> ${selectedCase.releaseVerificationUse}</li>
+              <li><strong>Verification scenario</strong> <span class="mono">${selectedCase.releaseVerificationScenarioRef}</span></li>
+              <li><strong>Manifest</strong> <span class="mono">${selectedCase.surfaceManifestRef}</span></li>
+            </ul>
+          </section>
+          <section class="inspector-card">
+            <span class="section-heading">Seed Objects</span>
+            <div>${selectedCase.requiredSeedObjects.length} seeded objects are pinned to this case.</div>
+            <div class="badge-row" style="margin-top:10px;">
+              ${selectedCase.requiredContinuityControlRefs.map((value) => outlineBadge(value)).join("")}
+            </div>
+          </section>
+          <section class="inspector-card">
+            <span class="section-heading">Simulator Bindings</span>
+            <ul class="inspector-list">
+              ${selectedSimulators
+                .map(
+                  (item) => `
+                    <li>
+                      <strong class="mono">${item.simulatorId}</strong>
+                      <span class="mono">${item.dependencyCode}</span>
+                    </li>
+                  `,
+                )
+                .join("")}
+            </ul>
+          </section>
+          <section class="inspector-card">
+            <span class="section-heading">Mock Now Vs Actual Later</span>
+            <div class="comparison-grid" data-testid="mock-live-comparison">
+              ${selectedSimulators
+                .map(
+                  (item) => `
+                    <div class="comparison-row">
+                      <div class="mono">${item.dependencyCode}</div>
+                      <div>
+                        <div><strong>Mock now:</strong> ${item.mock_now_execution.side_effect_posture}</div>
+                        <div><strong>Actual later:</strong> ${item.actual_provider_strategy_later.semantic_preservation_rules[0] ?? "Semantics stay identical."}</div>
+                        <div><strong>Rollback:</strong> ${item.actual_provider_strategy_later.rollback_back_to_simulator_strategy}</div>
+                      </div>
+                    </div>
+                  `,
+                )
+                .join("")}
+            </div>
+          </section>
+        `;
+      }
+
+      function attachRowNavigation(container, stateKey, testIdPrefix) {
+        const rows = [...container.querySelectorAll("[data-row-id]")];
+        rows.forEach((row, index) => {
+          row.addEventListener("click", () => {
+            state[stateKey] = row.getAttribute("data-row-id");
+            renderAll(window.__studioData);
+          });
+          row.addEventListener("keydown", (event) => {
+            if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;
+            event.preventDefault();
+            const nextIndex =
+              event.key === "ArrowDown"
+                ? Math.min(index + 1, rows.length - 1)
+                : Math.max(index - 1, 0);
+            const target = rows[nextIndex];
+            if (!target) return;
+            state[stateKey] = target.getAttribute("data-row-id");
+            renderAll(window.__studioData);
+            requestAnimationFrame(() => target.focus());
+          });
+        });
+      }
+
+      function renderDataTableRows(rows, container, selectedId, idField, columns, testIdPrefix) {
+        container.innerHTML = rows
+          .map(
+            (row) => `
+              <tr
+                class="table-row"
+                data-testid="${testIdPrefix}-${row[idField]}"
+                data-row-id="${row[idField]}"
+                data-selected="${String(row[idField] === selectedId)}"
+                tabindex="0"
+              >
+                ${columns.map((column) => `<td>${row[column]}</td>`).join("")}
+              </tr>
+            `,
+          )
+          .join("");
+        attachRowNavigation(container, selectedId === state.selectedSeedRowId ? "selectedSeedRowId" : selectedId === state.selectedFaultRowId ? "selectedFaultRowId" : "selectedContinuityRowId", testIdPrefix);
+      }
+
+      function renderSeedTable(selectedCase, seedRows) {
+        const rows = seedRows.filter((row) => row.reference_case_id === selectedCase.referenceCaseId);
+        if (!state.selectedSeedRowId || !rows.find((row) => row.seed_object_id === state.selectedSeedRowId)) {
+          state.selectedSeedRowId = rows[0]?.seed_object_id ?? null;
+        }
+        elements.seedTable.innerHTML = rows
+          .map(
+            (row) => `
+              <tr
+                class="table-row"
+                data-testid="seed-row-${row.seed_object_id}"
+                data-row-id="${row.seed_object_id}"
+                data-selected="${String(row.seed_object_id === state.selectedSeedRowId)}"
+                tabindex="0"
+              >
+                <td class="mono">${row.seed_object_id}</td>
+                <td>${row.object_type}</td>
+                <td>${row.seed_state}</td>
+                <td>${row.canonical_truth_refs}</td>
+              </tr>
+            `,
+          )
+          .join("");
+        attachRowNavigation(elements.seedTable, "selectedSeedRowId", "seed-row");
+      }
+
+      function renderFaultTable(selectedCase, faultRows) {
+        const rows = faultRows.filter((row) => row.reference_case_id === selectedCase.referenceCaseId);
+        if (!state.selectedFaultRowId || !rows.find((row) => row.fault_injection_id === state.selectedFaultRowId)) {
+          state.selectedFaultRowId = rows[0]?.fault_injection_id ?? null;
+        }
+        elements.faultTable.innerHTML = rows
+          .map(
+            (row) => `
+              <tr
+                class="table-row"
+                data-testid="fault-row-${row.fault_injection_id}"
+                data-row-id="${row.fault_injection_id}"
+                data-selected="${String(row.fault_injection_id === state.selectedFaultRowId)}"
+                tabindex="0"
+              >
+                <td class="mono">${row.simulator_id}</td>
+                <td>${row.fault_mode}</td>
+                <td>${row.expected_effect}</td>
+              </tr>
+            `,
+          )
+          .join("");
+        attachRowNavigation(elements.faultTable, "selectedFaultRowId", "fault-row");
+      }
+
+      function renderContinuityTable(selectedCase, continuityRows) {
+        const rows = continuityRows.filter((row) => row.reference_case_id === selectedCase.referenceCaseId);
+        if (
+          !state.selectedContinuityRowId ||
+          !rows.find((row) => row.continuity_coverage_record_ref === state.selectedContinuityRowId)
+        ) {
+          state.selectedContinuityRowId = rows[0]?.continuity_coverage_record_ref ?? null;
+        }
+        elements.continuityTable.innerHTML = rows
+          .map(
+            (row) => `
+              <tr
+                class="table-row"
+                data-testid="continuity-row-${row.continuity_coverage_record_ref}"
+                data-row-id="${row.continuity_coverage_record_ref}"
+                data-selected="${String(
+                  row.continuity_coverage_record_ref === state.selectedContinuityRowId,
+                )}"
+                tabindex="0"
+              >
+                <td>${row.continuity_control_code}</td>
+                <td class="mono">${row.continuity_coverage_record_ref}</td>
+                <td>${row.validation_goal}</td>
+              </tr>
+            `,
+          )
+          .join("");
+        attachRowNavigation(elements.continuityTable, "selectedContinuityRowId", "continuity-row");
+      }
+
+      function renderDefects(selectedCase) {
+        const caseSpecific = [
+          `${selectedCase.caseCode} binds ${selectedCase.requiredSimulatorRefs.length} simulators to ${selectedCase.requiredContinuityControlRefs.length} continuity controls.`,
+          `Release use ${selectedCase.releaseVerificationUse} is pinned to ${selectedCase.releaseVerificationScenarioRef}.`,
+        ];
+        elements.defectStrip.innerHTML = [
+          ...window.__studioData.casePack.defects.map(
+            (item) => `<div class="defect-chip"><strong>${item.defectId}</strong><div>${item.statement}</div></div>`,
+          ),
+          ...caseSpecific.map((value) => `<div class="defect-chip">${value}</div>`),
+        ].join("");
+      }
+
+      function renderAll(data) {
+        const cases = filteredCases(data.casePack);
+        const selectedCase = ensureSelection(cases);
+        renderMasthead(cases);
+        renderCaseCards(cases);
+        if (!selectedCase) {
+          elements.caseFlowMap.innerHTML = "<p>No cases match the current filters.</p>";
+          elements.simulatorDiagram.innerHTML = "<p>No simulators in scope.</p>";
+          elements.inspector.innerHTML = "<p>No case selected.</p>";
+          elements.seedTable.innerHTML = "";
+          elements.faultTable.innerHTML = "";
+          elements.continuityTable.innerHTML = "";
+          elements.defectStrip.innerHTML = "";
+          return;
+        }
+
+        const simulators = simulatorLookup(data.simulatorPack.simulators);
+        renderCaseFlow(selectedCase);
+        renderSimulatorDiagram(selectedCase, simulators);
+        renderInspector(selectedCase, simulators);
+        renderSeedTable(selectedCase, data.seedRows);
+        renderFaultTable(selectedCase, data.faultRows);
+        renderContinuityTable(selectedCase, data.continuityRows);
+        renderDefects(selectedCase);
+      }
+
+      async function loadData() {
+        const [casePack, simulatorPack, seedCsv, faultCsv, continuityCsv] = await Promise.all([
+          fetch(PATHS.referenceCase).then((response) => response.json()),
+          fetch(PATHS.simulatorCatalog).then((response) => response.json()),
+          fetch(PATHS.seedMatrix).then((response) => response.text()),
+          fetch(PATHS.faultMatrix).then((response) => response.text()),
+          fetch(PATHS.continuityMatrix).then((response) => response.text()),
+        ]);
+        return {
+          casePack,
+          simulatorPack,
+          seedRows: parseCsv(seedCsv),
+          faultRows: parseCsv(faultCsv),
+          continuityRows: parseCsv(continuityCsv),
+        };
+      }
+
+      async function main() {
+        document.body.dataset.reducedMotion = String(
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+        );
+        const data = await loadData();
+        window.__studioData = data;
+        populateFilters(data.casePack);
+        [
+          ["personaFilter", "persona"],
+          ["channelFilter", "channel"],
+          ["continuityFilter", "continuity"],
+          ["simulatorFilter", "simulator"],
+          ["postureFilter", "posture"],
+        ].forEach(([elementKey, stateKey]) => {
+          elements[elementKey].addEventListener("change", (event) => {
+            state[stateKey] = event.target.value;
+            renderAll(data);
+          });
+        });
+        renderAll(data);
+      }
+
+      main().catch((error) => {
+        console.error(error);
+        document.body.innerHTML = `<pre>${error.stack}</pre>`;
+      });
+    </script>
+  </body>
+</html>

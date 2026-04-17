@@ -1,0 +1,980 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Access Grant Journey Lab</title>
+    <style>
+      :root {
+        --canvas: #F7F9FC;
+        --panel: #FFFFFF;
+        --rail: #EEF2F7;
+        --inset: #F4F7FB;
+        --text-strong: #0F172A;
+        --text-default: #1E293B;
+        --text-muted: #64748B;
+        --border: #E2E8F0;
+        --issue: #2563EB;
+        --redeem: #0EA5A4;
+        --supersede: #7C3AED;
+        --warning: #D97706;
+        --blocked: #C24141;
+        --control-height: 44px;
+        --radius-lg: 22px;
+        --radius-md: 16px;
+        --radius-sm: 12px;
+        --shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(37, 99, 235, 0.1), transparent 32%),
+          radial-gradient(circle at top right, rgba(124, 58, 237, 0.08), transparent 28%),
+          var(--canvas);
+        color: var(--text-default);
+      }
+
+      body[data-reduced-motion="true"] *,
+      body[data-reduced-motion="true"] *::before,
+      body[data-reduced-motion="true"] *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+      }
+
+      .shell {
+        max-width: 1540px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      .masthead {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) repeat(4, minmax(120px, 1fr));
+        gap: 12px;
+        min-height: 72px;
+        padding: 16px 20px;
+        margin-bottom: 18px;
+        border: 1px solid rgba(226, 232, 240, 0.92);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .brand-mark {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.16), rgba(124, 58, 237, 0.14));
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(37, 99, 235, 0.18);
+      }
+
+      .brand-copy strong {
+        display: block;
+        font-size: 1rem;
+        color: var(--text-strong);
+      }
+
+      .brand-copy span {
+        display: block;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+      }
+
+      .metric {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 12px 14px;
+        background: var(--panel);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .metric-label {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+      }
+
+      .metric-value {
+        font-size: 1.45rem;
+        font-weight: 700;
+        color: var(--text-strong);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 316px minmax(0, 1fr) 408px;
+        gap: 18px;
+        align-items: start;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow);
+      }
+
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        padding: 18px 20px 8px;
+      }
+
+      .panel-header h2,
+      .panel-header h3 {
+        margin: 0;
+        font-size: 1rem;
+        color: var(--text-strong);
+      }
+
+      .panel-header p {
+        margin: 0;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+      }
+
+      .left-rail {
+        position: sticky;
+        top: 88px;
+        background: var(--rail);
+        padding: 18px;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+      }
+
+      .filter-group {
+        margin-bottom: 16px;
+      }
+
+      .filter-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 0.76rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .filter-group select {
+        width: 100%;
+        height: var(--control-height);
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text-default);
+        padding: 0 14px;
+        font: inherit;
+        transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+      }
+
+      .filter-group select:focus-visible,
+      .issuance-row:focus-visible,
+      .family-chip:focus-visible,
+      .inspector-section:focus-visible {
+        outline: none;
+        border-color: rgba(37, 99, 235, 0.45);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.14);
+      }
+
+      .rail-parity {
+        padding: 14px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.86);
+        color: var(--text-muted);
+        font-size: 0.84rem;
+      }
+
+      .central-stack {
+        display: grid;
+        gap: 18px;
+      }
+
+      .diagram-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+        min-height: 280px;
+      }
+
+      .diagram-card {
+        padding: 18px;
+        background: linear-gradient(180deg, rgba(244, 247, 251, 0.9), rgba(255, 255, 255, 0.96));
+      }
+
+      .diagram-card .parity {
+        margin-top: 12px;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+      }
+
+      .family-ladder {
+        display: grid;
+        gap: 10px;
+      }
+
+      .family-chip {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        min-height: 56px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: inherit;
+        padding: 0 14px;
+        text-align: left;
+        cursor: pointer;
+        transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+      }
+
+      .family-chip[data-selected="true"] {
+        border-color: rgba(37, 99, 235, 0.42);
+        box-shadow: 0 14px 28px rgba(37, 99, 235, 0.14);
+        transform: translateY(-1px);
+      }
+
+      .family-chip strong,
+      .transition-step strong,
+      .ribbon-chip strong {
+        color: var(--text-strong);
+      }
+
+      .transition-map {
+        display: grid;
+        gap: 10px;
+      }
+
+      .transition-step {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--panel);
+      }
+
+      .transition-index {
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--panel);
+        background: var(--redeem);
+      }
+
+      .supersession-ribbon {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-content: flex-start;
+      }
+
+      .ribbon-chip {
+        min-width: 140px;
+        padding: 12px 14px;
+        border-radius: 16px;
+        border: 1px solid rgba(124, 58, 237, 0.18);
+        background: linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(255, 255, 255, 0.98));
+      }
+
+      .ribbon-chip[data-empty="true"] {
+        border-style: dashed;
+        border-color: var(--border);
+        background: rgba(255, 255, 255, 0.7);
+      }
+
+      .data-region {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+        gap: 18px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+        vertical-align: top;
+        font-size: 0.92rem;
+      }
+
+      th {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+      }
+
+      .issuance-row {
+        cursor: pointer;
+        transition: background-color 180ms ease, transform 180ms ease;
+      }
+
+      .issuance-row[data-selected="true"],
+      .redemption-row[data-selected="true"] {
+        background: rgba(37, 99, 235, 0.08);
+      }
+
+      .redemption-row {
+        transition: background-color 180ms ease;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.83rem;
+        word-break: break-all;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 0.76rem;
+        font-weight: 600;
+      }
+
+      .badge.issue {
+        background: rgba(37, 99, 235, 0.12);
+        color: var(--issue);
+      }
+
+      .badge.redeem {
+        background: rgba(14, 165, 164, 0.12);
+        color: var(--redeem);
+      }
+
+      .badge.supersede {
+        background: rgba(124, 58, 237, 0.12);
+        color: var(--supersede);
+      }
+
+      .badge.warning {
+        background: rgba(217, 119, 6, 0.12);
+        color: var(--warning);
+      }
+
+      .badge.blocked {
+        background: rgba(194, 65, 65, 0.12);
+        color: var(--blocked);
+      }
+
+      .inspector {
+        position: sticky;
+        top: 88px;
+        padding: 18px;
+      }
+
+      .inspector-stack {
+        display: grid;
+        gap: 14px;
+      }
+
+      .inspector-section {
+        padding: 14px;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: var(--inset);
+      }
+
+      .inspector-section h3 {
+        margin: 0 0 8px;
+        font-size: 0.88rem;
+        color: var(--text-strong);
+      }
+
+      .inspector-grid {
+        display: grid;
+        gap: 8px;
+      }
+
+      .inspector-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 0.84rem;
+      }
+
+      .muted {
+        color: var(--text-muted);
+      }
+
+      @media (max-width: 1280px) {
+        .masthead {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .layout {
+          grid-template-columns: 280px minmax(0, 1fr);
+        }
+
+        .inspector {
+          position: static;
+          grid-column: 1 / -1;
+        }
+      }
+
+      @media (max-width: 980px) {
+        .layout,
+        .diagram-grid,
+        .data-region {
+          grid-template-columns: 1fr;
+        }
+
+        .left-rail {
+          position: static;
+        }
+
+        .masthead {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body data-visual-mode="Access_Grant_Journey_Lab">
+    <div class="shell">
+      <header class="masthead" aria-label="Access grant overview">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+              <rect x="1" y="1" width="24" height="24" rx="8" fill="rgba(37,99,235,0.14)" stroke="rgba(37,99,235,0.24)" />
+              <path d="M8 18L11.8 8H14.1L18 18H15.7L14.9 15.7H11L10.2 18H8ZM11.8 13.6H14.1L13 10.3L11.8 13.6Z" fill="#2563EB" />
+              <path d="M18.2 8.4H20.2V18H18.2V8.4Z" fill="#7C3AED" />
+            </svg>
+          </div>
+          <div class="brand-copy">
+            <strong>Vecells Access Grant Journey Lab</strong>
+            <span>Access_Grant_Journey_Lab · premium internal verification studio for deterministic grant, redemption, and supersession law.</span>
+          </div>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Active Grants</span>
+          <span class="metric-value" data-testid="metric-active-grants"></span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Redeemed Grants</span>
+          <span class="metric-value" data-testid="metric-redeemed-grants"></span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Superseded Grants</span>
+          <span class="metric-value" data-testid="metric-superseded-grants"></span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Replay Incidents</span>
+          <span class="metric-value" data-testid="metric-replay-incidents"></span>
+        </div>
+      </header>
+
+      <main class="layout">
+        <aside class="left-rail" aria-label="Grant filters">
+          <div class="filter-group">
+            <label for="family-filter">Grant Family</label>
+            <select id="family-filter" data-testid="family-filter"></select>
+          </div>
+          <div class="filter-group">
+            <label for="redemption-state-filter">Redemption State</label>
+            <select id="redemption-state-filter" data-testid="redemption-state-filter"></select>
+          </div>
+          <div class="filter-group">
+            <label for="subject-binding-filter">Subject Binding</label>
+            <select id="subject-binding-filter" data-testid="subject-binding-filter"></select>
+          </div>
+          <div class="filter-group">
+            <label for="route-family-filter">Route Family</label>
+            <select id="route-family-filter" data-testid="route-family-filter"></select>
+          </div>
+          <div class="rail-parity" data-testid="filter-parity"></div>
+        </aside>
+
+        <div class="central-stack">
+          <section class="diagram-grid">
+            <section class="panel diagram-card" aria-labelledby="family-ladder-title">
+              <div class="panel-header">
+                <div>
+                  <h2 id="family-ladder-title">Grant-Family Ladder</h2>
+                  <p>Registry parity against the selected case and current visible filter set.</p>
+                </div>
+              </div>
+              <div class="family-ladder" data-testid="family-ladder"></div>
+              <div class="parity" data-testid="family-ladder-parity"></div>
+            </section>
+
+            <section class="panel diagram-card" aria-labelledby="transition-map-title">
+              <div class="panel-header">
+                <div>
+                  <h2 id="transition-map-title">Redemption-To-Session Map</h2>
+                  <p>Every visible case resolves through deterministic settlement before session or route re-entry.</p>
+                </div>
+              </div>
+              <div class="transition-map" data-testid="transition-map"></div>
+              <div class="parity" data-testid="transition-map-parity"></div>
+            </section>
+
+            <section class="panel diagram-card" aria-labelledby="supersession-ribbon-title">
+              <div class="panel-header">
+                <div>
+                  <h2 id="supersession-ribbon-title">Supersession Ribbon</h2>
+                  <p>Promotion, reissue, repair, logout, and route-drift chains remain explicit and append-only.</p>
+                </div>
+              </div>
+              <div class="supersession-ribbon" data-testid="supersession-ribbon"></div>
+              <div class="parity" data-testid="supersession-ribbon-parity"></div>
+            </section>
+          </section>
+
+          <section class="data-region">
+            <section class="panel" aria-labelledby="issuance-table-title">
+              <div class="panel-header">
+                <div>
+                  <h3 id="issuance-table-title">Issuance Table</h3>
+                  <p>One authoritative row per scenario, including non-grant outcomes.</p>
+                </div>
+              </div>
+              <div class="parity" style="padding: 0 20px 8px;" data-testid="issuance-table-parity"></div>
+              <div style="padding: 0 12px 16px;">
+                <table data-testid="issuance-table">
+                  <thead>
+                    <tr>
+                      <th>Scenario</th>
+                      <th>Family</th>
+                      <th>Route</th>
+                      <th>Outcome</th>
+                    </tr>
+                  </thead>
+                  <tbody data-testid="issuance-table-body"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="panel" aria-labelledby="redemption-table-title">
+              <div class="panel-header">
+                <div>
+                  <h3 id="redemption-table-title">Redemption / Supersession Table</h3>
+                  <p>Selected-case settlement, replay, and supersession records.</p>
+                </div>
+              </div>
+              <div class="parity" style="padding: 0 20px 8px;" data-testid="redemption-table-parity"></div>
+              <div style="padding: 0 12px 16px;">
+                <table data-testid="redemption-table">
+                  <thead>
+                    <tr>
+                      <th>Event</th>
+                      <th>Status</th>
+                      <th>Recorded</th>
+                      <th>Detail</th>
+                    </tr>
+                  </thead>
+                  <tbody data-testid="redemption-table-body"></tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+        </div>
+
+        <aside class="panel inspector" data-testid="inspector" aria-label="Selected grant inspector"></aside>
+      </main>
+    </div>
+
+    <script>
+      const MANIFEST = {"task_id": "par_078", "generated_at": "2026-04-12T00:00:00+00:00", "captured_on": "2026-04-12", "visual_mode": "Access_Grant_Journey_Lab", "mission": "Freeze one authoritative access-grant authority across draft resume, claim, continuation, transaction action, support recovery, replay, supersession, and post-auth uplift flows so later channels stop inventing token semantics independently.", "source_precedence": ["prompt/078.md", "prompt/shared_operating_contract_076_to_085.md", "prompt/AGENT.md", "prompt/checklist.md", "blueprint/phase-0-the-foundation-protocol.md#1.4C Session", "blueprint/phase-0-the-foundation-protocol.md#1.4D AuthTransaction", "blueprint/phase-0-the-foundation-protocol.md#1.4E AuthScopeBundle", "blueprint/phase-0-the-foundation-protocol.md#1.4F PostAuthReturnIntent", "blueprint/phase-0-the-foundation-protocol.md#1.6 AccessGrant", "blueprint/phase-0-the-foundation-protocol.md#1.6A AccessGrantScopeEnvelope", "blueprint/phase-0-the-foundation-protocol.md#1.6B AccessGrantRedemptionRecord", "blueprint/phase-0-the-foundation-protocol.md#1.6C AccessGrantSupersessionRecord", "blueprint/phase-0-the-foundation-protocol.md#2.3 AccessGrantService", "blueprint/phase-0-the-foundation-protocol.md#2.3A AuthBridge", "blueprint/phase-0-the-foundation-protocol.md#2.3B SessionGovernor", "blueprint/phase-0-the-foundation-protocol.md#6. Unified AccessGrant and secure-link rules", "blueprint/phase-1-the-red-flag-gate.md", "blueprint/phase-2-identity-and-echoes.md", "blueprint/patient-account-and-communications-blueprint.md", "blueprint/callback-and-clinician-messaging-loop.md", "blueprint/forensic-audit-findings.md#Finding 06", "blueprint/forensic-audit-findings.md#Finding 07", "blueprint/forensic-audit-findings.md#Finding 50", "blueprint/forensic-audit-findings.md#Finding 89", "blueprint/forensic-audit-findings.md#Finding 97", "blueprint/forensic-audit-findings.md#Finding 98", "blueprint/forensic-audit-findings.md#Finding 99", "blueprint/forensic-audit-findings.md#Finding 100", "blueprint/forensic-audit-findings.md#Finding 101", "packages/domains/identity_access/src/identity-access-backbone.ts", "services/command-api/src/access-grant.ts"], "summary": {"grant_family_count": 7, "use_case_count": 11, "runtime_tuple_count": 14, "scenario_count": 14, "bounded_port_count": 2, "parallel_gap_count": 2, "authoritative_operation_count": 8}, "bounded_ports": [{"portName": "SessionGovernor", "implementation": "LocalSessionGovernor", "responsibility": "Reject in-place anonymous or mismatched-session upgrades and decide when a fresh or rotated session is required."}, {"portName": "AuthBridge", "implementation": "LocalAuthBridge", "responsibility": "Freeze auth scope bundles, post-auth return intents, and auth transactions without minting grant truth outside AccessGrantService."}], "parallel_interface_gaps": ["PARALLEL_INTERFACE_GAP_AUTH_BRIDGE_CALLBACK_PROVIDER", "PARALLEL_INTERFACE_GAP_SESSION_COOKIE_RUNTIME"], "authoritative_operations": ["issueGrant", "issueGrantForUseCase", "redeemGrant", "openAuthBridgeFlow", "rotateGrant", "replaceGrant", "revokeGrant", "supersedeGrants"], "token_materialization": {"strategy": "hashed_and_signed_opaque_tokens", "activeKeyVersionRef": "token_key_local_v1", "retiredKeyVersionRefs": ["token_key_legacy_v0"], "materializer": "OpaqueAccessGrantTokenMaterializer"}, "grant_families": [{"grantFamily": "draft_resume_minimal", "validatorFamily": "draft_resume_minimal_validator", "replayPolicy": "one_time", "defaultMaxRedemptions": 1, "maxPhiExposureClass": "minimal", "routeCeiling": "rf_intake_self_service | rf_patient_secure_link_recovery", "sessionCeiling": "fresh_or_rotated", "subjectBindingRule": "none", "notes": "Envelope-bound minimal resume grants settle before any session upgrade proceeds."}, {"grantFamily": "public_status_minimal", "validatorFamily": "public_status_minimal_validator", "replayPolicy": "multi_use_minimal", "defaultMaxRedemptions": 3, "maxPhiExposureClass": "minimal", "routeCeiling": "status-only public or semi-public posture", "sessionCeiling": "no_upgrade", "subjectBindingRule": "none", "notes": "Minimal status visibility may replay deterministically without widening capability or identity scope."}, {"grantFamily": "claim_step_up", "validatorFamily": "claim_step_up_validator", "replayPolicy": "one_time", "defaultMaxRedemptions": 1, "maxPhiExposureClass": "none", "routeCeiling": "rf_patient_secure_link_recovery", "sessionCeiling": "fresh_or_rotated", "subjectBindingRule": "soft_subject", "notes": "Claim step-up opens governed auth or proof collection but still withholds PHI and write scope."}, {"grantFamily": "continuation_seeded_verified", "validatorFamily": "continuation_seeded_verified_validator", "replayPolicy": "one_time", "defaultMaxRedemptions": 1, "maxPhiExposureClass": "scoped", "routeCeiling": "rf_patient_secure_link_recovery", "sessionCeiling": "fresh_or_rotated", "subjectBindingRule": "hard_subject", "notes": "Seeded verified continuation binds one current lineage, one route tuple, and one governed session posture."}, {"grantFamily": "continuation_challenge", "validatorFamily": "continuation_challenge_validator", "replayPolicy": "one_time", "defaultMaxRedemptions": 1, "maxPhiExposureClass": "none", "routeCeiling": "rf_patient_secure_link_recovery", "sessionCeiling": "fresh_or_rotated", "subjectBindingRule": "soft_subject", "notes": "Challenge flows may route into contact repair or proof continuation without exposing scoped request truth."}, {"grantFamily": "transaction_action_minimal", "validatorFamily": "transaction_action_minimal_validator", "replayPolicy": "one_time", "defaultMaxRedemptions": 1, "maxPhiExposureClass": "minimal", "routeCeiling": "one transaction route family at a time", "sessionCeiling": "bound_session", "subjectBindingRule": "hard_subject", "notes": "Callback, message, booking, waitlist, alternative-choice, and pharmacy actions all resolve through one exact-once transaction family."}, {"grantFamily": "support_recovery_minimal", "validatorFamily": "support_recovery_minimal_validator", "replayPolicy": "rotating", "defaultMaxRedemptions": 1, "maxPhiExposureClass": "minimal", "routeCeiling": "current recovery route or explicitly reissued transaction route", "sessionCeiling": "fresh_or_rotated", "subjectBindingRule": "hard_subject", "notes": "Support reissue may recreate only the immediately prior safe minimal scope and must supersede older links."}], "use_cases": [{"useCase": "draft_resume", "grantFamily": "draft_resume_minimal", "defaultActionScope": "envelope_resume", "routeFamilyRef": "rf_intake_self_service", "lineageScope": "envelope", "subjectBindingMode": "none", "sessionRequirement": "fresh_or_rotated", "issuanceOutcome": "issued", "defaultExpiryMinutes": 45, "transportClass": "opaque_signed_link", "supersessionTriggers": ["draft_promoted", "logout", "manual_revoke", "route_drift"], "rationale": "Draft resume remains minimal and envelope-bound until promotion or stronger proof settles."}, {"useCase": "request_claim", "grantFamily": "claim_step_up", "defaultActionScope": "claim", "routeFamilyRef": "rf_patient_secure_link_recovery", "lineageScope": "request", "subjectBindingMode": "soft_subject", "sessionRequirement": "fresh_or_rotated", "issuanceOutcome": "issued", "defaultExpiryMinutes": 20, "transportClass": "opaque_signed_link", "supersessionTriggers": ["claim_completed", "logout", "identity_repair", "route_drift"], "rationale": "Claim grants guide auth uplift or proof capture but do not themselves confer patient capability."}, {"useCase": "secure_continuation", "grantFamily": "continuation_seeded_verified", "defaultActionScope": "secure_resume", "routeFamilyRef": "rf_patient_secure_link_recovery", "lineageScope": "request", "subjectBindingMode": "hard_subject", "sessionRequirement": "fresh_or_rotated", "issuanceOutcome": "issued", "defaultExpiryMinutes": 30, "transportClass": "opaque_signed_link", "supersessionTriggers": ["rotation", "logout", "identity_repair", "route_drift"], "rationale": "Verified continuation binds one current lineage, route intent, and subject proof snapshot."}, {"useCase": "callback_reply", "grantFamily": "transaction_action_minimal", "defaultActionScope": "callback_response", "routeFamilyRef": "rf_patient_messages", "lineageScope": "request", "subjectBindingMode": "hard_subject", "sessionRequirement": "bound_session", "issuanceOutcome": "issued", "defaultExpiryMinutes": 30, "transportClass": "opaque_signed_link", "supersessionTriggers": ["rotation", "identity_repair", "route_drift", "logout"], "rationale": "Callback reply stays single-purpose and cannot silently authorize adjacent communication actions."}, {"useCase": "message_reply", "grantFamily": "transaction_action_minimal", "defaultActionScope": "message_reply", "routeFamilyRef": "rf_patient_messages", "lineageScope": "request", "subjectBindingMode": "hard_subject", "sessionRequirement": "bound_session", "issuanceOutcome": "issued", "defaultExpiryMinutes": 30, "transportClass": "opaque_signed_link", "supersessionTriggers": ["rotation", "identity_repair", "route_drift", "logout"], "rationale": "Message reply stays on the current thread tuple and reuses the canonical communication family."}, {"useCase": "booking_manage", "grantFamily": "transaction_action_minimal", "defaultActionScope": "appointment_manage_entry", "routeFamilyRef": "rf_patient_appointments", "lineageScope": "request", "subjectBindingMode": "hard_subject", "sessionRequirement": "bound_session", "issuanceOutcome": "issued", "defaultExpiryMinutes": 30, "transportClass": "opaque_signed_link", "supersessionTriggers": ["rotation", "identity_repair", "route_drift", "logout"], "rationale": "Booking-manage grants stay bound to the current booking tuple and one writable patient shell."}, {"useCase": "waitlist_action", "grantFamily": "transaction_action_minimal", "defaultActionScope": "waitlist_offer", "routeFamilyRef": "rf_patient_appointments", "lineageScope": "request", "subjectBindingMode": "hard_subject", "sessionRequirement": "bound_session", "issuanceOutcome": "issued", "defaultExpiryMinutes": 20, "transportClass": "opaque_signed_link", "supersessionTriggers": ["rotation", "route_drift", "logout", "manual_revoke"], "rationale": "Waitlist actions are tightly time-bound and must replay as settlement, not as a second side effect."}, {"useCase": "network_alternative_choice", "grantFamily": "transaction_action_minimal", "defaultActionScope": "alternative_offer", "routeFamilyRef": "rf_patient_appointments", "lineageScope": "request", "subjectBindingMode": "hard_subject", "sessionRequirement": "bound_session", "issuanceOutcome": "issued", "defaultExpiryMinutes": 20, "transportClass": "opaque_signed_link", "supersessionTriggers": ["rotation", "route_drift", "logout", "manual_revoke"], "rationale": "Alternative-choice grants narrow to one current ranked offer chain and fail closed on tuple drift."}, {"useCase": "pharmacy_choice", "grantFamily": "transaction_action_minimal", "defaultActionScope": "pharmacy_status_entry", "routeFamilyRef": "rf_patient_requests", "lineageScope": "request", "subjectBindingMode": "hard_subject", "sessionRequirement": "bound_session", "issuanceOutcome": "issued", "defaultExpiryMinutes": 30, "transportClass": "opaque_signed_link", "supersessionTriggers": ["rotation", "identity_repair", "route_drift", "logout"], "rationale": "Pharmacy choice stays on the current request-linked pharmacy tuple and cannot widen into hub or booking flows."}, {"useCase": "support_reissue", "grantFamily": "support_recovery_minimal", "defaultActionScope": "secure_resume", "routeFamilyRef": "rf_patient_secure_link_recovery", "lineageScope": "request", "subjectBindingMode": "hard_subject", "sessionRequirement": "fresh_or_rotated", "issuanceOutcome": "issued", "defaultExpiryMinutes": 30, "transportClass": "opaque_signed_link", "supersessionTriggers": ["secure_link_reissue", "identity_repair", "route_drift", "logout"], "rationale": "Support reissue recreates only the immediately prior safe minimal scope and supersedes every older link."}, {"useCase": "recover_only", "grantFamily": null, "defaultActionScope": null, "routeFamilyRef": "rf_patient_secure_link_recovery", "lineageScope": "request", "subjectBindingMode": "none", "sessionRequirement": "none", "issuanceOutcome": "recover_only", "defaultExpiryMinutes": 0, "transportClass": "no_token", "supersessionTriggers": [], "rationale": "Recover-only is an explicit no-grant disposition for stale, legacy, or drifted continuity."}], "runtime_tuples": [{"tupleId": "runtime_tuple_078_draft_resume_issue_and_redeem", "scenarioId": "draft_resume_issue_and_redeem", "useCase": "draft_resume", "grantFamily": "draft_resume_minimal", "routeFamilyRef": "rf_intake_self_service", "actionScope": "envelope_resume", "sessionRequirement": "fresh_or_rotated", "subjectBindingState": "none", "routeIntentBindingRef": "route_intent_078_draft_resume_issue_and_redeem", "routeIntentState": "live", "tupleHash": "214a4ee7106be1407ab512eaeaff60cb0bf5a374740cfbfda5a7f3395fc271ed", "transportClass": "opaque_signed_link", "tokenKeyVersionRef": "token_key_local_v1", "settlementMode": "redeemed", "outcome": "issued_and_redeemed", "notes": "Anonymous posture is never upgraded in place; settlement happens before continuation."}, {"tupleId": "runtime_tuple_078_public_status_multi_use_replay", "scenarioId": "public_status_multi_use_replay", "useCase": "public_status_watch", "grantFamily": "public_status_minimal", "routeFamilyRef": "rf_patient_requests", "actionScope": "status_view", "sessionRequirement": "none", "subjectBindingState": "none", "routeIntentBindingRef": "route_intent_078_public_status_multi_use_replay", "routeIntentState": "live", "tupleHash": "6fd48736fae6b2fdab40523acef548febcf0b6bd20746fa7328ec7c80490ac6e", "transportClass": "opaque_signed_link", "tokenKeyVersionRef": "token_key_local_v1", "settlementMode": "replay_returned", "outcome": "issued_and_redeemed", "notes": "Multi-use replay is allowed only because the family never widens capability or subject scope."}, {"tupleId": "runtime_tuple_078_request_claim_auth_uplift", "scenarioId": "request_claim_auth_uplift", "useCase": "request_claim", "grantFamily": "claim_step_up", "routeFamilyRef": "rf_patient_secure_link_recovery", "actionScope": "claim", "sessionRequirement": "fresh_or_rotated", "subjectBindingState": "soft_subject", "routeIntentBindingRef": "route_intent_078_request_claim_auth_uplift", "routeIntentState": "live", "tupleHash": "e65cda0c1dfba90eec25e9e5915ee33b16c7b0251fd22f76f25aa527d1528d78", "transportClass": "opaque_signed_link", "tokenKeyVersionRef": "token_key_local_v1", "settlementMode": "auth_bridge_opened", "outcome": "step_up", "notes": "Authentication success alone never widens the route or action ceiling; the service keeps grant truth authoritative."}, {"tupleId": "runtime_tuple_078_secure_continuation_verified_resume", "scenarioId": "secure_continuation_verified_resume", "useCase": "secure_continuation", "grantFamily": "continuation_seeded_verified", "routeFamilyRef": "rf_patient_secure_link_recovery", "actionScope": "secure_resume", "sessionRequirement": "fresh_or_rotated", "subjectBindingState": "hard_subject", "routeIntentBindingRef": "route_intent_078_secure_continuation_verified_resume", "routeIntentState": "live", "tupleHash": "9e70ffa0e2cbfcce2189c358c2362bb3c0b18b29f57880a50d39fca71633014e", "transportClass": "opaque_signed_link", "tokenKeyVersionRef": "token_key_local_v1", "settlementMode": "redeemed", "outcome": "issued_and_redeemed", "notes": "The current tuple hash and subject binding version gate every continuation redemption."}, {"tupleId": "runtime_tuple_078_continuation_challenge_contact_repair", "scenarioId": "continuation_challenge_contact_repair", "useCase": "challenge_repair", "grantFamily": "continuation_challenge", "routeFamilyRef": "rf_patient_secure_link_recovery", "actionScope": "contact_route_repair", "sessionRequirement": "fresh_or_rotated", "subjectBindingState": "soft_subject", "routeIntentBindingRef": "route_intent_078_continuation_challenge_contact_repair", "routeIntentState": "live", "tupleHash": "10270e015efe3ebf915c719108269eda88a8608a591b413f78cbfcc909304feb", "transportClass": "opaque_signed_link", "tokenKeyVersionRef": "token_key_local_v1", "settlementMode": "redeemed", "outcome": "issued_and_redeemed", "notes": "Challenge flows remain no-PHI and repair-only until stronger proof closes the gap."}, {"tupleId": "runtime_tuple_078_callback_reply_single_use", "scenarioId": "callback_reply_single_use", "useCase": "callback_reply", "grantFamily": "transaction_action_minimal", "routeFamilyRef": "rf_patient_messages", "actionScope": "callback_response", "sessionRequirement": "bound_session", "subjectBindingState": "hard_subject", "routeIntentBindingRef": "route_intent_078_callback_reply_single_use", "routeIntentState": "live", "tupleHash": "b084c958a5a6140e427de0a787ef41728ffdc567d0bd45341d025e9e3bd790ce", "transportClass": "opaque_signed_link", "tokenKeyVersionRef": "token_key_local_v1", "settlementMode": "redeemed", "outcome": "issued_and_redeemed", "notes": "Callback grants never widen into generic message or booking capabilities."}, {"tupleId": "runtime_tuple_078_message_reply_reissued", "scenarioId": "message_reply_reissued", "useCase": "message_reply", "grantFamily": "transaction_action_minimal", "routeFamilyRef": "rf_patient_messages", "actionScope": "message_reply", "sessionRequirement": "bound_session", "subjectBindingState": "hard_subject", "routeIntentBindingRef": "route_intent_078_message_reply_reissued", "routeIntentState": "live", "tupleHash": "2520772f38cd2118da2e260d3ca8f8c6c115468afdd580bba057d77989255703", "transportClass": "opaque_signed_link", "tokenKeyVersionRef": "token_key_local_v1", "settlementMode": "replaced", "outcome": "reissued", "notes": "Feature code never mints ad hoc replacements; the canonical service owns the supersession chain."}, {"tupleId": "runtime_tuple_078_booking_manage_rotated", "scenarioId": "booking_manage_rotated", "useCase": "booking_manage", "grantFamily": "transaction_action_minimal", "routeFamilyRef": "rf_patient_appointments", "actionScope": "appointment_manage_entry", "sessionRequirement": "bound_session", "subjectBindingState": "hard_subject", "routeIntentBindingRef": "route_intent_078_booking_manage_rotated", "routeIntentState": "live", "tupleHash": "0860175fd131db071cdc10ca527492cab00b283d766a735a8badb55a46eb3013", "transportClass": "opaque_signed_link", "tokenKeyVersionRef": "token_key_local_v1", "settlementMode": "replaced", "outcome": "rotated", "notes": "Rotation closes the old-link-live gap for booking updates and confirmations."}, {"tupleId": "runtime_tuple_078_waitlist_offer_replay_safe", "scenarioId": "waitlist_offer_replay_safe", "useCase": "waitlist_action", "grantFamily": "transaction_action_minimal", "routeFamilyRef": "rf_patient_appointments", "actionScope": "waitlist_offer", "sessionRequirement": "bound_session", "subjectBindingState": "hard_subject", "routeIntentBindingRef": "route_intent_078_waitlist_offer_replay_safe", "routeIntentState": "live", "tupleHash": "f499318e712ad0cfe643b438d2a823c3e0104926ce1879fa8a9d5a4e0e4592ae", "transportClass": "opaque_signed_link", "tokenKeyVersionRef": "token_key_local_v1", "settlementMode": "replay_returned", "outcome": "issued_and_redeemed", "notes": "Replay-safety is preserved at the grant service boundary rather than in feature-local handlers."}, {"tupleId": "runtime_tuple_078_network_alternative_choice_route_drift", "scenarioId": "network_alternative_choice_route_drift", "useCase": "network_alternative_choice", "grantFamily": "transaction_action_minimal", "routeFamilyRef": "rf_patient_appointments", "actionScope": "alternative_offer", "sessionRequirement": "bound_session", "subjectBindingState": "hard_subject", "routeIntentBindingRef": "route_intent_078_network_alternative_choice_route_drift", "routeIntentState": "drifted", "tupleHash": "f0769ef42eb98300fcc61a41ee46280ed56d697fab005f018f748aaded41fd99", "transportClass": "opaque_signed_link", "tokenKeyVersionRef": "token_key_local_v1", "settlementMode": "blocked_drift", "outcome": "recover_only", "notes": "Route intent and runtime tuple law are enforced before any action can settle."}, {"tupleId": "runtime_tuple_078_pharmacy_choice_wrong_patient_revoked", "scenarioId": "pharmacy_choice_wrong_patient_revoked", "useCase": "pharmacy_choice", "grantFamily": "transaction_action_minimal", "routeFamilyRef": "rf_patient_requests", "actionScope": "pharmacy_status_entry", "sessionRequirement": "bound_session", "subjectBindingState": "mismatch", "routeIntentBindingRef": "route_intent_078_pharmacy_choice_wrong_patient_revoked", "routeIntentState": "live", "tupleHash": "d2495133305730997eb0bb7674fdc47cdc56ec19672c40daea21b68f5696f753", "transportClass": "opaque_signed_link", "tokenKeyVersionRef": "token_key_local_v1", "settlementMode": "revoked", "outcome": "revoked", "notes": "Wrong-patient repair revokes the link instead of attempting an in-place session upgrade."}, {"tupleId": "runtime_tuple_078_support_reissue_recovery", "scenarioId": "support_reissue_recovery", "useCase": "support_reissue", "grantFamily": "support_recovery_minimal", "routeFamilyRef": "rf_patient_secure_link_recovery", "actionScope": "secure_resume", "sessionRequirement": "fresh_or_rotated", "subjectBindingState": "hard_subject", "routeIntentBindingRef": "route_intent_078_support_reissue_recovery", "routeIntentState": "live", "tupleHash": "3af7f77c14b2e994b2e992dc9e9876bd9ea8ce6c5da60da34dce98dc52fc8174", "transportClass": "opaque_signed_link", "tokenKeyVersionRef": "token_key_local_v1", "settlementMode": "replaced", "outcome": "reissued", "notes": "Support reissue cannot widen from minimal recovery into a broader patient capability surface."}, {"tupleId": "runtime_tuple_078_recover_only_no_grant", "scenarioId": "recover_only_no_grant", "useCase": "recover_only", "grantFamily": null, "routeFamilyRef": "rf_patient_secure_link_recovery", "actionScope": null, "sessionRequirement": "none", "subjectBindingState": "none", "routeIntentBindingRef": "route_intent_078_recover_only_no_grant", "routeIntentState": "recover_only", "tupleHash": "12af8ce429f116dd55953be61c07961b0ed830c6ccd13cf4d341a069e2d159dd", "transportClass": "no_token", "tokenKeyVersionRef": null, "settlementMode": "recover_only", "outcome": "recover_only", "notes": "Recover-only is explicit and does not pretend there is still a safe live link."}, {"tupleId": "runtime_tuple_078_manual_only_support_gate", "scenarioId": "manual_only_support_gate", "useCase": "support_reissue", "grantFamily": null, "routeFamilyRef": "rf_patient_secure_link_recovery", "actionScope": null, "sessionRequirement": "fresh_or_rotated", "subjectBindingState": "hard_subject", "routeIntentBindingRef": "route_intent_078_manual_only_support_gate", "routeIntentState": "manual_only", "tupleHash": "8ded386276a5e8f0a63b7ff06d6d6e75ce56848554a56762a00269ba6e005199", "transportClass": "no_token", "tokenKeyVersionRef": null, "settlementMode": "manual_only", "outcome": "manual_only", "notes": "Manual-only is a first-class outcome, not a disguised broken-link failure."}], "implementation_refs": ["packages/domains/identity_access/src/identity-access-backbone.ts", "services/command-api/src/access-grant.ts", "packages/domains/identity_access/tests/identity-access-backbone.test.ts", "services/command-api/tests/access-grant.integration.test.js"]};
+      const CASEBOOK = {"task_id": "par_078", "generated_at": "2026-04-12T00:00:00+00:00", "captured_on": "2026-04-12", "visual_mode": "Access_Grant_Journey_Lab", "summary": {"scenario_count": 14, "live_grant_count": 2, "redeemed_settlement_count": 7, "supersession_case_count": 5, "replay_block_count": 4, "non_grant_outcome_count": 2, "auth_bridge_case_count": 1}, "cases": [{"scenarioId": "draft_resume_issue_and_redeem", "title": "Draft resume settles once, then lets SessionGovernor rotate into a fresh resume session.", "useCase": "draft_resume", "grantFamily": "draft_resume_minimal", "routeFamilyRef": "rf_intake_self_service", "actionScope": "envelope_resume", "subjectBindingState": "none", "sessionRequirement": "fresh_or_rotated", "outcome": "issued_and_redeemed", "redemptionState": "redeemed", "grantState": "redeemed", "transportClass": "opaque_signed_link", "keyVersionRef": "token_key_local_v1", "grantId": "AG_078_DRAFT_RESUME_ISSUE_AND_REDEEM", "scopeEnvelopeId": "AGE_078_DRAFT_RESUME_ISSUE_AND_REDEEM", "redemptionId": "AGR_078_DRAFT_RESUME_ISSUE_AND_REDEEM", "tokenDigest": "0f00184d18d8433319ad9a371d54aca21a20486cf5f2999b883e596fc1815e1f", "tupleHash": "214a4ee7106be1407ab512eaeaff60cb0bf5a374740cfbfda5a7f3395fc271ed", "routeIntentBindingRef": "route_intent_078_draft_resume_issue_and_redeem", "routeIntentState": "live", "sessionPostureBefore": "anonymous", "sessionPostureAfter": "fresh_rotated_resume_session", "validatorFamily": "draft_resume_minimal_validator", "replayPolicy": "one_time", "transitionSteps": ["Issue envelope-bound grant", "Settle exact-once redemption", "SessionGovernor rotates into a new bounded session", "Resume the original draft route"], "supersessionChain": [], "events": [{"eventId": "draft_resume_issue_and_redeem_issue", "eventKind": "issue", "status": "settled", "recordedAt": "2026-04-12T17:01:00Z", "detail": "draft_resume_minimal issued under rf_intake_self_service."}, {"eventId": "draft_resume_issue_and_redeem_redeem", "eventKind": "redeem", "status": "redeemed", "recordedAt": "2026-04-12T17:02:00Z", "detail": "Settlement posture redeemed with session after-state fresh_rotated_resume_session."}], "notes": "Anonymous posture is never upgraded in place; settlement happens before continuation."}, {"scenarioId": "public_status_multi_use_replay", "title": "Minimal public-status access replays deterministically without widening identity or action scope.", "useCase": "public_status_watch", "grantFamily": "public_status_minimal", "routeFamilyRef": "rf_patient_requests", "actionScope": "status_view", "subjectBindingState": "none", "sessionRequirement": "none", "outcome": "issued_and_redeemed", "redemptionState": "replay_returned", "grantState": "live", "transportClass": "opaque_signed_link", "keyVersionRef": "token_key_local_v1", "grantId": "AG_078_PUBLIC_STATUS_MULTI_USE_REPLAY", "scopeEnvelopeId": "AGE_078_PUBLIC_STATUS_MULTI_USE_REPLAY", "redemptionId": "AGR_078_PUBLIC_STATUS_MULTI_USE_REPLAY", "tokenDigest": "729b92aafba7a5b500fdd8d0da1e322ade967196b815f10c6435c6d49aa9c98d", "tupleHash": "6fd48736fae6b2fdab40523acef548febcf0b6bd20746fa7328ec7c80490ac6e", "routeIntentBindingRef": "route_intent_078_public_status_multi_use_replay", "routeIntentState": "live", "sessionPostureBefore": "anonymous", "sessionPostureAfter": "anonymous", "validatorFamily": "public_status_minimal_validator", "replayPolicy": "multi_use_minimal", "transitionSteps": ["Issue minimal public-status grant", "Return existing settlement on exact replay", "Keep session anonymous", "Preserve status-only route ceiling"], "supersessionChain": [], "events": [{"eventId": "public_status_multi_use_replay_issue", "eventKind": "issue", "status": "settled", "recordedAt": "2026-04-12T17:02:00Z", "detail": "public_status_minimal issued under rf_patient_requests."}, {"eventId": "public_status_multi_use_replay_redeem", "eventKind": "redeem", "status": "replay_returned", "recordedAt": "2026-04-12T17:03:00Z", "detail": "Settlement posture replay_returned with session after-state anonymous."}], "notes": "Multi-use replay is allowed only because the family never widens capability or subject scope."}, {"scenarioId": "request_claim_auth_uplift", "title": "Claim redemption opens AuthBridge and freezes a post-auth return intent instead of granting permission from auth alone.", "useCase": "request_claim", "grantFamily": "claim_step_up", "routeFamilyRef": "rf_patient_secure_link_recovery", "actionScope": "claim", "subjectBindingState": "soft_subject", "sessionRequirement": "fresh_or_rotated", "outcome": "step_up", "redemptionState": "auth_bridge_opened", "grantState": "redeemed", "transportClass": "opaque_signed_link", "keyVersionRef": "token_key_local_v1", "grantId": "AG_078_REQUEST_CLAIM_AUTH_UPLIFT", "scopeEnvelopeId": "AGE_078_REQUEST_CLAIM_AUTH_UPLIFT", "redemptionId": "AGR_078_REQUEST_CLAIM_AUTH_UPLIFT", "tokenDigest": "ad263edabe1cc9d8699180b711e05ff79b006b97799a9cb84672e20ba29af23c", "tupleHash": "e65cda0c1dfba90eec25e9e5915ee33b16c7b0251fd22f76f25aa527d1528d78", "routeIntentBindingRef": "route_intent_078_request_claim_auth_uplift", "routeIntentState": "live", "sessionPostureBefore": "anonymous", "sessionPostureAfter": "auth_bridge_transaction_pending", "validatorFamily": "claim_step_up_validator", "replayPolicy": "one_time", "transitionSteps": ["Issue claim step-up grant", "Settle redemption against route tuple and soft subject proof", "Freeze AuthScopeBundle and PostAuthReturnIntent", "Return only through the bounded auth bridge"], "supersessionChain": [], "events": [{"eventId": "request_claim_auth_uplift_issue", "eventKind": "issue", "status": "settled", "recordedAt": "2026-04-12T17:03:00Z", "detail": "claim_step_up issued under rf_patient_secure_link_recovery."}, {"eventId": "request_claim_auth_uplift_redeem", "eventKind": "redeem", "status": "auth_bridge_opened", "recordedAt": "2026-04-12T17:04:00Z", "detail": "Settlement posture auth_bridge_opened with session after-state auth_bridge_transaction_pending."}], "notes": "Authentication success alone never widens the route or action ceiling; the service keeps grant truth authoritative."}, {"scenarioId": "secure_continuation_verified_resume", "title": "Verified continuation resumes one current request tuple after exact-once settlement.", "useCase": "secure_continuation", "grantFamily": "continuation_seeded_verified", "routeFamilyRef": "rf_patient_secure_link_recovery", "actionScope": "secure_resume", "subjectBindingState": "hard_subject", "sessionRequirement": "fresh_or_rotated", "outcome": "issued_and_redeemed", "redemptionState": "redeemed", "grantState": "redeemed", "transportClass": "opaque_signed_link", "keyVersionRef": "token_key_local_v1", "grantId": "AG_078_SECURE_CONTINUATION_VERIFIED_RESUME", "scopeEnvelopeId": "AGE_078_SECURE_CONTINUATION_VERIFIED_RESUME", "redemptionId": "AGR_078_SECURE_CONTINUATION_VERIFIED_RESUME", "tokenDigest": "2f88c8a7d3f302d8d02d839a451b5962d3a61c6e9609ec0b15029127b437ebbc", "tupleHash": "9e70ffa0e2cbfcce2189c358c2362bb3c0b18b29f57880a50d39fca71633014e", "routeIntentBindingRef": "route_intent_078_secure_continuation_verified_resume", "routeIntentState": "live", "sessionPostureBefore": "rotated_subject_session", "sessionPostureAfter": "rotated_subject_session", "validatorFamily": "continuation_seeded_verified_validator", "replayPolicy": "one_time", "transitionSteps": ["Issue hard-subject continuation grant", "Validate route intent, lineage fence, and tuple digest", "Settle one redemption record", "Re-enter the exact current continuation route"], "supersessionChain": [], "events": [{"eventId": "secure_continuation_verified_resume_issue", "eventKind": "issue", "status": "settled", "recordedAt": "2026-04-12T17:04:00Z", "detail": "continuation_seeded_verified issued under rf_patient_secure_link_recovery."}, {"eventId": "secure_continuation_verified_resume_redeem", "eventKind": "redeem", "status": "redeemed", "recordedAt": "2026-04-12T17:05:00Z", "detail": "Settlement posture redeemed with session after-state rotated_subject_session."}], "notes": "The current tuple hash and subject binding version gate every continuation redemption."}, {"scenarioId": "continuation_challenge_contact_repair", "title": "Challenge-mode continuation routes into contact repair without exposing scoped request truth.", "useCase": "challenge_repair", "grantFamily": "continuation_challenge", "routeFamilyRef": "rf_patient_secure_link_recovery", "actionScope": "contact_route_repair", "subjectBindingState": "soft_subject", "sessionRequirement": "fresh_or_rotated", "outcome": "issued_and_redeemed", "redemptionState": "redeemed", "grantState": "redeemed", "transportClass": "opaque_signed_link", "keyVersionRef": "token_key_local_v1", "grantId": "AG_078_CONTINUATION_CHALLENGE_CONTACT_REPAIR", "scopeEnvelopeId": "AGE_078_CONTINUATION_CHALLENGE_CONTACT_REPAIR", "redemptionId": "AGR_078_CONTINUATION_CHALLENGE_CONTACT_REPAIR", "tokenDigest": "8e92ccc71f2aaaad190108460529e15cc9d2ff629a4a2063fce3e19f1ad64f1d", "tupleHash": "10270e015efe3ebf915c719108269eda88a8608a591b413f78cbfcc909304feb", "routeIntentBindingRef": "route_intent_078_continuation_challenge_contact_repair", "routeIntentState": "live", "sessionPostureBefore": "anonymous", "sessionPostureAfter": "fresh_repair_session", "validatorFamily": "continuation_challenge_validator", "replayPolicy": "one_time", "transitionSteps": ["Issue continuation challenge grant", "Validate degraded but bounded proof posture", "Settle redemption into repair-only capability", "Send the user to contact-route repair"], "supersessionChain": [], "events": [{"eventId": "continuation_challenge_contact_repair_issue", "eventKind": "issue", "status": "settled", "recordedAt": "2026-04-12T17:05:00Z", "detail": "continuation_challenge issued under rf_patient_secure_link_recovery."}, {"eventId": "continuation_challenge_contact_repair_redeem", "eventKind": "redeem", "status": "redeemed", "recordedAt": "2026-04-12T17:06:00Z", "detail": "Settlement posture redeemed with session after-state fresh_repair_session."}], "notes": "Challenge flows remain no-PHI and repair-only until stronger proof closes the gap."}, {"scenarioId": "callback_reply_single_use", "title": "Callback reply re-enters one communication action path and stops there.", "useCase": "callback_reply", "grantFamily": "transaction_action_minimal", "routeFamilyRef": "rf_patient_messages", "actionScope": "callback_response", "subjectBindingState": "hard_subject", "sessionRequirement": "bound_session", "outcome": "issued_and_redeemed", "redemptionState": "redeemed", "grantState": "redeemed", "transportClass": "opaque_signed_link", "keyVersionRef": "token_key_local_v1", "grantId": "AG_078_CALLBACK_REPLY_SINGLE_USE", "scopeEnvelopeId": "AGE_078_CALLBACK_REPLY_SINGLE_USE", "redemptionId": "AGR_078_CALLBACK_REPLY_SINGLE_USE", "tokenDigest": "cce448a6e69fcf9549c5b46a6bf760737b73feadd6f0b25935ca27a803c92981", "tupleHash": "b084c958a5a6140e427de0a787ef41728ffdc567d0bd45341d025e9e3bd790ce", "routeIntentBindingRef": "route_intent_078_callback_reply_single_use", "routeIntentState": "live", "sessionPostureBefore": "bound_subject_session", "sessionPostureAfter": "bound_subject_session", "validatorFamily": "transaction_action_minimal_validator", "replayPolicy": "one_time", "transitionSteps": ["Issue callback-response grant", "Confirm bound session and exact route tuple", "Settle redemption", "Enter callback response only"], "supersessionChain": [], "events": [{"eventId": "callback_reply_single_use_issue", "eventKind": "issue", "status": "settled", "recordedAt": "2026-04-12T17:06:00Z", "detail": "transaction_action_minimal issued under rf_patient_messages."}, {"eventId": "callback_reply_single_use_redeem", "eventKind": "redeem", "status": "redeemed", "recordedAt": "2026-04-12T17:07:00Z", "detail": "Settlement posture redeemed with session after-state bound_subject_session."}], "notes": "Callback grants never widen into generic message or booking capabilities."}, {"scenarioId": "message_reply_reissued", "title": "Support replaces a stale message-reply link and supersedes the older token immediately.", "useCase": "message_reply", "grantFamily": "transaction_action_minimal", "routeFamilyRef": "rf_patient_messages", "actionScope": "message_reply", "subjectBindingState": "hard_subject", "sessionRequirement": "bound_session", "outcome": "reissued", "redemptionState": "replaced", "grantState": "superseded", "transportClass": "opaque_signed_link", "keyVersionRef": "token_key_local_v1", "grantId": "AG_078_MESSAGE_REPLY_REISSUED", "scopeEnvelopeId": "AGE_078_MESSAGE_REPLY_REISSUED", "redemptionId": "AGR_078_MESSAGE_REPLY_REISSUED", "tokenDigest": "ca35303dac7694a83130f1e85bd4d092e920615bacaa199f9ec7b7bc9d30cf2f", "tupleHash": "2520772f38cd2118da2e260d3ca8f8c6c115468afdd580bba057d77989255703", "routeIntentBindingRef": "route_intent_078_message_reply_reissued", "routeIntentState": "live", "sessionPostureBefore": "bound_subject_session", "sessionPostureAfter": "bound_subject_session", "validatorFamily": "transaction_action_minimal_validator", "replayPolicy": "one_time", "transitionSteps": ["Issue message-reply grant", "Detect stale delivery or user repair need", "Replace through AccessGrantService", "Carry only the fresh replacement token forward"], "supersessionChain": [{"supersessionId": "AGS_078_MESSAGE_REPLY_ROTATE", "causeClass": "secure_link_reissue", "recordedAt": "2026-04-12T17:16:00Z", "replacementGrantRef": "AG_078_MESSAGE_REPLY_V2", "notes": "The old reply link is no longer valid once support reissues a fresh token."}], "events": [{"eventId": "message_reply_reissued_issue", "eventKind": "issue", "status": "settled", "recordedAt": "2026-04-12T17:07:00Z", "detail": "transaction_action_minimal issued under rf_patient_messages."}, {"eventId": "message_reply_reissued_redeem", "eventKind": "redeem", "status": "replaced", "recordedAt": "2026-04-12T17:08:00Z", "detail": "Settlement posture replaced with session after-state bound_subject_session."}, {"eventId": "message_reply_reissued_supersede_1", "eventKind": "supersede", "status": "secure_link_reissue", "recordedAt": "2026-04-12T17:16:00Z", "detail": "The old reply link is no longer valid once support reissues a fresh token."}], "notes": "Feature code never mints ad hoc replacements; the canonical service owns the supersession chain."}, {"scenarioId": "booking_manage_rotated", "title": "Booking-manage rotation supersedes the old appointment token on tuple change.", "useCase": "booking_manage", "grantFamily": "transaction_action_minimal", "routeFamilyRef": "rf_patient_appointments", "actionScope": "appointment_manage_entry", "subjectBindingState": "hard_subject", "sessionRequirement": "bound_session", "outcome": "rotated", "redemptionState": "replaced", "grantState": "rotated", "transportClass": "opaque_signed_link", "keyVersionRef": "token_key_local_v1", "grantId": "AG_078_BOOKING_MANAGE_ROTATED", "scopeEnvelopeId": "AGE_078_BOOKING_MANAGE_ROTATED", "redemptionId": "AGR_078_BOOKING_MANAGE_ROTATED", "tokenDigest": "e02f2d01ee8b9b07804014e1d77cbe28195c9321dc6cb8ddf28f44ff2601bdc3", "tupleHash": "0860175fd131db071cdc10ca527492cab00b283d766a735a8badb55a46eb3013", "routeIntentBindingRef": "route_intent_078_booking_manage_rotated", "routeIntentState": "live", "sessionPostureBefore": "bound_subject_session", "sessionPostureAfter": "bound_subject_session", "validatorFamily": "transaction_action_minimal_validator", "replayPolicy": "one_time", "transitionSteps": ["Issue booking-manage grant", "Observe tuple change", "Rotate through canonical supersession logic", "Expose only the latest manage-entry token"], "supersessionChain": [{"supersessionId": "AGS_078_BOOKING_ROTATION", "causeClass": "rotation", "recordedAt": "2026-04-12T17:21:00Z", "replacementGrantRef": "AG_078_BOOKING_MANAGE_V2", "notes": "Appointment tuple drift or provider-side confirmation rotates the link before the old token can act."}], "events": [{"eventId": "booking_manage_rotated_issue", "eventKind": "issue", "status": "settled", "recordedAt": "2026-04-12T17:08:00Z", "detail": "transaction_action_minimal issued under rf_patient_appointments."}, {"eventId": "booking_manage_rotated_redeem", "eventKind": "redeem", "status": "replaced", "recordedAt": "2026-04-12T17:09:00Z", "detail": "Settlement posture replaced with session after-state bound_subject_session."}, {"eventId": "booking_manage_rotated_supersede_1", "eventKind": "supersede", "status": "rotation", "recordedAt": "2026-04-12T17:21:00Z", "detail": "Appointment tuple drift or provider-side confirmation rotates the link before the old token can act."}], "notes": "Rotation closes the old-link-live gap for booking updates and confirmations."}, {"scenarioId": "waitlist_offer_replay_safe", "title": "Waitlist offer replay returns the current settlement instead of creating a second side effect.", "useCase": "waitlist_action", "grantFamily": "transaction_action_minimal", "routeFamilyRef": "rf_patient_appointments", "actionScope": "waitlist_offer", "subjectBindingState": "hard_subject", "sessionRequirement": "bound_session", "outcome": "issued_and_redeemed", "redemptionState": "replay_returned", "grantState": "redeemed", "transportClass": "opaque_signed_link", "keyVersionRef": "token_key_local_v1", "grantId": "AG_078_WAITLIST_OFFER_REPLAY_SAFE", "scopeEnvelopeId": "AGE_078_WAITLIST_OFFER_REPLAY_SAFE", "redemptionId": "AGR_078_WAITLIST_OFFER_REPLAY_SAFE", "tokenDigest": "8fcb075f5863d32c73ce61466925392b397fe32bf01aa68751fdefc33cb31b54", "tupleHash": "f499318e712ad0cfe643b438d2a823c3e0104926ce1879fa8a9d5a4e0e4592ae", "routeIntentBindingRef": "route_intent_078_waitlist_offer_replay_safe", "routeIntentState": "live", "sessionPostureBefore": "bound_subject_session", "sessionPostureAfter": "bound_subject_session", "validatorFamily": "transaction_action_minimal_validator", "replayPolicy": "one_time", "transitionSteps": ["Issue waitlist-offer grant", "Settle the first redemption exactly once", "Return the existing settlement on replay", "Never create a second offer side effect"], "supersessionChain": [], "events": [{"eventId": "waitlist_offer_replay_safe_issue", "eventKind": "issue", "status": "settled", "recordedAt": "2026-04-12T17:09:00Z", "detail": "transaction_action_minimal issued under rf_patient_appointments."}, {"eventId": "waitlist_offer_replay_safe_redeem", "eventKind": "redeem", "status": "replay_returned", "recordedAt": "2026-04-12T17:10:00Z", "detail": "Settlement posture replay_returned with session after-state bound_subject_session."}], "notes": "Replay-safety is preserved at the grant service boundary rather than in feature-local handlers."}, {"scenarioId": "network_alternative_choice_route_drift", "title": "Alternative-choice redemption fails closed when the governing route tuple drifts.", "useCase": "network_alternative_choice", "grantFamily": "transaction_action_minimal", "routeFamilyRef": "rf_patient_appointments", "actionScope": "alternative_offer", "subjectBindingState": "hard_subject", "sessionRequirement": "bound_session", "outcome": "recover_only", "redemptionState": "blocked_drift", "grantState": "superseded", "transportClass": "opaque_signed_link", "keyVersionRef": "token_key_local_v1", "grantId": "AG_078_NETWORK_ALTERNATIVE_CHOICE_ROUTE_DRIFT", "scopeEnvelopeId": "AGE_078_NETWORK_ALTERNATIVE_CHOICE_ROUTE_DRIFT", "redemptionId": "AGR_078_NETWORK_ALTERNATIVE_CHOICE_ROUTE_DRIFT", "tokenDigest": "a08f55b05287174920fbb30a62b5314cad5c2b2eafa3ba83052bb0295a14cecd", "tupleHash": "f0769ef42eb98300fcc61a41ee46280ed56d697fab005f018f748aaded41fd99", "routeIntentBindingRef": "route_intent_078_network_alternative_choice_route_drift", "routeIntentState": "drifted", "sessionPostureBefore": "bound_subject_session", "sessionPostureAfter": "recover_only", "validatorFamily": "transaction_action_minimal_validator", "replayPolicy": "one_time", "transitionSteps": ["Issue alternative-choice grant", "Observe tuple drift against the route-intent binding", "Block redemption and record recover-only posture", "Send the user to governed recovery instead of acting on stale state"], "supersessionChain": [{"supersessionId": "AGS_078_ALT_ROUTE_DRIFT", "causeClass": "route_drift", "recordedAt": "2026-04-12T17:29:00Z", "replacementGrantRef": null, "notes": "The old alternative-choice token is invalid once the governing tuple no longer matches the route contract."}], "events": [{"eventId": "network_alternative_choice_route_drift_issue", "eventKind": "issue", "status": "settled", "recordedAt": "2026-04-12T17:10:00Z", "detail": "transaction_action_minimal issued under rf_patient_appointments."}, {"eventId": "network_alternative_choice_route_drift_redeem", "eventKind": "redeem", "status": "blocked_drift", "recordedAt": "2026-04-12T17:11:00Z", "detail": "Settlement posture blocked_drift with session after-state recover_only."}, {"eventId": "network_alternative_choice_route_drift_supersede_1", "eventKind": "supersede", "status": "route_drift", "recordedAt": "2026-04-12T17:29:00Z", "detail": "The old alternative-choice token is invalid once the governing tuple no longer matches the route contract."}], "notes": "Route intent and runtime tuple law are enforced before any action can settle."}, {"scenarioId": "pharmacy_choice_wrong_patient_revoked", "title": "Wrong-patient repair revokes the current pharmacy-choice link and preserves the audit chain.", "useCase": "pharmacy_choice", "grantFamily": "transaction_action_minimal", "routeFamilyRef": "rf_patient_requests", "actionScope": "pharmacy_status_entry", "subjectBindingState": "mismatch", "sessionRequirement": "bound_session", "outcome": "revoked", "redemptionState": "revoked", "grantState": "revoked", "transportClass": "opaque_signed_link", "keyVersionRef": "token_key_local_v1", "grantId": "AG_078_PHARMACY_CHOICE_WRONG_PATIENT_REVOKED", "scopeEnvelopeId": "AGE_078_PHARMACY_CHOICE_WRONG_PATIENT_REVOKED", "redemptionId": "AGR_078_PHARMACY_CHOICE_WRONG_PATIENT_REVOKED", "tokenDigest": "d620e93862910b34d3a5ae677675b2eb625a0b9192cbb29b14f69e576e32caa8", "tupleHash": "d2495133305730997eb0bb7674fdc47cdc56ec19672c40daea21b68f5696f753", "routeIntentBindingRef": "route_intent_078_pharmacy_choice_wrong_patient_revoked", "routeIntentState": "live", "sessionPostureBefore": "mismatched_subject_session", "sessionPostureAfter": "repair_required", "validatorFamily": "transaction_action_minimal_validator", "replayPolicy": "one_time", "transitionSteps": ["Issue pharmacy-choice grant", "Detect subject mismatch", "Revoke and supersede through repair-driven authority", "Require recovery or manual reissue"], "supersessionChain": [{"supersessionId": "AGS_078_PHARMACY_REPAIR", "causeClass": "identity_repair", "recordedAt": "2026-04-12T17:34:00Z", "replacementGrantRef": null, "notes": "Repair-driven revocation keeps the wrong-patient path closed until a fresh safe grant is issued."}], "events": [{"eventId": "pharmacy_choice_wrong_patient_revoked_issue", "eventKind": "issue", "status": "settled", "recordedAt": "2026-04-12T17:11:00Z", "detail": "transaction_action_minimal issued under rf_patient_requests."}, {"eventId": "pharmacy_choice_wrong_patient_revoked_redeem", "eventKind": "redeem", "status": "revoked", "recordedAt": "2026-04-12T17:12:00Z", "detail": "Settlement posture revoked with session after-state repair_required."}, {"eventId": "pharmacy_choice_wrong_patient_revoked_supersede_1", "eventKind": "supersede", "status": "identity_repair", "recordedAt": "2026-04-12T17:34:00Z", "detail": "Repair-driven revocation keeps the wrong-patient path closed until a fresh safe grant is issued."}], "notes": "Wrong-patient repair revokes the link instead of attempting an in-place session upgrade."}, {"scenarioId": "support_reissue_recovery", "title": "Support reissue recreates only the immediately prior minimal safe scope and marks the old token stale.", "useCase": "support_reissue", "grantFamily": "support_recovery_minimal", "routeFamilyRef": "rf_patient_secure_link_recovery", "actionScope": "secure_resume", "subjectBindingState": "hard_subject", "sessionRequirement": "fresh_or_rotated", "outcome": "reissued", "redemptionState": "replaced", "grantState": "live", "transportClass": "opaque_signed_link", "keyVersionRef": "token_key_local_v1", "grantId": "AG_078_SUPPORT_REISSUE_RECOVERY", "scopeEnvelopeId": "AGE_078_SUPPORT_REISSUE_RECOVERY", "redemptionId": "AGR_078_SUPPORT_REISSUE_RECOVERY", "tokenDigest": "52b5bf7ddb9f5d06018f871efcc4ec21b86702ff7f4785138f3d5de8527eb326", "tupleHash": "3af7f77c14b2e994b2e992dc9e9876bd9ea8ce6c5da60da34dce98dc52fc8174", "routeIntentBindingRef": "route_intent_078_support_reissue_recovery", "routeIntentState": "live", "sessionPostureBefore": "support_agent_verified", "sessionPostureAfter": "fresh_rotated_resume_session", "validatorFamily": "support_recovery_minimal_validator", "replayPolicy": "rotating", "transitionSteps": ["Issue recovery-family reissue", "Supersede the prior stale token", "Deliver one fresh minimal recovery grant", "Resume only the last safe bounded scope"], "supersessionChain": [{"supersessionId": "AGS_078_SUPPORT_REISSUE", "causeClass": "secure_link_reissue", "recordedAt": "2026-04-12T17:39:00Z", "replacementGrantRef": "AG_078_SUPPORT_REISSUE_V2", "notes": "Support recovery creates one fresh bounded link and invalidates every older token in the chain."}], "events": [{"eventId": "support_reissue_recovery_issue", "eventKind": "issue", "status": "settled", "recordedAt": "2026-04-12T17:12:00Z", "detail": "support_recovery_minimal issued under rf_patient_secure_link_recovery."}, {"eventId": "support_reissue_recovery_redeem", "eventKind": "redeem", "status": "replaced", "recordedAt": "2026-04-12T17:13:00Z", "detail": "Settlement posture replaced with session after-state fresh_rotated_resume_session."}, {"eventId": "support_reissue_recovery_supersede_1", "eventKind": "supersede", "status": "secure_link_reissue", "recordedAt": "2026-04-12T17:39:00Z", "detail": "Support recovery creates one fresh bounded link and invalidates every older token in the chain."}], "notes": "Support reissue cannot widen from minimal recovery into a broader patient capability surface."}, {"scenarioId": "recover_only_no_grant", "title": "Legacy or ambiguous continuity produces recover-only and no redeemable token at all.", "useCase": "recover_only", "grantFamily": null, "routeFamilyRef": "rf_patient_secure_link_recovery", "actionScope": null, "subjectBindingState": "none", "sessionRequirement": "none", "outcome": "recover_only", "redemptionState": "recover_only", "grantState": "no_grant", "transportClass": "no_token", "keyVersionRef": null, "grantId": null, "scopeEnvelopeId": null, "redemptionId": null, "tokenDigest": "none", "tupleHash": "12af8ce429f116dd55953be61c07961b0ed830c6ccd13cf4d341a069e2d159dd", "routeIntentBindingRef": "route_intent_078_recover_only_no_grant", "routeIntentState": "recover_only", "sessionPostureBefore": "anonymous", "sessionPostureAfter": "recover_only", "validatorFamily": null, "replayPolicy": "none", "transitionSteps": ["Recognize stale or legacy continuity", "Refuse to mint a grant", "Publish recover-only disposition", "Route to governed recovery"], "supersessionChain": [], "events": [{"eventId": "recover_only_no_grant_outcome", "eventKind": "outcome", "status": "recover_only", "recordedAt": "2026-04-12T17:15:00Z", "detail": "Recover-only is explicit and does not pretend there is still a safe live link."}], "notes": "Recover-only is explicit and does not pretend there is still a safe live link."}, {"scenarioId": "manual_only_support_gate", "title": "Unsafe support requests degrade to manual-only rather than rendering a misleading live action link.", "useCase": "support_reissue", "grantFamily": null, "routeFamilyRef": "rf_patient_secure_link_recovery", "actionScope": null, "subjectBindingState": "hard_subject", "sessionRequirement": "fresh_or_rotated", "outcome": "manual_only", "redemptionState": "manual_only", "grantState": "no_grant", "transportClass": "no_token", "keyVersionRef": null, "grantId": null, "scopeEnvelopeId": null, "redemptionId": null, "tokenDigest": "none", "tupleHash": "8ded386276a5e8f0a63b7ff06d6d6e75ce56848554a56762a00269ba6e005199", "routeIntentBindingRef": "route_intent_078_manual_only_support_gate", "routeIntentState": "manual_only", "sessionPostureBefore": "support_agent_verified", "sessionPostureAfter": "manual_only", "validatorFamily": null, "replayPolicy": "none", "transitionSteps": ["Evaluate unsafe support reissue request", "Refuse to issue a redeemable grant", "Publish manual-only outcome", "Escalate through governed human handling"], "supersessionChain": [], "events": [{"eventId": "manual_only_support_gate_outcome", "eventKind": "outcome", "status": "manual_only", "recordedAt": "2026-04-12T17:16:00Z", "detail": "Manual-only is a first-class outcome, not a disguised broken-link failure."}], "notes": "Manual-only is a first-class outcome, not a disguised broken-link failure."}]};
+      const MATRIX = [{"use_case": "draft_resume", "grant_family": "draft_resume_minimal", "validator_family": "draft_resume_minimal_validator", "replay_policy": "one_time", "route_family_ref": "rf_intake_self_service", "default_action_scope": "envelope_resume", "lineage_scope": "envelope", "subject_binding_mode": "none", "session_requirement": "fresh_or_rotated", "issuance_outcome": "issued", "default_expiry_minutes": 45, "transport_class": "opaque_signed_link", "supersession_triggers": "draft_promoted|logout|manual_revoke|route_drift", "rationale": "Draft resume remains minimal and envelope-bound until promotion or stronger proof settles."}, {"use_case": "request_claim", "grant_family": "claim_step_up", "validator_family": "claim_step_up_validator", "replay_policy": "one_time", "route_family_ref": "rf_patient_secure_link_recovery", "default_action_scope": "claim", "lineage_scope": "request", "subject_binding_mode": "soft_subject", "session_requirement": "fresh_or_rotated", "issuance_outcome": "issued", "default_expiry_minutes": 20, "transport_class": "opaque_signed_link", "supersession_triggers": "claim_completed|logout|identity_repair|route_drift", "rationale": "Claim grants guide auth uplift or proof capture but do not themselves confer patient capability."}, {"use_case": "secure_continuation", "grant_family": "continuation_seeded_verified", "validator_family": "continuation_seeded_verified_validator", "replay_policy": "one_time", "route_family_ref": "rf_patient_secure_link_recovery", "default_action_scope": "secure_resume", "lineage_scope": "request", "subject_binding_mode": "hard_subject", "session_requirement": "fresh_or_rotated", "issuance_outcome": "issued", "default_expiry_minutes": 30, "transport_class": "opaque_signed_link", "supersession_triggers": "rotation|logout|identity_repair|route_drift", "rationale": "Verified continuation binds one current lineage, route intent, and subject proof snapshot."}, {"use_case": "callback_reply", "grant_family": "transaction_action_minimal", "validator_family": "transaction_action_minimal_validator", "replay_policy": "one_time", "route_family_ref": "rf_patient_messages", "default_action_scope": "callback_response", "lineage_scope": "request", "subject_binding_mode": "hard_subject", "session_requirement": "bound_session", "issuance_outcome": "issued", "default_expiry_minutes": 30, "transport_class": "opaque_signed_link", "supersession_triggers": "rotation|identity_repair|route_drift|logout", "rationale": "Callback reply stays single-purpose and cannot silently authorize adjacent communication actions."}, {"use_case": "message_reply", "grant_family": "transaction_action_minimal", "validator_family": "transaction_action_minimal_validator", "replay_policy": "one_time", "route_family_ref": "rf_patient_messages", "default_action_scope": "message_reply", "lineage_scope": "request", "subject_binding_mode": "hard_subject", "session_requirement": "bound_session", "issuance_outcome": "issued", "default_expiry_minutes": 30, "transport_class": "opaque_signed_link", "supersession_triggers": "rotation|identity_repair|route_drift|logout", "rationale": "Message reply stays on the current thread tuple and reuses the canonical communication family."}, {"use_case": "booking_manage", "grant_family": "transaction_action_minimal", "validator_family": "transaction_action_minimal_validator", "replay_policy": "one_time", "route_family_ref": "rf_patient_appointments", "default_action_scope": "appointment_manage_entry", "lineage_scope": "request", "subject_binding_mode": "hard_subject", "session_requirement": "bound_session", "issuance_outcome": "issued", "default_expiry_minutes": 30, "transport_class": "opaque_signed_link", "supersession_triggers": "rotation|identity_repair|route_drift|logout", "rationale": "Booking-manage grants stay bound to the current booking tuple and one writable patient shell."}, {"use_case": "waitlist_action", "grant_family": "transaction_action_minimal", "validator_family": "transaction_action_minimal_validator", "replay_policy": "one_time", "route_family_ref": "rf_patient_appointments", "default_action_scope": "waitlist_offer", "lineage_scope": "request", "subject_binding_mode": "hard_subject", "session_requirement": "bound_session", "issuance_outcome": "issued", "default_expiry_minutes": 20, "transport_class": "opaque_signed_link", "supersession_triggers": "rotation|route_drift|logout|manual_revoke", "rationale": "Waitlist actions are tightly time-bound and must replay as settlement, not as a second side effect."}, {"use_case": "network_alternative_choice", "grant_family": "transaction_action_minimal", "validator_family": "transaction_action_minimal_validator", "replay_policy": "one_time", "route_family_ref": "rf_patient_appointments", "default_action_scope": "alternative_offer", "lineage_scope": "request", "subject_binding_mode": "hard_subject", "session_requirement": "bound_session", "issuance_outcome": "issued", "default_expiry_minutes": 20, "transport_class": "opaque_signed_link", "supersession_triggers": "rotation|route_drift|logout|manual_revoke", "rationale": "Alternative-choice grants narrow to one current ranked offer chain and fail closed on tuple drift."}, {"use_case": "pharmacy_choice", "grant_family": "transaction_action_minimal", "validator_family": "transaction_action_minimal_validator", "replay_policy": "one_time", "route_family_ref": "rf_patient_requests", "default_action_scope": "pharmacy_status_entry", "lineage_scope": "request", "subject_binding_mode": "hard_subject", "session_requirement": "bound_session", "issuance_outcome": "issued", "default_expiry_minutes": 30, "transport_class": "opaque_signed_link", "supersession_triggers": "rotation|identity_repair|route_drift|logout", "rationale": "Pharmacy choice stays on the current request-linked pharmacy tuple and cannot widen into hub or booking flows."}, {"use_case": "support_reissue", "grant_family": "support_recovery_minimal", "validator_family": "support_recovery_minimal_validator", "replay_policy": "rotating", "route_family_ref": "rf_patient_secure_link_recovery", "default_action_scope": "secure_resume", "lineage_scope": "request", "subject_binding_mode": "hard_subject", "session_requirement": "fresh_or_rotated", "issuance_outcome": "issued", "default_expiry_minutes": 30, "transport_class": "opaque_signed_link", "supersession_triggers": "secure_link_reissue|identity_repair|route_drift|logout", "rationale": "Support reissue recreates only the immediately prior safe minimal scope and supersedes every older link."}, {"use_case": "recover_only", "grant_family": "", "validator_family": "", "replay_policy": "none", "route_family_ref": "rf_patient_secure_link_recovery", "default_action_scope": "", "lineage_scope": "request", "subject_binding_mode": "none", "session_requirement": "none", "issuance_outcome": "recover_only", "default_expiry_minutes": 0, "transport_class": "no_token", "supersession_triggers": "", "rationale": "Recover-only is an explicit no-grant disposition for stale, legacy, or drifted continuity."}];
+
+      const state = {
+        familyFilter: "all",
+        redemptionFilter: "all",
+        subjectFilter: "all",
+        routeFilter: "all",
+        selectedScenarioId: CASEBOOK.cases[0]?.scenarioId ?? null,
+      };
+
+      const elements = {
+        familyFilter: document.querySelector("[data-testid='family-filter']"),
+        redemptionFilter: document.querySelector("[data-testid='redemption-state-filter']"),
+        subjectFilter: document.querySelector("[data-testid='subject-binding-filter']"),
+        routeFilter: document.querySelector("[data-testid='route-family-filter']"),
+        filterParity: document.querySelector("[data-testid='filter-parity']"),
+        familyLadder: document.querySelector("[data-testid='family-ladder']"),
+        familyLadderParity: document.querySelector("[data-testid='family-ladder-parity']"),
+        transitionMap: document.querySelector("[data-testid='transition-map']"),
+        transitionMapParity: document.querySelector("[data-testid='transition-map-parity']"),
+        supersessionRibbon: document.querySelector("[data-testid='supersession-ribbon']"),
+        supersessionRibbonParity: document.querySelector("[data-testid='supersession-ribbon-parity']"),
+        issuanceBody: document.querySelector("[data-testid='issuance-table-body']"),
+        issuanceParity: document.querySelector("[data-testid='issuance-table-parity']"),
+        redemptionBody: document.querySelector("[data-testid='redemption-table-body']"),
+        redemptionParity: document.querySelector("[data-testid='redemption-table-parity']"),
+        inspector: document.querySelector("[data-testid='inspector']"),
+        activeMetric: document.querySelector("[data-testid='metric-active-grants']"),
+        redeemedMetric: document.querySelector("[data-testid='metric-redeemed-grants']"),
+        supersededMetric: document.querySelector("[data-testid='metric-superseded-grants']"),
+        replayMetric: document.querySelector("[data-testid='metric-replay-incidents']"),
+      };
+
+      function uniqueOptions(values) {
+        return ["all", ...Array.from(new Set(values.filter(Boolean))).sort()];
+      }
+
+      function formatLabel(value) {
+        if (!value || value === "all") {
+          return "All";
+        }
+        return value.replaceAll("_", " ");
+      }
+
+      function buildSelect(select, values, selectedValue) {
+        select.innerHTML = values
+          .map((value) => `<option value="${value}">${formatLabel(value)}</option>`)
+          .join("");
+        select.value = selectedValue;
+      }
+
+      function visibleCases() {
+        return CASEBOOK.cases.filter((entry) => {
+          if (state.familyFilter !== "all" && (entry.grantFamily ?? "no_grant") !== state.familyFilter) {
+            return false;
+          }
+          if (state.redemptionFilter !== "all" && entry.redemptionState !== state.redemptionFilter) {
+            return false;
+          }
+          if (state.subjectFilter !== "all" && entry.subjectBindingState !== state.subjectFilter) {
+            return false;
+          }
+          if (state.routeFilter !== "all" && entry.routeFamilyRef !== state.routeFilter) {
+            return false;
+          }
+          return true;
+        });
+      }
+
+      function selectedCase(entries) {
+        const matched = entries.find((entry) => entry.scenarioId === state.selectedScenarioId);
+        if (matched) {
+          return matched;
+        }
+        const fallback = entries[0] ?? CASEBOOK.cases[0] ?? null;
+        state.selectedScenarioId = fallback?.scenarioId ?? null;
+        return fallback;
+      }
+
+      function badgeClass(status) {
+        if (["redeemed", "auth_bridge_opened", "replay_returned"].includes(status)) {
+          return "redeem";
+        }
+        if (["replaced", "rotated", "secure_link_reissue", "rotation"].includes(status)) {
+          return "supersede";
+        }
+        if (["blocked_drift", "revoked", "manual_only"].includes(status)) {
+          return "blocked";
+        }
+        if (["recover_only", "warning"].includes(status)) {
+          return "warning";
+        }
+        return "issue";
+      }
+
+      function renderMetrics() {
+        elements.activeMetric.textContent = String(CASEBOOK.summary.live_grant_count);
+        elements.redeemedMetric.textContent = String(CASEBOOK.summary.redeemed_settlement_count);
+        elements.supersededMetric.textContent = String(CASEBOOK.summary.supersession_case_count);
+        elements.replayMetric.textContent = String(CASEBOOK.summary.replay_block_count);
+      }
+
+      function renderFilters(entries) {
+        buildSelect(
+          elements.familyFilter,
+          uniqueOptions(CASEBOOK.cases.map((entry) => entry.grantFamily ?? "no_grant")),
+          state.familyFilter,
+        );
+        buildSelect(
+          elements.redemptionFilter,
+          uniqueOptions(CASEBOOK.cases.map((entry) => entry.redemptionState)),
+          state.redemptionFilter,
+        );
+        buildSelect(
+          elements.subjectFilter,
+          uniqueOptions(CASEBOOK.cases.map((entry) => entry.subjectBindingState)),
+          state.subjectFilter,
+        );
+        buildSelect(
+          elements.routeFilter,
+          uniqueOptions(CASEBOOK.cases.map((entry) => entry.routeFamilyRef)),
+          state.routeFilter,
+        );
+        elements.filterParity.textContent = `${entries.length} visible scenarios across ${MANIFEST.summary.grant_family_count} frozen grant families and ${MANIFEST.summary.runtime_tuple_count} runtime tuples.`;
+      }
+
+      function renderFamilyLadder(entries, currentCase) {
+        const counts = new Map();
+        entries.forEach((entry) => {
+          const key = entry.grantFamily ?? "no_grant";
+          counts.set(key, (counts.get(key) ?? 0) + 1);
+        });
+        elements.familyLadder.innerHTML = MANIFEST.grant_families
+          .map((family) => {
+            const isSelected = currentCase?.grantFamily === family.grantFamily;
+            return `
+              <button
+                type="button"
+                class="family-chip"
+                data-testid="family-ladder-node-${family.grantFamily}"
+                data-family="${family.grantFamily}"
+                data-selected="${String(isSelected)}"
+              >
+                <span>
+                  <strong>${family.grantFamily}</strong><br />
+                  <span class="muted">${family.replayPolicy} / ${family.sessionCeiling}</span>
+                </span>
+                <span class="badge ${badgeClass(isSelected ? "redeemed" : "issue")}">${counts.get(family.grantFamily) ?? 0}</span>
+              </button>
+            `;
+          })
+          .join("");
+        elements.familyLadderParity.textContent = `${entries.length} visible scenarios currently map to ${Array.from(counts.keys()).length} families.`;
+        elements.familyLadder.querySelectorAll("button[data-family]").forEach((button) => {
+          button.addEventListener("click", () => {
+            state.familyFilter = button.dataset.family ?? "all";
+            render();
+          });
+        });
+      }
+
+      function renderTransitionMap(currentCase) {
+        elements.transitionMap.dataset.selectedCase = currentCase?.scenarioId ?? "";
+        elements.transitionMap.innerHTML = (currentCase?.transitionSteps ?? [])
+          .map(
+            (step, index) => `
+              <div class="transition-step" data-testid="transition-step-${index + 1}">
+                <div class="transition-index">${index + 1}</div>
+                <div><strong>${step}</strong><br /><span class="muted">${currentCase?.scenarioId ?? ""}</span></div>
+              </div>
+            `,
+          )
+          .join("");
+        elements.transitionMapParity.textContent = currentCase
+          ? `${currentCase.transitionSteps.length} transition steps frozen for ${currentCase.scenarioId}.`
+          : "No case selected.";
+      }
+
+      function renderSupersessionRibbon(currentCase) {
+        elements.supersessionRibbon.dataset.selectedCase = currentCase?.scenarioId ?? "";
+        const chain = currentCase?.supersessionChain ?? [];
+        elements.supersessionRibbon.innerHTML = chain.length
+          ? chain
+              .map(
+                (entry) => `
+                  <div class="ribbon-chip" data-testid="supersession-chip-${entry.supersessionId}">
+                    <strong>${entry.causeClass}</strong><br />
+                    <span class="muted">${entry.recordedAt}</span><br />
+                    <span>${entry.replacementGrantRef ?? "no replacement grant"}</span>
+                  </div>
+                `,
+              )
+              .join("")
+          : `
+              <div class="ribbon-chip" data-empty="true" data-testid="supersession-chip-empty">
+                <strong>No supersession chain</strong><br />
+                <span class="muted">This case currently resolves without replacement or revocation.</span>
+              </div>
+            `;
+        elements.supersessionRibbonParity.textContent = `${chain.length} supersession records visible for the selected case.`;
+      }
+
+      function moveSelection(entries, currentId, direction) {
+        const currentIndex = entries.findIndex((entry) => entry.scenarioId === currentId);
+        if (currentIndex === -1) {
+          return;
+        }
+        const nextIndex = Math.min(entries.length - 1, Math.max(0, currentIndex + direction));
+        const next = entries[nextIndex];
+        if (!next) {
+          return;
+        }
+        state.selectedScenarioId = next.scenarioId;
+        render();
+        const nextRow = document.querySelector(`[data-testid="issuance-row-${next.scenarioId}"]`);
+        nextRow?.focus();
+      }
+
+      function renderIssuanceTable(entries, currentCase) {
+        elements.issuanceBody.innerHTML = entries
+          .map(
+            (entry) => `
+              <tr
+                tabindex="0"
+                class="issuance-row"
+                data-testid="issuance-row-${entry.scenarioId}"
+                data-selected="${String(entry.scenarioId === currentCase?.scenarioId)}"
+              >
+                <td><strong>${entry.title}</strong><br /><span class="muted">${entry.scenarioId}</span></td>
+                <td>${entry.grantFamily ?? "no_grant"}</td>
+                <td>${entry.routeFamilyRef}</td>
+                <td><span class="badge ${badgeClass(entry.redemptionState)}">${entry.outcome}</span></td>
+              </tr>
+            `,
+          )
+          .join("");
+        elements.issuanceParity.textContent = `${entries.length} visible issuance rows from ${CASEBOOK.summary.scenario_count} total scenarios.`;
+        elements.issuanceBody.querySelectorAll(".issuance-row").forEach((row) => {
+          row.addEventListener("click", () => {
+            state.selectedScenarioId = row.dataset.testid.replace("issuance-row-", "");
+            render();
+          });
+          row.addEventListener("keydown", (event) => {
+            const id = row.dataset.testid.replace("issuance-row-", "");
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              moveSelection(entries, id, 1);
+            }
+            if (event.key === "ArrowUp") {
+              event.preventDefault();
+              moveSelection(entries, id, -1);
+            }
+          });
+        });
+      }
+
+      function renderRedemptionTable(currentCase) {
+        const events = currentCase?.events ?? [];
+        elements.redemptionBody.innerHTML = events
+          .map(
+            (event, index) => `
+              <tr
+                tabindex="0"
+                class="redemption-row"
+                data-testid="redemption-row-${event.eventId}"
+                data-selected="${String(index === 0)}"
+              >
+                <td>${event.eventKind}</td>
+                <td><span class="badge ${badgeClass(event.status)}">${event.status}</span></td>
+                <td class="mono">${event.recordedAt}</td>
+                <td>${event.detail}</td>
+              </tr>
+            `,
+          )
+          .join("");
+        elements.redemptionParity.textContent = `${events.length} settlement rows visible for ${currentCase?.scenarioId ?? "no selection"}.`;
+      }
+
+      function renderInspector(currentCase) {
+        if (!currentCase) {
+          elements.inspector.innerHTML = "<div class='inspector-stack'><div class='inspector-section'><h3>No selection</h3></div></div>";
+          return;
+        }
+        elements.inspector.innerHTML = `
+          <div class="inspector-stack">
+            <section class="inspector-section" tabindex="0">
+              <h3>Selected Grant</h3>
+              <div class="inspector-grid">
+                <div class="inspector-line"><span class="muted">Scenario</span><span>${currentCase.scenarioId}</span></div>
+                <div class="inspector-line"><span class="muted">Grant ID</span><span class="mono">${currentCase.grantId ?? "no_grant"}</span></div>
+                <div class="inspector-line"><span class="muted">Family</span><span>${currentCase.grantFamily ?? "no_grant"}</span></div>
+                <div class="inspector-line"><span class="muted">Outcome</span><span>${currentCase.outcome}</span></div>
+                <div class="inspector-line"><span class="muted">Route</span><span>${currentCase.routeFamilyRef}</span></div>
+              </div>
+            </section>
+            <section class="inspector-section" tabindex="0">
+              <h3>Scope Envelope</h3>
+              <div class="inspector-grid">
+                <div class="inspector-line"><span class="muted">Envelope</span><span class="mono">${currentCase.scopeEnvelopeId ?? "none"}</span></div>
+                <div class="inspector-line"><span class="muted">Action Scope</span><span>${currentCase.actionScope ?? "none"}</span></div>
+                <div class="inspector-line"><span class="muted">Tuple Hash</span><span class="mono">${currentCase.tupleHash}</span></div>
+                <div class="inspector-line"><span class="muted">Route Intent</span><span>${currentCase.routeIntentState}</span></div>
+                <div class="inspector-line"><span class="muted">Key Version</span><span class="mono">${currentCase.keyVersionRef ?? "none"}</span></div>
+              </div>
+            </section>
+            <section class="inspector-section" tabindex="0">
+              <h3>Last Redemption</h3>
+              <div class="inspector-grid">
+                <div class="inspector-line"><span class="muted">Redemption</span><span class="mono">${currentCase.redemptionId ?? "none"}</span></div>
+                <div class="inspector-line"><span class="muted">Settlement</span><span>${currentCase.redemptionState}</span></div>
+                <div class="inspector-line"><span class="muted">Session Before</span><span>${currentCase.sessionPostureBefore}</span></div>
+                <div class="inspector-line"><span class="muted">Session After</span><span>${currentCase.sessionPostureAfter}</span></div>
+                <div class="inspector-line"><span class="muted">Token Digest</span><span class="mono">${currentCase.tokenDigest}</span></div>
+              </div>
+            </section>
+            <section class="inspector-section" tabindex="0">
+              <h3>Supersession Chain</h3>
+              <div class="inspector-grid">
+                <div class="muted">${currentCase.supersessionChain.length ? `${currentCase.supersessionChain.length} records` : "No supersession records"}</div>
+                <div>${currentCase.notes}</div>
+              </div>
+            </section>
+          </div>
+        `;
+      }
+
+      function render() {
+        const entries = visibleCases();
+        renderMetrics();
+        renderFilters(entries);
+        const currentCase = selectedCase(entries);
+        renderFamilyLadder(entries, currentCase);
+        renderTransitionMap(currentCase);
+        renderSupersessionRibbon(currentCase);
+        renderIssuanceTable(entries, currentCase);
+        renderRedemptionTable(currentCase);
+        renderInspector(currentCase);
+      }
+
+      function boot() {
+        document.body.dataset.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "true" : "false";
+        elements.familyFilter.addEventListener("change", (event) => {
+          state.familyFilter = event.target.value;
+          render();
+        });
+        elements.redemptionFilter.addEventListener("change", (event) => {
+          state.redemptionFilter = event.target.value;
+          render();
+        });
+        elements.subjectFilter.addEventListener("change", (event) => {
+          state.subjectFilter = event.target.value;
+          render();
+        });
+        elements.routeFilter.addEventListener("change", (event) => {
+          state.routeFilter = event.target.value;
+          render();
+        });
+        render();
+      }
+
+      boot();
+    </script>
+  </body>
+</html>

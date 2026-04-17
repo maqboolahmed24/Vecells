@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "170.phase2.trust.v1",
+  "policyVersion": "phase2-trust-v1",
+  "componentId": "PatientLink",
+  "scope": "High-level patient-link posture contract for Phase 2 trust evaluation. Detailed confidence scoring, PDS enrichment, and matching heuristics are deferred to seq_172.",
+  "patientLinkPostures": [
+    {
+      "posture": "unlinked",
+      "capabilityBias": "recover_only_or_step_up",
+      "description": "No patient relationship can be asserted."
+    },
+    {
+      "posture": "candidate",
+      "capabilityBias": "step_up_required",
+      "description": "A possible patient relationship exists but cannot raise grants alone."
+    },
+    {
+      "posture": "linked",
+      "capabilityBias": "allow_with_route_ceiling",
+      "description": "IdentityBindingAuthority has accepted a binding fence for the route scope."
+    },
+    {
+      "posture": "conflict",
+      "capabilityBias": "recover_only",
+      "description": "A mismatch or competing candidate requires repair posture."
+    },
+    {
+      "posture": "repair_hold",
+      "capabilityBias": "recover_only",
+      "description": "Authority review is pending and write access remains blocked."
+    },
+    {
+      "posture": "restricted",
+      "capabilityBias": "deny",
+      "description": "Policy or age restriction prevents the requested access."
+    }
+  ],
+  "boundaryAssertions": [
+    {
+      "assertionId": "PLB_170_NO_BINDING_MUTATION",
+      "statement": "PatientLink may not append, supersede, freeze, or release IdentityBinding."
+    },
+    {
+      "assertionId": "PLB_170_POSTURE_ONLY",
+      "statement": "PatientLink outputs posture and conflict signals only; CapabilityDecisionEngine maps posture to route decisions."
+    },
+    {
+      "assertionId": "PLB_170_PDS_DEFERRED",
+      "statement": "Optional PDS enrichment and match confidence details are placeholders until seq_172."
+    },
+    {
+      "assertionId": "PLB_170_VAULT_REFERENCE_ONLY",
+      "statement": "PatientLink consumes evidence-envelope references and masked display hints, never evidence payloads."
+    }
+  ],
+  "inputs": [
+    "identityContextRef",
+    "bindingFenceRef",
+    "evidenceEnvelopeRef",
+    "routeProfileRef",
+    "policyRestrictionCodes"
+  ],
+  "outputs": [
+    "patientLinkPosture",
+    "conflictSignalRef",
+    "authorityReviewSignalRef",
+    "capabilityBias"
+  ],
+  "manualRepairHooks": [
+    {
+      "hookId": "PLB_170_WRONG_PATIENT_SIGNAL",
+      "emitter": "PatientLink",
+      "target": "IdentityBindingAuthority",
+      "effect": "Requests repair hold and capability narrowing; does not mutate IdentityBinding."
+    },
+    {
+      "hookId": "PLB_170_SUPPORT_OVERRIDE_NARROW",
+      "emitter": "SupportOverrideConsole",
+      "target": "CapabilityDecisionEngine",
+      "effect": "Forces recover_only or deny until IdentityBindingAuthority releases repair hold."
+    }
+  ],
+  "futurePlaceholders": [
+    {
+      "routeProfileRef": "RCP_170_FUTURE_PROTECTED_RECORDS",
+      "requiredPosture": "linked",
+      "defaultDecision": "deny"
+    },
+    {
+      "routeProfileRef": "RCP_170_FUTURE_BOOKING_SURFACES",
+      "requiredPosture": "linked",
+      "defaultDecision": "deny"
+    }
+  ]
+}

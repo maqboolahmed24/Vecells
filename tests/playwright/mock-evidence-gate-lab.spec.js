@@ -6,7 +6,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..", "..");
 const PACK = JSON.parse(
-  fs.readFileSync(path.join(ROOT, "data", "analysis", "35_evidence_processing_lab_pack.json"), "utf8"),
+  fs.readFileSync(
+    path.join(ROOT, "data", "analysis", "35_evidence_processing_lab_pack.json"),
+    "utf8",
+  ),
 );
 
 async function importPlaywright() {
@@ -30,12 +33,16 @@ async function run() {
   await page.locator("[data-testid='job-profile-JOB_TRANS_RETRANSCRIBE_SUPERSEDE']").click();
 
   await page.locator("[data-testid='page-tab-Transcript_Job_Profiles']").click();
-  await page.locator("[data-testid='transcript-scenario-select']").selectOption("transcript_signature_retry");
+  await page
+    .locator("[data-testid='transcript-scenario-select']")
+    .selectOption("transcript_signature_retry");
   await page.locator("[data-testid='simulate-transcript-button']").click();
   await page.locator("text=Ready transcript, unsigned callback").waitFor();
 
   await page.locator("[data-testid='page-tab-Scan_and_Quarantine_Policies']").click();
-  await page.locator("[data-testid='scan-scenario-select']").selectOption("scan_unreadable_reacquire");
+  await page
+    .locator("[data-testid='scan-scenario-select']")
+    .selectOption("scan_unreadable_reacquire");
   await page.locator("[data-testid='simulate-scan-button']").click();
   await page.locator("text=Unreadable and reacquire").waitFor();
 

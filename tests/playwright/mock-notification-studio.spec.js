@@ -34,7 +34,9 @@ async function run() {
   await page.locator("text=Validation checks").waitFor();
 
   await page.locator("[data-testid='page-tab-Delivery_Truth_Inspector']").click();
-  await page.locator("[data-testid='scenario-select']").selectOption("email_bounce_repair_required");
+  await page
+    .locator("[data-testid='scenario-select']")
+    .selectOption("email_bounce_repair_required");
   await page.locator("[data-testid='simulate-message-button']").click();
   await page.locator("text=repair required").waitFor();
 
@@ -63,7 +65,9 @@ async function run() {
 
   const headings = await page.locator("h1, h2, h3").count();
   if (headings < 10) {
-    throw new Error("Accessibility smoke failed: expected multiple headings in the notification studio.");
+    throw new Error(
+      "Accessibility smoke failed: expected multiple headings in the notification studio.",
+    );
   }
 
   await browser.close();

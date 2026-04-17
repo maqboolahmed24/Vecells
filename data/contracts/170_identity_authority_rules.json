@@ -1,0 +1,162 @@
+{
+  "schemaVersion": "170.phase2.trust.v1",
+  "policyVersion": "phase2-trust-v1",
+  "identityBindingAuthority": "IdentityBindingAuthority",
+  "decisionVocabulary": ["allow", "step_up_required", "recover_only", "deny"],
+  "canonicalGrantCeilings": [
+    "none",
+    "draft_lease_only",
+    "continuation_recovery_only",
+    "authenticated_draft_only",
+    "request_status_read",
+    "request_attachment_write",
+    "future_denied"
+  ],
+  "components": [
+    {
+      "componentId": "IdentityBindingAuthority",
+      "role": "sole_writer_for_identity_binding",
+      "canAppendIdentityBinding": true,
+      "canSupersedeIdentityBinding": true,
+      "canFreezeIdentityBinding": true,
+      "canNarrowCapability": true,
+      "canReadEvidenceEnvelope": true,
+      "allowedOutputs": [
+        "IdentityBindingAppended",
+        "IdentityBindingSuperseded",
+        "IdentityBindingFrozen",
+        "IdentityRepairReleased"
+      ],
+      "prohibitedActions": ["bypass_evidence_vault", "raise_grant_above_route_ceiling"],
+      "notes": "Only this authority may change IdentityBinding state. It consumes vault references and emits append-only authority events."
+    },
+    {
+      "componentId": "CapabilityDecisionEngine",
+      "role": "route_capability_evaluator",
+      "canAppendIdentityBinding": false,
+      "canSupersedeIdentityBinding": false,
+      "canFreezeIdentityBinding": false,
+      "canNarrowCapability": true,
+      "canReadEvidenceEnvelope": false,
+      "allowedOutputs": ["CapabilityDecision", "AuthorityReviewSignal"],
+      "prohibitedActions": ["mutate_identity_binding", "persist_identity_evidence_payload"],
+      "notes": "Evaluates IdentityContext against RouteCapabilityProfile and emits decisions only."
+    },
+    {
+      "componentId": "PatientLink",
+      "role": "patient_link_posture_provider",
+      "canAppendIdentityBinding": false,
+      "canSupersedeIdentityBinding": false,
+      "canFreezeIdentityBinding": false,
+      "canNarrowCapability": true,
+      "canReadEvidenceEnvelope": false,
+      "allowedOutputs": ["PatientLinkPosture", "PatientLinkConflictSignal"],
+      "prohibitedActions": ["mutate_identity_binding", "raise_capability_decision"],
+      "notes": "Supplies linkage posture and conflicts; detailed PDS matching remains deferred to seq_172."
+    },
+    {
+      "componentId": "AccessGrantService",
+      "role": "grant_ceiling_projector",
+      "canAppendIdentityBinding": false,
+      "canSupersedeIdentityBinding": false,
+      "canFreezeIdentityBinding": false,
+      "canNarrowCapability": false,
+      "canReadEvidenceEnvelope": false,
+      "allowedOutputs": ["AccessGrantIssued", "AccessGrantSuperseded", "AccessGrantDenied"],
+      "prohibitedActions": ["exceed_capability_decision_ceiling", "mutate_identity_binding"],
+      "notes": "Projects grants at or below CapabilityDecision.maxGrantCeiling."
+    },
+    {
+      "componentId": "LocalSessionAuthority",
+      "role": "session_epoch_owner",
+      "canAppendIdentityBinding": false,
+      "canSupersedeIdentityBinding": false,
+      "canFreezeIdentityBinding": false,
+      "canNarrowCapability": true,
+      "canReadEvidenceEnvelope": false,
+      "allowedOutputs": ["SessionEstablished", "SessionRotated", "SessionExpired"],
+      "prohibitedActions": ["mutate_identity_binding", "treat_session_as_patient_link"],
+      "notes": "Owns local session freshness only. A valid session is never equivalent to patient linkage."
+    },
+    {
+      "componentId": "AuthBridge",
+      "role": "external_auth_transaction_translator",
+      "canAppendIdentityBinding": false,
+      "canSupersedeIdentityBinding": false,
+      "canFreezeIdentityBinding": false,
+      "canNarrowCapability": true,
+      "canReadEvidenceEnvelope": false,
+      "allowedOutputs": ["IdentityContextCandidate", "EvidenceEnvelopeRef"],
+      "prohibitedActions": [
+        "persist_external_claim_payload_in_hot_rows",
+        "mutate_identity_binding"
+      ],
+      "notes": "Detailed NHS login and OIDC transaction handling is owned by seq_171."
+    },
+    {
+      "componentId": "SupportOverrideConsole",
+      "role": "manual_override_and_repair_initiator",
+      "canAppendIdentityBinding": false,
+      "canSupersedeIdentityBinding": false,
+      "canFreezeIdentityBinding": false,
+      "canNarrowCapability": true,
+      "canReadEvidenceEnvelope": false,
+      "allowedOutputs": ["ManualOverrideNarrowed", "IdentityRepairRequested"],
+      "prohibitedActions": ["direct_identity_binding_mutation", "unmask_identity_evidence_payload"],
+      "notes": "Manual override may narrow or recover trust posture and request authority review; it cannot write IdentityBinding."
+    },
+    {
+      "componentId": "IdentityEvidenceVault",
+      "role": "encrypted_append_only_evidence_store",
+      "canAppendIdentityBinding": false,
+      "canSupersedeIdentityBinding": false,
+      "canFreezeIdentityBinding": false,
+      "canNarrowCapability": false,
+      "canReadEvidenceEnvelope": true,
+      "allowedOutputs": ["IdentityEvidenceEnvelopeStored", "EvidenceDigestProjected"],
+      "prohibitedActions": ["emit_unmasked_evidence_to_events", "write_identity_binding"],
+      "notes": "Stores encrypted evidence and projects only references, digests, classes, and masked display hints."
+    }
+  ],
+  "mutationRules": [
+    {
+      "ruleId": "IAR_170_ONLY_IDENTITY_BINDING_AUTHORITY_WRITES_BINDING",
+      "statement": "Only IdentityBindingAuthority may append, supersede, freeze, or release IdentityBinding state.",
+      "enforcedBy": [
+        "validate_phase2_trust_contracts",
+        "CapabilityDecisionEngine",
+        "audit_worm_ledger"
+      ]
+    },
+    {
+      "ruleId": "IAR_170_MANUAL_OVERRIDE_NARROWS_ONLY",
+      "statement": "Manual override can downgrade, recover, or request review; it cannot promote a capability or mutate binding directly.",
+      "enforcedBy": ["SupportOverrideConsole", "IdentityBindingAuthority"]
+    },
+    {
+      "ruleId": "IAR_170_GRANTS_CANNOT_EXCEED_DECISION_CEILING",
+      "statement": "AccessGrantService must issue grants at or below CapabilityDecision.maxGrantCeiling.",
+      "enforcedBy": ["AccessGrantService"]
+    },
+    {
+      "ruleId": "IAR_170_ROUTE_PROFILE_REQUIRED",
+      "statement": "Protected surfaces require a RouteCapabilityProfile row; unknown protected routes deny by default.",
+      "enforcedBy": ["CapabilityDecisionEngine"]
+    }
+  ],
+  "reasonCodeFamilies": [
+    "CAP_170_AUTHORITY_BOUNDARY",
+    "CAP_170_ROUTE_PROFILE",
+    "CAP_170_EVIDENCE_VAULT",
+    "CAP_170_PATIENT_LINK",
+    "CAP_170_MANUAL_REPAIR",
+    "CAP_170_FUTURE_PLACEHOLDER"
+  ],
+  "gapClosures": [
+    "GAP_RESOLVED_PHASE2_TRUST_ROUTE_CAPABILITY_REGISTRY_V1",
+    "GAP_RESOLVED_PHASE2_TRUST_EVIDENCE_VAULT_BOUNDARY_V1",
+    "GAP_RESOLVED_PHASE2_TRUST_FUTURE_SURFACE_PLACEHOLDERS_V1",
+    "GAP_RESOLVED_PHASE2_TRUST_IDENTITY_REPAIR_AUTHORITY_V1",
+    "GAP_RESOLVED_PHASE2_TRUST_UNKNOWN_ROUTE_DENY_V1"
+  ]
+}

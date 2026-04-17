@@ -1,0 +1,120 @@
+{
+  "taskId": "par_177",
+  "schemaVersion": "170.phase2.trust.v1",
+  "policyVersion": "phase2-trust-v1",
+  "serviceRef": "services/command-api/src/identity-evidence-vault.ts",
+  "migrationRef": "services/command-api/migrations/092_phase2_identity_evidence_vault.sql",
+  "parallelInterfaceGaps": [
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_EVIDENCE_ENCRYPTED_APPEND_ONLY_V1",
+      "closure": "Encrypted append-only envelopes and ciphertext rows own raw identity evidence."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_EVIDENCE_MASKING_HELPERS_V1",
+      "closure": "Shared masking, redaction, and leak-detection helpers are implemented and tested."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_EVIDENCE_ACCESS_AUDIT_V1",
+      "closure": "Writes, lookups, masked reads, raw reads, and denials append audit records."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_EVIDENCE_TELEPHONY_NAMESPACE_V1",
+      "closure": "Phone, caller, handset, and telephony capture evidence have explicit vault namespaces."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_EVIDENCE_LOOKUP_TOKENIZATION_V1",
+      "closure": "Lookup uses namespace-scoped hashes and never persists raw lookup values."
+    }
+  ],
+  "forbiddenObservabilityRule": "raw identity evidence may not appear in logs, metrics labels, event payloads, URLs, DOM attributes, screenshots, or ordinary DTOs",
+  "rawReadPolicy": {
+    "requiresPrivilegedFlag": true,
+    "allowedPurposes": [
+      "identity_binding_authority",
+      "patient_linker",
+      "telephony_readiness",
+      "security_audit",
+      "break_glass_audit"
+    ],
+    "denialReasonCodes": [
+      "EVIDENCE_177_RAW_READ_DENIED",
+      "EVIDENCE_177_PRIVILEGED_PURPOSE_REQUIRED"
+    ]
+  },
+  "cases": [
+    {
+      "caseId": "EVIDENCE177_AUTH_CLAIMS_ENCRYPTED",
+      "namespace": "auth_claim",
+      "inputShape": "rawClaims and rawTokenEnvelope",
+      "expectedStorage": "IdentityEvidenceCiphertext",
+      "expectedOperationalOutput": "IdentityEvidenceLocator",
+      "mustNotPersistRawLookupValue": true,
+      "expectedReasonCodes": [
+        "EVIDENCE_177_WRITE_APPEND_ONLY",
+        "EVIDENCE_177_ENVELOPE_ENCRYPTED",
+        "EVIDENCE_177_MASKED_LOCATOR_ONLY"
+      ]
+    },
+    {
+      "caseId": "EVIDENCE177_RAW_READ_DENIED",
+      "namespace": "userinfo_claim",
+      "requestedView": "raw",
+      "privileged": false,
+      "expectedDecision": "deny",
+      "expectedRawEvidenceReturned": false,
+      "expectedReasonCodes": [
+        "EVIDENCE_177_RAW_READ_DENIED",
+        "EVIDENCE_177_PRIVILEGED_PURPOSE_REQUIRED"
+      ]
+    },
+    {
+      "caseId": "EVIDENCE177_PRIVILEGED_READ_AUDITED",
+      "namespace": "userinfo_claim",
+      "requestedView": "raw",
+      "privileged": true,
+      "purpose": "patient_linker",
+      "expectedDecision": "allow",
+      "expectedAuditType": "read_raw",
+      "expectedReasonCodes": [
+        "EVIDENCE_177_RAW_READ_ALLOWED",
+        "EVIDENCE_177_ACCESS_AUDITED"
+      ]
+    },
+    {
+      "caseId": "EVIDENCE177_PHONE_LOOKUP_TOKENIZED",
+      "namespace": "phone_number",
+      "lookupShape": "raw phone supplied to lookupEvidence",
+      "expectedStoredLookup": "sha256 namespace-scoped token",
+      "expectedMaskedDisplay": "country-prefix plus final digits only",
+      "expectedReasonCodes": [
+        "EVIDENCE_177_LOOKUP_TOKENIZED",
+        "EVIDENCE_177_LOOKUP_RAW_VALUE_NOT_STORED"
+      ]
+    },
+    {
+      "caseId": "EVIDENCE177_TELEPHONY_IDENTIFIER_NAMESPACE",
+      "namespace": "caller_identifier",
+      "retentionClass": "continuation_seed",
+      "disclosureClass": "masked_operational",
+      "expectedConsumerRule": "telephony consumers extend the vault instead of creating side stores"
+    },
+    {
+      "caseId": "EVIDENCE177_KEY_ROTATION_READBACK",
+      "namespace": "handset_proof",
+      "expectedKeyBehavior": "new writes use the active keyVersionRef while old wrapped data keys remain readable",
+      "expectedCipherAlgorithm": "AES-256-GCM"
+    },
+    {
+      "caseId": "EVIDENCE177_TELEMETRY_REDACTION",
+      "inputShape": "observability payload with sensitive keys",
+      "expectedOutput": "[IDENTITY_EVIDENCE_REDACTED]",
+      "expectedLeakDetectorResult": false
+    },
+    {
+      "caseId": "EVIDENCE177_AUTH_BRIDGE_PORT",
+      "inputShape": "IdentityEvidenceVaultPort.writeAuthClaimSnapshot",
+      "requiredStorageRule": "vault_reference_only",
+      "expectedOutput": "evidenceRef only"
+    }
+  ]
+}

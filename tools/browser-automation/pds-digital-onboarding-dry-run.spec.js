@@ -88,21 +88,21 @@ async function run() {
   await page.locator(selectorProfile.hazard_row).waitFor();
   await page.locator(selectorProfile.risk_row).waitFor();
 
-  await page.locator(selectorProfile.field_approver).fill(
-    process.env.PDS_NAMED_APPROVER ?? "dry-run approver",
-  );
-  await page.locator(selectorProfile.field_environment).fill(
-    process.env.PDS_ENVIRONMENT_TARGET ?? "sandbox",
-  );
-  await page.locator(selectorProfile.field_ods).fill(
-    process.env.PDS_ORGANISATION_ODS ?? "ORG-PLACEHOLDER",
-  );
-  await page.locator(selectorProfile.field_owner).fill(
-    process.env.PDS_USE_CASE_OWNER ?? "ROLE_INTEROPERABILITY_LEAD",
-  );
-  await page.locator(selectorProfile.field_allow_mutation).selectOption(
-    realMutationRequested ? "true" : "false",
-  );
+  await page
+    .locator(selectorProfile.field_approver)
+    .fill(process.env.PDS_NAMED_APPROVER ?? "dry-run approver");
+  await page
+    .locator(selectorProfile.field_environment)
+    .fill(process.env.PDS_ENVIRONMENT_TARGET ?? "sandbox");
+  await page
+    .locator(selectorProfile.field_ods)
+    .fill(process.env.PDS_ORGANISATION_ODS ?? "ORG-PLACEHOLDER");
+  await page
+    .locator(selectorProfile.field_owner)
+    .fill(process.env.PDS_USE_CASE_OWNER ?? "ROLE_INTEROPERABILITY_LEAD");
+  await page
+    .locator(selectorProfile.field_allow_mutation)
+    .selectOption(realMutationRequested ? "true" : "false");
 
   if (!realMutationRequested) {
     const buttonDisabled = await page.locator(selectorProfile.final_submit).isDisabled();

@@ -45,7 +45,9 @@ async function run() {
 
   await page.locator("[data-testid='feature-flag-select']").selectOption("ready_for_live");
   await page.locator("[data-testid='page-tab-Rollback_and_Kill_Switches']").click();
-  await page.locator("[data-testid='live-gate-row-PDS_LIVE_GATE_ROUTE_FLAG_DEFAULT_OFF']").waitFor();
+  await page
+    .locator("[data-testid='live-gate-row-PDS_LIVE_GATE_ROUTE_FLAG_DEFAULT_OFF']")
+    .waitFor();
 
   await page.locator("[data-testid='page-tab-PDS_Flag_Overview']").click();
   await page.locator("[data-testid='access-mode-select']").selectOption("patient_access");
@@ -75,7 +77,9 @@ async function run() {
   await page.locator("[data-testid='actual-field-named-approver']").fill("dry-run approver");
   await page.locator("[data-testid='actual-field-environment-target']").fill("sandbox");
   await page.locator("[data-testid='actual-field-org-ods']").fill("ORG-PLACEHOLDER");
-  await page.locator("[data-testid='actual-field-use-case-owner']").fill("ROLE_INTEROPERABILITY_LEAD");
+  await page
+    .locator("[data-testid='actual-field-use-case-owner']")
+    .fill("ROLE_INTEROPERABILITY_LEAD");
   await page.locator("[data-testid='actual-field-allow-mutation']").selectOption("false");
   await page.locator("[data-testid='actual-submit-button']").waitFor();
 
@@ -95,7 +99,9 @@ async function run() {
 
   const headings = await page.locator("h1, h2, h3").count();
   if (headings < 10) {
-    throw new Error("Accessibility smoke failed: expected multiple headings in the PDS access studio.");
+    throw new Error(
+      "Accessibility smoke failed: expected multiple headings in the PDS access studio.",
+    );
   }
 
   await browser.close();

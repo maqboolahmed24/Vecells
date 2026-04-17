@@ -1,4 +1,3 @@
-
 # Phase 0 Foundation Gate Runbook
 
 1. Rebuild this pack with `python3 tools/analysis/build_phase0_gate_cockpit.py`.

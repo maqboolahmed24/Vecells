@@ -1,0 +1,803 @@
+{
+  "task_id": "seq_047",
+  "generated_at": "2026-04-13T14:51:07+00:00",
+  "captured_on": "2026-04-11",
+  "visual_mode": "Boundary_Studio",
+  "mission": "Define the canonical trust-zone boundary model and the exact gateway/BFF surface map so browser-reachable compute, tenant transfer, route ownership, context mutation scope, and recovery posture are explicit and validator-backed.",
+  "source_precedence": [
+    "prompt/047.md",
+    "prompt/shared_operating_contract_046_to_055.md",
+    "prompt/AGENT.md",
+    "prompt/checklist.md",
+    "docs/architecture/04_surface_conflict_and_gap_report.md",
+    "docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md",
+    "docs/architecture/41_repository_topology_rules.md",
+    "docs/architecture/46_runtime_topology_manifest_strategy.md",
+    "blueprint/platform-runtime-and-release-blueprint.md#TrustZoneBoundary",
+    "blueprint/platform-runtime-and-release-blueprint.md#GatewayBffSurface",
+    "blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest",
+    "blueprint/platform-frontend-blueprint.md#Shell and route-family ownership rules",
+    "blueprint/platform-frontend-blueprint.md#Browser boundary and BFF law",
+    "blueprint/phase-0-the-foundation-protocol.md#1.21 RouteIntentBinding",
+    "blueprint/phase-0-the-foundation-protocol.md#1.24 ReleaseApprovalFreeze",
+    "blueprint/phase-0-the-foundation-protocol.md#1.25 ChannelReleaseFreezeRecord",
+    "blueprint/phase-0-the-foundation-protocol.md#1.26 AssuranceSliceTrustRecord",
+    "blueprint/phase-0-the-foundation-protocol.md#1.38A AudienceSurfaceRuntimeBinding",
+    "blueprint/forensic-audit-findings.md#Finding 91",
+    "blueprint/forensic-audit-findings.md#Finding 92",
+    "blueprint/forensic-audit-findings.md#Finding 95",
+    "blueprint/forensic-audit-findings.md#Finding 96",
+    "blueprint/forensic-audit-findings.md#Finding 97",
+    "blueprint/forensic-audit-findings.md#Finding 114",
+    "data/analysis/runtime_topology_manifest.json",
+    "data/analysis/route_family_inventory.csv",
+    "data/analysis/audience_surface_inventory.csv",
+    "data/analysis/gateway_surface_matrix.csv",
+    "data/analysis/tenant_isolation_matrix.csv",
+    "data/analysis/context_boundary_contracts.json"
+  ],
+  "runtime_manifest_ref": "data/analysis/runtime_topology_manifest.json",
+  "runtime_manifest_tuple_hash": "6bc4221a6d88a9c1",
+  "summary": {
+    "trust_zone_count": 7,
+    "boundary_count": 20,
+    "allowed_boundary_count": 10,
+    "blocked_boundary_count": 10
+  },
+  "trust_zones": [
+    {
+      "trust_zone_ref": "tz_public_edge",
+      "display_name": "Public edge",
+      "band_order": 1,
+      "purpose": "TLS termination, origin allowlisting, request shaping, and zero-trust browser pre-filtering.",
+      "allows_browser_traffic": "yes",
+      "primary_controls": [
+        "Origin allowlist",
+        "Bot and rate-limit fencing",
+        "No PHI assembly",
+        "No adapter egress"
+      ],
+      "source_refs": [
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Trust Zones",
+        "blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract"
+      ],
+      "notes": "This is the first browser-contacting band, but it is not the published route-compute boundary."
+    },
+    {
+      "trust_zone_ref": "tz_shell_delivery",
+      "display_name": "Shell delivery",
+      "band_order": 2,
+      "purpose": "Static shell, publication bundle, and design/runtime parity delivery only.",
+      "allows_browser_traffic": "yes",
+      "primary_controls": [
+        "RuntimePublicationBundle exact only",
+        "No mutation or adapter egress",
+        "Static publication parity only",
+        "ReleaseApprovalFreeze placeholder visible"
+      ],
+      "source_refs": [
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Trust Zones",
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings"
+      ],
+      "notes": "Shell assets stay exact to the promoted runtime bundle and may not become a hidden BFF."
+    },
+    {
+      "trust_zone_ref": "tz_published_gateway",
+      "display_name": "Published gateway",
+      "band_order": 3,
+      "purpose": "The only browser-addressable compute boundary for published gateway surfaces.",
+      "allows_browser_traffic": "yes",
+      "primary_controls": [
+        "Published gateway surface tuple only",
+        "Route-intent and session policy enforcement",
+        "No direct data-plane or adapter access",
+        "SurfaceAuthorityTupleHash parity"
+      ],
+      "source_refs": [
+        "docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Browser Boundary Law",
+        "blueprint/platform-runtime-and-release-blueprint.md#GatewayBffSurface"
+      ],
+      "notes": "Later seq_047 refines exact gateway splits, but seq_046 already freezes the zone and bridge law."
+    },
+    {
+      "trust_zone_ref": "tz_application_core",
+      "display_name": "Application core",
+      "band_order": 4,
+      "purpose": "Canonical command and projection runtime planes with no direct browser reachability.",
+      "allows_browser_traffic": "no",
+      "primary_controls": [
+        "ScopedMutationGate",
+        "Projection-first read model discipline",
+        "Outbox and durable-queue initiation only",
+        "Minimum-necessary query surfaces"
+      ],
+      "source_refs": [
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Trust Zones",
+        "docs/architecture/13_backend_runtime_service_baseline.md#Baseline Law"
+      ],
+      "notes": "Command and projection stay separate workload families even when they deploy from the same repository."
+    },
+    {
+      "trust_zone_ref": "tz_integration_perimeter",
+      "display_name": "Integration perimeter",
+      "band_order": 5,
+      "purpose": "External effect dispatch, provider callback ingress, and simulator seams.",
+      "allows_browser_traffic": "no",
+      "primary_controls": [
+        "AdapterContractProfile only",
+        "Dependency degradation profiles",
+        "Durable checkpoints",
+        "Callback idempotency and correlation"
+      ],
+      "source_refs": [
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Trust Zones",
+        "docs/architecture/13_backend_runtime_service_baseline.md#Runtime Executables"
+      ],
+      "notes": "Live-provider dispatch and simulator backplanes stay in the same trust zone but split at the workload-family level."
+    },
+    {
+      "trust_zone_ref": "tz_stateful_data",
+      "display_name": "Stateful data",
+      "band_order": 6,
+      "purpose": "Relational, projection, queue, cache, object, and immutable store classes with explicit restore law.",
+      "allows_browser_traffic": "no",
+      "primary_controls": [
+        "Tenant tuple on every key or stronger scope tuple",
+        "Store-class-specific replication policy",
+        "No browser reachability",
+        "Restore proof before live authority"
+      ],
+      "source_refs": [
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Trust Zones",
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings"
+      ],
+      "notes": "Queues and caches are stateful runtime concerns, not hidden details inside app or worker config."
+    },
+    {
+      "trust_zone_ref": "tz_assurance_security",
+      "display_name": "Assurance and security",
+      "band_order": 7,
+      "purpose": "Assurance slices, release/watch tuple publication, audit, resilience, and KMS-bound control paths.",
+      "allows_browser_traffic": "no",
+      "primary_controls": [
+        "AssuranceSupervisor and RuntimeContractPublisher",
+        "Release watch tuple parity",
+        "Immutable evidence and trust verdicts",
+        "Fail-closed blast-radius controls"
+      ],
+      "source_refs": [
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Trust Zones",
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Supply Chain Law"
+      ],
+      "notes": "Support, operations, governance, and release controls consume one assurance plane instead of inventing local truth."
+    }
+  ],
+  "trust_zone_boundaries": [
+    {
+      "trustZoneBoundaryId": "tzb_application_core_to_assurance_security",
+      "sourceTrustZoneRef": "tz_application_core",
+      "targetTrustZoneRef": "tz_assurance_security",
+      "sourceWorkloadFamilyRefs": [
+        "wf_command_orchestration",
+        "wf_projection_read_models"
+      ],
+      "targetWorkloadFamilyRefs": [
+        "wf_assurance_security_control"
+      ],
+      "allowedProtocolRefs": [
+        "grpc",
+        "https",
+        "audit_append"
+      ],
+      "allowedIdentityRefs": [
+        "sid_command_api",
+        "sid_projection_worker",
+        "sid_assurance_control"
+      ],
+      "allowedDataClassificationRefs": [
+        "append_only_control_evidence",
+        "tenant_scoped_summary"
+      ],
+      "tenantTransferMode": "tenant_tuple_plus_scope_hash_required",
+      "assuranceTrustTransferMode": "assurance_slice_verdict_required",
+      "egressAllowlistRef": "eal_assurance_to_internal_planes_only",
+      "boundaryFailureMode": "writable_freeze_same_shell_context_preserved",
+      "boundaryState": "allowed",
+      "validatedAt": "2026-04-11",
+      "rationale": "Mutation and projection planes both depend on exact assurance slices before live widening.",
+      "source_refs": [
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Cross-Zone Boundaries",
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings"
+      ],
+      "boundaryKind": "allowed"
+    },
+    {
+      "trustZoneBoundaryId": "tzb_application_core_to_integration_perimeter",
+      "sourceTrustZoneRef": "tz_application_core",
+      "targetTrustZoneRef": "tz_integration_perimeter",
+      "sourceWorkloadFamilyRefs": [
+        "wf_command_orchestration"
+      ],
+      "targetWorkloadFamilyRefs": [
+        "wf_integration_dispatch",
+        "wf_integration_simulation_lab"
+      ],
+      "allowedProtocolRefs": [
+        "queue_dispatch",
+        "outbox_checkpoint"
+      ],
+      "allowedIdentityRefs": [
+        "sid_command_api",
+        "sid_integration_dispatch",
+        "sid_adapter_simulators"
+      ],
+      "allowedDataClassificationRefs": [
+        "external_effect_descriptor",
+        "masked_external_contact"
+      ],
+      "tenantTransferMode": "effect_scope_and_tenant_tuple_preserved",
+      "assuranceTrustTransferMode": "checkpoint_receipt_required",
+      "egressAllowlistRef": "eal_command_to_internal_planes_only",
+      "boundaryFailureMode": "integration_queue_only",
+      "boundaryState": "allowed",
+      "validatedAt": "2026-04-11",
+      "rationale": "Command handoff into integration always passes through durable queues or simulator contracts.",
+      "source_refs": [
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Cross-Zone Boundaries",
+        "docs/architecture/13_backend_runtime_service_baseline.md#Baseline Law"
+      ],
+      "boundaryKind": "allowed"
+    },
+    {
+      "trustZoneBoundaryId": "tzb_application_core_to_stateful_data",
+      "sourceTrustZoneRef": "tz_application_core",
+      "targetTrustZoneRef": "tz_stateful_data",
+      "sourceWorkloadFamilyRefs": [
+        "wf_command_orchestration",
+        "wf_projection_read_models"
+      ],
+      "targetWorkloadFamilyRefs": [
+        "wf_data_stateful_plane"
+      ],
+      "allowedProtocolRefs": [
+        "sql_tls",
+        "object_api_tls",
+        "queue_tls",
+        "cache_tls"
+      ],
+      "allowedIdentityRefs": [
+        "sid_command_api",
+        "sid_projection_worker",
+        "sid_data_plane"
+      ],
+      "allowedDataClassificationRefs": [
+        "tenant_scoped_phi_minimum_necessary",
+        "tenant_scoped_summary",
+        "append_only_control_evidence"
+      ],
+      "tenantTransferMode": "tenant_tuple_on_every_key_or_record",
+      "assuranceTrustTransferMode": "restore_tuple_required",
+      "egressAllowlistRef": "eal_data_internal_only",
+      "boundaryFailureMode": "read_only_or_blocked_until_restore_proof",
+      "boundaryState": "allowed",
+      "validatedAt": "2026-04-11",
+      "rationale": "Data-plane access is internal-only and tuple-bound.",
+      "source_refs": [
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Cross-Zone Boundaries",
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings"
+      ],
+      "boundaryKind": "allowed"
+    },
+    {
+      "trustZoneBoundaryId": "tzb_assurance_security_to_stateful_data",
+      "sourceTrustZoneRef": "tz_assurance_security",
+      "targetTrustZoneRef": "tz_stateful_data",
+      "sourceWorkloadFamilyRefs": [
+        "wf_assurance_security_control"
+      ],
+      "targetWorkloadFamilyRefs": [
+        "wf_data_stateful_plane"
+      ],
+      "allowedProtocolRefs": [
+        "sql_tls",
+        "object_api_tls",
+        "append_only_api"
+      ],
+      "allowedIdentityRefs": [
+        "sid_assurance_control",
+        "sid_data_plane"
+      ],
+      "allowedDataClassificationRefs": [
+        "append_only_control_evidence",
+        "tenant_scoped_summary"
+      ],
+      "tenantTransferMode": "platform_control_with_explicit_tenant_projection_only",
+      "assuranceTrustTransferMode": "restore_tuple_required",
+      "egressAllowlistRef": "eal_assurance_to_internal_planes_only",
+      "boundaryFailureMode": "controls_frozen_or_restore_only",
+      "boundaryState": "allowed",
+      "validatedAt": "2026-04-11",
+      "rationale": "Assurance is the only plane allowed to publish restore and release tuple verdicts into stateful stores.",
+      "source_refs": [
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Cross-Zone Boundaries",
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Supply Chain Law"
+      ],
+      "boundaryKind": "allowed"
+    },
+    {
+      "trustZoneBoundaryId": "tzb_integration_perimeter_to_assurance_security",
+      "sourceTrustZoneRef": "tz_integration_perimeter",
+      "targetTrustZoneRef": "tz_assurance_security",
+      "sourceWorkloadFamilyRefs": [
+        "wf_integration_dispatch",
+        "wf_integration_simulation_lab"
+      ],
+      "targetWorkloadFamilyRefs": [
+        "wf_assurance_security_control"
+      ],
+      "allowedProtocolRefs": [
+        "audit_append",
+        "https"
+      ],
+      "allowedIdentityRefs": [
+        "sid_integration_dispatch",
+        "sid_adapter_simulators",
+        "sid_assurance_control"
+      ],
+      "allowedDataClassificationRefs": [
+        "append_only_control_evidence"
+      ],
+      "tenantTransferMode": "tenant_tuple_plus_dependency_code_only",
+      "assuranceTrustTransferMode": "dependency_slice_verdict_required",
+      "egressAllowlistRef": "eal_assurance_to_internal_planes_only",
+      "boundaryFailureMode": "slice_degraded_or_queue_only",
+      "boundaryState": "allowed",
+      "validatedAt": "2026-04-11",
+      "rationale": "Integration failures widen only through explicit assurance tuples and watch publication.",
+      "source_refs": [
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Cross-Zone Boundaries",
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Pipeline Stage Chain"
+      ],
+      "boundaryKind": "allowed"
+    },
+    {
+      "trustZoneBoundaryId": "tzb_integration_perimeter_to_stateful_data",
+      "sourceTrustZoneRef": "tz_integration_perimeter",
+      "targetTrustZoneRef": "tz_stateful_data",
+      "sourceWorkloadFamilyRefs": [
+        "wf_integration_dispatch",
+        "wf_integration_simulation_lab"
+      ],
+      "targetWorkloadFamilyRefs": [
+        "wf_data_stateful_plane"
+      ],
+      "allowedProtocolRefs": [
+        "queue_tls",
+        "sql_tls",
+        "object_api_tls"
+      ],
+      "allowedIdentityRefs": [
+        "sid_integration_dispatch",
+        "sid_adapter_simulators",
+        "sid_data_plane"
+      ],
+      "allowedDataClassificationRefs": [
+        "external_effect_descriptor",
+        "append_only_control_evidence"
+      ],
+      "tenantTransferMode": "effect_scope_and_supplier_correlation_only",
+      "assuranceTrustTransferMode": "receipt_or_checkpoint_required",
+      "egressAllowlistRef": "eal_data_internal_only",
+      "boundaryFailureMode": "checkpoint_and_retry_or_dispute",
+      "boundaryState": "allowed",
+      "validatedAt": "2026-04-11",
+      "rationale": "Provider outcomes settle through durable state before they can affect user-visible posture.",
+      "source_refs": [
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Cross-Zone Boundaries",
+        "docs/architecture/13_backend_runtime_service_baseline.md#Baseline Law"
+      ],
+      "boundaryKind": "allowed"
+    },
+    {
+      "trustZoneBoundaryId": "tzb_public_edge_to_published_gateway",
+      "sourceTrustZoneRef": "tz_public_edge",
+      "targetTrustZoneRef": "tz_published_gateway",
+      "sourceWorkloadFamilyRefs": [
+        "wf_public_edge_ingress"
+      ],
+      "targetWorkloadFamilyRefs": [
+        "wf_shell_delivery_published_gateway"
+      ],
+      "allowedProtocolRefs": [
+        "https",
+        "sse",
+        "websocket"
+      ],
+      "allowedIdentityRefs": [
+        "sid_public_edge_proxy",
+        "sid_published_gateway"
+      ],
+      "allowedDataClassificationRefs": [
+        "public_safe",
+        "tenant_scoped_summary"
+      ],
+      "tenantTransferMode": "runtime_binding_and_session_policy_only",
+      "assuranceTrustTransferMode": "published_surface_tuple_only",
+      "egressAllowlistRef": "eal_public_edge_internal_only",
+      "boundaryFailureMode": "same_shell_recovery_or_blocked",
+      "boundaryState": "allowed",
+      "validatedAt": "2026-04-11",
+      "rationale": "This is the only browser-to-compute bridge beyond the edge.",
+      "source_refs": [
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Cross-Zone Boundaries",
+        "docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Browser Boundary Law"
+      ],
+      "boundaryKind": "allowed"
+    },
+    {
+      "trustZoneBoundaryId": "tzb_public_edge_to_shell_delivery",
+      "sourceTrustZoneRef": "tz_public_edge",
+      "targetTrustZoneRef": "tz_shell_delivery",
+      "sourceWorkloadFamilyRefs": [
+        "wf_public_edge_ingress"
+      ],
+      "targetWorkloadFamilyRefs": [
+        "wf_shell_delivery_static_publication"
+      ],
+      "allowedProtocolRefs": [
+        "https"
+      ],
+      "allowedIdentityRefs": [
+        "sid_public_edge_proxy",
+        "sid_shell_publication_bundle"
+      ],
+      "allowedDataClassificationRefs": [
+        "public_safe"
+      ],
+      "tenantTransferMode": "tenant_hint_only",
+      "assuranceTrustTransferMode": "publication_parity_only",
+      "egressAllowlistRef": "eal_public_edge_internal_only",
+      "boundaryFailureMode": "static_placeholder_or_cached_shell_only",
+      "boundaryState": "allowed",
+      "validatedAt": "2026-04-11",
+      "rationale": "Static delivery remains bundle-bound and may not become a mutable runtime hop.",
+      "source_refs": [
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Cross-Zone Boundaries",
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings"
+      ],
+      "boundaryKind": "allowed"
+    },
+    {
+      "trustZoneBoundaryId": "tzb_published_gateway_to_application_core",
+      "sourceTrustZoneRef": "tz_published_gateway",
+      "targetTrustZoneRef": "tz_application_core",
+      "sourceWorkloadFamilyRefs": [
+        "wf_shell_delivery_published_gateway"
+      ],
+      "targetWorkloadFamilyRefs": [
+        "wf_command_orchestration",
+        "wf_projection_read_models"
+      ],
+      "allowedProtocolRefs": [
+        "https",
+        "grpc"
+      ],
+      "allowedIdentityRefs": [
+        "sid_published_gateway",
+        "sid_command_api",
+        "sid_projection_worker"
+      ],
+      "allowedDataClassificationRefs": [
+        "tenant_scoped_summary",
+        "tenant_scoped_phi_minimum_necessary"
+      ],
+      "tenantTransferMode": "tenant_tuple_and_route_intent_preserved",
+      "assuranceTrustTransferMode": "surface_authority_tuple_preserved",
+      "egressAllowlistRef": "eal_gateway_internal_only",
+      "boundaryFailureMode": "command_halt_or_projection_recovery_only",
+      "boundaryState": "allowed",
+      "validatedAt": "2026-04-11",
+      "rationale": "Gateway surfaces may read projections and submit commands only through declared bridge placeholders.",
+      "source_refs": [
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Cross-Zone Boundaries",
+        "docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Gateway Surface Matrix"
+      ],
+      "boundaryKind": "allowed"
+    },
+    {
+      "trustZoneBoundaryId": "tzb_published_gateway_to_assurance_security",
+      "sourceTrustZoneRef": "tz_published_gateway",
+      "targetTrustZoneRef": "tz_assurance_security",
+      "sourceWorkloadFamilyRefs": [
+        "wf_shell_delivery_published_gateway"
+      ],
+      "targetWorkloadFamilyRefs": [
+        "wf_assurance_security_control"
+      ],
+      "allowedProtocolRefs": [
+        "https",
+        "grpc"
+      ],
+      "allowedIdentityRefs": [
+        "sid_published_gateway",
+        "sid_assurance_control"
+      ],
+      "allowedDataClassificationRefs": [
+        "masked_support_excerpt",
+        "append_only_control_evidence"
+      ],
+      "tenantTransferMode": "explicit_scope_tuple_or_platform_scope_only",
+      "assuranceTrustTransferMode": "assurance_slice_tuple_only",
+      "egressAllowlistRef": "eal_gateway_internal_only",
+      "boundaryFailureMode": "controls_frozen_same_shell_context_preserved",
+      "boundaryState": "allowed",
+      "validatedAt": "2026-04-11",
+      "rationale": "Support replay, operations drilldown, and governance shells may query assurance slices without bypassing the control plane.",
+      "source_refs": [
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Cross-Zone Boundaries",
+        "docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Gateway Surface Matrix"
+      ],
+      "boundaryKind": "allowed"
+    },
+    {
+      "trustZoneBoundaryId": "block_browser_to_assurance_without_gateway",
+      "sourceTrustZoneRef": "tz_public_edge",
+      "targetTrustZoneRef": "tz_assurance_security",
+      "sourceWorkloadFamilyRefs": [
+        "wf_public_edge_ingress"
+      ],
+      "targetWorkloadFamilyRefs": [
+        "wf_assurance_security_control"
+      ],
+      "allowedProtocolRefs": [],
+      "allowedIdentityRefs": [],
+      "allowedDataClassificationRefs": [],
+      "tenantTransferMode": "forbidden",
+      "assuranceTrustTransferMode": "forbidden",
+      "egressAllowlistRef": "eal_blocked_cross_zone_none",
+      "boundaryFailureMode": "fail_closed_same_shell_recovery_or_blocked",
+      "boundaryState": "blocked",
+      "validatedAt": "2026-04-11",
+      "rationale": "Operational, support, and governance browser access reaches assurance slices only through published gateway surfaces.",
+      "source_refs": [
+        "docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Gateway Surface Matrix",
+        "blueprint/platform-runtime-and-release-blueprint.md#TrustZoneBoundary"
+      ],
+      "boundaryKind": "blocked"
+    },
+    {
+      "trustZoneBoundaryId": "block_gateway_to_data",
+      "sourceTrustZoneRef": "tz_published_gateway",
+      "targetTrustZoneRef": "tz_stateful_data",
+      "sourceWorkloadFamilyRefs": [
+        "wf_shell_delivery_published_gateway"
+      ],
+      "targetWorkloadFamilyRefs": [
+        "wf_data_stateful_plane"
+      ],
+      "allowedProtocolRefs": [],
+      "allowedIdentityRefs": [],
+      "allowedDataClassificationRefs": [],
+      "tenantTransferMode": "forbidden",
+      "assuranceTrustTransferMode": "forbidden",
+      "egressAllowlistRef": "eal_blocked_cross_zone_none",
+      "boundaryFailureMode": "fail_closed_same_shell_recovery_or_blocked",
+      "boundaryState": "blocked",
+      "validatedAt": "2026-04-11",
+      "rationale": "Gateway surfaces may not bypass command or projection and may never reach raw stores.",
+      "source_refs": [
+        "docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Browser Boundary Law",
+        "blueprint/platform-runtime-and-release-blueprint.md#GatewayBffSurface"
+      ],
+      "boundaryKind": "blocked"
+    },
+    {
+      "trustZoneBoundaryId": "block_gateway_to_live_integration",
+      "sourceTrustZoneRef": "tz_published_gateway",
+      "targetTrustZoneRef": "tz_integration_perimeter",
+      "sourceWorkloadFamilyRefs": [
+        "wf_shell_delivery_published_gateway"
+      ],
+      "targetWorkloadFamilyRefs": [
+        "wf_integration_dispatch"
+      ],
+      "allowedProtocolRefs": [],
+      "allowedIdentityRefs": [],
+      "allowedDataClassificationRefs": [],
+      "tenantTransferMode": "forbidden",
+      "assuranceTrustTransferMode": "forbidden",
+      "egressAllowlistRef": "eal_blocked_cross_zone_none",
+      "boundaryFailureMode": "fail_closed_same_shell_recovery_or_blocked",
+      "boundaryState": "blocked",
+      "validatedAt": "2026-04-11",
+      "rationale": "Gateway surfaces may not dispatch directly to providers or callback runtimes.",
+      "source_refs": [
+        "docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Browser Boundary Law",
+        "blueprint/platform-runtime-and-release-blueprint.md#GatewayBffSurface"
+      ],
+      "boundaryKind": "blocked"
+    },
+    {
+      "trustZoneBoundaryId": "block_gateway_to_simulator",
+      "sourceTrustZoneRef": "tz_published_gateway",
+      "targetTrustZoneRef": "tz_integration_perimeter",
+      "sourceWorkloadFamilyRefs": [
+        "wf_shell_delivery_published_gateway"
+      ],
+      "targetWorkloadFamilyRefs": [
+        "wf_integration_simulation_lab"
+      ],
+      "allowedProtocolRefs": [],
+      "allowedIdentityRefs": [],
+      "allowedDataClassificationRefs": [],
+      "tenantTransferMode": "forbidden",
+      "assuranceTrustTransferMode": "forbidden",
+      "egressAllowlistRef": "eal_blocked_cross_zone_none",
+      "boundaryFailureMode": "fail_closed_same_shell_recovery_or_blocked",
+      "boundaryState": "blocked",
+      "validatedAt": "2026-04-11",
+      "rationale": "Simulators are internal proof twins only and are never browser-addressable.",
+      "source_refs": [
+        "services/adapter-simulators/manifests/README.md",
+        "docs/external/38_local_adapter_simulator_backlog.md"
+      ],
+      "boundaryKind": "blocked"
+    },
+    {
+      "trustZoneBoundaryId": "block_public_edge_to_command",
+      "sourceTrustZoneRef": "tz_public_edge",
+      "targetTrustZoneRef": "tz_application_core",
+      "sourceWorkloadFamilyRefs": [
+        "wf_public_edge_ingress"
+      ],
+      "targetWorkloadFamilyRefs": [
+        "wf_command_orchestration"
+      ],
+      "allowedProtocolRefs": [],
+      "allowedIdentityRefs": [],
+      "allowedDataClassificationRefs": [],
+      "tenantTransferMode": "forbidden",
+      "assuranceTrustTransferMode": "forbidden",
+      "egressAllowlistRef": "eal_blocked_cross_zone_none",
+      "boundaryFailureMode": "fail_closed_same_shell_recovery_or_blocked",
+      "boundaryState": "blocked",
+      "validatedAt": "2026-04-11",
+      "rationale": "Browser or edge traffic may not bypass published gateway surfaces into command.",
+      "source_refs": [
+        "blueprint/platform-runtime-and-release-blueprint.md#TrustZoneBoundary",
+        "docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Browser Boundary Law"
+      ],
+      "boundaryKind": "blocked"
+    },
+    {
+      "trustZoneBoundaryId": "block_public_edge_to_data",
+      "sourceTrustZoneRef": "tz_public_edge",
+      "targetTrustZoneRef": "tz_stateful_data",
+      "sourceWorkloadFamilyRefs": [
+        "wf_public_edge_ingress"
+      ],
+      "targetWorkloadFamilyRefs": [
+        "wf_data_stateful_plane"
+      ],
+      "allowedProtocolRefs": [],
+      "allowedIdentityRefs": [],
+      "allowedDataClassificationRefs": [],
+      "tenantTransferMode": "forbidden",
+      "assuranceTrustTransferMode": "forbidden",
+      "egressAllowlistRef": "eal_blocked_cross_zone_none",
+      "boundaryFailureMode": "fail_closed_same_shell_recovery_or_blocked",
+      "boundaryState": "blocked",
+      "validatedAt": "2026-04-11",
+      "rationale": "No browser- or edge-reachable service may access raw stores directly.",
+      "source_refs": [
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Non-negotiable Rules",
+        "blueprint/platform-runtime-and-release-blueprint.md#TrustZoneBoundary"
+      ],
+      "boundaryKind": "blocked"
+    },
+    {
+      "trustZoneBoundaryId": "block_public_edge_to_integration",
+      "sourceTrustZoneRef": "tz_public_edge",
+      "targetTrustZoneRef": "tz_integration_perimeter",
+      "sourceWorkloadFamilyRefs": [
+        "wf_public_edge_ingress"
+      ],
+      "targetWorkloadFamilyRefs": [
+        "wf_integration_dispatch"
+      ],
+      "allowedProtocolRefs": [],
+      "allowedIdentityRefs": [],
+      "allowedDataClassificationRefs": [],
+      "tenantTransferMode": "forbidden",
+      "assuranceTrustTransferMode": "forbidden",
+      "egressAllowlistRef": "eal_blocked_cross_zone_none",
+      "boundaryFailureMode": "fail_closed_same_shell_recovery_or_blocked",
+      "boundaryState": "blocked",
+      "validatedAt": "2026-04-11",
+      "rationale": "Edge traffic may not reach provider or callback runtimes directly.",
+      "source_refs": [
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Non-negotiable Rules",
+        "blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract"
+      ],
+      "boundaryKind": "blocked"
+    },
+    {
+      "trustZoneBoundaryId": "block_public_edge_to_projection",
+      "sourceTrustZoneRef": "tz_public_edge",
+      "targetTrustZoneRef": "tz_application_core",
+      "sourceWorkloadFamilyRefs": [
+        "wf_public_edge_ingress"
+      ],
+      "targetWorkloadFamilyRefs": [
+        "wf_projection_read_models"
+      ],
+      "allowedProtocolRefs": [],
+      "allowedIdentityRefs": [],
+      "allowedDataClassificationRefs": [],
+      "tenantTransferMode": "forbidden",
+      "assuranceTrustTransferMode": "forbidden",
+      "egressAllowlistRef": "eal_blocked_cross_zone_none",
+      "boundaryFailureMode": "fail_closed_same_shell_recovery_or_blocked",
+      "boundaryState": "blocked",
+      "validatedAt": "2026-04-11",
+      "rationale": "Projection reads remain behind declared gateway surfaces; the edge does not query projections directly.",
+      "source_refs": [
+        "blueprint/platform-runtime-and-release-blueprint.md#TrustZoneBoundary",
+        "docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Browser Boundary Law"
+      ],
+      "boundaryKind": "blocked"
+    },
+    {
+      "trustZoneBoundaryId": "block_shell_publication_to_command",
+      "sourceTrustZoneRef": "tz_shell_delivery",
+      "targetTrustZoneRef": "tz_application_core",
+      "sourceWorkloadFamilyRefs": [
+        "wf_shell_delivery_static_publication"
+      ],
+      "targetWorkloadFamilyRefs": [
+        "wf_command_orchestration"
+      ],
+      "allowedProtocolRefs": [],
+      "allowedIdentityRefs": [],
+      "allowedDataClassificationRefs": [],
+      "tenantTransferMode": "forbidden",
+      "assuranceTrustTransferMode": "forbidden",
+      "egressAllowlistRef": "eal_blocked_cross_zone_none",
+      "boundaryFailureMode": "fail_closed_same_shell_recovery_or_blocked",
+      "boundaryState": "blocked",
+      "validatedAt": "2026-04-11",
+      "rationale": "Static publication delivery cannot become a shadow mutation plane.",
+      "source_refs": [
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings",
+        "blueprint/platform-runtime-and-release-blueprint.md#RuntimeTopologyManifest"
+      ],
+      "boundaryKind": "blocked"
+    },
+    {
+      "trustZoneBoundaryId": "block_shell_publication_to_projection",
+      "sourceTrustZoneRef": "tz_shell_delivery",
+      "targetTrustZoneRef": "tz_application_core",
+      "sourceWorkloadFamilyRefs": [
+        "wf_shell_delivery_static_publication"
+      ],
+      "targetWorkloadFamilyRefs": [
+        "wf_projection_read_models"
+      ],
+      "allowedProtocolRefs": [],
+      "allowedIdentityRefs": [],
+      "allowedDataClassificationRefs": [],
+      "tenantTransferMode": "forbidden",
+      "assuranceTrustTransferMode": "forbidden",
+      "egressAllowlistRef": "eal_blocked_cross_zone_none",
+      "boundaryFailureMode": "fail_closed_same_shell_recovery_or_blocked",
+      "boundaryState": "blocked",
+      "validatedAt": "2026-04-11",
+      "rationale": "Shell assets are bundle-bound and may not query projections directly.",
+      "source_refs": [
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings",
+        "blueprint/platform-runtime-and-release-blueprint.md#RuntimeTopologyManifest"
+      ],
+      "boundaryKind": "blocked"
+    }
+  ]
+}

@@ -1,0 +1,160 @@
+{
+  "policyVersion": "phase2-identity-repair-v1",
+  "controls": [
+    "IdentityRepairOrchestrator",
+    "IdentityRepairSignal",
+    "IdentityRepairCase",
+    "IdentityRepairFreezeRecord",
+    "IdentityRepairBranchDisposition",
+    "IdentityRepairReleaseSettlement",
+    "PatientIdentityHoldProjection",
+    "PatientActionRecoveryProjection"
+  ],
+  "cases": [
+    {
+      "caseId": "IR182_SIGNAL_REPLAY_NO_SECOND_CASE",
+      "signalClass": "patient_report",
+      "decision": "replayed",
+      "expectedCaseState": "opened",
+      "expectedFreezeState": "pending",
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_REPAIR_SIGNAL_CONVERGENCE_V1",
+      "assertions": [
+        "idempotency_key returns original IdentityRepairSignal",
+        "signal_digest returns original IdentityRepairSignal",
+        "active IdentityRepairCase is reused for frozenIdentityBindingRef"
+      ]
+    },
+    {
+      "caseId": "IR182_ACTIVE_CASE_REUSE_CONFIRMED_DRIFT",
+      "signalClass": "support_report",
+      "decision": "active_case_reused",
+      "expectedCaseState": "opened",
+      "expectedFreezeState": "pending",
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_REPAIR_SIGNAL_CONVERGENCE_V1",
+      "assertions": [
+        "second credible signal appends to openedSignalRefs",
+        "repairBasis upgrades from suspicion to confirmed_wrong_patient",
+        "no duplicate case opens for the same frozen binding"
+      ]
+    },
+    {
+      "caseId": "IR182_EXACT_ONCE_FREEZE",
+      "signalClass": "confirmed_misbinding",
+      "decision": "frozen",
+      "expectedCaseState": "downstream_quarantined",
+      "expectedFreezeState": "active",
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_REPAIR_FREEZE_FIRST_V1",
+      "assertions": [
+        "lineage fence issuedFor identity_repair",
+        "SessionGovernor returns session termination settlements",
+        "AccessGrantService returns identity_repair supersessions",
+        "RouteIntentBinding supersession refs are durable",
+        "non-essential communications hold is active"
+      ]
+    },
+    {
+      "caseId": "IR182_HOLD_PROJECTION_NO_STALE_PHI",
+      "signalClass": "secure_link_subject_conflict",
+      "decision": "identity_hold",
+      "expectedCaseState": "downstream_quarantined",
+      "expectedFreezeState": "active",
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_REPAIR_HOLD_PROJECTION_V1",
+      "assertions": [
+        "PatientIdentityHoldProjection is summary_only",
+        "PatientActionRecoveryProjection is recovery_only",
+        "no 404 generic redirect or stale PHI detail is returned"
+      ]
+    },
+    {
+      "caseId": "IR182_BRANCH_COMPENSATION_AND_QUARANTINE",
+      "signalClass": "downstream_contradiction",
+      "decision": "branch_quarantined",
+      "expectedCaseState": "downstream_quarantined",
+      "expectedFreezeState": "active",
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_REPAIR_BRANCH_DISPOSITION_V1",
+      "branchTypes": [
+        "request_shell",
+        "episode_state",
+        "conversation_callback",
+        "external_message_delivery",
+        "file_artifact_visibility",
+        "support_workspace_continuity",
+        "telephony_continuation",
+        "analytics_event_branch"
+      ],
+      "branchStates": [
+        "quarantined",
+        "compensation_pending",
+        "manual_review_only",
+        "suppressed",
+        "already_safe",
+        "rebuild_required",
+        "rebuilt",
+        "released",
+        "compensated",
+        "terminal_suppressed",
+        "manual_review_closed"
+      ],
+      "assertions": [
+        "external side effects require compensation",
+        "local staged artifacts can be suppressed or rebuilt",
+        "support and telephony branches cannot silently resume"
+      ]
+    },
+    {
+      "caseId": "IR182_UNREVIEWED_RELEASE_DENIED",
+      "signalClass": "audit_replay",
+      "decision": "release_denied",
+      "expectedCaseState": "downstream_quarantined",
+      "expectedFreezeState": "active",
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_REPAIR_RELEASE_SETTLEMENT_V1",
+      "assertions": [
+        "supervisor approval required",
+        "independent review required",
+        "IdentityBindingAuthority correction required",
+        "all branch dispositions must be release-ready"
+      ]
+    },
+    {
+      "caseId": "IR182_AUTHORITY_CORRECTION_ONLY",
+      "signalClass": "auth_subject_conflict",
+      "decision": "corrected",
+      "expectedCaseState": "corrected",
+      "expectedFreezeState": "active",
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_REPAIR_AUTHORITY_CORRECTION_V1",
+      "assertions": [
+        "correction_applied is delegated to IdentityBindingAuthority",
+        "revoked is delegated to IdentityBindingAuthority",
+        "request or route code does not directly mutate patient identity"
+      ]
+    },
+    {
+      "caseId": "IR182_RELEASE_SETTLEMENT_MODES",
+      "signalClass": "telephony_contradiction",
+      "decision": "released",
+      "expectedCaseState": "closed",
+      "expectedFreezeState": "released",
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_REPAIR_RELEASE_SETTLEMENT_V1",
+      "releaseModes": [
+        "read_only_resume",
+        "claim_pending_resume",
+        "writable_resume",
+        "manual_follow_up_only"
+      ],
+      "assertions": [
+        "fresh sessions resume only after release",
+        "fresh access grants resume only after release",
+        "fresh route intents resume only after release",
+        "communications release is tied to release settlement"
+      ]
+    }
+  ],
+  "gapClosures": [
+    "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_REPAIR_SIGNAL_CONVERGENCE_V1",
+    "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_REPAIR_FREEZE_FIRST_V1",
+    "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_REPAIR_BRANCH_DISPOSITION_V1",
+    "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_REPAIR_AUTHORITY_CORRECTION_V1",
+    "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_REPAIR_HOLD_PROJECTION_V1",
+    "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_REPAIR_RELEASE_SETTLEMENT_V1"
+  ]
+}

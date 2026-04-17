@@ -1,0 +1,175 @@
+{
+  "taskId": "par_153",
+  "metricsSchemaVersion": "PHASE1_CONFIRMATION_NOTIFICATION_METRICS_V1",
+  "metrics": [
+    {
+      "metricName": "dispatch_queued_rate",
+      "runtimeField": "queuedCount",
+      "unit": "count_per_window",
+      "owner": "notification-worker",
+      "usage": [
+        "dispatch_volume",
+        "backlog_detection"
+      ]
+    },
+    {
+      "metricName": "provider_acceptance_rate",
+      "runtimeField": "providerAcceptanceRate",
+      "unit": "ratio",
+      "owner": "notification-worker",
+      "usage": [
+        "provider_health",
+        "queue_blockage_detection"
+      ]
+    },
+    {
+      "metricName": "delivery_evidence_rate",
+      "runtimeField": "deliveryEvidenceRate",
+      "unit": "ratio",
+      "owner": "notification-worker",
+      "usage": [
+        "callback_health",
+        "receipt_truth"
+      ]
+    },
+    {
+      "metricName": "bounce_failure_rate",
+      "runtimeField": "bounceFailureRate",
+      "unit": "ratio",
+      "owner": "notification-worker",
+      "usage": [
+        "delivery_degradation",
+        "route_truth_repair"
+      ]
+    },
+    {
+      "metricName": "queue_depth",
+      "runtimeField": "queueDepth",
+      "unit": "count",
+      "owner": "notification-worker",
+      "usage": [
+        "backpressure",
+        "dispatch_capacity"
+      ]
+    },
+    {
+      "metricName": "queue_blockage",
+      "runtimeField": "queueBlockageCount",
+      "unit": "count",
+      "owner": "notification-worker",
+      "usage": [
+        "fail_closed_route_truth",
+        "operator_escalation"
+      ]
+    },
+    {
+      "metricName": "end_to_end_confirmation_latency_p95_ms",
+      "runtimeField": "endToEndConfirmationLatencyP95Ms",
+      "unit": "milliseconds",
+      "owner": "notification-worker",
+      "usage": [
+        "latency_slo",
+        "provider_callback_drift"
+      ]
+    },
+    {
+      "metricName": "receipt_recovery_required_count",
+      "runtimeField": "receiptRecoveryRequiredCount",
+      "unit": "count",
+      "owner": "notification-worker",
+      "usage": [
+        "patient_truth_risk",
+        "manual_recovery_backlog"
+      ]
+    }
+  ],
+  "alerts": [
+    {
+      "alertId": "ALERT_153_CONFIRMATION_QUEUE_BLOCKAGE_V1",
+      "alertRouteRef": "ALERT_COMMUNICATION_AND_CALLBACK_HEALTH",
+      "severity": "page",
+      "threshold": "queueBlockageCount > 0 for 15 minutes or blockedRouteTruthCount >= 5 in 5 minutes",
+      "evidenceFields": [
+        "queueBlockageCount",
+        "blockedRouteTruthCount",
+        "queueDepth"
+      ],
+      "operatorAction": "Hold optimistic receipt posture and open route-truth repair."
+    },
+    {
+      "alertId": "ALERT_153_PROVIDER_ACCEPTANCE_DEGRADED_V1",
+      "alertRouteRef": "ALERT_COMMUNICATION_AND_CALLBACK_HEALTH",
+      "severity": "warn",
+      "threshold": "providerAcceptanceRate < 0.95 across a 15 minute window",
+      "evidenceFields": [
+        "providerAcceptanceRate",
+        "queueDepth",
+        "failureCount"
+      ],
+      "operatorAction": "Inspect transport settlements before widening patient-facing promises."
+    },
+    {
+      "alertId": "ALERT_153_DELIVERY_EVIDENCE_GAP_V1",
+      "alertRouteRef": "ALERT_COMMUNICATION_AND_CALLBACK_HEALTH",
+      "severity": "page",
+      "threshold": "deliveryEvidenceRate < 0.9 or endToEndConfirmationLatencyP95Ms > 900000",
+      "evidenceFields": [
+        "deliveryEvidenceRate",
+        "endToEndConfirmationLatencyP95Ms",
+        "receiptRecoveryRequiredCount"
+      ],
+      "operatorAction": "Treat transport acceptance as weak evidence only and reconcile callbacks."
+    },
+    {
+      "alertId": "ALERT_153_BOUNCE_FAILURE_SPIKE_V1",
+      "alertRouteRef": "ALERT_COMMUNICATION_AND_CALLBACK_HEALTH",
+      "severity": "warn",
+      "threshold": "bounceFailureRate >= 0.05 in any 15 minute window",
+      "evidenceFields": [
+        "bounceFailureRate",
+        "failureCount",
+        "disputedCount"
+      ],
+      "operatorAction": "Inspect route truth, suppress blind resend, and require repair or review."
+    },
+    {
+      "alertId": "ALERT_153_RECEIPT_RECOVERY_BACKLOG_V1",
+      "alertRouteRef": "ALERT_COMMUNICATION_AND_CALLBACK_HEALTH",
+      "severity": "page",
+      "threshold": "receiptRecoveryRequiredCount > 0 for 15 minutes after queueing",
+      "evidenceFields": [
+        "receiptRecoveryRequiredCount",
+        "blockedRouteTruthCount",
+        "deliveryEvidenceRate"
+      ],
+      "operatorAction": "Escalate support recovery because patient receipt posture is no longer calm."
+    }
+  ],
+  "telemetryLaw": {
+    "redactionFence": "UITelemetryDisclosureFence",
+    "allowedStructuredFields": [
+      "maskedContactField",
+      "maskedRouteField",
+      "auditLinkField",
+      "controlPlaneField",
+      "publicDescriptor"
+    ],
+    "forbiddenFields": [
+      "rawDestination",
+      "providerPayloadBody",
+      "freeTextNarrative",
+      "unsafeWebhookFragment"
+    ],
+    "traceEventNames": [
+      "notification.confirmation.dispatch"
+    ],
+    "logEventNames": [
+      "notification_confirmation_dispatch_settled",
+      "notification_confirmation_webhook_recorded"
+    ],
+    "metricEventNames": [
+      "notification.provider_acceptance_rate",
+      "notification.delivery_evidence_rate"
+    ]
+  }
+}

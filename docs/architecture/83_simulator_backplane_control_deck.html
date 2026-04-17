@@ -1,0 +1,1138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>Vecells Simulator Backplane Control Deck</title>
+    <style>
+      :root {
+        --canvas: #f7f9fc;
+        --panel: #ffffff;
+        --rail: #eef2f7;
+        --inset: #f4f7fb;
+        --text-strong: #0f172a;
+        --text-default: #1e293b;
+        --text-muted: #64748b;
+        --border-subtle: #e2e8f0;
+        --identity: #2563eb;
+        --gp: #0ea5a4;
+        --mailbox: #7c3aed;
+        --telephony: #d97706;
+        --notification: #059669;
+        --error: #c24141;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 32%),
+          radial-gradient(circle at 85% 12%, rgba(14, 165, 164, 0.08), transparent 24%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 249, 252, 1)),
+          var(--canvas);
+        color: var(--text-default);
+        font:
+          14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      }
+      body[data-reduced-motion="true"] * {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+      button,
+      select {
+        min-height: 44px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 14px;
+        background: var(--panel);
+        color: var(--text-default);
+        padding: 0 14px;
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+        transition:
+          transform 120ms ease,
+          background-color 120ms ease,
+          border-color 120ms ease;
+      }
+      button:hover,
+      .chip-button:hover,
+      .topology-node:hover,
+      .seed-card:hover,
+      .timeline-event:hover,
+      tr[tabindex="0"]:hover {
+        transform: translateY(-1px);
+      }
+      button:focus-visible,
+      select:focus-visible,
+      .topology-node:focus-visible,
+      .seed-card:focus-visible,
+      .timeline-event:focus-visible,
+      tr[tabindex="0"]:focus-visible {
+        outline: 2px solid var(--identity);
+        outline-offset: 2px;
+      }
+      .shell {
+        max-width: 1580px;
+        margin: 0 auto;
+        padding: 18px 18px 28px;
+      }
+      .masthead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        min-height: 76px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 14px 18px;
+        border: 1px solid rgba(226, 232, 240, 0.92);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 22px 50px rgba(15, 23, 42, 0.08);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .mark {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+        color: white;
+        background: linear-gradient(135deg, var(--identity), var(--mailbox));
+      }
+      .eyebrow,
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 28px;
+        border-radius: 999px;
+        padding: 0 12px;
+        font-size: 12px;
+      }
+      .eyebrow {
+        background: rgba(37, 99, 235, 0.08);
+        color: var(--identity);
+      }
+      .badge {
+        background: var(--rail);
+        color: var(--text-muted);
+      }
+      .metrics,
+      .masthead-actions,
+      .filter-stack,
+      .inspector-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .metric {
+        min-width: 122px;
+        padding: 10px 12px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 18px;
+        background: var(--panel);
+      }
+      .metric strong {
+        display: block;
+        color: var(--text-strong);
+        font-size: 18px;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 332px minmax(0, 1fr) 420px;
+        gap: 18px;
+        margin-top: 18px;
+      }
+      .left-rail,
+      .panel,
+      .inspector {
+        border: 1px solid var(--border-subtle);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.06);
+      }
+      .left-rail,
+      .panel,
+      .inspector {
+        padding: 18px;
+      }
+      .left-rail {
+        background: linear-gradient(180deg, rgba(238, 242, 247, 0.92), rgba(255, 255, 255, 0.98));
+      }
+      .panel + .panel {
+        margin-top: 18px;
+      }
+      .canvas-stack {
+        min-width: 0;
+      }
+      .inspector {
+        position: sticky;
+        top: 92px;
+        align-self: start;
+      }
+      .panel-header,
+      .rail-section {
+        display: grid;
+        gap: 10px;
+      }
+      .topology-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        min-height: 320px;
+        margin-top: 14px;
+      }
+      .topology-node {
+        min-height: 112px;
+        padding: 14px;
+        border-radius: 20px;
+        border: 1px solid var(--border-subtle);
+        background: var(--inset);
+        display: grid;
+        gap: 8px;
+        transition:
+          transform 120ms ease,
+          border-color 120ms ease,
+          box-shadow 120ms ease;
+      }
+      .topology-node[data-selected="true"],
+      .seed-card[data-selected="true"],
+      .timeline-event[data-selected="true"],
+      tr[data-selected="true"] {
+        border-color: var(--identity);
+        box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.24);
+        background: rgba(37, 99, 235, 0.04);
+      }
+      .seed-strip {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+        margin-top: 14px;
+      }
+      .seed-card {
+        min-height: 128px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        background: var(--panel);
+        padding: 14px;
+        display: grid;
+        gap: 8px;
+        transition:
+          transform 120ms ease,
+          border-color 120ms ease,
+          background-color 180ms ease;
+      }
+      .timeline {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+        min-height: 320px;
+      }
+      .timeline-event {
+        display: grid;
+        gap: 6px;
+        padding: 14px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        background: var(--inset);
+        transition:
+          transform 120ms ease,
+          border-color 120ms ease,
+          background-color 180ms ease;
+      }
+      .lower-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        margin-top: 18px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+      }
+      th,
+      td {
+        padding: 12px 10px;
+        border-top: 1px solid var(--border-subtle);
+        text-align: left;
+        vertical-align: top;
+      }
+      thead th {
+        border-top: none;
+        color: var(--text-muted);
+        font-size: 12px;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+      tr[tabindex="0"] {
+        transition:
+          background-color 180ms ease,
+          border-color 180ms ease;
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip-button {
+        min-height: 36px;
+        border-radius: 999px;
+        border: 1px solid var(--border-subtle);
+        background: var(--panel);
+        padding: 0 12px;
+        transition:
+          transform 120ms ease,
+          background-color 120ms ease;
+      }
+      .chip-button[data-selected="true"] {
+        background: rgba(37, 99, 235, 0.08);
+        border-color: rgba(37, 99, 235, 0.24);
+        color: var(--identity);
+      }
+      .empty-state {
+        padding: 24px;
+        border: 1px dashed var(--border-subtle);
+        border-radius: 18px;
+        color: var(--text-muted);
+        text-align: center;
+      }
+      .inspector-section + .inspector-section {
+        margin-top: 18px;
+      }
+      .accent-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        display: inline-block;
+      }
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: var(--inset);
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+      .stack-note {
+        color: var(--text-muted);
+      }
+      @media (max-width: 1360px) {
+        .layout {
+          grid-template-columns: 300px minmax(0, 1fr);
+        }
+        .inspector {
+          grid-column: 1 / -1;
+          position: static;
+        }
+      }
+      @media (max-width: 980px) {
+        .masthead {
+          align-items: start;
+          flex-direction: column;
+        }
+        .layout,
+        .lower-grid,
+        .topology-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell" data-testid="control-deck-shell">
+      <header class="masthead">
+        <div class="brand">
+          <div class="mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" width="28" height="28" fill="none">
+              <path d="M12 14h12c6 0 10 3.4 10 8.2 0 3.4-2 5.9-5.4 7 4 1 6.4 3.9 6.4 7.7 0 5.7-4.6 9.1-11.6 9.1H12V14Zm10.4 13.6c3 0 4.7-1.3 4.7-3.6 0-2.2-1.7-3.5-4.7-3.5H18v7.1h4.4Zm1.1 13c3.4 0 5.2-1.4 5.2-4 0-2.5-1.8-4-5.2-4H18v8h5.5Z" fill="white"/>
+            </svg>
+          </div>
+          <div>
+            <div class="eyebrow">Vecells SB</div>
+            <h1 style="margin: 6px 0 0; color: var(--text-strong)">Simulator Backplane Control Deck</h1>
+            <div class="stack-note">Premium integration console for auth, booking, transport, telephony, and notification backplanes.</div>
+          </div>
+        </div>
+        <div class="metrics">
+          <div class="metric" data-testid="metric-simulator-health">
+            <span class="stack-note">Simulator health</span>
+            <strong id="metric-health">0</strong>
+          </div>
+          <div class="metric" data-testid="metric-seeded-scenarios">
+            <span class="stack-note">Seeded scenarios</span>
+            <strong id="metric-seeds">0</strong>
+          </div>
+          <div class="metric" data-testid="metric-replay-injections">
+            <span class="stack-note">Replay injections</span>
+            <strong id="metric-replay">0</strong>
+          </div>
+          <div class="metric" data-testid="metric-blocked-flows">
+            <span class="stack-note">Blocked flows</span>
+            <strong id="metric-blocked">0</strong>
+          </div>
+        </div>
+        <div class="masthead-actions">
+          <button data-testid="start-all-button" id="start-all-button">Start all</button>
+          <button data-testid="stop-all-button" id="stop-all-button">Stop all</button>
+          <button data-testid="reset-all-button" id="reset-all-button">Reset</button>
+          <button data-testid="reseed-button" id="reseed-button">Reseed selected</button>
+        </div>
+      </header>
+
+      <section class="layout">
+        <aside class="left-rail" aria-label="Control filters">
+          <section class="rail-section">
+            <div class="eyebrow">Filters</div>
+            <label for="family-filter">Simulator family</label>
+            <select id="family-filter" data-testid="family-filter"></select>
+            <label for="scenario-filter">Scenario family</label>
+            <select id="scenario-filter" data-testid="scenario-filter"></select>
+            <label for="replay-filter">Replay mode</label>
+            <select id="replay-filter" data-testid="replay-filter"></select>
+            <label for="failure-filter">Failure mode</label>
+            <select id="failure-filter" data-testid="failure-filter"></select>
+            <div class="filter-stack">
+              <button data-testid="apply-failure-mode-button" id="apply-failure-mode-button">Apply to selected simulator</button>
+              <button data-testid="start-family-button" id="start-family-button">Start selected</button>
+              <button data-testid="stop-family-button" id="stop-family-button">Stop selected</button>
+            </div>
+          </section>
+
+          <section class="rail-section" style="margin-top: 18px">
+            <div class="eyebrow">Failure toggles</div>
+            <div class="chip-row" id="failure-chip-row" data-testid="failure-chip-row"></div>
+          </section>
+        </aside>
+
+        <section class="canvas-stack">
+          <section class="panel">
+            <div class="panel-header">
+              <div class="eyebrow">Service topology</div>
+              <h2 style="margin: 0; color: var(--text-strong)">One runtime, five simulator families, four core platform surfaces</h2>
+              <div class="stack-note">Topology selection syncs the seed strip, timeline, tables, and inspector.</div>
+            </div>
+            <div class="topology-grid" data-testid="topology-diagram" id="topology-diagram"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div class="eyebrow">Scenario seed strip</div>
+              <h2 style="margin: 0; color: var(--text-strong)">Deterministic cross-simulator rehearsal packs</h2>
+            </div>
+            <div class="seed-strip" data-testid="seed-strip" id="seed-strip"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div class="eyebrow">Event timeline</div>
+              <h2 style="margin: 0; color: var(--text-strong)">Delivery, callback, and replay events</h2>
+            </div>
+            <div class="timeline" data-testid="event-timeline" id="event-timeline"></div>
+          </section>
+        </section>
+
+        <aside class="inspector" data-testid="inspector" id="inspector" aria-live="polite"></aside>
+      </section>
+
+      <section class="lower-grid">
+        <article class="panel">
+          <div class="panel-header">
+            <div class="eyebrow">Simulator state</div>
+            <h2 style="margin: 0; color: var(--text-strong)">Family state table</h2>
+          </div>
+          <table data-testid="simulator-table">
+            <thead>
+              <tr>
+                <th>Family</th>
+                <th>Status</th>
+                <th>Failure mode</th>
+                <th>Replay</th>
+                <th>Blocked</th>
+              </tr>
+            </thead>
+            <tbody id="simulator-table-body"></tbody>
+          </table>
+        </article>
+
+        <article class="panel">
+          <div class="panel-header">
+            <div class="eyebrow">Scenario and event parity</div>
+            <h2 style="margin: 0; color: var(--text-strong)">Scenario / event table</h2>
+          </div>
+          <table data-testid="scenario-table">
+            <thead>
+              <tr>
+                <th>Seed</th>
+                <th>Replay</th>
+                <th>Failure</th>
+                <th>Latest event</th>
+              </tr>
+            </thead>
+            <tbody id="scenario-table-body"></tbody>
+          </table>
+        </article>
+      </section>
+    </main>
+
+    <script type="module">
+      const PATHS = {
+        manifest: "../../data/analysis/simulator_contract_manifest.json",
+        casebook: "../../data/analysis/provider_behavior_casebook.json",
+        checklist: "../../data/analysis/mock_to_live_cutover_checklist.csv",
+      };
+      const CORE_SURFACES = [
+        { id: "svc_api_gateway", label: "API gateway" },
+        { id: "svc_command_api", label: "Command API" },
+        { id: "svc_projection_worker", label: "Projection worker" },
+        { id: "svc_notification_worker", label: "Notification worker" },
+      ];
+      const state = {
+        manifest: null,
+        casebook: null,
+        checklistRows: [],
+        deck: null,
+        selectedFamily: "nhs_login",
+        selectedScenarioSeed: "seed_web_auth_uplift",
+        selectedEventId: null,
+        filters: {
+          family: "all",
+          scenario: "all",
+          replay: "all",
+          failure: "all",
+        },
+      };
+
+      const elements = {
+        familyFilter: document.querySelector("[data-testid='family-filter']"),
+        scenarioFilter: document.querySelector("[data-testid='scenario-filter']"),
+        replayFilter: document.querySelector("[data-testid='replay-filter']"),
+        failureFilter: document.querySelector("[data-testid='failure-filter']"),
+        failureChipRow: document.querySelector("[data-testid='failure-chip-row']"),
+        topology: document.querySelector("[data-testid='topology-diagram']"),
+        seedStrip: document.querySelector("[data-testid='seed-strip']"),
+        timeline: document.querySelector("[data-testid='event-timeline']"),
+        inspector: document.querySelector("[data-testid='inspector']"),
+        simulatorTableBody: document.querySelector("#simulator-table-body"),
+        scenarioTableBody: document.querySelector("#scenario-table-body"),
+        metricHealth: document.querySelector("#metric-health"),
+        metricSeeds: document.querySelector("#metric-seeds"),
+        metricReplay: document.querySelector("#metric-replay"),
+        metricBlocked: document.querySelector("#metric-blocked"),
+      };
+
+      function apiBaseUrl() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get("apiBaseUrl") || "http://127.0.0.1:7104";
+      }
+
+      function parseCsv(text) {
+        const rows = [];
+        let field = "";
+        let row = [];
+        let inQuotes = false;
+        for (let index = 0; index < text.length; index += 1) {
+          const character = text[index];
+          const nextCharacter = text[index + 1];
+          if (character === "\"") {
+            if (inQuotes && nextCharacter === "\"") {
+              field += "\"";
+              index += 1;
+            } else {
+              inQuotes = !inQuotes;
+            }
+            continue;
+          }
+          if (character === "," && !inQuotes) {
+            row.push(field);
+            field = "";
+            continue;
+          }
+          if ((character === "\n" || character === "\r") && !inQuotes) {
+            if (character === "\r" && nextCharacter === "\n") {
+              index += 1;
+            }
+            if (field.length > 0 || row.length > 0) {
+              row.push(field);
+              rows.push(row);
+              row = [];
+              field = "";
+            }
+            continue;
+          }
+          field += character;
+        }
+        if (field.length > 0 || row.length > 0) {
+          row.push(field);
+          rows.push(row);
+        }
+        const [header, ...body] = rows;
+        return body.map((values) =>
+          Object.fromEntries(header.map((column, index) => [column, values[index] || ""])),
+        );
+      }
+
+      async function fetchJson(url, options) {
+        const response = await fetch(url, options);
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || payload.message || "Request failed");
+        }
+        return payload;
+      }
+
+      async function fetchCsv(url) {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Failed to load ${url}`);
+        }
+        return parseCsv(await response.text());
+      }
+
+      function syncReducedMotion() {
+        const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        document.body.setAttribute("data-reduced-motion", reduced ? "true" : "false");
+      }
+
+      function familyLookup() {
+        return Object.fromEntries(state.deck.families.map((row) => [row.family, row]));
+      }
+
+      function scenarioLookup() {
+        return Object.fromEntries(state.manifest.scenario_seeds.map((row) => [row.seed_id, row]));
+      }
+
+      function currentFamilyRows() {
+        return state.deck.families.filter((row) => {
+          if (state.filters.family !== "all" && row.family !== state.filters.family) {
+            return false;
+          }
+          if (state.filters.failure !== "all" && row.failureMode !== state.filters.failure) {
+            return false;
+          }
+          return true;
+        });
+      }
+
+      function currentScenarioRows() {
+        return state.manifest.scenario_seeds.filter((row) => {
+          if (state.filters.family !== "all" && row.family !== state.filters.family) {
+            return false;
+          }
+          if (state.filters.scenario !== "all" && row.seed_id !== state.filters.scenario) {
+            return false;
+          }
+          if (state.filters.replay !== "all" && row.replay_class !== state.filters.replay) {
+            return false;
+          }
+          if (state.filters.failure !== "all" && row.failure_mode !== state.filters.failure) {
+            return false;
+          }
+          return true;
+        });
+      }
+
+      function currentTimelineRows() {
+        return state.deck.timeline.filter((row) => {
+          if (state.selectedFamily && row.family !== state.selectedFamily) {
+            return false;
+          }
+          const selectedScenario = scenarioLookup()[state.selectedScenarioSeed];
+          if (selectedScenario && row.family !== selectedScenario.family) {
+            return false;
+          }
+          return true;
+        });
+      }
+
+      function cutoverRowsForFamily(family) {
+        return state.checklistRows.filter((row) => row.family === family);
+      }
+
+      async function refreshDeck() {
+        state.deck = await fetchJson(`${apiBaseUrl()}/api/control/deck`);
+        const familyRows = currentFamilyRows();
+        if (!familyRows.find((row) => row.family === state.selectedFamily)) {
+          state.selectedFamily = familyRows[0]?.family || "nhs_login";
+        }
+        const scenarioRows = currentScenarioRows();
+        if (!scenarioRows.find((row) => row.seed_id === state.selectedScenarioSeed)) {
+          state.selectedScenarioSeed = scenarioRows[0]?.seed_id || state.manifest.scenario_seeds[0]?.seed_id;
+        }
+        const timelineRows = currentTimelineRows();
+        if (!timelineRows.find((row) => row.eventId === state.selectedEventId)) {
+          state.selectedEventId = timelineRows[0]?.eventId || null;
+        }
+        render();
+      }
+
+      function renderFilters() {
+        const familyOptions = [
+          ["all", "All families"],
+          ...state.manifest.families.map((row) => [row.family, row.label]),
+        ];
+        const scenarioOptions = [
+          ["all", "All scenario seeds"],
+          ...state.manifest.scenario_seeds.map((row) => [row.seed_id, row.label]),
+        ];
+        const replayOptions = [
+          ["all", "All replay modes"],
+          ...new Set(state.manifest.scenario_seeds.map((row) => row.replay_class)),
+        ].map((value) => [value, value]);
+        const failureOptions = [
+          ["all", "All failure modes"],
+          ...Array.from(new Set(state.manifest.scenario_seeds.map((row) => row.failure_mode))).map(
+            (value) => [value, value],
+          ),
+        ];
+
+        const makeOptions = (options, currentValue) =>
+          options
+            .map(
+              ([value, label]) =>
+                `<option value="${value}" ${value === currentValue ? "selected" : ""}>${label}</option>`,
+            )
+            .join("");
+
+        elements.familyFilter.innerHTML = makeOptions(familyOptions, state.filters.family);
+        elements.scenarioFilter.innerHTML = makeOptions(scenarioOptions, state.filters.scenario);
+        elements.replayFilter.innerHTML = makeOptions(replayOptions, state.filters.replay);
+        elements.failureFilter.innerHTML = makeOptions(failureOptions, state.filters.failure);
+        elements.failureChipRow.innerHTML = failureOptions
+          .filter(([value]) => value !== "all")
+          .map(
+            ([value]) =>
+              `<button class="chip-button" data-testid="failure-chip-${value}" data-value="${value}" data-selected="${state.filters.failure === value ? "true" : "false"}">${value}</button>`,
+          )
+          .join("");
+      }
+
+      function renderMetrics() {
+        elements.metricHealth.textContent = String(state.deck.summary.simulatorHealth);
+        elements.metricSeeds.textContent = String(state.deck.summary.seededScenarios);
+        elements.metricReplay.textContent = String(state.deck.summary.replayInjections);
+        elements.metricBlocked.textContent = String(state.deck.summary.blockedFlows);
+      }
+
+      function renderTopology() {
+        const families = currentFamilyRows();
+        const familyCards = families
+          .map((row) => {
+            const manifestRow = state.manifest.families.find((item) => item.family === row.family);
+            return `
+              <button
+                class="topology-node"
+                style="border-left: 4px solid ${row.accent}"
+                data-testid="topology-node-${row.family}"
+                data-family="${row.family}"
+                data-selected="${state.selectedFamily === row.family ? "true" : "false"}"
+              >
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px">
+                  <strong style="color:var(--text-strong)">${row.label}</strong>
+                  <span class="status-pill">${row.status}</span>
+                </div>
+                <div class="mono">${manifestRow.adapter_contract_profile_ref}</div>
+                <div>${manifestRow.route_family_refs.join(", ")}</div>
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px">
+                  <span class="badge">replay ${row.replayCount}</span>
+                  <span class="badge">blocked ${row.blockedFlows}</span>
+                </div>
+              </button>
+            `;
+          })
+          .join("");
+        const surfaceCards = CORE_SURFACES.map(
+          (surface) => `
+            <div class="topology-node" style="border-style:dashed" data-testid="core-surface-${surface.id}">
+              <div class="eyebrow">Core surface</div>
+              <strong style="color:var(--text-strong)">${surface.label}</strong>
+              <div class="stack-note">Receives adapter receipts, replay fences, or downstream truth.</div>
+            </div>
+          `,
+        ).join("");
+        elements.topology.innerHTML = `${familyCards}${surfaceCards}`;
+      }
+
+      function renderSeedStrip() {
+        const rows = currentScenarioRows();
+        if (!rows.length) {
+          elements.seedStrip.innerHTML = `<div class="empty-state">No scenario seeds match the current filters.</div>`;
+          return;
+        }
+        elements.seedStrip.innerHTML = rows
+          .map(
+            (row) => `
+              <button
+                class="seed-card"
+                data-testid="seed-card-${row.seed_id}"
+                data-seed-id="${row.seed_id}"
+                data-selected="${state.selectedScenarioSeed === row.seed_id ? "true" : "false"}"
+              >
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px">
+                  <strong style="color:var(--text-strong)">${row.label}</strong>
+                  <span class="badge">${row.failure_mode}</span>
+                </div>
+                <div>${row.route_family_refs.join(", ")}</div>
+                <div class="mono">${row.replay_class}</div>
+              </button>
+            `,
+          )
+          .join("");
+      }
+
+      function renderTimeline() {
+        const rows = currentTimelineRows();
+        if (!rows.length) {
+          elements.timeline.innerHTML = `<div class="empty-state">No timeline events are visible for the current selection.</div>`;
+          return;
+        }
+        elements.timeline.innerHTML = rows
+          .map(
+            (row) => `
+              <button
+                class="timeline-event"
+                data-testid="timeline-event-${row.eventId}"
+                data-event-id="${row.eventId}"
+                data-selected="${state.selectedEventId === row.eventId ? "true" : "false"}"
+              >
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px">
+                  <strong style="color:var(--text-strong)">${row.label}</strong>
+                  <span class="badge">${row.at.slice(11, 16)}</span>
+                </div>
+                <div>${row.detail}</div>
+                <div class="mono">${row.correlationKey}</div>
+              </button>
+            `,
+          )
+          .join("");
+      }
+
+      function renderSimulatorTable() {
+        const rows = currentFamilyRows();
+        elements.simulatorTableBody.innerHTML = rows
+          .map(
+            (row, index) => `
+              <tr
+                tabindex="0"
+                data-testid="simulator-row-${row.family}"
+                data-family="${row.family}"
+                data-selected="${state.selectedFamily === row.family ? "true" : "false"}"
+                aria-rowindex="${index + 1}"
+              >
+                <td>
+                  <div style="display:flex; align-items:center; gap:8px">
+                    <span class="accent-dot" style="background:${row.accent}"></span>
+                    <strong>${row.label}</strong>
+                  </div>
+                </td>
+                <td>${row.status}</td>
+                <td>${row.failureMode}</td>
+                <td>${row.replayCount}</td>
+                <td>${row.blockedFlows}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function renderScenarioTable() {
+        const rows = currentScenarioRows();
+        const timelineRows = Object.fromEntries(state.deck.timeline.map((row) => [row.family, row.label]));
+        elements.scenarioTableBody.innerHTML = rows
+          .map(
+            (row, index) => `
+              <tr
+                tabindex="0"
+                data-testid="scenario-row-${row.seed_id}"
+                data-seed-id="${row.seed_id}"
+                data-selected="${state.selectedScenarioSeed === row.seed_id ? "true" : "false"}"
+                aria-rowindex="${index + 1}"
+              >
+                <td>
+                  <strong>${row.label}</strong>
+                  <div class="mono">${row.seed_id}</div>
+                </td>
+                <td>${row.replay_class}</td>
+                <td>${row.failure_mode}</td>
+                <td>${timelineRows[row.family] || "none yet"}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function renderInspector() {
+        const family = familyLookup()[state.selectedFamily];
+        const manifestFamily = state.manifest.families.find((row) => row.family === state.selectedFamily);
+        const scenario = scenarioLookup()[state.selectedScenarioSeed];
+        const event = state.deck.timeline.find((row) => row.eventId === state.selectedEventId) || null;
+        const cutoverRows = cutoverRowsForFamily(state.selectedFamily);
+        const relatedFlows = state.casebook.cross_simulator_flows.filter((row) =>
+          row.families.includes(state.selectedFamily),
+        );
+
+        elements.inspector.innerHTML = `
+          <section class="inspector-section">
+            <div class="eyebrow">Selected simulator</div>
+            <h2 style="margin:10px 0 6px; color:var(--text-strong)">${family.label}</h2>
+            <div class="mono">${manifestFamily.adapter_contract_profile_ref}</div>
+            <div class="inspector-actions" style="margin-top:12px">
+              <span class="status-pill">${family.status}</span>
+              <span class="status-pill">failure ${family.failureMode}</span>
+            </div>
+            <div style="margin-top:12px">${manifestFamily.degraded_semantics.join(", ")}</div>
+          </section>
+
+          <section class="inspector-section">
+            <div class="eyebrow">Selected seed</div>
+            <strong style="display:block; margin-top:10px; color:var(--text-strong)">${scenario.label}</strong>
+            <div>${scenario.route_family_refs.join(", ")}</div>
+            <div class="mono" style="margin-top:6px">${scenario.replay_class}</div>
+          </section>
+
+          <section class="inspector-section">
+            <div class="eyebrow">Selected event</div>
+            ${
+              event
+                ? `
+              <strong style="display:block; margin-top:10px; color:var(--text-strong)">${event.label}</strong>
+              <div>${event.detail}</div>
+              <div class="mono" style="margin-top:6px">${event.correlationKey}</div>
+              <div class="stack-note" style="margin-top:4px">${event.at}</div>
+            `
+                : `<div class="stack-note" style="margin-top:10px">No timeline event selected.</div>`
+            }
+          </section>
+
+          <section class="inspector-section">
+            <div class="eyebrow">Cutover rows</div>
+            <div style="margin-top:10px; display:grid; gap:10px">
+              ${cutoverRows
+                .map(
+                  (row) => `
+                    <div style="padding:12px; border:1px solid var(--border-subtle); border-radius:16px; background:var(--inset)">
+                      <strong style="color:var(--text-strong)">${row.provider_swap_boundary}</strong>
+                      <div class="mono" style="margin-top:6px">${row.secrets_to_add}</div>
+                      <div style="margin-top:6px">${row.semantics_preserved}</div>
+                    </div>
+                  `,
+                )
+                .join("")}
+            </div>
+          </section>
+
+          <section class="inspector-section">
+            <div class="eyebrow">Related flows</div>
+            <div style="margin-top:10px; display:grid; gap:8px">
+              ${relatedFlows
+                .map(
+                  (row) => `
+                    <div style="padding:12px; border:1px solid var(--border-subtle); border-radius:16px">
+                      <strong style="color:var(--text-strong)">${row.flow_ref}</strong>
+                      <div class="mono" style="margin-top:4px">${row.path.join(" -> ")}</div>
+                    </div>
+                  `,
+                )
+                .join("")}
+            </div>
+          </section>
+        `;
+      }
+
+      function render() {
+        renderFilters();
+        renderMetrics();
+        renderTopology();
+        renderSeedStrip();
+        renderTimeline();
+        renderSimulatorTable();
+        renderScenarioTable();
+        renderInspector();
+        attachKeyboardNavigation();
+      }
+
+      function selectFamily(family) {
+        state.selectedFamily = family;
+        const firstScenario = currentScenarioRows().find((row) => row.family === family) || currentScenarioRows()[0];
+        if (firstScenario) {
+          state.selectedScenarioSeed = firstScenario.seed_id;
+        }
+        const firstEvent = currentTimelineRows()[0];
+        state.selectedEventId = firstEvent ? firstEvent.eventId : null;
+        render();
+      }
+
+      function selectScenario(seedId) {
+        const scenario = scenarioLookup()[seedId];
+        if (!scenario) {
+          return;
+        }
+        state.selectedScenarioSeed = seedId;
+        state.selectedFamily = scenario.family;
+        const firstEvent = currentTimelineRows()[0];
+        state.selectedEventId = firstEvent ? firstEvent.eventId : null;
+        render();
+      }
+
+      function selectEvent(eventId) {
+        const event = state.deck.timeline.find((row) => row.eventId === eventId);
+        if (!event) {
+          return;
+        }
+        state.selectedEventId = eventId;
+        state.selectedFamily = event.family;
+        render();
+      }
+
+      function bindRowArrowNavigation(selector, key, selectFn) {
+        document.querySelectorAll(selector).forEach((row, index, rows) => {
+          row.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+              const nextIndex =
+                event.key === "ArrowDown"
+                  ? Math.min(rows.length - 1, index + 1)
+                  : Math.max(0, index - 1);
+              const nextRow = rows[nextIndex];
+              nextRow.focus();
+              selectFn(nextRow.dataset[key]);
+            }
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              selectFn(row.dataset[key]);
+            }
+          });
+        });
+      }
+
+      function attachKeyboardNavigation() {
+        bindRowArrowNavigation("[data-testid^='simulator-row-']", "family", selectFamily);
+        bindRowArrowNavigation("[data-testid^='scenario-row-']", "seedId", selectScenario);
+      }
+
+      function bindInteractions() {
+        elements.familyFilter.addEventListener("change", (event) => {
+          state.filters.family = event.target.value;
+          refreshDeck();
+        });
+        elements.scenarioFilter.addEventListener("change", (event) => {
+          state.filters.scenario = event.target.value;
+          refreshDeck();
+        });
+        elements.replayFilter.addEventListener("change", (event) => {
+          state.filters.replay = event.target.value;
+          refreshDeck();
+        });
+        elements.failureFilter.addEventListener("change", (event) => {
+          state.filters.failure = event.target.value;
+          refreshDeck();
+        });
+
+        document.querySelector("#start-all-button").addEventListener("click", async () => {
+          await fetchJson(`${apiBaseUrl()}/api/control/start`, { method: "POST" });
+          await refreshDeck();
+        });
+        document.querySelector("#stop-all-button").addEventListener("click", async () => {
+          await fetchJson(`${apiBaseUrl()}/api/control/stop`, { method: "POST" });
+          await refreshDeck();
+        });
+        document.querySelector("#reset-all-button").addEventListener("click", async () => {
+          await fetchJson(`${apiBaseUrl()}/api/control/reset`, { method: "POST" });
+          await refreshDeck();
+        });
+        document.querySelector("#reseed-button").addEventListener("click", async () => {
+          await fetchJson(`${apiBaseUrl()}/api/control/reseed`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ seedId: state.selectedScenarioSeed }),
+          });
+          await refreshDeck();
+        });
+        document.querySelector("#start-family-button").addEventListener("click", async () => {
+          await fetchJson(`${apiBaseUrl()}/api/control/start`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ family: state.selectedFamily }),
+          });
+          await refreshDeck();
+        });
+        document.querySelector("#stop-family-button").addEventListener("click", async () => {
+          await fetchJson(`${apiBaseUrl()}/api/control/stop`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ family: state.selectedFamily }),
+          });
+          await refreshDeck();
+        });
+        document.querySelector("#apply-failure-mode-button").addEventListener("click", async () => {
+          const failureMode = elements.failureFilter.value === "all" ? "healthy" : elements.failureFilter.value;
+          await fetchJson(`${apiBaseUrl()}/api/control/failure-mode`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ family: state.selectedFamily, failureMode }),
+          });
+          await refreshDeck();
+        });
+
+        document.addEventListener("click", async (event) => {
+          const failureChip = event.target.closest("[data-value]");
+          if (failureChip) {
+            state.filters.failure = failureChip.dataset.value;
+            await refreshDeck();
+            return;
+          }
+          const topologyNode = event.target.closest("[data-family]");
+          if (topologyNode && topologyNode.dataset.testid !== undefined) {
+            selectFamily(topologyNode.dataset.family);
+            return;
+          }
+          const seedCard = event.target.closest("[data-seed-id]");
+          if (seedCard) {
+            selectScenario(seedCard.dataset.seedId);
+            return;
+          }
+          const timelineEvent = event.target.closest("[data-event-id]");
+          if (timelineEvent) {
+            selectEvent(timelineEvent.dataset.eventId);
+          }
+        });
+      }
+
+      async function initialise() {
+        syncReducedMotion();
+        [state.manifest, state.casebook, state.checklistRows] = await Promise.all([
+          fetchJson(PATHS.manifest),
+          fetchJson(PATHS.casebook),
+          fetchCsv(PATHS.checklist),
+        ]);
+        await refreshDeck();
+        bindInteractions();
+      }
+
+      window.addEventListener("resize", syncReducedMotion);
+      window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", syncReducedMotion);
+      initialise().catch((error) => {
+        elements.inspector.innerHTML = `<div class="empty-state">${error.message}</div>`;
+      });
+    </script>
+  </body>
+</html>

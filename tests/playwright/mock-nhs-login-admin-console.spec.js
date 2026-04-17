@@ -39,7 +39,9 @@ async function run() {
   await page.locator("[data-testid='client-registry-list']").waitFor();
   await page.locator("[data-testid='client-card-mc_recovery_bridge']").click();
   await page.locator("[data-testid='environment-option-env_sandpit_like']").click();
-  await page.locator("[data-testid='redirect-uri-input']").fill("https://sandpit-like.vecells.local/not-governed");
+  await page
+    .locator("[data-testid='redirect-uri-input']")
+    .fill("https://sandpit-like.vecells.local/not-governed");
   await page.locator("[data-testid='redirect-uri-add']").click();
   await page.locator("[data-testid='admin-message']").waitFor();
 

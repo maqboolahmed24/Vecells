@@ -1,4 +1,3 @@
-
             # 17 Parallel Track Plan
 
             The checklist contains these contiguous parallel windows:
@@ -19,6 +18,7 @@
             ## Track Matrix
 
             | Track | Phase | Scope | Milestone | Tasks | Class | Long Lead |
+
 | --- | --- | --- | --- | --- | --- | --- |
 | TRK_P0_BACKEND_DOMAIN_KERNEL | phase_0 | current | MS_P0_0B_DOMAIN_KERNEL | par_062 -> par_082 | backend | near_path |
 | TRK_P0_RUNTIME_RELEASE | phase_0 | current | MS_P0_0C_RUNTIME_PUBLICATION_SUBSTRATE | par_083 -> par_094 | runtime | near_path |

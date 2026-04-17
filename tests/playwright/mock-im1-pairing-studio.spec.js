@@ -45,14 +45,18 @@ async function run() {
 
   await page.locator("[data-testid='im1-shell']").waitFor();
   await page.locator("[data-testid='stage-button-supported_test_readiness_blocked']").click();
-  await page.locator("[data-testid='blocker-chip-LIVE_GATE_NAMED_SPONSOR_AND_COMMERCIAL_OWNER']").waitFor();
+  await page
+    .locator("[data-testid='blocker-chip-LIVE_GATE_NAMED_SPONSOR_AND_COMMERCIAL_OWNER']")
+    .waitFor();
 
   await completeStage(page, "product_profile_defined");
   await completeStage(page, "prerequisites_drafted");
   await completeStage(page, "stage_one_scal_stub_ready");
 
   await page.locator("[data-testid='stage-button-provider_supplier_targeting_ready']").click();
-  await page.locator("[data-testid='blocker-chip-LIVE_GATE_PROVIDER_ROSTER_REFRESH_REQUIRED']").waitFor();
+  await page
+    .locator("[data-testid='blocker-chip-LIVE_GATE_PROVIDER_ROSTER_REFRESH_REQUIRED']")
+    .waitFor();
 
   await page.locator("[data-testid='page-tab-SCAL_Artifact_Map']").click();
   await page.locator("[data-testid='artifact-card-ART_STAGE_ONE_SCAL_STUB']").waitFor();

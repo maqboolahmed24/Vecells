@@ -1,0 +1,126 @@
+{
+  "taskId": "seq_164",
+  "contractId": "PHASE1_INTEGRATED_ROUTE_AND_SETTLEMENT_BUNDLE_V1",
+  "routeFamilyRef": "rf_intake_self_service",
+  "shellContinuityKey": "patient.portal.requests",
+  "audienceSurfaceRuntimeBindingRef": "ASRB_050_PATIENT_PUBLIC_ENTRY_V1",
+  "routeIntentBindingRef": "RIB_164_INTEGRATED_INTAKE_V1",
+  "continuityLaw": {
+    "sameShellOnly": true,
+    "requestPublicIdDerivation": "sha256_20_hex_from_request_ref",
+    "landingStartsAuthoritativeDraft": true,
+    "submitRequiresCommandFollowingProjection": true,
+    "stalePromotedDraftReopensMutableEditing": false
+  },
+  "canonicalRequestTypes": ["Symptoms", "Meds", "Admin", "Results"],
+  "gatewayEndpoints": [
+    {
+      "method": "GET",
+      "path": "/phase1/intake/bundle",
+      "routeId": "phase1_intake_get_bundle",
+      "surfaceState": "contract_bundle",
+      "selectedAnchor": "request-start",
+      "writablePosture": "read_only"
+    },
+    {
+      "method": "POST",
+      "path": "/phase1/intake/start",
+      "routeId": "phase1_intake_start_draft",
+      "surfaceState": "draft_started",
+      "selectedAnchor": "request-start",
+      "writablePosture": "writable"
+    },
+    {
+      "method": "POST",
+      "path": "/phase1/intake/patch",
+      "routeId": "phase1_intake_patch_draft",
+      "surfaceState": "draft_autosave",
+      "selectedAnchor": "request-proof",
+      "writablePosture": "writable"
+    },
+    {
+      "method": "POST",
+      "path": "/phase1/intake/contact",
+      "routeId": "phase1_intake_capture_contact",
+      "surfaceState": "contact_preferences_captured",
+      "selectedAnchor": "contact-plan",
+      "writablePosture": "writable"
+    },
+    {
+      "method": "POST",
+      "path": "/phase1/intake/submit",
+      "routeId": "phase1_intake_submit_journey",
+      "surfaceState": "urgent_diversion_or_routine_receipt",
+      "selectedAnchor": "receipt-outcome",
+      "writablePosture": "read_only"
+    },
+    {
+      "method": "GET",
+      "path": "/phase1/intake/projection",
+      "routeId": "phase1_intake_get_projection",
+      "surfaceState": "authoritative_projection",
+      "selectedAnchor": "receipt-outcome",
+      "writablePosture": "read_only"
+    },
+    {
+      "method": "POST",
+      "path": "/phase1/intake/notifications/advance",
+      "routeId": "phase1_intake_advance_notification",
+      "surfaceState": "notification_truth_advanced",
+      "selectedAnchor": "receipt-outcome",
+      "writablePosture": "read_only"
+    }
+  ],
+  "settlementTupleRefs": [
+    "SubmissionEnvelope",
+    "DraftSaveSettlement",
+    "EvidenceCaptureBundle",
+    "EvidenceSnapshot",
+    "NormalizedSubmission",
+    "SafetyDecisionRecord",
+    "UrgentDiversionSettlement",
+    "PatientReceiptConsistencyEnvelope",
+    "Phase1TriageTask",
+    "Phase1TriageEtaForecast",
+    "Phase1ConfirmationCommunicationEnvelope",
+    "Phase1ConfirmationTransportSettlement",
+    "Phase1ConfirmationDeliveryEvidence"
+  ],
+  "submitDecisionClasses": [
+    "new_lineage",
+    "exact_replay",
+    "semantic_replay",
+    "collision_review",
+    "failed_safe"
+  ],
+  "notificationTruthLaw": {
+    "localAckQueuedIsPatientSafeReceipt": true,
+    "transportAcceptedIsNotDeliveryEvidence": true,
+    "deliveryEvidenceRequiredForDeliveredPosture": true,
+    "patientSurfaceStates": ["queued", "delivery_pending", "delivered", "recovery_required"]
+  },
+  "replayLaw": {
+    "exactReplayReturnsPriorSettlement": true,
+    "semanticReplayReturnsPriorSettlementOrReview": true,
+    "duplicateVisibleSuccessAllowed": false,
+    "duplicateNotificationAllowed": false
+  },
+  "receiptTrackingLaw": {
+    "sharedEnvelopeFamily": "PatientReceiptConsistencyEnvelope",
+    "etaMeaningStableAcrossReceiptAndTracking": true,
+    "minimalTrackingSurface": [
+      "current_state",
+      "next_step",
+      "compact_timeline",
+      "conservative_eta"
+    ]
+  },
+  "sourceFiles": [
+    "services/api-gateway/src/phase1-integrated-intake.ts",
+    "services/api-gateway/src/runtime.ts",
+    "services/api-gateway/src/service-definition.ts",
+    "apps/patient-web/src/phase1-integrated-intake-client.ts",
+    "apps/patient-web/src/patient-intake-mission-frame.tsx",
+    "services/notification-worker/src/confirmation-dispatch.ts"
+  ]
+}

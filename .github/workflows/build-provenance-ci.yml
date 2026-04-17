@@ -1,0 +1,46 @@
+name: build-provenance-ci
+
+on:
+  push:
+    branches:
+      - main
+      - codex/**
+  pull_request:
+
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    env:
+      CI: "1"
+      NX_TUI: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.23.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm ci:foundation-gates
+      - run: pnpm ci:rehearse-provenance -- --build-family bf_foundation_monorepo_full
+      - run: pnpm ci:verify-provenance
+      - run: pnpm ci:rehearse-runtime-publication
+      - run: pnpm ci:verify-runtime-publication
+      - run: pnpm ci:rehearse-runtime-topology-publication
+      - run: pnpm ci:verify-runtime-topology-publication
+      - run: pnpm ci:rehearse-dependency-degradation
+      - run: pnpm ci:verify-dependency-degradation
+      - run: pnpm ci:rehearse-release-watch
+      - run: pnpm ci:verify-release-watch
+      - run: pnpm ci:rehearse-migration-backfill
+      - run: pnpm ci:verify-migration-backfill
+      - run: pnpm ci:rehearse-resilience-baseline
+      - run: pnpm ci:verify-resilience-baseline
+      - run: pnpm ci:rehearse-canary-rollback
+      - run: pnpm ci:verify-canary-rollback
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-provenance-ci-preview
+          path: .artifacts/build-provenance/ci-preview

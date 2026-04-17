@@ -9,7 +9,10 @@ const LIVE_GATES = JSON.parse(
   fs.readFileSync(path.join(ROOT, "data", "analysis", "im1_live_gate_checklist.json"), "utf8"),
 );
 const PROVIDERS = JSON.parse(
-  fs.readFileSync(path.join(ROOT, "data", "analysis", "im1_provider_supplier_register.json"), "utf8"),
+  fs.readFileSync(
+    path.join(ROOT, "data", "analysis", "im1_provider_supplier_register.json"),
+    "utf8",
+  ),
 );
 
 // This harness stays data-driven: selectors come from im1_live_gate_checklist.json and
@@ -91,25 +94,25 @@ async function run() {
   await page.locator(selectorProfile.evidence_drawer).waitFor();
   await page.locator(selectorProfile.redaction_notice).waitFor();
 
-  await page.locator(selectorProfile.field_mvp_evidence_url).fill(
-    process.env.IM1_MVP_EVIDENCE_URL ?? "https://vecells.example/demo/im1",
-  );
-  await page.locator(selectorProfile.field_sponsor_name).fill(
-    process.env.IM1_SPONSOR_NAME ?? "dry-run sponsor",
-  );
-  await page.locator(selectorProfile.field_commercial_owner).fill(
-    process.env.IM1_COMMERCIAL_OWNER ?? "dry-run commercial owner",
-  );
-  await page.locator(selectorProfile.field_named_approver).fill(
-    process.env.IM1_NAMED_APPROVER ?? "dry-run approver",
-  );
-  await page.locator(selectorProfile.field_environment_target).fill(
-    process.env.IM1_ENVIRONMENT_TARGET ?? "supported_test",
-  );
+  await page
+    .locator(selectorProfile.field_mvp_evidence_url)
+    .fill(process.env.IM1_MVP_EVIDENCE_URL ?? "https://vecells.example/demo/im1");
+  await page
+    .locator(selectorProfile.field_sponsor_name)
+    .fill(process.env.IM1_SPONSOR_NAME ?? "dry-run sponsor");
+  await page
+    .locator(selectorProfile.field_commercial_owner)
+    .fill(process.env.IM1_COMMERCIAL_OWNER ?? "dry-run commercial owner");
+  await page
+    .locator(selectorProfile.field_named_approver)
+    .fill(process.env.IM1_NAMED_APPROVER ?? "dry-run approver");
+  await page
+    .locator(selectorProfile.field_environment_target)
+    .fill(process.env.IM1_ENVIRONMENT_TARGET ?? "supported_test");
   await page.locator(selectorProfile.refresh_provider_roster).click();
-  await page.locator(selectorProfile.field_allow_mutation).selectOption(
-    realMutationRequested ? "true" : "false",
-  );
+  await page
+    .locator(selectorProfile.field_allow_mutation)
+    .selectOption(realMutationRequested ? "true" : "false");
 
   if (!realMutationRequested) {
     const buttonDisabled = await page.locator(selectorProfile.final_submit).isDisabled();

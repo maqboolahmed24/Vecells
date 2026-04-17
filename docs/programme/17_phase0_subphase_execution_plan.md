@@ -1,4 +1,3 @@
-
             # 17 Phase0 Subphase Execution Plan
 
             The source algorithm states that Phase 0 runs as seven internal sub-phases with hard gates. The source explicitly names `0A`, `0B`, and `0G`; the intermediate `0C-0F` labels below are derived bridging names over the runtime, control-plane, verification, and shell obligations already present in the corpus.
@@ -6,6 +5,7 @@
             ## Phase 0A-0G Map
 
             | Subphase | Milestones | Tasks | Hard Gate | Notes |
+
 | --- | --- | --- | --- | --- |
 | 0A | MS_P0_0A_DELIVERY_SKELETON | seq_041 -> seq_045 | GATE_P0_0A_TO_0B | Source-named sub-phase. |
 | 0B | MS_P0_0B_DOMAIN_KERNEL | seq_046 -> par_082 | GATE_P0_0B_TO_0C | Source-named sub-phase. |

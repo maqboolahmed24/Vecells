@@ -1,0 +1,28 @@
+sequenceDiagram
+  autonumber
+  actor Shell as Shell Client
+  participant Gateway as API Gateway
+  participant Command as Command API
+  participant Bus as Outbox and Event Bus
+  participant Projection as Projection Worker
+  participant ReadModel as Projection Freshness Cache
+  participant Notification as Notification Worker
+  participant Provider as Provider Adapter Twin
+  participant Ops as Ops and Governance
+
+  Shell->>Gateway: HTTP request with route intent and correlation headers
+  Gateway->>Gateway: Auth edge, rate limit, release watch, route freeze awareness
+  Gateway->>Command: Mutation envelope or route-scoped handoff
+  Command->>Command: Validation, idempotency reservation, mutation gate, settlement seam
+  Command-->>Bus: command.accepted and command.outbox.pending
+  Bus-->>Projection: Event intake, rebuild request, or backfill request
+  Projection->>Projection: Freshness budget, stale-read markers, dead-letter seam
+  Projection-->>ReadModel: projection.updated with continuity and trust posture
+  Bus-->>Notification: notification.dispatch.requested or notification.resend.requested
+  Notification->>Notification: Provider boundary, secret refs, resend guard, settlement window
+  Notification->>Provider: Placeholder email or SMS adapter call
+  Provider-->>Notification: Delivery callback or permanent failure signal
+  Notification-->>Bus: notification.delivery.settled or notification.delivery.dead-lettered
+  Ops->>Gateway: /ready and /manifest probe
+  Ops->>Projection: /projections/freshness probe
+  Ops->>Notification: /dispatch/settlement probe

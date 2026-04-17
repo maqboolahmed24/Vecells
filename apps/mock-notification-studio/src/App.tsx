@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { VecellLogoLockup } from "@vecells/design-system";
 
 import { notificationStudioPack } from "./generated/notificationStudioPack";
 
@@ -438,16 +439,7 @@ function App() {
       <header className="top-banner">
         <section className="brand-row">
           <div className="brand-row">
-            <svg className="wordmark" viewBox="0 0 48 48" aria-hidden="true">
-              <defs>
-                <linearGradient id="quietSendGradient" x1="0%" x2="100%" y1="0%" y2="100%">
-                  <stop offset="0%" stopColor="#2457F5" />
-                  <stop offset="100%" stopColor="#C11574" />
-                </linearGradient>
-              </defs>
-              <rect width="48" height="48" rx="16" fill="url(#quietSendGradient)" />
-              <path d="M15 16h6.5l7 9 7-9H42L28 33h-8z" fill="white" />
-            </svg>
+            <VecellLogoLockup aria-hidden="true" className="wordmark" />
             <div className="brand-copy">
               <div className="ribbon-row">
                 <span className="mock-ribbon">MOCK_NOTIFICATION_STUDIO</span>

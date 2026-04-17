@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Audience Surface Parity Board</title>
+    <style>
+      :root {
+        --canvas: #F7F8FA;
+        --shell: #EEF2F6;
+        --panel: #FFFFFF;
+        --inset: #E8EEF3;
+        --border: rgba(36, 49, 61, 0.12);
+        --text-strong: #0F1720;
+        --text: #24313D;
+        --text-muted: #5E6B78;
+        --accent-live: #117A55;
+        --accent-diagnostic: #2F6FED;
+        --accent-recovery: #B7791F;
+        --accent-blocked: #B42318;
+        --accent-parity: #5B61F6;
+        --accent-partial: #7A5AF8;
+        --shadow: 0 20px 50px rgba(15, 23, 32, 0.08);
+        --radius-xl: 24px;
+        --radius-lg: 20px;
+        --radius-md: 16px;
+        --radius-sm: 12px;
+      }
+      * { box-sizing: border-box; }
+      html { background: var(--canvas); }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at top right, rgba(91, 97, 246, 0.08), transparent 28%),
+          radial-gradient(circle at left 18%, rgba(17, 122, 85, 0.08), transparent 24%),
+          linear-gradient(180deg, var(--canvas), #f1f4f8);
+        color: var(--text);
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+      }
+      body[data-reduced-motion="true"] * {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+      h1, h2, h3, .wordmark {
+        font-family: "Iowan Old Style", "Palatino Linotype", serif;
+        letter-spacing: 0.01em;
+      }
+      button, select { font: inherit; }
+      .page {
+        max-width: 1560px;
+        margin: 0 auto;
+        padding: 0 20px 40px;
+      }
+      .masthead {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        height: 72px;
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 220px));
+        gap: 14px;
+        align-items: center;
+        padding: 12px 0;
+        background: rgba(247, 248, 250, 0.94);
+        backdrop-filter: blur(16px);
+      }
+      .brand,
+      .summary-pill,
+      .panel,
+      .filter-rail,
+      .inspector {
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: var(--shadow);
+      }
+      .brand,
+      .summary-pill {
+        min-height: 48px;
+        border-radius: 999px;
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .brand {
+        justify-content: space-between;
+      }
+      .brand-copy {
+        display: grid;
+        gap: 2px;
+      }
+      .brand-mode {
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+      .brand-title {
+        font-size: 20px;
+        color: var(--text-strong);
+      }
+      .wordmark {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .tuple-mark {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        background: linear-gradient(135deg, rgba(91, 97, 246, 0.14), rgba(17, 122, 85, 0.12));
+      }
+      .summary-pill {
+        justify-content: space-between;
+      }
+      .summary-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-muted);
+      }
+      .summary-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-strong);
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr) 404px;
+        gap: 20px;
+        align-items: start;
+        margin-top: 20px;
+      }
+      .filter-rail,
+      .inspector {
+        position: sticky;
+        top: 92px;
+        z-index: 1;
+        border-radius: var(--radius-xl);
+        padding: 18px;
+      }
+      .filter-rail {
+        display: grid;
+        gap: 18px;
+      }
+      .filter-group {
+        display: grid;
+        gap: 8px;
+      }
+      .filter-group label {
+        font-size: 12px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+      select {
+        min-height: 44px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--panel);
+        color: var(--text);
+        padding: 0 12px;
+      }
+      .filter-note,
+      .inspector-note,
+      .caption,
+      .legend-copy {
+        margin: 0;
+        color: var(--text-muted);
+        line-height: 1.55;
+      }
+      .board-stack {
+        display: grid;
+        gap: 20px;
+        position: relative;
+        z-index: 2;
+      }
+      .panel {
+        border-radius: var(--radius-xl);
+        padding: 18px;
+      }
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: baseline;
+        margin-bottom: 14px;
+      }
+      .panel-header h2,
+      .inspector h2 {
+        margin: 0;
+        font-size: 20px;
+        color: var(--text-strong);
+      }
+      .panel-header span {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-muted);
+      }
+      .state-reference-table,
+      .heatmap-table,
+      .parity-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .state-reference-table th,
+      .state-reference-table td,
+      .heatmap-table th,
+      .heatmap-table td,
+      .parity-table th,
+      .parity-table td {
+        padding: 11px 12px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+      .state-reference-table th,
+      .heatmap-table th,
+      .parity-table th {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+        text-align: left;
+      }
+      .lattice-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 12px;
+      }
+      .lattice-node,
+      .heatmap-button,
+      .table-button {
+        width: 100%;
+        min-height: 96px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(238, 242, 246, 0.86));
+        color: inherit;
+        text-align: left;
+        padding: 14px;
+        cursor: pointer;
+        transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+      }
+      .heatmap-button,
+      .table-button {
+        min-height: 44px;
+        border-radius: var(--radius-sm);
+        padding: 0;
+        background: transparent;
+      }
+      .lattice-node:hover,
+      .lattice-node:focus-visible,
+      .heatmap-button:hover,
+      .heatmap-button:focus-visible,
+      .table-button:hover,
+      .table-button:focus-visible {
+        outline: none;
+        border-color: rgba(47, 111, 237, 0.44);
+        box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.12);
+        transform: translateY(-1px);
+      }
+      [data-selected="true"] {
+        border-color: rgba(47, 111, 237, 0.76) !important;
+        box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.14);
+      }
+      .node-topline {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: flex-start;
+      }
+      .node-title {
+        font-size: 16px;
+        color: var(--text-strong);
+      }
+      .node-meta,
+      .mono,
+      .inspector-list code,
+      .heatmap-subtext {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        color: var(--text-muted);
+        word-break: break-word;
+      }
+      .node-summary {
+        margin: 10px 0 0;
+        color: var(--text-muted);
+        line-height: 1.5;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        color: white;
+        white-space: nowrap;
+      }
+      .state-publishable_live { background: var(--accent-live); }
+      .state-recovery_only { background: var(--accent-recovery); }
+      .state-partial { background: var(--accent-parity); }
+      .state-blocked { background: var(--accent-blocked); }
+      .state-drifted { background: var(--accent-diagnostic); }
+      .truth-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 24px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: var(--shell);
+        color: var(--text);
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .heatmap-table tr,
+      .parity-table tr {
+        min-height: 44px;
+      }
+      .heatmap-cell {
+        display: grid;
+        gap: 4px;
+        padding: 11px 12px;
+      }
+      .ladder {
+        display: grid;
+        gap: 12px;
+      }
+      .ladder-step {
+        min-height: 120px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: linear-gradient(180deg, rgba(238, 242, 246, 0.94), rgba(255, 255, 255, 0.98));
+        padding: 14px;
+      }
+      .ladder-step-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: baseline;
+        margin-bottom: 8px;
+      }
+      .ladder-step h3 {
+        margin: 0;
+        font-size: 16px;
+        color: var(--text-strong);
+      }
+      .inspector {
+        display: grid;
+        gap: 16px;
+      }
+      .inspector-card {
+        min-height: 120px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(238,242,246,0.9));
+        padding: 14px;
+        scroll-margin-top: 110px;
+      }
+      .inspector-list {
+        display: grid;
+        gap: 8px;
+      }
+      .inspector-list div {
+        display: grid;
+        gap: 2px;
+      }
+      .inspector-key {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+      }
+      .ceiling-list {
+        display: grid;
+        gap: 8px;
+        padding-left: 18px;
+        margin: 0;
+      }
+      .legend-stack {
+        display: grid;
+        gap: 10px;
+      }
+      .legend-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+      @media (max-width: 1220px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        .filter-rail,
+        .inspector {
+          position: static;
+        }
+      }
+      @media (max-width: 980px) {
+        .masthead {
+          grid-template-columns: 1fr;
+          height: auto;
+          padding-bottom: 8px;
+        }
+        .page {
+          padding: 0 12px 24px;
+        }
+        .panel,
+        .filter-rail,
+        .inspector {
+          border-radius: 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script id="board-data" type="application/json">{"task_id":"seq_130","generated_at":"2026-04-14T05:56:54+00:00","visual_mode":"Audience_Surface_Parity_Board","summary":{"row_count":23,"inventoried_surface_count":22,"route_family_count":20,"publishable_live_count":0,"recovery_only_count":7,"partial_count":13,"blocked_count":3,"drifted_count":0,"calm_allowed_count":0,"calm_suppressed_count":21,"diagnostic_only_count":2,"writable_allowed_count":0,"writable_blocked_count":16,"writable_recovery_only_count":7},"stateCatalog":{"bindingState":{"publishable_live":"Exact runtime, parity, design, accessibility, and browser posture all align for calm live truth.","recovery_only":"The surface remains visible only for bounded same-shell recovery or guarded operational continuation.","partial":"The tuple exists and parity is exact, but read-only, guarded, or constrained posture still blocks calm live truth.","blocked":"The route or surface is explicitly unpublished, frozen, or missing required authority members.","drifted":"The tuple exists but current runtime/publication truth has drifted and must not present as live."},"calmTruthState":{"allowed":"Quiet, trustworthy, calmly live posture is legal for this row.","suppressed":"The surface may render summary or fallback posture only; calm truth is withheld.","diagnostic_only":"The row remains diagnostic and inspectable, but not calmly live or reassuring."},"writableTruthState":{"allowed":"Current tuple permits live writable action posture.","blocked":"Writable action posture is suppressed by current parity, design, accessibility, or freeze law.","recovery_only":"Only bounded recovery mutations are legal; ordinary writable posture stays closed."}},"filterOptions":{"audienceSurfaces":[{"value":"audsurf_clinical_workspace","label":"audsurf_clinical_workspace","count":4},{"value":"audsurf_governance_admin","label":"audsurf_governance_admin","count":1},{"value":"audsurf_hub_desk","label":"audsurf_hub_desk","count":2},{"value":"audsurf_operations_console","label":"audsurf_operations_console","count":2},{"value":"audsurf_patient_authenticated_portal","label":"audsurf_patient_authenticated_portal","count":5},{"value":"audsurf_patient_public_entry","label":"audsurf_patient_public_entry","count":2},{"value":"audsurf_patient_transaction_recovery","label":"audsurf_patient_transaction_recovery","count":2},{"value":"audsurf_pharmacy_console","label":"audsurf_pharmacy_console","count":1},{"value":"audsurf_support_workspace","label":"audsurf_support_workspace","count":3},{"value":"gap::rf_assistive_control_shell","label":"gap::rf_assistive_control_shell","count":1}],"shellTypes":[{"value":"assistive","label":"assistive","count":1},{"value":"governance","label":"governance","count":1},{"value":"hub","label":"hub","count":2},{"value":"operations","label":"operations","count":2},{"value":"patient","label":"patient","count":9},{"value":"pharmacy","label":"pharmacy","count":1},{"value":"staff","label":"staff","count":4},{"value":"support","label":"support","count":3}],"bindingStates":[{"value":"publishable_live","label":"publishable live","count":0},{"value":"recovery_only","label":"recovery only","count":7},{"value":"partial","label":"partial","count":13},{"value":"blocked","label":"blocked","count":3},{"value":"drifted","label":"drifted","count":0}],"routeFamilies":[{"value":"rf_assistive_control_shell","label":"Assistive evaluation, replay, monitoring, and release-control surfaces (derived)"},{"value":"rf_governance_shell","label":"/ops/governance/*, /ops/access/*, /ops/config/*, /ops/comms/*, /ops/release/*"},{"value":"rf_hub_case_management","label":"/hub/case/:hubCoordinationCaseId, /hub/alternatives/:offerSessionId, /hub/exceptions, /hub/audit/:hubCoordinationCaseId"},{"value":"rf_hub_queue","label":"/hub/queue"},{"value":"rf_intake_self_service","label":"Intake / self-service form (derived)"},{"value":"rf_intake_telephony_capture","label":"Intake / telephony capture (derived)"},{"value":"rf_operations_board","label":"/ops/overview, /ops/queues, /ops/capacity, /ops/dependencies, /ops/audit, /ops/assurance, /ops/incidents, /ops/resilience"},{"value":"rf_operations_drilldown","label":"/ops/:opsLens/investigations/:opsRouteIntentId, /interventions/:opsRouteIntentId, /compare/:opsRouteIntentId, /health/:opsRouteIntentId"},{"value":"rf_patient_appointments","label":"Appointments"},{"value":"rf_patient_embedded_channel","label":"Patient embedded channel parity"},{"value":"rf_patient_health_record","label":"Health record"},{"value":"rf_patient_home","label":"Home"},{"value":"rf_patient_messages","label":"Messages"},{"value":"rf_patient_requests","label":"Requests"},{"value":"rf_patient_secure_link_recovery","label":"Secure-link recovery and claim resume (derived)"},{"value":"rf_pharmacy_console","label":"/workspace/pharmacy, /workspace/pharmacy/:pharmacyCaseId, /validate, /inventory, /resolve, /handoff, /assurance"},{"value":"rf_staff_workspace","label":"/workspace, /workspace/queue/:queueKey, /workspace/task/:taskId"},{"value":"rf_staff_workspace","label":"/workspace, /workspace/queue/:queueKey, /workspace/task/:taskId"},{"value":"rf_staff_workspace_child","label":"/workspace/task/:taskId/more-info, /workspace/task/:taskId/decision, /workspace/approvals, /workspace/escalations, /workspace/changed, /workspace/search"},{"value":"rf_staff_workspace_child","label":"/workspace/task/:taskId/more-info, /workspace/task/:taskId/decision, /workspace/approvals, /workspace/escalations, /workspace/changed, /workspace/search"},{"value":"rf_support_replay_observe","label":"/ops/support/replay/:supportReplaySessionId and /ops/support/tickets/:supportTicketId/observe/:supportObserveSessionId"},{"value":"rf_support_ticket_workspace","label":"/ops/support, /ops/support/inbox/:viewKey, /ops/support/tickets/:supportTicketId, /conversation, /history, /knowledge, /actions/:actionKey, /handoff/:supportOwnershipTransferId"},{"value":"rf_support_ticket_workspace","label":"/ops/support, /ops/support/inbox/:viewKey, /ops/support/tickets/:supportTicketId, /conversation, /history, /knowledge, /actions/:actionKey, /handoff/:supportOwnershipTransferId"}]},"stateReferenceRows":[{"bindingState":"publishable_live","title":"Publishable live","summary":"Exact parity, calm truth, and writable action are all legal."},{"bindingState":"recovery_only","title":"Recovery only","summary":"Only bounded same-shell recovery or fallback action remains legal."},{"bindingState":"partial","title":"Partial","summary":"The tuple exists but current live truth is still guarded or read-only."},{"bindingState":"blocked","title":"Blocked","summary":"A hard publication or authority gap prevents live presentation."},{"bindingState":"drifted","title":"Drifted","summary":"The tuple exists but must not present as live until drift is cleared."}],"publicationCeilingReasons":["One or more frontend manifests remain constrained or recovery-only instead of publishable_live.","Accessibility coverage is still degraded for at least one audience surface.","Design contract lint verdicts are not fully passed across the bundle."],"surfaceAuthorityRows":[{"surfaceAuthorityVerdictId":"ASV_130_RF_ASSISTIVE_CONTROL_SHELL_V1","audienceSurfaceRuntimeBindingId":"gap::rf_assistive_control_shell","audienceSurface":"gap::rf_assistive_control_shell","audienceSurfaceLabel":"Standalone assistive control shell","inventorySurfaceRef":null,"inventorySurfaceLabel":"Standalone assistive control shell","routeFamilyRef":"rf_assistive_control_shell","routeFamilyLabel":"Assistive evaluation, replay, monitoring, and release-control surfaces (derived)","shellType":"assistive","shellSlug":null,"surfaceRouteContractRef":null,"frontendContractManifestRef":null,"runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":null,"designContractLintVerdictRef":null,"projectionContractVersionSetRef":null,"visibilityCoverageRefs":["AVC_054_ASSISTIVE_ADJUNCT_V1"],"bindingState":"blocked","calmTruthState":"suppressed","writableTruthState":"blocked","recoveryDispositionRefs":["RFD_130_ASSISTIVE_STANDALONE_PUBLICATION_BLOCK","RRD_130_ASSISTIVE_STANDALONE_RETURN_TO_OWNING_SHELL"],"routeFreezeDispositionRefs":["RFD_130_ASSISTIVE_STANDALONE_PUBLICATION_BLOCK"],"reasonRefs":["MFV_127_ASSISTIVE_STANDALONE_UNPUBLISHED","MFV_127_DESIGN_BUNDLE_MISSING","MFV_127_FRONTEND_MANIFEST_MISSING","MFV_127_PROJECTION_VERSION_SET_MISSING","MFV_127_RUNTIME_BINDING_MISSING","MFV_127_SHELL_CONTRACT_MISSING","MFV_127_SURFACE_ROUTE_CONTRACT_MISSING"],"notes":"Standalone assistive control work is explicitly blocked and must route back to the owning shell until a dedicated shell, manifest, and runtime binding are published. The derived standalone assistive shell has route inventory truth but no seeded shell, manifest, or runtime binding of its own.","tupleId":"FMTUP_127_RF_ASSISTIVE_CONTROL_SHELL_V1","publishedAudienceSurfaceRef":null,"surfacePublicationRef":null,"surfaceAuthorityRowRef":null,"governingBoundedContextRef":"assistive","canonicalObjectDescriptorRef":"AssistiveSurfaceBinding","continuityEvidenceContractRefs":[],"gatewaySurfaceRefs":["gws_assistive_sidecar"],"gatewaySurfacePrimaryRef":"gws_assistive_sidecar","browserVisible":true,"browserPostureState":"blocked","parityState":"missing","publicationState":"missing","runtimePublicationState":"published","routeExposureState":"missing","accessibilityCoverageState":"missing","designPublicationState":"missing","bindingDigestRef":"3a18c78fad4a2dea","sourceTaskRefs":["par_094","par_106","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["blueprint/forensic-audit-findings.md#Finding 91","blueprint/phase-8-the-assistive-layer.md#Control priorities","data/analysis/tenant_isolation_matrix.csv#TIM_ASSISTIVE_ADJUNCT","phase-0-the-foundation-protocol.md#1.1 PersistentShell","phase-8-the-assistive-layer.md#Control priorities","platform-runtime-and-release-blueprint.md#GatewayBffSurface","staff-workspace-interface-architecture.md#Assistive companion presentation profile"],"uiBadgeLabel":"blocked","reasonTitles":["The derived standalone assistive shell route family exists in the inventory but is not published through a shell, manifest, or runtime binding of its own.","No design contract publication bundle is currently linked to this tuple.","No frontend contract manifest currently publishes this route family.","No projection contract version set is currently linked to this tuple.","No audience surface runtime binding is published for this tuple.","No persistent shell contract is published for the shell family required by this tuple.","No audience surface route contract is published for this tuple."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_GOVERNANCE_SHELL_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_GOVERNANCE_ADMIN_V1","audienceSurface":"audsurf_governance_admin","audienceSurfaceLabel":"Governance and admin routes","inventorySurfaceRef":"surf_governance_shell","inventorySurfaceLabel":"Governance and Admin shell","routeFamilyRef":"rf_governance_shell","routeFamilyLabel":"/ops/governance/*, /ops/access/*, /ops/config/*, /ops/comms/*, /ops/release/*","shellType":"governance","shellSlug":"governance-console","surfaceRouteContractRef":"ASRC_050_GOVERNANCE_ADMIN_V1","frontendContractManifestRef":"FCM_050_GOVERNANCE_ADMIN_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::governance_admin::planned","designContractLintVerdictRef":"dclv::governance_admin::pending","projectionContractVersionSetRef":"PCVS_050_GOVERNANCE_ADMIN_V1","visibilityCoverageRefs":["AVC_054_GOVERNANCE_PLATFORM_V1"],"bindingState":"partial","calmTruthState":"suppressed","writableTruthState":"blocked","recoveryDispositionRefs":["RFD_050_GOVERNANCE_ADMIN_V1","RRD_GOVERNANCE_HANDOFF_ONLY","RRD_GOVERNANCE_READ_ONLY"],"routeFreezeDispositionRefs":["RFD_050_GOVERNANCE_ADMIN_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_READ_ONLY","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. The fused tuple is generated directly from the current inventory, gateway, frontend, design, runtime, and shell authority inputs.","tupleId":"FMTUP_127_SURF_GOVERNANCE_SHELL_V1","publishedAudienceSurfaceRef":"audsurf_governance_admin","surfacePublicationRef":"ASPR_050_GOVERNANCE_ADMIN_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_governance_admin","governingBoundedContextRef":"governance_admin","canonicalObjectDescriptorRef":"GovernanceContinuityFrame","continuityEvidenceContractRefs":["CRP_106_GOVERNANCE_V1","SAP_050_RF_GOVERNANCE_SHELL_V1","SCF_050_GOVERNANCE_ADMIN_V1","SHC_050_RF_GOVERNANCE_SHELL_V1"],"gatewaySurfaceRefs":["gws_governance_shell"],"gatewaySurfacePrimaryRef":"gws_governance_shell","browserVisible":true,"browserPostureState":"read_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"degraded","designPublicationState":"published","bindingDigestRef":"6658d0101b2d13c2","sourceTaskRefs":["par_094","par_106","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is read_only for Governance and admin routes.","Design lint verdict is dclv::governance_admin::pending.","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/forensic-audit-findings.md#Finding 95","blueprint/governance-admin-console-frontend-blueprint.md#Shell and route topology","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","data/analysis/gateway_bff_surfaces.json#gws_governance_shell","data/analysis/tenant_isolation_matrix.csv#TIM_GOVERNANCE_PLATFORM","governance-admin-console-frontend-blueprint.md#Primary governance personas","governance-admin-console-frontend-blueprint.md#Shell and route topology","platform-frontend-blueprint.md#Governance/Admin specialization","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md"],"uiBadgeLabel":"partial","reasonTitles":["Accessibility coverage is degraded, so the tuple remains bounded and guarded instead of exact.","The release parity row only permits read-only posture.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_HUB_CASE_MANAGEMENT_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_HUB_DESK_V1","audienceSurface":"audsurf_hub_desk","audienceSurfaceLabel":"Hub desk routes","inventorySurfaceRef":"surf_hub_case_management","inventorySurfaceLabel":"Hub case, alternatives, exception, and audit work","routeFamilyRef":"rf_hub_case_management","routeFamilyLabel":"/hub/case/:hubCoordinationCaseId, /hub/alternatives/:offerSessionId, /hub/exceptions, /hub/audit/:hubCoordinationCaseId","shellType":"hub","shellSlug":"hub-desk","surfaceRouteContractRef":"ASRC_050_HUB_DESK_V1","frontendContractManifestRef":"FCM_050_HUB_DESK_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::hub_desk::planned","designContractLintVerdictRef":"dclv::hub_desk::pending","projectionContractVersionSetRef":"PCVS_050_HUB_DESK_V1","visibilityCoverageRefs":["AVC_054_HUB_CROSS_ORG_V1"],"bindingState":"partial","calmTruthState":"suppressed","writableTruthState":"blocked","recoveryDispositionRefs":["RFD_050_HUB_DESK_V1","RRD_HUB_CASE_READ_ONLY","RRD_HUB_CASE_RECOVERY_ONLY","RRD_HUB_QUEUE_READ_ONLY","RRD_HUB_QUEUE_SUMMARY_ONLY"],"routeFreezeDispositionRefs":["RFD_050_HUB_DESK_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_READ_ONLY","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. The fused tuple is generated directly from the current inventory, gateway, frontend, design, runtime, and shell authority inputs.","tupleId":"FMTUP_127_SURF_HUB_CASE_MANAGEMENT_V1","publishedAudienceSurfaceRef":"audsurf_hub_desk","surfacePublicationRef":"ASPR_050_HUB_DESK_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_hub_desk","governingBoundedContextRef":"hub_coordination","canonicalObjectDescriptorRef":"HubCoordinationCase","continuityEvidenceContractRefs":["CRP_106_HUB_V1","SAP_050_RF_HUB_CASE_MANAGEMENT_V1","SAP_050_RF_HUB_QUEUE_V1","SCF_050_HUB_DESK_V1","SHC_050_RF_HUB_CASE_MANAGEMENT_V1","SHC_050_RF_HUB_QUEUE_V1"],"gatewaySurfaceRefs":["gws_hub_case_management"],"gatewaySurfacePrimaryRef":"gws_hub_case_management","browserVisible":true,"browserPostureState":"read_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"degraded","designPublicationState":"published","bindingDigestRef":"88c7fb388e40930a","sourceTaskRefs":["par_094","par_106","par_118","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is read_only for Hub desk routes.","Design lint verdict is dclv::hub_desk::pending.","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/forensic-audit-findings.md#Finding 114","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/phase-5-the-network-horizon.md#Frontend work","blueprint/phase-5-the-network-horizon.md#Hub shell-family ownership is explicit","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","data/analysis/gateway_bff_surfaces.json#gws_hub_case_management","data/analysis/gateway_bff_surfaces.json#gws_hub_queue","data/analysis/tenant_isolation_matrix.csv#TIM_HUB_CROSS_ORG","phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine","phase-5-the-network-horizon.md#Frontend work","phase-5-the-network-horizon.md#Hub shell-family ownership is explicit","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md"],"uiBadgeLabel":"partial","reasonTitles":["Accessibility coverage is degraded, so the tuple remains bounded and guarded instead of exact.","The release parity row only permits read-only posture.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_HUB_QUEUE_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_HUB_DESK_V1","audienceSurface":"audsurf_hub_desk","audienceSurfaceLabel":"Hub desk routes","inventorySurfaceRef":"surf_hub_queue","inventorySurfaceLabel":"Hub queue","routeFamilyRef":"rf_hub_queue","routeFamilyLabel":"/hub/queue","shellType":"hub","shellSlug":"hub-desk","surfaceRouteContractRef":"ASRC_050_HUB_DESK_V1","frontendContractManifestRef":"FCM_050_HUB_DESK_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::hub_desk::planned","designContractLintVerdictRef":"dclv::hub_desk::pending","projectionContractVersionSetRef":"PCVS_050_HUB_DESK_V1","visibilityCoverageRefs":["AVC_054_HUB_CROSS_ORG_V1"],"bindingState":"partial","calmTruthState":"suppressed","writableTruthState":"blocked","recoveryDispositionRefs":["RFD_050_HUB_DESK_V1","RRD_HUB_CASE_READ_ONLY","RRD_HUB_CASE_RECOVERY_ONLY","RRD_HUB_QUEUE_READ_ONLY","RRD_HUB_QUEUE_SUMMARY_ONLY"],"routeFreezeDispositionRefs":["RFD_050_HUB_DESK_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_READ_ONLY","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. The fused tuple is generated directly from the current inventory, gateway, frontend, design, runtime, and shell authority inputs.","tupleId":"FMTUP_127_SURF_HUB_QUEUE_V1","publishedAudienceSurfaceRef":"audsurf_hub_desk","surfacePublicationRef":"ASPR_050_HUB_DESK_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_hub_desk","governingBoundedContextRef":"hub_coordination","canonicalObjectDescriptorRef":"HubCoordinationCase","continuityEvidenceContractRefs":["CRP_106_HUB_V1","SAP_050_RF_HUB_CASE_MANAGEMENT_V1","SAP_050_RF_HUB_QUEUE_V1","SCF_050_HUB_DESK_V1","SHC_050_RF_HUB_CASE_MANAGEMENT_V1","SHC_050_RF_HUB_QUEUE_V1"],"gatewaySurfaceRefs":["gws_hub_queue"],"gatewaySurfacePrimaryRef":"gws_hub_queue","browserVisible":true,"browserPostureState":"read_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"degraded","designPublicationState":"published","bindingDigestRef":"c24d0b04b8c6c3b3","sourceTaskRefs":["par_094","par_106","par_118","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is read_only for Hub desk routes.","Design lint verdict is dclv::hub_desk::pending.","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/forensic-audit-findings.md#Finding 114","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/phase-5-the-network-horizon.md#Frontend work","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","data/analysis/gateway_bff_surfaces.json#gws_hub_case_management","data/analysis/gateway_bff_surfaces.json#gws_hub_queue","data/analysis/tenant_isolation_matrix.csv#TIM_HUB_CROSS_ORG","phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine","phase-5-the-network-horizon.md#Frontend work","phase-5-the-network-horizon.md#Hub shell-family ownership is explicit","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md"],"uiBadgeLabel":"partial","reasonTitles":["Accessibility coverage is degraded, so the tuple remains bounded and guarded instead of exact.","The release parity row only permits read-only posture.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_OPERATIONS_BOARD_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_OPERATIONS_CONSOLE_V1","audienceSurface":"audsurf_operations_console","audienceSurfaceLabel":"Operations console routes","inventorySurfaceRef":"surf_operations_board","inventorySurfaceLabel":"Operations board","routeFamilyRef":"rf_operations_board","routeFamilyLabel":"/ops/overview, /ops/queues, /ops/capacity, /ops/dependencies, /ops/audit, /ops/assurance, /ops/incidents, /ops/resilience","shellType":"operations","shellSlug":"ops-console","surfaceRouteContractRef":"ASRC_050_OPERATIONS_CONSOLE_V1","frontendContractManifestRef":"FCM_050_OPERATIONS_CONSOLE_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::operations_console::planned","designContractLintVerdictRef":"dclv::operations_console::pending","projectionContractVersionSetRef":"PCVS_050_OPERATIONS_CONSOLE_V1","visibilityCoverageRefs":["AVC_054_OPERATIONS_WATCH_V1"],"bindingState":"recovery_only","calmTruthState":"diagnostic_only","writableTruthState":"recovery_only","recoveryDispositionRefs":["RFD_050_OPERATIONS_CONSOLE_V1","RRD_OPERATIONS_BOARD_FROZEN","RRD_OPERATIONS_DIAGNOSTIC_ONLY","RRD_RESILIENCE_CONTROL_FROZEN"],"routeFreezeDispositionRefs":["RFD_050_OPERATIONS_CONSOLE_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_RECOVERY_ONLY","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. The fused tuple is generated directly from the current inventory, gateway, frontend, design, runtime, and shell authority inputs.","tupleId":"FMTUP_127_SURF_OPERATIONS_BOARD_V1","publishedAudienceSurfaceRef":"audsurf_operations_console","surfacePublicationRef":"ASPR_050_OPERATIONS_CONSOLE_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_operations_console","governingBoundedContextRef":"operations","canonicalObjectDescriptorRef":"OpsBoardStateSnapshot","continuityEvidenceContractRefs":["CRP_106_OPERATIONS_V1","SAP_050_RF_OPERATIONS_BOARD_V1","SAP_050_RF_OPERATIONS_DRILLDOWN_V1","SCF_050_OPERATIONS_CONSOLE_V1","SHC_050_RF_OPERATIONS_BOARD_V1","SHC_050_RF_OPERATIONS_DRILLDOWN_V1"],"gatewaySurfaceRefs":["gws_operations_board"],"gatewaySurfacePrimaryRef":"gws_operations_board","browserVisible":true,"browserPostureState":"recovery_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"degraded","designPublicationState":"published","bindingDigestRef":"5f1179eea08c036d","sourceTaskRefs":["par_094","par_106","par_117","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is recovery_only for Operations console routes.","Design lint verdict is dclv::operations_console::pending.","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/forensic-audit-findings.md#Finding 96","blueprint/operations-console-frontend-blueprint.md#Canonical route family","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","data/analysis/gateway_bff_surfaces.json#gws_operations_board","data/analysis/gateway_bff_surfaces.json#gws_operations_drilldown","data/analysis/tenant_isolation_matrix.csv#TIM_OPERATIONS_MULTI_TENANT","operations-console-frontend-blueprint.md#Calm board posture and briefing artifacts","operations-console-frontend-blueprint.md#Canonical route family","operations-console-frontend-blueprint.md#Restore reporting and board-frame discipline","platform-frontend-blueprint.md#Operations Console specialization","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md"],"uiBadgeLabel":"recovery only","reasonTitles":["Accessibility coverage is degraded, so the tuple remains bounded and guarded instead of exact.","The release parity row only permits recovery-only posture.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_OPERATIONS_DRILLDOWN_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_OPERATIONS_CONSOLE_V1","audienceSurface":"audsurf_operations_console","audienceSurfaceLabel":"Operations console routes","inventorySurfaceRef":"surf_operations_drilldown","inventorySurfaceLabel":"Operations investigation and intervention drill-down","routeFamilyRef":"rf_operations_drilldown","routeFamilyLabel":"/ops/:opsLens/investigations/:opsRouteIntentId, /interventions/:opsRouteIntentId, /compare/:opsRouteIntentId, /health/:opsRouteIntentId","shellType":"operations","shellSlug":"ops-console","surfaceRouteContractRef":"ASRC_050_OPERATIONS_CONSOLE_V1","frontendContractManifestRef":"FCM_050_OPERATIONS_CONSOLE_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::operations_console::planned","designContractLintVerdictRef":"dclv::operations_console::pending","projectionContractVersionSetRef":"PCVS_050_OPERATIONS_CONSOLE_V1","visibilityCoverageRefs":["AVC_054_OPERATIONS_WATCH_V1"],"bindingState":"recovery_only","calmTruthState":"diagnostic_only","writableTruthState":"recovery_only","recoveryDispositionRefs":["RFD_050_OPERATIONS_CONSOLE_V1","RRD_OPERATIONS_BOARD_FROZEN","RRD_OPERATIONS_DIAGNOSTIC_ONLY","RRD_RESILIENCE_CONTROL_FROZEN"],"routeFreezeDispositionRefs":["RFD_050_OPERATIONS_CONSOLE_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_RECOVERY_ONLY","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. The fused tuple is generated directly from the current inventory, gateway, frontend, design, runtime, and shell authority inputs.","tupleId":"FMTUP_127_SURF_OPERATIONS_DRILLDOWN_V1","publishedAudienceSurfaceRef":"audsurf_operations_console","surfacePublicationRef":"ASPR_050_OPERATIONS_CONSOLE_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_operations_console","governingBoundedContextRef":"operations","canonicalObjectDescriptorRef":"OpsRouteIntent","continuityEvidenceContractRefs":["CRP_106_OPERATIONS_V1","SAP_050_RF_OPERATIONS_BOARD_V1","SAP_050_RF_OPERATIONS_DRILLDOWN_V1","SCF_050_OPERATIONS_CONSOLE_V1","SHC_050_RF_OPERATIONS_BOARD_V1","SHC_050_RF_OPERATIONS_DRILLDOWN_V1"],"gatewaySurfaceRefs":["gws_operations_drilldown"],"gatewaySurfacePrimaryRef":"gws_operations_drilldown","browserVisible":true,"browserPostureState":"recovery_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"degraded","designPublicationState":"published","bindingDigestRef":"b73d21f3e9297ba8","sourceTaskRefs":["par_094","par_106","par_117","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is recovery_only for Operations console routes.","Design lint verdict is dclv::operations_console::pending.","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/forensic-audit-findings.md#Finding 96","blueprint/operations-console-frontend-blueprint.md#Canonical route family","blueprint/operations-console-frontend-blueprint.md#Restore reporting and board-frame discipline","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","data/analysis/gateway_bff_surfaces.json#gws_operations_board","data/analysis/gateway_bff_surfaces.json#gws_operations_drilldown","data/analysis/tenant_isolation_matrix.csv#TIM_OPERATIONS_MULTI_TENANT","operations-console-frontend-blueprint.md#Canonical route family","operations-console-frontend-blueprint.md#Restore reporting and board-frame discipline","platform-frontend-blueprint.md#Operations Console specialization","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md"],"uiBadgeLabel":"recovery only","reasonTitles":["Accessibility coverage is degraded, so the tuple remains bounded and guarded instead of exact.","The release parity row only permits recovery-only posture.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_PATIENT_INTAKE_WEB_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_PATIENT_PUBLIC_ENTRY_V1","audienceSurface":"audsurf_patient_public_entry","audienceSurfaceLabel":"Patient public entry","inventorySurfaceRef":"surf_patient_intake_web","inventorySurfaceLabel":"Patient intake entry","routeFamilyRef":"rf_intake_self_service","routeFamilyLabel":"Intake / self-service form (derived)","shellType":"patient","shellSlug":"patient-web","surfaceRouteContractRef":"ASRC_050_PATIENT_PUBLIC_ENTRY_V1","frontendContractManifestRef":"FCM_050_PATIENT_PUBLIC_ENTRY_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::patient_public_entry::planned","designContractLintVerdictRef":"dclv::patient_public_entry::pending","projectionContractVersionSetRef":"PCVS_050_PATIENT_PUBLIC_ENTRY_V1","visibilityCoverageRefs":["AVC_054_PATIENT_PUBLIC_ENTRY_V1"],"bindingState":"recovery_only","calmTruthState":"suppressed","writableTruthState":"recovery_only","recoveryDispositionRefs":["RFD_050_PATIENT_PUBLIC_ENTRY_V1","RRD_PATIENT_INTAKE_RECOVERY","RRD_PATIENT_PUBLIC_PLACEHOLDER","RRD_TELEPHONY_CAPTURE_RECOVERY"],"routeFreezeDispositionRefs":["RFD_050_PATIENT_PUBLIC_ENTRY_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_RECOVERY_ONLY","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. Shell residency remains on `patient-web` while publication authority resolves through `audsurf_patient_public_entry`.","tupleId":"FMTUP_127_SURF_PATIENT_INTAKE_WEB_V1","publishedAudienceSurfaceRef":"audsurf_patient_public_entry","surfacePublicationRef":"ASPR_050_PATIENT_PUBLIC_ENTRY_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_patient_public_entry","governingBoundedContextRef":"intake_safety","canonicalObjectDescriptorRef":"SubmissionEnvelope","continuityEvidenceContractRefs":["CRP_106_PATIENT_V1","SAP_050_RF_INTAKE_SELF_SERVICE_V1","SAP_050_RF_INTAKE_TELEPHONY_CAPTURE_V1","SCF_050_PATIENT_PUBLIC_ENTRY_V1","SHC_050_RF_INTAKE_SELF_SERVICE_V1","SHC_050_RF_INTAKE_TELEPHONY_CAPTURE_V1"],"gatewaySurfaceRefs":["gws_patient_intake_web"],"gatewaySurfacePrimaryRef":"gws_patient_intake_web","browserVisible":true,"browserPostureState":"recovery_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"degraded","designPublicationState":"published","bindingDigestRef":"f5458fc77abd3399","sourceTaskRefs":["par_094","par_106","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is recovery_only for Patient public entry.","Design lint verdict is dclv::patient_public_entry::pending.","blueprint-init.md#2. Core product surfaces","blueprint/blueprint-init.md#2. Core product surfaces","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/forensic-audit-findings.md#Finding 97","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/platform-frontend-blueprint.md#Browser boundary and BFF law","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","data/analysis/gateway_bff_surfaces.json#gws_patient_intake_phone","data/analysis/gateway_bff_surfaces.json#gws_patient_intake_web","data/analysis/tenant_isolation_matrix.csv#TIM_PUBLIC_PRE_IDENTITY","phase-0-the-foundation-protocol.md#0.2 Continuity key and shell law","phase-0-the-foundation-protocol.md#12.1 Mandatory audience tiers","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md"],"uiBadgeLabel":"recovery only","reasonTitles":["Accessibility coverage is degraded, so the tuple remains bounded and guarded instead of exact.","The release parity row only permits recovery-only posture.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_PATIENT_INTAKE_PHONE_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_PATIENT_PUBLIC_ENTRY_V1","audienceSurface":"audsurf_patient_public_entry","audienceSurfaceLabel":"Patient public entry","inventorySurfaceRef":"surf_patient_intake_phone","inventorySurfaceLabel":"Telephony / IVR intake capture","routeFamilyRef":"rf_intake_telephony_capture","routeFamilyLabel":"Intake / telephony capture (derived)","shellType":"patient","shellSlug":"patient-web","surfaceRouteContractRef":"ASRC_050_PATIENT_PUBLIC_ENTRY_V1","frontendContractManifestRef":"FCM_050_PATIENT_PUBLIC_ENTRY_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::patient_public_entry::planned","designContractLintVerdictRef":"dclv::patient_public_entry::pending","projectionContractVersionSetRef":"PCVS_050_PATIENT_PUBLIC_ENTRY_V1","visibilityCoverageRefs":["AVC_054_PATIENT_PUBLIC_ENTRY_V1"],"bindingState":"recovery_only","calmTruthState":"suppressed","writableTruthState":"recovery_only","recoveryDispositionRefs":["RFD_050_PATIENT_PUBLIC_ENTRY_V1","RRD_PATIENT_INTAKE_RECOVERY","RRD_PATIENT_PUBLIC_PLACEHOLDER","RRD_TELEPHONY_CAPTURE_RECOVERY"],"routeFreezeDispositionRefs":["RFD_050_PATIENT_PUBLIC_ENTRY_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_RECOVERY_ONLY","MFV_127_CONSTRAINED_NON_BROWSER_CHANNEL","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. Shell residency remains on `patient-web` while publication authority resolves through `audsurf_patient_public_entry`. The ingress remains constrained and is not directly browser-visible.","tupleId":"FMTUP_127_SURF_PATIENT_INTAKE_PHONE_V1","publishedAudienceSurfaceRef":"audsurf_patient_public_entry","surfacePublicationRef":"ASPR_050_PATIENT_PUBLIC_ENTRY_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_patient_public_entry","governingBoundedContextRef":"intake_safety","canonicalObjectDescriptorRef":"SubmissionEnvelope","continuityEvidenceContractRefs":["CRP_106_PATIENT_V1","SAP_050_RF_INTAKE_SELF_SERVICE_V1","SAP_050_RF_INTAKE_TELEPHONY_CAPTURE_V1","SCF_050_PATIENT_PUBLIC_ENTRY_V1","SHC_050_RF_INTAKE_SELF_SERVICE_V1","SHC_050_RF_INTAKE_TELEPHONY_CAPTURE_V1"],"gatewaySurfaceRefs":["gws_patient_intake_phone"],"gatewaySurfacePrimaryRef":"gws_patient_intake_phone","browserVisible":false,"browserPostureState":"recovery_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"degraded","designPublicationState":"published","bindingDigestRef":"fb463a3fb7a353c9","sourceTaskRefs":["par_094","par_106","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is recovery_only for Patient public entry.","Design lint verdict is dclv::patient_public_entry::pending.","blueprint-init.md#2. Core product surfaces","blueprint/blueprint-init.md#2. Core product surfaces","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/platform-frontend-blueprint.md#Browser boundary and BFF law","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","data/analysis/gateway_bff_surfaces.json#gws_patient_intake_phone","data/analysis/gateway_bff_surfaces.json#gws_patient_intake_web","data/analysis/tenant_isolation_matrix.csv#TIM_PUBLIC_PRE_IDENTITY","docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Gateway Surface Matrix","phase-0-the-foundation-protocol.md#0.2 Continuity key and shell law","phase-0-the-foundation-protocol.md#12.1 Mandatory audience tiers","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md"],"uiBadgeLabel":"recovery only","reasonTitles":["Accessibility coverage is degraded, so the tuple remains bounded and guarded instead of exact.","The release parity row only permits recovery-only posture.","The inventoried surface is channel-constrained and not browser-visible, so it remains bounded even when the shell family is browser-addressable.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_PATIENT_APPOINTMENTS_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_PATIENT_AUTHENTICATED_PORTAL_V1","audienceSurface":"audsurf_patient_authenticated_portal","audienceSurfaceLabel":"Authenticated patient portal","inventorySurfaceRef":"surf_patient_appointments","inventorySurfaceLabel":"Appointments and manage","routeFamilyRef":"rf_patient_appointments","routeFamilyLabel":"Appointments","shellType":"patient","shellSlug":"patient-web","surfaceRouteContractRef":"ASRC_050_PATIENT_AUTHENTICATED_PORTAL_V1","frontendContractManifestRef":"FCM_050_PATIENT_AUTHENTICATED_PORTAL_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::patient_authenticated_shell::planned","designContractLintVerdictRef":"dclv::patient_authenticated_portal::pending","projectionContractVersionSetRef":"PCVS_050_PATIENT_AUTHENTICATED_PORTAL_V1","visibilityCoverageRefs":["AVC_054_PATIENT_AUTHENTICATED_V1"],"bindingState":"partial","calmTruthState":"suppressed","writableTruthState":"blocked","recoveryDispositionRefs":["RFD_050_PATIENT_AUTHENTICATED_PORTAL_V1","RRD_ARTIFACT_HANDOFF_REQUIRED","RRD_BOOKING_CONFIRMATION_PLACEHOLDER","RRD_CONVERSATION_RECOVERY_ONLY","RRD_PATIENT_APPOINTMENT_READ_ONLY","RRD_PATIENT_HOME_PLACEHOLDER","RRD_PATIENT_HOME_READ_ONLY","RRD_PATIENT_MESSAGES_READ_ONLY","RRD_PATIENT_RECORD_SUMMARY_ONLY","RRD_PATIENT_REQUEST_READ_ONLY","RRD_PATIENT_REQUEST_RECOVERY_ONLY"],"routeFreezeDispositionRefs":["RFD_050_PATIENT_AUTHENTICATED_PORTAL_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_READ_ONLY","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. The fused tuple is generated directly from the current inventory, gateway, frontend, design, runtime, and shell authority inputs.","tupleId":"FMTUP_127_SURF_PATIENT_APPOINTMENTS_V1","publishedAudienceSurfaceRef":"audsurf_patient_authenticated_portal","surfacePublicationRef":"ASPR_050_PATIENT_AUTHENTICATED_PORTAL_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_patient_authenticated_portal","governingBoundedContextRef":"patient_experience","canonicalObjectDescriptorRef":"PatientAppointmentWorkspaceProjection","continuityEvidenceContractRefs":["CRP_106_PATIENT_V1","SAP_050_RF_PATIENT_APPOINTMENTS_V1","SAP_050_RF_PATIENT_HEALTH_RECORD_V1","SAP_050_RF_PATIENT_HOME_V1","SAP_050_RF_PATIENT_MESSAGES_V1","SAP_050_RF_PATIENT_REQUESTS_V1","SCF_050_PATIENT_AUTHENTICATED_PORTAL_V1","SHC_050_RF_PATIENT_APPOINTMENTS_V1","SHC_050_RF_PATIENT_HEALTH_RECORD_V1","SHC_050_RF_PATIENT_HOME_V1","SHC_050_RF_PATIENT_MESSAGES_V1","SHC_050_RF_PATIENT_REQUESTS_V1"],"gatewaySurfaceRefs":["gws_patient_appointments"],"gatewaySurfacePrimaryRef":"gws_patient_appointments","browserVisible":true,"browserPostureState":"read_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"degraded","designPublicationState":"published","bindingDigestRef":"8a2a27bc2f1bc874","sourceTaskRefs":["par_094","par_106","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is read_only for Authenticated patient portal.","Design lint verdict is dclv::patient_authenticated_portal::pending.","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/forensic-audit-findings.md#Finding 97","blueprint/patient-account-and-communications-blueprint.md#Patient home contract","blueprint/patient-portal-experience-architecture-blueprint.md#Portal entry and shell topology","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/phase-0-the-foundation-protocol.md#5.6 Booking, waitlist, hub, and pharmacy continuity algorithm","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","callback-and-clinician-messaging-loop.md","data/analysis/gateway_bff_surfaces.json#gws_patient_home","data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_SELF_SERVICE","patient-account-and-communications-blueprint.md#Core projections","patient-account-and-communications-blueprint.md#Patient home contract","patient-account-and-communications-blueprint.md#Request detail contract","patient-account-and-communications-blueprint.md#Requests browsing contract","patient-portal-experience-architecture-blueprint.md#Portal entry and shell topology","patient-portal-experience-architecture-blueprint.md#Primary navigation model","phase-0-the-foundation-protocol.md#5.5 Unified care conversation algorithm","phase-0-the-foundation-protocol.md#5.5A Patient record and results visualization algorithm","phase-0-the-foundation-protocol.md#5.6 Booking, waitlist, hub, and pharmacy continuity algorithm","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md"],"uiBadgeLabel":"partial","reasonTitles":["Accessibility coverage is degraded, so the tuple remains bounded and guarded instead of exact.","The release parity row only permits read-only posture.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_PATIENT_EMBEDDED_SHELL_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_PATIENT_TRANSACTION_RECOVERY_V1","audienceSurface":"audsurf_patient_transaction_recovery","audienceSurfaceLabel":"Grant-scoped patient transaction and recovery","inventorySurfaceRef":"surf_patient_embedded_shell","inventorySurfaceLabel":"Embedded patient shell reuse","routeFamilyRef":"rf_patient_embedded_channel","routeFamilyLabel":"Patient embedded channel parity","shellType":"patient","shellSlug":"patient-web","surfaceRouteContractRef":"ASRC_050_PATIENT_TRANSACTION_RECOVERY_V1","frontendContractManifestRef":"FCM_050_PATIENT_TRANSACTION_RECOVERY_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::patient_transaction_recovery::planned","designContractLintVerdictRef":"dclv::patient_transaction_recovery::pending","projectionContractVersionSetRef":"PCVS_050_PATIENT_TRANSACTION_RECOVERY_V1","visibilityCoverageRefs":["AVC_054_PATIENT_EMBEDDED_V1"],"bindingState":"blocked","calmTruthState":"suppressed","writableTruthState":"blocked","recoveryDispositionRefs":["RFD_050_PATIENT_TRANSACTION_RECOVERY_V1","RRD_EMBEDDED_HANDOFF_ONLY","RRD_EMBEDDED_READ_ONLY","RRD_IDENTITY_HOLD_PLACEHOLDER","RRD_SECURE_LINK_RECOVERY_ONLY"],"routeFreezeDispositionRefs":["RFD_050_PATIENT_TRANSACTION_RECOVERY_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_BLOCKED","MFV_127_BROWSER_POSTURE_RECOVERY_ONLY","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. Shell residency remains on `patient-web` while publication authority resolves through `audsurf_patient_transaction_recovery`.","tupleId":"FMTUP_127_SURF_PATIENT_EMBEDDED_SHELL_V1","publishedAudienceSurfaceRef":"audsurf_patient_transaction_recovery","surfacePublicationRef":"ASPR_050_PATIENT_TRANSACTION_RECOVERY_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_patient_transaction_recovery","governingBoundedContextRef":"patient_experience","canonicalObjectDescriptorRef":"PatientEmbeddedSessionProjection","continuityEvidenceContractRefs":["CRP_106_PATIENT_V1","SAP_050_RF_PATIENT_EMBEDDED_CHANNEL_V1","SAP_050_RF_PATIENT_SECURE_LINK_RECOVERY_V1","SCF_050_PATIENT_TRANSACTION_RECOVERY_V1","SHC_050_RF_PATIENT_EMBEDDED_CHANNEL_V1","SHC_050_RF_PATIENT_SECURE_LINK_RECOVERY_V1"],"gatewaySurfaceRefs":["gws_patient_embedded_shell"],"gatewaySurfacePrimaryRef":"gws_patient_embedded_shell","browserVisible":true,"browserPostureState":"recovery_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"blocked","designPublicationState":"published","bindingDigestRef":"356db75a4f898092","sourceTaskRefs":["par_094","par_106","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is blocked.","Browser posture is recovery_only for Grant-scoped patient transaction and recovery.","Design lint verdict is dclv::patient_transaction_recovery::pending.","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/forensic-audit-findings.md#Finding 90","blueprint/patient-account-and-communications-blueprint.md#Patient audience coverage contract","blueprint/patient-portal-experience-architecture-blueprint.md#Control priorities","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","data/analysis/gateway_bff_surfaces.json#gws_patient_embedded_shell","data/analysis/gateway_bff_surfaces.json#gws_patient_secure_link_recovery","data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_EMBEDDED","patient-account-and-communications-blueprint.md#Patient audience coverage contract","patient-portal-experience-architecture-blueprint.md#Control priorities","phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md"],"uiBadgeLabel":"blocked","reasonTitles":["Accessibility coverage is blocked, so the surface cannot claim a live fused authority tuple.","The release parity row only permits recovery-only posture.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_PATIENT_HEALTH_RECORD_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_PATIENT_AUTHENTICATED_PORTAL_V1","audienceSurface":"audsurf_patient_authenticated_portal","audienceSurfaceLabel":"Authenticated patient portal","inventorySurfaceRef":"surf_patient_health_record","inventorySurfaceLabel":"Patient health record and documents","routeFamilyRef":"rf_patient_health_record","routeFamilyLabel":"Health record","shellType":"patient","shellSlug":"patient-web","surfaceRouteContractRef":"ASRC_050_PATIENT_AUTHENTICATED_PORTAL_V1","frontendContractManifestRef":"FCM_050_PATIENT_AUTHENTICATED_PORTAL_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::patient_authenticated_shell::planned","designContractLintVerdictRef":"dclv::patient_authenticated_portal::pending","projectionContractVersionSetRef":"PCVS_050_PATIENT_AUTHENTICATED_PORTAL_V1","visibilityCoverageRefs":["AVC_054_PATIENT_AUTHENTICATED_V1"],"bindingState":"partial","calmTruthState":"suppressed","writableTruthState":"blocked","recoveryDispositionRefs":["RFD_050_PATIENT_AUTHENTICATED_PORTAL_V1","RRD_ARTIFACT_HANDOFF_REQUIRED","RRD_BOOKING_CONFIRMATION_PLACEHOLDER","RRD_CONVERSATION_RECOVERY_ONLY","RRD_PATIENT_APPOINTMENT_READ_ONLY","RRD_PATIENT_HOME_PLACEHOLDER","RRD_PATIENT_HOME_READ_ONLY","RRD_PATIENT_MESSAGES_READ_ONLY","RRD_PATIENT_RECORD_SUMMARY_ONLY","RRD_PATIENT_REQUEST_READ_ONLY","RRD_PATIENT_REQUEST_RECOVERY_ONLY"],"routeFreezeDispositionRefs":["RFD_050_PATIENT_AUTHENTICATED_PORTAL_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_READ_ONLY","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. The fused tuple is generated directly from the current inventory, gateway, frontend, design, runtime, and shell authority inputs.","tupleId":"FMTUP_127_SURF_PATIENT_HEALTH_RECORD_V1","publishedAudienceSurfaceRef":"audsurf_patient_authenticated_portal","surfacePublicationRef":"ASPR_050_PATIENT_AUTHENTICATED_PORTAL_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_patient_authenticated_portal","governingBoundedContextRef":"patient_experience","canonicalObjectDescriptorRef":"PatientRecordOverviewProjection","continuityEvidenceContractRefs":["CRP_106_PATIENT_V1","SAP_050_RF_PATIENT_APPOINTMENTS_V1","SAP_050_RF_PATIENT_HEALTH_RECORD_V1","SAP_050_RF_PATIENT_HOME_V1","SAP_050_RF_PATIENT_MESSAGES_V1","SAP_050_RF_PATIENT_REQUESTS_V1","SCF_050_PATIENT_AUTHENTICATED_PORTAL_V1","SHC_050_RF_PATIENT_APPOINTMENTS_V1","SHC_050_RF_PATIENT_HEALTH_RECORD_V1","SHC_050_RF_PATIENT_HOME_V1","SHC_050_RF_PATIENT_MESSAGES_V1","SHC_050_RF_PATIENT_REQUESTS_V1"],"gatewaySurfaceRefs":["gws_patient_health_record"],"gatewaySurfacePrimaryRef":"gws_patient_health_record","browserVisible":true,"browserPostureState":"read_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"degraded","designPublicationState":"published","bindingDigestRef":"e00ccdd8e3232c35","sourceTaskRefs":["par_094","par_106","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is read_only for Authenticated patient portal.","Design lint verdict is dclv::patient_authenticated_portal::pending.","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/forensic-audit-findings.md#Finding 97","blueprint/patient-account-and-communications-blueprint.md#Patient home contract","blueprint/patient-portal-experience-architecture-blueprint.md#Portal entry and shell topology","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/phase-0-the-foundation-protocol.md#5.5A Patient record and results visualization algorithm","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","callback-and-clinician-messaging-loop.md","data/analysis/gateway_bff_surfaces.json#gws_patient_home","data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_SELF_SERVICE","patient-account-and-communications-blueprint.md#Core projections","patient-account-and-communications-blueprint.md#Patient home contract","patient-account-and-communications-blueprint.md#Request detail contract","patient-account-and-communications-blueprint.md#Requests browsing contract","patient-portal-experience-architecture-blueprint.md#Portal entry and shell topology","patient-portal-experience-architecture-blueprint.md#Primary navigation model","phase-0-the-foundation-protocol.md#5.5 Unified care conversation algorithm","phase-0-the-foundation-protocol.md#5.5A Patient record and results visualization algorithm","phase-0-the-foundation-protocol.md#5.6 Booking, waitlist, hub, and pharmacy continuity algorithm","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md"],"uiBadgeLabel":"partial","reasonTitles":["Accessibility coverage is degraded, so the tuple remains bounded and guarded instead of exact.","The release parity row only permits read-only posture.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_PATIENT_HOME_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_PATIENT_AUTHENTICATED_PORTAL_V1","audienceSurface":"audsurf_patient_authenticated_portal","audienceSurfaceLabel":"Authenticated patient portal","inventorySurfaceRef":"surf_patient_home","inventorySurfaceLabel":"Patient home and spotlight","routeFamilyRef":"rf_patient_home","routeFamilyLabel":"Home","shellType":"patient","shellSlug":"patient-web","surfaceRouteContractRef":"ASRC_050_PATIENT_AUTHENTICATED_PORTAL_V1","frontendContractManifestRef":"FCM_050_PATIENT_AUTHENTICATED_PORTAL_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::patient_authenticated_shell::planned","designContractLintVerdictRef":"dclv::patient_authenticated_portal::pending","projectionContractVersionSetRef":"PCVS_050_PATIENT_AUTHENTICATED_PORTAL_V1","visibilityCoverageRefs":["AVC_054_PATIENT_AUTHENTICATED_V1"],"bindingState":"partial","calmTruthState":"suppressed","writableTruthState":"blocked","recoveryDispositionRefs":["RFD_050_PATIENT_AUTHENTICATED_PORTAL_V1","RRD_ARTIFACT_HANDOFF_REQUIRED","RRD_BOOKING_CONFIRMATION_PLACEHOLDER","RRD_CONVERSATION_RECOVERY_ONLY","RRD_PATIENT_APPOINTMENT_READ_ONLY","RRD_PATIENT_HOME_PLACEHOLDER","RRD_PATIENT_HOME_READ_ONLY","RRD_PATIENT_MESSAGES_READ_ONLY","RRD_PATIENT_RECORD_SUMMARY_ONLY","RRD_PATIENT_REQUEST_READ_ONLY","RRD_PATIENT_REQUEST_RECOVERY_ONLY"],"routeFreezeDispositionRefs":["RFD_050_PATIENT_AUTHENTICATED_PORTAL_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_READ_ONLY","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. The fused tuple is generated directly from the current inventory, gateway, frontend, design, runtime, and shell authority inputs.","tupleId":"FMTUP_127_SURF_PATIENT_HOME_V1","publishedAudienceSurfaceRef":"audsurf_patient_authenticated_portal","surfacePublicationRef":"ASPR_050_PATIENT_AUTHENTICATED_PORTAL_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_patient_authenticated_portal","governingBoundedContextRef":"patient_experience","canonicalObjectDescriptorRef":"PatientPortalEntryProjection","continuityEvidenceContractRefs":["CRP_106_PATIENT_V1","SAP_050_RF_PATIENT_APPOINTMENTS_V1","SAP_050_RF_PATIENT_HEALTH_RECORD_V1","SAP_050_RF_PATIENT_HOME_V1","SAP_050_RF_PATIENT_MESSAGES_V1","SAP_050_RF_PATIENT_REQUESTS_V1","SCF_050_PATIENT_AUTHENTICATED_PORTAL_V1","SHC_050_RF_PATIENT_APPOINTMENTS_V1","SHC_050_RF_PATIENT_HEALTH_RECORD_V1","SHC_050_RF_PATIENT_HOME_V1","SHC_050_RF_PATIENT_MESSAGES_V1","SHC_050_RF_PATIENT_REQUESTS_V1"],"gatewaySurfaceRefs":["gws_patient_home"],"gatewaySurfacePrimaryRef":"gws_patient_home","browserVisible":true,"browserPostureState":"read_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"degraded","designPublicationState":"published","bindingDigestRef":"f5ddc430d767ea9a","sourceTaskRefs":["par_094","par_106","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is read_only for Authenticated patient portal.","Design lint verdict is dclv::patient_authenticated_portal::pending.","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/forensic-audit-findings.md#Finding 97","blueprint/patient-account-and-communications-blueprint.md#Patient home contract","blueprint/patient-portal-experience-architecture-blueprint.md#Portal entry and shell topology","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","callback-and-clinician-messaging-loop.md","data/analysis/gateway_bff_surfaces.json#gws_patient_home","data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_SELF_SERVICE","patient-account-and-communications-blueprint.md#Core projections","patient-account-and-communications-blueprint.md#Patient home contract","patient-account-and-communications-blueprint.md#Request detail contract","patient-account-and-communications-blueprint.md#Requests browsing contract","patient-portal-experience-architecture-blueprint.md#Portal entry and shell topology","patient-portal-experience-architecture-blueprint.md#Primary navigation model","phase-0-the-foundation-protocol.md#5.5 Unified care conversation algorithm","phase-0-the-foundation-protocol.md#5.5A Patient record and results visualization algorithm","phase-0-the-foundation-protocol.md#5.6 Booking, waitlist, hub, and pharmacy continuity algorithm","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md"],"uiBadgeLabel":"partial","reasonTitles":["Accessibility coverage is degraded, so the tuple remains bounded and guarded instead of exact.","The release parity row only permits read-only posture.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_PATIENT_MESSAGES_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_PATIENT_AUTHENTICATED_PORTAL_V1","audienceSurface":"audsurf_patient_authenticated_portal","audienceSurfaceLabel":"Authenticated patient portal","inventorySurfaceRef":"surf_patient_messages","inventorySurfaceLabel":"Messages and callback thread","routeFamilyRef":"rf_patient_messages","routeFamilyLabel":"Messages","shellType":"patient","shellSlug":"patient-web","surfaceRouteContractRef":"ASRC_050_PATIENT_AUTHENTICATED_PORTAL_V1","frontendContractManifestRef":"FCM_050_PATIENT_AUTHENTICATED_PORTAL_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::patient_authenticated_shell::planned","designContractLintVerdictRef":"dclv::patient_authenticated_portal::pending","projectionContractVersionSetRef":"PCVS_050_PATIENT_AUTHENTICATED_PORTAL_V1","visibilityCoverageRefs":["AVC_054_PATIENT_AUTHENTICATED_V1"],"bindingState":"partial","calmTruthState":"suppressed","writableTruthState":"blocked","recoveryDispositionRefs":["RFD_050_PATIENT_AUTHENTICATED_PORTAL_V1","RRD_ARTIFACT_HANDOFF_REQUIRED","RRD_BOOKING_CONFIRMATION_PLACEHOLDER","RRD_CONVERSATION_RECOVERY_ONLY","RRD_PATIENT_APPOINTMENT_READ_ONLY","RRD_PATIENT_HOME_PLACEHOLDER","RRD_PATIENT_HOME_READ_ONLY","RRD_PATIENT_MESSAGES_READ_ONLY","RRD_PATIENT_RECORD_SUMMARY_ONLY","RRD_PATIENT_REQUEST_READ_ONLY","RRD_PATIENT_REQUEST_RECOVERY_ONLY"],"routeFreezeDispositionRefs":["RFD_050_PATIENT_AUTHENTICATED_PORTAL_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_READ_ONLY","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. The fused tuple is generated directly from the current inventory, gateway, frontend, design, runtime, and shell authority inputs.","tupleId":"FMTUP_127_SURF_PATIENT_MESSAGES_V1","publishedAudienceSurfaceRef":"audsurf_patient_authenticated_portal","surfacePublicationRef":"ASPR_050_PATIENT_AUTHENTICATED_PORTAL_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_patient_authenticated_portal","governingBoundedContextRef":"patient_experience","canonicalObjectDescriptorRef":"ConversationThreadProjection","continuityEvidenceContractRefs":["CRP_106_PATIENT_V1","SAP_050_RF_PATIENT_APPOINTMENTS_V1","SAP_050_RF_PATIENT_HEALTH_RECORD_V1","SAP_050_RF_PATIENT_HOME_V1","SAP_050_RF_PATIENT_MESSAGES_V1","SAP_050_RF_PATIENT_REQUESTS_V1","SCF_050_PATIENT_AUTHENTICATED_PORTAL_V1","SHC_050_RF_PATIENT_APPOINTMENTS_V1","SHC_050_RF_PATIENT_HEALTH_RECORD_V1","SHC_050_RF_PATIENT_HOME_V1","SHC_050_RF_PATIENT_MESSAGES_V1","SHC_050_RF_PATIENT_REQUESTS_V1"],"gatewaySurfaceRefs":["gws_patient_messages"],"gatewaySurfacePrimaryRef":"gws_patient_messages","browserVisible":true,"browserPostureState":"read_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"degraded","designPublicationState":"published","bindingDigestRef":"e23d99492efbd760","sourceTaskRefs":["par_094","par_106","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is read_only for Authenticated patient portal.","Design lint verdict is dclv::patient_authenticated_portal::pending.","blueprint/callback-and-clinician-messaging-loop.md","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/patient-account-and-communications-blueprint.md#Patient home contract","blueprint/patient-portal-experience-architecture-blueprint.md#Portal entry and shell topology","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/phase-0-the-foundation-protocol.md#5.5 Unified care conversation algorithm","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","callback-and-clinician-messaging-loop.md","data/analysis/gateway_bff_surfaces.json#gws_patient_home","data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_SELF_SERVICE","patient-account-and-communications-blueprint.md#Core projections","patient-account-and-communications-blueprint.md#Patient home contract","patient-account-and-communications-blueprint.md#Request detail contract","patient-account-and-communications-blueprint.md#Requests browsing contract","patient-portal-experience-architecture-blueprint.md#Portal entry and shell topology","patient-portal-experience-architecture-blueprint.md#Primary navigation model","phase-0-the-foundation-protocol.md#5.5 Unified care conversation algorithm","phase-0-the-foundation-protocol.md#5.5A Patient record and results visualization algorithm","phase-0-the-foundation-protocol.md#5.6 Booking, waitlist, hub, and pharmacy continuity algorithm","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md"],"uiBadgeLabel":"partial","reasonTitles":["Accessibility coverage is degraded, so the tuple remains bounded and guarded instead of exact.","The release parity row only permits read-only posture.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_PATIENT_REQUESTS_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_PATIENT_AUTHENTICATED_PORTAL_V1","audienceSurface":"audsurf_patient_authenticated_portal","audienceSurfaceLabel":"Authenticated patient portal","inventorySurfaceRef":"surf_patient_requests","inventorySurfaceLabel":"Request list and detail","routeFamilyRef":"rf_patient_requests","routeFamilyLabel":"Requests","shellType":"patient","shellSlug":"patient-web","surfaceRouteContractRef":"ASRC_050_PATIENT_AUTHENTICATED_PORTAL_V1","frontendContractManifestRef":"FCM_050_PATIENT_AUTHENTICATED_PORTAL_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::patient_authenticated_shell::planned","designContractLintVerdictRef":"dclv::patient_authenticated_portal::pending","projectionContractVersionSetRef":"PCVS_050_PATIENT_AUTHENTICATED_PORTAL_V1","visibilityCoverageRefs":["AVC_054_PATIENT_AUTHENTICATED_V1"],"bindingState":"partial","calmTruthState":"suppressed","writableTruthState":"blocked","recoveryDispositionRefs":["RFD_050_PATIENT_AUTHENTICATED_PORTAL_V1","RRD_ARTIFACT_HANDOFF_REQUIRED","RRD_BOOKING_CONFIRMATION_PLACEHOLDER","RRD_CONVERSATION_RECOVERY_ONLY","RRD_PATIENT_APPOINTMENT_READ_ONLY","RRD_PATIENT_HOME_PLACEHOLDER","RRD_PATIENT_HOME_READ_ONLY","RRD_PATIENT_MESSAGES_READ_ONLY","RRD_PATIENT_RECORD_SUMMARY_ONLY","RRD_PATIENT_REQUEST_READ_ONLY","RRD_PATIENT_REQUEST_RECOVERY_ONLY"],"routeFreezeDispositionRefs":["RFD_050_PATIENT_AUTHENTICATED_PORTAL_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_READ_ONLY","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. The fused tuple is generated directly from the current inventory, gateway, frontend, design, runtime, and shell authority inputs.","tupleId":"FMTUP_127_SURF_PATIENT_REQUESTS_V1","publishedAudienceSurfaceRef":"audsurf_patient_authenticated_portal","surfacePublicationRef":"ASPR_050_PATIENT_AUTHENTICATED_PORTAL_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_patient_authenticated_portal","governingBoundedContextRef":"patient_experience","canonicalObjectDescriptorRef":"PatientRequestsIndexProjection","continuityEvidenceContractRefs":["CRP_106_PATIENT_V1","SAP_050_RF_PATIENT_APPOINTMENTS_V1","SAP_050_RF_PATIENT_HEALTH_RECORD_V1","SAP_050_RF_PATIENT_HOME_V1","SAP_050_RF_PATIENT_MESSAGES_V1","SAP_050_RF_PATIENT_REQUESTS_V1","SCF_050_PATIENT_AUTHENTICATED_PORTAL_V1","SHC_050_RF_PATIENT_APPOINTMENTS_V1","SHC_050_RF_PATIENT_HEALTH_RECORD_V1","SHC_050_RF_PATIENT_HOME_V1","SHC_050_RF_PATIENT_MESSAGES_V1","SHC_050_RF_PATIENT_REQUESTS_V1"],"gatewaySurfaceRefs":["gws_patient_requests"],"gatewaySurfacePrimaryRef":"gws_patient_requests","browserVisible":true,"browserPostureState":"read_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"degraded","designPublicationState":"published","bindingDigestRef":"07a41f875647e7d3","sourceTaskRefs":["par_094","par_106","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is read_only for Authenticated patient portal.","Design lint verdict is dclv::patient_authenticated_portal::pending.","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/forensic-audit-findings.md#Finding 91","blueprint/patient-account-and-communications-blueprint.md#Patient home contract","blueprint/patient-account-and-communications-blueprint.md#Request detail contract","blueprint/patient-portal-experience-architecture-blueprint.md#Portal entry and shell topology","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","callback-and-clinician-messaging-loop.md","data/analysis/gateway_bff_surfaces.json#gws_patient_home","data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_SELF_SERVICE","patient-account-and-communications-blueprint.md#Core projections","patient-account-and-communications-blueprint.md#Patient home contract","patient-account-and-communications-blueprint.md#Request detail contract","patient-account-and-communications-blueprint.md#Requests browsing contract","patient-portal-experience-architecture-blueprint.md#Portal entry and shell topology","patient-portal-experience-architecture-blueprint.md#Primary navigation model","phase-0-the-foundation-protocol.md#5.5 Unified care conversation algorithm","phase-0-the-foundation-protocol.md#5.5A Patient record and results visualization algorithm","phase-0-the-foundation-protocol.md#5.6 Booking, waitlist, hub, and pharmacy continuity algorithm","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md"],"uiBadgeLabel":"partial","reasonTitles":["Accessibility coverage is degraded, so the tuple remains bounded and guarded instead of exact.","The release parity row only permits read-only posture.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_PATIENT_SECURE_LINK_RECOVERY_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_PATIENT_TRANSACTION_RECOVERY_V1","audienceSurface":"audsurf_patient_transaction_recovery","audienceSurfaceLabel":"Grant-scoped patient transaction and recovery","inventorySurfaceRef":"surf_patient_secure_link_recovery","inventorySurfaceLabel":"Secure-link recovery and claim resume","routeFamilyRef":"rf_patient_secure_link_recovery","routeFamilyLabel":"Secure-link recovery and claim resume (derived)","shellType":"patient","shellSlug":"patient-web","surfaceRouteContractRef":"ASRC_050_PATIENT_TRANSACTION_RECOVERY_V1","frontendContractManifestRef":"FCM_050_PATIENT_TRANSACTION_RECOVERY_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::patient_transaction_recovery::planned","designContractLintVerdictRef":"dclv::patient_transaction_recovery::pending","projectionContractVersionSetRef":"PCVS_050_PATIENT_TRANSACTION_RECOVERY_V1","visibilityCoverageRefs":["AVC_054_PATIENT_GRANT_RECOVERY_V1"],"bindingState":"blocked","calmTruthState":"suppressed","writableTruthState":"blocked","recoveryDispositionRefs":["RFD_050_PATIENT_TRANSACTION_RECOVERY_V1","RRD_EMBEDDED_HANDOFF_ONLY","RRD_EMBEDDED_READ_ONLY","RRD_IDENTITY_HOLD_PLACEHOLDER","RRD_SECURE_LINK_RECOVERY_ONLY"],"routeFreezeDispositionRefs":["RFD_050_PATIENT_TRANSACTION_RECOVERY_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_BLOCKED","MFV_127_BROWSER_POSTURE_RECOVERY_ONLY","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. Shell residency remains on `patient-web` while publication authority resolves through `audsurf_patient_transaction_recovery`.","tupleId":"FMTUP_127_SURF_PATIENT_SECURE_LINK_RECOVERY_V1","publishedAudienceSurfaceRef":"audsurf_patient_transaction_recovery","surfacePublicationRef":"ASPR_050_PATIENT_TRANSACTION_RECOVERY_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_patient_transaction_recovery","governingBoundedContextRef":"identity_access","canonicalObjectDescriptorRef":"AccessGrantRedemptionRecord","continuityEvidenceContractRefs":["CRP_106_PATIENT_V1","SAP_050_RF_PATIENT_EMBEDDED_CHANNEL_V1","SAP_050_RF_PATIENT_SECURE_LINK_RECOVERY_V1","SCF_050_PATIENT_TRANSACTION_RECOVERY_V1","SHC_050_RF_PATIENT_EMBEDDED_CHANNEL_V1","SHC_050_RF_PATIENT_SECURE_LINK_RECOVERY_V1"],"gatewaySurfaceRefs":["gws_patient_secure_link_recovery"],"gatewaySurfacePrimaryRef":"gws_patient_secure_link_recovery","browserVisible":true,"browserPostureState":"recovery_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"blocked","designPublicationState":"published","bindingDigestRef":"5dd45768a253edc4","sourceTaskRefs":["par_094","par_106","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is blocked.","Browser posture is recovery_only for Grant-scoped patient transaction and recovery.","Design lint verdict is dclv::patient_transaction_recovery::pending.","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/forensic-audit-findings.md#Finding 91","blueprint/patient-account-and-communications-blueprint.md#Patient audience coverage contract","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","data/analysis/gateway_bff_surfaces.json#gws_patient_embedded_shell","data/analysis/gateway_bff_surfaces.json#gws_patient_secure_link_recovery","data/analysis/tenant_isolation_matrix.csv#TIM_GRANT_SCOPED_RECOVERY","patient-account-and-communications-blueprint.md#Patient audience coverage contract","patient-portal-experience-architecture-blueprint.md#Control priorities","phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md"],"uiBadgeLabel":"blocked","reasonTitles":["Accessibility coverage is blocked, so the surface cannot claim a live fused authority tuple.","The release parity row only permits recovery-only posture.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_PHARMACY_CONSOLE_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_PHARMACY_CONSOLE_V1","audienceSurface":"audsurf_pharmacy_console","audienceSurfaceLabel":"Pharmacy console routes","inventorySurfaceRef":"surf_pharmacy_console","inventorySurfaceLabel":"Pharmacy Console case workbench","routeFamilyRef":"rf_pharmacy_console","routeFamilyLabel":"/workspace/pharmacy, /workspace/pharmacy/:pharmacyCaseId, /validate, /inventory, /resolve, /handoff, /assurance","shellType":"pharmacy","shellSlug":"pharmacy-console","surfaceRouteContractRef":"ASRC_050_PHARMACY_CONSOLE_V1","frontendContractManifestRef":"FCM_050_PHARMACY_CONSOLE_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::pharmacy_console::planned","designContractLintVerdictRef":"dclv::pharmacy_console::pending","projectionContractVersionSetRef":"PCVS_050_PHARMACY_CONSOLE_V1","visibilityCoverageRefs":["AVC_054_PHARMACY_SERVICING_V1"],"bindingState":"partial","calmTruthState":"suppressed","writableTruthState":"blocked","recoveryDispositionRefs":["RFD_050_PHARMACY_CONSOLE_V1","RRD_PHARMACY_DISPATCH_RECOVERY","RRD_PHARMACY_READ_ONLY"],"routeFreezeDispositionRefs":["RFD_050_PHARMACY_CONSOLE_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_READ_ONLY","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. The fused tuple is generated directly from the current inventory, gateway, frontend, design, runtime, and shell authority inputs.","tupleId":"FMTUP_127_SURF_PHARMACY_CONSOLE_V1","publishedAudienceSurfaceRef":"audsurf_pharmacy_console","surfacePublicationRef":"ASPR_050_PHARMACY_CONSOLE_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_pharmacy_console","governingBoundedContextRef":"pharmacy","canonicalObjectDescriptorRef":"PharmacyConsoleContinuityEvidenceProjection","continuityEvidenceContractRefs":["CRP_106_PHARMACY_V1","SAP_050_RF_PHARMACY_CONSOLE_V1","SCF_050_PHARMACY_CONSOLE_V1","SHC_050_RF_PHARMACY_CONSOLE_V1"],"gatewaySurfaceRefs":["gws_pharmacy_console"],"gatewaySurfacePrimaryRef":"gws_pharmacy_console","browserVisible":true,"browserPostureState":"read_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"degraded","designPublicationState":"published","bindingDigestRef":"62d7b53314382757","sourceTaskRefs":["par_094","par_106","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is read_only for Pharmacy console routes.","Design lint verdict is dclv::pharmacy_console::pending.","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/forensic-audit-findings.md#Finding 91","blueprint/pharmacy-console-frontend-architecture.md#Mission frame","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","data/analysis/gateway_bff_surfaces.json#gws_pharmacy_console","data/analysis/tenant_isolation_matrix.csv#TIM_PHARMACY_SERVICING","pharmacy-console-frontend-architecture.md#Mission frame","pharmacy-console-frontend-architecture.md#The recommended route family is","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md"],"uiBadgeLabel":"partial","reasonTitles":["Accessibility coverage is degraded, so the tuple remains bounded and guarded instead of exact.","The release parity row only permits read-only posture.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_CLINICIAN_WORKSPACE_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_CLINICAL_WORKSPACE_V1","audienceSurface":"audsurf_clinical_workspace","audienceSurfaceLabel":"Clinical workspace","inventorySurfaceRef":"surf_clinician_workspace","inventorySurfaceLabel":"Clinical Workspace queue and task canvas","routeFamilyRef":"rf_staff_workspace","routeFamilyLabel":"/workspace, /workspace/queue/:queueKey, /workspace/task/:taskId","shellType":"staff","shellSlug":"clinical-workspace","surfaceRouteContractRef":"ASRC_050_CLINICAL_WORKSPACE_V1","frontendContractManifestRef":"FCM_050_CLINICAL_WORKSPACE_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::clinical_workspace::planned","designContractLintVerdictRef":"dclv::clinical_workspace::pending","projectionContractVersionSetRef":"PCVS_050_CLINICAL_WORKSPACE_V1","visibilityCoverageRefs":["AVC_054_STAFF_SINGLE_ORG_V1"],"bindingState":"partial","calmTruthState":"suppressed","writableTruthState":"blocked","recoveryDispositionRefs":["RFD_050_CLINICAL_WORKSPACE_V1","RRD_ASSISTIVE_READ_ONLY","RRD_ASSISTIVE_SIDECAR_FROZEN","RRD_WORKSPACE_CHILD_READ_ONLY","RRD_WORKSPACE_CHILD_RECOVERY_ONLY","RRD_WORKSPACE_QUEUE_PLACEHOLDER","RRD_WORKSPACE_READ_ONLY"],"routeFreezeDispositionRefs":["RFD_050_CLINICAL_WORKSPACE_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_READ_ONLY","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. Route family `rf_staff_workspace` fans out across 2 inventoried surfaces and reuses one published audience tuple.","tupleId":"FMTUP_127_SURF_CLINICIAN_WORKSPACE_V1","publishedAudienceSurfaceRef":"audsurf_clinical_workspace","surfacePublicationRef":"ASPR_050_CLINICAL_WORKSPACE_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_clinical_workspace","governingBoundedContextRef":"triage_workspace","canonicalObjectDescriptorRef":"WorkspaceNavigationLedger","continuityEvidenceContractRefs":["CRP_106_STAFF_V1","SAP_050_RF_STAFF_WORKSPACE_CHILD_V1","SAP_050_RF_STAFF_WORKSPACE_V1","SCF_050_CLINICAL_WORKSPACE_V1","SHC_050_RF_STAFF_WORKSPACE_CHILD_V1","SHC_050_RF_STAFF_WORKSPACE_V1"],"gatewaySurfaceRefs":["gws_clinician_workspace"],"gatewaySurfacePrimaryRef":"gws_clinician_workspace","browserVisible":true,"browserPostureState":"read_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"degraded","designPublicationState":"published","bindingDigestRef":"22d4040a210f4cf6","sourceTaskRefs":["par_094","par_106","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is read_only for Clinical workspace.","Design lint verdict is dclv::clinical_workspace::pending.","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/forensic-audit-findings.md#Finding 92","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/platform-frontend-blueprint.md#Shared IA rules","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","blueprint/staff-workspace-interface-architecture.md","blueprint/staff-workspace-interface-architecture.md#Route family","data/analysis/gateway_bff_surfaces.json#gws_clinician_workspace","data/analysis/tenant_isolation_matrix.csv#TIM_TENANT_STAFF_SINGLE_ORG","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md","staff-operations-and-support-blueprint.md#Clinical Workspace specialization","staff-workspace-interface-architecture.md#Additional route rules","staff-workspace-interface-architecture.md#Route family","staff-workspace-interface-architecture.md#Workspace shell-family ownership is explicit"],"uiBadgeLabel":"partial","reasonTitles":["Accessibility coverage is degraded, so the tuple remains bounded and guarded instead of exact.","The release parity row only permits read-only posture.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_PRACTICE_OPS_WORKSPACE_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_CLINICAL_WORKSPACE_V1","audienceSurface":"audsurf_clinical_workspace","audienceSurfaceLabel":"Clinical workspace","inventorySurfaceRef":"surf_practice_ops_workspace","inventorySurfaceLabel":"Practice operations workspace","routeFamilyRef":"rf_staff_workspace","routeFamilyLabel":"/workspace, /workspace/queue/:queueKey, /workspace/task/:taskId","shellType":"staff","shellSlug":"clinical-workspace","surfaceRouteContractRef":"ASRC_050_CLINICAL_WORKSPACE_V1","frontendContractManifestRef":"FCM_050_CLINICAL_WORKSPACE_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::clinical_workspace::planned","designContractLintVerdictRef":"dclv::clinical_workspace::pending","projectionContractVersionSetRef":"PCVS_050_CLINICAL_WORKSPACE_V1","visibilityCoverageRefs":["AVC_054_STAFF_SINGLE_ORG_V1"],"bindingState":"partial","calmTruthState":"suppressed","writableTruthState":"blocked","recoveryDispositionRefs":["RFD_050_CLINICAL_WORKSPACE_V1","RRD_ASSISTIVE_READ_ONLY","RRD_ASSISTIVE_SIDECAR_FROZEN","RRD_WORKSPACE_CHILD_READ_ONLY","RRD_WORKSPACE_CHILD_RECOVERY_ONLY","RRD_WORKSPACE_QUEUE_PLACEHOLDER","RRD_WORKSPACE_READ_ONLY"],"routeFreezeDispositionRefs":["RFD_050_CLINICAL_WORKSPACE_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_READ_ONLY","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. Route family `rf_staff_workspace` fans out across 2 inventoried surfaces and reuses one published audience tuple.","tupleId":"FMTUP_127_SURF_PRACTICE_OPS_WORKSPACE_V1","publishedAudienceSurfaceRef":"audsurf_clinical_workspace","surfacePublicationRef":"ASPR_050_CLINICAL_WORKSPACE_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_clinical_workspace","governingBoundedContextRef":"triage_workspace","canonicalObjectDescriptorRef":"WorkspaceNavigationLedger","continuityEvidenceContractRefs":["CRP_106_STAFF_V1","SAP_050_RF_STAFF_WORKSPACE_CHILD_V1","SAP_050_RF_STAFF_WORKSPACE_V1","SCF_050_CLINICAL_WORKSPACE_V1","SHC_050_RF_STAFF_WORKSPACE_CHILD_V1","SHC_050_RF_STAFF_WORKSPACE_V1"],"gatewaySurfaceRefs":["gws_practice_ops_workspace"],"gatewaySurfacePrimaryRef":"gws_practice_ops_workspace","browserVisible":true,"browserPostureState":"read_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"degraded","designPublicationState":"published","bindingDigestRef":"07ed981b02bc673d","sourceTaskRefs":["par_094","par_106","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is read_only for Clinical workspace.","Design lint verdict is dclv::clinical_workspace::pending.","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/forensic-audit-findings.md#Finding 114","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/platform-frontend-blueprint.md#Shared IA rules","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","blueprint/staff-operations-and-support-blueprint.md#Staff audience coverage contract","blueprint/staff-workspace-interface-architecture.md","data/analysis/gateway_bff_surfaces.json#gws_clinician_workspace","data/analysis/tenant_isolation_matrix.csv#TIM_TENANT_STAFF_SINGLE_ORG","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md","staff-operations-and-support-blueprint.md#Staff audience coverage contract","staff-workspace-interface-architecture.md#Additional route rules","staff-workspace-interface-architecture.md#Route family","staff-workspace-interface-architecture.md#Workspace shell-family ownership is explicit"],"uiBadgeLabel":"partial","reasonTitles":["Accessibility coverage is degraded, so the tuple remains bounded and guarded instead of exact.","The release parity row only permits read-only posture.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_ASSISTIVE_SIDECAR_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_CLINICAL_WORKSPACE_V1","audienceSurface":"audsurf_clinical_workspace","audienceSurfaceLabel":"Clinical workspace","inventorySurfaceRef":"surf_assistive_sidecar","inventorySurfaceLabel":"Assistive companion sidecar inside the owning task","routeFamilyRef":"rf_staff_workspace_child","routeFamilyLabel":"/workspace/task/:taskId/more-info, /workspace/task/:taskId/decision, /workspace/approvals, /workspace/escalations, /workspace/changed, /workspace/search","shellType":"staff","shellSlug":"clinical-workspace","surfaceRouteContractRef":"ASRC_050_CLINICAL_WORKSPACE_V1","frontendContractManifestRef":"FCM_050_CLINICAL_WORKSPACE_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::clinical_workspace::planned","designContractLintVerdictRef":"dclv::clinical_workspace::pending","projectionContractVersionSetRef":"PCVS_050_CLINICAL_WORKSPACE_V1","visibilityCoverageRefs":["AVC_054_ASSISTIVE_ADJUNCT_V1"],"bindingState":"partial","calmTruthState":"suppressed","writableTruthState":"blocked","recoveryDispositionRefs":["RFD_050_CLINICAL_WORKSPACE_V1","RRD_ASSISTIVE_READ_ONLY","RRD_ASSISTIVE_SIDECAR_FROZEN","RRD_WORKSPACE_CHILD_READ_ONLY","RRD_WORKSPACE_CHILD_RECOVERY_ONLY","RRD_WORKSPACE_QUEUE_PLACEHOLDER","RRD_WORKSPACE_READ_ONLY"],"routeFreezeDispositionRefs":["RFD_050_CLINICAL_WORKSPACE_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_READ_ONLY","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. Route family `rf_staff_workspace_child` fans out across 2 inventoried surfaces and reuses one published audience tuple.","tupleId":"FMTUP_127_SURF_ASSISTIVE_SIDECAR_V1","publishedAudienceSurfaceRef":"audsurf_clinical_workspace","surfacePublicationRef":"ASPR_050_CLINICAL_WORKSPACE_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_clinical_workspace","governingBoundedContextRef":"triage_workspace","canonicalObjectDescriptorRef":"MoreInfoStatusDigest","continuityEvidenceContractRefs":["CRP_106_STAFF_V1","SAP_050_RF_STAFF_WORKSPACE_CHILD_V1","SAP_050_RF_STAFF_WORKSPACE_V1","SCF_050_CLINICAL_WORKSPACE_V1","SHC_050_RF_STAFF_WORKSPACE_CHILD_V1","SHC_050_RF_STAFF_WORKSPACE_V1"],"gatewaySurfaceRefs":["gws_assistive_sidecar"],"gatewaySurfacePrimaryRef":"gws_assistive_sidecar","browserVisible":true,"browserPostureState":"read_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"degraded","designPublicationState":"published","bindingDigestRef":"841d7c6df6e80a04","sourceTaskRefs":["par_094","par_106","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is read_only for Clinical workspace.","Design lint verdict is dclv::clinical_workspace::pending.","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/forensic-audit-findings.md#Finding 91","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/phase-8-the-assistive-layer.md#Control priorities","blueprint/platform-frontend-blueprint.md#Shared IA rules","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","blueprint/staff-workspace-interface-architecture.md","data/analysis/gateway_bff_surfaces.json#gws_clinician_workspace","data/analysis/tenant_isolation_matrix.csv#TIM_ASSISTIVE_ADJUNCT","phase-8-the-assistive-layer.md#Control priorities","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md","staff-workspace-interface-architecture.md#Additional route rules","staff-workspace-interface-architecture.md#Assistive companion presentation profile","staff-workspace-interface-architecture.md#Route family","staff-workspace-interface-architecture.md#Workspace shell-family ownership is explicit"],"uiBadgeLabel":"partial","reasonTitles":["Accessibility coverage is degraded, so the tuple remains bounded and guarded instead of exact.","The release parity row only permits read-only posture.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_CLINICIAN_WORKSPACE_CHILD_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_CLINICAL_WORKSPACE_V1","audienceSurface":"audsurf_clinical_workspace","audienceSurfaceLabel":"Clinical workspace","inventorySurfaceRef":"surf_clinician_workspace_child","inventorySurfaceLabel":"Clinical Workspace child review states","routeFamilyRef":"rf_staff_workspace_child","routeFamilyLabel":"/workspace/task/:taskId/more-info, /workspace/task/:taskId/decision, /workspace/approvals, /workspace/escalations, /workspace/changed, /workspace/search","shellType":"staff","shellSlug":"clinical-workspace","surfaceRouteContractRef":"ASRC_050_CLINICAL_WORKSPACE_V1","frontendContractManifestRef":"FCM_050_CLINICAL_WORKSPACE_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::clinical_workspace::planned","designContractLintVerdictRef":"dclv::clinical_workspace::pending","projectionContractVersionSetRef":"PCVS_050_CLINICAL_WORKSPACE_V1","visibilityCoverageRefs":["AVC_054_STAFF_SINGLE_ORG_V1"],"bindingState":"partial","calmTruthState":"suppressed","writableTruthState":"blocked","recoveryDispositionRefs":["RFD_050_CLINICAL_WORKSPACE_V1","RRD_ASSISTIVE_READ_ONLY","RRD_ASSISTIVE_SIDECAR_FROZEN","RRD_WORKSPACE_CHILD_READ_ONLY","RRD_WORKSPACE_CHILD_RECOVERY_ONLY","RRD_WORKSPACE_QUEUE_PLACEHOLDER","RRD_WORKSPACE_READ_ONLY"],"routeFreezeDispositionRefs":["RFD_050_CLINICAL_WORKSPACE_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_READ_ONLY","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. Route family `rf_staff_workspace_child` fans out across 2 inventoried surfaces and reuses one published audience tuple.","tupleId":"FMTUP_127_SURF_CLINICIAN_WORKSPACE_CHILD_V1","publishedAudienceSurfaceRef":"audsurf_clinical_workspace","surfacePublicationRef":"ASPR_050_CLINICAL_WORKSPACE_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_clinical_workspace","governingBoundedContextRef":"triage_workspace","canonicalObjectDescriptorRef":"MoreInfoStatusDigest","continuityEvidenceContractRefs":["CRP_106_STAFF_V1","SAP_050_RF_STAFF_WORKSPACE_CHILD_V1","SAP_050_RF_STAFF_WORKSPACE_V1","SCF_050_CLINICAL_WORKSPACE_V1","SHC_050_RF_STAFF_WORKSPACE_CHILD_V1","SHC_050_RF_STAFF_WORKSPACE_V1"],"gatewaySurfaceRefs":["gws_clinician_workspace_child"],"gatewaySurfacePrimaryRef":"gws_clinician_workspace_child","browserVisible":true,"browserPostureState":"read_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"degraded","designPublicationState":"published","bindingDigestRef":"a896e78b8ce7e62f","sourceTaskRefs":["par_094","par_106","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is read_only for Clinical workspace.","Design lint verdict is dclv::clinical_workspace::pending.","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/forensic-audit-findings.md#Finding 92","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/platform-frontend-blueprint.md#Shared IA rules","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","blueprint/staff-workspace-interface-architecture.md","blueprint/staff-workspace-interface-architecture.md#Additional route rules","data/analysis/gateway_bff_surfaces.json#gws_clinician_workspace","data/analysis/tenant_isolation_matrix.csv#TIM_TENANT_STAFF_SINGLE_ORG","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md","staff-workspace-interface-architecture.md#Additional route rules","staff-workspace-interface-architecture.md#Route family","staff-workspace-interface-architecture.md#Workspace shell-family ownership is explicit"],"uiBadgeLabel":"partial","reasonTitles":["Accessibility coverage is degraded, so the tuple remains bounded and guarded instead of exact.","The release parity row only permits read-only posture.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_SUPPORT_REPLAY_OBSERVE_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_SUPPORT_WORKSPACE_V1","audienceSurface":"audsurf_support_workspace","audienceSurfaceLabel":"Support routes","inventorySurfaceRef":"surf_support_replay_observe","inventorySurfaceLabel":"Support replay and observe","routeFamilyRef":"rf_support_replay_observe","routeFamilyLabel":"/ops/support/replay/:supportReplaySessionId and /ops/support/tickets/:supportTicketId/observe/:supportObserveSessionId","shellType":"support","shellSlug":"support-workspace","surfaceRouteContractRef":"ASRC_050_SUPPORT_WORKSPACE_V1","frontendContractManifestRef":"FCM_050_SUPPORT_WORKSPACE_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::support_workspace::planned","designContractLintVerdictRef":"dclv::support_workspace::pending","projectionContractVersionSetRef":"PCVS_050_SUPPORT_WORKSPACE_V1","visibilityCoverageRefs":["AVC_054_SUPPORT_REPLAY_V1"],"bindingState":"recovery_only","calmTruthState":"suppressed","writableTruthState":"recovery_only","recoveryDispositionRefs":["RFD_050_SUPPORT_WORKSPACE_V1","RRD_SUPPORT_CAPTURE_READ_ONLY","RRD_SUPPORT_CAPTURE_RECOVERY","RRD_SUPPORT_REPLAY_MASKED","RRD_SUPPORT_REPLAY_RESTORE_FROZEN","RRD_SUPPORT_WORKSPACE_READ_ONLY"],"routeFreezeDispositionRefs":["RFD_050_SUPPORT_WORKSPACE_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_RECOVERY_ONLY","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. The fused tuple is generated directly from the current inventory, gateway, frontend, design, runtime, and shell authority inputs.","tupleId":"FMTUP_127_SURF_SUPPORT_REPLAY_OBSERVE_V1","publishedAudienceSurfaceRef":"audsurf_support_workspace","surfacePublicationRef":"ASPR_050_SUPPORT_WORKSPACE_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_support_workspace","governingBoundedContextRef":"support","canonicalObjectDescriptorRef":"SupportReplayCheckpoint","continuityEvidenceContractRefs":["CRP_106_SUPPORT_V1","SAP_050_RF_SUPPORT_REPLAY_OBSERVE_V1","SAP_050_RF_SUPPORT_TICKET_WORKSPACE_V1","SCF_050_SUPPORT_WORKSPACE_V1","SHC_050_RF_SUPPORT_REPLAY_OBSERVE_V1","SHC_050_RF_SUPPORT_TICKET_WORKSPACE_V1"],"gatewaySurfaceRefs":["gws_support_replay_observe"],"gatewaySurfacePrimaryRef":"gws_support_replay_observe","browserVisible":true,"browserPostureState":"recovery_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"degraded","designPublicationState":"published","bindingDigestRef":"3d45f60e412136b8","sourceTaskRefs":["par_094","par_106","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is recovery_only for Support routes.","Design lint verdict is dclv::support_workspace::pending.","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/forensic-audit-findings.md#Finding 100 - Support replay and observe return still had no authoritative restore gate","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/phase-0-the-foundation-protocol.md#6.5 Support and replay algorithm","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","blueprint/staff-operations-and-support-blueprint.md#Support route contract","data/analysis/gateway_bff_surfaces.json#gws_support_ticket_workspace","data/analysis/tenant_isolation_matrix.csv#TIM_SUPPORT_INVESTIGATION","phase-0-the-foundation-protocol.md#6.5 Support and replay algorithm","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md","staff-operations-and-support-blueprint.md#Support route contract"],"uiBadgeLabel":"recovery only","reasonTitles":["Accessibility coverage is degraded, so the tuple remains bounded and guarded instead of exact.","The release parity row only permits recovery-only posture.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_SUPPORT_ASSISTED_CAPTURE_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_SUPPORT_WORKSPACE_V1","audienceSurface":"audsurf_support_workspace","audienceSurfaceLabel":"Support routes","inventorySurfaceRef":"surf_support_assisted_capture","inventorySurfaceLabel":"Support-assisted capture and recovery","routeFamilyRef":"rf_support_ticket_workspace","routeFamilyLabel":"/ops/support, /ops/support/inbox/:viewKey, /ops/support/tickets/:supportTicketId, /conversation, /history, /knowledge, /actions/:actionKey, /handoff/:supportOwnershipTransferId","shellType":"support","shellSlug":"support-workspace","surfaceRouteContractRef":"ASRC_050_SUPPORT_WORKSPACE_V1","frontendContractManifestRef":"FCM_050_SUPPORT_WORKSPACE_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::support_workspace::planned","designContractLintVerdictRef":"dclv::support_workspace::pending","projectionContractVersionSetRef":"PCVS_050_SUPPORT_WORKSPACE_V1","visibilityCoverageRefs":["AVC_054_SUPPORT_ASSISTED_CAPTURE_V1"],"bindingState":"recovery_only","calmTruthState":"suppressed","writableTruthState":"recovery_only","recoveryDispositionRefs":["RFD_050_SUPPORT_WORKSPACE_V1","RRD_SUPPORT_CAPTURE_READ_ONLY","RRD_SUPPORT_CAPTURE_RECOVERY","RRD_SUPPORT_REPLAY_MASKED","RRD_SUPPORT_REPLAY_RESTORE_FROZEN","RRD_SUPPORT_WORKSPACE_READ_ONLY"],"routeFreezeDispositionRefs":["RFD_050_SUPPORT_WORKSPACE_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_RECOVERY_ONLY","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. Route family `rf_support_ticket_workspace` fans out across 2 inventoried surfaces and reuses one published audience tuple.","tupleId":"FMTUP_127_SURF_SUPPORT_ASSISTED_CAPTURE_V1","publishedAudienceSurfaceRef":"audsurf_support_workspace","surfacePublicationRef":"ASPR_050_SUPPORT_WORKSPACE_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_support_workspace","governingBoundedContextRef":"support","canonicalObjectDescriptorRef":"SupportTicket","continuityEvidenceContractRefs":["CRP_106_SUPPORT_V1","SAP_050_RF_SUPPORT_REPLAY_OBSERVE_V1","SAP_050_RF_SUPPORT_TICKET_WORKSPACE_V1","SCF_050_SUPPORT_WORKSPACE_V1","SHC_050_RF_SUPPORT_REPLAY_OBSERVE_V1","SHC_050_RF_SUPPORT_TICKET_WORKSPACE_V1"],"gatewaySurfaceRefs":["gws_support_assisted_capture"],"gatewaySurfacePrimaryRef":"gws_support_assisted_capture","browserVisible":true,"browserPostureState":"recovery_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"degraded","designPublicationState":"published","bindingDigestRef":"065fb15e3a9d2ba9","sourceTaskRefs":["par_094","par_106","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is recovery_only for Support routes.","Design lint verdict is dclv::support_workspace::pending.","blueprint-init.md#2. Core product surfaces","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/forensic-audit-findings.md#Finding 114","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","blueprint/staff-operations-and-support-blueprint.md#Support route contract","data/analysis/gateway_bff_surfaces.json#gws_support_ticket_workspace","data/analysis/tenant_isolation_matrix.csv#TIM_SUPPORT_DELEGATE","phase-0-the-foundation-protocol.md#6.5 Support and replay algorithm","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md","staff-operations-and-support-blueprint.md#Support route contract"],"uiBadgeLabel":"recovery only","reasonTitles":["Accessibility coverage is degraded, so the tuple remains bounded and guarded instead of exact.","The release parity row only permits recovery-only posture.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]},{"surfaceAuthorityVerdictId":"ASV_130_SURF_SUPPORT_TICKET_WORKSPACE_V1","audienceSurfaceRuntimeBindingId":"ASRB_050_SUPPORT_WORKSPACE_V1","audienceSurface":"audsurf_support_workspace","audienceSurfaceLabel":"Support routes","inventorySurfaceRef":"surf_support_ticket_workspace","inventorySurfaceLabel":"Support ticket workspace","routeFamilyRef":"rf_support_ticket_workspace","routeFamilyLabel":"/ops/support, /ops/support/inbox/:viewKey, /ops/support/tickets/:supportTicketId, /conversation, /history, /knowledge, /actions/:actionKey, /handoff/:supportOwnershipTransferId","shellType":"support","shellSlug":"support-workspace","surfaceRouteContractRef":"ASRC_050_SUPPORT_WORKSPACE_V1","frontendContractManifestRef":"FCM_050_SUPPORT_WORKSPACE_V1","runtimePublicationBundleRef":"rpb::local::authoritative","releasePublicationParityRef":"rpp::local::authoritative","releaseRef":"RC_LOCAL_V1","designContractPublicationBundleRef":"dcpb::support_workspace::planned","designContractLintVerdictRef":"dclv::support_workspace::pending","projectionContractVersionSetRef":"PCVS_050_SUPPORT_WORKSPACE_V1","visibilityCoverageRefs":["AVC_054_SUPPORT_WORKSPACE_V1"],"bindingState":"recovery_only","calmTruthState":"suppressed","writableTruthState":"recovery_only","recoveryDispositionRefs":["RFD_050_SUPPORT_WORKSPACE_V1","RRD_SUPPORT_CAPTURE_READ_ONLY","RRD_SUPPORT_CAPTURE_RECOVERY","RRD_SUPPORT_REPLAY_MASKED","RRD_SUPPORT_REPLAY_RESTORE_FROZEN","RRD_SUPPORT_WORKSPACE_READ_ONLY"],"routeFreezeDispositionRefs":["RFD_050_SUPPORT_WORKSPACE_V1"],"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_RECOVERY_ONLY","MFV_127_DESIGN_LINT_PENDING"],"notes":"Release parity is exact, but calm live truth is still bounded by browser posture, design lint, or accessibility ceilings. Route family `rf_support_ticket_workspace` fans out across 2 inventoried surfaces and reuses one published audience tuple.","tupleId":"FMTUP_127_SURF_SUPPORT_TICKET_WORKSPACE_V1","publishedAudienceSurfaceRef":"audsurf_support_workspace","surfacePublicationRef":"ASPR_050_SUPPORT_WORKSPACE_V1","surfaceAuthorityRowRef":"RC_LOCAL_V1--audsurf_support_workspace","governingBoundedContextRef":"support","canonicalObjectDescriptorRef":"SupportTicket","continuityEvidenceContractRefs":["CRP_106_SUPPORT_V1","SAP_050_RF_SUPPORT_REPLAY_OBSERVE_V1","SAP_050_RF_SUPPORT_TICKET_WORKSPACE_V1","SCF_050_SUPPORT_WORKSPACE_V1","SHC_050_RF_SUPPORT_REPLAY_OBSERVE_V1","SHC_050_RF_SUPPORT_TICKET_WORKSPACE_V1"],"gatewaySurfaceRefs":["gws_support_ticket_workspace"],"gatewaySurfacePrimaryRef":"gws_support_ticket_workspace","browserVisible":true,"browserPostureState":"recovery_only","parityState":"exact","publicationState":"published","runtimePublicationState":"published","routeExposureState":"constrained","accessibilityCoverageState":"degraded","designPublicationState":"published","bindingDigestRef":"e5dd0c03b3eb06ec","sourceTaskRefs":["par_094","par_106","seq_044","seq_047","seq_050","seq_052","seq_127","seq_130"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is recovery_only for Support routes.","Design lint verdict is dclv::support_workspace::pending.","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/forensic-audit-findings.md#Finding 114","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","blueprint/staff-operations-and-support-blueprint.md#Support route contract","data/analysis/gateway_bff_surfaces.json#gws_support_ticket_workspace","data/analysis/tenant_isolation_matrix.csv#TIM_SUPPORT_DELEGATE","phase-0-the-foundation-protocol.md#6.5 Support and replay algorithm","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md","staff-operations-and-support-blueprint.md#Support route contract"],"uiBadgeLabel":"recovery only","reasonTitles":["Accessibility coverage is degraded, so the tuple remains bounded and guarded instead of exact.","The release parity row only permits recovery-only posture.","The published design bundle still carries a pending lint verdict, so calm presentation cannot be claimed."]}]}</script>
+    <div class="page">
+      <header class="masthead" aria-label="Board summary">
+        <section class="brand">
+          <div class="wordmark">
+            <span class="tuple-mark" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <circle cx="5" cy="10" r="3.5" stroke="#5B61F6" stroke-width="1.5"></circle>
+                <circle cx="15" cy="5" r="3" stroke="#117A55" stroke-width="1.5"></circle>
+                <circle cx="15" cy="15" r="3" stroke="#B7791F" stroke-width="1.5"></circle>
+                <path d="M8.4 8.2L12.2 6.1M8.4 11.8L12.2 13.9" stroke="#24313D" stroke-width="1.4" stroke-linecap="round"></path>
+              </svg>
+            </span>
+            <div class="brand-copy">
+              <span class="brand-mode">Vecells</span>
+              <span class="brand-title">Audience_Surface_Parity_Board</span>
+            </div>
+          </div>
+          <span class="mono" data-testid="generated-at"></span>
+        </section>
+        <section class="summary-pill">
+          <div>
+            <div class="summary-label">Current rows</div>
+            <div class="summary-value" data-testid="summary-row-count"></div>
+          </div>
+          <span class="badge state-partial" data-testid="summary-parity-state">exact parity</span>
+        </section>
+        <section class="summary-pill">
+          <div>
+            <div class="summary-label">Recovery only</div>
+            <div class="summary-value" data-testid="summary-recovery-count"></div>
+          </div>
+          <span class="truth-chip">bounded same-shell</span>
+        </section>
+        <section class="summary-pill">
+          <div>
+            <div class="summary-label">Blocked</div>
+            <div class="summary-value" data-testid="summary-blocked-count"></div>
+          </div>
+          <span class="truth-chip">explicitly surfaced</span>
+        </section>
+      </header>
+
+      <div class="layout">
+        <nav class="filter-rail" aria-label="Audience surface filters">
+          <div>
+            <h2>Filters</h2>
+            <p class="filter-note">
+              Every filter applies to the lattice, parity heatmap, recovery ladder, and
+              the lower table together.
+            </p>
+          </div>
+          <div class="filter-group">
+            <label for="filter-audience-surface">Audience surface</label>
+            <select id="filter-audience-surface" data-testid="filter-audience-surface"></select>
+          </div>
+          <div class="filter-group">
+            <label for="filter-shell-type">Shell type</label>
+            <select id="filter-shell-type" data-testid="filter-shell-type"></select>
+          </div>
+          <div class="filter-group">
+            <label for="filter-binding-state">Binding state</label>
+            <select id="filter-binding-state" data-testid="filter-binding-state"></select>
+          </div>
+          <div class="filter-group">
+            <label for="filter-route-family">Route family</label>
+            <select id="filter-route-family" data-testid="filter-route-family"></select>
+          </div>
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Ceiling</h2>
+              <span>Current law</span>
+            </div>
+            <ul class="ceiling-list" data-testid="ceiling-reasons"></ul>
+          </section>
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Legend</h2>
+              <span>State law</span>
+            </div>
+            <div class="legend-stack" data-testid="state-legend"></div>
+          </section>
+        </nav>
+
+        <main class="board-stack">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Surface Lattice</h2>
+              <span>Audience and route tuples</span>
+            </div>
+            <p class="caption">
+              One node per current audience-surface plus route-family truth row. Selecting
+              a node synchronizes the parity heatmap, recovery ladder, and inspector.
+            </p>
+            <div class="lattice-grid" data-testid="surface-lattice"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Parity Heatmap</h2>
+              <span>Calm and writable truth</span>
+            </div>
+            <table class="heatmap-table" data-testid="parity-heatmap">
+              <caption class="visually-hidden">Audience-surface parity heatmap</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Surface</th>
+                  <th scope="col">Binding</th>
+                  <th scope="col">Calm truth</th>
+                  <th scope="col">Writable truth</th>
+                  <th scope="col">Parity</th>
+                </tr>
+              </thead>
+              <tbody data-testid="heatmap-body"></tbody>
+            </table>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Recovery Ladder</h2>
+              <span>Declared non-live posture</span>
+            </div>
+            <div class="ladder" data-testid="recovery-ladder"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Table Parity</h2>
+              <span>Accessible row parity</span>
+            </div>
+            <table class="parity-table" data-testid="table-parity">
+              <caption class="visually-hidden">Audience-surface runtime binding parity table</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Surface and route</th>
+                  <th scope="col">Binding</th>
+                  <th scope="col">Runtime and release</th>
+                  <th scope="col">Reasons</th>
+                </tr>
+              </thead>
+              <tbody data-testid="parity-table-body"></tbody>
+            </table>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>State Reference</h2>
+              <span>Rendering law</span>
+            </div>
+            <table class="state-reference-table" data-testid="state-reference-table">
+              <caption class="visually-hidden">Reference rows for live, recovery, partial, blocked, and drifted rendering</caption>
+              <thead>
+                <tr>
+                  <th scope="col">State</th>
+                  <th scope="col">Rendering summary</th>
+                </tr>
+              </thead>
+              <tbody data-testid="state-reference-body"></tbody>
+            </table>
+          </section>
+        </main>
+
+        <aside class="inspector" data-testid="inspector" aria-live="polite">
+          <div>
+            <h2>Inspector</h2>
+            <p class="inspector-note">
+              The inspector exposes the exact tuple and parity basis for the selected row.
+            </p>
+          </div>
+          <section class="inspector-card">
+            <div class="panel-header">
+              <h2>Selected row</h2>
+              <span data-testid="inspector-binding-state"></span>
+            </div>
+            <div class="inspector-list" data-testid="inspector-primary"></div>
+          </section>
+          <section class="inspector-card">
+            <div class="panel-header">
+              <h2>Tuple refs</h2>
+              <span>Exact handles</span>
+            </div>
+            <div class="inspector-list" data-testid="inspector-refs"></div>
+          </section>
+          <section class="inspector-card">
+            <div class="panel-header">
+              <h2>Reason refs</h2>
+              <span>Why this row is bounded</span>
+            </div>
+            <div class="inspector-list" data-testid="inspector-reasons"></div>
+          </section>
+        </aside>
+      </div>
+    </div>
+
+    <script>
+      const board = JSON.parse(document.getElementById("board-data").textContent);
+      const stateClassByBinding = {
+        publishable_live: "state-publishable_live",
+        recovery_only: "state-recovery_only",
+        partial: "state-partial",
+        blocked: "state-blocked",
+        drifted: "state-drifted",
+      };
+      const truthLabel = {
+        allowed: "allowed",
+        suppressed: "suppressed",
+        diagnostic_only: "diagnostic only",
+        blocked: "blocked",
+        recovery_only: "recovery only",
+      };
+
+      const filterEls = {
+        audienceSurface: document.querySelector("[data-testid='filter-audience-surface']"),
+        shellType: document.querySelector("[data-testid='filter-shell-type']"),
+        bindingState: document.querySelector("[data-testid='filter-binding-state']"),
+        routeFamily: document.querySelector("[data-testid='filter-route-family']"),
+      };
+
+      const latticeEl = document.querySelector("[data-testid='surface-lattice']");
+      const heatmapBodyEl = document.querySelector("[data-testid='heatmap-body']");
+      const recoveryEl = document.querySelector("[data-testid='recovery-ladder']");
+      const tableBodyEl = document.querySelector("[data-testid='parity-table-body']");
+      const inspectorPrimaryEl = document.querySelector("[data-testid='inspector-primary']");
+      const inspectorRefsEl = document.querySelector("[data-testid='inspector-refs']");
+      const inspectorReasonsEl = document.querySelector("[data-testid='inspector-reasons']");
+      const inspectorBindingStateEl = document.querySelector("[data-testid='inspector-binding-state']");
+
+      let filters = {
+        audienceSurface: "all",
+        shellType: "all",
+        bindingState: "all",
+        routeFamily: "all",
+      };
+      let selectedId = board.surfaceAuthorityRows[0]?.surfaceAuthorityVerdictId ?? null;
+
+      function setReducedMotionFlag() {
+        const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+        const update = () => {
+          document.body.setAttribute("data-reduced-motion", mediaQuery.matches ? "true" : "false");
+        };
+        update();
+        if (typeof mediaQuery.addEventListener === "function") {
+          mediaQuery.addEventListener("change", update);
+        } else if (typeof mediaQuery.addListener === "function") {
+          mediaQuery.addListener(update);
+        }
+      }
+
+      function formatLabel(value) {
+        return String(value || "").replace(/_/g, " ");
+      }
+
+      function createOption(select, value, label) {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        select.appendChild(option);
+      }
+
+      function populateFilters() {
+        createOption(filterEls.audienceSurface, "all", "All audience surfaces");
+        board.filterOptions.audienceSurfaces.forEach((option) => {
+          createOption(filterEls.audienceSurface, option.value, `${option.label} (${option.count})`);
+        });
+        createOption(filterEls.shellType, "all", "All shell types");
+        board.filterOptions.shellTypes.forEach((option) => {
+          createOption(filterEls.shellType, option.value, `${option.label} (${option.count})`);
+        });
+        createOption(filterEls.bindingState, "all", "All binding states");
+        board.filterOptions.bindingStates.forEach((option) => {
+          createOption(filterEls.bindingState, option.value, `${formatLabel(option.label)} (${option.count})`);
+        });
+        createOption(filterEls.routeFamily, "all", "All route families");
+        const seenRouteRefs = new Set();
+        board.filterOptions.routeFamilies.forEach((option) => {
+          if (seenRouteRefs.has(option.value)) return;
+          seenRouteRefs.add(option.value);
+          createOption(filterEls.routeFamily, option.value, `${option.value} · ${option.label}`);
+        });
+      }
+
+      function getVisibleRows() {
+        return board.surfaceAuthorityRows.filter((row) => {
+          if (filters.audienceSurface !== "all" && row.audienceSurface !== filters.audienceSurface) return false;
+          if (filters.shellType !== "all" && row.shellType !== filters.shellType) return false;
+          if (filters.bindingState !== "all" && row.bindingState !== filters.bindingState) return false;
+          if (filters.routeFamily !== "all" && row.routeFamilyRef !== filters.routeFamily) return false;
+          return true;
+        });
+      }
+
+      function ensureSelection(visibleRows) {
+        if (!visibleRows.length) {
+          selectedId = null;
+          return;
+        }
+        if (!visibleRows.some((row) => row.surfaceAuthorityVerdictId === selectedId)) {
+          selectedId = visibleRows[0].surfaceAuthorityVerdictId;
+        }
+      }
+
+      function getSelectedRow(visibleRows) {
+        return visibleRows.find((row) => row.surfaceAuthorityVerdictId === selectedId) || visibleRows[0] || null;
+      }
+
+      function bindDirectionalNavigation(button, visibleRows, currentId) {
+        button.addEventListener("keydown", (event) => {
+          if (!["ArrowDown", "ArrowRight", "ArrowUp", "ArrowLeft"].includes(event.key)) return;
+          event.preventDefault();
+          const ids = visibleRows.map((row) => row.surfaceAuthorityVerdictId);
+          const currentIndex = ids.indexOf(currentId);
+          if (currentIndex === -1) return;
+          const delta = event.key === "ArrowDown" || event.key === "ArrowRight" ? 1 : -1;
+          const nextIndex = Math.max(0, Math.min(ids.length - 1, currentIndex + delta));
+          selectedId = ids[nextIndex];
+          render();
+          const next = document.querySelector(`[data-row-id="${selectedId}"]`);
+          if (next) next.focus();
+        });
+      }
+
+      function renderLegend() {
+        const legendEl = document.querySelector("[data-testid='state-legend']");
+        legendEl.innerHTML = "";
+        Object.entries(board.stateCatalog.bindingState).forEach(([state, description]) => {
+          const row = document.createElement("div");
+          row.className = "legend-row";
+          row.innerHTML = `
+            <span class="badge ${stateClassByBinding[state]}">${formatLabel(state)}</span>
+            <p class="legend-copy">${description}</p>
+          `;
+          legendEl.appendChild(row);
+        });
+      }
+
+      function renderCeilingReasons() {
+        const ceilingEl = document.querySelector("[data-testid='ceiling-reasons']");
+        ceilingEl.innerHTML = "";
+        board.publicationCeilingReasons.forEach((reason) => {
+          const item = document.createElement("li");
+          item.textContent = reason;
+          ceilingEl.appendChild(item);
+        });
+      }
+
+      function renderStateReference() {
+        const body = document.querySelector("[data-testid='state-reference-body']");
+        body.innerHTML = "";
+        board.stateReferenceRows.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.setAttribute("data-testid", `state-reference-${row.bindingState}`);
+          tr.innerHTML = `
+            <td>
+              <span class="badge ${stateClassByBinding[row.bindingState]}">${formatLabel(row.bindingState)}</span>
+            </td>
+            <td>${row.summary}</td>
+          `;
+          body.appendChild(tr);
+        });
+      }
+
+      function renderSummary(visibleRows) {
+        document.querySelector("[data-testid='generated-at']").textContent = board.generated_at;
+        document.querySelector("[data-testid='summary-row-count']").textContent = String(visibleRows.length);
+        document.querySelector("[data-testid='summary-recovery-count']").textContent = String(
+          visibleRows.filter((row) => row.bindingState === "recovery_only").length,
+        );
+        document.querySelector("[data-testid='summary-blocked-count']").textContent = String(
+          visibleRows.filter((row) => row.bindingState === "blocked").length,
+        );
+      }
+
+      function renderLattice(visibleRows, selectedRow) {
+        latticeEl.innerHTML = "";
+        visibleRows.forEach((row) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "lattice-node";
+          button.dataset.testid = `lattice-node-${row.surfaceAuthorityVerdictId}`;
+          button.dataset.rowId = row.surfaceAuthorityVerdictId;
+          button.dataset.selected = String(selectedRow && selectedRow.surfaceAuthorityVerdictId === row.surfaceAuthorityVerdictId);
+          button.setAttribute("data-testid", `lattice-node-${row.surfaceAuthorityVerdictId}`);
+          button.innerHTML = `
+            <div class="node-topline">
+              <div>
+                <div class="node-title">${row.inventorySurfaceLabel}</div>
+                <div class="node-meta">${row.routeFamilyRef}</div>
+              </div>
+              <span class="badge ${stateClassByBinding[row.bindingState]}">${formatLabel(row.bindingState)}</span>
+            </div>
+            <p class="node-summary">${row.audienceSurface} · ${row.shellType} shell</p>
+            <div class="node-meta">${row.calmTruthState} calm · ${row.writableTruthState} writable</div>
+          `;
+          button.addEventListener("click", () => {
+            selectedId = row.surfaceAuthorityVerdictId;
+            render();
+          });
+          bindDirectionalNavigation(button, visibleRows, row.surfaceAuthorityVerdictId);
+          latticeEl.appendChild(button);
+        });
+      }
+
+      function renderHeatmap(visibleRows, selectedRow) {
+        heatmapBodyEl.innerHTML = "";
+        visibleRows.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.dataset.selected = String(selectedRow && selectedRow.surfaceAuthorityVerdictId === row.surfaceAuthorityVerdictId);
+          tr.innerHTML = `
+            <td>
+              <button type="button" class="heatmap-button" data-testid="heatmap-row-${row.surfaceAuthorityVerdictId}" data-row-id="${row.surfaceAuthorityVerdictId}">
+                <div class="heatmap-cell">
+                  <strong>${row.inventorySurfaceLabel}</strong>
+                  <span class="heatmap-subtext">${row.routeFamilyRef}</span>
+                </div>
+              </button>
+            </td>
+            <td><span class="badge ${stateClassByBinding[row.bindingState]}">${formatLabel(row.bindingState)}</span></td>
+            <td><span class="truth-chip">${truthLabel[row.calmTruthState]}</span></td>
+            <td><span class="truth-chip">${truthLabel[row.writableTruthState]}</span></td>
+            <td><span class="truth-chip">${row.parityState}</span></td>
+          `;
+          const button = tr.querySelector("button");
+          button.addEventListener("click", () => {
+            selectedId = row.surfaceAuthorityVerdictId;
+            render();
+          });
+          bindDirectionalNavigation(button, visibleRows, row.surfaceAuthorityVerdictId);
+          heatmapBodyEl.appendChild(tr);
+        });
+      }
+
+      function renderRecovery(selectedRow) {
+        recoveryEl.innerHTML = "";
+        if (!selectedRow) return;
+        const primary = document.createElement("div");
+        primary.className = "ladder-step";
+        primary.setAttribute("data-testid", `recovery-primary-${selectedRow.surfaceAuthorityVerdictId}`);
+        primary.innerHTML = `
+          <div class="ladder-step-header">
+            <h3>${selectedRow.inventorySurfaceLabel}</h3>
+            <span class="badge ${stateClassByBinding[selectedRow.bindingState]}">${formatLabel(selectedRow.bindingState)}</span>
+          </div>
+          <p class="caption">${selectedRow.notes}</p>
+        `;
+        recoveryEl.appendChild(primary);
+
+        selectedRow.recoveryDispositionRefs.forEach((ref, index) => {
+          const step = document.createElement("div");
+          step.className = "ladder-step";
+          step.setAttribute("data-testid", `recovery-step-${index}`);
+          step.innerHTML = `
+            <div class="ladder-step-header">
+              <h3>${ref}</h3>
+              <span class="truth-chip">${ref.startsWith("RFD_") ? "freeze" : "recovery"}</span>
+            </div>
+            <p class="caption">${formatLabel(ref)}</p>
+          `;
+          recoveryEl.appendChild(step);
+        });
+      }
+
+      function renderInspector(selectedRow) {
+        inspectorPrimaryEl.innerHTML = "";
+        inspectorRefsEl.innerHTML = "";
+        inspectorReasonsEl.innerHTML = "";
+        if (!selectedRow) {
+          inspectorBindingStateEl.textContent = "No visible row";
+          return;
+        }
+        inspectorBindingStateEl.innerHTML = `<span class="badge ${stateClassByBinding[selectedRow.bindingState]}">${formatLabel(selectedRow.bindingState)}</span>`;
+        [
+          ["Surface", selectedRow.inventorySurfaceLabel],
+          ["Audience", selectedRow.audienceSurface],
+          ["Route family", selectedRow.routeFamilyRef],
+          ["Shell", selectedRow.shellType],
+          ["Calm truth", selectedRow.calmTruthState],
+          ["Writable truth", selectedRow.writableTruthState],
+        ].forEach(([label, value]) => {
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = `<span class="inspector-key">${label}</span><span>${value}</span>`;
+          inspectorPrimaryEl.appendChild(wrapper);
+        });
+        [
+          ["Binding id", selectedRow.audienceSurfaceRuntimeBindingId],
+          ["Inventory surface", selectedRow.inventorySurfaceRef || "Not inventoried"],
+          ["Runtime bundle", selectedRow.runtimePublicationBundleRef],
+          ["Release parity", selectedRow.releasePublicationParityRef],
+          ["Manifest", selectedRow.frontendContractManifestRef || "Not published"],
+          ["Design bundle", selectedRow.designContractPublicationBundleRef || "Not published"],
+          ["Projection set", selectedRow.projectionContractVersionSetRef || "Not published"],
+        ].forEach(([label, value]) => {
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = `<span class="inspector-key">${label}</span><code>${value}</code>`;
+          inspectorRefsEl.appendChild(wrapper);
+        });
+        selectedRow.reasonRefs.forEach((reasonRef) => {
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = `<span class="inspector-key">${reasonRef}</span><span>${formatLabel(reasonRef)}</span>`;
+          inspectorReasonsEl.appendChild(wrapper);
+        });
+      }
+
+      function renderTable(visibleRows, selectedRow) {
+        tableBodyEl.innerHTML = "";
+        visibleRows.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.dataset.selected = String(selectedRow && selectedRow.surfaceAuthorityVerdictId === row.surfaceAuthorityVerdictId);
+          tr.innerHTML = `
+            <td>
+              <button type="button" class="table-button" data-testid="table-row-${row.surfaceAuthorityVerdictId}" data-row-id="${row.surfaceAuthorityVerdictId}">
+                <div class="heatmap-cell">
+                  <strong>${row.inventorySurfaceLabel}</strong>
+                  <span class="heatmap-subtext">${row.audienceSurface} · ${row.routeFamilyRef}</span>
+                </div>
+              </button>
+            </td>
+            <td>
+              <div class="heatmap-cell">
+                <span class="badge ${stateClassByBinding[row.bindingState]}">${formatLabel(row.bindingState)}</span>
+                <span class="heatmap-subtext">${row.calmTruthState} calm · ${row.writableTruthState} writable</span>
+              </div>
+            </td>
+            <td>
+              <div class="heatmap-cell">
+                <span class="heatmap-subtext">${row.runtimePublicationBundleRef}</span>
+                <span class="heatmap-subtext">${row.releasePublicationParityRef}</span>
+              </div>
+            </td>
+            <td>
+              <div class="heatmap-cell">
+                <span>${row.reasonRefs.join(", ") || "None"}</span>
+                <span class="heatmap-subtext">${row.recoveryDispositionRefs.join(", ") || "None declared"}</span>
+              </div>
+            </td>
+          `;
+          const button = tr.querySelector("button");
+          button.addEventListener("click", () => {
+            selectedId = row.surfaceAuthorityVerdictId;
+            render();
+          });
+          bindDirectionalNavigation(button, visibleRows, row.surfaceAuthorityVerdictId);
+          tableBodyEl.appendChild(tr);
+        });
+      }
+
+      function render() {
+        const visibleRows = getVisibleRows();
+        ensureSelection(visibleRows);
+        const selectedRow = getSelectedRow(visibleRows);
+        renderSummary(visibleRows);
+        renderLattice(visibleRows, selectedRow);
+        renderHeatmap(visibleRows, selectedRow);
+        renderRecovery(selectedRow);
+        renderInspector(selectedRow);
+        renderTable(visibleRows, selectedRow);
+      }
+
+      function wireFilters() {
+        Object.entries(filterEls).forEach(([key, element]) => {
+          element.addEventListener("change", () => {
+            filters[key] = element.value;
+            render();
+          });
+        });
+      }
+
+      setReducedMotionFlag();
+      populateFilters();
+      renderLegend();
+      renderCeilingReasons();
+      renderStateReference();
+      wireFilters();
+      render();
+    </script>
+  </body>
+</html>

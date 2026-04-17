@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reachability Truth Studio</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f7f9fc;
+        --panel: #ffffff;
+        --rail: #eef3f8;
+        --inset: #f4f7fb;
+        --text-strong: #0f172a;
+        --text-default: #1e293b;
+        --text-muted: #667085;
+        --border-subtle: #e2e8f0;
+        --clear: #0f9d58;
+        --risk: #c98900;
+        --repair: #3559e6;
+        --disputed: #7c3aed;
+        --blocked: #c24141;
+        --shadow: 0 20px 40px rgba(15, 23, 42, 0.06);
+        --radius: 20px;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: linear-gradient(180deg, #ffffff 0%, var(--canvas) 42%, #edf3f8 100%);
+        color: var(--text-default);
+      }
+      body[data-reduced-motion="true"] * {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+      }
+      .shell {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      header {
+        min-height: 72px;
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid var(--border-subtle);
+        border-radius: 28px;
+        box-shadow: var(--shadow);
+        padding: 18px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+      }
+      .brand {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+      }
+      .brand-mark {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #dbeafe, #ffffff);
+        border: 1px solid var(--border-subtle);
+        display: grid;
+        place-items: center;
+      }
+      .brand-mark svg { width: 28px; height: 28px; }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(120px, 1fr));
+        gap: 12px;
+        flex: 1;
+      }
+      .metric {
+        background: var(--inset);
+        border: 1px solid var(--border-subtle);
+        border-radius: 18px;
+        padding: 10px 14px;
+      }
+      .metric .value {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: var(--text-strong);
+      }
+      main {
+        margin-top: 20px;
+        display: grid;
+        grid-template-columns: 308px minmax(0, 1fr) 404px;
+        gap: 20px;
+        align-items: start;
+      }
+      aside, section, .panel {
+        background: var(--panel);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+      .rail {
+        background: var(--rail);
+        padding: 18px;
+        display: grid;
+        gap: 14px;
+      }
+      .rail label {
+        display: grid;
+        gap: 8px;
+        font-size: 0.92rem;
+        color: var(--text-muted);
+      }
+      select {
+        min-height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--border-subtle);
+        padding: 0 14px;
+        background: #fff;
+        color: var(--text-default);
+      }
+      .center {
+        display: grid;
+        gap: 20px;
+      }
+      .canvas-panel {
+        padding: 20px;
+      }
+      .canvas-panel h2,
+      .panel h2,
+      aside h2 {
+        margin: 0 0 10px;
+        font-size: 1rem;
+        color: var(--text-strong);
+      }
+      .constellation {
+        min-height: 260px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 14px;
+      }
+      .dependency-card,
+      .snapshot-card,
+      .assessment-card {
+        border: 1px solid var(--border-subtle);
+        border-radius: 18px;
+        background: linear-gradient(180deg, #ffffff 0%, #f9fbfd 100%);
+        padding: 14px;
+        text-align: left;
+        transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+      }
+      .dependency-card:hover,
+      .dependency-card:focus-visible,
+      .snapshot-card:hover,
+      .snapshot-card:focus-visible {
+        transform: translateY(-2px);
+        border-color: #cbd5e1;
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+      }
+      .dependency-card[data-selected="true"],
+      .snapshot-card[data-selected="true"] {
+        border-color: var(--repair);
+        box-shadow: 0 0 0 3px rgba(53, 89, 230, 0.12);
+      }
+      .state-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        background: var(--inset);
+        color: var(--text-muted);
+      }
+      .state-pill.clear { color: var(--clear); }
+      .state-pill.at_risk { color: var(--risk); }
+      .state-pill.blocked { color: var(--blocked); }
+      .state-pill.disputed { color: var(--disputed); }
+      .split {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+        gap: 20px;
+      }
+      .stack,
+      .cards {
+        display: grid;
+        gap: 12px;
+      }
+      .stack .snapshot-card {
+        min-height: 170px;
+      }
+      .inspector {
+        padding: 20px;
+        transition: transform 220ms ease, opacity 220ms ease;
+      }
+      .inspector dl {
+        margin: 0;
+        display: grid;
+        gap: 10px;
+      }
+      .inspector dt {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .inspector dd {
+        margin: 0;
+        color: var(--text-default);
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .lower {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 20px;
+      }
+      .ribbon {
+        display: grid;
+        gap: 10px;
+        padding: 18px 20px;
+        background: linear-gradient(90deg, rgba(53, 89, 230, 0.08), rgba(255, 255, 255, 0.96));
+      }
+      .ribbon strong {
+        color: var(--text-strong);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+      }
+      th, td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-subtle);
+        text-align: left;
+      }
+      tbody tr[data-selected="true"] {
+        background: rgba(53, 89, 230, 0.08);
+      }
+      .parity {
+        margin: 8px 0 0;
+        color: var(--text-muted);
+        font-size: 0.84rem;
+      }
+      .matrix-table-wrap {
+        margin-top: 16px;
+        border-radius: 18px;
+        overflow: hidden;
+        border: 1px solid var(--border-subtle);
+      }
+      @media (max-width: 1180px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+        .split,
+        .lower {
+          grid-template-columns: 1fr;
+        }
+        .metrics {
+          grid-template-columns: repeat(2, minmax(120px, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="6" y="8" width="36" height="32" rx="10" fill="#3559E6" opacity="0.12"/>
+              <path d="M15 33V15H24.5C28.2 15 30.5 17.1 30.5 20.3C30.5 22.7 29.2 24.2 27.1 24.8L31.8 33H27.5L23.4 25.5H18.7V33H15ZM18.7 22.5H24.2C25.9 22.5 27 21.6 27 20.2C27 18.7 25.9 17.9 24.2 17.9H18.7V22.5Z" fill="#3559E6"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-size:1.05rem;font-weight:700;color:#0f172a;">Vecells Reachability Truth Studio</div>
+            <div style="font-size:0.9rem;color:#667085;">Authoritative promise-protection board for route trust, delivery risk, and same-shell repair.</div>
+          </div>
+        </div>
+        <div class="metrics">
+          <div class="metric"><div>Active dependencies</div><div class="value" data-testid="metric-active-dependencies">0</div></div>
+          <div class="metric"><div>Blocked promises</div><div class="value" data-testid="metric-blocked-promises">0</div></div>
+          <div class="metric"><div>Repair journeys</div><div class="value" data-testid="metric-repair-journeys">0</div></div>
+          <div class="metric"><div>Clear routes</div><div class="value" data-testid="metric-clear-routes">0</div></div>
+        </div>
+      </header>
+      <main>
+        <aside class="rail" aria-label="Filters">
+          <h2>Filters</h2>
+          <label>Domain
+            <select id="domain-filter" data-testid="domain-filter">
+              <option value="all">All domains</option>
+            </select>
+          </label>
+          <label>Route kind
+            <select id="route-kind-filter" data-testid="route-kind-filter">
+              <option value="all">All route kinds</option>
+            </select>
+          </label>
+          <label>Assessment state
+            <select id="assessment-state-filter" data-testid="assessment-state-filter">
+              <option value="all">All assessment states</option>
+              <option value="clear">clear</option>
+              <option value="at_risk">at_risk</option>
+              <option value="blocked">blocked</option>
+              <option value="disputed">disputed</option>
+            </select>
+          </label>
+          <label>Repair state
+            <select id="repair-state-filter" data-testid="repair-state-filter">
+              <option value="all">All repair states</option>
+              <option value="none">none</option>
+              <option value="repair_required">repair_required</option>
+              <option value="awaiting_verification">awaiting_verification</option>
+            </select>
+          </label>
+        </aside>
+        <section class="center">
+          <section class="canvas-panel">
+            <h2>Dependency constellation</h2>
+            <div class="constellation" data-testid="constellation"></div>
+            <p class="parity" data-testid="constellation-parity"></p>
+            <div class="matrix-table-wrap">
+              <table data-testid="dependency-matrix-table">
+                <thead>
+                  <tr><th>Dependency</th><th>Domain</th><th>Assessment</th><th>Repair</th></tr>
+                </thead>
+                <tbody data-testid="dependency-matrix-body"></tbody>
+              </table>
+            </div>
+          </section>
+          <section class="canvas-panel split">
+            <div>
+              <h2>Route snapshot stack</h2>
+              <div class="stack" data-testid="snapshot-stack"></div>
+              <p class="parity" data-testid="snapshot-parity"></p>
+            </div>
+            <div>
+              <h2>Assessment cards</h2>
+              <div class="cards" data-testid="assessment-cards"></div>
+            </div>
+          </section>
+          <section class="panel ribbon" data-testid="repair-ribbon" aria-live="polite"></section>
+          <section class="lower">
+            <section class="canvas-panel">
+              <h2>Observation log</h2>
+              <table data-testid="observation-table">
+                <thead>
+                  <tr><th>Observation</th><th>Source</th><th>Polarity</th><th>Observed</th></tr>
+                </thead>
+                <tbody data-testid="observation-body"></tbody>
+              </table>
+            </section>
+            <section class="canvas-panel">
+              <h2>Verification checkpoints</h2>
+              <table data-testid="checkpoint-table">
+                <thead>
+                  <tr><th>Checkpoint</th><th>Method</th><th>State</th><th>Rebind</th></tr>
+                </thead>
+                <tbody data-testid="checkpoint-body"></tbody>
+              </table>
+            </section>
+          </section>
+        </section>
+        <aside class="inspector" data-testid="inspector" aria-live="polite"></aside>
+      </main>
+    </div>
+    <script>
+      const state = {
+        manifest: null,
+        casebook: null,
+        matrix: [],
+        filters: { domain: "all", routeKind: "all", assessment: "all", repair: "all" },
+        selectedDependencyId: null,
+      };
+
+      const el = {
+        domainFilter: document.querySelector("[data-testid='domain-filter']"),
+        routeKindFilter: document.querySelector("[data-testid='route-kind-filter']"),
+        assessmentFilter: document.querySelector("[data-testid='assessment-state-filter']"),
+        repairFilter: document.querySelector("[data-testid='repair-state-filter']"),
+        constellation: document.querySelector("[data-testid='constellation']"),
+        constellationParity: document.querySelector("[data-testid='constellation-parity']"),
+        snapshotStack: document.querySelector("[data-testid='snapshot-stack']"),
+        snapshotParity: document.querySelector("[data-testid='snapshot-parity']"),
+        inspector: document.querySelector("[data-testid='inspector']"),
+        observationBody: document.querySelector("[data-testid='observation-body']"),
+        checkpointBody: document.querySelector("[data-testid='checkpoint-body']"),
+        assessmentCards: document.querySelector("[data-testid='assessment-cards']"),
+        matrixBody: document.querySelector("[data-testid='dependency-matrix-body']"),
+        repairRibbon: document.querySelector("[data-testid='repair-ribbon']"),
+        activeDependencies: document.querySelector("[data-testid='metric-active-dependencies']"),
+        blockedPromises: document.querySelector("[data-testid='metric-blocked-promises']"),
+        repairJourneys: document.querySelector("[data-testid='metric-repair-journeys']"),
+        clearRoutes: document.querySelector("[data-testid='metric-clear-routes']"),
+      };
+
+      function csvToRows(text) {
+        const lines = text.trim().split(/\r?\n/);
+        const header = lines.shift().split(",");
+        return lines.map((line) => {
+          const values = line.split(",");
+          return Object.fromEntries(header.map((key, index) => [key, values[index] ?? ""]));
+        });
+      }
+
+      function maps() {
+        const snapshotsById = new Map(state.manifest.snapshots.map((snapshot) => [snapshot.contactRouteSnapshotId, snapshot]));
+        const assessmentsById = new Map(state.manifest.assessments.map((assessment) => [assessment.reachabilityAssessmentId, assessment]));
+        const journeysById = new Map(state.manifest.repair_journeys.map((journey) => [journey.repairJourneyId, journey]));
+        const checkpointsById = new Map(state.manifest.verification_checkpoints.map((checkpoint) => [checkpoint.checkpointId, checkpoint]));
+        return { snapshotsById, assessmentsById, journeysById, checkpointsById };
+      }
+
+      function latestJourneyForDependency(dependencyId) {
+        return state.manifest.repair_journeys
+          .filter((journey) => journey.reachabilityDependencyRef === dependencyId)
+          .sort((left, right) => left.issuedAt.localeCompare(right.issuedAt))
+          .at(-1) ?? null;
+      }
+
+      function dependencyEnvelope(dependency) {
+        const { snapshotsById, assessmentsById, journeysById } = maps();
+        return {
+          dependency,
+          snapshot: snapshotsById.get(dependency.currentContactRouteSnapshotRef),
+          assessment: assessmentsById.get(dependency.currentReachabilityAssessmentRef),
+          journey:
+            (dependency.repairJourneyRef
+              ? journeysById.get(dependency.repairJourneyRef)
+              : latestJourneyForDependency(dependency.dependencyId)) ?? null,
+        };
+      }
+
+      function visibleDependencies() {
+        return state.manifest.dependencies.filter((dependency) => {
+          const envelope = dependencyEnvelope(dependency);
+          return (
+            (state.filters.domain === "all" || dependency.domain === state.filters.domain) &&
+            (state.filters.routeKind === "all" || envelope.snapshot.routeKind === state.filters.routeKind) &&
+            (state.filters.assessment === "all" || envelope.assessment.assessmentState === state.filters.assessment) &&
+            (state.filters.repair === "all" || dependency.repairState === state.filters.repair)
+          );
+        });
+      }
+
+      function ensureSelection() {
+        const visible = visibleDependencies();
+        if (visible.length === 0) {
+          state.selectedDependencyId = null;
+          return null;
+        }
+        if (!visible.some((dependency) => dependency.dependencyId === state.selectedDependencyId)) {
+          state.selectedDependencyId = visible[0].dependencyId;
+        }
+        return visible.find((dependency) => dependency.dependencyId === state.selectedDependencyId);
+      }
+
+      function setSelectedDependency(dependencyId) {
+        state.selectedDependencyId = dependencyId;
+        render();
+      }
+
+      function renderFilters() {
+        const domains = [...new Set(state.manifest.dependencies.map((dependency) => dependency.domain))].sort();
+        const routeKinds = [...new Set(state.manifest.snapshots.map((snapshot) => snapshot.routeKind))].sort();
+        for (const [select, values] of [
+          [el.domainFilter, domains],
+          [el.routeKindFilter, routeKinds],
+        ]) {
+          const existing = new Set([...select.options].map((option) => option.value));
+          for (const value of values) {
+            if (!existing.has(value)) {
+              const option = document.createElement("option");
+              option.value = value;
+              option.textContent = value;
+              select.append(option);
+            }
+          }
+        }
+      }
+
+      function renderMetrics() {
+        el.activeDependencies.textContent = String(state.manifest.summary.active_dependency_count);
+        el.blockedPromises.textContent = String(state.manifest.summary.blocked_promise_count);
+        el.repairJourneys.textContent = String(state.manifest.summary.repair_journey_count);
+        el.clearRoutes.textContent = String(state.manifest.summary.clear_route_count);
+      }
+
+      function renderConstellation(selected) {
+        const visible = visibleDependencies();
+        el.constellation.innerHTML = "";
+        for (const dependency of visible) {
+          const envelope = dependencyEnvelope(dependency);
+          const button = document.createElement("button");
+          button.className = "dependency-card";
+          button.type = "button";
+          button.dataset.testid = `dependency-card-${dependency.dependencyId}`;
+          button.setAttribute("data-testid", `dependency-card-${dependency.dependencyId}`);
+          button.setAttribute("data-selected", String(dependency.dependencyId === selected?.dependencyId));
+          button.innerHTML = `
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:start;">
+              <strong class="mono">${dependency.dependencyId}</strong>
+              <span class="state-pill ${envelope.assessment.assessmentState}">${envelope.assessment.assessmentState}</span>
+            </div>
+            <div style="margin-top:10px;font-size:0.9rem;color:#1e293b;">${dependency.domain} · ${dependency.purpose}</div>
+            <div style="margin-top:6px;font-size:0.84rem;color:#667085;">${envelope.snapshot.routeKind} · ${dependency.repairState}</div>
+            <div style="margin-top:12px;font-size:0.84rem;color:#0f172a;">${envelope.assessment.dominantReasonCode}</div>
+          `;
+          button.addEventListener("click", () => setSelectedDependency(dependency.dependencyId));
+          button.addEventListener("keydown", (event) => handleArrowNavigation(event, visible.map((entry) => entry.dependencyId)));
+          el.constellation.append(button);
+        }
+        el.constellationParity.textContent = `${visible.length} visible dependencies mirrored in the dependency matrix below.`;
+      }
+
+      function renderMatrix(selected) {
+        const visibleIds = new Set(visibleDependencies().map((dependency) => dependency.dependencyId));
+        el.matrixBody.innerHTML = "";
+        for (const row of state.matrix.filter((entry) => visibleIds.has(entry.dependency_id))) {
+          const tr = document.createElement("tr");
+          tr.tabIndex = 0;
+          tr.setAttribute("data-testid", `matrix-row-${row.dependency_id}`);
+          tr.setAttribute("data-selected", String(row.dependency_id === selected?.dependencyId));
+          tr.innerHTML = `
+            <td class="mono">${row.dependency_id}</td>
+            <td>${row.domain}</td>
+            <td>${row.assessment_state}</td>
+            <td>${row.repair_state}</td>
+          `;
+          tr.addEventListener("click", () => setSelectedDependency(row.dependency_id));
+          tr.addEventListener("keydown", (event) =>
+            handleArrowNavigation(event, [...visibleIds], "matrix-row"),
+          );
+          el.matrixBody.append(tr);
+        }
+      }
+
+      function routeStack(routeRef) {
+        return state.manifest.snapshots
+          .filter((snapshot) => snapshot.routeRef === routeRef)
+          .sort((left, right) => left.snapshotVersion - right.snapshotVersion);
+      }
+
+      function renderSnapshotStack(selected) {
+        if (!selected) {
+          el.snapshotStack.innerHTML = "";
+          el.snapshotParity.textContent = "No visible dependency is selected.";
+          return;
+        }
+        const stack = routeStack(selected.requiredRouteRef);
+        el.snapshotStack.innerHTML = "";
+        for (const snapshot of stack) {
+          const button = document.createElement("button");
+          button.className = "snapshot-card";
+          button.type = "button";
+          button.setAttribute("data-testid", `snapshot-row-${snapshot.contactRouteSnapshotId}`);
+          button.setAttribute("data-selected", String(snapshot.contactRouteSnapshotId === selected.currentContactRouteSnapshotRef));
+          button.innerHTML = `
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:start;">
+              <strong class="mono">${snapshot.contactRouteSnapshotId}</strong>
+              <span class="state-pill ${snapshot.verificationState === "verified_current" ? "clear" : snapshot.verificationState === "unverified" ? "at_risk" : "blocked"}">${snapshot.verificationState}</span>
+            </div>
+            <div style="margin-top:8px;font-size:0.84rem;color:#667085;">version ${snapshot.snapshotVersion} · ${snapshot.routeVersionRef}</div>
+            <div style="margin-top:10px;font-size:0.88rem;color:#1e293b;">${snapshot.summary}</div>
+          `;
+          el.snapshotStack.append(button);
+        }
+        el.snapshotParity.textContent = `${stack.length} frozen route snapshots exist for ${selected.requiredRouteRef}.`;
+      }
+
+      function renderAssessmentCards() {
+        const visible = visibleDependencies();
+        el.assessmentCards.innerHTML = "";
+        for (const dependency of visible) {
+          const assessment = dependencyEnvelope(dependency).assessment;
+          const card = document.createElement("article");
+          card.className = "assessment-card";
+          card.innerHTML = `
+            <div style="display:flex;justify-content:space-between;gap:12px;">
+              <strong class="mono">${assessment.reachabilityAssessmentId}</strong>
+              <span class="state-pill ${assessment.assessmentState}">${assessment.assessmentState}</span>
+            </div>
+            <div style="margin-top:10px;color:#667085;font-size:0.84rem;">${assessment.routeAuthorityState} · ${assessment.deliverabilityState}</div>
+            <div style="margin-top:8px;font-size:0.9rem;">${assessment.dominantReasonCode}</div>
+          `;
+          el.assessmentCards.append(card);
+        }
+      }
+
+      function renderRepairRibbon(selected) {
+        if (!selected) {
+          el.repairRibbon.innerHTML = "<h2>Repair spotlight</h2><div>No visible dependency is selected.</div>";
+          return;
+        }
+        const { journey, assessment } = dependencyEnvelope(selected);
+        if (!journey) {
+          el.repairRibbon.innerHTML = `
+            <h2>Repair spotlight</h2>
+            <strong>${selected.dependencyId} is not inside an active repair journey.</strong>
+            <div>Current posture is ${assessment.assessmentState} with ${assessment.dominantReasonCode}.</div>
+          `;
+          return;
+        }
+        const checkpoint = state.manifest.verification_checkpoints.find(
+          (entry) => entry.repairJourneyRef === journey.repairJourneyId,
+        );
+        el.repairRibbon.innerHTML = `
+          <h2>Repair spotlight</h2>
+          <strong class="mono">${journey.repairJourneyId}</strong>
+          <div>
+            Journey state is <span class="state-pill ${assessment.assessmentState}">${journey.journeyState}</span>
+            and current reason is <span class="mono">${assessment.dominantReasonCode}</span>.
+          </div>
+          <div class="mono">
+            anchor=${journey.selectedAnchorRef} · return=${journey.requestReturnBundleRef || "none"} ·
+            resume=${journey.resumeContinuationRef || "none"} · checkpoint=${checkpoint ? checkpoint.checkpointId : "none"}
+          </div>
+        `;
+      }
+
+      function renderInspector(selected) {
+        if (!selected) {
+          el.inspector.innerHTML = "<h2>No visible dependency</h2>";
+          return;
+        }
+        const { snapshot, assessment, journey } = dependencyEnvelope(selected);
+        const checkpoints = state.manifest.verification_checkpoints.filter(
+          (checkpoint) => checkpoint.repairJourneyRef === journey?.repairJourneyId,
+        );
+        const sourceRefs = selected.sourceRefs.map((ref) => `<li class="mono">${ref}</li>`).join("");
+        el.inspector.innerHTML = `
+          <h2>Selected dependency</h2>
+          <dl>
+            <div><dt>Dependency</dt><dd class="mono">${selected.dependencyId}</dd></div>
+            <div><dt>Purpose</dt><dd>${selected.domain} · ${selected.purpose}</dd></div>
+            <div><dt>Current snapshot</dt><dd class="mono">${snapshot.contactRouteSnapshotId}</dd></div>
+            <div><dt>Current assessment</dt><dd class="mono">${assessment.reachabilityAssessmentId}</dd></div>
+            <div><dt>Reason</dt><dd>${assessment.dominantReasonCode}</dd></div>
+            <div><dt>Blocked scopes</dt><dd class="mono">${selected.blockedActionScopeRefs.join(", ")}</dd></div>
+            <div><dt>Repair journey</dt><dd class="mono">${journey ? journey.repairJourneyId : "none"}</dd></div>
+            <div><dt>Checkpoint</dt><dd class="mono">${checkpoints[0] ? checkpoints[0].checkpointId : "none"}</dd></div>
+            <div><dt>Return bundle</dt><dd class="mono">${selected.requestReturnBundleRef || "none"}</dd></div>
+            <div><dt>Resume continuation</dt><dd class="mono">${selected.resumeContinuationRef || "none"}</dd></div>
+          </dl>
+          <h2 style="margin-top:18px;">Source trace</h2>
+          <ul style="padding-left:18px;margin:8px 0 0;">${sourceRefs}</ul>
+        `;
+      }
+
+      function renderObservationTable(selected) {
+        el.observationBody.innerHTML = "";
+        if (!selected) return;
+        const observations = state.manifest.observations
+          .filter((observation) => observation.reachabilityDependencyRef === selected.dependencyId)
+          .sort((left, right) => left.observedAt.localeCompare(right.observedAt));
+        for (const observation of observations) {
+          const tr = document.createElement("tr");
+          tr.tabIndex = 0;
+          tr.setAttribute("data-testid", `observation-row-${observation.reachabilityObservationId}`);
+          tr.setAttribute("data-selected", "true");
+          tr.innerHTML = `
+            <td>${observation.observationClass}</td>
+            <td>${observation.observationSourceRef}</td>
+            <td>${observation.outcomePolarity} · ${observation.authorityWeight}</td>
+            <td class="mono">${observation.observedAt}</td>
+          `;
+          tr.addEventListener("keydown", (event) => handleArrowNavigation(event, observations.map((entry) => entry.reachabilityObservationId), "observation-row"));
+          el.observationBody.append(tr);
+        }
+      }
+
+      function renderCheckpointTable(selected) {
+        el.checkpointBody.innerHTML = "";
+        if (!selected) return;
+        const checkpoints = state.manifest.verification_checkpoints.filter((checkpoint) => {
+          const journey = state.manifest.repair_journeys.find((entry) => entry.repairJourneyId === checkpoint.repairJourneyRef);
+          return journey?.reachabilityDependencyRef === selected.dependencyId;
+        });
+        for (const checkpoint of checkpoints) {
+          const tr = document.createElement("tr");
+          tr.tabIndex = 0;
+          tr.setAttribute("data-testid", `checkpoint-row-${checkpoint.checkpointId}`);
+          tr.setAttribute("data-selected", "true");
+          tr.innerHTML = `
+            <td class="mono">${checkpoint.checkpointId}</td>
+            <td>${checkpoint.verificationMethod}</td>
+            <td>${checkpoint.verificationState}</td>
+            <td>${checkpoint.rebindState}</td>
+          `;
+          tr.addEventListener("keydown", (event) => handleArrowNavigation(event, checkpoints.map((entry) => entry.checkpointId), "checkpoint-row"));
+          el.checkpointBody.append(tr);
+        }
+      }
+
+      function handleArrowNavigation(event, ids, prefix = "dependency-card") {
+        if (!["ArrowDown", "ArrowUp"].includes(event.key) || ids.length === 0) {
+          return;
+        }
+        event.preventDefault();
+        const currentId = event.currentTarget.getAttribute("data-testid").replace(`${prefix}-`, "");
+        const currentIndex = ids.indexOf(currentId);
+        const delta = event.key === "ArrowDown" ? 1 : -1;
+        const nextId = ids[(currentIndex + delta + ids.length) % ids.length];
+        if (prefix === "dependency-card" || prefix === "matrix-row") {
+          setSelectedDependency(nextId);
+          requestAnimationFrame(() =>
+            document.querySelector(`[data-testid='${prefix}-${nextId}']`)?.focus(),
+          );
+        } else {
+          requestAnimationFrame(() => document.querySelector(`[data-testid='${prefix}-${nextId}']`)?.focus());
+        }
+      }
+
+      function render() {
+        const selected = ensureSelection();
+        renderMetrics();
+        renderConstellation(selected);
+        renderMatrix(selected);
+        renderSnapshotStack(selected);
+        renderAssessmentCards();
+        renderRepairRibbon(selected);
+        renderInspector(selected);
+        renderObservationTable(selected);
+        renderCheckpointTable(selected);
+      }
+
+      async function init() {
+        document.body.setAttribute(
+          "data-reduced-motion",
+          String(window.matchMedia("(prefers-reduced-motion: reduce)").matches),
+        );
+        const [manifest, casebook, matrixCsv] = await Promise.all([
+          fetch("../../data/analysis/contact_route_snapshot_manifest.json").then((response) => response.json()),
+          fetch("../../data/analysis/reachability_assessment_casebook.json").then((response) => response.json()),
+          fetch("../../data/analysis/reachability_dependency_matrix.csv").then((response) => response.text()),
+        ]);
+        state.manifest = manifest;
+        state.casebook = casebook;
+        state.matrix = csvToRows(matrixCsv);
+        renderFilters();
+        for (const [key, node] of [
+          ["domain", el.domainFilter],
+          ["routeKind", el.routeKindFilter],
+          ["assessment", el.assessmentFilter],
+          ["repair", el.repairFilter],
+        ]) {
+          node.addEventListener("change", (event) => {
+            state.filters[key] = event.target.value;
+            render();
+          });
+        }
+        render();
+      }
+
+      init().catch((error) => {
+        console.error(error);
+        document.body.innerHTML = `<pre>${error.message}</pre>`;
+      });
+    </script>
+  </body>
+</html>

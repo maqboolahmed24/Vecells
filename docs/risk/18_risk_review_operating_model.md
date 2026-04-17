@@ -5,6 +5,7 @@
         ## Risk Ownership Split
 
         | Owner role | Risk count |
+
 | --- | --- |
 | ROLE_BOOKING_DOMAIN_LEAD | 1 |
 | ROLE_CLINICAL_PRODUCT_LEAD | 6 |
@@ -22,6 +23,7 @@
         ## Dependency Ownership Split
 
         | Dependency type | Count |
+
 | --- | --- |
 | external_approval | 2 |
 | external_service | 10 |

@@ -1,0 +1,34 @@
+{
+  "artifactId": "PARALLEL_INTERFACE_GAP_PHASE3_TRIAGE_KERNEL",
+  "taskId": "par_231",
+  "status": "explicit_temporary_seams",
+  "gaps": [
+    {
+      "gapId": "GAP_231_SYNTHETIC_COMMAND_WITNESS_FOR_UNOWNED_STATES",
+      "stateFamily": [
+        "triage_ready",
+        "awaiting_patient_info",
+        "review_resumed",
+        "closed",
+        "reopened"
+      ],
+      "why": "These states do not hold a live RequestLifecycleLease, so CommandActionRecord cannot be fenced through the control-plane lease backbone yet.",
+      "currentBehavior": "services/command-api/src/phase3-triage-kernel.ts emits explicit synthetic command witness refs and still appends TaskCommandSettlement plus transition journal rows.",
+      "futureOwner": "par_233 / par_241 / par_242 consumers",
+      "closureRule": "Replace synthetic witnesses only when an authoritative unowned-state command envelope is published; do not weaken tuple checks on live-owner commands."
+    },
+    {
+      "gapId": "GAP_231_INTERNAL_ACTION_SCOPE_EXTENSION",
+      "stateFamily": [
+        "queued",
+        "resolved_without_appointment",
+        "handoff_pending",
+        "takeover"
+      ],
+      "why": "The runtime kernel needs backend-local scopes such as move_to_queue, resolved_without_appointment, handoff_pending, and take_over_stale_task before the later Phase 3 consequence tracks publish final consumer settlement scopes.",
+      "currentBehavior": "packages/domains/triage_workspace/src/phase3-triage-kernel.ts stores the precise backend action scope and keeps downstream consequence transitions fail closed on missing contract refs.",
+      "futureOwner": "par_239 / par_240 / par_241 / par_242",
+      "closureRule": "Collapse to the final published settlement scope family only when those tracks freeze their consumer-visible action vocabulary."
+    }
+  ]
+}

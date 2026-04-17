@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Phase 1 Burst Resilience Lab</title>
+    <style>
+      :root {
+        --ink: #162118;
+        --paper: #f4efe3;
+        --mist: #e7dec8;
+        --line: rgba(22, 33, 24, 0.18);
+        --pine: #153f32;
+        --moss: #66844d;
+        --signal: #d97138;
+        --sun: #f2b84b;
+        --lagoon: #2e6f72;
+        --danger: #9f3528;
+        --masthead-height: 72px;
+        --left-rail-width: 292px;
+        --right-inspector-width: 404px;
+        font-family: "Avenir Next Condensed", "Gill Sans", "Trebuchet MS", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 18% 10%, rgba(217, 113, 56, 0.22), transparent 26rem),
+          radial-gradient(circle at 78% 8%, rgba(46, 111, 114, 0.18), transparent 24rem),
+          linear-gradient(135deg, #f7f0df 0%, #d7ceb8 56%, #c4d0b0 100%);
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .skip-link {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 20;
+        transform: translateY(-160%);
+        border: 2px solid var(--ink);
+        border-radius: 999px;
+        background: var(--sun);
+        padding: 10px 14px;
+      }
+
+      .skip-link:focus {
+        transform: translateY(0);
+      }
+
+      .lab-shell {
+        width: min(100%, var(--max-width, 1600px));
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 18px;
+      }
+
+      .masthead {
+        min-height: var(--masthead-height);
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 16px;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        padding: 12px 18px;
+        background: rgba(244, 239, 227, 0.84);
+        box-shadow: 0 24px 70px rgba(22, 33, 24, 0.16);
+        backdrop-filter: blur(18px);
+      }
+
+      .eyebrow {
+        margin: 0 0 2px;
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.7rem, 4vw, 3.6rem);
+        line-height: 0.92;
+        letter-spacing: -0.04em;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        border-radius: 999px;
+        background: var(--pine);
+        color: #f9f4e8;
+        padding: 10px 16px;
+        font-weight: 800;
+      }
+
+      .lab-grid {
+        display: grid;
+        grid-template-columns: var(--left-rail-width) minmax(0, 1fr) var(--right-inspector-width);
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      .panel {
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 30px;
+        background: rgba(244, 239, 227, 0.82);
+        box-shadow: 0 18px 52px rgba(22, 33, 24, 0.13);
+      }
+
+      .rail,
+      .inspector {
+        align-self: start;
+        position: sticky;
+        top: 18px;
+        padding: 14px;
+      }
+
+      .profile-button {
+        display: grid;
+        width: 100%;
+        min-height: 66px;
+        margin: 0 0 10px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 250, 239, 0.74);
+        color: var(--ink);
+        padding: 12px;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .profile-button[aria-pressed="true"] {
+        background: var(--pine);
+        color: #fff8e8;
+      }
+
+      button:focus-visible,
+      a:focus-visible {
+        outline: 4px solid var(--signal);
+        outline-offset: 4px;
+      }
+
+      main {
+        min-width: 0;
+      }
+
+      .hero-card {
+        position: relative;
+        overflow: hidden;
+        padding: 24px;
+      }
+
+      .hero-card::before {
+        content: "";
+        position: absolute;
+        inset: auto -12% -42% 38%;
+        height: 260px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(242, 184, 75, 0.55), transparent 66%);
+        pointer-events: none;
+      }
+
+      .ribbon {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin: 18px 0;
+      }
+
+      .metric {
+        min-height: 96px;
+        border-radius: 22px;
+        background: rgba(255, 250, 239, 0.78);
+        padding: 14px;
+      }
+
+      .metric span,
+      .metric strong {
+        display: block;
+      }
+
+      .metric span {
+        color: rgba(22, 33, 24, 0.68);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+
+      .metric strong {
+        margin-top: 8px;
+        font-size: 1.55rem;
+      }
+
+      .diagram-row {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 16px;
+      }
+
+      .wave-wrap,
+      .braid,
+      .ladder {
+        border: 1px solid var(--line);
+        border-radius: 26px;
+        background: rgba(255, 250, 239, 0.72);
+        padding: 14px;
+      }
+
+      svg {
+        max-width: 100%;
+        height: auto;
+      }
+
+      .wave-path {
+        stroke-dasharray: 18 12;
+        animation: wave-drift 3.2s linear infinite;
+      }
+
+      @keyframes wave-drift {
+        to {
+          stroke-dashoffset: -120;
+        }
+      }
+
+      .braid-lines {
+        display: grid;
+        gap: 8px;
+      }
+
+      .braid-line {
+        display: grid;
+        grid-template-columns: 86px 1fr auto;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .braid-line::before {
+        content: "";
+        height: 10px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--moss), var(--signal));
+      }
+
+      .ladder-step {
+        display: grid;
+        grid-template-columns: 34px 1fr;
+        gap: 10px;
+        align-items: start;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .ladder-step:last-child {
+        border-bottom: 0;
+      }
+
+      .step-index {
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--pine);
+        color: #fff8e8;
+        font-weight: 900;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+        overflow: hidden;
+        border-radius: 18px;
+        background: rgba(255, 250, 239, 0.84);
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 10px;
+        text-align: left;
+        vertical-align: top;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      th {
+        background: rgba(21, 63, 50, 0.12);
+        font-size: 0.76rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .fault-row {
+        cursor: pointer;
+      }
+
+      .fault-row[aria-selected="true"] {
+        background: rgba(242, 184, 75, 0.28);
+      }
+
+      .inspector h2,
+      .rail h2,
+      .section-title {
+        margin: 0 0 10px;
+        font-size: 1rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .truth-box {
+        border-radius: 22px;
+        background: var(--pine);
+        color: #fff8e8;
+        padding: 16px;
+      }
+
+      .truth-box [data-testid="surface-mode"] {
+        margin: 0 0 8px;
+        color: var(--sun);
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .footer-bar {
+        position: sticky;
+        bottom: 12px;
+        z-index: 5;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        align-items: center;
+        margin-top: 18px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(22, 33, 24, 0.92);
+        color: #fff8e8;
+        padding: 10px 14px;
+        box-shadow: 0 14px 38px rgba(22, 33, 24, 0.28);
+      }
+
+      .footer-bar button {
+        min-height: 44px;
+        border: 0;
+        border-radius: 999px;
+        background: var(--sun);
+        color: var(--ink);
+        padding: 10px 16px;
+        font-weight: 900;
+      }
+
+      [data-testid="reduced-motion-state"] {
+        display: inline-flex;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 8px 10px;
+        background: rgba(255, 250, 239, 0.78);
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.001ms !important;
+        }
+      }
+
+      @media (max-width: 1180px) {
+        .lab-grid {
+          grid-template-columns: 240px minmax(0, 1fr);
+        }
+
+        .inspector {
+          position: static;
+          grid-column: 1 / -1;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .lab-shell {
+          padding: 10px;
+        }
+
+        .masthead,
+        .footer-bar,
+        .diagram-row,
+        .ribbon,
+        .lab-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .rail,
+        .inspector {
+          position: static;
+        }
+
+        .profile-button {
+          min-height: 52px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#lab-main">Skip to resilience evidence</a>
+    <div class="lab-shell" id="Burst_Resilience_Lab" data-testid="Burst_Resilience_Lab">
+      <header class="masthead" data-testid="masthead">
+        <div>
+          <p class="eyebrow">Phase 1 Performance / seq_168</p>
+          <h1>Burst Resilience Lab</h1>
+        </div>
+        <span class="status-pill">Fail-closed under degraded truth</span>
+      </header>
+
+      <div class="lab-grid">
+        <aside class="panel rail" aria-label="Load profile rail" data-testid="profile-fault-rail">
+          <h2>Load Profiles</h2>
+          <div id="profile-list"></div>
+        </aside>
+
+        <main id="lab-main" tabindex="-1">
+          <section class="panel hero-card" aria-labelledby="selected-title">
+            <p class="eyebrow">Selected pressure profile</p>
+            <h2 id="selected-title" data-testid="selected-profile-title">Loading profile</h2>
+            <p id="selected-posture">Loading machine-readable resilience posture.</p>
+            <div class="ribbon" data-testid="load-profile-ribbon">
+              <div class="metric">
+                <span>Peak pressure</span>
+                <strong id="metric-peak">--</strong>
+              </div>
+              <div class="metric">
+                <span>p95 budget</span>
+                <strong id="metric-p95">--</strong>
+              </div>
+              <div class="metric">
+                <span>Recovery</span>
+                <strong id="metric-recovery">--</strong>
+              </div>
+              <div class="metric">
+                <span>Duplicate effects</span>
+                <strong id="metric-duplicates">--</strong>
+              </div>
+            </div>
+
+            <div class="diagram-row">
+              <section class="wave-wrap" aria-labelledby="wave-title">
+                <h3 class="section-title" id="wave-title">Throughput Wave</h3>
+                <svg
+                  id="throughput_wave_mark"
+                  data-testid="throughput_wave_mark"
+                  role="img"
+                  aria-labelledby="throughput-wave-title throughput-wave-desc"
+                  viewBox="0 0 640 260"
+                >
+                  <title id="throughput-wave-title">
+                    Throughput pressure and backpressure wave
+                  </title>
+                  <desc id="throughput-wave-desc">
+                    The wave rises through burst pressure, then narrows into bounded degraded
+                    recovery.
+                  </desc>
+                  <rect width="640" height="260" rx="34" fill="#153f32" />
+                  <path
+                    class="wave-path"
+                    d="M30 164 C106 70 160 232 236 134 C316 30 386 214 456 112 C520 28 580 114 612 80"
+                    fill="none"
+                    stroke="#f2b84b"
+                    stroke-width="16"
+                    stroke-linecap="round"
+                  />
+                  <path
+                    d="M32 198 C118 160 170 194 244 176 C322 158 386 188 468 150 C548 112 596 142 612 134"
+                    fill="none"
+                    stroke="#d97138"
+                    stroke-width="8"
+                    stroke-linecap="round"
+                    opacity="0.9"
+                  />
+                  <text x="34" y="44" fill="#fff8e8" font-size="20" font-weight="800">
+                    pressure, backpressure, recovery
+                  </text>
+                </svg>
+              </section>
+
+              <section
+                class="braid"
+                aria-labelledby="braid-title"
+                data-testid="side-effect-integrity-braid"
+              >
+                <h3 class="section-title" id="braid-title">Side-Effect Integrity Braid</h3>
+                <div class="braid-lines">
+                  <div class="braid-line"><span>request</span><strong>exact once</strong></div>
+                  <div class="braid-line"><span>triage</span><strong>exact once</strong></div>
+                  <div class="braid-line"><span>notify</span><strong>pending truth</strong></div>
+                  <div class="braid-line"><span>receipt</span><strong>replay safe</strong></div>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section
+            class="panel hero-card"
+            style="margin-top: 18px"
+            data-testid="degraded-mode-ladder"
+          >
+            <h2 class="section-title">Degraded-Mode Ladder</h2>
+            <div class="ladder">
+              <div class="ladder-step">
+                <span class="step-index">1</span>
+                <span
+                  >Detect degraded backend truth and keep the user anchored to the request
+                  shell.</span
+                >
+              </div>
+              <div class="ladder-step">
+                <span class="step-index">2</span>
+                <span
+                  >Fence mutating controls when lease, route freeze, scan, or settlement truth is
+                  unsafe.</span
+                >
+              </div>
+              <div class="ladder-step">
+                <span class="step-index">3</span>
+                <span
+                  >Show recovery state with explicit pending truth instead of detached generic
+                  errors.</span
+                >
+              </div>
+              <div class="ladder-step">
+                <span class="step-index">4</span>
+                <span
+                  >Recover into authoritative receipt, replay receipt, or read-only
+                  continuity.</span
+                >
+              </div>
+            </div>
+          </section>
+
+          <section class="panel hero-card" style="margin-top: 18px">
+            <h2 class="section-title">Metrics And Fault Tables</h2>
+            <table data-testid="load-profile-ribbon-table">
+              <thead>
+                <tr>
+                  <th>Profile</th>
+                  <th>Family</th>
+                  <th>Peak rps</th>
+                  <th>Posture</th>
+                </tr>
+              </thead>
+              <tbody id="profile-table-body"></tbody>
+            </table>
+
+            <table data-testid="metrics-table">
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>Budget</th>
+                  <th>Source</th>
+                </tr>
+              </thead>
+              <tbody id="metrics-table-body"></tbody>
+            </table>
+
+            <table data-testid="side-effect-integrity-table">
+              <thead>
+                <tr>
+                  <th>Side effect</th>
+                  <th>Duplicate threshold</th>
+                  <th>Authority</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Request shell</td>
+                  <td>0</td>
+                  <td>IntakeSubmitSettlement</td>
+                </tr>
+                <tr>
+                  <td>Triage task</td>
+                  <td>0</td>
+                  <td>Request ref scoped triage</td>
+                </tr>
+                <tr>
+                  <td>Communication envelope</td>
+                  <td>0</td>
+                  <td>Envelope idempotency key</td>
+                </tr>
+                <tr>
+                  <td>Receipt bridge</td>
+                  <td>0</td>
+                  <td>Promoted request ref</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <table data-testid="fault-table">
+              <thead>
+                <tr>
+                  <th>Fault</th>
+                  <th>Backend truth</th>
+                  <th>Browser posture</th>
+                  <th>Fail-closed rule</th>
+                </tr>
+              </thead>
+              <tbody id="fault-table-body"></tbody>
+            </table>
+
+            <table data-testid="degraded-mode-table">
+              <thead>
+                <tr>
+                  <th>Mode</th>
+                  <th>Required user-visible truth</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Projection lag</td>
+                  <td>Stale projection with receipt truth; no generic detached error</td>
+                </tr>
+                <tr>
+                  <td>Notification delay</td>
+                  <td>Request received and notification pending; no premature reassurance</td>
+                </tr>
+                <tr>
+                  <td>Route-freeze drift</td>
+                  <td>Fail-closed mutation with recovery route proof</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <table data-testid="budget-table">
+              <thead>
+                <tr>
+                  <th>Budget</th>
+                  <th>Target</th>
+                </tr>
+              </thead>
+              <tbody id="budget-table-body"></tbody>
+            </table>
+
+            <table data-testid="parity-table">
+              <thead>
+                <tr>
+                  <th>Visual</th>
+                  <th>Table parity</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>throughput_wave_mark</td>
+                  <td>metrics-table</td>
+                </tr>
+                <tr>
+                  <td>load-profile-ribbon</td>
+                  <td>load-profile-ribbon-table</td>
+                </tr>
+                <tr>
+                  <td>side-effect-integrity-braid</td>
+                  <td>side-effect-integrity-table</td>
+                </tr>
+                <tr>
+                  <td>degraded-mode-ladder</td>
+                  <td>degraded-mode-table and fault-table</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        </main>
+
+        <aside class="panel inspector" aria-live="polite" data-testid="fault-inspector">
+          <h2>Inspector</h2>
+          <div class="truth-box">
+            <p data-testid="surface-mode">bounded degraded</p>
+            <h3 id="fault-title">Loading fault</h3>
+            <p id="fault-copy">Loading expected browser posture.</p>
+          </div>
+          <p data-testid="reduced-motion-state">Reduced motion parity is required.</p>
+          <p>
+            Runtime budgets are machine-readable. Browser-visible degraded truth is backed by
+            tables, not diagram-only color.
+          </p>
+        </aside>
+      </div>
+
+      <footer class="footer-bar" data-testid="sticky-footer">
+        <span>Exact-once side effects, fail-closed mutation, visible recovery.</span>
+        <button type="button" id="focus-main">Focus evidence</button>
+      </footer>
+    </div>
+
+    <script>
+      const paths = {
+        profiles: "../../data/performance/168_load_profiles.yaml",
+        faults: "../../data/performance/168_resilience_fault_matrix.csv",
+        budgets: "../../data/performance/168_browser_budget_targets.json",
+        results: "../../data/performance/168_suite_results.json",
+      };
+
+      const state = {
+        profiles: [],
+        faults: [],
+        budgets: null,
+        results: null,
+        selectedProfile: null,
+        selectedFault: null,
+      };
+
+      function parseScalar(value) {
+        const trimmed = value.trim();
+        if (/^\d+$/.test(trimmed)) {
+          return Number(trimmed);
+        }
+        if (trimmed === "true") {
+          return true;
+        }
+        if (trimmed === "false") {
+          return false;
+        }
+        return trimmed;
+      }
+
+      function parseProfiles(text) {
+        const profiles = [];
+        let current = null;
+        for (const line of text.split(/\r?\n/)) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith("- id:")) {
+            current = { id: trimmed.replace("- id:", "").trim() };
+            profiles.push(current);
+          } else if (current && /^[a-zA-Z0-9_]+:/.test(trimmed)) {
+            const [key, ...rest] = trimmed.split(":");
+            current[key] = parseScalar(rest.join(":"));
+          }
+        }
+        return profiles;
+      }
+
+      function parseCsv(text) {
+        const [headerLine, ...lines] = text.trim().split(/\r?\n/);
+        const headers = headerLine.split(",");
+        return lines.map((line) => {
+          const values = [];
+          let current = "";
+          let inQuotes = false;
+          for (let index = 0; index < line.length; index += 1) {
+            const char = line[index];
+            if (char === '"' && line[index + 1] === '"') {
+              current += '"';
+              index += 1;
+            } else if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === "," && !inQuotes) {
+              values.push(current);
+              current = "";
+            } else {
+              current += char;
+            }
+          }
+          values.push(current);
+          return Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""]));
+        });
+      }
+
+      function cell(text) {
+        const td = document.createElement("td");
+        td.textContent = String(text);
+        return td;
+      }
+
+      function renderProfiles() {
+        const list = document.querySelector("#profile-list");
+        const body = document.querySelector("#profile-table-body");
+        list.replaceChildren();
+        body.replaceChildren();
+        for (const profile of state.profiles) {
+          const button = document.createElement("button");
+          button.className = "profile-button";
+          button.type = "button";
+          button.dataset.testid = `profile-button-${profile.id}`;
+          button.setAttribute(
+            "aria-pressed",
+            profile.id === state.selectedProfile.id ? "true" : "false",
+          );
+          button.innerHTML = `<strong>${profile.title}</strong><span>${profile.family}</span>`;
+          button.addEventListener("click", () => selectProfile(profile.id));
+          list.append(button);
+
+          const row = document.createElement("tr");
+          row.append(
+            cell(profile.id),
+            cell(profile.family),
+            cell(profile.peak_rps),
+            cell(profile.expected_posture),
+          );
+          body.append(row);
+        }
+      }
+
+      function renderMetrics() {
+        document.querySelector("#selected-title").textContent = state.selectedProfile.title;
+        document.querySelector("#selected-posture").textContent =
+          state.selectedProfile.browser_truth;
+        document.querySelector("#metric-peak").textContent =
+          `${state.selectedProfile.peak_rps} rps`;
+        document.querySelector("#metric-p95").textContent = `${state.selectedProfile.p95_ms} ms`;
+        document.querySelector("#metric-recovery").textContent =
+          `${state.selectedProfile.recovery_seconds} s`;
+        document.querySelector("#metric-duplicates").textContent =
+          state.selectedProfile.max_duplicate_side_effects;
+
+        const metricsBody = document.querySelector("#metrics-table-body");
+        metricsBody.replaceChildren();
+        [
+          ["Peak rps", state.selectedProfile.peak_rps, "168_load_profiles.yaml"],
+          ["p95 ms", state.selectedProfile.p95_ms, "168_load_profiles.yaml"],
+          ["p99 ms", state.selectedProfile.p99_ms, "168_load_profiles.yaml"],
+          ["Recovery seconds", state.selectedProfile.recovery_seconds, "168_load_profiles.yaml"],
+          [
+            "Duplicate side effects",
+            state.selectedProfile.max_duplicate_side_effects,
+            "168_suite_results.json",
+          ],
+        ].forEach(([name, value, source]) => {
+          const row = document.createElement("tr");
+          row.append(cell(name), cell(value), cell(source));
+          metricsBody.append(row);
+        });
+      }
+
+      function renderFaults() {
+        const body = document.querySelector("#fault-table-body");
+        body.replaceChildren();
+        for (const fault of state.faults) {
+          const row = document.createElement("tr");
+          row.className = "fault-row";
+          row.tabIndex = 0;
+          row.dataset.testid = `fault-row-${fault.fault_id}`;
+          row.setAttribute(
+            "aria-selected",
+            fault.fault_id === state.selectedFault.fault_id ? "true" : "false",
+          );
+          row.addEventListener("click", () => selectFault(fault.fault_id));
+          row.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              selectFault(fault.fault_id);
+            }
+          });
+          row.append(
+            cell(fault.fault_id),
+            cell(fault.expected_backend_truth),
+            cell(fault.expected_browser_posture),
+            cell(fault.fail_closed_rule),
+          );
+          body.append(row);
+        }
+      }
+
+      function renderBudgets() {
+        const body = document.querySelector("#budget-table-body");
+        body.replaceChildren();
+        const runtime = state.budgets.runtimeBudgets;
+        [
+          ["firstVisibleLabMs", runtime.firstVisibleLabMs],
+          ["profileSwitchMs", runtime.profileSwitchMs],
+          ["faultInspectorUpdateMs", runtime.faultInspectorUpdateMs],
+          ["maxCumulativeLayoutShift", runtime.maxCumulativeLayoutShift],
+          ["maxDuplicateAuthoritativeSideEffects", runtime.maxDuplicateAuthoritativeSideEffects],
+          ["maxFalseWritableDegradedStates", runtime.maxFalseWritableDegradedStates],
+        ].forEach(([name, value]) => {
+          const row = document.createElement("tr");
+          row.append(cell(name), cell(value));
+          body.append(row);
+        });
+      }
+
+      function renderInspector() {
+        document.querySelector("#fault-title").textContent = state.selectedFault.fault_id;
+        document.querySelector("#fault-copy").textContent =
+          `${state.selectedFault.expected_browser_posture}. Recovery signal: ${state.selectedFault.recovery_signal}.`;
+        const mode = document.querySelector("[data-testid='surface-mode']");
+        mode.textContent = state.selectedFault.fault_family.includes("route")
+          ? "fail-closed route drift"
+          : state.selectedFault.fault_family.includes("notification")
+            ? "notification pending"
+            : "bounded degraded";
+      }
+
+      function selectProfile(profileId) {
+        state.selectedProfile = state.profiles.find((profile) => profile.id === profileId);
+        state.selectedFault =
+          state.faults.find((fault) => fault.profile_id === profileId) ?? state.selectedFault;
+        renderProfiles();
+        renderMetrics();
+        renderFaults();
+        renderInspector();
+      }
+
+      function selectFault(faultId) {
+        state.selectedFault = state.faults.find((fault) => fault.fault_id === faultId);
+        renderFaults();
+        renderInspector();
+      }
+
+      async function boot() {
+        const [profilesText, faultsText, budgets, results] = await Promise.all([
+          fetch(paths.profiles).then((response) => response.text()),
+          fetch(paths.faults).then((response) => response.text()),
+          fetch(paths.budgets).then((response) => response.json()),
+          fetch(paths.results).then((response) => response.json()),
+        ]);
+        state.profiles = parseProfiles(profilesText);
+        state.faults = parseCsv(faultsText);
+        state.budgets = budgets;
+        state.results = results;
+        state.selectedProfile = state.profiles[0];
+        state.selectedFault = state.faults[0];
+        renderProfiles();
+        renderMetrics();
+        renderFaults();
+        renderBudgets();
+        renderInspector();
+        document.documentElement.dataset.ready = "true";
+      }
+
+      document.querySelector("#focus-main").addEventListener("click", () => {
+        document.querySelector("#lab-main").focus();
+      });
+
+      boot().catch((error) => {
+        document.querySelector("#selected-title").textContent = "Lab failed to load fixtures";
+        document.querySelector("#selected-posture").textContent = error.message;
+      });
+    </script>
+  </body>
+</html>

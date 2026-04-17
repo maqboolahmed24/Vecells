@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vecells.example/contracts/phase2/172_candidate_search_spec.schema.json",
+  "title": "CandidateSearchSpec",
+  "description": "Bounded patient candidate search contract for Phase 2 linkage. It names allowed keys, provenance, PDS seam posture, and deny-by-default boundaries before any match evidence can be scored.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "candidateSearchSpecId",
+    "schemaVersion",
+    "policyVersion",
+    "subjectRef",
+    "routeSensitivityFamily",
+    "permittedSearchKeys",
+    "ignoredSearchKeys",
+    "provenanceSources",
+    "searchBoundaries",
+    "pdsEnrichmentSeamRef",
+    "gpLinkagePosture",
+    "createdAt"
+  ],
+  "properties": {
+    "candidateSearchSpecId": {
+      "type": "string",
+      "pattern": "^css_[A-Za-z0-9_:-]+$"
+    },
+    "schemaVersion": {
+      "const": "172.phase2.patient-link.v1"
+    },
+    "policyVersion": {
+      "type": "string",
+      "pattern": "^phase2-patient-link-v[0-9]+$"
+    },
+    "subjectRef": {
+      "type": "string",
+      "description": "Opaque subject reference from auth, secure-link, support, or telephony evidence. Never a direct patient identifier."
+    },
+    "routeSensitivityFamily": {
+      "type": "string",
+      "enum": [
+        "public_intake",
+        "signed_in_draft_start",
+        "authenticated_request_status",
+        "post_sign_in_attachment_write",
+        "sms_continuation",
+        "identity_repair",
+        "future_protected_records",
+        "future_booking_surfaces"
+      ]
+    },
+    "permittedSearchKeys": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": [
+          "nhs_number_hash_exact",
+          "date_of_birth",
+          "normalized_family_name",
+          "normalized_given_name",
+          "postcode_prefix",
+          "address_token_set",
+          "contact_claim_digest",
+          "pds_demographic_ref"
+        ]
+      }
+    },
+    "ignoredSearchKeys": {
+      "type": "array",
+      "description": "Keys ignored because legal basis, provenance, route sensitivity, or freshness does not permit their use.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["searchKey", "ignoreReasonCode"],
+        "properties": {
+          "searchKey": {
+            "type": "string"
+          },
+          "ignoreReasonCode": {
+            "type": "string",
+            "pattern": "^LINK_172_[A-Z0-9_]+$"
+          }
+        }
+      }
+    },
+    "provenanceSources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": [
+          "nhs_login_claim_digest",
+          "local_patient_reference_fixture",
+          "secure_link_digest",
+          "telephony_capture_digest",
+          "support_correction_digest",
+          "pds_enrichment_digest"
+        ]
+      }
+    },
+    "searchBoundaries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "freeTextRummaging",
+        "routeLocalHeuristics",
+        "maxCandidateCount",
+        "candidateSetFreezeRule",
+        "noCandidateFallback"
+      ],
+      "properties": {
+        "freeTextRummaging": {
+          "const": "forbidden"
+        },
+        "routeLocalHeuristics": {
+          "const": "forbidden"
+        },
+        "maxCandidateCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "candidateSetFreezeRule": {
+          "const": "freeze_before_scoring_and_binding_intent"
+        },
+        "noCandidateFallback": {
+          "type": "string",
+          "enum": ["none", "candidate", "ambiguous", "correction_pending"]
+        }
+      }
+    },
+    "pdsEnrichmentSeamRef": {
+      "type": "string",
+      "description": "Reference to 172_pds_enrichment_seam.yaml. PDS is disabled by default and can only enrich candidate search through the governed provider port."
+    },
+    "gpLinkagePosture": {
+      "type": "string",
+      "enum": ["disabled_until_live_im1_prerequisites", "enabled_by_policy_prerequisite_only"]
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

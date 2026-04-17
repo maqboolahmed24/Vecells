@@ -1,0 +1,156 @@
+BEGIN;
+
+CREATE TABLE IF NOT EXISTS phase3_triage_tasks (
+  task_id TEXT PRIMARY KEY,
+  request_id TEXT NOT NULL,
+  queue_key TEXT NOT NULL,
+  assigned_to TEXT,
+  status TEXT NOT NULL,
+  review_version INTEGER NOT NULL,
+  ownership_epoch INTEGER NOT NULL,
+  fencing_token TEXT NOT NULL,
+  current_lineage_fence_epoch INTEGER NOT NULL,
+  ownership_state TEXT NOT NULL,
+  review_freshness_state TEXT NOT NULL,
+  launch_context_ref TEXT NOT NULL,
+  workspace_trust_envelope_ref TEXT NOT NULL,
+  surface_route_contract_ref TEXT NOT NULL,
+  surface_publication_ref TEXT NOT NULL,
+  runtime_publication_bundle_ref TEXT NOT NULL,
+  task_completion_settlement_envelope_ref TEXT NOT NULL,
+  lifecycle_lease_ref TEXT,
+  lease_authority_ref TEXT,
+  lease_ttl_seconds INTEGER,
+  last_heartbeat_at TEXT,
+  stale_owner_recovery_ref TEXT,
+  active_review_session_ref TEXT,
+  current_endpoint_decision_ref TEXT,
+  current_decision_epoch_ref TEXT,
+  latest_decision_supersession_ref TEXT,
+  duplicate_resolution_decision_ref TEXT,
+  duplicate_review_snapshot_ref TEXT,
+  release_recovery_disposition_ref TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  UNIQUE (request_id),
+  CHECK (review_version >= 0),
+  CHECK (ownership_epoch >= 0),
+  CHECK (current_lineage_fence_epoch >= 0),
+  CHECK (version >= 1)
+);
+
+CREATE TABLE IF NOT EXISTS phase3_review_sessions (
+  review_session_id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL,
+  opened_by TEXT NOT NULL,
+  opened_at TEXT NOT NULL,
+  last_activity_at TEXT NOT NULL,
+  session_state TEXT NOT NULL,
+  workspace_snapshot_version INTEGER NOT NULL,
+  selected_anchor_ref TEXT NOT NULL,
+  selected_anchor_tuple_hash_ref TEXT NOT NULL,
+  buffer_state TEXT NOT NULL,
+  lineage_fence_epoch INTEGER NOT NULL,
+  staff_workspace_consistency_projection_ref TEXT NOT NULL,
+  workspace_slice_trust_projection_ref TEXT NOT NULL,
+  workspace_trust_envelope_ref TEXT NOT NULL,
+  request_lifecycle_lease_ref TEXT NOT NULL,
+  review_action_lease_ref TEXT NOT NULL,
+  ownership_epoch_ref INTEGER NOT NULL,
+  audience_surface_runtime_binding_ref TEXT NOT NULL,
+  surface_route_contract_ref TEXT NOT NULL,
+  surface_publication_ref TEXT NOT NULL,
+  runtime_publication_bundle_ref TEXT NOT NULL,
+  release_recovery_disposition_ref TEXT NOT NULL,
+  transition_envelope_ref TEXT,
+  version INTEGER NOT NULL,
+  CHECK (workspace_snapshot_version >= 0),
+  CHECK (lineage_fence_epoch >= 0),
+  CHECK (ownership_epoch_ref >= 0),
+  CHECK (version >= 1)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_phase3_review_sessions_one_live_per_task
+  ON phase3_review_sessions (task_id)
+  WHERE session_state IN ('opening', 'active', 'release_pending');
+
+CREATE TABLE IF NOT EXISTS phase3_task_launch_contexts (
+  launch_context_id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL,
+  source_queue_key TEXT NOT NULL,
+  source_saved_view_ref TEXT,
+  source_row_index INTEGER,
+  source_queue_rank_snapshot_ref TEXT NOT NULL,
+  return_anchor_ref TEXT NOT NULL,
+  return_anchor_tuple_hash TEXT NOT NULL,
+  next_task_candidate_refs_json TEXT NOT NULL,
+  next_task_rank_snapshot_ref TEXT,
+  preview_snapshot_ref TEXT,
+  preview_digest_ref TEXT,
+  prefetch_window_ref TEXT,
+  prefetch_candidate_refs_json TEXT NOT NULL,
+  prefetch_rank_snapshot_ref TEXT,
+  selected_anchor_ref TEXT NOT NULL,
+  selected_anchor_tuple_hash TEXT NOT NULL,
+  changed_since_seen_at TEXT,
+  next_task_blocking_reason_refs_json TEXT NOT NULL,
+  next_task_launch_state TEXT NOT NULL,
+  departing_task_return_stub_state TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  CHECK (version >= 1)
+);
+
+CREATE TABLE IF NOT EXISTS phase3_task_command_settlements (
+  settlement_id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL,
+  action_scope TEXT NOT NULL,
+  governing_object_ref TEXT NOT NULL,
+  canonical_object_descriptor_ref TEXT NOT NULL,
+  governing_object_version_ref TEXT NOT NULL,
+  route_intent_tuple_hash TEXT NOT NULL,
+  route_intent_binding_ref TEXT NOT NULL,
+  command_action_record_ref TEXT NOT NULL,
+  command_settlement_record_ref TEXT NOT NULL,
+  transition_envelope_ref TEXT NOT NULL,
+  release_recovery_disposition_ref TEXT NOT NULL,
+  result TEXT NOT NULL,
+  local_ack_state TEXT NOT NULL,
+  processing_acceptance_state TEXT NOT NULL,
+  external_observation_state TEXT NOT NULL,
+  authoritative_outcome_state TEXT NOT NULL,
+  settlement_revision INTEGER NOT NULL,
+  causal_token TEXT NOT NULL,
+  recorded_at TEXT NOT NULL,
+  recovery_route_ref TEXT,
+  version INTEGER NOT NULL,
+  CHECK (settlement_revision >= 1),
+  CHECK (version >= 1)
+);
+
+CREATE TABLE IF NOT EXISTS phase3_task_transition_journal (
+  transition_journal_entry_id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL,
+  previous_status TEXT NOT NULL,
+  next_status TEXT NOT NULL,
+  actor_ref TEXT NOT NULL,
+  route_intent_binding_ref TEXT NOT NULL,
+  command_action_record_ref TEXT NOT NULL,
+  command_settlement_record_ref TEXT NOT NULL,
+  current_ownership_epoch INTEGER NOT NULL,
+  current_lineage_fence_epoch INTEGER NOT NULL,
+  reason_code TEXT NOT NULL,
+  emitted_event_name TEXT NOT NULL,
+  recorded_at TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  CHECK (current_ownership_epoch >= 0),
+  CHECK (current_lineage_fence_epoch >= 0),
+  CHECK (version >= 1)
+);
+
+CREATE INDEX IF NOT EXISTS idx_phase3_transition_journal_task_recorded_at
+  ON phase3_task_transition_journal (task_id, recorded_at);
+
+COMMIT;

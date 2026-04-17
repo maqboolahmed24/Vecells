@@ -1,0 +1,1005 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>47 Trust Zone And Gateway Studio</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --canvas: #F7F8FC;
+      --rail: #EEF2F8;
+      --panel: #FFFFFF;
+      --inset: #F3F5FA;
+      --text-strong: #0F172A;
+      --text-default: #1E293B;
+      --text-muted: #667085;
+      --border-subtle: #E2E8F0;
+      --border-default: #CBD5E1;
+      --gateway: #315BEA;
+      --trust: #0F9D8A;
+      --patient: #2F5BFF;
+      --staff: #6E59D9;
+      --blocked: #C24141;
+      --warning: #C98900;
+      --masthead-height: 72px;
+      --rail-width: 296px;
+      --inspector-width: 372px;
+      --radius: 18px;
+      --shadow: 0 20px 48px rgba(15, 23, 42, 0.08);
+      --transition-fast: 120ms ease;
+      --transition-select: 180ms ease;
+      --transition-panel: 220ms ease;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, rgba(49, 91, 234, 0.06), rgba(247, 248, 252, 0.94) 180px), var(--canvas);
+      color: var(--text-default);
+    }
+    body[data-reduced-motion="true"] * {
+      animation: none !important;
+      transition-duration: 0ms !important;
+      scroll-behavior: auto !important;
+    }
+    .page {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .masthead {
+      position: sticky;
+      top: 0;
+      z-index: 8;
+      min-height: var(--masthead-height);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 20px;
+      align-items: center;
+      padding: 14px 18px;
+      margin-bottom: 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(203, 213, 225, 0.92);
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(14px);
+      box-shadow: var(--shadow);
+    }
+    .wordmark {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .monogram {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(49, 91, 234, 0.18);
+      background: linear-gradient(135deg, rgba(49, 91, 234, 0.16), rgba(15, 157, 138, 0.14));
+    }
+    .eyebrow {
+      margin: 0 0 4px;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .headline {
+      margin: 0;
+      font-size: 20px;
+      color: var(--text-strong);
+    }
+    .subhead {
+      margin: 4px 0 0;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .metric-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .metric {
+      min-width: 118px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: var(--inset);
+      border: 1px solid var(--border-subtle);
+    }
+    .metric strong {
+      display: block;
+      font-size: 18px;
+      color: var(--text-strong);
+    }
+    .metric span {
+      display: block;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: var(--rail-width) minmax(0, 1fr) var(--inspector-width);
+      gap: 18px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .rail {
+      padding: 16px;
+      background: linear-gradient(180deg, rgba(238, 242, 248, 0.96), rgba(255, 255, 255, 0.98));
+    }
+    .section-label {
+      margin: 0 0 6px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .filter-grid {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    select {
+      width: 100%;
+      min-height: 44px;
+      border-radius: 12px;
+      border: 1px solid var(--border-default);
+      background: var(--panel);
+      color: var(--text-default);
+      padding: 0 12px;
+    }
+    .list-stack {
+      display: grid;
+      gap: 10px;
+    }
+    .gateway-card,
+    .boundary-card,
+    .map-node,
+    .boundary-edge {
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.96);
+      transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+    .gateway-card,
+    .boundary-card {
+      min-height: 108px;
+      padding: 14px;
+      cursor: pointer;
+    }
+    .gateway-card:hover,
+    .gateway-card:focus-visible,
+    .boundary-card:hover,
+    .boundary-card:focus-visible,
+    .map-node:hover,
+    .map-node:focus-visible,
+    .boundary-edge:hover,
+    .boundary-edge:focus-visible {
+      border-color: rgba(49, 91, 234, 0.38);
+      transform: translateY(-1px);
+      outline: none;
+    }
+    .gateway-card[data-selected="true"],
+    .boundary-card[data-selected="true"],
+    .map-node[data-selected="true"],
+    .boundary-edge[data-selected="true"] {
+      border-color: rgba(49, 91, 234, 0.56);
+      box-shadow: 0 18px 40px rgba(49, 91, 234, 0.12);
+    }
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--inset);
+      border: 1px solid var(--border-subtle);
+      font-size: 12px;
+    }
+    .chip.watch { color: #8A6100; border-color: rgba(201, 137, 0, 0.28); }
+    .chip.blocked { color: var(--blocked); border-color: rgba(194, 65, 65, 0.28); }
+    .chip.patient { color: var(--patient); }
+    .chip.staff { color: var(--staff); }
+    .mono {
+      font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+    }
+    .center {
+      padding: 16px;
+    }
+    .canvas {
+      min-height: 600px;
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid var(--border-subtle);
+      background: linear-gradient(180deg, rgba(243, 245, 250, 0.82), rgba(255, 255, 255, 0.98));
+    }
+    .zone-grid {
+      display: grid;
+      gap: 12px;
+    }
+    .zone-band {
+      display: grid;
+      grid-template-columns: 180px minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+      min-height: 72px;
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(203, 213, 225, 0.7);
+      background: rgba(255, 255, 255, 0.78);
+    }
+    .zone-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-strong);
+    }
+    .zone-copy {
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .zone-lane {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      min-height: 44px;
+    }
+    .map-node {
+      min-width: 180px;
+      min-height: 44px;
+      padding: 10px 12px;
+      cursor: pointer;
+      text-align: left;
+    }
+    .edge-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .boundary-edge {
+      min-height: 44px;
+      padding: 10px 12px;
+      cursor: pointer;
+    }
+    .lane-panel {
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid var(--border-subtle);
+      background: var(--panel);
+    }
+    .lane-flow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      align-items: center;
+    }
+    .lane-box {
+      min-height: 78px;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid var(--border-subtle);
+      background: var(--inset);
+    }
+    .arrow {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 18px;
+    }
+    .inspector {
+      padding: 18px;
+      transition: transform var(--transition-panel), opacity var(--transition-panel);
+    }
+    .inspector section + section {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-subtle);
+    }
+    .inspector-title {
+      margin: 0 0 4px;
+      font-size: 18px;
+      color: var(--text-strong);
+    }
+    .inspector-copy {
+      margin: 0;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .inspector-list {
+      margin: 10px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+    }
+    .inspector-list li {
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: var(--inset);
+      border: 1px solid var(--border-subtle);
+    }
+    .bottom {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 18px;
+      margin-top: 18px;
+    }
+    .table-wrap {
+      padding: 16px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      text-align: left;
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: top;
+    }
+    tbody tr {
+      cursor: pointer;
+      transition: background var(--transition-fast);
+    }
+    tbody tr:hover,
+    tbody tr:focus-visible {
+      background: rgba(49, 91, 234, 0.06);
+      outline: none;
+    }
+    tbody tr[data-selected="true"] {
+      background: rgba(49, 91, 234, 0.08);
+    }
+    .split-strip {
+      margin-top: 18px;
+      padding: 16px;
+    }
+    .split-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+    .split-card {
+      min-height: 128px;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid var(--border-subtle);
+      background: linear-gradient(180deg, rgba(243, 245, 250, 0.82), rgba(255, 255, 255, 0.98));
+    }
+    @media (max-width: 1220px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .bottom {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="masthead panel" data-testid="boundary-masthead">
+      <div class="wordmark">
+        <div class="monogram" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#315BEA" stroke-width="1.5">
+            <path d="M5 18V6h8" />
+            <path d="M13 6h6v12" />
+            <path d="M7 12h12" />
+          </svg>
+        </div>
+        <div>
+          <p class="eyebrow">Vecells Boundary Studio</p>
+          <h1 class="headline">Trust-Zone And Gateway Surface Map</h1>
+          <p class="subhead">`Boundary_Studio` keeps browser compute, route ownership, and downstream trust boundaries explicit.</p>
+        </div>
+      </div>
+      <div class="metric-strip">
+        <div class="metric"><strong>22</strong><span>Gateway surfaces</span></div>
+        <div class="metric"><strong>20</strong><span>Trust boundaries</span></div>
+        <div class="metric"><strong>10</strong><span>Blocked crossings</span></div>
+        <div class="metric"><strong>100%</strong><span>Route coverage</span></div>
+      </div>
+    </header>
+    <main>
+      <div class="layout">
+        <aside class="panel rail">
+          <p class="section-label">Filters</p>
+          <div class="filter-grid">
+            <div>
+              <label for="filter-zone">Trust zone</label>
+              <select id="filter-zone" data-testid="filter-zone"></select>
+            </div>
+            <div>
+              <label for="filter-audience">Audience</label>
+              <select id="filter-audience" data-testid="filter-audience"></select>
+            </div>
+            <div>
+              <label for="filter-shell">Shell type</label>
+              <select id="filter-shell" data-testid="filter-shell"></select>
+            </div>
+            <div>
+              <label for="filter-route">Route family</label>
+              <select id="filter-route" data-testid="filter-route"></select>
+            </div>
+            <div>
+              <label for="filter-defect">Defect state</label>
+              <select id="filter-defect" data-testid="filter-defect"></select>
+            </div>
+          </div>
+          <p class="section-label">Gateway surfaces</p>
+          <div class="list-stack" data-testid="gateway-list" id="gateway-list"></div>
+          <p class="section-label" style="margin-top: 16px;">Boundary edges</p>
+          <div class="list-stack" data-testid="boundary-list" id="boundary-list"></div>
+        </aside>
+        <section class="panel center">
+          <div class="canvas" data-testid="map-canvas">
+            <div class="zone-grid" id="zone-grid"></div>
+            <div class="edge-strip" id="edge-strip"></div>
+          </div>
+          <div class="lane-panel" data-testid="lane-diagram">
+            <p class="section-label">Browser To Downstream Lane</p>
+            <div class="lane-flow" id="lane-flow"></div>
+          </div>
+        </section>
+        <aside class="panel inspector" data-testid="inspector" id="inspector"></aside>
+      </div>
+      <section class="bottom">
+        <div class="panel table-wrap">
+          <p class="section-label">Route-family matrix</p>
+          <table data-testid="route-matrix">
+            <thead>
+              <tr>
+                <th>Route family</th>
+                <th>Gateway surface</th>
+                <th>Role</th>
+                <th>Tenant isolation</th>
+              </tr>
+            </thead>
+            <tbody id="route-body"></tbody>
+          </table>
+        </div>
+        <div class="panel table-wrap">
+          <p class="section-label">Trust-zone boundary matrix</p>
+          <table data-testid="boundary-matrix">
+            <thead>
+              <tr>
+                <th>Boundary</th>
+                <th>State</th>
+                <th>Crossing</th>
+                <th>Tenant transfer</th>
+              </tr>
+            </thead>
+            <tbody id="boundary-body"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="panel split-strip" data-testid="split-strip">
+        <p class="section-label">Split decision log</p>
+        <div class="split-grid" id="split-grid"></div>
+      </section>
+    </main>
+  </div>
+  <script>
+    const STUDIO_DATA = {"boundaries": [{"allowedDataClassificationRefs": ["append_only_control_evidence", "tenant_scoped_summary"], "allowedIdentityRefs": ["sid_command_api", "sid_projection_worker", "sid_assurance_control"], "allowedProtocolRefs": ["grpc", "https", "audit_append"], "assuranceTrustTransferMode": "assurance_slice_verdict_required", "boundaryFailureMode": "writable_freeze_same_shell_context_preserved", "boundaryKind": "allowed", "boundaryState": "allowed", "egressAllowlistRef": "eal_assurance_to_internal_planes_only", "rationale": "Mutation and projection planes both depend on exact assurance slices before live widening.", "sourceTrustZoneRef": "tz_application_core", "sourceWorkloadFamilyRefs": ["wf_command_orchestration", "wf_projection_read_models"], "source_refs": ["docs/architecture/11_trust_zone_and_workload_family_strategy.md#Cross-Zone Boundaries", "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings"], "targetTrustZoneRef": "tz_assurance_security", "targetWorkloadFamilyRefs": ["wf_assurance_security_control"], "tenantTransferMode": "tenant_tuple_plus_scope_hash_required", "trustZoneBoundaryId": "tzb_application_core_to_assurance_security", "validatedAt": "2026-04-11"}, {"allowedDataClassificationRefs": ["external_effect_descriptor", "masked_external_contact"], "allowedIdentityRefs": ["sid_command_api", "sid_integration_dispatch", "sid_adapter_simulators"], "allowedProtocolRefs": ["queue_dispatch", "outbox_checkpoint"], "assuranceTrustTransferMode": "checkpoint_receipt_required", "boundaryFailureMode": "integration_queue_only", "boundaryKind": "allowed", "boundaryState": "allowed", "egressAllowlistRef": "eal_command_to_internal_planes_only", "rationale": "Command handoff into integration always passes through durable queues or simulator contracts.", "sourceTrustZoneRef": "tz_application_core", "sourceWorkloadFamilyRefs": ["wf_command_orchestration"], "source_refs": ["docs/architecture/11_trust_zone_and_workload_family_strategy.md#Cross-Zone Boundaries", "docs/architecture/13_backend_runtime_service_baseline.md#Baseline Law"], "targetTrustZoneRef": "tz_integration_perimeter", "targetWorkloadFamilyRefs": ["wf_integration_dispatch", "wf_integration_simulation_lab"], "tenantTransferMode": "effect_scope_and_tenant_tuple_preserved", "trustZoneBoundaryId": "tzb_application_core_to_integration_perimeter", "validatedAt": "2026-04-11"}, {"allowedDataClassificationRefs": ["tenant_scoped_phi_minimum_necessary", "tenant_scoped_summary", "append_only_control_evidence"], "allowedIdentityRefs": ["sid_command_api", "sid_projection_worker", "sid_data_plane"], "allowedProtocolRefs": ["sql_tls", "object_api_tls", "queue_tls", "cache_tls"], "assuranceTrustTransferMode": "restore_tuple_required", "boundaryFailureMode": "read_only_or_blocked_until_restore_proof", "boundaryKind": "allowed", "boundaryState": "allowed", "egressAllowlistRef": "eal_data_internal_only", "rationale": "Data-plane access is internal-only and tuple-bound.", "sourceTrustZoneRef": "tz_application_core", "sourceWorkloadFamilyRefs": ["wf_command_orchestration", "wf_projection_read_models"], "source_refs": ["docs/architecture/11_trust_zone_and_workload_family_strategy.md#Cross-Zone Boundaries", "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings"], "targetTrustZoneRef": "tz_stateful_data", "targetWorkloadFamilyRefs": ["wf_data_stateful_plane"], "tenantTransferMode": "tenant_tuple_on_every_key_or_record", "trustZoneBoundaryId": "tzb_application_core_to_stateful_data", "validatedAt": "2026-04-11"}, {"allowedDataClassificationRefs": ["append_only_control_evidence", "tenant_scoped_summary"], "allowedIdentityRefs": ["sid_assurance_control", "sid_data_plane"], "allowedProtocolRefs": ["sql_tls", "object_api_tls", "append_only_api"], "assuranceTrustTransferMode": "restore_tuple_required", "boundaryFailureMode": "controls_frozen_or_restore_only", "boundaryKind": "allowed", "boundaryState": "allowed", "egressAllowlistRef": "eal_assurance_to_internal_planes_only", "rationale": "Assurance is the only plane allowed to publish restore and release tuple verdicts into stateful stores.", "sourceTrustZoneRef": "tz_assurance_security", "sourceWorkloadFamilyRefs": ["wf_assurance_security_control"], "source_refs": ["docs/architecture/11_trust_zone_and_workload_family_strategy.md#Cross-Zone Boundaries", "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Supply Chain Law"], "targetTrustZoneRef": "tz_stateful_data", "targetWorkloadFamilyRefs": ["wf_data_stateful_plane"], "tenantTransferMode": "platform_control_with_explicit_tenant_projection_only", "trustZoneBoundaryId": "tzb_assurance_security_to_stateful_data", "validatedAt": "2026-04-11"}, {"allowedDataClassificationRefs": ["append_only_control_evidence"], "allowedIdentityRefs": ["sid_integration_dispatch", "sid_adapter_simulators", "sid_assurance_control"], "allowedProtocolRefs": ["audit_append", "https"], "assuranceTrustTransferMode": "dependency_slice_verdict_required", "boundaryFailureMode": "slice_degraded_or_queue_only", "boundaryKind": "allowed", "boundaryState": "allowed", "egressAllowlistRef": "eal_assurance_to_internal_planes_only", "rationale": "Integration failures widen only through explicit assurance tuples and watch publication.", "sourceTrustZoneRef": "tz_integration_perimeter", "sourceWorkloadFamilyRefs": ["wf_integration_dispatch", "wf_integration_simulation_lab"], "source_refs": ["docs/architecture/11_trust_zone_and_workload_family_strategy.md#Cross-Zone Boundaries", "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Pipeline Stage Chain"], "targetTrustZoneRef": "tz_assurance_security", "targetWorkloadFamilyRefs": ["wf_assurance_security_control"], "tenantTransferMode": "tenant_tuple_plus_dependency_code_only", "trustZoneBoundaryId": "tzb_integration_perimeter_to_assurance_security", "validatedAt": "2026-04-11"}, {"allowedDataClassificationRefs": ["external_effect_descriptor", "append_only_control_evidence"], "allowedIdentityRefs": ["sid_integration_dispatch", "sid_adapter_simulators", "sid_data_plane"], "allowedProtocolRefs": ["queue_tls", "sql_tls", "object_api_tls"], "assuranceTrustTransferMode": "receipt_or_checkpoint_required", "boundaryFailureMode": "checkpoint_and_retry_or_dispute", "boundaryKind": "allowed", "boundaryState": "allowed", "egressAllowlistRef": "eal_data_internal_only", "rationale": "Provider outcomes settle through durable state before they can affect user-visible posture.", "sourceTrustZoneRef": "tz_integration_perimeter", "sourceWorkloadFamilyRefs": ["wf_integration_dispatch", "wf_integration_simulation_lab"], "source_refs": ["docs/architecture/11_trust_zone_and_workload_family_strategy.md#Cross-Zone Boundaries", "docs/architecture/13_backend_runtime_service_baseline.md#Baseline Law"], "targetTrustZoneRef": "tz_stateful_data", "targetWorkloadFamilyRefs": ["wf_data_stateful_plane"], "tenantTransferMode": "effect_scope_and_supplier_correlation_only", "trustZoneBoundaryId": "tzb_integration_perimeter_to_stateful_data", "validatedAt": "2026-04-11"}, {"allowedDataClassificationRefs": ["public_safe", "tenant_scoped_summary"], "allowedIdentityRefs": ["sid_public_edge_proxy", "sid_published_gateway"], "allowedProtocolRefs": ["https", "sse", "websocket"], "assuranceTrustTransferMode": "published_surface_tuple_only", "boundaryFailureMode": "same_shell_recovery_or_blocked", "boundaryKind": "allowed", "boundaryState": "allowed", "egressAllowlistRef": "eal_public_edge_internal_only", "rationale": "This is the only browser-to-compute bridge beyond the edge.", "sourceTrustZoneRef": "tz_public_edge", "sourceWorkloadFamilyRefs": ["wf_public_edge_ingress"], "source_refs": ["docs/architecture/11_trust_zone_and_workload_family_strategy.md#Cross-Zone Boundaries", "docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Browser Boundary Law"], "targetTrustZoneRef": "tz_published_gateway", "targetWorkloadFamilyRefs": ["wf_shell_delivery_published_gateway"], "tenantTransferMode": "runtime_binding_and_session_policy_only", "trustZoneBoundaryId": "tzb_public_edge_to_published_gateway", "validatedAt": "2026-04-11"}, {"allowedDataClassificationRefs": ["public_safe"], "allowedIdentityRefs": ["sid_public_edge_proxy", "sid_shell_publication_bundle"], "allowedProtocolRefs": ["https"], "assuranceTrustTransferMode": "publication_parity_only", "boundaryFailureMode": "static_placeholder_or_cached_shell_only", "boundaryKind": "allowed", "boundaryState": "allowed", "egressAllowlistRef": "eal_public_edge_internal_only", "rationale": "Static delivery remains bundle-bound and may not become a mutable runtime hop.", "sourceTrustZoneRef": "tz_public_edge", "sourceWorkloadFamilyRefs": ["wf_public_edge_ingress"], "source_refs": ["docs/architecture/11_trust_zone_and_workload_family_strategy.md#Cross-Zone Boundaries", "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings"], "targetTrustZoneRef": "tz_shell_delivery", "targetWorkloadFamilyRefs": ["wf_shell_delivery_static_publication"], "tenantTransferMode": "tenant_hint_only", "trustZoneBoundaryId": "tzb_public_edge_to_shell_delivery", "validatedAt": "2026-04-11"}, {"allowedDataClassificationRefs": ["tenant_scoped_summary", "tenant_scoped_phi_minimum_necessary"], "allowedIdentityRefs": ["sid_published_gateway", "sid_command_api", "sid_projection_worker"], "allowedProtocolRefs": ["https", "grpc"], "assuranceTrustTransferMode": "surface_authority_tuple_preserved", "boundaryFailureMode": "command_halt_or_projection_recovery_only", "boundaryKind": "allowed", "boundaryState": "allowed", "egressAllowlistRef": "eal_gateway_internal_only", "rationale": "Gateway surfaces may read projections and submit commands only through declared bridge placeholders.", "sourceTrustZoneRef": "tz_published_gateway", "sourceWorkloadFamilyRefs": ["wf_shell_delivery_published_gateway"], "source_refs": ["docs/architecture/11_trust_zone_and_workload_family_strategy.md#Cross-Zone Boundaries", "docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Gateway Surface Matrix"], "targetTrustZoneRef": "tz_application_core", "targetWorkloadFamilyRefs": ["wf_command_orchestration", "wf_projection_read_models"], "tenantTransferMode": "tenant_tuple_and_route_intent_preserved", "trustZoneBoundaryId": "tzb_published_gateway_to_application_core", "validatedAt": "2026-04-11"}, {"allowedDataClassificationRefs": ["masked_support_excerpt", "append_only_control_evidence"], "allowedIdentityRefs": ["sid_published_gateway", "sid_assurance_control"], "allowedProtocolRefs": ["https", "grpc"], "assuranceTrustTransferMode": "assurance_slice_tuple_only", "boundaryFailureMode": "controls_frozen_same_shell_context_preserved", "boundaryKind": "allowed", "boundaryState": "allowed", "egressAllowlistRef": "eal_gateway_internal_only", "rationale": "Support replay, operations drilldown, and governance shells may query assurance slices without bypassing the control plane.", "sourceTrustZoneRef": "tz_published_gateway", "sourceWorkloadFamilyRefs": ["wf_shell_delivery_published_gateway"], "source_refs": ["docs/architecture/11_trust_zone_and_workload_family_strategy.md#Cross-Zone Boundaries", "docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Gateway Surface Matrix"], "targetTrustZoneRef": "tz_assurance_security", "targetWorkloadFamilyRefs": ["wf_assurance_security_control"], "tenantTransferMode": "explicit_scope_tuple_or_platform_scope_only", "trustZoneBoundaryId": "tzb_published_gateway_to_assurance_security", "validatedAt": "2026-04-11"}, {"allowedDataClassificationRefs": [], "allowedIdentityRefs": [], "allowedProtocolRefs": [], "assuranceTrustTransferMode": "forbidden", "boundaryFailureMode": "fail_closed_same_shell_recovery_or_blocked", "boundaryKind": "blocked", "boundaryState": "blocked", "egressAllowlistRef": "eal_blocked_cross_zone_none", "rationale": "Operational, support, and governance browser access reaches assurance slices only through published gateway surfaces.", "sourceTrustZoneRef": "tz_public_edge", "sourceWorkloadFamilyRefs": ["wf_public_edge_ingress"], "source_refs": ["docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Gateway Surface Matrix", "blueprint/platform-runtime-and-release-blueprint.md#TrustZoneBoundary"], "targetTrustZoneRef": "tz_assurance_security", "targetWorkloadFamilyRefs": ["wf_assurance_security_control"], "tenantTransferMode": "forbidden", "trustZoneBoundaryId": "block_browser_to_assurance_without_gateway", "validatedAt": "2026-04-11"}, {"allowedDataClassificationRefs": [], "allowedIdentityRefs": [], "allowedProtocolRefs": [], "assuranceTrustTransferMode": "forbidden", "boundaryFailureMode": "fail_closed_same_shell_recovery_or_blocked", "boundaryKind": "blocked", "boundaryState": "blocked", "egressAllowlistRef": "eal_blocked_cross_zone_none", "rationale": "Gateway surfaces may not bypass command or projection and may never reach raw stores.", "sourceTrustZoneRef": "tz_published_gateway", "sourceWorkloadFamilyRefs": ["wf_shell_delivery_published_gateway"], "source_refs": ["docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Browser Boundary Law", "blueprint/platform-runtime-and-release-blueprint.md#GatewayBffSurface"], "targetTrustZoneRef": "tz_stateful_data", "targetWorkloadFamilyRefs": ["wf_data_stateful_plane"], "tenantTransferMode": "forbidden", "trustZoneBoundaryId": "block_gateway_to_data", "validatedAt": "2026-04-11"}, {"allowedDataClassificationRefs": [], "allowedIdentityRefs": [], "allowedProtocolRefs": [], "assuranceTrustTransferMode": "forbidden", "boundaryFailureMode": "fail_closed_same_shell_recovery_or_blocked", "boundaryKind": "blocked", "boundaryState": "blocked", "egressAllowlistRef": "eal_blocked_cross_zone_none", "rationale": "Gateway surfaces may not dispatch directly to providers or callback runtimes.", "sourceTrustZoneRef": "tz_published_gateway", "sourceWorkloadFamilyRefs": ["wf_shell_delivery_published_gateway"], "source_refs": ["docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Browser Boundary Law", "blueprint/platform-runtime-and-release-blueprint.md#GatewayBffSurface"], "targetTrustZoneRef": "tz_integration_perimeter", "targetWorkloadFamilyRefs": ["wf_integration_dispatch"], "tenantTransferMode": "forbidden", "trustZoneBoundaryId": "block_gateway_to_live_integration", "validatedAt": "2026-04-11"}, {"allowedDataClassificationRefs": [], "allowedIdentityRefs": [], "allowedProtocolRefs": [], "assuranceTrustTransferMode": "forbidden", "boundaryFailureMode": "fail_closed_same_shell_recovery_or_blocked", "boundaryKind": "blocked", "boundaryState": "blocked", "egressAllowlistRef": "eal_blocked_cross_zone_none", "rationale": "Simulators are internal proof twins only and are never browser-addressable.", "sourceTrustZoneRef": "tz_published_gateway", "sourceWorkloadFamilyRefs": ["wf_shell_delivery_published_gateway"], "source_refs": ["services/adapter-simulators/manifests/README.md", "docs/external/38_local_adapter_simulator_backlog.md"], "targetTrustZoneRef": "tz_integration_perimeter", "targetWorkloadFamilyRefs": ["wf_integration_simulation_lab"], "tenantTransferMode": "forbidden", "trustZoneBoundaryId": "block_gateway_to_simulator", "validatedAt": "2026-04-11"}, {"allowedDataClassificationRefs": [], "allowedIdentityRefs": [], "allowedProtocolRefs": [], "assuranceTrustTransferMode": "forbidden", "boundaryFailureMode": "fail_closed_same_shell_recovery_or_blocked", "boundaryKind": "blocked", "boundaryState": "blocked", "egressAllowlistRef": "eal_blocked_cross_zone_none", "rationale": "Browser or edge traffic may not bypass published gateway surfaces into command.", "sourceTrustZoneRef": "tz_public_edge", "sourceWorkloadFamilyRefs": ["wf_public_edge_ingress"], "source_refs": ["blueprint/platform-runtime-and-release-blueprint.md#TrustZoneBoundary", "docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Browser Boundary Law"], "targetTrustZoneRef": "tz_application_core", "targetWorkloadFamilyRefs": ["wf_command_orchestration"], "tenantTransferMode": "forbidden", "trustZoneBoundaryId": "block_public_edge_to_command", "validatedAt": "2026-04-11"}, {"allowedDataClassificationRefs": [], "allowedIdentityRefs": [], "allowedProtocolRefs": [], "assuranceTrustTransferMode": "forbidden", "boundaryFailureMode": "fail_closed_same_shell_recovery_or_blocked", "boundaryKind": "blocked", "boundaryState": "blocked", "egressAllowlistRef": "eal_blocked_cross_zone_none", "rationale": "No browser- or edge-reachable service may access raw stores directly.", "sourceTrustZoneRef": "tz_public_edge", "sourceWorkloadFamilyRefs": ["wf_public_edge_ingress"], "source_refs": ["docs/architecture/11_trust_zone_and_workload_family_strategy.md#Non-negotiable Rules", "blueprint/platform-runtime-and-release-blueprint.md#TrustZoneBoundary"], "targetTrustZoneRef": "tz_stateful_data", "targetWorkloadFamilyRefs": ["wf_data_stateful_plane"], "tenantTransferMode": "forbidden", "trustZoneBoundaryId": "block_public_edge_to_data", "validatedAt": "2026-04-11"}, {"allowedDataClassificationRefs": [], "allowedIdentityRefs": [], "allowedProtocolRefs": [], "assuranceTrustTransferMode": "forbidden", "boundaryFailureMode": "fail_closed_same_shell_recovery_or_blocked", "boundaryKind": "blocked", "boundaryState": "blocked", "egressAllowlistRef": "eal_blocked_cross_zone_none", "rationale": "Edge traffic may not reach provider or callback runtimes directly.", "sourceTrustZoneRef": "tz_public_edge", "sourceWorkloadFamilyRefs": ["wf_public_edge_ingress"], "source_refs": ["docs/architecture/11_trust_zone_and_workload_family_strategy.md#Non-negotiable Rules", "blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract"], "targetTrustZoneRef": "tz_integration_perimeter", "targetWorkloadFamilyRefs": ["wf_integration_dispatch"], "tenantTransferMode": "forbidden", "trustZoneBoundaryId": "block_public_edge_to_integration", "validatedAt": "2026-04-11"}, {"allowedDataClassificationRefs": [], "allowedIdentityRefs": [], "allowedProtocolRefs": [], "assuranceTrustTransferMode": "forbidden", "boundaryFailureMode": "fail_closed_same_shell_recovery_or_blocked", "boundaryKind": "blocked", "boundaryState": "blocked", "egressAllowlistRef": "eal_blocked_cross_zone_none", "rationale": "Projection reads remain behind declared gateway surfaces; the edge does not query projections directly.", "sourceTrustZoneRef": "tz_public_edge", "sourceWorkloadFamilyRefs": ["wf_public_edge_ingress"], "source_refs": ["blueprint/platform-runtime-and-release-blueprint.md#TrustZoneBoundary", "docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Browser Boundary Law"], "targetTrustZoneRef": "tz_application_core", "targetWorkloadFamilyRefs": ["wf_projection_read_models"], "tenantTransferMode": "forbidden", "trustZoneBoundaryId": "block_public_edge_to_projection", "validatedAt": "2026-04-11"}, {"allowedDataClassificationRefs": [], "allowedIdentityRefs": [], "allowedProtocolRefs": [], "assuranceTrustTransferMode": "forbidden", "boundaryFailureMode": "fail_closed_same_shell_recovery_or_blocked", "boundaryKind": "blocked", "boundaryState": "blocked", "egressAllowlistRef": "eal_blocked_cross_zone_none", "rationale": "Static publication delivery cannot become a shadow mutation plane.", "sourceTrustZoneRef": "tz_shell_delivery", "sourceWorkloadFamilyRefs": ["wf_shell_delivery_static_publication"], "source_refs": ["docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings", "blueprint/platform-runtime-and-release-blueprint.md#RuntimeTopologyManifest"], "targetTrustZoneRef": "tz_application_core", "targetWorkloadFamilyRefs": ["wf_command_orchestration"], "tenantTransferMode": "forbidden", "trustZoneBoundaryId": "block_shell_publication_to_command", "validatedAt": "2026-04-11"}, {"allowedDataClassificationRefs": [], "allowedIdentityRefs": [], "allowedProtocolRefs": [], "assuranceTrustTransferMode": "forbidden", "boundaryFailureMode": "fail_closed_same_shell_recovery_or_blocked", "boundaryKind": "blocked", "boundaryState": "blocked", "egressAllowlistRef": "eal_blocked_cross_zone_none", "rationale": "Shell assets are bundle-bound and may not query projections directly.", "sourceTrustZoneRef": "tz_shell_delivery", "sourceWorkloadFamilyRefs": ["wf_shell_delivery_static_publication"], "source_refs": ["docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings", "blueprint/platform-runtime-and-release-blueprint.md#RuntimeTopologyManifest"], "targetTrustZoneRef": "tz_application_core", "targetWorkloadFamilyRefs": ["wf_projection_read_models"], "tenantTransferMode": "forbidden", "trustZoneBoundaryId": "block_shell_publication_to_projection", "validatedAt": "2026-04-11"}], "candidate_groups": [{"candidateGroupId": "cand_patient_public_entry", "label": "Public patient entry", "order": 1, "short_label": "Public Entry", "source_refs": ["blueprint/blueprint-init.md#2. Core product surfaces", "prompt/047.md"]}, {"candidateGroupId": "cand_patient_grant_recovery", "label": "Grant-scoped patient recovery", "order": 2, "short_label": "Grant Recovery", "source_refs": ["blueprint/phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm", "prompt/047.md"]}, {"candidateGroupId": "cand_patient_portal", "label": "Authenticated patient portal", "order": 3, "short_label": "Patient Portal", "source_refs": ["blueprint/patient-portal-experience-architecture-blueprint.md", "blueprint/patient-account-and-communications-blueprint.md"]}, {"candidateGroupId": "cand_clinical_workspace", "label": "Clinical workspace", "order": 4, "short_label": "Clinical Workspace", "source_refs": ["blueprint/staff-operations-and-support-blueprint.md", "blueprint/staff-workspace-interface-architecture.md"]}, {"candidateGroupId": "cand_support_workspace", "label": "Support workspace", "order": 5, "short_label": "Support", "source_refs": ["blueprint/staff-operations-and-support-blueprint.md#Support route contract", "prompt/047.md"]}, {"candidateGroupId": "cand_hub_desk", "label": "Hub desk", "order": 6, "short_label": "Hub Desk", "source_refs": ["blueprint/phase-5-the-network-horizon.md#Frontend work", "prompt/047.md"]}, {"candidateGroupId": "cand_pharmacy_console", "label": "Pharmacy console", "order": 7, "short_label": "Pharmacy", "source_refs": ["blueprint/pharmacy-console-frontend-architecture.md#Mission frame", "prompt/047.md"]}, {"candidateGroupId": "cand_operations_console", "label": "Operations console", "order": 8, "short_label": "Operations", "source_refs": ["blueprint/operations-console-frontend-blueprint.md#Canonical route family", "prompt/047.md"]}, {"candidateGroupId": "cand_governance_shell", "label": "Governance and admin shell", "order": 9, "short_label": "Governance", "source_refs": ["blueprint/governance-admin-console-frontend-blueprint.md#Shell and route topology", "prompt/047.md"]}], "route_rows": [{"audience": "patient_public", "audience_surface_ref": "surf_patient_intake_web", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models; wf_command_orchestration", "explicit_exception_reason": "", "explicit_exception_ref": "", "gateway_surface_id": "gws_patient_intake_web", "ownership_role": "primary", "primary_gateway_surface_id": "gws_patient_intake_web", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS; CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS; CBC_041_COMMAND_API_TO_EVENT_CONTRACTS", "route_family": "Intake / self-service form (derived)", "route_family_id": "rf_intake_self_service", "session_policy_ref": "SP_PATIENT_PUBLIC_EPHEMERAL", "shell_type": "patient", "source_refs": "blueprint-init.md#2. Core product surfaces; phase-0-the-foundation-protocol.md#12.1 Mandatory audience tiers; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/blueprint-init.md#2. Core product surfaces; blueprint/forensic-audit-findings.md#Finding 97; data/analysis/tenant_isolation_matrix.csv#TIM_PUBLIC_PRE_IDENTITY", "tenant_isolation_mode": "shared_public_pre_tenant", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core"}, {"audience": "patient_public", "audience_surface_ref": "surf_patient_intake_phone", "browser_visible": "no", "downstream_workload_family_refs": "wf_projection_read_models; wf_command_orchestration", "explicit_exception_reason": "", "explicit_exception_ref": "", "gateway_surface_id": "gws_patient_intake_phone", "ownership_role": "primary", "primary_gateway_surface_id": "gws_patient_intake_phone", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS; CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS; CBC_041_COMMAND_API_TO_EVENT_CONTRACTS", "route_family": "Intake / telephony capture (derived)", "route_family_id": "rf_intake_telephony_capture", "session_policy_ref": "SP_TELEPHONY_CAPTURE_PROXY", "shell_type": "patient", "source_refs": "blueprint-init.md#2. Core product surfaces; phase-0-the-foundation-protocol.md#0.2 Continuity key and shell law; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/blueprint-init.md#2. Core product surfaces; docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Gateway Surface Matrix; data/analysis/tenant_isolation_matrix.csv#TIM_PUBLIC_PRE_IDENTITY", "tenant_isolation_mode": "shared_public_pre_tenant", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core"}, {"audience": "patient_grant_scoped", "audience_surface_ref": "surf_patient_secure_link_recovery", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models; wf_command_orchestration", "explicit_exception_reason": "", "explicit_exception_ref": "", "gateway_surface_id": "gws_patient_secure_link_recovery", "ownership_role": "primary", "primary_gateway_surface_id": "gws_patient_secure_link_recovery", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS; CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS; CBC_041_COMMAND_API_TO_EVENT_CONTRACTS", "route_family": "Secure-link recovery and claim resume (derived)", "route_family_id": "rf_patient_secure_link_recovery", "session_policy_ref": "SP_GRANT_SCOPED_RECOVERY", "shell_type": "patient", "source_refs": "patient-account-and-communications-blueprint.md#Patient audience coverage contract; phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm; blueprint/forensic-audit-findings.md#Finding 91; data/analysis/tenant_isolation_matrix.csv#TIM_GRANT_SCOPED_RECOVERY", "tenant_isolation_mode": "tenant_scoped_lineage_grant", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core"}, {"audience": "patient_authenticated", "audience_surface_ref": "surf_patient_home", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models", "explicit_exception_reason": "", "explicit_exception_ref": "", "gateway_surface_id": "gws_patient_home", "ownership_role": "primary", "primary_gateway_surface_id": "gws_patient_home", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "route_family": "Home", "route_family_id": "rf_patient_home", "session_policy_ref": "SP_PATIENT_AUTHENTICATED_SHELL", "shell_type": "patient", "source_refs": "patient-portal-experience-architecture-blueprint.md#Portal entry and shell topology; patient-account-and-communications-blueprint.md#Patient home contract; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/patient-portal-experience-architecture-blueprint.md#Portal entry and shell topology; blueprint/forensic-audit-findings.md#Finding 97; data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_SELF_SERVICE", "tenant_isolation_mode": "tenant_scoped_subject", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core"}, {"audience": "patient_authenticated", "audience_surface_ref": "surf_patient_requests", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models; wf_command_orchestration", "explicit_exception_reason": "", "explicit_exception_ref": "", "gateway_surface_id": "gws_patient_requests", "ownership_role": "primary", "primary_gateway_surface_id": "gws_patient_requests", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS; CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS; CBC_041_COMMAND_API_TO_EVENT_CONTRACTS", "route_family": "Requests", "route_family_id": "rf_patient_requests", "session_policy_ref": "SP_PATIENT_AUTHENTICATED_SHELL", "shell_type": "patient", "source_refs": "patient-account-and-communications-blueprint.md#Requests browsing contract; patient-account-and-communications-blueprint.md#Request detail contract; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/patient-account-and-communications-blueprint.md#Request detail contract; blueprint/forensic-audit-findings.md#Finding 91; data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_SELF_SERVICE", "tenant_isolation_mode": "tenant_scoped_subject", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core"}, {"audience": "patient_authenticated", "audience_surface_ref": "surf_patient_appointments", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models; wf_command_orchestration", "explicit_exception_reason": "", "explicit_exception_ref": "", "gateway_surface_id": "gws_patient_appointments", "ownership_role": "primary", "primary_gateway_surface_id": "gws_patient_appointments", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS; CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS; CBC_041_COMMAND_API_TO_EVENT_CONTRACTS", "route_family": "Appointments", "route_family_id": "rf_patient_appointments", "session_policy_ref": "SP_PATIENT_AUTHENTICATED_SHELL", "shell_type": "patient", "source_refs": "phase-0-the-foundation-protocol.md#5.6 Booking, waitlist, hub, and pharmacy continuity algorithm; patient-account-and-communications-blueprint.md#Core projections; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/phase-0-the-foundation-protocol.md#5.6 Booking, waitlist, hub, and pharmacy continuity algorithm; blueprint/forensic-audit-findings.md#Finding 97; data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_SELF_SERVICE", "tenant_isolation_mode": "tenant_scoped_subject", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core"}, {"audience": "patient_authenticated", "audience_surface_ref": "surf_patient_health_record", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models", "explicit_exception_reason": "", "explicit_exception_ref": "", "gateway_surface_id": "gws_patient_health_record", "ownership_role": "primary", "primary_gateway_surface_id": "gws_patient_health_record", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "route_family": "Health record", "route_family_id": "rf_patient_health_record", "session_policy_ref": "SP_PATIENT_AUTHENTICATED_SHELL", "shell_type": "patient", "source_refs": "phase-0-the-foundation-protocol.md#5.5A Patient record and results visualization algorithm; patient-portal-experience-architecture-blueprint.md#Primary navigation model; patient-account-and-communications-blueprint.md#Core projections; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/phase-0-the-foundation-protocol.md#5.5A Patient record and results visualization algorithm; blueprint/forensic-audit-findings.md#Finding 97; data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_SELF_SERVICE", "tenant_isolation_mode": "tenant_scoped_subject", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core"}, {"audience": "patient_authenticated", "audience_surface_ref": "surf_patient_messages", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models; wf_command_orchestration", "explicit_exception_reason": "", "explicit_exception_ref": "", "gateway_surface_id": "gws_patient_messages", "ownership_role": "primary", "primary_gateway_surface_id": "gws_patient_messages", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS; CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS; CBC_041_COMMAND_API_TO_EVENT_CONTRACTS", "route_family": "Messages", "route_family_id": "rf_patient_messages", "session_policy_ref": "SP_PATIENT_AUTHENTICATED_SHELL", "shell_type": "patient", "source_refs": "phase-0-the-foundation-protocol.md#5.5 Unified care conversation algorithm; callback-and-clinician-messaging-loop.md; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/phase-0-the-foundation-protocol.md#5.5 Unified care conversation algorithm; blueprint/callback-and-clinician-messaging-loop.md; data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_SELF_SERVICE", "tenant_isolation_mode": "tenant_scoped_subject", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core"}, {"audience": "patient_embedded_authenticated", "audience_surface_ref": "surf_patient_embedded_shell", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models; wf_command_orchestration", "explicit_exception_reason": "", "explicit_exception_ref": "", "gateway_surface_id": "gws_patient_embedded_shell", "ownership_role": "primary", "primary_gateway_surface_id": "gws_patient_embedded_shell", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS; CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS; CBC_041_COMMAND_API_TO_EVENT_CONTRACTS", "route_family": "Patient embedded channel parity", "route_family_id": "rf_patient_embedded_channel", "session_policy_ref": "SP_PATIENT_EMBEDDED_HOST_BOUND", "shell_type": "patient", "source_refs": "patient-portal-experience-architecture-blueprint.md#Control priorities; phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/patient-portal-experience-architecture-blueprint.md#Control priorities; blueprint/forensic-audit-findings.md#Finding 90; data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_EMBEDDED", "tenant_isolation_mode": "tenant_scoped_subject_embedded", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core"}, {"audience": "origin_practice_clinical", "audience_surface_ref": "surf_clinician_workspace", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models; wf_command_orchestration", "explicit_exception_reason": "", "explicit_exception_ref": "", "gateway_surface_id": "gws_clinician_workspace", "ownership_role": "primary", "primary_gateway_surface_id": "gws_clinician_workspace", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS; CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS; CBC_041_COMMAND_API_TO_EVENT_CONTRACTS", "route_family": "/workspace, /workspace/queue/:queueKey, /workspace/task/:taskId", "route_family_id": "rf_staff_workspace", "session_policy_ref": "SP_STAFF_SSO_SINGLE_ORG", "shell_type": "staff", "source_refs": "staff-workspace-interface-architecture.md#Route family; staff-workspace-interface-architecture.md#Workspace shell-family ownership is explicit; staff-operations-and-support-blueprint.md#Clinical Workspace specialization; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/staff-workspace-interface-architecture.md#Route family; blueprint/forensic-audit-findings.md#Finding 92; data/analysis/tenant_isolation_matrix.csv#TIM_TENANT_STAFF_SINGLE_ORG", "tenant_isolation_mode": "tenant_org_partition", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core"}, {"audience": "origin_practice_operations", "audience_surface_ref": "surf_practice_ops_workspace", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models; wf_command_orchestration", "explicit_exception_reason": "Practice operations reuses the workspace route family but keeps a separate audience and narrower operational mutation scope.", "explicit_exception_ref": "EXC_ROUTE_STAFF_WORKSPACE_PRACTICE_OPS_VARIANT", "gateway_surface_id": "gws_practice_ops_workspace", "ownership_role": "secondary_variant", "primary_gateway_surface_id": "gws_clinician_workspace", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS; CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS; CBC_041_COMMAND_API_TO_EVENT_CONTRACTS", "route_family": "/workspace, /workspace/queue/:queueKey, /workspace/task/:taskId", "route_family_id": "rf_staff_workspace", "session_policy_ref": "SP_STAFF_SSO_SINGLE_ORG", "shell_type": "staff", "source_refs": "staff-workspace-interface-architecture.md#Route family; staff-workspace-interface-architecture.md#Workspace shell-family ownership is explicit; staff-operations-and-support-blueprint.md#Staff audience coverage contract; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/staff-operations-and-support-blueprint.md#Staff audience coverage contract; blueprint/forensic-audit-findings.md#Finding 114; data/analysis/tenant_isolation_matrix.csv#TIM_TENANT_STAFF_SINGLE_ORG", "tenant_isolation_mode": "tenant_org_partition", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core"}, {"audience": "assistive_adjunct", "audience_surface_ref": "surf_assistive_sidecar", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models; wf_command_orchestration", "explicit_exception_reason": "Assistive remains a bounded sidecar inheriting the owning workspace route family without becoming the primary browser compute owner.", "explicit_exception_ref": "EXC_ROUTE_STAFF_CHILD_ASSISTIVE_SIDE_CAR", "gateway_surface_id": "gws_assistive_sidecar", "ownership_role": "bounded_secondary", "primary_gateway_surface_id": "gws_clinician_workspace_child", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS; CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS; CBC_041_COMMAND_API_TO_EVENT_CONTRACTS", "route_family": "/workspace/task/:taskId/more-info, /workspace/task/:taskId/decision, /workspace/approvals, /workspace/escalations, /workspace/changed, /workspace/search", "route_family_id": "rf_staff_workspace_child", "session_policy_ref": "SP_ASSISTIVE_ADJUNCT_INHERITED", "shell_type": "staff", "source_refs": "staff-workspace-interface-architecture.md#Route family; staff-workspace-interface-architecture.md#Additional route rules; phase-8-the-assistive-layer.md#Control priorities; staff-workspace-interface-architecture.md#Assistive companion presentation profile; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/phase-8-the-assistive-layer.md#Control priorities; blueprint/forensic-audit-findings.md#Finding 91; data/analysis/tenant_isolation_matrix.csv#TIM_ASSISTIVE_ADJUNCT", "tenant_isolation_mode": "inherited_scope_no_standalone_tenant_widening", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core"}, {"audience": "origin_practice_clinical", "audience_surface_ref": "surf_clinician_workspace_child", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models; wf_command_orchestration", "explicit_exception_reason": "", "explicit_exception_ref": "", "gateway_surface_id": "gws_clinician_workspace_child", "ownership_role": "primary", "primary_gateway_surface_id": "gws_clinician_workspace_child", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS; CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS; CBC_041_COMMAND_API_TO_EVENT_CONTRACTS", "route_family": "/workspace/task/:taskId/more-info, /workspace/task/:taskId/decision, /workspace/approvals, /workspace/escalations, /workspace/changed, /workspace/search", "route_family_id": "rf_staff_workspace_child", "session_policy_ref": "SP_STAFF_SSO_SINGLE_ORG_CHILD", "shell_type": "staff", "source_refs": "staff-workspace-interface-architecture.md#Route family; staff-workspace-interface-architecture.md#Additional route rules; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/staff-workspace-interface-architecture.md#Additional route rules; blueprint/forensic-audit-findings.md#Finding 92; data/analysis/tenant_isolation_matrix.csv#TIM_TENANT_STAFF_SINGLE_ORG", "tenant_isolation_mode": "tenant_org_partition", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core"}, {"audience": "hub_desk", "audience_surface_ref": "surf_hub_queue", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models", "explicit_exception_reason": "", "explicit_exception_ref": "", "gateway_surface_id": "gws_hub_queue", "ownership_role": "primary", "primary_gateway_surface_id": "gws_hub_queue", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS; CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS; CBC_041_COMMAND_API_TO_EVENT_CONTRACTS", "route_family": "/hub/queue", "route_family_id": "rf_hub_queue", "session_policy_ref": "SP_STAFF_CROSS_ORG_HUB", "shell_type": "hub", "source_refs": "phase-5-the-network-horizon.md#Frontend work; phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/phase-5-the-network-horizon.md#Frontend work; blueprint/forensic-audit-findings.md#Finding 114; data/analysis/tenant_isolation_matrix.csv#TIM_HUB_CROSS_ORG", "tenant_isolation_mode": "explicit_cross_org_subject_scope", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core"}, {"audience": "hub_desk", "audience_surface_ref": "surf_hub_case_management", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models; wf_command_orchestration", "explicit_exception_reason": "", "explicit_exception_ref": "", "gateway_surface_id": "gws_hub_case_management", "ownership_role": "primary", "primary_gateway_surface_id": "gws_hub_case_management", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS; CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS; CBC_041_COMMAND_API_TO_EVENT_CONTRACTS", "route_family": "/hub/case/:hubCoordinationCaseId, /hub/alternatives/:offerSessionId, /hub/exceptions, /hub/audit/:hubCoordinationCaseId", "route_family_id": "rf_hub_case_management", "session_policy_ref": "SP_STAFF_CROSS_ORG_HUB", "shell_type": "hub", "source_refs": "phase-5-the-network-horizon.md#Frontend work; phase-5-the-network-horizon.md#Hub shell-family ownership is explicit; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/phase-5-the-network-horizon.md#Hub shell-family ownership is explicit; blueprint/forensic-audit-findings.md#Finding 114; data/analysis/tenant_isolation_matrix.csv#TIM_HUB_CROSS_ORG", "tenant_isolation_mode": "explicit_cross_org_subject_scope", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core"}, {"audience": "servicing_site", "audience_surface_ref": "surf_pharmacy_console", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models; wf_command_orchestration", "explicit_exception_reason": "", "explicit_exception_ref": "", "gateway_surface_id": "gws_pharmacy_console", "ownership_role": "primary", "primary_gateway_surface_id": "gws_pharmacy_console", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS; CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS; CBC_041_COMMAND_API_TO_EVENT_CONTRACTS", "route_family": "/workspace/pharmacy, /workspace/pharmacy/:pharmacyCaseId, /validate, /inventory, /resolve, /handoff, /assurance", "route_family_id": "rf_pharmacy_console", "session_policy_ref": "SP_PHARMACY_SERVICING_SCOPE", "shell_type": "pharmacy", "source_refs": "pharmacy-console-frontend-architecture.md#Mission frame; pharmacy-console-frontend-architecture.md#The recommended route family is; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/pharmacy-console-frontend-architecture.md#Mission frame; blueprint/forensic-audit-findings.md#Finding 91; data/analysis/tenant_isolation_matrix.csv#TIM_PHARMACY_SERVICING", "tenant_isolation_mode": "servicing_site_partition", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core"}, {"audience": "support", "audience_surface_ref": "surf_support_assisted_capture", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models; wf_command_orchestration; wf_assurance_security_control", "explicit_exception_reason": "Support-assisted capture reuses the ticket shell route family but carries a different ingress and recovery mutation posture.", "explicit_exception_ref": "EXC_ROUTE_SUPPORT_TICKET_ASSISTED_CAPTURE", "gateway_surface_id": "gws_support_assisted_capture", "ownership_role": "secondary_variant", "primary_gateway_surface_id": "gws_support_ticket_workspace", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS; CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS; CBC_041_COMMAND_API_TO_EVENT_CONTRACTS; CBC_041_RELEASE_CONTROL_TO_OBSERVABILITY", "route_family": "/ops/support, /ops/support/inbox/:viewKey, /ops/support/tickets/:supportTicketId, /conversation, /history, /knowledge, /actions/:actionKey, /handoff/:supportOwnershipTransferId", "route_family_id": "rf_support_ticket_workspace", "session_policy_ref": "SP_SUPPORT_ASSISTED_CAPTURE", "shell_type": "support", "source_refs": "staff-operations-and-support-blueprint.md#Support route contract; phase-0-the-foundation-protocol.md#6.5 Support and replay algorithm; blueprint-init.md#2. Core product surfaces; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/staff-operations-and-support-blueprint.md#Support route contract; blueprint/forensic-audit-findings.md#Finding 114; data/analysis/tenant_isolation_matrix.csv#TIM_SUPPORT_DELEGATE", "tenant_isolation_mode": "explicit_support_delegate_scope", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core; tzb_published_gateway_to_assurance_security"}, {"audience": "support", "audience_surface_ref": "surf_support_ticket_workspace", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models; wf_command_orchestration", "explicit_exception_reason": "", "explicit_exception_ref": "", "gateway_surface_id": "gws_support_ticket_workspace", "ownership_role": "primary", "primary_gateway_surface_id": "gws_support_ticket_workspace", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS; CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS; CBC_041_COMMAND_API_TO_EVENT_CONTRACTS", "route_family": "/ops/support, /ops/support/inbox/:viewKey, /ops/support/tickets/:supportTicketId, /conversation, /history, /knowledge, /actions/:actionKey, /handoff/:supportOwnershipTransferId", "route_family_id": "rf_support_ticket_workspace", "session_policy_ref": "SP_SUPPORT_TENANT_DELEGATE", "shell_type": "support", "source_refs": "staff-operations-and-support-blueprint.md#Support route contract; phase-0-the-foundation-protocol.md#6.5 Support and replay algorithm; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/staff-operations-and-support-blueprint.md#Support route contract; blueprint/forensic-audit-findings.md#Finding 114; data/analysis/tenant_isolation_matrix.csv#TIM_SUPPORT_DELEGATE", "tenant_isolation_mode": "explicit_support_delegate_scope", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core"}, {"audience": "support", "audience_surface_ref": "surf_support_replay_observe", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models; wf_assurance_security_control", "explicit_exception_reason": "", "explicit_exception_ref": "", "gateway_surface_id": "gws_support_replay_observe", "ownership_role": "primary", "primary_gateway_surface_id": "gws_support_replay_observe", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS; CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS; CBC_041_COMMAND_API_TO_EVENT_CONTRACTS; CBC_041_RELEASE_CONTROL_TO_OBSERVABILITY", "route_family": "/ops/support/replay/:supportReplaySessionId and /ops/support/tickets/:supportTicketId/observe/:supportObserveSessionId", "route_family_id": "rf_support_replay_observe", "session_policy_ref": "SP_SUPPORT_REPLAY_ENVELOPE", "shell_type": "support", "source_refs": "staff-operations-and-support-blueprint.md#Support route contract; phase-0-the-foundation-protocol.md#6.5 Support and replay algorithm; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/phase-0-the-foundation-protocol.md#6.5 Support and replay algorithm; blueprint/forensic-audit-findings.md#Finding 100 - Support replay and observe return still had no authoritative restore gate; data/analysis/tenant_isolation_matrix.csv#TIM_SUPPORT_INVESTIGATION", "tenant_isolation_mode": "explicit_support_investigation_scope", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core; tzb_published_gateway_to_assurance_security"}, {"audience": "operations_control", "audience_surface_ref": "surf_operations_board", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models; wf_assurance_security_control", "explicit_exception_reason": "", "explicit_exception_ref": "", "gateway_surface_id": "gws_operations_board", "ownership_role": "primary", "primary_gateway_surface_id": "gws_operations_board", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS; CBC_041_RELEASE_CONTROL_TO_OBSERVABILITY", "route_family": "/ops/overview, /ops/queues, /ops/capacity, /ops/dependencies, /ops/audit, /ops/assurance, /ops/incidents, /ops/resilience", "route_family_id": "rf_operations_board", "session_policy_ref": "SP_OPERATIONS_WATCH_TUPLE", "shell_type": "operations", "source_refs": "operations-console-frontend-blueprint.md#Canonical route family; platform-frontend-blueprint.md#Operations Console specialization; operations-console-frontend-blueprint.md#Calm board posture and briefing artifacts; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/operations-console-frontend-blueprint.md#Canonical route family; blueprint/forensic-audit-findings.md#Finding 96; data/analysis/tenant_isolation_matrix.csv#TIM_OPERATIONS_MULTI_TENANT", "tenant_isolation_mode": "platform_observation_aggregate", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core; tzb_published_gateway_to_assurance_security"}, {"audience": "operations_control", "audience_surface_ref": "surf_operations_drilldown", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models; wf_command_orchestration; wf_assurance_security_control", "explicit_exception_reason": "", "explicit_exception_ref": "", "gateway_surface_id": "gws_operations_drilldown", "ownership_role": "primary", "primary_gateway_surface_id": "gws_operations_drilldown", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS; CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS; CBC_041_COMMAND_API_TO_EVENT_CONTRACTS; CBC_041_RELEASE_CONTROL_TO_OBSERVABILITY", "route_family": "/ops/:opsLens/investigations/:opsRouteIntentId, /interventions/:opsRouteIntentId, /compare/:opsRouteIntentId, /health/:opsRouteIntentId", "route_family_id": "rf_operations_drilldown", "session_policy_ref": "SP_RESILIENCE_CONTROL_SCOPE", "shell_type": "operations", "source_refs": "operations-console-frontend-blueprint.md#Canonical route family; operations-console-frontend-blueprint.md#Restore reporting and board-frame discipline; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/operations-console-frontend-blueprint.md#Restore reporting and board-frame discipline; blueprint/forensic-audit-findings.md#Finding 96; data/analysis/tenant_isolation_matrix.csv#TIM_OPERATIONS_MULTI_TENANT", "tenant_isolation_mode": "platform_observation_aggregate", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core; tzb_published_gateway_to_assurance_security"}, {"audience": "governance_review", "audience_surface_ref": "surf_governance_shell", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models; wf_command_orchestration; wf_assurance_security_control", "explicit_exception_reason": "", "explicit_exception_ref": "", "gateway_surface_id": "gws_governance_shell", "ownership_role": "primary", "primary_gateway_surface_id": "gws_governance_shell", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS; CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS; CBC_041_COMMAND_API_TO_EVENT_CONTRACTS; CBC_041_RELEASE_CONTROL_TO_OBSERVABILITY", "route_family": "/ops/governance/*, /ops/access/*, /ops/config/*, /ops/comms/*, /ops/release/*", "route_family_id": "rf_governance_shell", "session_policy_ref": "SP_GOVERNANCE_SCOPE_TUPLE", "shell_type": "governance", "source_refs": "governance-admin-console-frontend-blueprint.md#Shell and route topology; platform-frontend-blueprint.md#Governance/Admin specialization; governance-admin-console-frontend-blueprint.md#Primary governance personas; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/governance-admin-console-frontend-blueprint.md#Shell and route topology; blueprint/forensic-audit-findings.md#Finding 95; data/analysis/tenant_isolation_matrix.csv#TIM_GOVERNANCE_PLATFORM", "tenant_isolation_mode": "platform_control_plane_with_explicit_blast_radius", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core; tzb_published_gateway_to_assurance_security"}, {"audience": "assistive_adjunct", "audience_surface_ref": "surf_assistive_sidecar", "browser_visible": "yes", "downstream_workload_family_refs": "wf_projection_read_models; wf_command_orchestration", "explicit_exception_reason": "", "explicit_exception_ref": "", "gateway_surface_id": "gws_assistive_sidecar", "ownership_role": "primary", "primary_gateway_surface_id": "gws_assistive_sidecar", "required_context_boundary_refs": "CBC_041_SHELLS_TO_API_CONTRACTS; CBC_041_SHELLS_TO_RELEASE_CONTROLS; CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS; CBC_041_API_GATEWAY_TO_IDENTITY_POLICY; CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS; CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS; CBC_041_COMMAND_API_TO_EVENT_CONTRACTS", "route_family": "Assistive evaluation, replay, monitoring, and release-control surfaces (derived)", "route_family_id": "rf_assistive_control_shell", "session_policy_ref": "SP_ASSISTIVE_ADJUNCT_INHERITED", "shell_type": "staff", "source_refs": "phase-8-the-assistive-layer.md#Control priorities; phase-0-the-foundation-protocol.md#1.1 PersistentShell; staff-workspace-interface-architecture.md#Assistive companion presentation profile; platform-runtime-and-release-blueprint.md#GatewayBffSurface; blueprint/phase-8-the-assistive-layer.md#Control priorities; blueprint/forensic-audit-findings.md#Finding 91; data/analysis/tenant_isolation_matrix.csv#TIM_ASSISTIVE_ADJUNCT", "tenant_isolation_mode": "inherited_scope_no_standalone_tenant_widening", "trust_zone_boundary_refs": "tzb_public_edge_to_published_gateway; tzb_published_gateway_to_application_core"}], "split_decisions": [{"candidate_group_id": "cand_patient_public_entry", "decision_id": "DEC_047_PATIENT_PUBLIC_WEB_VS_PHONE", "decision_state": "split_required", "drivers": ["session_policy", "ingress_channel", "cache_policy"], "source_refs": ["docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Gateway Surface Matrix", "prompt/047.md"], "summary": "Public patient web and telephony intake remain separate because session evidence and capture-channel recovery posture differ.", "surface_refs": ["gws_patient_intake_web", "gws_patient_intake_phone"]}, {"candidate_group_id": "cand_patient_grant_recovery", "decision_id": "DEC_047_GRANT_RECOVERY_VS_PATIENT_PORTAL", "decision_state": "split_required", "drivers": ["tenant_isolation", "session_policy", "recovery_profile"], "source_refs": ["blueprint/phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm", "prompt/047.md"], "summary": "Grant-scoped recovery cannot merge into the authenticated patient portal because route intent and tenant scope are materially narrower.", "surface_refs": ["gws_patient_secure_link_recovery", "gws_patient_home"]}, {"candidate_group_id": "cand_patient_portal", "decision_id": "DEC_047_PATIENT_HOME_VS_REQUESTS", "decision_state": "split_required", "drivers": ["downstream_workload", "mutating_contexts", "recovery_profile"], "source_refs": ["blueprint/patient-account-and-communications-blueprint.md#Patient home contract", "blueprint/patient-account-and-communications-blueprint.md#Request detail contract"], "summary": "Patient home remains projection-only while request detail can launch request-bound mutations across several domains.", "surface_refs": ["gws_patient_home", "gws_patient_requests"]}, {"candidate_group_id": "cand_patient_portal", "decision_id": "DEC_047_APPOINTMENTS_VS_REQUESTS", "decision_state": "split_required", "drivers": ["recovery_profile", "served_contexts", "cache_policy"], "source_refs": ["blueprint/phase-0-the-foundation-protocol.md#5.6 Booking, waitlist, hub, and pharmacy continuity algorithm", "prompt/047.md"], "summary": "Appointments keep booking and external-confirmation posture distinct from general request detail.", "surface_refs": ["gws_patient_appointments", "gws_patient_requests"]}, {"candidate_group_id": "cand_patient_portal", "decision_id": "DEC_047_MESSAGES_VS_REQUESTS", "decision_state": "split_required", "drivers": ["mutating_contexts", "recovery_profile"], "source_refs": ["blueprint/callback-and-clinician-messaging-loop.md", "prompt/047.md"], "summary": "Messages keep communication reply and callback-repair authority explicit instead of hiding it inside the general request surface.", "surface_refs": ["gws_patient_messages", "gws_patient_requests"]}, {"candidate_group_id": "cand_patient_portal", "decision_id": "DEC_047_RECORD_VS_PORTAL_HOME", "decision_state": "split_required", "drivers": ["cache_policy", "artifact_posture"], "source_refs": ["blueprint/phase-0-the-foundation-protocol.md#5.5A Patient record and results visualization algorithm", "prompt/047.md"], "summary": "Record and artifact viewing stays read-only and parity-governed, so it cannot merge into the general patient portal home.", "surface_refs": ["gws_patient_health_record", "gws_patient_home"]}, {"candidate_group_id": "cand_patient_portal", "decision_id": "DEC_047_EMBEDDED_CHANNEL_SPLIT", "decision_state": "split_required", "drivers": ["channel_freeze", "release_posture", "cache_policy"], "source_refs": ["blueprint/forensic-audit-findings.md#Finding 90", "prompt/047.md"], "summary": "Embedded patient delivery stays explicit because channel-freeze and host-capability posture differ from browser mode.", "surface_refs": ["gws_patient_embedded_shell", "gws_patient_home"]}, {"candidate_group_id": "cand_clinical_workspace", "decision_id": "DEC_047_CLINICAL_VS_PRACTICE_OPS", "decision_state": "explicit_variant", "drivers": ["audience", "mutating_contexts", "purpose_of_use"], "source_refs": ["blueprint/staff-operations-and-support-blueprint.md#Staff audience coverage contract", "blueprint/forensic-audit-findings.md#Finding 114"], "summary": "Clinical and practice-operations work reuse one route family but stay as separate audience variants with different minimum-necessary mutation scope.", "surface_refs": ["gws_clinician_workspace", "gws_practice_ops_workspace"]}, {"candidate_group_id": "cand_hub_desk", "decision_id": "DEC_047_HUB_QUEUE_VS_CASE", "decision_state": "split_required", "drivers": ["mutating_contexts", "recovery_profile"], "source_refs": ["blueprint/phase-5-the-network-horizon.md#Hub shell-family ownership is explicit", "prompt/047.md"], "summary": "Hub queue and hub case management stay separate because active cross-organisation mutation is legal only in the case surface.", "surface_refs": ["gws_hub_queue", "gws_hub_case_management"]}, {"candidate_group_id": "cand_support_workspace", "decision_id": "DEC_047_SUPPORT_TICKET_VS_REPLAY", "decision_state": "split_required", "drivers": ["trust_zone_boundary", "session_policy", "recovery_profile"], "source_refs": ["blueprint/phase-0-the-foundation-protocol.md#6.5 Support and replay algorithm", "prompt/047.md"], "summary": "Support replay crosses the assurance boundary and cannot share the primary support ticket surface.", "surface_refs": ["gws_support_ticket_workspace", "gws_support_replay_observe"]}, {"candidate_group_id": "cand_support_workspace", "decision_id": "DEC_047_SUPPORT_TICKET_VS_ASSISTED_CAPTURE", "decision_state": "explicit_variant", "drivers": ["ingress_channel", "mutating_contexts"], "source_refs": ["blueprint/staff-operations-and-support-blueprint.md#Support route contract", "prompt/047.md"], "summary": "Support-assisted capture keeps a separate support-owned ingress and recovery contract while reusing the main ticket route family.", "surface_refs": ["gws_support_ticket_workspace", "gws_support_assisted_capture"]}, {"candidate_group_id": "cand_operations_console", "decision_id": "DEC_047_OPS_BOARD_VS_DRILLDOWN", "decision_state": "split_required", "drivers": ["mutating_contexts", "recovery_profile", "trust_zone_boundary"], "source_refs": ["blueprint/operations-console-frontend-blueprint.md#Restore reporting and board-frame discipline", "blueprint/forensic-audit-findings.md#Finding 96"], "summary": "Operations drill-down is split from the board because intervention and restore controls carry stronger authority than watch-only diagnostics.", "surface_refs": ["gws_operations_board", "gws_operations_drilldown"]}, {"candidate_group_id": "cand_governance_shell", "decision_id": "DEC_047_OPS_VS_GOVERNANCE", "decision_state": "split_required", "drivers": ["tenant_isolation", "assurance_trust", "recovery_profile"], "source_refs": ["blueprint/governance-admin-console-frontend-blueprint.md#Primary governance personas", "blueprint/forensic-audit-findings.md#Finding 95"], "summary": "Governance remains a separate control-plane shell because watch-tuple, blast-radius, and approval-freeze posture differ from operations work.", "surface_refs": ["gws_operations_board", "gws_governance_shell"]}, {"candidate_group_id": "cand_clinical_workspace", "decision_id": "DEC_047_ASSISTIVE_NOT_STANDALONE", "decision_state": "explicit_variant", "drivers": ["tenant_isolation", "bounded_secondary", "recovery_profile"], "source_refs": ["blueprint/phase-8-the-assistive-layer.md#Control priorities", "blueprint/forensic-audit-findings.md#Finding 91"], "summary": "Assistive remains a bounded secondary surface inside the owning staff shell rather than a standalone published BFF.", "surface_refs": ["gws_clinician_workspace_child", "gws_assistive_sidecar"]}], "summary": {"assurance_surface_count": 5, "browser_visible_route_count": 19, "browser_visible_route_coverage_percent": 100, "candidate_group_count": 9, "contract_matrix_count": 22, "gateway_surface_count": 22, "primary_route_owner_count": 20, "route_family_count": 20, "secondary_route_exception_count": 3}, "surfaces": [{"asyncChannelRef": "async://none", "audience": "patient_public", "audienceSurfaceRef": "surf_patient_intake_web", "browserVisible": true, "cachePolicyRef": "CP_PUBLIC_NO_PERSISTED_PHI", "candidateGroupId": "cand_patient_public_entry", "candidateGroupLabel": "Public patient entry", "channelGuardrailProfileRef": "CGP_PUBLIC_BROWSER_STANDARD", "channelProfile": "browser", "clientCachePolicyDigestRef": "cache::gws_patient_intake_web::placeholder", "commandSettlementSchemaRefs": ["CommandSettlementSchema::intake_safety::v1"], "defectState": "declared", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models", "wf_command_orchestration"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_patient_intake_web::placeholder", "liveChannelContractRef": "channel::gws_patient_intake_web::placeholder", "mutatingBoundedContextRefs": ["intake_safety"], "mutationCommandContractRef": "command::gws_patient_intake_web::placeholder", "openApiRef": "openapi://gateway-bff/gws_patient_intake_web/v1", "projectionSchemaRefs": ["ProjectionSchema::intake_safety::v1", "ProjectionSchema::identity_access::v1"], "queryContractSetRef": "query::gws_patient_intake_web::placeholder", "rationale": "Public web intake keeps a public-safe cache and a single intake mutation scope only.", "recoveryDispositionProfileRef": "rdp::gws_patient_intake_web", "recoveryDispositionRefs": ["RRD_PATIENT_PUBLIC_PLACEHOLDER", "RRD_PATIENT_INTAKE_RECOVERY"], "releaseApprovalFreezeRef": "raf::gws_patient_intake_web::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_public_intake_safety"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS", "CBC_041_COMMAND_API_TO_EVENT_CONTRACTS"], "routeFamilies": ["rf_intake_self_service"], "routeFamilyName": "Intake / self-service form (derived)", "runtimePublicationBundleRef": "rpb::gws_patient_intake_web::placeholder", "scopePosture": "baseline", "servedBoundedContextRefs": ["intake_safety", "identity_access"], "sessionPolicyRef": "SP_PATIENT_PUBLIC_EPHEMERAL", "shellType": "patient", "source_refs": ["blueprint-init.md#2. Core product surfaces", "phase-0-the-foundation-protocol.md#12.1 Mandatory audience tiers", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/blueprint-init.md#2. Core product surfaces", "blueprint/forensic-audit-findings.md#Finding 97", "data/analysis/tenant_isolation_matrix.csv#TIM_PUBLIC_PRE_IDENTITY"], "surfaceAuthorityTupleHash": "abb437e1df0227a5", "surfaceId": "gws_patient_intake_web", "surfaceName": "Patient intake entry gateway", "tenantIsolationMode": "shared_public_pre_tenant", "tenantScopeMode": "public_pre_identity", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core"]}, {"asyncChannelRef": "async://none", "audience": "patient_public", "audienceSurfaceRef": "surf_patient_intake_phone", "browserVisible": false, "cachePolicyRef": "CP_CONSTRAINED_CAPTURE_NO_BROWSER_CACHE", "candidateGroupId": "cand_patient_public_entry", "candidateGroupLabel": "Public patient entry", "channelGuardrailProfileRef": "CGP_CONSTRAINED_CAPTURE_PROXY", "channelProfile": "constrained_browser", "clientCachePolicyDigestRef": "cache::gws_patient_intake_phone::placeholder", "commandSettlementSchemaRefs": ["CommandSettlementSchema::intake_safety::v1", "CommandSettlementSchema::communications::v1"], "defectState": "declared", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models", "wf_command_orchestration"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_patient_intake_phone::placeholder", "liveChannelContractRef": "channel::gws_patient_intake_phone::placeholder", "mutatingBoundedContextRefs": ["intake_safety", "communications"], "mutationCommandContractRef": "command::gws_patient_intake_phone::placeholder", "openApiRef": "openapi://gateway-bff/gws_patient_intake_phone/v1", "projectionSchemaRefs": ["ProjectionSchema::intake_safety::v1", "ProjectionSchema::communications::v1"], "queryContractSetRef": "query::gws_patient_intake_phone::placeholder", "rationale": "Telephony capture stays explicit because session posture, ingress proof, and follow-up delivery differ from web entry.", "recoveryDispositionProfileRef": "rdp::gws_patient_intake_phone", "recoveryDispositionRefs": ["RRD_PATIENT_PUBLIC_PLACEHOLDER", "RRD_TELEPHONY_CAPTURE_RECOVERY"], "releaseApprovalFreezeRef": "raf::gws_patient_intake_phone::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_public_intake_safety"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS", "CBC_041_COMMAND_API_TO_EVENT_CONTRACTS"], "routeFamilies": ["rf_intake_telephony_capture"], "routeFamilyName": "Intake / telephony capture (derived)", "runtimePublicationBundleRef": "rpb::gws_patient_intake_phone::placeholder", "scopePosture": "baseline", "servedBoundedContextRefs": ["intake_safety", "communications"], "sessionPolicyRef": "SP_TELEPHONY_CAPTURE_PROXY", "shellType": "patient", "source_refs": ["blueprint-init.md#2. Core product surfaces", "phase-0-the-foundation-protocol.md#0.2 Continuity key and shell law", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/blueprint-init.md#2. Core product surfaces", "docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Gateway Surface Matrix", "data/analysis/tenant_isolation_matrix.csv#TIM_PUBLIC_PRE_IDENTITY"], "surfaceAuthorityTupleHash": "e191f0785f2f1a21", "surfaceId": "gws_patient_intake_phone", "surfaceName": "Telephony / IVR intake capture gateway", "tenantIsolationMode": "shared_public_pre_tenant", "tenantScopeMode": "public_pre_identity", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core"]}, {"asyncChannelRef": "async://none", "audience": "patient_grant_scoped", "audienceSurfaceRef": "surf_patient_secure_link_recovery", "browserVisible": true, "cachePolicyRef": "CP_GRANT_SCOPED_EPHEMERAL", "candidateGroupId": "cand_patient_grant_recovery", "candidateGroupLabel": "Grant-scoped patient recovery", "channelGuardrailProfileRef": "CGP_GRANT_RECOVERY_NARROW", "channelProfile": "constrained_browser", "clientCachePolicyDigestRef": "cache::gws_patient_secure_link_recovery::placeholder", "commandSettlementSchemaRefs": ["CommandSettlementSchema::identity_access::v1"], "defectState": "declared", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models", "wf_command_orchestration"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_patient_secure_link_recovery::placeholder", "liveChannelContractRef": "channel::gws_patient_secure_link_recovery::placeholder", "mutatingBoundedContextRefs": ["identity_access"], "mutationCommandContractRef": "command::gws_patient_secure_link_recovery::placeholder", "openApiRef": "openapi://gateway-bff/gws_patient_secure_link_recovery/v1", "projectionSchemaRefs": ["ProjectionSchema::identity_access::v1", "ProjectionSchema::patient_experience::v1"], "queryContractSetRef": "query::gws_patient_secure_link_recovery::placeholder", "rationale": "Grant-scoped recovery is narrower than the authenticated portal and must not widen into general patient authority.", "recoveryDispositionProfileRef": "rdp::gws_patient_secure_link_recovery", "recoveryDispositionRefs": ["RRD_SECURE_LINK_RECOVERY_ONLY", "RRD_IDENTITY_HOLD_PLACEHOLDER"], "releaseApprovalFreezeRef": "raf::gws_patient_secure_link_recovery::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_grant_redemption_scope"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS", "CBC_041_COMMAND_API_TO_EVENT_CONTRACTS"], "routeFamilies": ["rf_patient_secure_link_recovery"], "routeFamilyName": "Secure-link recovery and claim resume (derived)", "runtimePublicationBundleRef": "rpb::gws_patient_secure_link_recovery::placeholder", "scopePosture": "baseline", "servedBoundedContextRefs": ["identity_access", "patient_experience"], "sessionPolicyRef": "SP_GRANT_SCOPED_RECOVERY", "shellType": "patient", "source_refs": ["patient-account-and-communications-blueprint.md#Patient audience coverage contract", "phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm", "blueprint/forensic-audit-findings.md#Finding 91", "data/analysis/tenant_isolation_matrix.csv#TIM_GRANT_SCOPED_RECOVERY"], "surfaceAuthorityTupleHash": "f61a692f0226b0c9", "surfaceId": "gws_patient_secure_link_recovery", "surfaceName": "Secure-link recovery and claim resume gateway", "tenantIsolationMode": "tenant_scoped_lineage_grant", "tenantScopeMode": "grant_scoped_subject", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core"]}, {"asyncChannelRef": "async://patient-appointments-status/v1", "audience": "patient_authenticated", "audienceSurfaceRef": "surf_patient_appointments", "browserVisible": true, "cachePolicyRef": "CP_PATIENT_BOOKING_PRIVATE_EPHEMERAL", "candidateGroupId": "cand_patient_portal", "candidateGroupLabel": "Authenticated patient portal", "channelGuardrailProfileRef": "CGP_PATIENT_AUTH_STANDARD", "channelProfile": "browser", "clientCachePolicyDigestRef": "cache::gws_patient_appointments::placeholder", "commandSettlementSchemaRefs": ["CommandSettlementSchema::booking::v1", "CommandSettlementSchema::hub_coordination::v1"], "defectState": "declared", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models", "wf_command_orchestration"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_patient_appointments::placeholder", "liveChannelContractRef": "channel::gws_patient_appointments::placeholder", "mutatingBoundedContextRefs": ["booking", "hub_coordination"], "mutationCommandContractRef": "command::gws_patient_appointments::placeholder", "openApiRef": "openapi://gateway-bff/gws_patient_appointments/v1", "projectionSchemaRefs": ["ProjectionSchema::patient_experience::v1", "ProjectionSchema::booking::v1", "ProjectionSchema::hub_coordination::v1"], "queryContractSetRef": "query::gws_patient_appointments::placeholder", "rationale": "Appointments stay separate because booking confirmation ambiguity and waitlist recovery are distinct from generic request flows.", "recoveryDispositionProfileRef": "rdp::gws_patient_appointments", "recoveryDispositionRefs": ["RRD_PATIENT_APPOINTMENT_READ_ONLY", "RRD_BOOKING_CONFIRMATION_PLACEHOLDER"], "releaseApprovalFreezeRef": "raf::gws_patient_appointments::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_booking_confirmation_trust"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS", "CBC_041_COMMAND_API_TO_EVENT_CONTRACTS"], "routeFamilies": ["rf_patient_appointments"], "routeFamilyName": "Appointments", "runtimePublicationBundleRef": "rpb::gws_patient_appointments::placeholder", "scopePosture": "baseline", "servedBoundedContextRefs": ["patient_experience", "booking", "hub_coordination"], "sessionPolicyRef": "SP_PATIENT_AUTHENTICATED_SHELL", "shellType": "patient", "source_refs": ["phase-0-the-foundation-protocol.md#5.6 Booking, waitlist, hub, and pharmacy continuity algorithm", "patient-account-and-communications-blueprint.md#Core projections", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/phase-0-the-foundation-protocol.md#5.6 Booking, waitlist, hub, and pharmacy continuity algorithm", "blueprint/forensic-audit-findings.md#Finding 97", "data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_SELF_SERVICE"], "surfaceAuthorityTupleHash": "4f9a9dcce20ac4e3", "surfaceId": "gws_patient_appointments", "surfaceName": "Appointments and manage gateway", "tenantIsolationMode": "tenant_scoped_subject", "tenantScopeMode": "tenant_subject_self_service", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core"]}, {"asyncChannelRef": "async://none", "audience": "patient_embedded_authenticated", "audienceSurfaceRef": "surf_patient_embedded_shell", "browserVisible": true, "cachePolicyRef": "CP_EMBEDDED_HOST_SCOPED_EPHEMERAL", "candidateGroupId": "cand_patient_portal", "candidateGroupLabel": "Authenticated patient portal", "channelGuardrailProfileRef": "CGP_EMBEDDED_HOST_BOUND", "channelProfile": "embedded", "clientCachePolicyDigestRef": "cache::gws_patient_embedded_shell::placeholder", "commandSettlementSchemaRefs": ["CommandSettlementSchema::identity_access::v1"], "defectState": "watch", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models", "wf_command_orchestration"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_patient_embedded_shell::placeholder", "liveChannelContractRef": "channel::gws_patient_embedded_shell::placeholder", "mutatingBoundedContextRefs": ["identity_access"], "mutationCommandContractRef": "command::gws_patient_embedded_shell::placeholder", "openApiRef": "openapi://gateway-bff/gws_patient_embedded_shell/v1", "projectionSchemaRefs": ["ProjectionSchema::patient_experience::v1", "ProjectionSchema::identity_access::v1"], "queryContractSetRef": "query::gws_patient_embedded_shell::placeholder", "rationale": "Embedded patient delivery remains explicit and watch-only because channel freeze and host capability law differ materially from browser mode.", "recoveryDispositionProfileRef": "rdp::gws_patient_embedded_shell", "recoveryDispositionRefs": ["RRD_EMBEDDED_HANDOFF_ONLY", "RRD_EMBEDDED_READ_ONLY"], "releaseApprovalFreezeRef": "raf::gws_patient_embedded_shell::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_embedded_channel_trust"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS", "CBC_041_COMMAND_API_TO_EVENT_CONTRACTS"], "routeFamilies": ["rf_patient_embedded_channel"], "routeFamilyName": "Patient embedded channel parity", "runtimePublicationBundleRef": "rpb::gws_patient_embedded_shell::placeholder", "scopePosture": "deferred", "servedBoundedContextRefs": ["patient_experience", "identity_access"], "sessionPolicyRef": "SP_PATIENT_EMBEDDED_HOST_BOUND", "shellType": "patient", "source_refs": ["patient-portal-experience-architecture-blueprint.md#Control priorities", "phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/patient-portal-experience-architecture-blueprint.md#Control priorities", "blueprint/forensic-audit-findings.md#Finding 90", "data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_EMBEDDED"], "surfaceAuthorityTupleHash": "5bb55c7ede008dda", "surfaceId": "gws_patient_embedded_shell", "surfaceName": "Embedded patient shell reuse gateway", "tenantIsolationMode": "tenant_scoped_subject_embedded", "tenantScopeMode": "tenant_subject_embedded", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core"]}, {"asyncChannelRef": "async://patient-messages-thread/v1", "audience": "patient_authenticated", "audienceSurfaceRef": "surf_patient_messages", "browserVisible": true, "cachePolicyRef": "CP_PATIENT_THREAD_PRIVATE_EPHEMERAL", "candidateGroupId": "cand_patient_portal", "candidateGroupLabel": "Authenticated patient portal", "channelGuardrailProfileRef": "CGP_PATIENT_AUTH_STANDARD", "channelProfile": "browser", "clientCachePolicyDigestRef": "cache::gws_patient_messages::placeholder", "commandSettlementSchemaRefs": ["CommandSettlementSchema::communications::v1"], "defectState": "declared", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models", "wf_command_orchestration"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_patient_messages::placeholder", "liveChannelContractRef": "channel::gws_patient_messages::placeholder", "mutatingBoundedContextRefs": ["communications"], "mutationCommandContractRef": "command::gws_patient_messages::placeholder", "openApiRef": "openapi://gateway-bff/gws_patient_messages/v1", "projectionSchemaRefs": ["ProjectionSchema::patient_experience::v1", "ProjectionSchema::communications::v1"], "queryContractSetRef": "query::gws_patient_messages::placeholder", "rationale": "Messages keep communication mutation and delivery-repair scope explicit instead of sharing a generic request surface.", "recoveryDispositionProfileRef": "rdp::gws_patient_messages", "recoveryDispositionRefs": ["RRD_PATIENT_MESSAGES_READ_ONLY", "RRD_CONVERSATION_RECOVERY_ONLY"], "releaseApprovalFreezeRef": "raf::gws_patient_messages::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_reachability_and_message_trust"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS", "CBC_041_COMMAND_API_TO_EVENT_CONTRACTS"], "routeFamilies": ["rf_patient_messages"], "routeFamilyName": "Messages", "runtimePublicationBundleRef": "rpb::gws_patient_messages::placeholder", "scopePosture": "baseline", "servedBoundedContextRefs": ["patient_experience", "communications"], "sessionPolicyRef": "SP_PATIENT_AUTHENTICATED_SHELL", "shellType": "patient", "source_refs": ["phase-0-the-foundation-protocol.md#5.5 Unified care conversation algorithm", "callback-and-clinician-messaging-loop.md", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/phase-0-the-foundation-protocol.md#5.5 Unified care conversation algorithm", "blueprint/callback-and-clinician-messaging-loop.md", "data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_SELF_SERVICE"], "surfaceAuthorityTupleHash": "023225ea67f7958b", "surfaceId": "gws_patient_messages", "surfaceName": "Messages and callback thread gateway", "tenantIsolationMode": "tenant_scoped_subject", "tenantScopeMode": "tenant_subject_self_service", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core"]}, {"asyncChannelRef": "async://none", "audience": "patient_authenticated", "audienceSurfaceRef": "surf_patient_health_record", "browserVisible": true, "cachePolicyRef": "CP_PATIENT_ARTIFACT_SUMMARY_NO_STORE", "candidateGroupId": "cand_patient_portal", "candidateGroupLabel": "Authenticated patient portal", "channelGuardrailProfileRef": "CGP_PATIENT_AUTH_STANDARD", "channelProfile": "browser", "clientCachePolicyDigestRef": "cache::gws_patient_health_record::placeholder", "commandSettlementSchemaRefs": [], "defectState": "declared", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_patient_health_record::placeholder", "liveChannelContractRef": "channel::gws_patient_health_record::placeholder", "mutatingBoundedContextRefs": [], "mutationCommandContractRef": "command::gws_patient_health_record::placeholder", "openApiRef": "openapi://gateway-bff/gws_patient_health_record/v1", "projectionSchemaRefs": ["ProjectionSchema::patient_experience::v1"], "queryContractSetRef": "query::gws_patient_health_record::placeholder", "rationale": "Record and document views remain read-only and artifact-governed rather than inheriting wider portal command scope.", "recoveryDispositionProfileRef": "rdp::gws_patient_health_record", "recoveryDispositionRefs": ["RRD_PATIENT_RECORD_SUMMARY_ONLY", "RRD_ARTIFACT_HANDOFF_REQUIRED"], "releaseApprovalFreezeRef": "raf::gws_patient_health_record::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_artifact_parity"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS"], "routeFamilies": ["rf_patient_health_record"], "routeFamilyName": "Health record", "runtimePublicationBundleRef": "rpb::gws_patient_health_record::placeholder", "scopePosture": "baseline", "servedBoundedContextRefs": ["patient_experience"], "sessionPolicyRef": "SP_PATIENT_AUTHENTICATED_SHELL", "shellType": "patient", "source_refs": ["phase-0-the-foundation-protocol.md#5.5A Patient record and results visualization algorithm", "patient-account-and-communications-blueprint.md#Core projections", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/phase-0-the-foundation-protocol.md#5.5A Patient record and results visualization algorithm", "blueprint/forensic-audit-findings.md#Finding 97", "data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_SELF_SERVICE"], "surfaceAuthorityTupleHash": "4fa1bf0187361060", "surfaceId": "gws_patient_health_record", "surfaceName": "Patient health record and documents gateway", "tenantIsolationMode": "tenant_scoped_subject", "tenantScopeMode": "tenant_subject_self_service", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core"]}, {"asyncChannelRef": "async://none", "audience": "patient_authenticated", "audienceSurfaceRef": "surf_patient_home", "browserVisible": true, "cachePolicyRef": "CP_PATIENT_SUMMARY_PRIVATE_SHORT", "candidateGroupId": "cand_patient_portal", "candidateGroupLabel": "Authenticated patient portal", "channelGuardrailProfileRef": "CGP_PATIENT_AUTH_STANDARD", "channelProfile": "browser", "clientCachePolicyDigestRef": "cache::gws_patient_home::placeholder", "commandSettlementSchemaRefs": [], "defectState": "declared", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_patient_home::placeholder", "liveChannelContractRef": "channel::gws_patient_home::placeholder", "mutatingBoundedContextRefs": [], "mutationCommandContractRef": "command::gws_patient_home::placeholder", "openApiRef": "openapi://gateway-bff/gws_patient_home/v1", "projectionSchemaRefs": ["ProjectionSchema::patient_experience::v1"], "queryContractSetRef": "query::gws_patient_home::placeholder", "rationale": "Home remains projection-only and may not inherit request, booking, or messaging mutation authority.", "recoveryDispositionProfileRef": "rdp::gws_patient_home", "recoveryDispositionRefs": ["RRD_PATIENT_HOME_READ_ONLY", "RRD_PATIENT_HOME_PLACEHOLDER"], "releaseApprovalFreezeRef": "raf::gws_patient_home::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_patient_shell_trust"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS"], "routeFamilies": ["rf_patient_home"], "routeFamilyName": "Home", "runtimePublicationBundleRef": "rpb::gws_patient_home::placeholder", "scopePosture": "baseline", "servedBoundedContextRefs": ["patient_experience"], "sessionPolicyRef": "SP_PATIENT_AUTHENTICATED_SHELL", "shellType": "patient", "source_refs": ["patient-portal-experience-architecture-blueprint.md#Portal entry and shell topology", "patient-account-and-communications-blueprint.md#Patient home contract", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/patient-portal-experience-architecture-blueprint.md#Portal entry and shell topology", "blueprint/forensic-audit-findings.md#Finding 97", "data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_SELF_SERVICE"], "surfaceAuthorityTupleHash": "d8f3fd64ed461847", "surfaceId": "gws_patient_home", "surfaceName": "Patient home and spotlight gateway", "tenantIsolationMode": "tenant_scoped_subject", "tenantScopeMode": "tenant_subject_self_service", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core"]}, {"asyncChannelRef": "async://none", "audience": "patient_authenticated", "audienceSurfaceRef": "surf_patient_requests", "browserVisible": true, "cachePolicyRef": "CP_PATIENT_ROUTE_INTENT_PRIVATE", "candidateGroupId": "cand_patient_portal", "candidateGroupLabel": "Authenticated patient portal", "channelGuardrailProfileRef": "CGP_PATIENT_AUTH_STANDARD", "channelProfile": "browser", "clientCachePolicyDigestRef": "cache::gws_patient_requests::placeholder", "commandSettlementSchemaRefs": ["CommandSettlementSchema::intake_safety::v1", "CommandSettlementSchema::communications::v1", "CommandSettlementSchema::booking::v1", "CommandSettlementSchema::hub_coordination::v1", "CommandSettlementSchema::pharmacy::v1"], "defectState": "declared", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models", "wf_command_orchestration"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_patient_requests::placeholder", "liveChannelContractRef": "channel::gws_patient_requests::placeholder", "mutatingBoundedContextRefs": ["intake_safety", "communications", "booking", "hub_coordination", "pharmacy"], "mutationCommandContractRef": "command::gws_patient_requests::placeholder", "openApiRef": "openapi://gateway-bff/gws_patient_requests/v1", "projectionSchemaRefs": ["ProjectionSchema::patient_experience::v1", "ProjectionSchema::intake_safety::v1", "ProjectionSchema::communications::v1", "ProjectionSchema::booking::v1", "ProjectionSchema::hub_coordination::v1", "ProjectionSchema::pharmacy::v1"], "queryContractSetRef": "query::gws_patient_requests::placeholder", "rationale": "Request detail can launch several request-bound actions, so the mutation scope is explicit instead of hidden in one broad patient BFF.", "recoveryDispositionProfileRef": "rdp::gws_patient_requests", "recoveryDispositionRefs": ["RRD_PATIENT_REQUEST_RECOVERY_ONLY", "RRD_PATIENT_REQUEST_READ_ONLY"], "releaseApprovalFreezeRef": "raf::gws_patient_requests::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_patient_route_intent"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS", "CBC_041_COMMAND_API_TO_EVENT_CONTRACTS"], "routeFamilies": ["rf_patient_requests"], "routeFamilyName": "Requests", "runtimePublicationBundleRef": "rpb::gws_patient_requests::placeholder", "scopePosture": "baseline", "servedBoundedContextRefs": ["patient_experience", "intake_safety", "communications", "booking", "hub_coordination", "pharmacy"], "sessionPolicyRef": "SP_PATIENT_AUTHENTICATED_SHELL", "shellType": "patient", "source_refs": ["patient-account-and-communications-blueprint.md#Requests browsing contract", "patient-account-and-communications-blueprint.md#Request detail contract", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/patient-account-and-communications-blueprint.md#Request detail contract", "blueprint/forensic-audit-findings.md#Finding 91", "data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_SELF_SERVICE"], "surfaceAuthorityTupleHash": "f2f5bee11afec238", "surfaceId": "gws_patient_requests", "surfaceName": "Request list and detail gateway", "tenantIsolationMode": "tenant_scoped_subject", "tenantScopeMode": "tenant_subject_self_service", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core"]}, {"asyncChannelRef": "async://none", "audience": "assistive_adjunct", "audienceSurfaceRef": "surf_assistive_sidecar", "browserVisible": true, "cachePolicyRef": "CP_ASSISTIVE_ADJUNCT_NO_PERSIST", "candidateGroupId": "cand_clinical_workspace", "candidateGroupLabel": "Clinical workspace", "channelGuardrailProfileRef": "CGP_ASSISTIVE_ADJUNCT_INHERITED", "channelProfile": "browser", "clientCachePolicyDigestRef": "cache::gws_assistive_sidecar::placeholder", "commandSettlementSchemaRefs": ["CommandSettlementSchema::triage_workspace::v1"], "defectState": "watch", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models", "wf_command_orchestration"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_assistive_sidecar::placeholder", "liveChannelContractRef": "channel::gws_assistive_sidecar::placeholder", "mutatingBoundedContextRefs": ["triage_workspace"], "mutationCommandContractRef": "command::gws_assistive_sidecar::placeholder", "openApiRef": "openapi://gateway-bff/gws_assistive_sidecar/v1", "projectionSchemaRefs": ["ProjectionSchema::triage_workspace::v1"], "queryContractSetRef": "query::gws_assistive_sidecar::placeholder", "rationale": "Assistive remains a bounded secondary surface so it cannot become a shadow standalone control plane.", "recoveryDispositionProfileRef": "rdp::gws_assistive_sidecar", "recoveryDispositionRefs": ["RRD_ASSISTIVE_READ_ONLY", "RRD_ASSISTIVE_SIDECAR_FROZEN"], "releaseApprovalFreezeRef": "raf::gws_assistive_sidecar::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_assistive_shadow_trust"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS", "CBC_041_COMMAND_API_TO_EVENT_CONTRACTS"], "routeFamilies": ["rf_staff_workspace_child", "rf_assistive_control_shell"], "routeFamilyName": "/workspace/task/:taskId/more-info, /workspace/task/:taskId/decision, /workspace/approvals, /workspace/escalations, /workspace/changed, /workspace/search; Assistive evaluation, replay, monitoring, and release-control surfaces (derived)", "runtimePublicationBundleRef": "rpb::gws_assistive_sidecar::placeholder", "scopePosture": "bounded_secondary", "servedBoundedContextRefs": ["triage_workspace"], "sessionPolicyRef": "SP_ASSISTIVE_ADJUNCT_INHERITED", "shellType": "staff", "source_refs": ["phase-8-the-assistive-layer.md#Control priorities", "staff-workspace-interface-architecture.md#Assistive companion presentation profile", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/phase-8-the-assistive-layer.md#Control priorities", "blueprint/forensic-audit-findings.md#Finding 91", "data/analysis/tenant_isolation_matrix.csv#TIM_ASSISTIVE_ADJUNCT"], "surfaceAuthorityTupleHash": "2bc0c5a98206f9b3", "surfaceId": "gws_assistive_sidecar", "surfaceName": "Assistive companion sidecar inside the owning task gateway", "tenantIsolationMode": "inherited_scope_no_standalone_tenant_widening", "tenantScopeMode": "inherited_from_owner_shell", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core"]}, {"asyncChannelRef": "async://none", "audience": "origin_practice_clinical", "audienceSurfaceRef": "surf_clinician_workspace_child", "browserVisible": true, "cachePolicyRef": "CP_WORKSPACE_CHILD_PRIVATE_EPHEMERAL", "candidateGroupId": "cand_clinical_workspace", "candidateGroupLabel": "Clinical workspace", "channelGuardrailProfileRef": "CGP_STAFF_SINGLE_ORG", "channelProfile": "browser", "clientCachePolicyDigestRef": "cache::gws_clinician_workspace_child::placeholder", "commandSettlementSchemaRefs": ["CommandSettlementSchema::triage_workspace::v1", "CommandSettlementSchema::communications::v1"], "defectState": "declared", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models", "wf_command_orchestration"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_clinician_workspace_child::placeholder", "liveChannelContractRef": "channel::gws_clinician_workspace_child::placeholder", "mutatingBoundedContextRefs": ["triage_workspace", "communications"], "mutationCommandContractRef": "command::gws_clinician_workspace_child::placeholder", "openApiRef": "openapi://gateway-bff/gws_clinician_workspace_child/v1", "projectionSchemaRefs": ["ProjectionSchema::triage_workspace::v1", "ProjectionSchema::communications::v1"], "queryContractSetRef": "query::gws_clinician_workspace_child::placeholder", "rationale": "Child review states stay within the same staff shell but keep settlement-sensitive task mutations narrower than the root queue surface.", "recoveryDispositionProfileRef": "rdp::gws_clinician_workspace_child", "recoveryDispositionRefs": ["RRD_WORKSPACE_CHILD_READ_ONLY", "RRD_WORKSPACE_CHILD_RECOVERY_ONLY"], "releaseApprovalFreezeRef": "raf::gws_clinician_workspace_child::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_workspace_slice_trust"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS", "CBC_041_COMMAND_API_TO_EVENT_CONTRACTS"], "routeFamilies": ["rf_staff_workspace_child"], "routeFamilyName": "/workspace/task/:taskId/more-info, /workspace/task/:taskId/decision, /workspace/approvals, /workspace/escalations, /workspace/changed, /workspace/search", "runtimePublicationBundleRef": "rpb::gws_clinician_workspace_child::placeholder", "scopePosture": "baseline", "servedBoundedContextRefs": ["triage_workspace", "communications"], "sessionPolicyRef": "SP_STAFF_SSO_SINGLE_ORG_CHILD", "shellType": "staff", "source_refs": ["staff-workspace-interface-architecture.md#Route family", "staff-workspace-interface-architecture.md#Additional route rules", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/staff-workspace-interface-architecture.md#Additional route rules", "blueprint/forensic-audit-findings.md#Finding 92", "data/analysis/tenant_isolation_matrix.csv#TIM_TENANT_STAFF_SINGLE_ORG"], "surfaceAuthorityTupleHash": "c2b6097da82f95ff", "surfaceId": "gws_clinician_workspace_child", "surfaceName": "Clinical Workspace child review states gateway", "tenantIsolationMode": "tenant_org_partition", "tenantScopeMode": "tenant_org_scoped_staff", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core"]}, {"asyncChannelRef": "async://none", "audience": "origin_practice_clinical", "audienceSurfaceRef": "surf_clinician_workspace", "browserVisible": true, "cachePolicyRef": "CP_WORKSPACE_SINGLE_ORG_PRIVATE", "candidateGroupId": "cand_clinical_workspace", "candidateGroupLabel": "Clinical workspace", "channelGuardrailProfileRef": "CGP_STAFF_SINGLE_ORG", "channelProfile": "browser", "clientCachePolicyDigestRef": "cache::gws_clinician_workspace::placeholder", "commandSettlementSchemaRefs": ["CommandSettlementSchema::triage_workspace::v1", "CommandSettlementSchema::booking::v1", "CommandSettlementSchema::communications::v1"], "defectState": "declared", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models", "wf_command_orchestration"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_clinician_workspace::placeholder", "liveChannelContractRef": "channel::gws_clinician_workspace::placeholder", "mutatingBoundedContextRefs": ["triage_workspace", "booking", "communications"], "mutationCommandContractRef": "command::gws_clinician_workspace::placeholder", "openApiRef": "openapi://gateway-bff/gws_clinician_workspace/v1", "projectionSchemaRefs": ["ProjectionSchema::triage_workspace::v1", "ProjectionSchema::booking::v1", "ProjectionSchema::communications::v1"], "queryContractSetRef": "query::gws_clinician_workspace::placeholder", "rationale": "The clinician workspace owns single-organisation review and command scope under one workspace trust envelope.", "recoveryDispositionProfileRef": "rdp::gws_clinician_workspace", "recoveryDispositionRefs": ["RRD_WORKSPACE_READ_ONLY", "RRD_WORKSPACE_QUEUE_PLACEHOLDER"], "releaseApprovalFreezeRef": "raf::gws_clinician_workspace::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_workspace_slice_trust"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS", "CBC_041_COMMAND_API_TO_EVENT_CONTRACTS"], "routeFamilies": ["rf_staff_workspace"], "routeFamilyName": "/workspace, /workspace/queue/:queueKey, /workspace/task/:taskId", "runtimePublicationBundleRef": "rpb::gws_clinician_workspace::placeholder", "scopePosture": "baseline", "servedBoundedContextRefs": ["triage_workspace", "booking", "communications"], "sessionPolicyRef": "SP_STAFF_SSO_SINGLE_ORG", "shellType": "staff", "source_refs": ["staff-workspace-interface-architecture.md#Route family", "staff-operations-and-support-blueprint.md#Clinical Workspace specialization", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/staff-workspace-interface-architecture.md#Route family", "blueprint/forensic-audit-findings.md#Finding 92", "data/analysis/tenant_isolation_matrix.csv#TIM_TENANT_STAFF_SINGLE_ORG"], "surfaceAuthorityTupleHash": "1e9b97561dd60946", "surfaceId": "gws_clinician_workspace", "surfaceName": "Clinical Workspace queue and task canvas gateway", "tenantIsolationMode": "tenant_org_partition", "tenantScopeMode": "tenant_org_scoped_staff", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core"]}, {"asyncChannelRef": "async://none", "audience": "origin_practice_operations", "audienceSurfaceRef": "surf_practice_ops_workspace", "browserVisible": true, "cachePolicyRef": "CP_WORKSPACE_SINGLE_ORG_PRIVATE", "candidateGroupId": "cand_clinical_workspace", "candidateGroupLabel": "Clinical workspace", "channelGuardrailProfileRef": "CGP_STAFF_SINGLE_ORG", "channelProfile": "browser", "clientCachePolicyDigestRef": "cache::gws_practice_ops_workspace::placeholder", "commandSettlementSchemaRefs": ["CommandSettlementSchema::triage_workspace::v1", "CommandSettlementSchema::communications::v1"], "defectState": "watch", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models", "wf_command_orchestration"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_practice_ops_workspace::placeholder", "liveChannelContractRef": "channel::gws_practice_ops_workspace::placeholder", "mutatingBoundedContextRefs": ["triage_workspace", "communications"], "mutationCommandContractRef": "command::gws_practice_ops_workspace::placeholder", "openApiRef": "openapi://gateway-bff/gws_practice_ops_workspace/v1", "projectionSchemaRefs": ["ProjectionSchema::triage_workspace::v1", "ProjectionSchema::communications::v1", "ProjectionSchema::booking::v1"], "queryContractSetRef": "query::gws_practice_ops_workspace::placeholder", "rationale": "Practice operations reuses the workspace route family but must remain a separate audience variant because purpose-of-use and minimum-necessary mutation scope differ from clinician review.", "recoveryDispositionProfileRef": "rdp::gws_practice_ops_workspace", "recoveryDispositionRefs": ["RRD_WORKSPACE_READ_ONLY", "RRD_WORKSPACE_QUEUE_PLACEHOLDER"], "releaseApprovalFreezeRef": "raf::gws_practice_ops_workspace::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_workspace_slice_trust"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS", "CBC_041_COMMAND_API_TO_EVENT_CONTRACTS"], "routeFamilies": ["rf_staff_workspace"], "routeFamilyName": "/workspace, /workspace/queue/:queueKey, /workspace/task/:taskId", "runtimePublicationBundleRef": "rpb::gws_practice_ops_workspace::placeholder", "scopePosture": "baseline", "servedBoundedContextRefs": ["triage_workspace", "communications", "booking"], "sessionPolicyRef": "SP_STAFF_SSO_SINGLE_ORG", "shellType": "staff", "source_refs": ["staff-workspace-interface-architecture.md#Route family", "staff-operations-and-support-blueprint.md#Staff audience coverage contract", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/staff-operations-and-support-blueprint.md#Staff audience coverage contract", "blueprint/forensic-audit-findings.md#Finding 114", "data/analysis/tenant_isolation_matrix.csv#TIM_TENANT_STAFF_SINGLE_ORG"], "surfaceAuthorityTupleHash": "08cd73f8829a15d8", "surfaceId": "gws_practice_ops_workspace", "surfaceName": "Practice operations workspace gateway", "tenantIsolationMode": "tenant_org_partition", "tenantScopeMode": "tenant_org_scoped_staff", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core"]}, {"asyncChannelRef": "async://support-replay-checkpoints/v1", "audience": "support", "audienceSurfaceRef": "surf_support_replay_observe", "browserVisible": true, "cachePolicyRef": "CP_SUPPORT_REPLAY_FROZEN_NO_STORE", "candidateGroupId": "cand_support_workspace", "candidateGroupLabel": "Support workspace", "channelGuardrailProfileRef": "CGP_SUPPORT_REPLAY_MASKED", "channelProfile": "browser", "clientCachePolicyDigestRef": "cache::gws_support_replay_observe::placeholder", "commandSettlementSchemaRefs": ["CommandSettlementSchema::support::v1"], "defectState": "watch", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models", "wf_assurance_security_control"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_support_replay_observe::placeholder", "liveChannelContractRef": "channel::gws_support_replay_observe::placeholder", "mutatingBoundedContextRefs": ["support"], "mutationCommandContractRef": "command::gws_support_replay_observe::placeholder", "openApiRef": "openapi://gateway-bff/gws_support_replay_observe/v1", "projectionSchemaRefs": ["ProjectionSchema::support::v1", "ProjectionSchema::audit_compliance::v1", "ProjectionSchema::analytics_assurance::v1"], "queryContractSetRef": "query::gws_support_replay_observe::placeholder", "rationale": "Replay and observe stay explicit because they cross the assurance boundary and must preserve frozen restore posture.", "recoveryDispositionProfileRef": "rdp::gws_support_replay_observe", "recoveryDispositionRefs": ["RRD_SUPPORT_REPLAY_MASKED", "RRD_SUPPORT_REPLAY_RESTORE_FROZEN"], "releaseApprovalFreezeRef": "raf::gws_support_replay_observe::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_support_replay_restore"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS", "CBC_041_COMMAND_API_TO_EVENT_CONTRACTS", "CBC_041_RELEASE_CONTROL_TO_OBSERVABILITY"], "routeFamilies": ["rf_support_replay_observe"], "routeFamilyName": "/ops/support/replay/:supportReplaySessionId and /ops/support/tickets/:supportTicketId/observe/:supportObserveSessionId", "runtimePublicationBundleRef": "rpb::gws_support_replay_observe::placeholder", "scopePosture": "baseline", "servedBoundedContextRefs": ["support", "audit_compliance", "analytics_assurance"], "sessionPolicyRef": "SP_SUPPORT_REPLAY_ENVELOPE", "shellType": "support", "source_refs": ["staff-operations-and-support-blueprint.md#Support route contract", "phase-0-the-foundation-protocol.md#6.5 Support and replay algorithm", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/phase-0-the-foundation-protocol.md#6.5 Support and replay algorithm", "blueprint/forensic-audit-findings.md#Finding 100 - Support replay and observe return still had no authoritative restore gate", "data/analysis/tenant_isolation_matrix.csv#TIM_SUPPORT_INVESTIGATION"], "surfaceAuthorityTupleHash": "b9bbb6377cd7246b", "surfaceId": "gws_support_replay_observe", "surfaceName": "Support replay and observe gateway", "tenantIsolationMode": "explicit_support_investigation_scope", "tenantScopeMode": "support_investigation_scope", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core", "tzb_published_gateway_to_assurance_security"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core", "tz_assurance_security"]}, {"asyncChannelRef": "async://none", "audience": "support", "audienceSurfaceRef": "surf_support_ticket_workspace", "browserVisible": true, "cachePolicyRef": "CP_SUPPORT_MASKED_PRIVATE", "candidateGroupId": "cand_support_workspace", "candidateGroupLabel": "Support workspace", "channelGuardrailProfileRef": "CGP_SUPPORT_DELEGATE", "channelProfile": "browser", "clientCachePolicyDigestRef": "cache::gws_support_ticket_workspace::placeholder", "commandSettlementSchemaRefs": ["CommandSettlementSchema::support::v1", "CommandSettlementSchema::identity_access::v1", "CommandSettlementSchema::communications::v1"], "defectState": "declared", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models", "wf_command_orchestration"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_support_ticket_workspace::placeholder", "liveChannelContractRef": "channel::gws_support_ticket_workspace::placeholder", "mutatingBoundedContextRefs": ["support", "identity_access", "communications"], "mutationCommandContractRef": "command::gws_support_ticket_workspace::placeholder", "openApiRef": "openapi://gateway-bff/gws_support_ticket_workspace/v1", "projectionSchemaRefs": ["ProjectionSchema::support::v1", "ProjectionSchema::identity_access::v1", "ProjectionSchema::communications::v1"], "queryContractSetRef": "query::gws_support_ticket_workspace::placeholder", "rationale": "Support ticket work stays tenant-delegated and masked instead of drifting into replay or platform-wide operations access.", "recoveryDispositionProfileRef": "rdp::gws_support_ticket_workspace", "recoveryDispositionRefs": ["RRD_SUPPORT_WORKSPACE_READ_ONLY", "RRD_SUPPORT_CAPTURE_RECOVERY"], "releaseApprovalFreezeRef": "raf::gws_support_ticket_workspace::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_support_scope_masking"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS", "CBC_041_COMMAND_API_TO_EVENT_CONTRACTS"], "routeFamilies": ["rf_support_ticket_workspace"], "routeFamilyName": "/ops/support, /ops/support/inbox/:viewKey, /ops/support/tickets/:supportTicketId, /conversation, /history, /knowledge, /actions/:actionKey, /handoff/:supportOwnershipTransferId", "runtimePublicationBundleRef": "rpb::gws_support_ticket_workspace::placeholder", "scopePosture": "baseline", "servedBoundedContextRefs": ["support", "identity_access", "communications"], "sessionPolicyRef": "SP_SUPPORT_TENANT_DELEGATE", "shellType": "support", "source_refs": ["staff-operations-and-support-blueprint.md#Support route contract", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/staff-operations-and-support-blueprint.md#Support route contract", "blueprint/forensic-audit-findings.md#Finding 114", "data/analysis/tenant_isolation_matrix.csv#TIM_SUPPORT_DELEGATE"], "surfaceAuthorityTupleHash": "93da5295c9aa0ad7", "surfaceId": "gws_support_ticket_workspace", "surfaceName": "Support ticket workspace gateway", "tenantIsolationMode": "explicit_support_delegate_scope", "tenantScopeMode": "support_tenant_delegate", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core"]}, {"asyncChannelRef": "async://none", "audience": "support", "audienceSurfaceRef": "surf_support_assisted_capture", "browserVisible": true, "cachePolicyRef": "CP_SUPPORT_CAPTURE_PRIVATE_EPHEMERAL", "candidateGroupId": "cand_support_workspace", "candidateGroupLabel": "Support workspace", "channelGuardrailProfileRef": "CGP_SUPPORT_CAPTURE_BOUND", "channelProfile": "browser", "clientCachePolicyDigestRef": "cache::gws_support_assisted_capture::placeholder", "commandSettlementSchemaRefs": ["CommandSettlementSchema::support::v1", "CommandSettlementSchema::intake_safety::v1", "CommandSettlementSchema::identity_access::v1", "CommandSettlementSchema::communications::v1"], "defectState": "watch", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models", "wf_command_orchestration", "wf_assurance_security_control"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_support_assisted_capture::placeholder", "liveChannelContractRef": "channel::gws_support_assisted_capture::placeholder", "mutatingBoundedContextRefs": ["support", "intake_safety", "identity_access", "communications"], "mutationCommandContractRef": "command::gws_support_assisted_capture::placeholder", "openApiRef": "openapi://gateway-bff/gws_support_assisted_capture/v1", "projectionSchemaRefs": ["ProjectionSchema::support::v1", "ProjectionSchema::intake_safety::v1", "ProjectionSchema::identity_access::v1", "ProjectionSchema::communications::v1"], "queryContractSetRef": "query::gws_support_assisted_capture::placeholder", "rationale": "Assisted capture is a support-owned variant because it can write recovery and intake state under a delegate scope without becoming the primary ticket workspace owner.", "recoveryDispositionProfileRef": "rdp::gws_support_assisted_capture", "recoveryDispositionRefs": ["RRD_SUPPORT_CAPTURE_RECOVERY", "RRD_SUPPORT_CAPTURE_READ_ONLY"], "releaseApprovalFreezeRef": "raf::gws_support_assisted_capture::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_support_scope_masking"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS", "CBC_041_COMMAND_API_TO_EVENT_CONTRACTS", "CBC_041_RELEASE_CONTROL_TO_OBSERVABILITY"], "routeFamilies": ["rf_support_ticket_workspace"], "routeFamilyName": "/ops/support, /ops/support/inbox/:viewKey, /ops/support/tickets/:supportTicketId, /conversation, /history, /knowledge, /actions/:actionKey, /handoff/:supportOwnershipTransferId", "runtimePublicationBundleRef": "rpb::gws_support_assisted_capture::placeholder", "scopePosture": "baseline", "servedBoundedContextRefs": ["support", "intake_safety", "identity_access", "communications"], "sessionPolicyRef": "SP_SUPPORT_ASSISTED_CAPTURE", "shellType": "support", "source_refs": ["blueprint-init.md#2. Core product surfaces", "staff-operations-and-support-blueprint.md#Support route contract", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/staff-operations-and-support-blueprint.md#Support route contract", "blueprint/forensic-audit-findings.md#Finding 114", "data/analysis/tenant_isolation_matrix.csv#TIM_SUPPORT_DELEGATE"], "surfaceAuthorityTupleHash": "6fa1078068bcd28f", "surfaceId": "gws_support_assisted_capture", "surfaceName": "Support-assisted capture and recovery gateway", "tenantIsolationMode": "explicit_support_delegate_scope", "tenantScopeMode": "support_tenant_delegate", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core", "tzb_published_gateway_to_assurance_security"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core", "tz_assurance_security"]}, {"asyncChannelRef": "async://hub-case-updates/v1", "audience": "hub_desk", "audienceSurfaceRef": "surf_hub_case_management", "browserVisible": true, "cachePolicyRef": "CP_HUB_CASE_PRIVATE_EPHEMERAL", "candidateGroupId": "cand_hub_desk", "candidateGroupLabel": "Hub desk", "channelGuardrailProfileRef": "CGP_HUB_CROSS_ORG", "channelProfile": "browser", "clientCachePolicyDigestRef": "cache::gws_hub_case_management::placeholder", "commandSettlementSchemaRefs": ["CommandSettlementSchema::hub_coordination::v1", "CommandSettlementSchema::booking::v1", "CommandSettlementSchema::communications::v1"], "defectState": "declared", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models", "wf_command_orchestration"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_hub_case_management::placeholder", "liveChannelContractRef": "channel::gws_hub_case_management::placeholder", "mutatingBoundedContextRefs": ["hub_coordination", "booking", "communications"], "mutationCommandContractRef": "command::gws_hub_case_management::placeholder", "openApiRef": "openapi://gateway-bff/gws_hub_case_management/v1", "projectionSchemaRefs": ["ProjectionSchema::hub_coordination::v1", "ProjectionSchema::booking::v1", "ProjectionSchema::communications::v1"], "queryContractSetRef": "query::gws_hub_case_management::placeholder", "rationale": "Hub case work is split from queue browsing because cross-organisation alternatives and callback fallbacks carry active mutation authority.", "recoveryDispositionProfileRef": "rdp::gws_hub_case_management", "recoveryDispositionRefs": ["RRD_HUB_CASE_READ_ONLY", "RRD_HUB_CASE_RECOVERY_ONLY"], "releaseApprovalFreezeRef": "raf::gws_hub_case_management::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_hub_scope_trust"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS", "CBC_041_COMMAND_API_TO_EVENT_CONTRACTS"], "routeFamilies": ["rf_hub_case_management"], "routeFamilyName": "/hub/case/:hubCoordinationCaseId, /hub/alternatives/:offerSessionId, /hub/exceptions, /hub/audit/:hubCoordinationCaseId", "runtimePublicationBundleRef": "rpb::gws_hub_case_management::placeholder", "scopePosture": "baseline", "servedBoundedContextRefs": ["hub_coordination", "booking", "communications"], "sessionPolicyRef": "SP_STAFF_CROSS_ORG_HUB", "shellType": "hub", "source_refs": ["phase-5-the-network-horizon.md#Frontend work", "phase-5-the-network-horizon.md#Hub shell-family ownership is explicit", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/phase-5-the-network-horizon.md#Hub shell-family ownership is explicit", "blueprint/forensic-audit-findings.md#Finding 114", "data/analysis/tenant_isolation_matrix.csv#TIM_HUB_CROSS_ORG"], "surfaceAuthorityTupleHash": "c330ac0d60cfb062", "surfaceId": "gws_hub_case_management", "surfaceName": "Hub case, alternatives, exception, and audit work gateway", "tenantIsolationMode": "explicit_cross_org_subject_scope", "tenantScopeMode": "cross_org_hub_scope", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core"]}, {"asyncChannelRef": "async://none", "audience": "hub_desk", "audienceSurfaceRef": "surf_hub_queue", "browserVisible": true, "cachePolicyRef": "CP_HUB_QUEUE_PRIVATE_SUMMARY", "candidateGroupId": "cand_hub_desk", "candidateGroupLabel": "Hub desk", "channelGuardrailProfileRef": "CGP_HUB_CROSS_ORG", "channelProfile": "browser", "clientCachePolicyDigestRef": "cache::gws_hub_queue::placeholder", "commandSettlementSchemaRefs": ["CommandSettlementSchema::hub_coordination::v1"], "defectState": "declared", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_hub_queue::placeholder", "liveChannelContractRef": "channel::gws_hub_queue::placeholder", "mutatingBoundedContextRefs": ["hub_coordination"], "mutationCommandContractRef": "command::gws_hub_queue::placeholder", "openApiRef": "openapi://gateway-bff/gws_hub_queue/v1", "projectionSchemaRefs": ["ProjectionSchema::hub_coordination::v1"], "queryContractSetRef": "query::gws_hub_queue::placeholder", "rationale": "Hub queue remains summary-biased and cross-organisation scoped without inheriting case-level booking mutation breadth.", "recoveryDispositionProfileRef": "rdp::gws_hub_queue", "recoveryDispositionRefs": ["RRD_HUB_QUEUE_READ_ONLY", "RRD_HUB_QUEUE_SUMMARY_ONLY"], "releaseApprovalFreezeRef": "raf::gws_hub_queue::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_hub_scope_trust"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS", "CBC_041_COMMAND_API_TO_EVENT_CONTRACTS"], "routeFamilies": ["rf_hub_queue"], "routeFamilyName": "/hub/queue", "runtimePublicationBundleRef": "rpb::gws_hub_queue::placeholder", "scopePosture": "baseline", "servedBoundedContextRefs": ["hub_coordination"], "sessionPolicyRef": "SP_STAFF_CROSS_ORG_HUB", "shellType": "hub", "source_refs": ["phase-5-the-network-horizon.md#Frontend work", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/phase-5-the-network-horizon.md#Frontend work", "blueprint/forensic-audit-findings.md#Finding 114", "data/analysis/tenant_isolation_matrix.csv#TIM_HUB_CROSS_ORG"], "surfaceAuthorityTupleHash": "7943cf486d6bdb6f", "surfaceId": "gws_hub_queue", "surfaceName": "Hub queue gateway", "tenantIsolationMode": "explicit_cross_org_subject_scope", "tenantScopeMode": "cross_org_hub_scope", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core"]}, {"asyncChannelRef": "async://pharmacy-case-updates/v1", "audience": "servicing_site", "audienceSurfaceRef": "surf_pharmacy_console", "browserVisible": true, "cachePolicyRef": "CP_PHARMACY_CASE_PRIVATE", "candidateGroupId": "cand_pharmacy_console", "candidateGroupLabel": "Pharmacy console", "channelGuardrailProfileRef": "CGP_PHARMACY_SERVICING", "channelProfile": "browser", "clientCachePolicyDigestRef": "cache::gws_pharmacy_console::placeholder", "commandSettlementSchemaRefs": ["CommandSettlementSchema::pharmacy::v1"], "defectState": "declared", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models", "wf_command_orchestration"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_pharmacy_console::placeholder", "liveChannelContractRef": "channel::gws_pharmacy_console::placeholder", "mutatingBoundedContextRefs": ["pharmacy"], "mutationCommandContractRef": "command::gws_pharmacy_console::placeholder", "openApiRef": "openapi://gateway-bff/gws_pharmacy_console/v1", "projectionSchemaRefs": ["ProjectionSchema::pharmacy::v1", "ProjectionSchema::communications::v1"], "queryContractSetRef": "query::gws_pharmacy_console::placeholder", "rationale": "The pharmacy surface keeps servicing-site partitioning and outcome reconciliation explicit instead of folding into generic staff workspace traffic.", "recoveryDispositionProfileRef": "rdp::gws_pharmacy_console", "recoveryDispositionRefs": ["RRD_PHARMACY_READ_ONLY", "RRD_PHARMACY_DISPATCH_RECOVERY"], "releaseApprovalFreezeRef": "raf::gws_pharmacy_console::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_pharmacy_dispatch_trust"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS", "CBC_041_COMMAND_API_TO_EVENT_CONTRACTS"], "routeFamilies": ["rf_pharmacy_console"], "routeFamilyName": "/workspace/pharmacy, /workspace/pharmacy/:pharmacyCaseId, /validate, /inventory, /resolve, /handoff, /assurance", "runtimePublicationBundleRef": "rpb::gws_pharmacy_console::placeholder", "scopePosture": "baseline", "servedBoundedContextRefs": ["pharmacy", "communications"], "sessionPolicyRef": "SP_PHARMACY_SERVICING_SCOPE", "shellType": "pharmacy", "source_refs": ["pharmacy-console-frontend-architecture.md#Mission frame", "pharmacy-console-frontend-architecture.md#The recommended route family is", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/pharmacy-console-frontend-architecture.md#Mission frame", "blueprint/forensic-audit-findings.md#Finding 91", "data/analysis/tenant_isolation_matrix.csv#TIM_PHARMACY_SERVICING"], "surfaceAuthorityTupleHash": "32b50dab940f332e", "surfaceId": "gws_pharmacy_console", "surfaceName": "Pharmacy Console case workbench gateway", "tenantIsolationMode": "servicing_site_partition", "tenantScopeMode": "servicing_site_scope", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core"]}, {"asyncChannelRef": "async://operations-watch-stream/v1", "audience": "operations_control", "audienceSurfaceRef": "surf_operations_board", "browserVisible": true, "cachePolicyRef": "CP_OPERATIONS_WATCH_NO_SHARED_CACHE", "candidateGroupId": "cand_operations_console", "candidateGroupLabel": "Operations console", "channelGuardrailProfileRef": "CGP_OPERATIONS_WATCH", "channelProfile": "browser", "clientCachePolicyDigestRef": "cache::gws_operations_board::placeholder", "commandSettlementSchemaRefs": [], "defectState": "watch", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models", "wf_assurance_security_control"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_operations_board::placeholder", "liveChannelContractRef": "channel::gws_operations_board::placeholder", "mutatingBoundedContextRefs": [], "mutationCommandContractRef": "command::gws_operations_board::placeholder", "openApiRef": "openapi://gateway-bff/gws_operations_board/v1", "projectionSchemaRefs": ["ProjectionSchema::operations::v1", "ProjectionSchema::analytics_assurance::v1", "ProjectionSchema::release_control::v1"], "queryContractSetRef": "query::gws_operations_board::placeholder", "rationale": "The operations board is multi-tenant watch posture only and must not silently inherit intervention authority.", "recoveryDispositionProfileRef": "rdp::gws_operations_board", "recoveryDispositionRefs": ["RRD_OPERATIONS_DIAGNOSTIC_ONLY", "RRD_OPERATIONS_BOARD_FROZEN"], "releaseApprovalFreezeRef": "raf::gws_operations_board::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_operations_guardrail_trust"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "CBC_041_RELEASE_CONTROL_TO_OBSERVABILITY"], "routeFamilies": ["rf_operations_board"], "routeFamilyName": "/ops/overview, /ops/queues, /ops/capacity, /ops/dependencies, /ops/audit, /ops/assurance, /ops/incidents, /ops/resilience", "runtimePublicationBundleRef": "rpb::gws_operations_board::placeholder", "scopePosture": "baseline", "servedBoundedContextRefs": ["operations", "analytics_assurance", "release_control"], "sessionPolicyRef": "SP_OPERATIONS_WATCH_TUPLE", "shellType": "operations", "source_refs": ["operations-console-frontend-blueprint.md#Canonical route family", "operations-console-frontend-blueprint.md#Calm board posture and briefing artifacts", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/operations-console-frontend-blueprint.md#Canonical route family", "blueprint/forensic-audit-findings.md#Finding 96", "data/analysis/tenant_isolation_matrix.csv#TIM_OPERATIONS_MULTI_TENANT"], "surfaceAuthorityTupleHash": "c693f4add3e0fb99", "surfaceId": "gws_operations_board", "surfaceName": "Operations board gateway", "tenantIsolationMode": "platform_observation_aggregate", "tenantScopeMode": "multi_tenant_operational_watch", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core", "tzb_published_gateway_to_assurance_security"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core", "tz_assurance_security"]}, {"asyncChannelRef": "async://operations-intervention-fence/v1", "audience": "operations_control", "audienceSurfaceRef": "surf_operations_drilldown", "browserVisible": true, "cachePolicyRef": "CP_OPERATIONS_CONTROL_EPHEMERAL", "candidateGroupId": "cand_operations_console", "candidateGroupLabel": "Operations console", "channelGuardrailProfileRef": "CGP_OPERATIONS_CONTROL", "channelProfile": "browser", "clientCachePolicyDigestRef": "cache::gws_operations_drilldown::placeholder", "commandSettlementSchemaRefs": ["CommandSettlementSchema::operations::v1", "CommandSettlementSchema::release_control::v1"], "defectState": "watch", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models", "wf_command_orchestration", "wf_assurance_security_control"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_operations_drilldown::placeholder", "liveChannelContractRef": "channel::gws_operations_drilldown::placeholder", "mutatingBoundedContextRefs": ["operations", "release_control"], "mutationCommandContractRef": "command::gws_operations_drilldown::placeholder", "openApiRef": "openapi://gateway-bff/gws_operations_drilldown/v1", "projectionSchemaRefs": ["ProjectionSchema::operations::v1", "ProjectionSchema::analytics_assurance::v1", "ProjectionSchema::release_control::v1", "ProjectionSchema::audit_compliance::v1"], "queryContractSetRef": "query::gws_operations_drilldown::placeholder", "rationale": "Intervention drill-down is split from the board because live control, restore, and handoff posture differ from watch-only diagnostics.", "recoveryDispositionProfileRef": "rdp::gws_operations_drilldown", "recoveryDispositionRefs": ["RRD_RESILIENCE_CONTROL_FROZEN", "RRD_OPERATIONS_DIAGNOSTIC_ONLY"], "releaseApprovalFreezeRef": "raf::gws_operations_drilldown::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_operations_guardrail_trust"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS", "CBC_041_COMMAND_API_TO_EVENT_CONTRACTS", "CBC_041_RELEASE_CONTROL_TO_OBSERVABILITY"], "routeFamilies": ["rf_operations_drilldown"], "routeFamilyName": "/ops/:opsLens/investigations/:opsRouteIntentId, /interventions/:opsRouteIntentId, /compare/:opsRouteIntentId, /health/:opsRouteIntentId", "runtimePublicationBundleRef": "rpb::gws_operations_drilldown::placeholder", "scopePosture": "baseline", "servedBoundedContextRefs": ["operations", "analytics_assurance", "release_control", "audit_compliance"], "sessionPolicyRef": "SP_RESILIENCE_CONTROL_SCOPE", "shellType": "operations", "source_refs": ["operations-console-frontend-blueprint.md#Canonical route family", "operations-console-frontend-blueprint.md#Restore reporting and board-frame discipline", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/operations-console-frontend-blueprint.md#Restore reporting and board-frame discipline", "blueprint/forensic-audit-findings.md#Finding 96", "data/analysis/tenant_isolation_matrix.csv#TIM_OPERATIONS_MULTI_TENANT"], "surfaceAuthorityTupleHash": "9ac478f105f08eb3", "surfaceId": "gws_operations_drilldown", "surfaceName": "Operations investigation and intervention drill-down gateway", "tenantIsolationMode": "platform_observation_aggregate", "tenantScopeMode": "multi_tenant_operational_watch", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core", "tzb_published_gateway_to_assurance_security"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core", "tz_assurance_security"]}, {"asyncChannelRef": "async://governance-watch-cockpit/v1", "audience": "governance_review", "audienceSurfaceRef": "surf_governance_shell", "browserVisible": true, "cachePolicyRef": "CP_GOVERNANCE_CONTROL_EPHEMERAL", "candidateGroupId": "cand_governance_shell", "candidateGroupLabel": "Governance and admin shell", "channelGuardrailProfileRef": "CGP_GOVERNANCE_SCOPE_TUPLE", "channelProfile": "browser", "clientCachePolicyDigestRef": "cache::gws_governance_shell::placeholder", "commandSettlementSchemaRefs": ["CommandSettlementSchema::governance_admin::v1", "CommandSettlementSchema::release_control::v1", "CommandSettlementSchema::identity_access::v1", "CommandSettlementSchema::communications::v1"], "defectState": "watch", "downstreamWorkloadFamilyRefs": ["wf_projection_read_models", "wf_command_orchestration", "wf_assurance_security_control"], "entryWorkloadFamilyRef": "wf_shell_delivery_published_gateway", "frontendContractManifestRef": "fcm::gws_governance_shell::placeholder", "liveChannelContractRef": "channel::gws_governance_shell::placeholder", "mutatingBoundedContextRefs": ["governance_admin", "release_control", "identity_access", "communications"], "mutationCommandContractRef": "command::gws_governance_shell::placeholder", "openApiRef": "openapi://gateway-bff/gws_governance_shell/v1", "projectionSchemaRefs": ["ProjectionSchema::governance_admin::v1", "ProjectionSchema::release_control::v1", "ProjectionSchema::audit_compliance::v1", "ProjectionSchema::analytics_assurance::v1", "ProjectionSchema::identity_access::v1", "ProjectionSchema::communications::v1"], "queryContractSetRef": "query::gws_governance_shell::placeholder", "rationale": "Governance stays distinct from operations because scope tuple, blast-radius declaration, and release watch posture are stricter and platform-scoped.", "recoveryDispositionProfileRef": "rdp::gws_governance_shell", "recoveryDispositionRefs": ["RRD_GOVERNANCE_READ_ONLY", "RRD_GOVERNANCE_HANDOFF_ONLY"], "releaseApprovalFreezeRef": "raf::gws_governance_shell::current", "requiredAssuranceSliceRefs": ["ass_release_publication", "ass_governance_watch_tuple"], "requiredContextBoundaryRefs": ["CBC_041_SHELLS_TO_API_CONTRACTS", "CBC_041_SHELLS_TO_RELEASE_CONTROLS", "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS", "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY", "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS", "CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS", "CBC_041_COMMAND_API_TO_EVENT_CONTRACTS", "CBC_041_RELEASE_CONTROL_TO_OBSERVABILITY"], "routeFamilies": ["rf_governance_shell"], "routeFamilyName": "/ops/governance/*, /ops/access/*, /ops/config/*, /ops/comms/*, /ops/release/*", "runtimePublicationBundleRef": "rpb::gws_governance_shell::placeholder", "scopePosture": "baseline", "servedBoundedContextRefs": ["governance_admin", "release_control", "audit_compliance", "analytics_assurance", "identity_access", "communications"], "sessionPolicyRef": "SP_GOVERNANCE_SCOPE_TUPLE", "shellType": "governance", "source_refs": ["governance-admin-console-frontend-blueprint.md#Shell and route topology", "governance-admin-console-frontend-blueprint.md#Primary governance personas", "platform-runtime-and-release-blueprint.md#GatewayBffSurface", "blueprint/governance-admin-console-frontend-blueprint.md#Shell and route topology", "blueprint/forensic-audit-findings.md#Finding 95", "data/analysis/tenant_isolation_matrix.csv#TIM_GOVERNANCE_PLATFORM"], "surfaceAuthorityTupleHash": "6478a8b9b6ca5b1c", "surfaceId": "gws_governance_shell", "surfaceName": "Governance and Admin shell gateway", "tenantIsolationMode": "platform_control_plane_with_explicit_blast_radius", "tenantScopeMode": "platform_governance_scope", "trustZoneBoundaryRefs": ["tzb_public_edge_to_published_gateway", "tzb_published_gateway_to_application_core", "tzb_published_gateway_to_assurance_security"], "trustZoneRefs": ["tz_public_edge", "tz_published_gateway", "tz_application_core", "tz_assurance_security"]}], "trust_zones": [{"allows_browser_traffic": "yes", "band_order": 1, "display_name": "Public edge", "notes": "This is the first browser-contacting band, but it is not the published route-compute boundary.", "primary_controls": ["Origin allowlist", "Bot and rate-limit fencing", "No PHI assembly", "No adapter egress"], "purpose": "TLS termination, origin allowlisting, request shaping, and zero-trust browser pre-filtering.", "source_refs": ["docs/architecture/11_trust_zone_and_workload_family_strategy.md#Trust Zones", "blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract"], "trust_zone_ref": "tz_public_edge"}, {"allows_browser_traffic": "yes", "band_order": 2, "display_name": "Shell delivery", "notes": "Shell assets stay exact to the promoted runtime bundle and may not become a hidden BFF.", "primary_controls": ["RuntimePublicationBundle exact only", "No mutation or adapter egress", "Static publication parity only", "ReleaseApprovalFreeze placeholder visible"], "purpose": "Static shell, publication bundle, and design/runtime parity delivery only.", "source_refs": ["docs/architecture/11_trust_zone_and_workload_family_strategy.md#Trust Zones", "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings"], "trust_zone_ref": "tz_shell_delivery"}, {"allows_browser_traffic": "yes", "band_order": 3, "display_name": "Published gateway", "notes": "Later seq_047 refines exact gateway splits, but seq_046 already freezes the zone and bridge law.", "primary_controls": ["Published gateway surface tuple only", "Route-intent and session policy enforcement", "No direct data-plane or adapter access", "SurfaceAuthorityTupleHash parity"], "purpose": "The only browser-addressable compute boundary for published gateway surfaces.", "source_refs": ["docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Browser Boundary Law", "blueprint/platform-runtime-and-release-blueprint.md#GatewayBffSurface"], "trust_zone_ref": "tz_published_gateway"}, {"allows_browser_traffic": "no", "band_order": 4, "display_name": "Application core", "notes": "Command and projection stay separate workload families even when they deploy from the same repository.", "primary_controls": ["ScopedMutationGate", "Projection-first read model discipline", "Outbox and durable-queue initiation only", "Minimum-necessary query surfaces"], "purpose": "Canonical command and projection runtime planes with no direct browser reachability.", "source_refs": ["docs/architecture/11_trust_zone_and_workload_family_strategy.md#Trust Zones", "docs/architecture/13_backend_runtime_service_baseline.md#Baseline Law"], "trust_zone_ref": "tz_application_core"}, {"allows_browser_traffic": "no", "band_order": 5, "display_name": "Integration perimeter", "notes": "Live-provider dispatch and simulator backplanes stay in the same trust zone but split at the workload-family level.", "primary_controls": ["AdapterContractProfile only", "Dependency degradation profiles", "Durable checkpoints", "Callback idempotency and correlation"], "purpose": "External effect dispatch, provider callback ingress, and simulator seams.", "source_refs": ["docs/architecture/11_trust_zone_and_workload_family_strategy.md#Trust Zones", "docs/architecture/13_backend_runtime_service_baseline.md#Runtime Executables"], "trust_zone_ref": "tz_integration_perimeter"}, {"allows_browser_traffic": "no", "band_order": 6, "display_name": "Stateful data", "notes": "Queues and caches are stateful runtime concerns, not hidden details inside app or worker config.", "primary_controls": ["Tenant tuple on every key or stronger scope tuple", "Store-class-specific replication policy", "No browser reachability", "Restore proof before live authority"], "purpose": "Relational, projection, queue, cache, object, and immutable store classes with explicit restore law.", "source_refs": ["docs/architecture/11_trust_zone_and_workload_family_strategy.md#Trust Zones", "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings"], "trust_zone_ref": "tz_stateful_data"}, {"allows_browser_traffic": "no", "band_order": 7, "display_name": "Assurance and security", "notes": "Support, operations, governance, and release controls consume one assurance plane instead of inventing local truth.", "primary_controls": ["AssuranceSupervisor and RuntimeContractPublisher", "Release watch tuple parity", "Immutable evidence and trust verdicts", "Fail-closed blast-radius controls"], "purpose": "Assurance slices, release/watch tuple publication, audit, resilience, and KMS-bound control paths.", "source_refs": ["docs/architecture/11_trust_zone_and_workload_family_strategy.md#Trust Zones", "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Supply Chain Law"], "trust_zone_ref": "tz_assurance_security"}]};
+    const state = {
+      zone: "all",
+      audience: "all",
+      shell: "all",
+      route: "all",
+      defect: "all",
+      selectedType: "surface",
+      selectedId: STUDIO_DATA.surfaces[0]?.surfaceId ?? null,
+    };
+
+    const filterZone = document.getElementById("filter-zone");
+    const filterAudience = document.getElementById("filter-audience");
+    const filterShell = document.getElementById("filter-shell");
+    const filterRoute = document.getElementById("filter-route");
+    const filterDefect = document.getElementById("filter-defect");
+    const gatewayList = document.getElementById("gateway-list");
+    const boundaryList = document.getElementById("boundary-list");
+    const zoneGrid = document.getElementById("zone-grid");
+    const edgeStrip = document.getElementById("edge-strip");
+    const inspector = document.getElementById("inspector");
+    const routeBody = document.getElementById("route-body");
+    const boundaryBody = document.getElementById("boundary-body");
+    const splitGrid = document.getElementById("split-grid");
+    const laneFlow = document.getElementById("lane-flow");
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    document.body.dataset.reducedMotion = reducedMotion ? "true" : "false";
+
+    function byId(collection, key, value) {
+      return collection.find((row) => row[key] === value);
+    }
+
+    function renderOptions(select, values, label) {
+      select.innerHTML = "";
+      const all = document.createElement("option");
+      all.value = "all";
+      all.textContent = `All ${label}`;
+      select.appendChild(all);
+      values.forEach((value) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        select.appendChild(option);
+      });
+    }
+
+    renderOptions(filterZone, STUDIO_DATA.trust_zones.map((row) => row.trust_zone_ref), "trust zones");
+    renderOptions(filterAudience, [...new Set(STUDIO_DATA.surfaces.map((row) => row.audience))], "audiences");
+    renderOptions(filterShell, [...new Set(STUDIO_DATA.surfaces.map((row) => row.shellType))], "shell types");
+    renderOptions(filterRoute, [...new Set(STUDIO_DATA.route_rows.map((row) => row.route_family_id))], "route families");
+    renderOptions(filterDefect, ["declared", "watch", "blocked"], "defect states");
+
+    function visibleSurfaces() {
+      return STUDIO_DATA.surfaces
+        .filter((row) => state.audience === "all" || row.audience === state.audience)
+        .filter((row) => state.shell === "all" || row.shellType === state.shell)
+        .filter((row) => state.route === "all" || row.routeFamilies.includes(state.route))
+        .filter((row) => state.zone === "all" || row.trustZoneRefs.includes(state.zone))
+        .filter((row) => state.defect === "all" || row.defectState === state.defect);
+    }
+
+    function visibleBoundaries() {
+      return STUDIO_DATA.boundaries
+        .filter(
+          (row) =>
+            state.zone === "all" ||
+            row.sourceTrustZoneRef === state.zone ||
+            row.targetTrustZoneRef === state.zone,
+        )
+        .filter(
+          (row) =>
+            state.defect === "all" ||
+            (state.defect === "blocked" && row.boundaryState === "blocked") ||
+            (state.defect !== "blocked" && row.boundaryState !== "blocked"),
+        );
+    }
+
+    function visibleRouteRows() {
+      const surfaceIds = new Set(visibleSurfaces().map((row) => row.surfaceId));
+      return STUDIO_DATA.route_rows.filter((row) => surfaceIds.has(row.gateway_surface_id));
+    }
+
+    function selectedSurface() {
+      return byId(STUDIO_DATA.surfaces, "surfaceId", state.selectedId);
+    }
+
+    function selectedBoundary() {
+      return byId(STUDIO_DATA.boundaries, "trustZoneBoundaryId", state.selectedId);
+    }
+
+    function ensureSelection() {
+      const surfaces = visibleSurfaces();
+      const boundaries = visibleBoundaries();
+      if (state.selectedType === "surface" && surfaces.some((row) => row.surfaceId === state.selectedId)) {
+        return;
+      }
+      if (state.selectedType === "boundary" && boundaries.some((row) => row.trustZoneBoundaryId === state.selectedId)) {
+        return;
+      }
+      if (surfaces.length) {
+        state.selectedType = "surface";
+        state.selectedId = surfaces[0].surfaceId;
+        return;
+      }
+      if (boundaries.length) {
+        state.selectedType = "boundary";
+        state.selectedId = boundaries[0].trustZoneBoundaryId;
+        return;
+      }
+      state.selectedId = null;
+    }
+
+    function buildChip(text, extraClass = "") {
+      const chip = document.createElement("span");
+      chip.className = `chip ${extraClass}`.trim();
+      chip.textContent = text;
+      return chip;
+    }
+
+    function keyboardSelect(items, currentIndex, nextIndexGetter, selectCallback) {
+      return (event) => {
+        if (!["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft"].includes(event.key)) {
+          return;
+        }
+        event.preventDefault();
+        const nextIndex = nextIndexGetter(currentIndex, event.key, items.length);
+        const nextItem = items[nextIndex];
+        if (!nextItem) {
+          return;
+        }
+        selectCallback(nextItem);
+      };
+    }
+
+    function nextLinearIndex(currentIndex, key, length) {
+      if (length === 0) {
+        return currentIndex;
+      }
+      if (key === "ArrowDown" || key === "ArrowRight") {
+        return Math.min(length - 1, currentIndex + 1);
+      }
+      return Math.max(0, currentIndex - 1);
+    }
+
+    function renderGatewayList(surfaces) {
+      gatewayList.innerHTML = "";
+      surfaces.forEach((surface, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "gateway-card";
+        button.dataset.testid = `gateway-card-${surface.surfaceId}`;
+        button.setAttribute("data-testid", `gateway-card-${surface.surfaceId}`);
+        button.dataset.selected =
+          state.selectedType === "surface" && state.selectedId === surface.surfaceId ? "true" : "false";
+        button.innerHTML = `
+          <div class="section-label mono">${surface.surfaceId}</div>
+          <div style="font-weight:700;color:var(--text-strong);">${surface.surfaceName}</div>
+          <div style="margin-top:4px;font-size:13px;color:var(--text-muted);">${surface.routeFamilyName}</div>
+        `;
+        const chipRow = document.createElement("div");
+        chipRow.className = "chip-row";
+        chipRow.appendChild(buildChip(surface.audience.includes("patient") ? "patient" : "staff", surface.audience.includes("patient") ? "patient" : "staff"));
+        chipRow.appendChild(buildChip(surface.defectState, surface.defectState === "watch" ? "watch" : ""));
+        chipRow.appendChild(buildChip(surface.tenantIsolationMode, "mono"));
+        button.appendChild(chipRow);
+        button.addEventListener("click", () => {
+          state.selectedType = "surface";
+          state.selectedId = surface.surfaceId;
+          render();
+        });
+        button.addEventListener(
+          "keydown",
+          keyboardSelect(surfaces, index, nextLinearIndex, (nextSurface) => {
+            state.selectedType = "surface";
+            state.selectedId = nextSurface.surfaceId;
+            render();
+            document.querySelector(`[data-testid="gateway-card-${nextSurface.surfaceId}"]`)?.focus();
+          }),
+        );
+        gatewayList.appendChild(button);
+      });
+    }
+
+    function renderBoundaryList(boundaries) {
+      boundaryList.innerHTML = "";
+      boundaries.forEach((boundary, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "boundary-card";
+        button.setAttribute("data-testid", `boundary-card-${boundary.trustZoneBoundaryId}`);
+        button.dataset.selected =
+          state.selectedType === "boundary" && state.selectedId === boundary.trustZoneBoundaryId ? "true" : "false";
+        button.innerHTML = `
+          <div class="section-label mono">${boundary.trustZoneBoundaryId}</div>
+          <div style="font-weight:700;color:var(--text-strong);">${boundary.sourceTrustZoneRef} → ${boundary.targetTrustZoneRef}</div>
+          <div style="margin-top:4px;font-size:13px;color:var(--text-muted);">${boundary.boundaryState} · ${boundary.tenantTransferMode}</div>
+        `;
+        button.addEventListener("click", () => {
+          state.selectedType = "boundary";
+          state.selectedId = boundary.trustZoneBoundaryId;
+          render();
+        });
+        button.addEventListener(
+          "keydown",
+          keyboardSelect(boundaries, index, nextLinearIndex, (nextBoundary) => {
+            state.selectedType = "boundary";
+            state.selectedId = nextBoundary.trustZoneBoundaryId;
+            render();
+            document.querySelector(`[data-testid="boundary-card-${nextBoundary.trustZoneBoundaryId}"]`)?.focus();
+          }),
+        );
+        boundaryList.appendChild(button);
+      });
+    }
+
+    function renderZoneMap(surfaces, boundaries) {
+      zoneGrid.innerHTML = "";
+      edgeStrip.innerHTML = "";
+      STUDIO_DATA.trust_zones.forEach((zone) => {
+        const band = document.createElement("div");
+        band.className = "zone-band";
+        band.innerHTML = `
+          <div>
+            <div class="zone-title">${zone.display_name}</div>
+            <div class="zone-copy">${zone.purpose}</div>
+          </div>
+          <div class="zone-lane"></div>
+        `;
+        const lane = band.querySelector(".zone-lane");
+        if (zone.trust_zone_ref === "tz_published_gateway") {
+          surfaces.forEach((surface, index) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "map-node";
+            button.setAttribute("data-testid", `gateway-node-${surface.surfaceId}`);
+            button.dataset.selected =
+              state.selectedType === "surface" && state.selectedId === surface.surfaceId ? "true" : "false";
+            button.innerHTML = `<div class="mono">${surface.surfaceId}</div><div style="margin-top:4px;font-weight:700;color:var(--text-strong);">${surface.surfaceName}</div>`;
+            button.addEventListener("click", () => {
+              state.selectedType = "surface";
+              state.selectedId = surface.surfaceId;
+              render();
+            });
+            button.addEventListener(
+              "keydown",
+              keyboardSelect(surfaces, index, nextLinearIndex, (nextSurface) => {
+                state.selectedType = "surface";
+                state.selectedId = nextSurface.surfaceId;
+                render();
+                document.querySelector(`[data-testid="gateway-node-${nextSurface.surfaceId}"]`)?.focus();
+              }),
+            );
+            lane.appendChild(button);
+          });
+        } else {
+          const related = boundaries.filter(
+            (row) =>
+              row.sourceTrustZoneRef === zone.trust_zone_ref ||
+              row.targetTrustZoneRef === zone.trust_zone_ref,
+          );
+          related.slice(0, 3).forEach((boundary) => {
+            lane.appendChild(buildChip(boundary.trustZoneBoundaryId, boundary.boundaryState === "blocked" ? "blocked" : ""));
+          });
+        }
+        zoneGrid.appendChild(band);
+      });
+
+      boundaries.forEach((boundary, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "boundary-edge";
+        button.setAttribute("data-testid", `boundary-edge-${boundary.trustZoneBoundaryId}`);
+        button.dataset.selected =
+          state.selectedType === "boundary" && state.selectedId === boundary.trustZoneBoundaryId ? "true" : "false";
+        button.innerHTML = `<span class="mono">${boundary.trustZoneBoundaryId}</span> · ${boundary.sourceTrustZoneRef} → ${boundary.targetTrustZoneRef}`;
+        button.addEventListener("click", () => {
+          state.selectedType = "boundary";
+          state.selectedId = boundary.trustZoneBoundaryId;
+          render();
+        });
+        button.addEventListener(
+          "keydown",
+          keyboardSelect(boundaries, index, nextLinearIndex, (nextBoundary) => {
+            state.selectedType = "boundary";
+            state.selectedId = nextBoundary.trustZoneBoundaryId;
+            render();
+            document.querySelector(`[data-testid="boundary-edge-${nextBoundary.trustZoneBoundaryId}"]`)?.focus();
+          }),
+        );
+        edgeStrip.appendChild(button);
+      });
+    }
+
+    function renderLane(surface) {
+      laneFlow.innerHTML = "";
+      if (!surface) {
+        laneFlow.innerHTML = "<div class='lane-box'>No surface selected.</div>";
+        return;
+      }
+      const boxes = [
+        ["Browser / host", surface.browserVisible ? surface.channelProfile : "non-browser ingress"],
+        ["Public edge", "tz_public_edge"],
+        ["Gateway", surface.surfaceId],
+        [
+          "Downstream",
+          surface.downstreamWorkloadFamilyRefs.length ? surface.downstreamWorkloadFamilyRefs.join(", ") : "projection only",
+        ],
+      ];
+      boxes.forEach(([title, copy], index) => {
+        const box = document.createElement("div");
+        box.className = "lane-box";
+        box.innerHTML = `<div class="section-label">${title}</div><div class="mono" style="margin-top:6px;">${copy}</div>`;
+        laneFlow.appendChild(box);
+        if (index < boxes.length - 1) {
+          const arrow = document.createElement("div");
+          arrow.className = "arrow";
+          arrow.textContent = "→";
+          laneFlow.appendChild(arrow);
+        }
+      });
+    }
+
+    function renderInspector() {
+      if (state.selectedType === "boundary") {
+        const boundary = selectedBoundary();
+        if (!boundary) {
+          inspector.innerHTML = "<p class='inspector-copy'>No boundary selected.</p>";
+          return;
+        }
+        inspector.innerHTML = `
+          <section>
+            <p class="section-label">Boundary</p>
+            <h2 class="inspector-title mono">${boundary.trustZoneBoundaryId}</h2>
+            <p class="inspector-copy">${boundary.rationale}</p>
+          </section>
+          <section>
+            <p class="section-label">Crossing</p>
+            <ul class="inspector-list">
+              <li><strong>Source zone</strong><br />${boundary.sourceTrustZoneRef}</li>
+              <li><strong>Target zone</strong><br />${boundary.targetTrustZoneRef}</li>
+              <li><strong>Protocols</strong><br />${boundary.allowedProtocolRefs.join(", ") || "blocked"}</li>
+              <li><strong>Tenant transfer</strong><br />${boundary.tenantTransferMode}</li>
+              <li><strong>Assurance trust</strong><br />${boundary.assuranceTrustTransferMode}</li>
+            </ul>
+          </section>
+        `;
+        renderLane(null);
+        return;
+      }
+      const surface = selectedSurface();
+      if (!surface) {
+        inspector.innerHTML = "<p class='inspector-copy'>No surface selected.</p>";
+        return;
+      }
+      inspector.innerHTML = `
+        <section>
+          <p class="section-label">Gateway surface</p>
+          <h2 class="inspector-title mono">${surface.surfaceId}</h2>
+          <p class="inspector-copy">${surface.rationale}</p>
+        </section>
+        <section>
+          <p class="section-label">Authority</p>
+          <ul class="inspector-list">
+            <li><strong>Audience</strong><br />${surface.audienceSurfaceRef} · ${surface.audience}</li>
+            <li><strong>Route family</strong><br />${surface.routeFamilies.join(", ")}</li>
+            <li><strong>Tuple hash</strong><br /><span class="mono">${surface.surfaceAuthorityTupleHash}</span></li>
+            <li><strong>Session / cache</strong><br />${surface.sessionPolicyRef} · ${surface.cachePolicyRef}</li>
+          </ul>
+        </section>
+        <section>
+          <p class="section-label">Contexts</p>
+          <ul class="inspector-list">
+            <li><strong>Served contexts</strong><br />${surface.servedBoundedContextRefs.join(", ")}</li>
+            <li><strong>Mutating contexts</strong><br />${surface.mutatingBoundedContextRefs.join(", ") || "read_only"}</li>
+            <li><strong>Trust boundaries</strong><br />${surface.trustZoneBoundaryRefs.join(", ")}</li>
+            <li><strong>Recovery</strong><br />${surface.recoveryDispositionRefs.join(", ")}</li>
+          </ul>
+        </section>
+      `;
+      renderLane(surface);
+    }
+
+    function renderRouteRows(rows) {
+      routeBody.innerHTML = "";
+      rows.forEach((row, index) => {
+        const tr = document.createElement("tr");
+        tr.tabIndex = 0;
+        tr.setAttribute("data-testid", `route-row-${row.route_family_id}-${row.gateway_surface_id}`);
+        tr.dataset.selected =
+          state.selectedType === "surface" && state.selectedId === row.gateway_surface_id ? "true" : "false";
+        tr.innerHTML = `
+          <td><span class="mono">${row.route_family_id}</span><br />${row.route_family}</td>
+          <td><span class="mono">${row.gateway_surface_id}</span></td>
+          <td>${row.ownership_role}</td>
+          <td>${row.tenant_isolation_mode}</td>
+        `;
+        tr.addEventListener("click", () => {
+          state.selectedType = "surface";
+          state.selectedId = row.gateway_surface_id;
+          render();
+        });
+        tr.addEventListener(
+          "keydown",
+          keyboardSelect(rows, index, nextLinearIndex, (nextRow) => {
+            state.selectedType = "surface";
+            state.selectedId = nextRow.gateway_surface_id;
+            render();
+            document.querySelector(`[data-testid="route-row-${nextRow.route_family_id}-${nextRow.gateway_surface_id}"]`)?.focus();
+          }),
+        );
+        routeBody.appendChild(tr);
+      });
+    }
+
+    function renderBoundaryRows(rows) {
+      boundaryBody.innerHTML = "";
+      rows.forEach((row, index) => {
+        const tr = document.createElement("tr");
+        tr.tabIndex = 0;
+        tr.setAttribute("data-testid", `boundary-row-${row.trustZoneBoundaryId}`);
+        tr.dataset.selected =
+          state.selectedType === "boundary" && state.selectedId === row.trustZoneBoundaryId ? "true" : "false";
+        tr.innerHTML = `
+          <td><span class="mono">${row.trustZoneBoundaryId}</span></td>
+          <td>${row.boundaryState}</td>
+          <td>${row.sourceTrustZoneRef} → ${row.targetTrustZoneRef}</td>
+          <td>${row.tenantTransferMode}</td>
+        `;
+        tr.addEventListener("click", () => {
+          state.selectedType = "boundary";
+          state.selectedId = row.trustZoneBoundaryId;
+          render();
+        });
+        tr.addEventListener(
+          "keydown",
+          keyboardSelect(rows, index, nextLinearIndex, (nextRow) => {
+            state.selectedType = "boundary";
+            state.selectedId = nextRow.trustZoneBoundaryId;
+            render();
+            document.querySelector(`[data-testid="boundary-row-${nextRow.trustZoneBoundaryId}"]`)?.focus();
+          }),
+        );
+        boundaryBody.appendChild(tr);
+      });
+    }
+
+    function renderSplitDecisions() {
+      splitGrid.innerHTML = "";
+      STUDIO_DATA.split_decisions.forEach((decision) => {
+        const card = document.createElement("article");
+        card.className = "split-card";
+        card.innerHTML = `
+          <div class="section-label mono">${decision.decision_id}</div>
+          <div style="font-weight:700;color:var(--text-strong);">${decision.decision_state}</div>
+          <div style="margin-top:8px;font-size:13px;color:var(--text-default);">${decision.summary}</div>
+          <div class="chip-row"></div>
+        `;
+        const chipRow = card.querySelector(".chip-row");
+        decision.drivers.forEach((driver) => chipRow.appendChild(buildChip(driver)));
+        splitGrid.appendChild(card);
+      });
+    }
+
+    function render() {
+      const surfaces = visibleSurfaces();
+      const boundaries = visibleBoundaries();
+      ensureSelection();
+      renderGatewayList(surfaces);
+      renderBoundaryList(boundaries);
+      renderZoneMap(surfaces, boundaries);
+      renderRouteRows(visibleRouteRows());
+      renderBoundaryRows(boundaries);
+      renderSplitDecisions();
+      renderInspector();
+    }
+
+    filterZone.addEventListener("change", (event) => {
+      state.zone = event.target.value;
+      render();
+    });
+    filterAudience.addEventListener("change", (event) => {
+      state.audience = event.target.value;
+      render();
+    });
+    filterShell.addEventListener("change", (event) => {
+      state.shell = event.target.value;
+      render();
+    });
+    filterRoute.addEventListener("change", (event) => {
+      state.route = event.target.value;
+      render();
+    });
+    filterDefect.addEventListener("change", (event) => {
+      state.defect = event.target.value;
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>

@@ -12,6 +12,7 @@
         ## Risk Classes
 
         | Risk class | Count |
+
 | --- | --- |
 | architecture | 15 |
 | clinical_safety | 3 |
@@ -30,6 +31,7 @@
         ## Highest-Score Risks
 
         | Risk | Title | Class | Status | Gate impact | Path | Score | Owner |
+
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | HZ_TELEPHONY_EVIDENCE_INADEQUACY | Telephony evidence inadequacy | clinical_safety | mitigating | blocking | on_path | 44 | ROLE_MANUFACTURER_CSO |
 | HZ_DUPLICATE_SUPPRESSION_OR_MERGE | Duplicate suppression or merge hazard | clinical_safety | mitigating | blocking | on_path | 43 | ROLE_MANUFACTURER_CSO |
@@ -47,6 +49,7 @@
         ## Required Forensic Coverage
 
         | Finding | Coverage status | Mapped risks |
+
 | --- | --- | --- |
 | FINDING_091 | watching | RISK_MUTATION_003, RISK_016_CANONICAL_CLOSURE_DRIFT, RISK_MUTATION_002, GAP_016_SCATTERED_DECISION_FREEZE, FINDING_091, GAP_016_PHASE0_CONTROL_PLANE_LOCALITY, RISK_MUTATION_001, RISK_UI_002 |
 | FINDING_095 | watching | FINDING_095, RISK_RUNTIME_001, GAP_016_OPS_GOVERNANCE_CONTINUITY_SPLIT, FINDING_091, GAP_016_PHASE0_CONTROL_PLANE_LOCALITY |

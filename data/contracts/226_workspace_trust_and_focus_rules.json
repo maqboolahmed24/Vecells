@@ -1,0 +1,186 @@
+{
+  "taskId": "seq_226",
+  "workspaceFamily": "staff_review",
+  "policyVersion": "226.1",
+  "canonicalRequestMutationBoundary": {
+    "authority": "LifecycleCoordinator",
+    "triageWorkspaceMode": "signal_only",
+    "requiredEvidence": [
+      "RouteIntentBinding",
+      "CommandActionRecord",
+      "CommandSettlementRecord",
+      "TransitionEnvelope",
+      "ReleaseRecoveryDisposition"
+    ],
+    "forbiddenShortcuts": [
+      "Direct triage-local mutation of Request.workflowState",
+      "Local UI acknowledgement treated as canonical lifecycle truth",
+      "Queue-row state redefining calm or writable posture"
+    ]
+  },
+  "workspaceTrustEnvelope": {
+    "envelopeStates": [
+      "interactive",
+      "observe_only",
+      "stale_recoverable",
+      "recovery_required",
+      "reassigned"
+    ],
+    "mutationAuthorityStates": [
+      "live",
+      "frozen",
+      "blocked"
+    ],
+    "interruptionPacingStates": [
+      "live",
+      "buffered",
+      "blocking_only",
+      "recovery_only"
+    ],
+    "completionCalmStates": [
+      "not_eligible",
+      "pending_settlement",
+      "eligible",
+      "blocked"
+    ]
+  },
+  "reviewActionLease": {
+    "actionTypes": [
+      "claim",
+      "start_review",
+      "request_more_info",
+      "send_more_info",
+      "draft_insert",
+      "commit_decision",
+      "issue_advice",
+      "complete_admin_resolution",
+      "send_message",
+      "next_task_launch"
+    ],
+    "requiredFenceFields": [
+      "ownershipEpochRef",
+      "fencingToken",
+      "reviewVersionRef",
+      "lineageFenceEpoch",
+      "selectedAnchorRef"
+    ]
+  },
+  "focusProtection": {
+    "focusReasons": [
+      "composing",
+      "comparing",
+      "confirming",
+      "assistive_review",
+      "reading_delta",
+      "delivery_dispute_review"
+    ],
+    "leaseStates": [
+      "active",
+      "release_pending",
+      "invalidated",
+      "released",
+      "superseded"
+    ],
+    "invalidatingDriftStates": [
+      "none",
+      "ownership",
+      "lineage",
+      "review_version",
+      "publication",
+      "trust",
+      "anchor_invalidated",
+      "compare_target_invalidated",
+      "settlement_drift"
+    ],
+    "protectedCompositionModes": [
+      "drafting",
+      "compare_review",
+      "delta_review",
+      "approval_review",
+      "handoff_review",
+      "consequence_confirm",
+      "delivery_dispute_review"
+    ],
+    "stateValidity": [
+      "live",
+      "stale_recoverable",
+      "recovery_only"
+    ]
+  },
+  "taskCompletionSettlementEnvelope": {
+    "authoritativeSettlementStates": [
+      "pending",
+      "settled",
+      "recovery_required",
+      "manual_handoff_required",
+      "stale_recoverable"
+    ],
+    "nextTaskLaunchStates": [
+      "blocked",
+      "gated",
+      "ready",
+      "launched"
+    ]
+  },
+  "failClosedRules": [
+    {
+      "ruleId": "trust_drift_freezes_mutation",
+      "when": [
+        "publication drift",
+        "trust downgrade",
+        "selected-anchor mismatch",
+        "route-intent mismatch"
+      ],
+      "then": {
+        "envelopeState": "stale_recoverable",
+        "mutationAuthorityState": "frozen",
+        "sameShellDisposition": "preserve active context and require explicit recheck"
+      }
+    },
+    {
+      "ruleId": "ownership_drift_blocks_commands",
+      "when": [
+        "expired review-action lease",
+        "broken request lifecycle lease",
+        "ownershipEpoch mismatch",
+        "fencingToken mismatch"
+      ],
+      "then": {
+        "envelopeState": "recovery_required",
+        "mutationAuthorityState": "blocked",
+        "sameShellDisposition": "require reacquire or supervised takeover"
+      }
+    },
+    {
+      "ruleId": "focus_drift_keeps_context_visible",
+      "when": [
+        "focusProtection lease invalidated",
+        "protected composition state stale_recoverable",
+        "settlement drift while composing"
+      ],
+      "then": {
+        "interruptionPacingState": "recovery_only",
+        "sameShellDisposition": "keep draft, compare target, and quiet-return target visible as frozen provenance"
+      }
+    },
+    {
+      "ruleId": "next_task_never_auto_advances",
+      "when": [
+        "authoritative settlement pending",
+        "continuity evidence degraded",
+        "queue snapshot drift",
+        "prefetch drift"
+      ],
+      "then": {
+        "completionCalmState": "blocked",
+        "nextTaskLaunchState": "blocked",
+        "sameShellDisposition": "stay on current task and surface exact blocking reasons"
+      }
+    }
+  ],
+  "staleOwnerRules": [
+    "lease expiry may not silently bounce a task back to queued",
+    "ownershipState = expired or broken is legal only while a canonical StaleOwnershipRecoveryRecord remains open",
+    "stale-owner recovery must preserve queue context, selected anchor, and same-shell reacquire guidance"
+  ]
+}

@@ -21,3 +21,11 @@
         - A route may not remain calmly writable if the design bundle digest, lint verdict, accessibility coverage state, or runtime binding drift.
         - Generated design-contract bindings become the browser-facing source for token, marker, and semantic state vocabulary. Component-local CSS or test-only selectors are invalid substitutes.
         - The showcase intentionally renders the active design-contract digest in the DOM to close Finding 118 at the shell level.
+
+        ## Brand Chrome Law
+
+        - Active app chrome uses the shared `vecell` brand exports from `@vecells/design-system`.
+        - `VecellLogoIcon`, `VecellLogoWordmark`, and `VecellLogoLockup` are the only legal active-logo variants for browser and shell chrome.
+        - Browser title and favicon chrome are published through `formatVecellTitle(...)` and `applyVecellBrowserBranding(...)`, not app-local string templates or ad hoc favicon data URIs.
+        - `apps/*/index.html` provides only the fallback `vecell | <surface>` title. Route detail is appended at runtime through the shared formatter.
+        - Route-local inline SVG logos, pseudo-element brand marks, and hand-rolled browser-tab icons are invalid substitutes for the shared package exports.

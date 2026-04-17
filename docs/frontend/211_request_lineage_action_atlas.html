@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>211 Request Lineage Action Atlas</title>
+    <style>
+      :root {
+        --canvas: #f8fafc;
+        --panel: #ffffff;
+        --inset: #eef2f7;
+        --strong: #0f172a;
+        --default: #334155;
+        --muted: #64748b;
+        --border: #d7dfea;
+        --lineage: #3158e0;
+        --action: #5b61f6;
+        --settlement: #0f766e;
+        --recovery: #b7791f;
+        --blocked: #b42318;
+        --shell-band: 64px;
+        --left-nav: 240px;
+        --page-max: 1440px;
+        --row-min: 88px;
+        --row-max: 116px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--default);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        letter-spacing: 0;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .atlas {
+        max-width: 1580px;
+        margin: 0 auto;
+        padding: 28px;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 24px;
+        margin-bottom: 18px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        color: var(--strong);
+        font-size: 28px;
+        line-height: 34px;
+        font-weight: 650;
+      }
+
+      .meta {
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 21px;
+      }
+
+      .frame-grid {
+        display: grid;
+        grid-template-columns: 4fr 5fr 3fr;
+        gap: 16px;
+        align-items: start;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        min-width: 0;
+      }
+
+      .panel-head {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .panel-title {
+        color: var(--strong);
+        font-size: 18px;
+        line-height: 24px;
+        font-weight: 620;
+      }
+
+      .panel-subtitle {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 16px;
+      }
+
+      .list-pane,
+      .detail-pane,
+      .inspector {
+        min-height: 650px;
+      }
+
+      .scenario-strip {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+
+      .scenario-button {
+        min-height: 36px;
+        padding: 0 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--panel);
+        color: var(--default);
+        cursor: pointer;
+      }
+
+      .scenario-button[aria-selected="true"] {
+        border-color: var(--action);
+        color: var(--strong);
+        box-shadow: inset 0 0 0 1px var(--action);
+      }
+
+      .scenario-button:focus-visible,
+      .row-button:focus-visible {
+        outline: 3px solid color-mix(in srgb, var(--action) 30%, transparent);
+        outline-offset: 2px;
+      }
+
+      .request-list {
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+      }
+
+      .row-button {
+        width: 100%;
+        min-height: var(--row-min);
+        max-height: var(--row-max);
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--panel);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .row-button.active {
+        border-color: var(--lineage);
+        background: color-mix(in srgb, var(--lineage) 7%, var(--panel));
+      }
+
+      .eyebrow {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 16px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 740;
+      }
+
+      .row-title,
+      .detail-title {
+        margin-top: 5px;
+        color: var(--strong);
+        font-weight: 690;
+      }
+
+      .row-title {
+        font-size: 15px;
+      }
+
+      .row-copy,
+      .detail-copy {
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 21px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 8px;
+        border-radius: 999px;
+        background: var(--inset);
+        color: var(--default);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .badge.live {
+        background: color-mix(in srgb, var(--action) 12%, var(--panel));
+        color: var(--action);
+      }
+
+      .badge.pending {
+        background: color-mix(in srgb, var(--recovery) 15%, var(--panel));
+        color: var(--recovery);
+      }
+
+      .badge.blocked {
+        background: color-mix(in srgb, var(--blocked) 11%, var(--panel));
+        color: var(--blocked);
+      }
+
+      .detail-body {
+        padding: 16px;
+      }
+
+      .detail-header {
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .detail-title {
+        font-size: 24px;
+        line-height: 30px;
+      }
+
+      .dominant-action {
+        margin-top: 14px;
+        min-height: 40px;
+        padding: 0 14px;
+        border: 0;
+        border-radius: 8px;
+        background: var(--action);
+        color: white;
+        font-weight: 720;
+      }
+
+      .dominant-action.pending {
+        background: var(--recovery);
+      }
+
+      .dominant-action.blocked {
+        background: var(--blocked);
+      }
+
+      .braid {
+        display: grid;
+        gap: 8px;
+        padding-top: 14px;
+      }
+
+      .braid-row {
+        display: grid;
+        grid-template-columns: 10px 1fr auto;
+        gap: 10px;
+        align-items: start;
+        padding: 10px;
+        background: var(--inset);
+        border-radius: 8px;
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        margin-top: 5px;
+        border-radius: 50%;
+        background: var(--lineage);
+      }
+
+      .dot.action {
+        background: var(--action);
+      }
+
+      .dot.settlement {
+        background: var(--settlement);
+      }
+
+      .dot.recovery {
+        background: var(--recovery);
+      }
+
+      .dot.blocked {
+        background: var(--blocked);
+      }
+
+      .inspector-body {
+        display: grid;
+        gap: 14px;
+        padding: 14px;
+      }
+
+      .map,
+      .ladder,
+      .safety-strip {
+        display: grid;
+        gap: 8px;
+      }
+
+      .tuple {
+        display: grid;
+        grid-template-columns: 132px 1fr;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        line-height: 18px;
+      }
+
+      .tuple:last-child {
+        border-bottom: 0;
+      }
+
+      .tuple-key {
+        color: var(--muted);
+      }
+
+      .tuple-value {
+        color: var(--strong);
+        overflow-wrap: anywhere;
+      }
+
+      .lower {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 16px;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        line-height: 18px;
+      }
+
+      th,
+      td {
+        padding: 9px 8px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--muted);
+        font-weight: 740;
+      }
+
+      td {
+        color: var(--default);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.001ms !important;
+          animation-duration: 0.001ms !important;
+        }
+      }
+
+      @media (max-width: 1320px) {
+        .frame-grid,
+        .lower {
+          grid-template-columns: 1fr;
+        }
+
+        .list-pane,
+        .detail-pane,
+        .inspector {
+          min-height: auto;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .atlas {
+          padding: 16px;
+        }
+
+        .header {
+          display: grid;
+        }
+
+        .scenario-strip {
+          display: grid;
+          grid-template-columns: 1fr;
+        }
+
+        .tuple {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="atlas" data-testid="Request_Lineage_Action_Atlas">
+      <header class="header">
+        <div>
+          <h1>Request Lineage Action Atlas</h1>
+          <p class="meta">
+            List/detail alignment, typed patient action routing, settlement, and safety interruption
+            evidence for task 211.
+          </p>
+        </div>
+        <p class="meta">Visual mode: <strong>Request_Lineage_Action_Atlas</strong></p>
+      </header>
+
+      <nav class="scenario-strip" aria-label="Atlas scenarios"></nav>
+
+      <section
+        class="frame-grid"
+        data-testid="MockListDetailFrame"
+        aria-label="Mock list detail frame"
+      >
+        <section
+          class="panel list-pane"
+          aria-label="Request list pane"
+          data-testid="RequestListPane"
+        >
+          <div class="panel-head">
+            <h2 class="panel-title">Requests</h2>
+            <p class="panel-subtitle">Rows preserve bucket, anchor, lineage, and return bundle.</p>
+          </div>
+          <div class="request-list" role="listbox" aria-label="Request rows"></div>
+        </section>
+
+        <section
+          class="panel detail-pane"
+          aria-label="Request detail pane"
+          data-testid="RequestDetailPane"
+        >
+          <div class="panel-head">
+            <h2 class="panel-title">Detail</h2>
+            <p class="panel-subtitle">One governed detail shell and one dominant next action.</p>
+          </div>
+          <div class="detail-body">
+            <header class="detail-header"></header>
+            <section
+              data-testid="LineageOrderBraid"
+              aria-label="Lineage order braid"
+              class="braid"
+            ></section>
+          </div>
+        </section>
+
+        <aside
+          class="panel inspector"
+          aria-label="Routing and settlement inspector"
+          data-testid="RoutingInspector"
+        >
+          <div class="panel-head">
+            <h2 class="panel-title">Routing Inspector</h2>
+            <p class="panel-subtitle">Envelope, settlement, and safety-interruption bindings.</p>
+          </div>
+          <div class="inspector-body">
+            <section
+              data-testid="ActionRoutingEnvelopeMap"
+              aria-label="Action routing envelope map"
+              class="map"
+            ></section>
+            <section
+              data-testid="SettlementLadder"
+              aria-label="Settlement ladder"
+              class="ladder"
+            ></section>
+            <section
+              data-testid="SafetyInterruptionStrip"
+              aria-label="Safety interruption strip"
+              class="safety-strip"
+            ></section>
+          </div>
+        </aside>
+      </section>
+
+      <section class="lower" data-testid="MatrixShelf" aria-label="Matrix shelf">
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">Lineage Matrix</h2>
+            <p class="panel-subtitle">Machine-readable row/detail parity.</p>
+          </div>
+          <div class="table-wrap"><table class="lineage-table"></table></div>
+        </section>
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">Routing Cases</h2>
+            <p class="panel-subtitle">Route envelope and blocked-reason states.</p>
+          </div>
+          <div class="table-wrap"><table class="routing-table"></table></div>
+        </section>
+        <section class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">Settlement Cases</h2>
+            <p class="panel-subtitle">Local ack through authoritative outcome.</p>
+          </div>
+          <div class="table-wrap"><table class="settlement-table"></table></div>
+        </section>
+      </section>
+    </main>
+
+    <script id="request-lineage-action-data" type="application/json">
+      {
+        "taskId": "par_211_crosscutting_track_backend_build_request_browsing_detail_and_typed_patient_action_routing_projections",
+        "visualMode": "Request_Lineage_Action_Atlas",
+        "layout": {
+          "maxWidthPx": 1580,
+          "outerPaddingPx": 28,
+          "leftPane": "4 / 12",
+          "centerPane": "5 / 12",
+          "rightPane": "3 / 12",
+          "lowerMatrixPanels": 3,
+          "shellBandPx": 64,
+          "leftNavigationPx": 240,
+          "livePageMaxWidthPx": 1440,
+          "rowHeightTargetPx": "88-116"
+        },
+        "colors": {
+          "canvas": "#F8FAFC",
+          "panel": "#FFFFFF",
+          "inset": "#EEF2F7",
+          "strong": "#0F172A",
+          "default": "#334155",
+          "muted": "#64748B",
+          "border": "#D7DFEA",
+          "lineage": "#3158E0",
+          "action": "#5B61F6",
+          "settlement": "#0F766E",
+          "recovery": "#B7791F",
+          "blocked": "#B42318"
+        },
+        "scenarios": [
+          {
+            "id": "list-default",
+            "name": "List default",
+            "badge": "needs attention",
+            "tone": "live",
+            "detailTitle": "Dermatology request",
+            "detailCopy": "Selected anchor, list row, lineage braid, and return bundle stay on request_211_a.",
+            "action": "Reply to request",
+            "actionTone": "live",
+            "settlement": "local_acknowledged",
+            "safety": "clear",
+            "blockedReason": "none",
+            "rows": [
+              ["request_211_a", "needs_attention", "Reply needed", "active"],
+              ["request_211_b", "in_progress", "Practice reviewing", ""],
+              ["request_211_c", "complete", "Closed", ""]
+            ],
+            "braid": [
+              ["summary", "PatientRequestSummaryProjection", "same requestRef"],
+              ["lineage", "PatientRequestLineageProjection", "lineageTupleHash stable"],
+              ["return", "PatientRequestReturnBundle", "selectedAnchorTupleHash stable"]
+            ]
+          },
+          {
+            "id": "detail-actionable",
+            "name": "Detail actionable",
+            "badge": "live",
+            "tone": "live",
+            "detailTitle": "One reply can move this request",
+            "detailCopy": "The CTA comes from PatientNextActionProjection and routes through PatientActionRoutingProjection.",
+            "action": "Reply to request",
+            "actionTone": "live",
+            "settlement": "pending_authoritative_confirmation",
+            "safety": "clear",
+            "blockedReason": "none",
+            "rows": [
+              ["request_211_a", "needs_attention", "Reply needed", "active"],
+              ["thread_211_a", "placeholder", "More-info thread gap", ""],
+              ["record_211_a", "placeholder", "Record follow-up gap", ""]
+            ],
+            "braid": [
+              ["governingObjectRef", "request_211_a", "bound"],
+              ["routeIntentBindingRef", "route_intent_211_v1", "bound"],
+              ["writableEligibilityFenceRef", "writable", "live"]
+            ]
+          },
+          {
+            "id": "detail-read-only",
+            "name": "Detail read-only",
+            "badge": "read only",
+            "tone": "pending",
+            "detailTitle": "Request can be viewed only",
+            "detailCopy": "Narrowed coverage keeps the detail header visible but closes the writable eligibility fence.",
+            "action": "View request",
+            "actionTone": "pending",
+            "settlement": "local_acknowledged",
+            "safety": "clear",
+            "blockedReason": "read_only_or_step_up_required",
+            "rows": [
+              ["request_211_b", "in_progress", "Practice reviewing", "active"],
+              ["admin_case", "read_only", "Placeholder preserved", ""]
+            ],
+            "braid": [
+              ["summary", "partial", "patient safe"],
+              ["detail", "read_only", "no live mutation"],
+              ["routing", "blocked", "routeTargetRef null"]
+            ]
+          },
+          {
+            "id": "settlement-pending",
+            "name": "Settlement pending",
+            "badge": "pending",
+            "tone": "pending",
+            "detailTitle": "Reply received locally",
+            "detailCopy": "The shell shows local acknowledgement without implying authoritative completion.",
+            "action": "Waiting for confirmation",
+            "actionTone": "pending",
+            "settlement": "pending_authoritative_confirmation",
+            "safety": "clear",
+            "blockedReason": "pending_confirmation",
+            "rows": [
+              ["request_211_a", "needs_attention", "Pending confirmation", "active"],
+              ["settlement", "pending", "Command following projection", ""]
+            ],
+            "braid": [
+              ["localAckState", "acknowledged", "not final"],
+              ["processingAcceptanceState", "pending", "same shell"],
+              ["authoritativeOutcomeState", "pending", "no calm completion"]
+            ]
+          },
+          {
+            "id": "safety-interruption",
+            "name": "Safety interruption",
+            "badge": "urgent",
+            "tone": "blocked",
+            "detailTitle": "Action paused for safety review",
+            "detailCopy": "PatientSafetyInterruptionProjection suppresses stale reply actionability in place.",
+            "action": "Open urgent help",
+            "actionTone": "blocked",
+            "settlement": "disputed_recovery_required",
+            "safety": "urgent_required",
+            "blockedReason": "safety_interruption",
+            "rows": [
+              ["request_211_a", "needs_attention", "Safety interruption", "active"],
+              ["safety_epoch", "urgent_required", "Stale CTA suppressed", ""]
+            ],
+            "braid": [
+              ["suppressedActionRefs", "respond_more_info", "blocked"],
+              ["nextSafeActionRef", "open_urgent_help", "same shell"],
+              ["safetyDecisionEpochRef", "current", "bound"]
+            ]
+          },
+          {
+            "id": "identity-hold",
+            "name": "Identity hold",
+            "badge": "hold",
+            "tone": "blocked",
+            "detailTitle": "Identity repair is active",
+            "detailCopy": "The request anchor stays visible while all child branches become identity-hold placeholders.",
+            "action": "Wait for repair",
+            "actionTone": "blocked",
+            "settlement": "disputed_recovery_required",
+            "safety": "review_pending",
+            "blockedReason": "identity_hold",
+            "rows": [
+              ["request_211_a", "needs_attention", "Identity hold", "active"],
+              ["children", "identity_hold", "All placeholders preserved", ""]
+            ],
+            "braid": [
+              ["returnBundle", "identity_hold", "preserved"],
+              ["routing", "blocked", "identity_hold"],
+              ["detail", "placeholder", "no PHI expansion"]
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <script>
+      const DATA = JSON.parse(document.getElementById("request-lineage-action-data").textContent);
+      window.__requestLineageActionAtlasData = DATA;
+      let active = DATA.scenarios[0];
+
+      const scenarioStrip = document.querySelector(".scenario-strip");
+      const requestList = document.querySelector(".request-list");
+      const detailHeader = document.querySelector(".detail-header");
+      const braid = document.querySelector(".braid");
+      const map = document.querySelector(".map");
+      const ladder = document.querySelector(".ladder");
+      const safety = document.querySelector(".safety-strip");
+      const lineageTable = document.querySelector(".lineage-table");
+      const routingTable = document.querySelector(".routing-table");
+      const settlementTable = document.querySelector(".settlement-table");
+
+      function renderScenarios() {
+        scenarioStrip.innerHTML = DATA.scenarios
+          .map(
+            (scenario) => `
+              <button class="scenario-button" data-scenario-button="${scenario.id}" data-testid="scenario-${scenario.id}" aria-selected="${scenario.id === active.id}">
+                ${scenario.name}
+              </button>`,
+          )
+          .join("");
+        scenarioStrip.querySelectorAll("button").forEach((button, index, buttons) => {
+          button.addEventListener("click", () => selectScenario(button.dataset.scenarioButton));
+          button.addEventListener("keydown", (event) => {
+            if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+            event.preventDefault();
+            const nextIndex =
+              event.key === "ArrowRight"
+                ? Math.min(index + 1, buttons.length - 1)
+                : Math.max(index - 1, 0);
+            buttons[nextIndex].focus();
+            selectScenario(buttons[nextIndex].dataset.scenarioButton);
+          });
+        });
+      }
+
+      function selectScenario(id) {
+        active = DATA.scenarios.find((scenario) => scenario.id === id) || DATA.scenarios[0];
+        render();
+      }
+
+      function renderList() {
+        requestList.innerHTML = active.rows
+          .map(
+            ([ref, bucket, text, selected]) => `
+              <button class="row-button ${selected}" role="option" aria-selected="${selected === "active"}">
+                <span>
+                  <span class="eyebrow">${bucket}</span>
+                  <span class="row-title">${ref}</span>
+                  <span class="row-copy">${text}</span>
+                </span>
+                <span class="badge ${active.tone}">${active.badge}</span>
+              </button>`,
+          )
+          .join("");
+      }
+
+      function renderDetail() {
+        detailHeader.innerHTML = `
+          <p class="eyebrow">${active.id}</p>
+          <h2 class="detail-title">${active.detailTitle}</h2>
+          <p class="detail-copy">${active.detailCopy}</p>
+          <button class="dominant-action ${active.actionTone === "live" ? "" : active.actionTone}">${active.action}</button>`;
+        braid.innerHTML = active.braid
+          .map(
+            ([label, value, state], index) => `
+              <div class="braid-row">
+                <span class="dot ${index === 1 ? "action" : index === 2 ? active.actionTone : ""}"></span>
+                <span>
+                  <span class="eyebrow">${label}</span>
+                  <span class="row-title">${value}</span>
+                </span>
+                <span class="badge">${state}</span>
+              </div>`,
+          )
+          .join("");
+      }
+
+      function renderInspector() {
+        map.innerHTML = [
+          ["governingObjectRef", "request_211_a"],
+          ["routeIntentBindingRef", "route_intent_211_v1"],
+          ["capabilityLeaseRef", active.blockedReason === "none" ? "live" : "closed"],
+          ["requestReturnBundleRef", "PatientRequestReturnBundle"],
+          ["blockedReasonRef", active.blockedReason],
+        ]
+          .map(tuple)
+          .join("");
+        ladder.innerHTML = [
+          [
+            "localAckState",
+            active.settlement === "local_acknowledged" ? "acknowledged" : "acknowledged",
+          ],
+          ["authoritativeOutcomeState", active.settlement],
+          [
+            "sameShellState",
+            active.settlement.includes("pending")
+              ? "pending"
+              : active.tone === "blocked"
+                ? "recovery_required"
+                : "settled",
+          ],
+        ]
+          .map(tuple)
+          .join("");
+        safety.innerHTML = [
+          ["surfaceState", active.safety],
+          ["suppressedActionRefs", active.safety === "clear" ? "none" : "respond_more_info"],
+          [
+            "nextSafeActionRef",
+            active.safety === "urgent_required" ? "open_urgent_help" : "hold_action_in_shell",
+          ],
+        ]
+          .map(tuple)
+          .join("");
+      }
+
+      function tuple([key, value]) {
+        return `<div class="tuple"><span class="tuple-key">${key}</span><span class="tuple-value">${value}</span></div>`;
+      }
+
+      function renderTables() {
+        lineageTable.innerHTML = `
+          <thead><tr><th>Projection</th><th>Binding</th></tr></thead>
+          <tbody>
+            <tr><td>PatientRequestsIndexProjection</td><td>selectedRequestReturnBundleRef</td></tr>
+            <tr><td>PatientRequestLineageProjection</td><td>lineageTupleHash</td></tr>
+            <tr><td>PatientRequestDetailProjection</td><td>downstreamOrderingDigestRef</td></tr>
+          </tbody>`;
+        routingTable.innerHTML = `
+          <thead><tr><th>Field</th><th>Current</th></tr></thead>
+          <tbody>
+            <tr><td>actionType</td><td>${active.id === "safety-interruption" ? "none" : "respond_more_info"}</td></tr>
+            <tr><td>blockedReasonRef</td><td>${active.blockedReason}</td></tr>
+            <tr><td>routeTargetRef</td><td>${active.blockedReason === "none" ? "/v1/me/requests/request_211_a/more-info" : "null"}</td></tr>
+          </tbody>`;
+        settlementTable.innerHTML = `
+          <thead><tr><th>State</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>local acknowledgement</td><td>acknowledged</td></tr>
+            <tr><td>authoritative outcome</td><td>${active.settlement}</td></tr>
+            <tr><td>safety interruption</td><td>${active.safety}</td></tr>
+          </tbody>`;
+      }
+
+      function render() {
+        renderScenarios();
+        renderList();
+        renderDetail();
+        renderInspector();
+        renderTables();
+        document.documentElement.dataset.scenario = active.id;
+      }
+
+      render();
+      document.documentElement.dataset.ready = "true";
+    </script>
+  </body>
+</html>

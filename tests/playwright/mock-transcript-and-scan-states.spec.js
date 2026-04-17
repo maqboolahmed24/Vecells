@@ -6,7 +6,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..", "..");
 const PACK = JSON.parse(
-  fs.readFileSync(path.join(ROOT, "data", "analysis", "35_evidence_processing_lab_pack.json"), "utf8"),
+  fs.readFileSync(
+    path.join(ROOT, "data", "analysis", "35_evidence_processing_lab_pack.json"),
+    "utf8",
+  ),
 );
 
 async function importPlaywright() {

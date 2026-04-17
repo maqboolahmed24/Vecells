@@ -1,0 +1,877 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Duplicate Resolution Workbench</title>
+    <style>
+      :root {
+        --canvas: #F7F9FC;
+        --panel: #FFFFFF;
+        --rail: #EEF2F8;
+        --inset: #F4F6FB;
+        --text-strong: #0F172A;
+        --text-default: #1E293B;
+        --text-muted: #667085;
+        --border: #E2E8F0;
+        --evidence: #3559E6;
+        --cluster: #0EA5A4;
+        --review: #7C3AED;
+        --warning: #C98900;
+        --blocked: #C24141;
+        --shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+        --radius-lg: 24px;
+        --radius-md: 18px;
+        --radius-sm: 14px;
+        --transition-fast: 120ms ease;
+        --transition-mid: 180ms ease;
+        --transition-slow: 220ms ease;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: radial-gradient(circle at top left, rgba(53, 89, 230, 0.10), transparent 34%),
+          radial-gradient(circle at top right, rgba(14, 165, 164, 0.10), transparent 28%),
+          var(--canvas);
+        color: var(--text-default);
+      }
+
+      body[data-reduced-motion="true"] * {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+      }
+
+      .shell {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      .masthead {
+        min-height: 72px;
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) repeat(4, minmax(120px, 1fr));
+        gap: 16px;
+        align-items: stretch;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow);
+      }
+
+      .brand {
+        padding: 18px 22px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .brand svg {
+        width: 42px;
+        height: 42px;
+        flex: none;
+      }
+
+      .metric {
+        padding: 16px 18px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 6px;
+      }
+
+      .metric strong {
+        font-size: 1.9rem;
+        line-height: 1;
+        color: var(--text-strong);
+      }
+
+      .layout {
+        margin-top: 20px;
+        display: grid;
+        grid-template-columns: 304px minmax(0, 1fr) 408px;
+        gap: 18px;
+        align-items: start;
+      }
+
+      .rail {
+        padding: 18px;
+        background: var(--rail);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+        position: sticky;
+        top: 20px;
+      }
+
+      .rail label {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 16px;
+        color: var(--text-muted);
+        font-size: 0.92rem;
+      }
+
+      select {
+        width: 100%;
+        height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text-strong);
+        padding: 0 14px;
+      }
+
+      .canvas {
+        display: grid;
+        gap: 18px;
+      }
+
+      .canvas-section {
+        padding: 20px;
+      }
+
+      .constellation {
+        min-height: 260px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 14px;
+        align-items: stretch;
+      }
+
+      .cluster-card,
+      .pair-card,
+      .decision-card,
+      .table-button {
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, #FFFFFF, #F9FBFF);
+        color: inherit;
+        border-radius: var(--radius-md);
+        padding: 14px 16px;
+        text-align: left;
+        min-height: 172px;
+        cursor: pointer;
+        transition: transform var(--transition-fast), box-shadow var(--transition-mid), border-color var(--transition-mid);
+      }
+
+      .pair-card,
+      .decision-card {
+        min-height: 172px;
+      }
+
+      .cluster-card:hover,
+      .pair-card:hover,
+      .decision-card:hover,
+      .table-button:hover,
+      .cluster-card:focus-visible,
+      .pair-card:focus-visible,
+      .decision-card:focus-visible,
+      .table-button:focus-visible {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+        outline: none;
+      }
+
+      [data-selected="true"] {
+        border-color: var(--evidence);
+        box-shadow: 0 0 0 3px rgba(53, 89, 230, 0.14);
+      }
+
+      .tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 10px 0;
+      }
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: 0.78rem;
+        border: 1px solid var(--border);
+        background: var(--inset);
+        color: var(--text-muted);
+      }
+
+      .tag.review { color: var(--review); border-color: rgba(124, 58, 237, 0.24); }
+      .tag.blocked { color: var(--blocked); border-color: rgba(194, 65, 65, 0.22); }
+      .tag.cluster { color: var(--cluster); border-color: rgba(14, 165, 164, 0.22); }
+      .tag.warning { color: var(--warning); border-color: rgba(201, 137, 0, 0.24); }
+
+      .comparison-lane,
+      .decision-timeline {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+      }
+
+      .inspector {
+        padding: 20px;
+        position: sticky;
+        top: 20px;
+        transition: transform var(--transition-slow), opacity var(--transition-slow);
+      }
+
+      .inspector pre,
+      .mono {
+        font-family: "SFMono-Regular", ui-monospace, monospace;
+        font-size: 0.82rem;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .lower-grid {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 18px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.88rem;
+      }
+
+      th, td {
+        padding: 10px 8px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+
+      th {
+        text-align: left;
+        color: var(--text-muted);
+        font-weight: 600;
+      }
+
+      .table-button {
+        min-height: 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+        width: 100%;
+      }
+
+      .parity {
+        margin-top: 10px;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+
+      .empty {
+        padding: 24px;
+        border-radius: var(--radius-md);
+        background: var(--inset);
+        color: var(--text-muted);
+        border: 1px dashed var(--border);
+      }
+
+      @media (max-width: 1180px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .rail, .inspector {
+          position: static;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .shell {
+          padding: 16px;
+        }
+
+        .masthead {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .brand {
+          grid-column: 1 / -1;
+        }
+
+        .lower-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="masthead" aria-label="Workbench summary">
+        <div class="panel brand">
+          <svg viewBox="0 0 48 48" aria-hidden="true">
+            <rect x="3" y="3" width="42" height="42" rx="14" fill="#0F172A"></rect>
+            <path d="M15 34V14h9.4c5.7 0 9.1 3 9.1 8.1 0 5.2-3.5 8.4-9.3 8.4h-4.6V34H15Zm4.6-7.1h4.1c3.4 0 5.1-1.5 5.1-4.7 0-3.1-1.7-4.6-5.1-4.6h-4.1v9.3Z" fill="#F7F9FC"></path>
+            <path d="M33 34 26.6 24l5.8-10h5L31.6 24 38 34h-5Z" fill="#3559E6"></path>
+          </svg>
+          <div>
+            <div style="font-size:0.82rem; color:#667085; text-transform:uppercase; letter-spacing:0.08em;">Vecells</div>
+            <div style="font-size:1.25rem; color:#0F172A; font-weight:700;">Duplicate Resolution Workbench</div>
+            <div style="color:#667085;">Quiet review desk for cluster evidence, settlement posture, and supersession chains.</div>
+          </div>
+        </div>
+        <div class="panel metric"><span>Open Clusters</span><strong data-testid="metric-open-clusters">0</strong></div>
+        <div class="panel metric"><span>Resolved Clusters</span><strong data-testid="metric-resolved-clusters">0</strong></div>
+        <div class="panel metric"><span>Review Required</span><strong data-testid="metric-review-required">0</strong></div>
+        <div class="panel metric"><span>Unstable Clusters</span><strong data-testid="metric-unstable-clusters">0</strong></div>
+      </header>
+
+      <div class="layout">
+        <aside class="rail" aria-label="Workbench filters">
+          <label>
+            Relation type
+            <select id="relation-filter" data-testid="relation-filter">
+              <option value="all">All relations</option>
+            </select>
+          </label>
+          <label>
+            Review state
+            <select id="review-status-filter" data-testid="review-status-filter">
+              <option value="all">All review states</option>
+            </select>
+          </label>
+          <label>
+            Uncertainty band
+            <select id="uncertainty-filter" data-testid="uncertainty-filter">
+              <option value="all">All uncertainty bands</option>
+            </select>
+          </label>
+        </aside>
+
+        <main class="canvas">
+          <section class="panel canvas-section">
+            <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
+              <div>
+                <h2 style="margin:0; color:#0F172A;">Cluster constellation</h2>
+                <p style="margin:8px 0 0; color:#667085;">Each card is one persisted `DuplicateCluster`. The cluster stays a review container even when a later decision settles meaning.</p>
+              </div>
+            </div>
+            <div class="constellation" data-testid="constellation"></div>
+            <div class="parity" data-testid="constellation-parity"></div>
+          </section>
+
+          <section class="panel canvas-section">
+            <h2 style="margin:0; color:#0F172A;">Pair evidence comparison lane</h2>
+            <p style="margin:8px 0 14px; color:#667085;">The winning pair never becomes transitive proof. Competitors remain visible whenever the margin is thin or blocked.</p>
+            <div class="comparison-lane" data-testid="comparison-lane"></div>
+            <div class="parity" data-testid="comparison-parity"></div>
+          </section>
+
+          <section class="panel canvas-section">
+            <h2 style="margin:0; color:#0F172A;">Resolution decision timeline</h2>
+            <p style="margin:8px 0 14px; color:#667085;">Only `DuplicateResolutionDecision` settles retry, attach, linkage, separation, or review requirement.</p>
+            <div class="decision-timeline" data-testid="decision-timeline"></div>
+            <div class="parity" data-testid="timeline-parity"></div>
+          </section>
+
+          <div class="lower-grid">
+            <section class="panel canvas-section">
+              <h2 style="margin:0; color:#0F172A;">Evidence table</h2>
+              <table data-testid="evidence-table">
+                <thead>
+                  <tr>
+                    <th>Pair evidence</th>
+                    <th>Dominant relation</th>
+                    <th>Margins</th>
+                    <th>Uncertainty</th>
+                  </tr>
+                </thead>
+                <tbody id="evidence-table-body"></tbody>
+              </table>
+            </section>
+            <section class="panel canvas-section">
+              <h2 style="margin:0; color:#0F172A;">Supersession history</h2>
+              <table data-testid="supersession-history">
+                <thead>
+                  <tr>
+                    <th>Decision</th>
+                    <th>Class</th>
+                    <th>State</th>
+                    <th>Witness / supersession</th>
+                  </tr>
+                </thead>
+                <tbody id="history-table-body"></tbody>
+              </table>
+            </section>
+          </div>
+        </main>
+
+        <aside class="panel inspector" data-testid="inspector" aria-live="polite"></aside>
+      </div>
+    </div>
+
+    <script>
+      const manifestUrl = "../../data/analysis/duplicate_cluster_manifest.json";
+      const casebookUrl = "../../data/analysis/duplicate_resolution_casebook.json";
+      const matrixUrl = "../../data/analysis/duplicate_pair_evidence_matrix.csv";
+
+      const state = {
+        manifest: null,
+        casebook: null,
+        matrixRows: [],
+        selectedClusterId: null,
+        selectedPairEvidenceId: null,
+        selectedDecisionId: null,
+        relationFilter: "all",
+        reviewStatusFilter: "all",
+        uncertaintyFilter: "all",
+      };
+
+      function parseCsv(text) {
+        const lines = text.trim().split(/\r?\n/);
+        const headers = lines.shift().split(",");
+        return lines.map((line) => {
+          const cells = [];
+          let current = "";
+          let inQuotes = false;
+          for (let i = 0; i < line.length; i += 1) {
+            const char = line[i];
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === "," && !inQuotes) {
+              cells.push(current);
+              current = "";
+            } else {
+              current += char;
+            }
+          }
+          cells.push(current);
+          return Object.fromEntries(headers.map((header, index) => [header, cells[index] ?? ""]));
+        });
+      }
+
+      function byId(rows, idField) {
+        return Object.fromEntries(rows.map((row) => [row[idField], row]));
+      }
+
+      function selectedCluster() {
+        return state.manifest.clusters.find((cluster) => cluster.clusterId === state.selectedClusterId) ?? null;
+      }
+
+      function visibleClusters() {
+        return state.manifest.clusters.filter((cluster) => {
+          const relationPass = state.relationFilter === "all" || cluster.relationType === state.relationFilter;
+          const reviewPass = state.reviewStatusFilter === "all" || cluster.reviewStatus === state.reviewStatusFilter;
+          const uncertaintyPass = state.uncertaintyFilter === "all" || cluster.uncertaintyBand === state.uncertaintyFilter;
+          return relationPass && reviewPass && uncertaintyPass;
+        });
+      }
+
+      function clusterDecisionHistory(cluster) {
+        const decisions = byId(state.manifest.decisions, "duplicateResolutionDecisionId");
+        return cluster.resolutionDecisionRefs.map((decisionId) => decisions[decisionId]).filter(Boolean);
+      }
+
+      function clusterEvidenceRows(cluster) {
+        const evidence = byId(state.manifest.pair_evidences, "pairEvidenceId");
+        return cluster.pairwiseEvidenceRefs.map((pairEvidenceId) => evidence[pairEvidenceId]).filter(Boolean);
+      }
+
+      function updateSelection() {
+        const visible = visibleClusters();
+        if (!visible.length) {
+          state.selectedClusterId = null;
+          state.selectedPairEvidenceId = null;
+          state.selectedDecisionId = null;
+          return;
+        }
+        if (!visible.some((cluster) => cluster.clusterId === state.selectedClusterId)) {
+          state.selectedClusterId = visible[0].clusterId;
+        }
+        const cluster = selectedCluster();
+        const evidenceRows = clusterEvidenceRows(cluster);
+        if (!evidenceRows.some((row) => row.pairEvidenceId === state.selectedPairEvidenceId)) {
+          state.selectedPairEvidenceId = evidenceRows[0]?.pairEvidenceId ?? null;
+        }
+        const decisions = clusterDecisionHistory(cluster);
+        if (!decisions.some((row) => row.duplicateResolutionDecisionId === state.selectedDecisionId)) {
+          state.selectedDecisionId =
+            cluster.currentResolutionDecisionRef ??
+            decisions[decisions.length - 1]?.duplicateResolutionDecisionId ??
+            null;
+        }
+      }
+
+      function renderMetrics() {
+        const clusters = state.manifest.clusters;
+        document.querySelector("[data-testid='metric-open-clusters']").textContent = String(
+          clusters.filter((cluster) => cluster.reviewStatus === "open").length,
+        );
+        document.querySelector("[data-testid='metric-resolved-clusters']").textContent = String(
+          clusters.filter((cluster) => cluster.reviewStatus.startsWith("resolved")).length,
+        );
+        document.querySelector("[data-testid='metric-review-required']").textContent = String(
+          clusters.filter((cluster) => ["open", "in_review"].includes(cluster.reviewStatus)).length,
+        );
+        document.querySelector("[data-testid='metric-unstable-clusters']").textContent = String(
+          clusters.filter((cluster) => cluster.instabilityState !== "stable").length,
+        );
+      }
+
+      function renderFilters() {
+        const relationSelect = document.querySelector("[data-testid='relation-filter']");
+        const reviewSelect = document.querySelector("[data-testid='review-status-filter']");
+        const uncertaintySelect = document.querySelector("[data-testid='uncertainty-filter']");
+
+        if (relationSelect.options.length === 1) {
+          [...new Set(state.manifest.clusters.map((cluster) => cluster.relationType))]
+            .sort()
+            .forEach((value) => relationSelect.add(new Option(value, value)));
+        }
+        if (reviewSelect.options.length === 1) {
+          [...new Set(state.manifest.clusters.map((cluster) => cluster.reviewStatus))]
+            .sort()
+            .forEach((value) => reviewSelect.add(new Option(value, value)));
+        }
+        if (uncertaintySelect.options.length === 1) {
+          [...new Set(state.manifest.clusters.map((cluster) => cluster.uncertaintyBand))]
+            .sort()
+            .forEach((value) => uncertaintySelect.add(new Option(value, value)));
+        }
+      }
+
+      function selectCluster(clusterId) {
+        state.selectedClusterId = clusterId;
+        updateSelection();
+        render();
+      }
+
+      function moveClusterSelectionFrom(currentClusterId, step) {
+        const visible = visibleClusters();
+        const index = visible.findIndex((cluster) => cluster.clusterId === currentClusterId);
+        if (index === -1) return;
+        const next = visible[index + step];
+        if (next) {
+          selectCluster(next.clusterId);
+        }
+      }
+
+      function renderConstellation() {
+        const root = document.querySelector("[data-testid='constellation']");
+        const visible = visibleClusters();
+        root.innerHTML = "";
+        if (!visible.length) {
+          root.innerHTML = '<div class="empty">No clusters match the current filter set.</div>';
+          document.querySelector("[data-testid='constellation-parity']").textContent = "0 visible clusters.";
+          return;
+        }
+        for (const cluster of visible) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "cluster-card";
+          button.dataset.testid = `cluster-card-${cluster.clusterId}`;
+          button.dataset.selected = String(cluster.clusterId === state.selectedClusterId);
+          button.setAttribute("data-testid", `cluster-card-${cluster.clusterId}`);
+          button.innerHTML = `
+            <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start;">
+              <strong class="mono" style="color:#0F172A;">${cluster.clusterId}</strong>
+              <span class="tag cluster">${cluster.relationType}</span>
+            </div>
+            <div style="margin-top:10px; font-size:1rem; color:#0F172A; font-weight:600;">${cluster.title}</div>
+            <div class="tag-row">
+              <span class="tag review">${cluster.reviewStatus}</span>
+              <span class="tag ${cluster.instabilityState === "blocked_conflict" ? "blocked" : cluster.instabilityState === "oscillating" ? "warning" : "cluster"}">${cluster.instabilityState}</span>
+              <span class="tag">${cluster.uncertaintyBand}</span>
+            </div>
+            <div style="color:#667085; line-height:1.45;">${cluster.summary}</div>
+          `;
+          button.addEventListener("click", () => selectCluster(cluster.clusterId));
+          button.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              moveClusterSelectionFrom(cluster.clusterId, 1);
+            }
+            if (event.key === "ArrowUp") {
+              event.preventDefault();
+              moveClusterSelectionFrom(cluster.clusterId, -1);
+            }
+          });
+          root.appendChild(button);
+        }
+        const unstable = visible.filter((cluster) => cluster.instabilityState !== "stable").length;
+        document.querySelector("[data-testid='constellation-parity']").textContent =
+          `${visible.length} visible clusters, ${visible.filter((cluster) => ["open", "in_review"].includes(cluster.reviewStatus)).length} review-required, ${unstable} unstable.`;
+      }
+
+      function renderComparisonLane(cluster) {
+        const evidenceRows = cluster ? clusterEvidenceRows(cluster) : [];
+        const root = document.querySelector("[data-testid='comparison-lane']");
+        root.innerHTML = "";
+        if (!evidenceRows.length) {
+          root.innerHTML = '<div class="empty">Select a cluster to compare pair evidence.</div>';
+          document.querySelector("[data-testid='comparison-parity']").textContent = "No pair evidence visible.";
+          return;
+        }
+        for (const row of evidenceRows) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "pair-card";
+          button.setAttribute("data-testid", `pair-card-${row.pairEvidenceId}`);
+          button.dataset.selected = String(row.pairEvidenceId === state.selectedPairEvidenceId);
+          button.innerHTML = `
+            <div style="display:flex; justify-content:space-between; gap:10px;">
+              <strong class="mono">${row.pairEvidenceId}</strong>
+              <span class="tag ${row.uncertaintyBand === "high" ? "blocked" : row.uncertaintyBand === "guarded" ? "warning" : "cluster"}">${row.uncertaintyBand}</span>
+            </div>
+            <div style="margin-top:10px; color:#0F172A; font-weight:600;">${row.candidateRequestRef}</div>
+            <div class="tag-row">
+              <span class="tag cluster">${row.dominantRelation}</span>
+              <span class="tag">class ${
+                Number(row.classMargin).toFixed(2)
+              }</span>
+              <span class="tag">candidate ${
+                Number(row.candidateMargin).toFixed(2)
+              }</span>
+            </div>
+            <div style="color:#667085;">Hard blockers: ${
+              row.hardBlockerRefs.length ? row.hardBlockerRefs.join(", ") : "none"
+            }</div>
+          `;
+          button.addEventListener("click", () => {
+            state.selectedPairEvidenceId = row.pairEvidenceId;
+            renderInspector(cluster);
+            renderTables(cluster);
+            renderComparisonLane(cluster);
+          });
+          root.appendChild(button);
+        }
+        document.querySelector("[data-testid='comparison-parity']").textContent =
+          `${evidenceRows.length} pair evidence rows back the selected cluster.`;
+      }
+
+      function renderTimeline(cluster) {
+        const decisions = cluster ? clusterDecisionHistory(cluster) : [];
+        const root = document.querySelector("[data-testid='decision-timeline']");
+        root.innerHTML = "";
+        if (!decisions.length) {
+          root.innerHTML = '<div class="empty">No duplicate decision history is available.</div>';
+          document.querySelector("[data-testid='timeline-parity']").textContent = "No decisions visible.";
+          return;
+        }
+        for (const decision of decisions) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "decision-card";
+          button.setAttribute("data-testid", `decision-card-${decision.duplicateResolutionDecisionId}`);
+          button.dataset.selected = String(
+            decision.duplicateResolutionDecisionId === state.selectedDecisionId,
+          );
+          button.innerHTML = `
+            <div style="display:flex; justify-content:space-between; gap:10px;">
+              <strong class="mono">${decision.duplicateResolutionDecisionId}</strong>
+              <span class="tag review">${decision.decisionState}</span>
+            </div>
+            <div style="margin-top:10px; color:#0F172A; font-weight:600;">${decision.decisionClass}</div>
+            <div class="tag-row">
+              <span class="tag">${decision.reviewMode}</span>
+              <span class="tag">${decision.continuityWitnessClass}</span>
+            </div>
+            <div style="color:#667085;">${decision.reasonCodes.join(", ")}</div>
+          `;
+          button.addEventListener("click", () => {
+            state.selectedDecisionId = decision.duplicateResolutionDecisionId;
+            renderInspector(cluster);
+            renderTimeline(cluster);
+            renderTables(cluster);
+          });
+          root.appendChild(button);
+        }
+        document.querySelector("[data-testid='timeline-parity']").textContent =
+          `${decisions.length} decision rows preserve the settlement history for the selected cluster.`;
+      }
+
+      function renderInspector(cluster) {
+        const inspector = document.querySelector("[data-testid='inspector']");
+        if (!cluster) {
+          inspector.innerHTML = '<div class="empty">No cluster matches the current filters.</div>';
+          return;
+        }
+        const pair = clusterEvidenceRows(cluster).find((row) => row.pairEvidenceId === state.selectedPairEvidenceId);
+        const decision = clusterDecisionHistory(cluster).find(
+          (row) => row.duplicateResolutionDecisionId === state.selectedDecisionId,
+        );
+        const caseEntry = state.casebook.cases.find((entry) => entry.clusterId === cluster.clusterId);
+        inspector.innerHTML = `
+          <h2 style="margin:0; color:#0F172A;">Selected cluster</h2>
+          <div class="mono" style="margin-top:10px;">${cluster.clusterId}</div>
+          <p style="margin:12px 0; color:#667085; line-height:1.5;">${cluster.summary}</p>
+          <div class="tag-row">
+            <span class="tag cluster">${cluster.relationType}</span>
+            <span class="tag review">${cluster.reviewStatus}</span>
+            <span class="tag ${cluster.instabilityState === "blocked_conflict" ? "blocked" : cluster.instabilityState === "oscillating" ? "warning" : "cluster"}">${cluster.instabilityState}</span>
+          </div>
+          <h3 style="margin:20px 0 8px; color:#0F172A;">Current pair evidence</h3>
+          <div class="mono">${pair?.pairEvidenceId ?? "none"}</div>
+          <div style="color:#667085; margin-top:8px;">${pair ? `request=${pair.candidateRequestRef} | dominant=${pair.dominantRelation} | uncertainty=${pair.uncertaintyBand}` : "No selected pair evidence."}</div>
+          <h3 style="margin:20px 0 8px; color:#0F172A;">Current decision</h3>
+          <div class="mono">${decision?.duplicateResolutionDecisionId ?? "none"}</div>
+          <div style="color:#667085; margin-top:8px;">${decision ? `class=${decision.decisionClass} | witness=${decision.continuityWitnessClass} | state=${decision.decisionState}` : "No selected decision."}</div>
+          <h3 style="margin:20px 0 8px; color:#0F172A;">Case posture</h3>
+          <div style="color:#667085; line-height:1.5;">${caseEntry?.patientEffect ?? ""}</div>
+          <div style="margin-top:8px; color:#0F172A;">${caseEntry?.operatorPosture ?? ""}</div>
+          <h3 style="margin:20px 0 8px; color:#0F172A;">Operator guidance</h3>
+          <div style="color:#667085; line-height:1.5;">${cluster.operatorGuidance}</div>
+        `;
+      }
+
+      function moveTableSelection(collection, currentId, key, step) {
+        const index = collection.findIndex((row) => row[key] === currentId);
+        if (index === -1) return currentId;
+        return collection[index + step]?.[key] ?? currentId;
+      }
+
+      function renderTables(cluster) {
+        const evidenceRows = cluster ? clusterEvidenceRows(cluster) : [];
+        const decisionRows = cluster ? clusterDecisionHistory(cluster) : [];
+        const evidenceBody = document.querySelector("#evidence-table-body");
+        const historyBody = document.querySelector("#history-table-body");
+        evidenceBody.innerHTML = "";
+        historyBody.innerHTML = "";
+
+        if (!evidenceRows.length) {
+          evidenceBody.innerHTML = '<tr><td colspan="4" class="empty">No evidence rows.</td></tr>';
+        } else {
+          for (const row of evidenceRows) {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>
+                <button type="button" class="table-button" data-testid="evidence-row-${row.pairEvidenceId}" data-selected="${row.pairEvidenceId === state.selectedPairEvidenceId}" aria-label="${row.pairEvidenceId}">
+                  <div class="mono">${row.pairEvidenceId}</div>
+                  <div style="color:#667085;">${row.candidateRequestRef}</div>
+                </button>
+              </td>
+              <td>${row.dominantRelation}</td>
+              <td>class ${Number(row.classMargin).toFixed(2)} / candidate ${Number(row.candidateMargin).toFixed(2)}</td>
+              <td>${row.uncertaintyBand} (${Number(row.uncertaintyScore).toFixed(2)})</td>
+            `;
+            const button = tr.querySelector("button");
+            button.addEventListener("click", () => {
+              state.selectedPairEvidenceId = row.pairEvidenceId;
+              renderComparisonLane(cluster);
+              renderInspector(cluster);
+              renderTables(cluster);
+            });
+            button.addEventListener("keydown", (event) => {
+              if (event.key === "ArrowDown") {
+                event.preventDefault();
+                state.selectedPairEvidenceId = moveTableSelection(evidenceRows, row.pairEvidenceId, "pairEvidenceId", 1);
+                renderComparisonLane(cluster);
+                renderInspector(cluster);
+                renderTables(cluster);
+              }
+              if (event.key === "ArrowUp") {
+                event.preventDefault();
+                state.selectedPairEvidenceId = moveTableSelection(evidenceRows, row.pairEvidenceId, "pairEvidenceId", -1);
+                renderComparisonLane(cluster);
+                renderInspector(cluster);
+                renderTables(cluster);
+              }
+            });
+            evidenceBody.appendChild(tr);
+          }
+        }
+
+        if (!decisionRows.length) {
+          historyBody.innerHTML = '<tr><td colspan="4" class="empty">No decision history.</td></tr>';
+        } else {
+          for (const row of decisionRows) {
+            const supersessionLabel = row.supersedesDecisionRef ?? row.continuityWitnessRef ?? "none";
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>
+                <button type="button" class="table-button" data-testid="history-row-${row.duplicateResolutionDecisionId}" data-selected="${row.duplicateResolutionDecisionId === state.selectedDecisionId}" aria-label="${row.duplicateResolutionDecisionId}">
+                  <div class="mono">${row.duplicateResolutionDecisionId}</div>
+                  <div style="color:#667085;">${row.decidedAt}</div>
+                </button>
+              </td>
+              <td>${row.decisionClass}</td>
+              <td>${row.decisionState}</td>
+              <td class="mono">${supersessionLabel}</td>
+            `;
+            const button = tr.querySelector("button");
+            button.addEventListener("click", () => {
+              state.selectedDecisionId = row.duplicateResolutionDecisionId;
+              renderTimeline(cluster);
+              renderInspector(cluster);
+              renderTables(cluster);
+            });
+            button.addEventListener("keydown", (event) => {
+              if (event.key === "ArrowDown") {
+                event.preventDefault();
+                state.selectedDecisionId = moveTableSelection(decisionRows, row.duplicateResolutionDecisionId, "duplicateResolutionDecisionId", 1);
+                renderTimeline(cluster);
+                renderInspector(cluster);
+                renderTables(cluster);
+              }
+              if (event.key === "ArrowUp") {
+                event.preventDefault();
+                state.selectedDecisionId = moveTableSelection(decisionRows, row.duplicateResolutionDecisionId, "duplicateResolutionDecisionId", -1);
+                renderTimeline(cluster);
+                renderInspector(cluster);
+                renderTables(cluster);
+              }
+            });
+            historyBody.appendChild(tr);
+          }
+        }
+      }
+
+      function render() {
+        updateSelection();
+        renderMetrics();
+        renderFilters();
+        renderConstellation();
+        const cluster = selectedCluster();
+        renderComparisonLane(cluster);
+        renderTimeline(cluster);
+        renderInspector(cluster);
+        renderTables(cluster);
+      }
+
+      async function boot() {
+        const [manifest, casebook, matrixCsv] = await Promise.all([
+          fetch(manifestUrl).then((response) => response.json()),
+          fetch(casebookUrl).then((response) => response.json()),
+          fetch(matrixUrl).then((response) => response.text()),
+        ]);
+        state.manifest = manifest;
+        state.casebook = casebook;
+        state.matrixRows = parseCsv(matrixCsv);
+
+        document.body.dataset.reducedMotion = String(
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+        );
+
+        document.querySelector("[data-testid='relation-filter']").addEventListener("change", (event) => {
+          state.relationFilter = event.target.value;
+          render();
+        });
+        document.querySelector("[data-testid='review-status-filter']").addEventListener("change", (event) => {
+          state.reviewStatusFilter = event.target.value;
+          render();
+        });
+        document.querySelector("[data-testid='uncertainty-filter']").addEventListener("change", (event) => {
+          state.uncertaintyFilter = event.target.value;
+          render();
+        });
+
+        render();
+      }
+
+      boot().catch((error) => {
+        document.querySelector("[data-testid='inspector']").innerHTML = `<div class="empty">${error.message}</div>`;
+      });
+    </script>
+  </body>
+</html>

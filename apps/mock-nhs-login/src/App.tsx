@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { VecellLogoLockup } from "@vecells/design-system";
 import { nhsLoginCapturePack } from "./generated/nhsLoginCapturePack";
 
 type View = "admin" | "signin" | "consent" | "return" | "settings";
@@ -564,6 +565,28 @@ export default function App() {
     }));
   }
 
+  function resetAuthFlow(reason: "logout" | "restart_auth") {
+    setState((previous) => ({
+      ...previous,
+      view: "signin",
+      authStage: "credentials",
+      returnCard: null,
+      errorSummary: [],
+      selectedScenarioId: previous.selectedScenarioId === "settings_return" ? "happy_path" : previous.selectedScenarioId,
+      logEntries: [
+        {
+          eventId: reason === "logout" ? "evt_logout" : "evt_restart",
+          step: reason === "logout" ? "logout" : "recovery",
+          status: reason === "logout" ? "success" : "info",
+          summary:
+            reason === "logout"
+              ? "Local session terminated inside Vecells. Upstream NHS login state is not treated as the local session."
+              : "Recovery requested. A fresh AuthTransaction is required before the route can resume.",
+        },
+      ],
+    }));
+  }
+
   function changeClient(nextClientId: string) {
     const nextClient = clientById(nextClientId);
     const nextUserId = nextClient.test_user_ids[0];
@@ -684,7 +707,7 @@ export default function App() {
             <div className="heading-row">
               <div>
                 <p className="eyebrow">Admin_Client_Registry</p>
-                <h1>Bluewoven Identity Simulator</h1>
+                <h1>vecell identity simulator</h1>
               </div>
               <div className="status-stack">
                 <span className="tag">MOCK_NHS_LOGIN</span>
@@ -963,19 +986,27 @@ export default function App() {
             <dl className="detail-grid">
               <div>
                 <dt>Return state</dt>
-                <dd className="mono-block">{card.returnState}</dd>
+                <dd className="mono-block" data-testid="return-card-state">
+                  {card.returnState}
+                </dd>
               </div>
               <div>
                 <dt>Reason code</dt>
-                <dd className="mono-block">{card.reasonCode}</dd>
+                <dd className="mono-block" data-testid="return-card-reason-code">
+                  {card.reasonCode}
+                </dd>
               </div>
               <div>
                 <dt>Callback URI</dt>
-                <dd className="mono-block">{card.callbackUri}</dd>
+                <dd className="mono-block" data-testid="return-card-callback-uri">
+                  {card.callbackUri}
+                </dd>
               </div>
               <div>
                 <dt>Local session decision</dt>
-                <dd className="mono-block">{card.localSessionDecision}</dd>
+                <dd className="mono-block" data-testid="return-card-local-session-decision">
+                  {card.localSessionDecision}
+                </dd>
               </div>
             </dl>
             <div className="preview-grid">
@@ -987,6 +1018,26 @@ export default function App() {
                 <h2>Userinfo preview</h2>
                 <pre>{card.userinfoPreview}</pre>
               </section>
+            </div>
+            <div className="consent-actions">
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => resetAuthFlow("restart_auth")}
+                data-testid="restart-auth-button"
+              >
+                Restart sign-in
+              </button>
+              {card.tone === "success" ? (
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => resetAuthFlow("logout")}
+                  data-testid="local-logout-button"
+                >
+                  Local logout
+                </button>
+              ) : null}
             </div>
           </article>
         </section>
@@ -1055,7 +1106,7 @@ export default function App() {
             <Wordmark />
             <div>
               <div className="tag">MOCK_NHS_LOGIN</div>
-              <h2 className="brand-title">Bluewoven Identity Simulator</h2>
+              <h2 className="brand-title">vecell identity simulator</h2>
             </div>
           </div>
           <div className="mode-toggle" data-testid="mode-toggle">
@@ -1339,17 +1390,5 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function Wordmark() {
-  return (
-    <svg viewBox="0 0 64 64" aria-hidden="true" className="wordmark">
-      <defs>
-        <linearGradient id="mark-a" x1="0%" x2="100%" y1="0%" y2="100%">
-          <stop offset="0%" stopColor="#0B57D0" />
-          <stop offset="100%" stopColor="#335CFF" />
-        </linearGradient>
-      </defs>
-      <rect width="64" height="64" rx="18" fill="#EFF3F8" />
-      <path d="M14 18h12l6 10 6-10h12L36 42H28L14 18Z" fill="url(#mark-a)" />
-      <path d="M22 45h20" stroke="#6E59D9" strokeLinecap="round" strokeWidth="4" />
-    </svg>
-  );
+  return <VecellLogoLockup aria-hidden="true" className="wordmark" />;
 }

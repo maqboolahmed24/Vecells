@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { VecellLogoLockup } from "@vecells/design-system";
 
 import { evidenceGateLabPack } from "./generated/evidenceGateLabPack";
 
@@ -387,11 +388,11 @@ function App() {
     <main className="evidence-shell" data-testid="evidence-gate-lab-shell">
       <header className="top-banner">
         <div className="brand-group">
-          <div className="mark" aria-hidden="true">
-            <svg viewBox="0 0 64 64" role="img" aria-hidden="true">
-              <path d="M14 18h10l8 22 8-22h10L36 48h-8L14 18Z" fill="currentColor" />
-            </svg>
-          </div>
+          <VecellLogoLockup
+            aria-hidden="true"
+            className="mark"
+            style={{ width: 172, height: "auto" }}
+          />
           <div>
             <div className="ribbon">MOCK_EVIDENCE_GATE_LAB</div>
             <h1>Evidence Gate Lab</h1>

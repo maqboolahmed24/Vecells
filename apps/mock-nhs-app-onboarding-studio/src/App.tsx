@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { VecellLogoWordmark } from "@vecells/design-system";
 
 import { nhsAppPack } from "./generated/nhsAppPack";
 
@@ -303,7 +304,7 @@ export default function App() {
   return (
     <main className="app-shell" data-testid="atelier-shell">
       <div className="phase7-banner" data-testid="phase7-deferred-banner">
-        <span className="vecells-mark">Vecells</span>
+        <VecellLogoWordmark aria-hidden="true" className="vecells-mark" />
         <strong>MOCK_NHS_APP_ONBOARDING</strong>
         <span>Phase 7 remains deferred. This studio rehearses readiness; it does not open current-baseline delivery.</span>
       </div>
@@ -581,7 +582,7 @@ export default function App() {
 
                   {state.previewMode === "standalone" ? (
                     <div className="shell-chrome">
-                      <div className="shell-header">Vecells patient portal header</div>
+                      <div className="shell-header">vecell patient portal header</div>
                       <div className="shell-body">
                         <PreviewFact label="Shell posture" value={currentPreview.standalone_state} />
                         <PreviewFact label="Continuity" value={currentPreview.continuity_rule} />

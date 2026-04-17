@@ -12,6 +12,7 @@
         ## Lifecycle Distribution
 
         | Lifecycle state | Count |
+
 | --- | --- |
 | blocked | 2 |
 | current | 5 |
@@ -22,6 +23,7 @@
         ## Current-Baseline Watch Rows
 
         | Dependency | Name | Type | State | Owner | Next review |
+
 | --- | --- | --- | --- | --- | --- |
 | dep_alert_destination_binding | Alert-routing destination and on-call binding | runbook_dependency | blocked | ROLE_OPERATIONS_LEAD | GATE_RELEASE_READINESS |
 | dep_assurance_evidence_graph | Assurance evidence graph completeness engine | infra_component | current | ROLE_ASSURANCE_PLATFORM_LEAD | GATE_CURRENT_BASELINE_CONFORMANCE |

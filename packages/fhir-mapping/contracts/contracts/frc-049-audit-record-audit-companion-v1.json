@@ -1,0 +1,119 @@
+{
+  "task_id": "seq_049",
+  "artifact_type": "fhir_representation_contract",
+  "generated_at": "2026-04-13T14:51:08+00:00",
+  "contract": {
+    "fhirRepresentationContractId": "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1",
+    "owningBoundedContextRef": "audit_compliance",
+    "governingAggregateType": "AuditRecord",
+    "representationPurpose": "audit_companion",
+    "triggerMilestoneTypes": ["audit.recorded", "audit.break_glass.used", "audit.export.generated"],
+    "requiredEvidenceRefs": ["AuditRecord", "AuditEvidenceReference"],
+    "allowedResourceTypes": ["AuditEvent", "Provenance"],
+    "requiredProfileCanonicalUrls": [
+      "https://vecells.example/fhir/StructureDefinition/vecells-audit-event",
+      "https://vecells.example/fhir/StructureDefinition/vecells-audit-provenance"
+    ],
+    "identifierPolicyRef": "IDPOL_049_AUDIT_CHAIN_HASH",
+    "statusMappingPolicyRef": "STPOL_049_AUDIT_COMPANION",
+    "cardinalityPolicyRef": "CARDPOL_049_SINGLE_AUDIT_EVENT_PLUS_PROVENANCE",
+    "redactionPolicyRef": "REDPOL_049_AUDIT_COMPANION_MASKED",
+    "companionArtifactPolicyRef": "COMPPOL_049_AUDIT_HASH_JOIN",
+    "replayPolicyRef": "REPLAYPOL_049_AUDIT_HASH_APPEND_ONLY",
+    "supersessionPolicyRef": "SUPPOL_049_AUDIT_APPEND_ONLY_COMPANION",
+    "callbackCorrelationPolicyRef": "CALLPOL_049_NONE",
+    "declaredBundlePolicyRefs": ["FXBP_049_AUDIT_COMPANION_EXPORT_DOCUMENT"],
+    "contractVersionRef": "FRCV_049_AUDIT_RECORD_AUDIT_COMPANION_V1",
+    "contractState": "active",
+    "publishedAt": "2026-04-13T14:51:08+00:00",
+    "resourceProfiles": [
+      {
+        "resourceType": "AuditEvent",
+        "profileCanonicalUrl": "https://vecells.example/fhir/StructureDefinition/vecells-audit-event"
+      },
+      {
+        "resourceType": "Provenance",
+        "profileCanonicalUrl": "https://vecells.example/fhir/StructureDefinition/vecells-audit-provenance"
+      }
+    ],
+    "defectState": "watch",
+    "source_refs": [
+      "blueprint/phase-0-the-foundation-protocol.md#FhirRepresentationContract",
+      "blueprint/phase-0-the-foundation-protocol.md#AuditRecord",
+      "blueprint/platform-runtime-and-release-blueprint.md#AdapterContractProfile"
+    ],
+    "rationale": "FHIR AuditEvent and Provenance remain companion outputs derived from immutable internal audit joins only."
+  },
+  "resolvedPolicies": {
+    "identifierPolicy": {
+      "policyId": "IDPOL_049_AUDIT_CHAIN_HASH",
+      "label": "Audit chain hash",
+      "description": "Audit companion resources derive identifiers from the immutable audit chain hash and causal join token.",
+      "stableInputs": ["auditRecordId", "auditHash", "causalToken"],
+      "versionRule": "Companion audit rows are append-only; they never mutate prior logical ids in place."
+    },
+    "statusMappingPolicy": {
+      "policyId": "STPOL_049_AUDIT_COMPANION",
+      "label": "Audit companion mapping",
+      "resourceType": "AuditEvent",
+      "mappings": {
+        "recorded": "final",
+        "break_glass": "final",
+        "export_generated": "final"
+      }
+    },
+    "cardinalityPolicy": {
+      "policyId": "CARDPOL_049_SINGLE_AUDIT_EVENT_PLUS_PROVENANCE",
+      "label": "Single audit companion pair",
+      "description": "Each immutable audit join emits one AuditEvent and one Provenance row only."
+    },
+    "redactionPolicy": {
+      "policyId": "REDPOL_049_AUDIT_COMPANION_MASKED",
+      "label": "Audit companion masked detail",
+      "description": "FHIR AuditEvent and Provenance carry masked operator and actor descriptors while the immutable internal audit row stays authoritative."
+    },
+    "companionArtifactPolicy": {
+      "policyId": "COMPPOL_049_AUDIT_HASH_JOIN",
+      "label": "Audit hash join",
+      "description": "Audit companions must keep the immutable audit hash join and provenance linkage explicit."
+    },
+    "replayPolicy": {
+      "policyId": "REPLAYPOL_049_AUDIT_HASH_APPEND_ONLY",
+      "label": "Append-only audit replay",
+      "stableMembershipOnReplay": true,
+      "description": "Audit companion replay may append new exports but may not silently fork prior audit companions for the same audit hash."
+    },
+    "supersessionPolicy": {
+      "policyId": "SUPPOL_049_AUDIT_APPEND_ONLY_COMPANION",
+      "label": "Audit append-only companion",
+      "description": "Audit companions never rewrite the underlying audit truth; new exports append a new companion row with the same causal join."
+    },
+    "callbackCorrelationPolicy": {
+      "policyId": "CALLPOL_049_NONE",
+      "label": "No callback correlation",
+      "description": "Clinical persistence-only contracts do not participate in partner callback correlation."
+    },
+    "exchangeBundlePolicies": [
+      {
+        "policyId": "FXBP_049_AUDIT_COMPANION_EXPORT_DOCUMENT",
+        "representationContractRefs": ["FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1"],
+        "direction": "outbound",
+        "legalBundleTypes": ["document", "collection"],
+        "adapterProfileRefs": ["ACP_049_ASSURANCE_AUDIT_EXPORT"],
+        "boundDependencyRefs": [],
+        "correlationKeyFields": ["auditRecordId", "auditHash", "exportBatchId"],
+        "receiptCheckpointRefs": ["AuditExportCheckpoint"],
+        "authoritativeSuccess": "Export completion is authoritative only when the emitted bundle joins back to the same immutable audit hash chain.",
+        "supersessionBehavior": "New exports append new bundles; they never supersede immutable prior audit truth.",
+        "invalidationBehavior": "Digest drift or missing audit hash join invalidates the export bundle.",
+        "mandatoryProofRefs": ["AuditRecord", "AuditEvidenceReference"],
+        "exchangeStates": ["staged", "dispatched", "accepted", "replayed", "failed"],
+        "source_refs": [
+          "blueprint/phase-0-the-foundation-protocol.md#AuditRecord",
+          "blueprint/platform-runtime-and-release-blueprint.md#Runtime publication completeness / FhirRepresentationContract"
+        ]
+      }
+    ]
+  },
+  "artifactHash": "7b0edfe140ede3d75763fd3a799b2bd562653a8c75429885c63673ee5d48967e"
+}

@@ -42,7 +42,8 @@ async function importPlaywright() {
 }
 
 async function run() {
-  const targetUrl = process.env.SITE_LINK_STUDIO_URL ?? PACK.live_gate_pack.dry_run_defaults.default_target_url;
+  const targetUrl =
+    process.env.SITE_LINK_STUDIO_URL ?? PACK.live_gate_pack.dry_run_defaults.default_target_url;
   const realMutationRequested = process.env.ALLOW_REAL_PROVIDER_MUTATION === "true";
 
   if (realMutationRequested) {
@@ -58,26 +59,31 @@ async function run() {
   await page.locator("[data-testid='mode-toggle-actual']").click();
 
   if (await page.locator("[data-testid='actual-field-named-approver']").count()) {
-    await page.locator("[data-testid='actual-field-named-approver']").fill(
-      process.env.SITE_LINK_NAMED_APPROVER ?? "dry-run-approver",
-    );
+    await page
+      .locator("[data-testid='actual-field-named-approver']")
+      .fill(process.env.SITE_LINK_NAMED_APPROVER ?? "dry-run-approver");
   }
   if (await page.locator("[data-testid='actual-field-environment-target']").count()) {
-    await page.locator("[data-testid='actual-field-environment-target']").selectOption(
-      process.env.SITE_LINK_ENVIRONMENT_TARGET ?? "sandpit_like",
-    );
+    await page
+      .locator("[data-testid='actual-field-environment-target']")
+      .selectOption(process.env.SITE_LINK_ENVIRONMENT_TARGET ?? "sandpit_like");
   }
   if (await page.locator("[data-testid='actual-field-allow-mutation']").count()) {
-    await page.locator("[data-testid='actual-field-allow-mutation']").selectOption(
-      realMutationRequested ? "true" : "false",
-    );
+    await page
+      .locator("[data-testid='actual-field-allow-mutation']")
+      .selectOption(realMutationRequested ? "true" : "false");
   }
 
   await page.locator("[data-testid='actual-submission-notice']").waitFor();
   await page.locator("[data-testid='live-gate-board']").waitFor();
 
-  const blockedGateCount = PACK.live_gate_pack.live_gates.filter((gate) => gate.status !== "pass").length;
-  assertCondition(blockedGateCount >= 1, "Dry-run posture drifted: at least one live gate should remain blocked.");
+  const blockedGateCount = PACK.live_gate_pack.live_gates.filter(
+    (gate) => gate.status !== "pass",
+  ).length;
+  assertCondition(
+    blockedGateCount >= 1,
+    "Dry-run posture drifted: at least one live gate should remain blocked.",
+  );
 
   if (realMutationRequested) {
     assertCondition(
@@ -87,7 +93,10 @@ async function run() {
   }
 
   const disabled = await page.locator("[data-testid='actual-submit-button']").isDisabled();
-  assertCondition(disabled, "Dry-run harness should stop with the real registration button disabled.");
+  assertCondition(
+    disabled,
+    "Dry-run harness should stop with the real registration button disabled.",
+  );
 
   await browser.close();
 }

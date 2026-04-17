@@ -1,0 +1,135 @@
+{
+  "taskId": "par_157",
+  "contractId": "PHASE1_FRONTEND_SAVE_TRUTH_CONTRACT_V1",
+  "shellId": "Quiet_Clarity_Mission_Frame",
+  "routeFamilyRef": "rf_intake_self_service",
+  "statusStripOwner": "AmbientStateRibbon",
+  "authoritativeInputs": [
+    "DraftSaveSettlement",
+    "DraftContinuityEvidenceProjection",
+    "DraftMergePlan",
+    "DraftRecoveryRecord",
+    "SelectedAnchor",
+    "same-shell route context"
+  ],
+  "primaryStates": [
+    {
+      "state": "saving",
+      "statusLabel": "Saving",
+      "actionLabel": null,
+      "guard": [
+        "localDirty == true",
+        "pendingIntent != none",
+        "DraftSaveSettlement.ackState == local_ack"
+      ],
+      "warnOnHardExit": true,
+      "assistiveAnnouncement": "Saving this request quietly."
+    },
+    {
+      "state": "saved",
+      "statusLabel": "Saved",
+      "actionLabel": null,
+      "guard": [
+        "DraftSaveSettlement.ackState == saved_authoritative",
+        "DraftContinuityEvidenceProjection.continuityState == stable_writable",
+        "DraftContinuityEvidenceProjection.sameShellRecoveryState == stable",
+        "DraftContinuityEvidenceProjection.latestSettlementRef == DraftSaveSettlement.settlementId",
+        "DraftContinuityEvidenceProjection.authoritativeDraftVersion == DraftSaveSettlement.authoritativeDraftVersion"
+      ],
+      "warnOnHardExit": false,
+      "assistiveAnnouncement": "Saved just now."
+    },
+    {
+      "state": "review changes",
+      "statusLabel": "Review changes",
+      "actionLabel": "Review changes",
+      "guard": [
+        "DraftSaveSettlement.ackState == merge_required",
+        "DraftMergePlan.mergeState == open"
+      ],
+      "warnOnHardExit": true,
+      "assistiveAnnouncement": "Review changes. A newer saved draft needs one selected result."
+    },
+    {
+      "state": "resume safely",
+      "statusLabel": "Resume safely",
+      "actionLabel": "Resume safely",
+      "guard": [
+        "DraftSaveSettlement.ackState == recovery_required",
+        "DraftContinuityEvidenceProjection.continuityState in [recovery_only, blocked]",
+        "DraftContinuityEvidenceProjection.sameShellRecoveryState in [recovery_only, blocked]",
+        "DraftRecoveryRecord.recoveryState in [open, redirect_ready]"
+      ],
+      "warnOnHardExit": true,
+      "assistiveAnnouncement": "Resume safely. Continuity must be rebound before more edits continue."
+    }
+  ],
+  "savedStateGuard": {
+    "requiredAckState": "saved_authoritative",
+    "requiredContinuityState": "stable_writable",
+    "requiredSameShellRecoveryState": "stable",
+    "requiredProjectionParity": [
+      "latestSettlementRef matches settlementId",
+      "authoritativeDraftVersion parity",
+      "continuity proof still trusted"
+    ],
+    "savedSuppressionReason": "saved_withheld_until_continuity_aligns"
+  },
+  "arbitrationOrder": [
+    "review changes",
+    "resume safely",
+    "saving",
+    "saved",
+    "neutral"
+  ],
+  "continueYourRequestCard": {
+    "requiredFields": [
+      "lastMeaningfulUpdateTime",
+      "stepLabel",
+      "oneLineResumeSummary",
+      "dominantActionLabel"
+    ],
+    "dominantStates": [
+      "saved",
+      "resume safely"
+    ],
+    "secondaryActionPolicy": "Start again stays quiet and policy-bound."
+  },
+  "hardExitWarningRules": {
+    "showWhen": [
+      "local unsynced changes exist",
+      "merge review is open",
+      "recovery bridge is open"
+    ],
+    "suppressWhen": [
+      "saved_authoritative with trusted continuity",
+      "neutral first boot"
+    ]
+  },
+  "prohibitions": [
+    "No generic toast-based save truth.",
+    "No stacked shell-level banners for save or recovery calmness.",
+    "No saved state derived from raw request timing or optimistic network success alone.",
+    "No shell ejection for merge_required or recovery_required."
+  ],
+  "requiredTestIds": [
+    "patient-intake-status-strip",
+    "patient-intake-save-label",
+    "patient-intake-save-action",
+    "patient-intake-continue-card",
+    "patient-intake-continue-action",
+    "patient-intake-merge-sheet",
+    "patient-intake-merge-confirm",
+    "patient-intake-recovery-bridge",
+    "patient-intake-recovery-action"
+  ],
+  "sourceRefs": [
+    "apps/patient-web/src/use-draft-save-truth.ts",
+    "apps/patient-web/src/patient-intake-save-truth.ts",
+    "apps/patient-web/src/patient-intake-status-components.tsx",
+    "apps/patient-web/src/patient-intake-mission-frame.tsx",
+    "packages/domains/identity_access/src/draft-session-autosave-backbone.ts",
+    "docs/architecture/144_draft_session_lease_and_autosave_design.md",
+    "docs/architecture/154_promoted_draft_supersession_and_resume_blocking.md"
+  ]
+}

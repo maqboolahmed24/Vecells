@@ -6,7 +6,12 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..", "..");
-const DECISION_REGISTER_PATH = path.join(ROOT, "data", "analysis", "gp_provider_decision_register.json");
+const DECISION_REGISTER_PATH = path.join(
+  ROOT,
+  "data",
+  "analysis",
+  "gp_provider_decision_register.json",
+);
 const HTML_PATH = path.join(ROOT, "docs", "external", "36_gp_provider_pathfinder.html");
 
 const DECISION_REGISTER = JSON.parse(fs.readFileSync(DECISION_REGISTER_PATH, "utf8"));
@@ -42,7 +47,9 @@ function startStaticServer() {
         return;
       }
       const body = fs.readFileSync(filePath);
-      const contentType = filePath.endsWith(".html") ? "text/html; charset=utf-8" : "application/octet-stream";
+      const contentType = filePath.endsWith(".html")
+        ? "text/html; charset=utf-8"
+        : "application/octet-stream";
       res.writeHead(200, { "Content-Type": contentType });
       res.end(body);
     });
@@ -72,7 +79,10 @@ async function verifyOfficialSource(url, expectedSnippets) {
   assertCondition(response.ok, `Failed to fetch official source ${url}`);
   const html = await response.text();
   for (const snippet of expectedSnippets) {
-    assertCondition(html.includes(snippet), `Official source ${url} no longer contains: ${snippet}`);
+    assertCondition(
+      html.includes(snippet),
+      `Official source ${url} no longer contains: ${snippet}`,
+    );
   }
 }
 
@@ -109,9 +119,12 @@ async function run() {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
   const selectors =
-    DECISION_REGISTER.dry_run_harness.selector_map[process.env.GP_PROVIDER_SELECTOR_PROFILE ?? "base_profile"];
+    DECISION_REGISTER.dry_run_harness.selector_map[
+      process.env.GP_PROVIDER_SELECTOR_PROFILE ?? "base_profile"
+    ];
   const targetUrl =
-    process.env.GP_PROVIDER_PATHFINDER_URL ?? "http://127.0.0.1:4327/36_gp_provider_pathfinder.html";
+    process.env.GP_PROVIDER_PATHFINDER_URL ??
+    "http://127.0.0.1:4327/36_gp_provider_pathfinder.html";
 
   try {
     await page.goto(targetUrl, { waitUntil: "networkidle" });
@@ -141,7 +154,9 @@ async function run() {
       "BaRS watch posture disappeared from inspector",
     );
 
-    const blockedGateCount = DECISION_REGISTER.live_gates.filter((row) => row.status === "blocked").length;
+    const blockedGateCount = DECISION_REGISTER.live_gates.filter(
+      (row) => row.status === "blocked",
+    ).length;
     assertCondition(blockedGateCount >= 5, "Live gate set unexpectedly opened");
 
     if (!realMutationRequested) {
@@ -152,7 +167,9 @@ async function run() {
     }
   } finally {
     await browser.close();
-    await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    await new Promise((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
   }
 }
 

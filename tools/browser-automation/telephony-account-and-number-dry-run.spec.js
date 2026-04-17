@@ -48,7 +48,10 @@ async function verifyOfficialSource(url, expectedSnippets) {
   assertCondition(response.ok, `Failed to fetch official source ${url}`);
   const html = await response.text();
   for (const snippet of expectedSnippets) {
-    assertCondition(html.includes(snippet), `Official source ${url} no longer contains: ${snippet}`);
+    assertCondition(
+      html.includes(snippet),
+      `Official source ${url} no longer contains: ${snippet}`,
+    );
   }
 }
 
@@ -78,36 +81,36 @@ async function run() {
   await page.goto(targetUrl, { waitUntil: "networkidle" });
   await page.locator(selectorProfile.mode_toggle_actual).click();
   await page.locator(selectorProfile.page_tab_live_gates).click();
-  await page.locator(selectorProfile.field_vendor).selectOption(
-    process.env.TELEPHONY_VENDOR_ID ?? "twilio_telephony_ivr",
-  );
-  await page.locator(selectorProfile.field_approver).fill(
-    process.env.TELEPHONY_NAMED_APPROVER ?? "dry-run approver",
-  );
-  await page.locator(selectorProfile.field_environment).selectOption(
-    process.env.TELEPHONY_TARGET_ENVIRONMENT ?? "provider_like_preprod",
-  );
-  await page.locator(selectorProfile.field_callback_base).fill(
-    process.env.TELEPHONY_CALLBACK_BASE_URL ?? "https://example.invalid/telephony",
-  );
-  await page.locator(selectorProfile.field_recording_policy).selectOption(
-    process.env.TELEPHONY_RECORDING_POLICY_REF ?? "rec_default_dual_channel",
-  );
-  await page.locator(selectorProfile.field_number_profile).selectOption(
-    process.env.TELEPHONY_NUMBER_PROFILE_REF ?? "NUM_TEL_PROVIDER_TWILIO",
-  );
-  await page.locator(selectorProfile.field_spend_cap).fill(
-    process.env.TELEPHONY_SPEND_CAP_GBP ?? "25",
-  );
-  await page.locator(selectorProfile.field_secret_ref).fill(
-    process.env.TELEPHONY_WEBHOOK_SECRET_REF ?? "vault://telephony/webhook",
-  );
-  await page.locator(selectorProfile.field_allow_mutation).selectOption(
-    realMutationRequested ? "true" : "false",
-  );
-  await page.locator(selectorProfile.field_allow_spend).selectOption(
-    process.env.ALLOW_SPEND === "true" ? "true" : "false",
-  );
+  await page
+    .locator(selectorProfile.field_vendor)
+    .selectOption(process.env.TELEPHONY_VENDOR_ID ?? "twilio_telephony_ivr");
+  await page
+    .locator(selectorProfile.field_approver)
+    .fill(process.env.TELEPHONY_NAMED_APPROVER ?? "dry-run approver");
+  await page
+    .locator(selectorProfile.field_environment)
+    .selectOption(process.env.TELEPHONY_TARGET_ENVIRONMENT ?? "provider_like_preprod");
+  await page
+    .locator(selectorProfile.field_callback_base)
+    .fill(process.env.TELEPHONY_CALLBACK_BASE_URL ?? "https://example.invalid/telephony");
+  await page
+    .locator(selectorProfile.field_recording_policy)
+    .selectOption(process.env.TELEPHONY_RECORDING_POLICY_REF ?? "rec_default_dual_channel");
+  await page
+    .locator(selectorProfile.field_number_profile)
+    .selectOption(process.env.TELEPHONY_NUMBER_PROFILE_REF ?? "NUM_TEL_PROVIDER_TWILIO");
+  await page
+    .locator(selectorProfile.field_spend_cap)
+    .fill(process.env.TELEPHONY_SPEND_CAP_GBP ?? "25");
+  await page
+    .locator(selectorProfile.field_secret_ref)
+    .fill(process.env.TELEPHONY_WEBHOOK_SECRET_REF ?? "vault://telephony/webhook");
+  await page
+    .locator(selectorProfile.field_allow_mutation)
+    .selectOption(realMutationRequested ? "true" : "false");
+  await page
+    .locator(selectorProfile.field_allow_spend)
+    .selectOption(process.env.ALLOW_SPEND === "true" ? "true" : "false");
 
   const buttonDisabled = await page.locator(selectorProfile.final_submit).isDisabled();
   assertCondition(

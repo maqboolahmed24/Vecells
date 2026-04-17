@@ -1,0 +1,736 @@
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>71 Lease Fence Command Control Lab</title>
+    <style>
+      :root {
+        --canvas: #F7F9FC;
+        --panel: #FFFFFF;
+        --rail: #EEF2F8;
+        --inset: #F4F6FB;
+        --text-strong: #0F172A;
+        --text-default: #1E293B;
+        --text-muted: #667085;
+        --border: #E2E8F0;
+        --lease: #3559E6;
+        --fence: #0EA5A4;
+        --action: #7C3AED;
+        --warning: #C98900;
+        --blocked: #C24141;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: var(--canvas);
+        color: var(--text-default);
+      }
+      .shell {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 20px;
+        display: grid;
+        gap: 16px;
+      }
+      header {
+        min-height: 72px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 16px 20px;
+        display: grid;
+        gap: 12px;
+      }
+      .wordmark {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 700;
+        color: var(--text-strong);
+      }
+      .wordmark svg {
+        width: 34px;
+        height: 34px;
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .metric {
+        background: var(--inset);
+        border-radius: 14px;
+        padding: 12px;
+      }
+      .metric strong {
+        display: block;
+        font-size: 1.4rem;
+        color: var(--text-strong);
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 304px minmax(0, 1fr) 408px;
+        gap: 16px;
+        align-items: start;
+      }
+      aside, .canvas, .inspector, .table-panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+      }
+      aside {
+        padding: 16px;
+        position: sticky;
+        top: 16px;
+      }
+      .filter-group {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 18px;
+      }
+      label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      select {
+        height: 44px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--inset);
+        padding: 0 12px;
+        color: var(--text-default);
+      }
+      .canvas {
+        padding: 16px;
+        display: grid;
+        gap: 16px;
+      }
+      .panel-title {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .panel-title h2,
+      .panel-title h3 {
+        margin: 0;
+        font-size: 1rem;
+        color: var(--text-strong);
+      }
+      .parity {
+        font-size: 0.82rem;
+        color: var(--text-muted);
+      }
+      .timeline {
+        min-height: 250px;
+        background: var(--rail);
+        border-radius: 18px;
+        padding: 14px;
+        display: grid;
+        gap: 10px;
+      }
+      .epoch-strip,
+      .action-grid {
+        background: var(--inset);
+        border-radius: 18px;
+        padding: 14px;
+        display: grid;
+        gap: 10px;
+      }
+      .lease-card,
+      .action-card,
+      .epoch-pill,
+      .case-row-button {
+        border: 1px solid transparent;
+        border-radius: 16px;
+        background: var(--panel);
+        color: inherit;
+        text-align: left;
+        padding: 14px;
+        cursor: pointer;
+        transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+      }
+      .lease-card[data-selected="true"],
+      .action-card[data-selected="true"],
+      .epoch-pill[data-selected="true"],
+      .case-row-button[data-selected="true"] {
+        border-color: var(--lease);
+        box-shadow: 0 10px 24px rgba(53, 89, 230, 0.12);
+      }
+      .epoch-pill[data-issue-type="stale_epoch"] { border-left: 4px solid var(--blocked); }
+      .epoch-pill[data-issue-type="stale_token"] { border-left: 4px solid var(--warning); }
+      .epoch-pill[data-issue-type="takeover"] { border-left: 4px solid var(--fence); }
+      .lease-meta,
+      .action-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+        font-size: 0.83rem;
+        color: var(--text-muted);
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 4px 10px;
+        background: var(--inset);
+        font-size: 0.78rem;
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+      .inspector {
+        padding: 18px;
+        display: grid;
+        gap: 16px;
+        min-height: 420px;
+      }
+      .inspector-card {
+        background: var(--inset);
+        border-radius: 16px;
+        padding: 14px;
+        display: grid;
+        gap: 8px;
+      }
+      .kv {
+        display: grid;
+        grid-template-columns: minmax(0, 140px) minmax(0, 1fr);
+        gap: 8px;
+        font-size: 0.9rem;
+      }
+      .kv dt {
+        color: var(--text-muted);
+      }
+      .kv dd {
+        margin: 0;
+      }
+      .lower {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+        gap: 16px;
+      }
+      .table-panel {
+        padding: 16px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th, td {
+        padding: 12px 10px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+        font-size: 0.9rem;
+        vertical-align: top;
+      }
+      th {
+        color: var(--text-muted);
+        font-weight: 600;
+      }
+      tbody tr:last-child td {
+        border-bottom: none;
+      }
+      .status-pass { color: var(--fence); }
+      .status-open { color: var(--blocked); }
+      .status-resolved { color: var(--lease); }
+      [data-reduced-motion="true"] * {
+        transition-duration: 0ms !important;
+        animation-duration: 0ms !important;
+      }
+      @media (max-width: 1200px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        aside {
+          position: static;
+        }
+        .lower {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 700px) {
+        .metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <div class="wordmark">
+          <svg viewBox="0 0 48 48" aria-hidden="true" fill="none">
+            <rect x="3" y="3" width="42" height="42" rx="14" fill="#0F172A"></rect>
+            <path d="M16 14v20h14" stroke="#F7F9FC" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path d="M30 14v20" stroke="#3559E6" stroke-width="4" stroke-linecap="round"></path>
+          </svg>
+          <span>Vecells Lease Fence Command Control Lab</span>
+        </div>
+        <div class="metrics">
+          <div class="metric"><span>Active leases</span><strong id="metric-active-leases">0</strong></div>
+          <div class="metric"><span>Open recoveries</span><strong id="metric-open-recoveries">0</strong></div>
+          <div class="metric"><span>Fence mismatches</span><strong id="metric-fence-mismatches">0</strong></div>
+          <div class="metric"><span>Action records</span><strong id="metric-actions">0</strong></div>
+        </div>
+      </header>
+      <div class="layout">
+        <aside>
+          <div class="filter-group">
+            <label for="domain-filter">Domain</label>
+            <select id="domain-filter" data-testid="domain-filter"></select>
+          </div>
+          <div class="filter-group">
+            <label for="lease-state-filter">Lease state</label>
+            <select id="lease-state-filter" data-testid="lease-state-filter"></select>
+          </div>
+          <div class="filter-group">
+            <label for="fence-issue-filter">Fence issue type</label>
+            <select id="fence-issue-filter" data-testid="fence-issue-filter"></select>
+          </div>
+          <div class="inspector-card">
+            <strong>Operator notes</strong>
+            <p id="filter-notes" class="parity">Filters scope lease authority, epoch drift, and command-tuple posture together.</p>
+          </div>
+        </aside>
+        <main class="canvas">
+          <section>
+            <div class="panel-title">
+              <h2>Lease timeline</h2>
+              <span class="parity" data-testid="timeline-parity"></span>
+            </div>
+            <div class="timeline" data-testid="timeline" id="timeline"></div>
+          </section>
+          <section>
+            <div class="panel-title">
+              <h2>Lineage epoch strip</h2>
+              <span class="parity" data-testid="epoch-strip-parity"></span>
+            </div>
+            <div class="epoch-strip" data-testid="epoch-strip" id="epoch-strip"></div>
+          </section>
+          <section>
+            <div class="panel-title">
+              <h2>Command action inspector lane</h2>
+              <span class="parity" data-testid="action-grid-parity"></span>
+            </div>
+            <div class="action-grid" id="action-grid"></div>
+          </section>
+        </main>
+        <aside class="inspector" data-testid="inspector" id="inspector"></aside>
+      </div>
+      <div class="lower">
+        <section class="table-panel">
+          <div class="panel-title">
+            <h3>Concurrency case table</h3>
+            <span class="parity" data-testid="case-table-parity"></span>
+          </div>
+          <table data-testid="case-table">
+            <thead>
+              <tr><th>Scenario</th><th>Issue</th><th>Posture</th></tr>
+            </thead>
+            <tbody id="case-table-body"></tbody>
+          </table>
+        </section>
+        <section class="table-panel">
+          <div class="panel-title">
+            <h3>Validator results</h3>
+            <span class="parity">All frozen control-plane checks should pass.</span>
+          </div>
+          <table data-testid="validator-table">
+            <thead>
+              <tr><th>Validator</th><th>Status</th><th>Detail</th></tr>
+            </thead>
+            <tbody id="validator-table-body"></tbody>
+          </table>
+        </section>
+      </div>
+    </div>
+    <script>
+      window.__CONTROL_PLANE_DATA__ = {"task_id": "par_071", "visual_mode": "Lease_Fence_Command_Control_Lab", "generated_at": "2026-04-12T00:00:00+00:00", "source_precedence": ["prompt/071.md", "prompt/shared_operating_contract_066_to_075.md", "prompt/AGENT.md", "prompt/checklist.md", "blueprint/phase-0-the-foundation-protocol.md#1.10 RequestLifecycleLease", "blueprint/phase-0-the-foundation-protocol.md#1.10A StaleOwnershipRecoveryRecord and LeaseTakeoverRecord", "blueprint/phase-0-the-foundation-protocol.md#1.11 LineageFence", "blueprint/phase-0-the-foundation-protocol.md#1.22 CommandActionRecord", "blueprint/phase-0-the-foundation-protocol.md#9.2 Lease heartbeat and stale-owner fencing", "blueprint/phase-3-the-human-checkpoint.md", "blueprint/staff-workspace-interface-architecture.md", "blueprint/platform-runtime-and-release-blueprint.md", "blueprint/forensic-audit-findings.md#Finding 15", "blueprint/forensic-audit-findings.md#Finding 75", "blueprint/forensic-audit-findings.md#Finding 93", "packages/domains/identity_access/src/lease-fence-command-backbone.ts", "services/command-api/src/lease-fence-command.ts"], "summary": {"lease_count": 7, "active_lease_count": 5, "broken_lease_count": 2, "recovery_count": 4, "open_recovery_count": 2, "takeover_count": 2, "lineage_fence_count": 11, "command_action_count": 2, "case_count": 5, "validator_count": 6}, "leases": [{"leaseId": "LSE_071_TRIAGE_ALPHA", "scenarioId": "competing_reviewers_same_task", "domain": "triage_workspace", "domainObjectRef": "task_071_competing", "requestId": "request_071_competing", "state": "active", "ownerActorRef": "actor_reviewer_alpha", "ownerSessionRef": "session_alpha", "ownerWorkerRef": null, "ownershipEpoch": 1, "fencingToken": "83c6253a96b8ad5d772bcb360dfc50f1d63d581c8985c4e53cf659ad33d48803", "heartbeatAt": "2026-04-12T09:01:00Z", "acquiredAt": "2026-04-12T09:01:00Z", "releasedAt": null, "breakEligibleAt": null, "staleOwnerRecoveryRef": null, "supersededByLeaseRef": null, "closeBlockReason": null, "governingObjectVersionRef": "task_071_competing@v3", "leaseTtlSeconds": 300}, {"leaseId": "LSE_071_BOOKING_ALPHA", "scenarioId": "worker_restart_with_stale_fencing_token", "domain": "booking", "domainObjectRef": "booking_case_071_restart", "requestId": "request_071_restart", "state": "broken", "ownerActorRef": "worker_alpha", "ownerSessionRef": null, "ownerWorkerRef": "worker_runtime_alpha", "ownershipEpoch": 1, "fencingToken": "acb94acec4dedfdc0c5bccb30fad6092f5a2346647d0cc71f05865c7de541cbe", "heartbeatAt": "2026-04-12T09:02:00Z", "acquiredAt": "2026-04-12T09:02:00Z", "releasedAt": null, "breakEligibleAt": "2026-04-12T09:03:00Z", "staleOwnerRecoveryRef": "SOR_071_BOOKING_STALE", "supersededByLeaseRef": "LSE_071_BOOKING_BRAVO", "closeBlockReason": "supervisor_takeover_active", "governingObjectVersionRef": "booking_case_071_restart@v2", "leaseTtlSeconds": 120}, {"leaseId": "LSE_071_BOOKING_BRAVO", "scenarioId": "worker_restart_with_stale_fencing_token", "domain": "booking", "domainObjectRef": "booking_case_071_restart", "requestId": "request_071_restart", "state": "active", "ownerActorRef": "worker_bravo", "ownerSessionRef": null, "ownerWorkerRef": "worker_runtime_bravo", "ownershipEpoch": 2, "fencingToken": "ec368eb5c978d98d8d254b0baa9f90d110cfc0abe0cea9cc5f9a79b3ceabebfa", "heartbeatAt": "2026-04-12T09:03:00Z", "acquiredAt": "2026-04-12T09:03:00Z", "releasedAt": null, "breakEligibleAt": null, "staleOwnerRecoveryRef": null, "supersededByLeaseRef": null, "closeBlockReason": "supervisor_takeover_active", "governingObjectVersionRef": "booking_case_071_restart@v3", "leaseTtlSeconds": 120}, {"leaseId": "LSE_071_HUB_ALPHA", "scenarioId": "supervisor_takeover_while_stale_owner_open", "domain": "hub_coordination", "domainObjectRef": "hub_case_071_takeover", "requestId": "request_071_takeover", "state": "broken", "ownerActorRef": "actor_hub_alpha", "ownerSessionRef": "session_hub_alpha", "ownerWorkerRef": null, "ownershipEpoch": 1, "fencingToken": "94b1868183b66682ddee00ba56642a7230beef2577a854048aef1e3cde42a354", "heartbeatAt": "2026-04-12T09:04:00Z", "acquiredAt": "2026-04-12T09:04:00Z", "releasedAt": null, "breakEligibleAt": "2026-04-12T09:06:00Z", "staleOwnerRecoveryRef": "SOR_071_HUB_STALE", "supersededByLeaseRef": "LSE_071_HUB_SUPERVISOR", "closeBlockReason": "supervisor_takeover_active", "governingObjectVersionRef": "hub_case_071_takeover@v6", "leaseTtlSeconds": 60}, {"leaseId": "LSE_071_HUB_SUPERVISOR", "scenarioId": "supervisor_takeover_while_stale_owner_open", "domain": "hub_coordination", "domainObjectRef": "hub_case_071_takeover", "requestId": "request_071_takeover", "state": "active", "ownerActorRef": "actor_hub_supervisor", "ownerSessionRef": "session_hub_supervisor", "ownerWorkerRef": null, "ownershipEpoch": 2, "fencingToken": "f9b7ce490d14707a8fb00bcd170874fee9294bdfc741c1151c4aa7f0def56c72", "heartbeatAt": "2026-04-12T09:06:20Z", "acquiredAt": "2026-04-12T09:06:20Z", "releasedAt": null, "breakEligibleAt": null, "staleOwnerRecoveryRef": null, "supersededByLeaseRef": null, "closeBlockReason": "supervisor_takeover_active", "governingObjectVersionRef": "hub_case_071_takeover@v7", "leaseTtlSeconds": 180}, {"leaseId": "LSE_071_GOVERNANCE_ALPHA", "scenarioId": "cross_domain_close_reopen_stale_lineage_epochs", "domain": "governance_admin", "domainObjectRef": "governance_case_071_lineage", "requestId": "request_071_lineage", "state": "active", "ownerActorRef": "actor_governance_alpha", "ownerSessionRef": "session_governance_alpha", "ownerWorkerRef": null, "ownershipEpoch": 1, "fencingToken": "cb3997583d011a7f87de194e02835806acd69ed3a1e487936c80b2a9889dccc7", "heartbeatAt": "2026-04-12T09:07:00Z", "acquiredAt": "2026-04-12T09:07:00Z", "releasedAt": null, "breakEligibleAt": null, "staleOwnerRecoveryRef": "SOR_071_GOVERNANCE_LINEAGE", "supersededByLeaseRef": null, "closeBlockReason": null, "governingObjectVersionRef": "governance_case_071_lineage@v4", "leaseTtlSeconds": 240}, {"leaseId": "LSE_071_PHARMACY_ALPHA", "scenarioId": "repeated_ui_actions_reuse_or_supersede", "domain": "pharmacy", "domainObjectRef": "pharmacy_case_071_action", "requestId": "request_071_action", "state": "active", "ownerActorRef": "actor_pharmacy_alpha", "ownerSessionRef": "session_pharmacy_alpha", "ownerWorkerRef": null, "ownershipEpoch": 1, "fencingToken": "6e27c775c28b9a77f1af55366a886ba1df908196cc1b9f6ab679808832348ce0", "heartbeatAt": "2026-04-12T09:08:00Z", "acquiredAt": "2026-04-12T09:08:00Z", "releasedAt": null, "breakEligibleAt": null, "staleOwnerRecoveryRef": null, "supersededByLeaseRef": null, "closeBlockReason": null, "governingObjectVersionRef": "pharmacy_case_071_action@v8", "leaseTtlSeconds": 240}], "recoveries": [{"staleOwnershipRecoveryId": "SOR_071_BOOKING_TAKEOVER", "scenarioId": "worker_restart_with_stale_fencing_token", "leaseRef": "LSE_071_BOOKING_ALPHA", "domain": "booking", "domainObjectRef": "booking_case_071_restart", "recoveryReason": "supervisor_takeover", "resolutionState": "resolved", "detectedAt": "2026-04-12T09:03:00Z", "detectedByRef": "supervisor_runtime", "resolvedAt": "2026-04-12T09:03:00Z", "blockedActionScopeRefs": ["booking_commit"], "sameShellRecoveryRouteRef": "/ops/bookings/booking_case_071_restart/recover", "operatorVisibleWorkRef": "work_071_restart"}, {"staleOwnershipRecoveryId": "SOR_071_BOOKING_STALE", "scenarioId": "worker_restart_with_stale_fencing_token", "leaseRef": "LSE_071_BOOKING_ALPHA", "domain": "booking", "domainObjectRef": "booking_case_071_restart", "recoveryReason": "stale_write_rejected", "resolutionState": "open", "detectedAt": "2026-04-12T09:03:10Z", "detectedByRef": "worker_alpha", "resolvedAt": null, "blockedActionScopeRefs": ["booking_commit"], "sameShellRecoveryRouteRef": "/ops/bookings/booking_case_071_restart/recover", "operatorVisibleWorkRef": "work_071_restart"}, {"staleOwnershipRecoveryId": "SOR_071_HUB_STALE", "scenarioId": "supervisor_takeover_while_stale_owner_open", "leaseRef": "LSE_071_HUB_ALPHA", "domain": "hub_coordination", "domainObjectRef": "hub_case_071_takeover", "recoveryReason": "heartbeat_missed", "resolutionState": "resolved", "detectedAt": "2026-04-12T09:06:05Z", "detectedByRef": "supervisor_hub", "resolvedAt": "2026-04-12T09:06:20Z", "blockedActionScopeRefs": ["next_task_launch", "close"], "sameShellRecoveryRouteRef": "/hub/cases/hub_case_071_takeover/recover", "operatorVisibleWorkRef": "work_071_takeover"}, {"staleOwnershipRecoveryId": "SOR_071_GOVERNANCE_LINEAGE", "scenarioId": "cross_domain_close_reopen_stale_lineage_epochs", "leaseRef": "LSE_071_GOVERNANCE_ALPHA", "domain": "governance_admin", "domainObjectRef": "governance_case_071_lineage", "recoveryReason": "lineage_drift", "resolutionState": "open", "detectedAt": "2026-04-12T09:07:50Z", "detectedByRef": "actor_governance_alpha", "resolvedAt": null, "blockedActionScopeRefs": ["close"], "sameShellRecoveryRouteRef": "/governance/cases/governance_case_071_lineage/recover", "operatorVisibleWorkRef": "work_071_lineage"}], "takeovers": [{"leaseTakeoverRecordId": "LTO_071_BOOKING", "scenarioId": "worker_restart_with_stale_fencing_token", "priorLeaseRef": "LSE_071_BOOKING_ALPHA", "replacementLeaseRef": "LSE_071_BOOKING_BRAVO", "fromOwnerRef": "worker_alpha", "toOwnerRef": "worker_bravo", "authorizedByRef": "supervisor_runtime", "takeoverReason": "runtime_restart_reassignment", "takeoverState": "committed", "issuedAt": "2026-04-12T09:03:00Z", "committedAt": "2026-04-12T09:03:00Z"}, {"leaseTakeoverRecordId": "LTO_071_HUB", "scenarioId": "supervisor_takeover_while_stale_owner_open", "priorLeaseRef": "LSE_071_HUB_ALPHA", "replacementLeaseRef": "LSE_071_HUB_SUPERVISOR", "fromOwnerRef": "actor_hub_alpha", "toOwnerRef": "actor_hub_supervisor", "authorizedByRef": "director_hub", "takeoverReason": "supervisor_takeover_after_expiry", "takeoverState": "committed", "issuedAt": "2026-04-12T09:06:20Z", "committedAt": "2026-04-12T09:06:20Z"}], "lineage_fences": [{"fenceId": "FNC_071_TRIAGE_OWNERSHIP", "scenarioId": "competing_reviewers_same_task", "episodeId": "episode_071_competing", "currentEpoch": 1, "issuedFor": "ownership_change", "issuedAt": "2026-04-12T09:01:00Z", "expiresAt": "2026-04-13T09:01:00Z", "domain": "triage_workspace", "domainObjectRef": "task_071_competing", "issueType": "none"}, {"fenceId": "FNC_071_BOOKING_OWNERSHIP", "scenarioId": "worker_restart_with_stale_fencing_token", "episodeId": "episode_071_restart", "currentEpoch": 1, "issuedFor": "ownership_change", "issuedAt": "2026-04-12T09:02:00Z", "expiresAt": "2026-04-13T09:02:00Z", "domain": "booking", "domainObjectRef": "booking_case_071_restart", "issueType": "stale_token"}, {"fenceId": "FNC_071_BOOKING_COMMIT", "scenarioId": "worker_restart_with_stale_fencing_token", "episodeId": "episode_071_restart", "currentEpoch": 2, "issuedFor": "cross_domain_commit", "issuedAt": "2026-04-12T09:02:20Z", "expiresAt": "2026-04-13T09:02:20Z", "domain": "booking", "domainObjectRef": "booking_case_071_restart", "issueType": "stale_token"}, {"fenceId": "FNC_071_BOOKING_TAKEOVER", "scenarioId": "worker_restart_with_stale_fencing_token", "episodeId": "episode_071_restart", "currentEpoch": 3, "issuedFor": "ownership_change", "issuedAt": "2026-04-12T09:03:00Z", "expiresAt": "2026-04-13T09:03:00Z", "domain": "booking", "domainObjectRef": "booking_case_071_restart", "issueType": "stale_token"}, {"fenceId": "FNC_071_HUB_OWNERSHIP", "scenarioId": "supervisor_takeover_while_stale_owner_open", "episodeId": "episode_071_takeover", "currentEpoch": 1, "issuedFor": "ownership_change", "issuedAt": "2026-04-12T09:04:00Z", "expiresAt": "2026-04-13T09:04:00Z", "domain": "hub_coordination", "domainObjectRef": "hub_case_071_takeover", "issueType": "takeover"}, {"fenceId": "FNC_071_HUB_BREAK", "scenarioId": "supervisor_takeover_while_stale_owner_open", "episodeId": "episode_071_takeover", "currentEpoch": 2, "issuedFor": "ownership_change", "issuedAt": "2026-04-12T09:06:05Z", "expiresAt": "2026-04-13T09:06:05Z", "domain": "hub_coordination", "domainObjectRef": "hub_case_071_takeover", "issueType": "takeover"}, {"fenceId": "FNC_071_HUB_TAKEOVER", "scenarioId": "supervisor_takeover_while_stale_owner_open", "episodeId": "episode_071_takeover", "currentEpoch": 3, "issuedFor": "ownership_change", "issuedAt": "2026-04-12T09:06:20Z", "expiresAt": "2026-04-13T09:06:20Z", "domain": "hub_coordination", "domainObjectRef": "hub_case_071_takeover", "issueType": "takeover"}, {"fenceId": "FNC_071_GOVERNANCE_OWNERSHIP", "scenarioId": "cross_domain_close_reopen_stale_lineage_epochs", "episodeId": "episode_071_lineage", "currentEpoch": 1, "issuedFor": "ownership_change", "issuedAt": "2026-04-12T09:07:00Z", "expiresAt": "2026-04-13T09:07:00Z", "domain": "governance_admin", "domainObjectRef": "governance_case_071_lineage", "issueType": "stale_epoch"}, {"fenceId": "FNC_071_GOVERNANCE_CLOSE", "scenarioId": "cross_domain_close_reopen_stale_lineage_epochs", "episodeId": "episode_071_lineage", "currentEpoch": 2, "issuedFor": "close", "issuedAt": "2026-04-12T09:07:20Z", "expiresAt": "2026-04-13T09:07:20Z", "domain": "governance_admin", "domainObjectRef": "governance_case_071_lineage", "issueType": "stale_epoch"}, {"fenceId": "FNC_071_GOVERNANCE_REOPEN", "scenarioId": "cross_domain_close_reopen_stale_lineage_epochs", "episodeId": "episode_071_lineage", "currentEpoch": 3, "issuedFor": "reopen", "issuedAt": "2026-04-12T09:07:40Z", "expiresAt": "2026-04-13T09:07:40Z", "domain": "governance_admin", "domainObjectRef": "governance_case_071_lineage", "issueType": "stale_epoch"}, {"fenceId": "FNC_071_PHARMACY_OWNERSHIP", "scenarioId": "repeated_ui_actions_reuse_or_supersede", "episodeId": "episode_071_action", "currentEpoch": 1, "issuedFor": "ownership_change", "issuedAt": "2026-04-12T09:08:00Z", "expiresAt": "2026-04-13T09:08:00Z", "domain": "pharmacy", "domainObjectRef": "pharmacy_case_071_action", "issueType": "none"}], "command_actions": [{"actionRecordId": "CAR_071_PHARMACY_EXACT", "scenarioId": "repeated_ui_actions_reuse_or_supersede", "domain": "pharmacy", "domainObjectRef": "pharmacy_case_071_action", "actionScope": "dispatch_update", "governingObjectVersionRef": "pharmacy_case_071_action@v8", "lineageFenceEpoch": 1, "routeIntentRef": "route_pharmacy_dispatch_update", "routeContractDigestRef": "digest_pharmacy_dispatch_update_v1", "routeIntentTupleHash": "95d5256eaaefdc3bc686bb2d8e95a470c74e5ca4d1de056a8ca89fab3daae3e8", "expectedEffectSetHash": "62e5e2f92a54893034bacba1fcb63838b640964b6702dc80aa3104dc577253f0", "semanticPayloadHash": "34cecb96de0e369f1c13e137d46f0770dcfdfc25c16eaac6a22030ae93a861f5", "sourceCommandId": "cmd_pharmacy_dispatch", "transportCorrelationId": "transport_pharmacy_dispatch_1", "idempotencyKey": "idem_pharmacy_dispatch_1", "idempotencyRecordRef": "idem_record_pharmacy_dispatch_1", "commandFollowingTokenRef": "follow_pharmacy_dispatch_1", "causalToken": "cause_pharmacy_dispatch_1", "createdAt": "2026-04-12T09:08:20Z", "supersedesActionRecordRef": null, "policyBundleRef": "policy_pharmacy_v1", "actingContextRef": "pharmacy_operator"}, {"actionRecordId": "CAR_071_PHARMACY_RECOVERY", "scenarioId": "repeated_ui_actions_reuse_or_supersede", "domain": "pharmacy", "domainObjectRef": "pharmacy_case_071_action", "actionScope": "dispatch_update", "governingObjectVersionRef": "pharmacy_case_071_action@v8", "lineageFenceEpoch": 1, "routeIntentRef": "route_pharmacy_dispatch_update", "routeContractDigestRef": "digest_pharmacy_dispatch_update_v1", "routeIntentTupleHash": "0f8a858781c14ef726354cabc19078b1337bd6e9c7bc43b4e885b00542aa9747", "expectedEffectSetHash": "fd3f1e8f7a4e1260892bee47c2c27f4119efc3d83d57d8353717568f7d0bfe6d", "semanticPayloadHash": "f5bd14b23002a1c540089e751dd6cf4b86f5e4843bb16dbb0a4995c8e291b082", "sourceCommandId": "cmd_pharmacy_dispatch", "transportCorrelationId": "transport_pharmacy_dispatch_2", "idempotencyKey": "idem_pharmacy_dispatch_2", "idempotencyRecordRef": "idem_record_pharmacy_dispatch_2", "commandFollowingTokenRef": "follow_pharmacy_dispatch_2", "causalToken": "cause_pharmacy_dispatch_2", "createdAt": "2026-04-12T09:08:40Z", "supersedesActionRecordRef": "CAR_071_PHARMACY_EXACT", "policyBundleRef": "policy_pharmacy_v1", "actingContextRef": "pharmacy_operator"}], "concurrency_cases": [{"scenarioId": "competing_reviewers_same_task", "title": "Two reviewers attempt to claim the same task.", "domain": "triage_workspace", "fenceIssueType": "none", "dominantLeaseState": "active", "selectedLeaseRef": "LSE_071_TRIAGE_ALPHA", "selectedActionRef": null, "selectedRecoveryRef": null, "selectedTakeoverRef": null, "summary": "CAS lease acquire prevents the second reviewer from soft-flag stealing the same queue item.", "operatorPosture": "claim_the_current_lease_or_wait_for_recovery", "validatorRefs": ["VAL_071_SINGLE_ACTIVE_LEASE"]}, {"scenarioId": "worker_restart_with_stale_fencing_token", "title": "A restarted worker attempts a write with stale fencing tokens.", "domain": "booking", "fenceIssueType": "stale_token", "dominantLeaseState": "broken", "selectedLeaseRef": "LSE_071_BOOKING_BRAVO", "selectedActionRef": null, "selectedRecoveryRef": "SOR_071_BOOKING_STALE", "selectedTakeoverRef": "LTO_071_BOOKING", "summary": "The restarted worker is fenced out after takeover and is pushed into explicit stale-owner recovery.", "operatorPosture": "reacquire_under_fresh_epoch_before_retry", "validatorRefs": ["VAL_071_STALE_TOKEN_REJECTION", "VAL_071_STALE_OWNER_RECOVERY_VISIBLE"]}, {"scenarioId": "supervisor_takeover_while_stale_owner_open", "title": "A supervisor takes over after stale-owner recovery opens.", "domain": "hub_coordination", "fenceIssueType": "takeover", "dominantLeaseState": "broken", "selectedLeaseRef": "LSE_071_HUB_SUPERVISOR", "selectedActionRef": null, "selectedRecoveryRef": "SOR_071_HUB_STALE", "selectedTakeoverRef": "LTO_071_HUB", "summary": "Takeover emits a committed replacement lease and preserves the stale-owner record instead of overwriting silently.", "operatorPosture": "takeover_commits_new_epoch_and_new_fencing_token", "validatorRefs": ["VAL_071_TAKEOVER_NEVER_BLIND_OVERWRITE"]}, {"scenarioId": "cross_domain_close_reopen_stale_lineage_epochs", "title": "Close and reopen attempts race on stale lineage epochs.", "domain": "governance_admin", "fenceIssueType": "stale_epoch", "dominantLeaseState": "active", "selectedLeaseRef": "LSE_071_GOVERNANCE_ALPHA", "selectedActionRef": null, "selectedRecoveryRef": "SOR_071_GOVERNANCE_LINEAGE", "selectedTakeoverRef": null, "summary": "Cross-domain writes fail closed unless they present the current lineage epoch and mint the next fence monotonically.", "operatorPosture": "refresh_epoch_from_latest_fence_before_mutation", "validatorRefs": ["VAL_071_STALE_LINEAGE_REJECTED"]}, {"scenarioId": "repeated_ui_actions_reuse_or_supersede", "title": "Repeated UI actions reuse or supersede the same command action record.", "domain": "pharmacy", "fenceIssueType": "none", "dominantLeaseState": "active", "selectedLeaseRef": "LSE_071_PHARMACY_ALPHA", "selectedActionRef": "CAR_071_PHARMACY_RECOVERY", "selectedRecoveryRef": null, "selectedTakeoverRef": null, "summary": "Exact retries reuse the same immutable action tuple while changed payloads supersede through a new record.", "operatorPosture": "replay_exact_tuple_or_append_a_superseding_record", "validatorRefs": ["VAL_071_COMMAND_ACTION_RECONSTRUCTION"]}], "validator_results": [{"validatorId": "VAL_071_SINGLE_ACTIVE_LEASE", "label": "Single active lease per domain object", "status": "pass", "detail": "No domain object carries more than one active RequestLifecycleLease."}, {"validatorId": "VAL_071_STALE_TOKEN_REJECTION", "label": "Stale tokens rejected after takeover", "status": "pass", "detail": "The restarted booking worker is fenced out after takeover and must reacquire under epoch 2."}, {"validatorId": "VAL_071_STALE_OWNER_RECOVERY_VISIBLE", "label": "Stale-owner recovery is first-class", "status": "pass", "detail": "Booking and governance failures surface explicit recovery records instead of log-only warnings."}, {"validatorId": "VAL_071_STALE_LINEAGE_REJECTED", "label": "Lineage epoch drift fails closed", "status": "pass", "detail": "Close and reopen flows require the current lineage epoch before minting the next fence."}, {"validatorId": "VAL_071_COMMAND_ACTION_RECONSTRUCTION", "label": "Command tuples reconstruct exactly", "status": "pass", "detail": "The pharmacy dispatch pair preserves exact tuple reuse and explicit supersession by source command."}, {"validatorId": "VAL_071_TAKEOVER_NEVER_BLIND_OVERWRITE", "label": "Takeover remains auditable", "status": "pass", "detail": "Supervisor takeover records bind prior lease, replacement lease, approver, and committed timestamp."}]};
+    </script>
+    <script>
+      const data = window.__CONTROL_PLANE_DATA__;
+      const caseById = new Map(data.concurrency_cases.map((entry) => [entry.scenarioId, entry]));
+      const leaseById = new Map(data.leases.map((entry) => [entry.leaseId, entry]));
+      const actionById = new Map(data.command_actions.map((entry) => [entry.actionRecordId, entry]));
+      const recoveriesByScenario = groupBy(data.recoveries, "scenarioId");
+      const takeoversByScenario = groupBy(data.takeovers, "scenarioId");
+      const fencesByScenario = groupBy(data.lineage_fences, "scenarioId");
+      const actionsByScenario = groupBy(data.command_actions, "scenarioId");
+      const leasesByScenario = groupBy(data.leases, "scenarioId");
+      const state = {
+        domain: "all",
+        leaseState: "all",
+        fenceIssueType: "all",
+        selectedScenarioId: data.concurrency_cases[0].scenarioId,
+        selectedLeaseId: data.concurrency_cases[0].selectedLeaseRef,
+        selectedActionId: data.concurrency_cases[0].selectedActionRef,
+      };
+
+      function groupBy(values, key) {
+        return values.reduce((acc, value) => {
+          const bucket = acc.get(value[key]) ?? [];
+          bucket.push(value);
+          acc.set(value[key], bucket);
+          return acc;
+        }, new Map());
+      }
+
+      function setReducedMotionFlag() {
+        const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+        document.body.dataset.reducedMotion = media.matches ? "true" : "false";
+      }
+
+      function populateFilters() {
+        fillSelect("domain-filter", [
+          ["all", "All domains"],
+          ["booking", "Booking"],
+          ["governance_admin", "Governance Admin"],
+          ["hub_coordination", "Hub Coordination"],
+          ["pharmacy", "Pharmacy"],
+          ["triage_workspace", "Triage Workspace"],
+        ]);
+        fillSelect("lease-state-filter", [
+          ["all", "All lease states"],
+          ["active", "Active only"],
+          ["broken", "Broken only"],
+        ]);
+        fillSelect("fence-issue-filter", [
+          ["all", "All fence issue types"],
+          ["none", "No fence issue"],
+          ["stale_token", "Stale token"],
+          ["stale_epoch", "Stale epoch"],
+          ["takeover", "Takeover"],
+        ]);
+      }
+
+      function fillSelect(id, values) {
+        const element = document.getElementById(id);
+        element.innerHTML = values
+          .map(([value, label]) => `<option value="${value}">${label}</option>`)
+          .join("");
+        element.addEventListener("change", (event) => {
+          state[element.id === "domain-filter" ? "domain" : element.id === "lease-state-filter" ? "leaseState" : "fenceIssueType"] = event.target.value;
+          syncSelection();
+          render();
+        });
+      }
+
+      function visibleScenarioIds() {
+        return data.concurrency_cases
+          .filter((entry) => {
+            if (state.domain !== "all" && entry.domain !== state.domain) {
+              return false;
+            }
+            if (state.fenceIssueType !== "all" && entry.fenceIssueType !== state.fenceIssueType) {
+              return false;
+            }
+            if (state.leaseState === "all") {
+              return true;
+            }
+            return (leasesByScenario.get(entry.scenarioId) ?? []).some((lease) => lease.state === state.leaseState);
+          })
+          .map((entry) => entry.scenarioId);
+      }
+
+      function visibleLeases() {
+        const visible = new Set(visibleScenarioIds());
+        return data.leases.filter((lease) => visible.has(lease.scenarioId) && (state.leaseState === "all" || lease.state === state.leaseState));
+      }
+
+      function visibleCases() {
+        const visible = new Set(visibleScenarioIds());
+        return data.concurrency_cases.filter((entry) => visible.has(entry.scenarioId));
+      }
+
+      function visibleActions() {
+        const visible = new Set(visibleScenarioIds());
+        return data.command_actions.filter((action) => visible.has(action.scenarioId));
+      }
+
+      function syncSelection() {
+        const cases = visibleCases();
+        if (!cases.some((entry) => entry.scenarioId === state.selectedScenarioId)) {
+          state.selectedScenarioId = cases[0]?.scenarioId ?? data.concurrency_cases[0].scenarioId;
+        }
+        const selectedCase = caseById.get(state.selectedScenarioId);
+        const scenarioLeases = visibleLeases().filter((lease) => lease.scenarioId === state.selectedScenarioId);
+        if (!scenarioLeases.some((lease) => lease.leaseId === state.selectedLeaseId)) {
+          state.selectedLeaseId = scenarioLeases[0]?.leaseId ?? selectedCase?.selectedLeaseRef ?? null;
+        }
+        const scenarioActions = visibleActions().filter((action) => action.scenarioId === state.selectedScenarioId);
+        if (state.selectedActionId && !scenarioActions.some((action) => action.actionRecordId === state.selectedActionId)) {
+          state.selectedActionId = selectedCase?.selectedActionRef ?? scenarioActions[0]?.actionRecordId ?? null;
+        }
+        if (!state.selectedActionId && scenarioActions.length > 0 && selectedCase?.selectedActionRef) {
+          state.selectedActionId = selectedCase.selectedActionRef;
+        }
+      }
+
+      function selectScenario(scenarioId, leaseId = null, actionId = null) {
+        state.selectedScenarioId = scenarioId;
+        state.selectedLeaseId = leaseId ?? caseById.get(scenarioId)?.selectedLeaseRef ?? null;
+        state.selectedActionId = actionId;
+        render();
+      }
+
+      function moveSelection(kind, currentId, delta) {
+        const list =
+          kind === "timeline"
+            ? visibleLeases().map((lease) => lease.leaseId)
+            : kind === "case"
+              ? visibleCases().map((entry) => entry.scenarioId)
+              : visibleActions()
+                  .filter((entry) => entry.scenarioId === state.selectedScenarioId)
+                  .map((entry) => entry.actionRecordId);
+        const currentIndex = Math.max(0, list.indexOf(currentId));
+        const nextId = list[Math.min(list.length - 1, Math.max(0, currentIndex + delta))];
+        if (!nextId) {
+          return;
+        }
+        if (kind === "timeline") {
+          const lease = leaseById.get(nextId);
+          selectScenario(lease.scenarioId, lease.leaseId, state.selectedActionId);
+        } else if (kind === "case") {
+          selectScenario(nextId, caseById.get(nextId)?.selectedLeaseRef ?? null, caseById.get(nextId)?.selectedActionRef ?? null);
+        } else {
+          const action = actionById.get(nextId);
+          selectScenario(action.scenarioId, caseById.get(action.scenarioId)?.selectedLeaseRef ?? null, action.actionRecordId);
+        }
+      }
+
+      function render() {
+        syncSelection();
+        const cases = visibleCases();
+        const leases = visibleLeases();
+        const actions = visibleActions();
+        const selectedCase = caseById.get(state.selectedScenarioId);
+        const selectedLease = leaseById.get(state.selectedLeaseId) ?? leases.find((lease) => lease.scenarioId === state.selectedScenarioId) ?? null;
+        const selectedAction =
+          (state.selectedActionId ? actionById.get(state.selectedActionId) : null) ??
+          actions.find((action) => action.actionRecordId === selectedCase?.selectedActionRef) ??
+          null;
+        const selectedRecoveries = recoveriesByScenario.get(state.selectedScenarioId) ?? [];
+        const selectedTakeovers = takeoversByScenario.get(state.selectedScenarioId) ?? [];
+        const selectedFences = fencesByScenario.get(state.selectedScenarioId) ?? [];
+
+        document.getElementById("metric-active-leases").textContent = String(leases.filter((lease) => lease.state === "active").length);
+        document.getElementById("metric-open-recoveries").textContent = String(
+          data.recoveries.filter((record) => record.resolutionState === "open").length,
+        );
+        document.getElementById("metric-fence-mismatches").textContent = String(
+          data.recoveries.filter((record) => record.recoveryReason === "lineage_drift" || record.recoveryReason === "stale_write_rejected").length,
+        );
+        document.getElementById("metric-actions").textContent = String(actions.length);
+
+        document.querySelector("[data-testid='timeline-parity']").textContent =
+          `${leases.length} visible leases aligned with ${cases.length} visible cases.`;
+        document.querySelector("[data-testid='epoch-strip-parity']").textContent =
+          `${selectedFences.length} visible fences for ${state.selectedScenarioId}.`;
+        document.querySelector("[data-testid='action-grid-parity']").textContent =
+          `${actions.filter((entry) => entry.scenarioId === state.selectedScenarioId).length} visible action records for the selected case.`;
+        document.querySelector("[data-testid='case-table-parity']").textContent =
+          `${cases.length} visible concurrency cases.`;
+        document.getElementById("filter-notes").textContent =
+          selectedCase?.operatorPosture ?? "Filters scope lease authority, epoch drift, and command-tuple posture together.";
+
+        document.getElementById("timeline").innerHTML = leases
+          .map((lease) => `
+            <button
+              class="lease-card"
+              data-testid="lease-card-${lease.leaseId}"
+              data-selected="${lease.leaseId === state.selectedLeaseId}"
+              type="button"
+            >
+              <strong>${lease.leaseId}</strong>
+              <div class="lease-meta">
+                <span class="badge">${lease.domain}</span>
+                <span class="badge">${lease.state}</span>
+                <span class="badge mono">epoch ${lease.ownershipEpoch}</span>
+              </div>
+              <div class="lease-meta">
+                <span>${lease.ownerActorRef}</span>
+                <span class="mono">${lease.fencingToken.slice(0, 12)}…</span>
+              </div>
+            </button>
+          `)
+          .join("");
+        document.querySelectorAll(".lease-card").forEach((button) => {
+          button.addEventListener("click", () => {
+            const lease = leaseById.get(button.dataset.testid.replace("lease-card-", ""));
+            selectScenario(lease.scenarioId, lease.leaseId, state.selectedActionId);
+          });
+          button.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+              moveSelection("timeline", button.dataset.testid.replace("lease-card-", ""), event.key === "ArrowDown" ? 1 : -1);
+            }
+          });
+        });
+
+        document.getElementById("epoch-strip").innerHTML = selectedFences
+          .map((fence) => `
+            <div
+              class="epoch-pill"
+              data-testid="epoch-pill-${fence.fenceId}"
+              data-selected="${selectedCase?.fenceIssueType === fence.issueType}"
+              data-issue-type="${fence.issueType}"
+              tabindex="0"
+            >
+              <strong class="mono">epoch ${fence.currentEpoch}</strong>
+              <div class="lease-meta">
+                <span class="badge">${fence.issuedFor}</span>
+                <span class="badge">${fence.issueType}</span>
+              </div>
+              <p class="parity mono">${fence.fenceId}</p>
+            </div>
+          `)
+          .join("");
+
+        const selectedScenarioActions = actions.filter((entry) => entry.scenarioId === state.selectedScenarioId);
+        document.getElementById("action-grid").innerHTML = selectedScenarioActions.length
+          ? selectedScenarioActions
+              .map((action) => `
+                <button
+                  class="action-card"
+                  data-testid="action-card-${action.actionRecordId}"
+                  data-selected="${action.actionRecordId === state.selectedActionId}"
+                  type="button"
+                >
+                  <strong>${action.actionRecordId}</strong>
+                  <div class="action-meta">
+                    <span class="badge">${action.actionScope}</span>
+                    <span class="badge mono">epoch ${action.lineageFenceEpoch}</span>
+                    <span class="badge">${action.supersedesActionRecordRef ? "superseding" : "exact"}</span>
+                  </div>
+                  <div class="action-meta">
+                    <span class="mono">${action.routeIntentTupleHash.slice(0, 12)}…</span>
+                    <span>${action.transportCorrelationId}</span>
+                  </div>
+                </button>
+              `)
+              .join("")
+          : `<div class="action-card" data-testid="action-empty-state" data-selected="false">No action record is bound to this scenario.</div>`;
+        document.querySelectorAll(".action-card[data-testid^='action-card-']").forEach((button) => {
+          button.addEventListener("click", () => {
+            const action = actionById.get(button.dataset.testid.replace("action-card-", ""));
+            selectScenario(action.scenarioId, caseById.get(action.scenarioId)?.selectedLeaseRef ?? null, action.actionRecordId);
+          });
+          button.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+              moveSelection("action", button.dataset.testid.replace("action-card-", ""), event.key === "ArrowDown" ? 1 : -1);
+            }
+          });
+        });
+
+        document.getElementById("case-table-body").innerHTML = cases
+          .map((entry) => `
+            <tr>
+              <td colspan="3">
+                <button
+                  class="case-row-button"
+                  data-testid="case-row-${entry.scenarioId}"
+                  data-selected="${entry.scenarioId === state.selectedScenarioId}"
+                  type="button"
+                >
+                  <strong>${entry.title}</strong>
+                  <div class="lease-meta">
+                    <span class="badge">${entry.domain}</span>
+                    <span class="badge">${entry.fenceIssueType}</span>
+                    <span>${entry.operatorPosture}</span>
+                  </div>
+                </button>
+              </td>
+            </tr>
+          `)
+          .join("");
+        document.querySelectorAll(".case-row-button").forEach((button) => {
+          button.addEventListener("click", () => {
+            const scenarioId = button.dataset.testid.replace("case-row-", "");
+            selectScenario(scenarioId, caseById.get(scenarioId)?.selectedLeaseRef ?? null, caseById.get(scenarioId)?.selectedActionRef ?? null);
+          });
+          button.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+              moveSelection("case", button.dataset.testid.replace("case-row-", ""), event.key === "ArrowDown" ? 1 : -1);
+            }
+          });
+        });
+
+        document.getElementById("validator-table-body").innerHTML = data.validator_results
+          .map((entry) => `
+            <tr data-testid="validator-row-${entry.validatorId}">
+              <td>${entry.label}</td>
+              <td class="status-${entry.status}">${entry.status}</td>
+              <td>${entry.detail}</td>
+            </tr>
+          `)
+          .join("");
+
+        document.getElementById("inspector").innerHTML = `
+          <div class="panel-title">
+            <h2>${selectedCase?.title ?? "No case selected"}</h2>
+            <span class="badge">${selectedCase?.fenceIssueType ?? "none"}</span>
+          </div>
+          <div class="inspector-card">
+            <strong>Selected lease</strong>
+            ${
+              selectedLease
+                ? `<dl class="kv">
+                    <dt>Lease</dt><dd class="mono">${selectedLease.leaseId}</dd>
+                    <dt>Domain</dt><dd>${selectedLease.domain}</dd>
+                    <dt>Owner</dt><dd>${selectedLease.ownerActorRef}</dd>
+                    <dt>State</dt><dd>${selectedLease.state}</dd>
+                    <dt>Epoch</dt><dd class="mono">${selectedLease.ownershipEpoch}</dd>
+                    <dt>Fence token</dt><dd class="mono">${selectedLease.fencingToken}</dd>
+                    <dt>Version</dt><dd class="mono">${selectedLease.governingObjectVersionRef}</dd>
+                  </dl>`
+                : "<p>No visible lease in the current filter scope.</p>"
+            }
+          </div>
+          <div class="inspector-card">
+            <strong>Selected action</strong>
+            ${
+              selectedAction
+                ? `<dl class="kv">
+                    <dt>Action</dt><dd class="mono">${selectedAction.actionRecordId}</dd>
+                    <dt>Scope</dt><dd>${selectedAction.actionScope}</dd>
+                    <dt>Route tuple</dt><dd class="mono">${selectedAction.routeIntentTupleHash}</dd>
+                    <dt>Idempotency</dt><dd class="mono">${selectedAction.idempotencyKey}</dd>
+                    <dt>Supersedes</dt><dd class="mono">${selectedAction.supersedesActionRecordRef ?? "none"}</dd>
+                    <dt>Transport</dt><dd>${selectedAction.transportCorrelationId}</dd>
+                  </dl>`
+                : "<p>No action record is selected for this scenario.</p>"
+            }
+          </div>
+          <div class="inspector-card">
+            <strong>Recovery and takeover posture</strong>
+            <p>${selectedCase?.summary ?? ""}</p>
+            <p class="parity">Recoveries: ${selectedRecoveries.length}. Takeovers: ${selectedTakeovers.length}. Fences: ${selectedFences.length}.</p>
+            <ul>
+              ${selectedRecoveries
+                .map((entry) => `<li class="status-${entry.resolutionState === "open" ? "open" : "resolved"}">${entry.staleOwnershipRecoveryId} · ${entry.recoveryReason} · ${entry.resolutionState}</li>`)
+                .join("")}
+              ${selectedTakeovers
+                .map((entry) => `<li class="status-pass">${entry.leaseTakeoverRecordId} · ${entry.takeoverReason}</li>`)
+                .join("")}
+            </ul>
+          </div>
+        `;
+      }
+
+      populateFilters();
+      setReducedMotionFlag();
+      syncSelection();
+      render();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,25 @@
+stateDiagram-v2
+    [*] --> neutral
+    neutral --> saving: first edit / blur or debounce queue
+    saving --> saved: saved_authoritative + continuity stable
+    saving --> review_changes: merge_required
+    saving --> resume_safely: recovery_required or continuity blocked
+    saved --> saving: local edit queued
+    saved --> review_changes: cross-session update opens merge plan
+    saved --> resume_safely: lease expired or continuity stale
+    review_changes --> saved: use newer authoritative result
+    review_changes --> saving: keep local result and resettle
+    resume_safely --> saved: bounded same-lineage recovery restores trusted continuity
+    resume_safely --> outcome: promoted request available redirect
+
+    state review_changes {
+        [*] --> grouped_diff
+        grouped_diff --> grouped_diff: choose local or newer result per group
+        grouped_diff --> [*]: confirm selected result
+    }
+
+    state resume_safely {
+        [*] --> last_safe_context
+        last_safe_context --> last_safe_context: preserve selected anchor and route summary
+        last_safe_context --> [*]: resume safely or open receipt
+    }

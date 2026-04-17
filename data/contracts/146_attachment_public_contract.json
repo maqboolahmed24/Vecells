@@ -1,0 +1,123 @@
+{
+  "taskId": "par_146",
+  "publicContractId": "PHASE1_ATTACHMENT_PIPELINE_PUBLIC_V1",
+  "generatedAt": "2026-04-14T17:00:00Z",
+  "sourceRefs": [
+    "prompt/146.md",
+    "prompt/shared_operating_contract_146_to_155.md",
+    "data/contracts/141_attachment_acceptance_policy.json",
+    "data/contracts/141_attachment_projection_and_artifact_modes.json",
+    "prompt/145.md"
+  ],
+  "publicSchemas": [
+    {
+      "name": "AttachmentUploadSession",
+      "schemaVersion": "ATTACHMENT_UPLOAD_SESSION_V1",
+      "role": "Signed direct-upload initiation result for quarantine-first intake evidence.",
+      "requiredFields": [
+        "uploadSessionId",
+        "attachmentPublicId",
+        "draftPublicId",
+        "duplicateDisposition",
+        "transportState",
+        "initiatedAt"
+      ]
+    },
+    {
+      "name": "AttachmentScanSettlement",
+      "schemaVersion": "ATTACHMENT_SCAN_SETTLEMENT_V1",
+      "role": "Authoritative attachment verdict after scan and promotion settlement.",
+      "requiredFields": [
+        "attachmentPublicId",
+        "draftPublicId",
+        "lifecycleState",
+        "outcomeRef",
+        "currentSafeMode",
+        "documentReferenceState",
+        "quarantineState",
+        "settledAt"
+      ]
+    },
+    {
+      "name": "AttachmentDocumentReferenceLink",
+      "schemaVersion": "ATTACHMENT_DOCUMENT_REFERENCE_LINK_V1",
+      "role": "Durable linkage between a promoted attachment and one FHIR DocumentReference row.",
+      "requiredFields": [
+        "linkRef",
+        "attachmentPublicId",
+        "draftPublicId",
+        "documentReferenceLogicalId",
+        "documentReferenceRecordRef",
+        "representationSetRef",
+        "durableObjectKey",
+        "checksumSha256",
+        "linkedAt"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/v1/intake/drafts/{draftPublicId}/attachments:initiate",
+      "responseSchema": "AttachmentUploadSession",
+      "notes": [
+        "Returns a signed direct-to-object-storage target and one opaque attachmentPublicId.",
+        "Replay-safe duplicate capture may return the existing attachment lineage instead of a second evidence row."
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/intake/attachments/{uploadSessionId}:uploaded",
+      "responseSchema": "AttachmentScanSettlement",
+      "notes": [
+        "Records that quarantine upload transport settled and places the attachment into uploaded_unverified posture."
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/intake/attachments:worker-run",
+      "responseSchema": "AttachmentScanSettlement[]",
+      "notes": [
+        "Runs scanning, derivative generation, durable promotion, and DocumentReference linkage against simulator-backed infrastructure."
+      ]
+    }
+  ],
+  "lifecycleStates": [
+    "initiated",
+    "upload_pending",
+    "uploaded_unverified",
+    "scanning",
+    "safe_pending_promotion",
+    "promoted",
+    "quarantined",
+    "rejected_policy",
+    "scan_failed_retryable",
+    "removed",
+    "replaced"
+  ],
+  "artifactPresentation": {
+    "artifactPresentationContractId": "APC_141_INTAKE_ATTACHMENT_V1",
+    "outboundNavigationGrantPolicyRef": "ONG_141_INTAKE_ATTACHMENT_HANDOFF_V1",
+    "rawStorageUrlsForbidden": true,
+    "governedGrantActions": [
+      "open_in_browser",
+      "download",
+      "external_handoff"
+    ]
+  },
+  "fhirLinkage": {
+    "resourceType": "DocumentReference",
+    "recordPattern": "One promoted attachment creates exactly one AttachmentDocumentReferenceLink and one FhirResourceRecord(DocumentReference).",
+    "representationSetRefPattern": "fhir_set_attachment_{attachmentPublicId}"
+  },
+  "gapClosures": [
+    "GAP_RESOLVED_ATTACHMENT_OBJECT_NAMES_PHASE1_V1",
+    "GAP_RESOLVED_ATTACHMENT_ARTIFACT_VIEW_CONTRACT_PHASE1_V1",
+    "GAP_RESOLVED_ATTACHMENT_DUPLICATE_REPLAY_LINEAGE_PHASE1_V1"
+  ],
+  "mockNowExecution": {
+    "scannerAdapterRef": "ADP_MALWARE_ARTIFACT_SCANNING_SIMULATOR_V1",
+    "storageMode": "simulator_backed_private_quarantine_and_durable_object_store",
+    "derivativeGenerationMode": "deterministic_preview_generation_with_explicit_failure_fixture"
+  }
+}

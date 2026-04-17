@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>67 Replay Collision Studio</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #F7F8FC;
+        --panel: #FFFFFF;
+        --rail: #EEF2F8;
+        --inset: #F4F6FB;
+        --text-strong: #0F172A;
+        --text-default: #1E293B;
+        --text-muted: #667085;
+        --border: #E2E8F0;
+        --exact: #0EA5A4;
+        --semantic: #3559E6;
+        --collision: #7C3AED;
+        --warning: #C98900;
+        --blocked: #C24141;
+        --shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: var(--canvas);
+        color: var(--text-default);
+      }
+      body[data-reduced-motion="true"] * {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+      }
+      .shell {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 24px;
+        display: grid;
+        gap: 20px;
+      }
+      .masthead {
+        min-height: 72px;
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: 20px;
+        align-items: center;
+      }
+      .brand, .metric-strip, .rail, .panel, .inspector, .lower-grid {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+      }
+      .brand {
+        padding: 18px 22px;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+      .brand svg {
+        width: 46px;
+        height: 46px;
+        flex: none;
+      }
+      .brand small {
+        display: block;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 11px;
+        margin-bottom: 4px;
+      }
+      .brand h1 {
+        margin: 0;
+        font-size: 24px;
+        color: var(--text-strong);
+      }
+      .metric-strip {
+        padding: 14px 18px;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .metric {
+        border-radius: 18px;
+        background: var(--inset);
+        padding: 12px 14px;
+      }
+      .metric span {
+        display: block;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+      .metric strong {
+        display: block;
+        margin-top: 6px;
+        color: var(--text-strong);
+        font-size: 24px;
+      }
+      .workspace {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr) 408px;
+        gap: 20px;
+        align-items: start;
+      }
+      .rail {
+        padding: 18px;
+        position: sticky;
+        top: 24px;
+      }
+      .rail h2, .panel h2, .inspector h2 {
+        margin: 0 0 12px;
+        color: var(--text-strong);
+        font-size: 16px;
+      }
+      .field {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+      .field label {
+        font-size: 12px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+      select, button.card, .matrix-row {
+        min-height: 44px;
+        transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+      }
+      select {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 0 14px;
+        background: var(--inset);
+        color: var(--text-default);
+        font: inherit;
+      }
+      .record-list {
+        display: grid;
+        gap: 12px;
+        margin-top: 18px;
+      }
+      button.card {
+        width: 100%;
+        text-align: left;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: var(--panel);
+        padding: 16px;
+        cursor: pointer;
+      }
+      button.card[data-selected="true"] {
+        border-color: var(--semantic);
+        background: rgba(53, 89, 230, 0.06);
+        transform: translateY(-1px);
+      }
+      .decision-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .decision-chip.exact_replay { background: rgba(14, 165, 164, 0.14); color: var(--exact); }
+      .decision-chip.semantic_replay { background: rgba(53, 89, 230, 0.14); color: var(--semantic); }
+      .decision-chip.collision_review { background: rgba(124, 58, 237, 0.14); color: var(--collision); }
+      .decision-chip.distinct { background: rgba(201, 137, 0, 0.14); color: var(--warning); }
+      .card h3 {
+        margin: 12px 0 6px;
+        color: var(--text-strong);
+        font-size: 17px;
+      }
+      .mono {
+        font-family: "SFMono-Regular", SFMono-Regular, ui-monospace, Menlo, monospace;
+      }
+      .center {
+        display: grid;
+        gap: 20px;
+      }
+      .panel {
+        padding: 18px 20px;
+      }
+      .panel-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        min-height: 260px;
+      }
+      .inset {
+        background: var(--inset);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 16px;
+      }
+      .timeline-list, .validator-list, .checkpoint-table, .matrix-table {
+        display: grid;
+        gap: 10px;
+      }
+      .timeline-step, .validator-row, .checkpoint-row, .matrix-row {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 12px 14px;
+        background: var(--panel);
+      }
+      .timeline-step[data-selected="true"], .matrix-row[data-selected="true"] {
+        border-color: var(--semantic);
+        background: rgba(53, 89, 230, 0.06);
+      }
+      .inspector {
+        padding: 18px 20px;
+        min-height: 100%;
+        transition: transform 220ms ease;
+      }
+      .inspector-grid {
+        display: grid;
+        gap: 12px;
+      }
+      .inspector dl {
+        margin: 0;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+      .inspector dt {
+        color: var(--text-muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+      .inspector dd {
+        margin: 0;
+        color: var(--text-default);
+      }
+      .lower-grid {
+        padding: 18px 20px;
+      }
+      .lower-grid-inner {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+      .matrix-row { cursor: pointer; }
+      .legend {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+      .swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        display: inline-block;
+      }
+      @media (max-width: 1160px) {
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+        .rail, .inspector {
+          position: static;
+        }
+      }
+      @media (max-width: 900px) {
+        .masthead, .panel-grid, .lower-grid-inner {
+          grid-template-columns: 1fr;
+        }
+        .metric-strip {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="masthead" aria-label="Replay collision studio header">
+        <section class="brand">
+          <svg viewBox="0 0 64 64" aria-hidden="true">
+            <rect x="4" y="4" width="56" height="56" rx="18" fill="#0F172A"></rect>
+            <path d="M18 46V18h18c8 0 13 4 13 11 0 4-2 7-5 9l7 8H42l-6-7h-8v7H18zm10-15h8c3 0 5-2 5-4s-2-4-5-4h-8v8zM18 18l17 28h-9L9 18h9z" fill="#F7F8FC"></path>
+          </svg>
+          <div>
+            <small>Vecells Replay Authority</small>
+            <h1>Replay Collision Studio</h1>
+            <div class="legend">
+              <span><span class="swatch" style="background: var(--exact)"></span> Exact replay</span>
+              <span><span class="swatch" style="background: var(--semantic)"></span> Semantic replay</span>
+              <span><span class="swatch" style="background: var(--collision)"></span> Collision review</span>
+              <span><span class="swatch" style="background: var(--warning)"></span> Distinct</span>
+            </div>
+          </div>
+        </section>
+        <section class="metric-strip" aria-label="Replay metrics">
+          <article class="metric"><span>Exact Replay</span><strong data-testid="metric-exact-total"></strong></article>
+          <article class="metric"><span>Semantic Replay</span><strong data-testid="metric-semantic-total"></strong></article>
+          <article class="metric"><span>Collision Review</span><strong data-testid="metric-collision-total"></strong></article>
+          <article class="metric"><span>Distinct</span><strong data-testid="metric-distinct-total"></strong></article>
+        </section>
+      </header>
+
+      <main class="workspace">
+        <aside class="rail" aria-label="Replay filters">
+          <h2>Filters</h2>
+          <div class="field">
+            <label for="action-scope-filter">Action Scope</label>
+            <select id="action-scope-filter" data-testid="action-scope-filter"></select>
+          </div>
+          <div class="field">
+            <label for="decision-class-filter">Decision Class</label>
+            <select id="decision-class-filter" data-testid="decision-class-filter"></select>
+          </div>
+          <div class="field">
+            <label for="effect-scope-filter">Effect Scope</label>
+            <select id="effect-scope-filter" data-testid="effect-scope-filter"></select>
+          </div>
+          <div class="record-list" data-testid="record-list"></div>
+        </aside>
+
+        <section class="center">
+          <section class="panel">
+            <h2>Raw Vs Semantic Diff</h2>
+            <div class="panel-grid" data-testid="diff-pane"></div>
+          </section>
+          <section class="panel">
+            <h2>Replay Decision Timeline</h2>
+            <div class="timeline-list" data-testid="decision-timeline"></div>
+          </section>
+          <section class="lower-grid">
+            <div class="lower-grid-inner">
+              <section>
+                <h2>Callback Checkpoints</h2>
+                <div class="checkpoint-table" data-testid="checkpoint-table"></div>
+              </section>
+              <section>
+                <h2>Validation Rail</h2>
+                <div class="validator-list" data-testid="validator-rail"></div>
+              </section>
+            </div>
+          </section>
+          <section class="panel">
+            <h2>Classification Matrix</h2>
+            <div class="matrix-table" data-testid="classification-matrix"></div>
+          </section>
+        </section>
+
+        <aside class="inspector" aria-label="Selected replay record inspector" data-testid="inspector">
+          <h2>Inspector</h2>
+          <div class="inspector-grid"></div>
+        </aside>
+      </main>
+    </div>
+
+    <script>
+      const MANIFEST_PATH = "../../data/analysis/idempotency_record_manifest.json";
+      const CASEBOOK_PATH = "../../data/analysis/replay_collision_casebook.json";
+      const MATRIX_PATH = "../../data/analysis/replay_classification_matrix.csv";
+
+      function parseCsv(text) {
+        const lines = text.trim().split(/\r?\n/);
+        const headers = lines[0].split(",");
+        return lines.slice(1).map((line) => {
+          const values = line.split(",");
+          const row = {};
+          headers.forEach((header, index) => {
+            row[header] = values[index] ?? "";
+          });
+          return row;
+        });
+      }
+
+      function decisionLabel(decisionClass) {
+        return decisionClass.replace(/_/g, " ");
+      }
+
+      function uniqueOptions(values) {
+        return ["all", ...Array.from(new Set(values)).sort()];
+      }
+
+      const state = {
+        manifest: null,
+        casebook: null,
+        matrix: [],
+        selectedRecordId: null,
+        filters: {
+          actionScope: "all",
+          decisionClass: "all",
+          effectScope: "all",
+        },
+      };
+
+      function filteredRecords() {
+        return state.manifest.idempotencyRecords.filter((record) => {
+          if (state.filters.actionScope !== "all" && record.actionScope !== state.filters.actionScope) {
+            return false;
+          }
+          if (state.filters.decisionClass !== "all" && record.decisionClass !== state.filters.decisionClass) {
+            return false;
+          }
+          if (state.filters.effectScope !== "all" && record.effectScopeLabel !== state.filters.effectScope) {
+            return false;
+          }
+          return true;
+        });
+      }
+
+      function currentRecord() {
+        const records = filteredRecords();
+        const selected = records.find((record) => record.idempotencyRecordId === state.selectedRecordId);
+        return selected ?? records[0] ?? null;
+      }
+
+      function currentCase() {
+        const record = currentRecord();
+        if (!record) return null;
+        return state.casebook.replayCases.find((entry) => entry.recordRef === record.idempotencyRecordId) ?? null;
+      }
+
+      function currentCheckpoints() {
+        const record = currentRecord();
+        if (!record) return [];
+        return state.manifest.adapterReceiptCheckpoints.filter((checkpoint) => checkpoint.recordRef === record.idempotencyRecordId);
+      }
+
+      function renderMetrics() {
+        const summary = state.manifest.summary;
+        document.querySelector("[data-testid='metric-exact-total']").textContent = String(summary.exact_replay_count);
+        document.querySelector("[data-testid='metric-semantic-total']").textContent = String(summary.semantic_replay_count);
+        document.querySelector("[data-testid='metric-collision-total']").textContent = String(summary.collision_review_count);
+        document.querySelector("[data-testid='metric-distinct-total']").textContent = String(summary.distinct_count);
+      }
+
+      function renderFilters() {
+        const actionScopeFilter = document.querySelector("[data-testid='action-scope-filter']");
+        const decisionClassFilter = document.querySelector("[data-testid='decision-class-filter']");
+        const effectScopeFilter = document.querySelector("[data-testid='effect-scope-filter']");
+
+        const actionOptions = uniqueOptions(state.manifest.idempotencyRecords.map((record) => record.actionScope));
+        const decisionOptions = uniqueOptions(state.manifest.idempotencyRecords.map((record) => record.decisionClass));
+        const effectOptions = uniqueOptions(state.manifest.idempotencyRecords.map((record) => record.effectScopeLabel));
+
+        actionScopeFilter.innerHTML = actionOptions.map((value) => `<option value="${value}">${value}</option>`).join("");
+        decisionClassFilter.innerHTML = decisionOptions.map((value) => `<option value="${value}">${decisionLabel(value)}</option>`).join("");
+        effectScopeFilter.innerHTML = effectOptions.map((value) => `<option value="${value}">${value}</option>`).join("");
+
+        actionScopeFilter.value = state.filters.actionScope;
+        decisionClassFilter.value = state.filters.decisionClass;
+        effectScopeFilter.value = state.filters.effectScope;
+
+        actionScopeFilter.onchange = (event) => {
+          state.filters.actionScope = event.target.value;
+          render();
+        };
+        decisionClassFilter.onchange = (event) => {
+          state.filters.decisionClass = event.target.value;
+          render();
+        };
+        effectScopeFilter.onchange = (event) => {
+          state.filters.effectScope = event.target.value;
+          render();
+        };
+      }
+
+      function selectRecord(recordId) {
+        state.selectedRecordId = recordId;
+        render();
+      }
+
+      function renderCards() {
+        const records = filteredRecords();
+        if (!records.find((record) => record.idempotencyRecordId === state.selectedRecordId)) {
+          state.selectedRecordId = records[0]?.idempotencyRecordId ?? null;
+        }
+        const selectedId = currentRecord()?.idempotencyRecordId;
+        const list = document.querySelector("[data-testid='record-list']");
+        list.innerHTML = records.map((record) => `
+          <button
+            class="card"
+            type="button"
+            data-testid="record-card-${record.idempotencyRecordId}"
+            data-selected="${String(record.idempotencyRecordId === selectedId)}"
+            aria-pressed="${String(record.idempotencyRecordId === selectedId)}"
+          >
+            <span class="decision-chip ${record.decisionClass}">
+              ${decisionLabel(record.decisionClass)}
+            </span>
+            <h3>${record.effectScopeLabel}</h3>
+            <div>${record.scopeSummary}</div>
+            <div class="mono" style="margin-top:10px;color:var(--text-muted);font-size:12px;">
+              ${record.idempotencyRecordId}
+            </div>
+          </button>
+        `).join("");
+
+        list.querySelectorAll("button.card").forEach((button, index) => {
+          button.addEventListener("click", () => selectRecord(records[index].idempotencyRecordId));
+          button.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              const next = records[(index + 1) % records.length];
+              selectRecord(next.idempotencyRecordId);
+              list.querySelector(`[data-testid="record-card-${next.idempotencyRecordId}"]`)?.focus();
+            }
+            if (event.key === "ArrowUp") {
+              event.preventDefault();
+              const next = records[(index - 1 + records.length) % records.length];
+              selectRecord(next.idempotencyRecordId);
+              list.querySelector(`[data-testid="record-card-${next.idempotencyRecordId}"]`)?.focus();
+            }
+          });
+        });
+      }
+
+      function renderDiffPane() {
+        const record = currentRecord();
+        const panel = document.querySelector("[data-testid='diff-pane']");
+        if (!record) {
+          panel.innerHTML = "";
+          return;
+        }
+        panel.innerHTML = `
+          <article class="inset">
+            <h3>Raw Hash Basis</h3>
+            <p>${record.canonicalizationNote}</p>
+            <div class="mono" data-testid="raw-hash-value">${record.rawPayloadHash}</div>
+          </article>
+          <article class="inset">
+            <h3>Semantic Hash Basis</h3>
+            <p>${record.scopeSummary}</p>
+            <div class="mono" data-testid="semantic-hash-value">${record.semanticPayloadHash}</div>
+            <div class="legend">
+              <span>Replay key <span class="mono">${record.replayKey}</span></span>
+            </div>
+          </article>
+        `;
+      }
+
+      function renderTimeline() {
+        const entry = currentCase();
+        const timeline = document.querySelector("[data-testid='decision-timeline']");
+        if (!entry) {
+          timeline.innerHTML = "";
+          return;
+        }
+        timeline.innerHTML = entry.timeline.map((step, index) => `
+          <div
+            class="timeline-step"
+            data-testid="timeline-step-${entry.caseId}-${index}"
+            data-selected="${String(index === entry.timeline.length - 1)}"
+          >
+            <strong>${step.replace(/_/g, " ")}</strong>
+            <div>${entry.scenarioId}</div>
+          </div>
+        `).join("");
+      }
+
+      function renderInspector() {
+        const record = currentRecord();
+        const inspector = document.querySelector(".inspector-grid");
+        if (!record) {
+          inspector.innerHTML = "";
+          return;
+        }
+        const review = state.manifest.replayCollisionReviews.find((entry) => entry.replayCollisionReviewId === record.collisionReviewRef);
+        inspector.innerHTML = `
+          <div class="inset">
+            <dl>
+              <dt>Idempotency Record</dt>
+              <dd class="mono">${record.idempotencyRecordId}</dd>
+              <dt>Decision</dt>
+              <dd>${decisionLabel(record.decisionClass)}</dd>
+              <dt>Accepted Action</dt>
+              <dd class="mono">${record.firstAcceptedActionRecordRef}</dd>
+              <dt>Accepted Settlement</dt>
+              <dd class="mono">${record.acceptedSettlementRef}</dd>
+              <dt>Replay Key</dt>
+              <dd class="mono">${record.replayKey}</dd>
+              <dt>Scope Fingerprint</dt>
+              <dd class="mono">${record.scopeFingerprint}</dd>
+            </dl>
+          </div>
+          <div class="inset">
+            <h3 style="margin-top:0;">Collision Link</h3>
+            <p>${review ? review.summary : "No active collision review."}</p>
+            <div class="mono">${review ? review.replayCollisionReviewId : "clear"}</div>
+          </div>
+        `;
+      }
+
+      function renderCheckpoints() {
+        const rows = currentCheckpoints();
+        const table = document.querySelector("[data-testid='checkpoint-table']");
+        if (rows.length === 0) {
+          table.innerHTML = `
+          <div class="checkpoint-row">
+            <strong>No callback checkpoints yet</strong>
+            <div>The selected replay chain has not recorded adapter receipt checkpoints.</div>
+          </div>
+        `;
+          return;
+        }
+        table.innerHTML = rows.map((row) => `
+          <div class="checkpoint-row" data-testid="checkpoint-row-${row.receiptCheckpointId}">
+            <strong>${decisionLabel(row.decisionClass)}</strong>
+            <div>${row.summary}</div>
+            <div class="mono">${row.transportMessageId} • ${row.orderingKey}</div>
+          </div>
+        `).join("");
+      }
+
+      function renderValidators() {
+        const rail = document.querySelector("[data-testid='validator-rail']");
+        rail.innerHTML = state.manifest.validatorResults.map((row) => `
+          <div class="validator-row" data-testid="validator-row-${row.validatorId}">
+            <strong>${row.validatorId}</strong>
+            <div>${row.summary}</div>
+            <div>${row.verdict.toUpperCase()}</div>
+          </div>
+        `).join("");
+      }
+
+      function renderMatrix() {
+        const table = document.querySelector("[data-testid='classification-matrix']");
+        const current = currentRecord();
+        table.innerHTML = state.matrix.map((row, index) => `
+          <button
+            type="button"
+            class="matrix-row"
+            data-testid="matrix-row-${row.record_ref}"
+            data-selected="${String(current && row.record_ref === current.idempotencyRecordId)}"
+          >
+            <strong>${row.scenario_id}</strong>
+            <div>${decisionLabel(row.decision_class)} • raw ${row.raw_hash_relation} • semantic ${row.semantic_hash_relation}</div>
+          </button>
+        `).join("");
+        const rows = Array.from(table.querySelectorAll(".matrix-row"));
+        rows.forEach((row, index) => {
+          row.addEventListener("click", () => {
+            state.selectedRecordId = state.matrix[index].record_ref;
+            render();
+          });
+          row.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              const next = state.matrix[(index + 1) % state.matrix.length];
+              state.selectedRecordId = next.record_ref;
+              render();
+              table.querySelector(`[data-testid="matrix-row-${next.record_ref}"]`)?.focus();
+            }
+          });
+        });
+      }
+
+      function render() {
+        renderMetrics();
+        renderFilters();
+        renderCards();
+        renderDiffPane();
+        renderTimeline();
+        renderInspector();
+        renderCheckpoints();
+        renderValidators();
+        renderMatrix();
+      }
+
+      async function load() {
+        const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        document.body.dataset.reducedMotion = prefersReducedMotion ? "true" : "false";
+        const [manifestResponse, casebookResponse, matrixResponse] = await Promise.all([
+          fetch(MANIFEST_PATH),
+          fetch(CASEBOOK_PATH),
+          fetch(MATRIX_PATH),
+        ]);
+        state.manifest = await manifestResponse.json();
+        state.casebook = await casebookResponse.json();
+        state.matrix = parseCsv(await matrixResponse.text());
+        state.selectedRecordId = state.manifest.idempotencyRecords[0]?.idempotencyRecordId ?? null;
+        render();
+      }
+
+      load().catch((error) => {
+        document.body.innerHTML = `<pre>${error instanceof Error ? error.message : String(error)}</pre>`;
+      });
+    </script>
+  </body>
+</html>

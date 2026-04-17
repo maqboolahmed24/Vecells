@@ -48,7 +48,10 @@ async function verifyOfficialSource(url, expectedSnippets) {
   assertCondition(response.ok, `Failed to fetch official source ${url}`);
   const html = await response.text();
   for (const snippet of expectedSnippets) {
-    assertCondition(html.includes(snippet), `Official source ${url} no longer contains: ${snippet}`);
+    assertCondition(
+      html.includes(snippet),
+      `Official source ${url} no longer contains: ${snippet}`,
+    );
   }
 }
 
@@ -58,7 +61,8 @@ async function verifyOfficialMechanics() {
     PACK.live_gate_pack.official_label_checks.mailbox_form,
   );
   await verifyOfficialSource(
-    PACK.official_guidance.find((row) => row.source_id === "official_mesh_workflow_request_form").url,
+    PACK.official_guidance.find((row) => row.source_id === "official_mesh_workflow_request_form")
+      .url,
     PACK.live_gate_pack.official_label_checks.workflow_form,
   );
 }
@@ -92,27 +96,27 @@ async function run() {
   await page.locator(selectorProfile.workflow_row).waitFor();
   await page.locator(selectorProfile.page_tab_application_pack).click();
 
-  await page.locator(selectorProfile.field_approver).fill(
-    process.env.MESH_NAMED_APPROVER ?? "dry-run approver",
-  );
-  await page.locator(selectorProfile.field_environment).fill(
-    process.env.MESH_ENVIRONMENT_TARGET ?? "path_to_live_integration",
-  );
-  await page.locator(selectorProfile.field_owner_ods).fill(
-    process.env.MESH_MAILBOX_OWNER_ODS ?? "VEC01",
-  );
-  await page.locator(selectorProfile.field_manager_mode).selectOption(
-    process.env.MESH_MANAGING_PARTY_MODE ?? "self_managed",
-  );
-  await page.locator(selectorProfile.field_workflow_contact).fill(
-    process.env.MESH_WORKFLOW_TEAM_CONTACT ?? "Named MESH team contact",
-  );
-  await page.locator(selectorProfile.field_allow_mutation).selectOption(
-    realMutationRequested ? "true" : "false",
-  );
-  await page.locator(selectorProfile.field_allow_spend).selectOption(
-    process.env.ALLOW_SPEND === "true" ? "true" : "false",
-  );
+  await page
+    .locator(selectorProfile.field_approver)
+    .fill(process.env.MESH_NAMED_APPROVER ?? "dry-run approver");
+  await page
+    .locator(selectorProfile.field_environment)
+    .fill(process.env.MESH_ENVIRONMENT_TARGET ?? "path_to_live_integration");
+  await page
+    .locator(selectorProfile.field_owner_ods)
+    .fill(process.env.MESH_MAILBOX_OWNER_ODS ?? "VEC01");
+  await page
+    .locator(selectorProfile.field_manager_mode)
+    .selectOption(process.env.MESH_MANAGING_PARTY_MODE ?? "self_managed");
+  await page
+    .locator(selectorProfile.field_workflow_contact)
+    .fill(process.env.MESH_WORKFLOW_TEAM_CONTACT ?? "Named MESH team contact");
+  await page
+    .locator(selectorProfile.field_allow_mutation)
+    .selectOption(realMutationRequested ? "true" : "false");
+  await page
+    .locator(selectorProfile.field_allow_spend)
+    .selectOption(process.env.ALLOW_SPEND === "true" ? "true" : "false");
 
   if (!realMutationRequested) {
     const buttonDisabled = await page.locator(selectorProfile.final_submit).isDisabled();

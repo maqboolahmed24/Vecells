@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>157 Quiet Autosave Status Strip Gallery</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4f7fb;
+        --panel: rgba(255, 255, 255, 0.92);
+        --panel-strong: #ffffff;
+        --ink: #142033;
+        --muted: #55627a;
+        --line: rgba(20, 32, 51, 0.12);
+        --safe: #1c7c55;
+        --review: #b7791f;
+        --continuity: #5a54d6;
+        --neutral: #2f6fed;
+        --shadow: 0 20px 48px rgba(26, 39, 76, 0.12);
+        --radius-xl: 26px;
+        --radius-lg: 18px;
+        --radius-md: 14px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at top left, rgba(47, 111, 237, 0.12), transparent 32%),
+          radial-gradient(circle at top right, rgba(90, 84, 214, 0.12), transparent 28%),
+          linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+        color: var(--ink);
+        font: 16px/1.5 "Inter", "Segoe UI", sans-serif;
+      }
+
+      main {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 48px 24px 80px;
+      }
+
+      .hero {
+        display: grid;
+        gap: 16px;
+        margin-bottom: 32px;
+      }
+
+      .eyebrow {
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--neutral);
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(32px, 5vw, 52px);
+        line-height: 1.05;
+        letter-spacing: -0.04em;
+        max-width: 14ch;
+      }
+
+      .hero p,
+      .panel p,
+      td,
+      li {
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        gap: 24px;
+      }
+
+      .grid--overview {
+        grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr);
+        align-items: start;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(18px);
+        padding: 24px;
+        min-width: 0;
+      }
+
+      .state-tabs {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin: 18px 0 20px;
+      }
+
+      .state-tab {
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.72);
+        border-radius: 999px;
+        padding: 10px 14px;
+        font: inherit;
+        font-weight: 600;
+        color: var(--ink);
+        cursor: pointer;
+        transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+      }
+
+      .state-tab[aria-pressed="true"] {
+        transform: translateY(-1px);
+        border-color: rgba(20, 32, 51, 0.28);
+        background: var(--panel-strong);
+      }
+
+      .preview-shell {
+        display: grid;
+        gap: 18px;
+        border-radius: 22px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 247, 251, 0.94));
+        border: 1px solid rgba(20, 32, 51, 0.08);
+        padding: 18px;
+      }
+
+      .strip {
+        min-height: 36px;
+        display: grid;
+        grid-template-columns: minmax(0, 240px) minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+        border: 1px solid rgba(20, 32, 51, 0.08);
+        border-radius: 999px;
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.88);
+      }
+
+      .strip-cluster {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .mark {
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        position: relative;
+        flex: 0 0 auto;
+        background: rgba(20, 32, 51, 0.08);
+      }
+
+      .mark[data-tone="safe"] {
+        background: rgba(28, 124, 85, 0.16);
+        color: var(--safe);
+      }
+
+      .mark[data-tone="review"] {
+        background: rgba(183, 121, 31, 0.16);
+        color: var(--review);
+      }
+
+      .mark[data-tone="continuity"] {
+        background: rgba(90, 84, 214, 0.16);
+        color: var(--continuity);
+      }
+
+      .mark[data-tone="neutral"] {
+        background: rgba(47, 111, 237, 0.12);
+        color: var(--neutral);
+      }
+
+      .mark::after {
+        content: "";
+        position: absolute;
+        inset: 5px;
+        border-radius: 999px;
+        background: currentColor;
+      }
+
+      .strip-kicker {
+        display: block;
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .strip strong,
+      .strip button {
+        font-size: 14px;
+        line-height: 20px;
+      }
+
+      .strip p,
+      .strip small {
+        margin: 0;
+      }
+
+      .strip small {
+        font-variant-numeric: tabular-nums;
+      }
+
+      .strip button {
+        border: none;
+        border-radius: 999px;
+        padding: 10px 14px;
+        font-weight: 700;
+        background: rgba(20, 32, 51, 0.08);
+        color: var(--ink);
+      }
+
+      .strip button[data-tone="review"] {
+        background: rgba(183, 121, 31, 0.14);
+        color: var(--review);
+      }
+
+      .strip button[data-tone="continuity"] {
+        background: rgba(90, 84, 214, 0.14);
+        color: var(--continuity);
+      }
+
+      .surface-stack {
+        display: grid;
+        gap: 16px;
+      }
+
+      .subpanel {
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(20, 32, 51, 0.08);
+        border-radius: var(--radius-lg);
+        padding: 18px;
+      }
+
+      .continue-card,
+      .recovery-panel {
+        max-width: 720px;
+      }
+
+      .continue-meta,
+      .recovery-kept,
+      .state-details {
+        display: grid;
+        gap: 12px;
+      }
+
+      .continue-meta {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .continue-actions,
+      .recovery-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .primary,
+      .ghost {
+        border-radius: 999px;
+        padding: 11px 16px;
+        font: inherit;
+        font-weight: 700;
+      }
+
+      .primary {
+        border: none;
+        background: var(--ink);
+        color: white;
+      }
+
+      .ghost {
+        border: 1px solid var(--line);
+        background: transparent;
+        color: var(--ink);
+      }
+
+      .merge-sheet {
+        max-width: 760px;
+      }
+
+      .merge-row {
+        display: grid;
+        gap: 12px;
+        padding: 14px 0;
+        border-top: 1px solid rgba(20, 32, 51, 0.08);
+      }
+
+      .merge-columns {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .merge-columns section {
+        border: 1px solid rgba(20, 32, 51, 0.08);
+        border-radius: var(--radius-md);
+        padding: 14px;
+      }
+
+      .merge-columns section[data-selected="true"] {
+        border-color: rgba(90, 84, 214, 0.32);
+        box-shadow: inset 0 0 0 1px rgba(90, 84, 214, 0.18);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      th,
+      td {
+        text-align: left;
+        vertical-align: top;
+        padding: 12px 10px;
+        border-bottom: 1px solid rgba(20, 32, 51, 0.08);
+        word-break: break-word;
+      }
+
+      th {
+        font-size: 12px;
+        line-height: 16px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+
+      code {
+        font-family: "SFMono-Regular", "SF Mono", ui-monospace, monospace;
+        font-size: 13px;
+      }
+
+      pre {
+        margin: 0;
+        overflow: auto;
+        border-radius: var(--radius-md);
+        background: #131b2d;
+        color: #e6ecff;
+        padding: 18px;
+      }
+
+      .parity-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 999px;
+        padding: 7px 12px;
+        background: rgba(20, 32, 51, 0.06);
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 600;
+      }
+
+      @media (max-width: 980px) {
+        .grid--overview,
+        .parity-grid,
+        .merge-columns,
+        .continue-meta,
+        .strip {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          scroll-behavior: auto;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main data-testid="autosave-status-strip-gallery">
+      <section class="hero">
+        <span class="eyebrow">par_157 published surface</span>
+        <h1>Quiet autosave stays infrastructural, not theatrical.</h1>
+        <p>
+          This gallery freezes the shell-level autosave grammar for Phase 1 intake: one authoritative ribbon, one
+          continue-entry surface, one merge-review surface, and one bounded recovery bridge.
+        </p>
+      </section>
+
+      <section class="grid grid--overview">
+        <article class="panel">
+          <div class="pill">One shell-level truth owner: <code>AmbientStateRibbon</code></div>
+          <div class="state-tabs" data-testid="autosave-state-tabs" role="tablist" aria-label="Autosave states"></div>
+          <div class="preview-shell" data-testid="autosave-state-preview">
+            <section class="strip" data-testid="autosave-strip-preview">
+              <div class="strip-cluster">
+                <span class="mark" data-tone="neutral"></span>
+                <div>
+                  <span class="strip-kicker">Draft status</span>
+                  <strong data-testid="autosave-preview-label">Saving</strong>
+                </div>
+              </div>
+              <div class="strip-cluster" style="display:block">
+                <p data-testid="autosave-preview-detail">Local changes are queued for authoritative draft settlement.</p>
+                <small data-testid="autosave-preview-meta">Awaiting first settlement</small>
+              </div>
+              <div class="strip-cluster" style="justify-content:flex-end">
+                <button type="button" data-testid="autosave-preview-action" hidden></button>
+              </div>
+            </section>
+
+            <div class="surface-stack" data-testid="autosave-surface-stack">
+              <section class="subpanel continue-card" data-testid="autosave-continue-card-preview">
+                <div class="continue-meta">
+                  <div>
+                    <span class="strip-kicker">Saved request thread</span>
+                    <strong>Saved just now</strong>
+                  </div>
+                  <div>
+                    <span class="strip-kicker">Next</span>
+                    <strong>Continue where you left off</strong>
+                  </div>
+                </div>
+                <h3>Continue your request</h3>
+                <p>We kept the current draft step and will reopen it inside the same shell.</p>
+                <div class="continue-actions">
+                  <button class="primary" type="button">Continue request</button>
+                  <button class="ghost" type="button">Start again</button>
+                </div>
+              </section>
+
+              <section class="subpanel merge-sheet" data-testid="autosave-merge-sheet-preview" hidden>
+                <span class="strip-kicker">Review changes</span>
+                <h3>Choose one result for every changed group</h3>
+                <div class="merge-row">
+                  <div>
+                    <strong>Question answers</strong>
+                    <p>The shell found a newer authoritative result while this tab still had local edits.</p>
+                  </div>
+                  <div class="merge-columns">
+                    <section data-selected="true">
+                      <span class="strip-kicker">Your recent value</span>
+                      <p>Blood test result question</p>
+                    </section>
+                    <section>
+                      <span class="strip-kicker">Newer saved value</span>
+                      <p>Admin support request</p>
+                    </section>
+                  </div>
+                </div>
+                <button class="primary" type="button">Confirm selected result</button>
+              </section>
+
+              <section class="subpanel recovery-panel" data-testid="autosave-recovery-preview" hidden>
+                <span class="strip-kicker">Resume safely</span>
+                <h3>We kept the last safe request state</h3>
+                <p>This browser no longer holds the writable draft lane. Resume through the last safe state.</p>
+                <div class="recovery-kept">
+                  <div class="pill">Last safe step: details</div>
+                  <div class="pill">Selected anchor: patient intake details</div>
+                  <div class="pill">Saved route: /start-request/:draftPublicId/details</div>
+                </div>
+                <div class="recovery-actions">
+                  <button class="primary" type="button">Resume safely</button>
+                </div>
+              </section>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel state-details" data-testid="autosave-state-detail">
+          <h2>State contract</h2>
+          <p>
+            `Saved` is the hardest state to earn. It only appears once settlement and continuity still point at the same
+            authoritative draft version.
+          </p>
+          <div id="state-detail-body"></div>
+        </article>
+      </section>
+
+      <section class="grid" style="margin-top: 24px;">
+        <article class="panel">
+          <h2>Status arbitration table</h2>
+          <p>Every visible shell state is derived from the same published arbitration matrix.</p>
+          <div style="overflow:auto">
+            <table data-testid="autosave-arbitration-table">
+              <thead>
+                <tr>
+                  <th>Scenario</th>
+                  <th>Settlement</th>
+                  <th>Continuity</th>
+                  <th>Rendered</th>
+                  <th>Suppression</th>
+                  <th>Warn</th>
+                </tr>
+              </thead>
+              <tbody id="autosave-arbitration-body"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2>Resume, merge, and recovery cases</h2>
+          <p>The same shell keeps the selected anchor and chooses one dominant safe action.</p>
+          <div style="overflow:auto">
+            <table data-testid="autosave-recovery-cases-table">
+              <thead>
+                <tr>
+                  <th>Case</th>
+                  <th>Family</th>
+                  <th>Preserved context</th>
+                  <th>Shell state</th>
+                  <th>Dominant action</th>
+                </tr>
+              </thead>
+              <tbody id="autosave-recovery-body"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2>Diagram and table parity</h2>
+          <div class="parity-grid">
+            <section>
+              <span class="strip-kicker">State machine source</span>
+              <pre data-testid="autosave-state-machine-panel"><code id="autosave-state-machine"></code></pre>
+            </section>
+            <section>
+              <span class="strip-kicker">Parity checklist</span>
+              <table data-testid="autosave-diagram-parity-table">
+                <thead>
+                  <tr>
+                    <th>State</th>
+                    <th>Diagram</th>
+                    <th>Matrix</th>
+                    <th>Preview</th>
+                  </tr>
+                </thead>
+                <tbody id="autosave-parity-body"></tbody>
+              </table>
+            </section>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script id="autosave-state-contract" type="application/json">
+      {
+        "states": [
+          {
+            "state": "saving",
+            "label": "Saving",
+            "tone": "neutral",
+            "detail": "Local changes are queued for authoritative draft settlement.",
+            "meta": "Awaiting first settlement",
+            "actionLabel": null,
+            "surface": "continue",
+            "bullets": [
+              "Triggered by local dirty work, queued blur saves, or local_ack.",
+              "Warn on hard exit because the draft is not settled yet."
+            ]
+          },
+          {
+            "state": "saved",
+            "label": "Saved",
+            "tone": "safe",
+            "detail": "This draft has one authoritative settlement and the continuity proof still matches it.",
+            "meta": "Saved just now",
+            "actionLabel": null,
+            "surface": "continue",
+            "bullets": [
+              "Requires saved_authoritative plus trusted continuity parity.",
+              "Suppress the warning because the current shell can safely resume."
+            ]
+          },
+          {
+            "state": "review changes",
+            "label": "Review changes",
+            "tone": "review",
+            "detail": "A newer saved draft exists for this lineage. Review the grouped differences in place.",
+            "meta": "Versions 1 and 2 need one selected result",
+            "actionLabel": "Review changes",
+            "surface": "merge",
+            "bullets": [
+              "The strip action is the only shell-level escalation.",
+              "The merge sheet stays inside the same question canvas."
+            ]
+          },
+          {
+            "state": "resume safely",
+            "label": "Resume safely",
+            "tone": "continuity",
+            "detail": "Continuity proof must be rebound before more edits continue.",
+            "meta": "Saved is withheld until settlement and continuity align",
+            "actionLabel": "Resume safely",
+            "surface": "recovery",
+            "bullets": [
+              "Used for recovery_required, continuity drift, lease expiry, or blocked recovery.",
+              "The recovery bridge keeps last-safe context visible instead of ejecting the user."
+            ]
+          }
+        ]
+      }
+    </script>
+    <script>
+      const stateContract = JSON.parse(document.getElementById("autosave-state-contract").textContent);
+      const stateTabs = document.querySelector("[data-testid='autosave-state-tabs']");
+      const labelNode = document.querySelector("[data-testid='autosave-preview-label']");
+      const detailNode = document.querySelector("[data-testid='autosave-preview-detail']");
+      const metaNode = document.querySelector("[data-testid='autosave-preview-meta']");
+      const actionNode = document.querySelector("[data-testid='autosave-preview-action']");
+      const markNode = document.querySelector(".mark");
+      const detailBody = document.getElementById("state-detail-body");
+      const continueCard = document.querySelector("[data-testid='autosave-continue-card-preview']");
+      const mergeSheet = document.querySelector("[data-testid='autosave-merge-sheet-preview']");
+      const recoveryPanel = document.querySelector("[data-testid='autosave-recovery-preview']");
+
+      function renderStateDetail(entry) {
+        detailBody.innerHTML = `
+          <div class="pill">Primary state: <code>${entry.state}</code></div>
+          <ul>${entry.bullets.map((bullet) => `<li>${bullet}</li>`).join("")}</ul>
+        `;
+      }
+
+      function selectState(stateKey) {
+        const entry = stateContract.states.find((item) => item.state === stateKey) ?? stateContract.states[0];
+        for (const button of stateTabs.querySelectorAll("button")) {
+          button.setAttribute("aria-pressed", button.dataset.state === entry.state ? "true" : "false");
+        }
+        labelNode.textContent = entry.label;
+        detailNode.textContent = entry.detail;
+        metaNode.textContent = entry.meta;
+        markNode.dataset.tone = entry.tone;
+        actionNode.hidden = !entry.actionLabel;
+        actionNode.textContent = entry.actionLabel ?? "";
+        actionNode.dataset.tone = entry.tone === "review" ? "review" : entry.tone === "continuity" ? "continuity" : "neutral";
+        continueCard.hidden = entry.surface !== "continue";
+        mergeSheet.hidden = entry.surface !== "merge";
+        recoveryPanel.hidden = entry.surface !== "recovery";
+        renderStateDetail(entry);
+      }
+
+      for (const entry of stateContract.states) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "state-tab";
+        button.dataset.state = entry.state;
+        button.setAttribute("aria-pressed", "false");
+        button.textContent = entry.label;
+        button.addEventListener("click", () => selectState(entry.state));
+        stateTabs.append(button);
+      }
+      selectState("saving");
+
+      fetch("/data/analysis/157_status_arbitration_matrix.csv")
+        .then((response) => response.text())
+        .then((text) => {
+          const [headerLine, ...lines] = text.trim().split("\n");
+          const headers = headerLine.split(",");
+          const rows = lines.map((line) => {
+            const values = line.split(",");
+            return Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""]));
+          });
+          document.getElementById("autosave-arbitration-body").innerHTML = rows
+            .map(
+              (row) => `
+                <tr>
+                  <td><code>${row.scenario_id}</code></td>
+                  <td><code>${row.settlement_ack_state || "none"}</code></td>
+                  <td><code>${row.continuity_state}</code></td>
+                  <td><strong>${row.rendered_state}</strong></td>
+                  <td>${row.suppress_saved_reason || "none"}</td>
+                  <td>${row.warn_on_hard_exit || "false"}</td>
+                </tr>
+              `,
+            )
+            .join("");
+        });
+
+      fetch("/data/analysis/157_resume_merge_and_recovery_cases.csv")
+        .then((response) => response.text())
+        .then((text) => {
+          const [headerLine, ...lines] = text.trim().split("\n");
+          const headers = headerLine.split(",");
+          const rows = lines.map((line) => {
+            const values = line.split(",");
+            return Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""]));
+          });
+          document.getElementById("autosave-recovery-body").innerHTML = rows
+            .map(
+              (row) => `
+                <tr>
+                  <td><code>${row.case_id}</code></td>
+                  <td>${row.case_family}</td>
+                  <td>${row.selected_anchor_preserved}/${row.current_step_preserved}/${row.focused_field_policy}</td>
+                  <td><strong>${row.shell_state}</strong></td>
+                  <td>${row.dominant_action}</td>
+                </tr>
+              `,
+            )
+            .join("");
+        });
+
+      fetch("/docs/frontend/157_autosave_state_machine.mmd")
+        .then((response) => response.text())
+        .then((text) => {
+          document.getElementById("autosave-state-machine").textContent = text.trim();
+          const states = ["saving", "saved", "review changes", "resume safely"];
+          document.getElementById("autosave-parity-body").innerHTML = states
+            .map(
+              (state) => `
+                <tr>
+                  <td>${state}</td>
+                  <td>${text.includes(state.replaceAll(" ", "_")) || text.includes(state) ? "yes" : "no"}</td>
+                  <td>yes</td>
+                  <td>yes</td>
+                </tr>
+              `,
+            )
+            .join("");
+        });
+    </script>
+  </body>
+</html>
