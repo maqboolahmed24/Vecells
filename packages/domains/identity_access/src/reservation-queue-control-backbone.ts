@@ -22,7 +22,9 @@ import {
   createDeterministicBackboneIdGenerator,
 } from "@vecells/domain-kernel";
 import {
+  buildReservationVersionRef,
   type CapacityCommitMode,
+  type CapacityReservationSnapshot,
   type CapacityReservationState,
   type ReservationConfirmationDependencies,
   CapacityReservationDocument,
@@ -91,6 +93,36 @@ function ensureNonNegativeNumber(value: number, field: string): number {
 
 function uniqueSortedRefs(values: readonly string[]): string[] {
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))].sort();
+}
+
+function derivePostConfirmationTiming(input: {
+  observedAt: string;
+  revalidatedAt?: string | null;
+  currentReservation: CapacityReservationSnapshot;
+}): {
+  supplierObservedAt: string;
+  revalidatedAt: string | null;
+} {
+  const explicitRevalidatedAt =
+    input.revalidatedAt === undefined ? undefined : optionalRef(input.revalidatedAt);
+  if (
+    input.currentReservation.confirmedAt !== null &&
+    compareIso(input.observedAt, input.currentReservation.confirmedAt) > 0
+  ) {
+    return {
+      supplierObservedAt: input.currentReservation.supplierObservedAt,
+      revalidatedAt: explicitRevalidatedAt ?? input.observedAt,
+    };
+  }
+  const carriedRevalidatedAt =
+    input.currentReservation.revalidatedAt !== null &&
+    compareIso(input.currentReservation.revalidatedAt, input.observedAt) >= 0
+      ? input.currentReservation.revalidatedAt
+      : input.observedAt;
+  return {
+    supplierObservedAt: input.observedAt,
+    revalidatedAt: explicitRevalidatedAt ?? carriedRevalidatedAt,
+  };
 }
 
 function compareIso(left: string, right: string): number {
@@ -209,7 +241,12 @@ function isReservationConflict(
   );
 }
 
-export type ReservationFenceRecordState = "active" | "released" | "expired" | "conflict_blocked";
+export type ReservationFenceRecordState =
+  | "active"
+  | "released"
+  | "expired"
+  | "disputed"
+  | "conflict_blocked";
 
 export interface ReservationFenceRecordSnapshot {
   reservationFenceRecordId: string;
@@ -231,6 +268,7 @@ export interface ReservationFenceRecordSnapshot {
   expiresAt: string | null;
   releasedAt: string | null;
   expiredAt: string | null;
+  disputedAt: string | null;
   blockingFenceRef: string | null;
   reasonRefs: readonly string[];
   version: number;
@@ -243,6 +281,7 @@ function validateReservationFenceRecordSnapshot(
   const expiresAt = optionalIsoTimestamp(snapshot.expiresAt, "expiresAt");
   const releasedAt = optionalIsoTimestamp(snapshot.releasedAt, "releasedAt");
   const expiredAt = optionalIsoTimestamp(snapshot.expiredAt, "expiredAt");
+  const disputedAt = optionalIsoTimestamp(snapshot.disputedAt, "disputedAt");
   const truthBasisHash =
     snapshot.truthBasisHash === null || snapshot.truthBasisHash === undefined
       ? null
@@ -253,7 +292,10 @@ function validateReservationFenceRecordSnapshot(
 
   if (snapshot.state === "active") {
     invariant(
-      blockingFenceRef === null && releasedAt === null && expiredAt === null,
+      blockingFenceRef === null &&
+        releasedAt === null &&
+        expiredAt === null &&
+        disputedAt === null,
       "ACTIVE_FENCE_TERMINAL_FIELDS_FORBIDDEN",
       "Active ReservationFenceRecord rows may not carry terminal timestamps or blockers.",
     );
@@ -277,6 +319,14 @@ function validateReservationFenceRecordSnapshot(
       expiredAt !== null,
       "EXPIRED_FENCE_REQUIRES_EXPIRED_AT",
       "Expired ReservationFenceRecord rows require expiredAt.",
+    );
+  }
+
+  if (snapshot.state === "disputed") {
+    invariant(
+      disputedAt !== null,
+      "DISPUTED_FENCE_REQUIRES_DISPUTED_AT",
+      "Disputed ReservationFenceRecord rows require disputedAt.",
     );
   }
 
@@ -325,6 +375,7 @@ function validateReservationFenceRecordSnapshot(
     expiresAt,
     releasedAt,
     expiredAt,
+    disputedAt,
     blockingFenceRef,
     reasonRefs: uniqueSortedRefs(snapshot.reasonRefs),
     version: ensurePositiveInteger(snapshot.version, "version"),
@@ -955,6 +1006,28 @@ export interface CompleteReservationInput {
   observedAt: string;
   terminalReasonCode: string;
   generatedAt?: string;
+  expectedReservationVersionRef?: string | null;
+}
+
+export interface TransitionReservationInput {
+  canonicalReservationKey: string;
+  fenceToken: string;
+  requestedState: Extract<
+    CapacityReservationState,
+    "soft_selected" | "held" | "pending_confirmation" | "confirmed" | "disputed"
+  >;
+  observedAt: string;
+  generatedAt?: string;
+  expectedReservationVersionRef?: string | null;
+  expiresAt?: string | null;
+  revalidatedAt?: string | null;
+  confirmedAt?: string | null;
+  terminalReasonCode?: string | null;
+  projectionFreshnessEnvelopeRef?: string | null;
+  sourceObjectRef?: string | null;
+  selectedAnchorRef?: string | null;
+  commitMode?: CapacityCommitMode;
+  capacityIdentitySupportsExclusivity?: boolean;
 }
 
 export interface ReservationAuthorityClaimResult {
@@ -1016,6 +1089,71 @@ export class ReservationAuthority {
     return active[0] ?? null;
   }
 
+  private assertExpectedReservationVersion(
+    reservation: CapacityReservationDocument,
+    expectedReservationVersionRef: string | null | undefined,
+  ): void {
+    const expected = optionalRef(expectedReservationVersionRef);
+    if (expected === null) {
+      return;
+    }
+    invariant(
+      expected ===
+        buildReservationVersionRef({
+          reservationId: reservation.reservationId,
+          reservationVersion: reservation.toSnapshot().reservationVersion,
+        }),
+      "STALE_RESERVATION_VERSION_REF",
+      "Reservation transitions must supply the latest reservationVersionRef.",
+    );
+  }
+
+  private async requireActiveFenceBundle(input: {
+    canonicalReservationKey: string;
+    fenceToken: string;
+    expectedReservationVersionRef?: string | null;
+  }): Promise<{
+    fence: ReservationFenceRecordDocument;
+    reservation: CapacityReservationDocument;
+    projection: ReservationTruthProjectionDocument | null;
+  }> {
+    const activeFence = await this.getLatestActiveFence(input.canonicalReservationKey);
+    invariant(
+      activeFence !== null,
+      "ACTIVE_RESERVATION_FENCE_MISSING",
+      "A live ReservationFenceRecord is required before reservation transition.",
+    );
+    const fenceSnapshot = activeFence.toSnapshot();
+    invariant(
+      fenceSnapshot.fenceToken === ensureHexHash(input.fenceToken, "fenceToken"),
+      "STALE_RESERVATION_FENCE_TOKEN",
+      "Reservation transitions must supply the latest active fencing token.",
+    );
+    invariant(
+      fenceSnapshot.sourceReservationRef !== null,
+      "ACTIVE_FENCE_RESERVATION_REF_MISSING",
+      "A live ReservationFenceRecord must bind a capacity reservation.",
+    );
+    const reservation = await this.repositories.getCapacityReservation(
+      fenceSnapshot.sourceReservationRef,
+    );
+    invariant(
+      reservation !== null,
+      "ACTIVE_RESERVATION_ROW_MISSING",
+      "The live ReservationFenceRecord references a missing capacity reservation.",
+    );
+    this.assertExpectedReservationVersion(reservation, input.expectedReservationVersionRef);
+    const projection =
+      fenceSnapshot.sourceProjectionRef === null
+        ? null
+        : await this.repositories.getReservationTruthProjection(fenceSnapshot.sourceProjectionRef);
+    return {
+      fence: activeFence,
+      reservation,
+      projection,
+    };
+  }
+
   private async findExactReplay(
     input: ClaimReservationInput,
     activeFence: ReservationFenceRecordDocument | null,
@@ -1067,6 +1205,7 @@ export class ReservationAuthority {
       ...fenceSnapshot,
       state: "released",
       releasedAt,
+      disputedAt: null,
       reasonRefs: uniqueSortedRefs([...fenceSnapshot.reasonRefs, "superseded_by_new_claim"]),
       version: fenceSnapshot.version + 1,
     });
@@ -1117,6 +1256,7 @@ export class ReservationAuthority {
           expiresAt: input.expiresAt ?? null,
           releasedAt: null,
           expiredAt: null,
+          disputedAt: null,
           blockingFenceRef: activeFence.reservationFenceRecordId,
           reasonRefs: ["canonical_reservation_key_conflict", "exclusive_contention"],
           version: 1,
@@ -1179,15 +1319,16 @@ export class ReservationAuthority {
         state: "active",
         truthBasisHash: reservationSnapshot.truthBasisHash,
         sourceReservationRef: reservationSnapshot.reservationId,
-        sourceProjectionRef: projection.toSnapshot().reservationTruthProjectionId,
-        activatedAt: reservationSnapshot.supplierObservedAt,
-        expiresAt: reservationSnapshot.expiresAt,
-        releasedAt: null,
-        expiredAt: null,
-        blockingFenceRef: null,
-        reasonRefs: uniqueSortedRefs([
-          reservationSnapshot.state,
-          reservationSnapshot.commitMode,
+      sourceProjectionRef: projection.toSnapshot().reservationTruthProjectionId,
+      activatedAt: reservationSnapshot.supplierObservedAt,
+      expiresAt: reservationSnapshot.expiresAt,
+      releasedAt: null,
+      expiredAt: null,
+      disputedAt: null,
+      blockingFenceRef: null,
+      reasonRefs: uniqueSortedRefs([
+        reservationSnapshot.state,
+        reservationSnapshot.commitMode,
           reservationSnapshot.state === "soft_selected"
             ? "truthful_nonexclusive_offer"
             : "serialized_reservation_claim",
@@ -1206,41 +1347,162 @@ export class ReservationAuthority {
     });
   }
 
-  private async completeReservation(
-    state: Extract<CapacityReservationState, "released" | "expired">,
-    input: CompleteReservationInput,
+  async transitionReservation(
+    input: TransitionReservationInput,
   ): Promise<ReservationAuthorityTransitionResult> {
     return this.serializeOnReservationKey(input.canonicalReservationKey, async () => {
-      const activeFence = await this.getLatestActiveFence(input.canonicalReservationKey);
-      invariant(
-        activeFence !== null,
-        "ACTIVE_RESERVATION_FENCE_MISSING",
-        "A live ReservationFenceRecord is required before release or expiry.",
-      );
-      const fenceSnapshot = activeFence.toSnapshot();
-      invariant(
-        fenceSnapshot.fenceToken === ensureHexHash(input.fenceToken, "fenceToken"),
-        "STALE_RESERVATION_FENCE_TOKEN",
-        "Release or expiry requests must supply the latest active fencing token.",
-      );
-      invariant(
-        fenceSnapshot.sourceReservationRef !== null,
-        "ACTIVE_FENCE_RESERVATION_REF_MISSING",
-        "A live ReservationFenceRecord must bind a capacity reservation.",
-      );
-      const reservation = await this.repositories.getCapacityReservation(
-        fenceSnapshot.sourceReservationRef,
-      );
-      invariant(
-        reservation !== null,
-        "ACTIVE_RESERVATION_ROW_MISSING",
-        "The live ReservationFenceRecord references a missing capacity reservation.",
-      );
+      const bundle = await this.requireActiveFenceBundle({
+        canonicalReservationKey: input.canonicalReservationKey,
+        fenceToken: input.fenceToken,
+        expectedReservationVersionRef: input.expectedReservationVersionRef,
+      });
+      const fenceSnapshot = bundle.fence.toSnapshot();
+      const currentReservation = bundle.reservation.toSnapshot();
       const reservationAuthority = createReservationConfirmationAuthorityService(
         this.repositories,
         this.idGenerator,
       );
-      const currentReservation = reservation.toSnapshot();
+
+      let commitMode = currentReservation.commitMode;
+      if (input.requestedState === "held") {
+        commitMode = "exclusive_hold";
+      } else if (input.requestedState === "soft_selected") {
+        commitMode =
+          input.commitMode === "degraded_manual_pending"
+            ? "degraded_manual_pending"
+            : "truthful_nonexclusive";
+      } else if (input.commitMode) {
+        commitMode = input.commitMode;
+      }
+
+      invariant(
+        input.requestedState !== "held" || commitMode === "exclusive_hold",
+        "HELD_TRANSITION_REQUIRES_EXCLUSIVE_HOLD",
+        "held transitions must use exclusive_hold commit mode.",
+      );
+      invariant(
+        input.requestedState !== "soft_selected" || commitMode !== "exclusive_hold",
+        "SOFT_SELECTED_TRANSITION_FORBIDS_EXCLUSIVE_HOLD",
+        "soft_selected transitions may not imply exclusive_hold semantics.",
+      );
+      invariant(
+        input.requestedState !== "disputed" || optionalRef(input.terminalReasonCode) !== null,
+        "DISPUTED_TRANSITION_REQUIRES_REASON",
+        "disputed transitions require a terminalReasonCode.",
+      );
+      const timing = derivePostConfirmationTiming({
+        observedAt: input.observedAt,
+        revalidatedAt: input.revalidatedAt,
+        currentReservation,
+      });
+
+      const updatedReservation = await reservationAuthority.recordCapacityReservation({
+        reservationId: currentReservation.reservationId,
+        capacityIdentityRef: currentReservation.capacityIdentityRef,
+        canonicalReservationKey: currentReservation.canonicalReservationKey,
+        sourceDomain: currentReservation.sourceDomain,
+        holderRef: currentReservation.holderRef,
+        state: input.requestedState,
+        commitMode,
+        supplierObservedAt: timing.supplierObservedAt,
+        revalidatedAt: timing.revalidatedAt,
+        expiresAt:
+          input.requestedState === "held" || input.requestedState === "soft_selected"
+            ? (input.expiresAt ?? currentReservation.expiresAt)
+            : currentReservation.expiresAt,
+        confirmedAt:
+          input.requestedState === "confirmed"
+            ? (input.confirmedAt ?? input.observedAt)
+            : currentReservation.confirmedAt,
+        terminalReasonCode:
+          input.requestedState === "disputed"
+            ? optionalRef(input.terminalReasonCode)
+            : currentReservation.terminalReasonCode,
+      });
+      const projection = await reservationAuthority.refreshReservationTruthProjection({
+        reservationId: updatedReservation.reservationId,
+        reservationTruthProjectionId:
+          fenceSnapshot.sourceProjectionRef ?? bundle.projection?.reservationTruthProjectionId,
+        sourceObjectRef: optionalRef(input.sourceObjectRef) ?? fenceSnapshot.sourceObjectRef,
+        selectedAnchorRef:
+          optionalRef(input.selectedAnchorRef) ?? fenceSnapshot.selectedAnchorRef,
+        projectionFreshnessEnvelopeRef:
+          optionalRef(input.projectionFreshnessEnvelopeRef) ??
+          fenceSnapshot.projectionFreshnessEnvelopeRef,
+        generatedAt: input.generatedAt ?? input.observedAt,
+        capacityIdentitySupportsExclusivity: input.capacityIdentitySupportsExclusivity,
+      });
+      const updatedFence = ReservationFenceRecordDocument.create({
+        ...fenceSnapshot,
+        sourceObjectRef: optionalRef(input.sourceObjectRef) ?? fenceSnapshot.sourceObjectRef,
+        selectedAnchorRef:
+          optionalRef(input.selectedAnchorRef) ?? fenceSnapshot.selectedAnchorRef,
+        projectionFreshnessEnvelopeRef:
+          optionalRef(input.projectionFreshnessEnvelopeRef) ??
+          fenceSnapshot.projectionFreshnessEnvelopeRef,
+        fenceToken: updatedReservation.toSnapshot().activeFencingToken,
+        reservationState: updatedReservation.toSnapshot().state,
+        commitMode: updatedReservation.toSnapshot().commitMode,
+        state: input.requestedState === "disputed" ? "disputed" : "active",
+        truthBasisHash: updatedReservation.toSnapshot().truthBasisHash,
+        sourceProjectionRef: projection.toSnapshot().reservationTruthProjectionId,
+        activatedAt: input.observedAt,
+        expiresAt: updatedReservation.toSnapshot().expiresAt,
+        releasedAt: null,
+        expiredAt: null,
+        disputedAt: input.requestedState === "disputed" ? input.observedAt : null,
+        blockingFenceRef: null,
+        reasonRefs: uniqueSortedRefs([
+          ...fenceSnapshot.reasonRefs,
+          input.requestedState,
+          updatedReservation.toSnapshot().commitMode,
+          optionalRef(input.terminalReasonCode) ?? "",
+        ]),
+        version: fenceSnapshot.version + 1,
+      });
+      await this.repositories.saveReservationFenceRecord(updatedFence, {
+        expectedVersion: fenceSnapshot.version,
+      });
+      return {
+        fence: updatedFence,
+        reservation: updatedReservation,
+        projection,
+      };
+    });
+  }
+
+  private async completeReservation(
+    state: Extract<CapacityReservationState, "released" | "expired" | "disputed">,
+    input: CompleteReservationInput,
+  ): Promise<ReservationAuthorityTransitionResult> {
+    return this.serializeOnReservationKey(input.canonicalReservationKey, async () => {
+      const bundle = await this.requireActiveFenceBundle({
+        canonicalReservationKey: input.canonicalReservationKey,
+        fenceToken: input.fenceToken,
+        expectedReservationVersionRef: input.expectedReservationVersionRef,
+      });
+      const fenceSnapshot = bundle.fence.toSnapshot();
+      const reservationAuthority = createReservationConfirmationAuthorityService(
+        this.repositories,
+        this.idGenerator,
+      );
+      const currentReservation = bundle.reservation.toSnapshot();
+      const timing = derivePostConfirmationTiming({
+        observedAt: input.observedAt,
+        currentReservation,
+      });
+      const terminalSupplierObservedAt =
+        state === "expired" &&
+        currentReservation.expiresAt !== null &&
+        compareIso(currentReservation.expiresAt, timing.supplierObservedAt) < 0
+          ? currentReservation.supplierObservedAt
+          : timing.supplierObservedAt;
+      const terminalRevalidatedAt =
+        state === "expired" &&
+        currentReservation.expiresAt !== null &&
+        compareIso(currentReservation.expiresAt, timing.supplierObservedAt) < 0
+          ? input.observedAt
+          : timing.revalidatedAt;
       const updatedReservation = await reservationAuthority.recordCapacityReservation({
         reservationId: currentReservation.reservationId,
         capacityIdentityRef: currentReservation.capacityIdentityRef,
@@ -1249,8 +1511,8 @@ export class ReservationAuthority {
         holderRef: currentReservation.holderRef,
         state,
         commitMode: currentReservation.commitMode,
-        supplierObservedAt: input.observedAt,
-        revalidatedAt: currentReservation.revalidatedAt,
+        supplierObservedAt: terminalSupplierObservedAt,
+        revalidatedAt: terminalRevalidatedAt,
         expiresAt:
           state === "expired"
             ? (currentReservation.expiresAt ?? input.observedAt)
@@ -1270,15 +1532,20 @@ export class ReservationAuthority {
       const completedFence = ReservationFenceRecordDocument.create({
         ...fenceSnapshot,
         reservationState: state,
-        state,
+        state: state === "disputed" ? "disputed" : state,
         truthBasisHash: updatedReservation.toSnapshot().truthBasisHash,
         sourceProjectionRef: projection.toSnapshot().reservationTruthProjectionId,
         releasedAt: state === "released" ? input.observedAt : null,
         expiredAt: state === "expired" ? input.observedAt : null,
+        disputedAt: state === "disputed" ? input.observedAt : null,
         reasonRefs: uniqueSortedRefs([
           ...fenceSnapshot.reasonRefs,
           input.terminalReasonCode,
-          state === "released" ? "reservation_released" : "hold_expired",
+          state === "released"
+            ? "reservation_released"
+            : state === "expired"
+              ? "hold_expired"
+              : "reservation_disputed",
         ]),
         version: fenceSnapshot.version + 1,
       });
@@ -1303,6 +1570,12 @@ export class ReservationAuthority {
     input: CompleteReservationInput,
   ): Promise<ReservationAuthorityTransitionResult> {
     return this.completeReservation("expired", input);
+  }
+
+  async disputeReservation(
+    input: CompleteReservationInput,
+  ): Promise<ReservationAuthorityTransitionResult> {
+    return this.completeReservation("disputed", input);
   }
 }
 

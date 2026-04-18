@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildReservationVersionRef,
   createReservationQueueServices,
   createReservationQueueSimulationHarness,
 } from "../src/index.ts";
@@ -259,6 +260,103 @@ describe("reservation queue control backbone", () => {
     });
     expect(released.fence.toSnapshot().state).toBe("released");
     expect(released.projection.toSnapshot().truthState).toBe("released");
+  });
+
+  it("transitions one fenced reservation through hold, pending confirmation, confirmed, and disputed states", async () => {
+    const services = createReservationQueueServices();
+    const softSelected = await services.reservationAuthority.claimReservation({
+      capacityIdentityRef: "capacity_286_transition",
+      canonicalReservationKey: "canonical_reservation_key_286_transition",
+      sourceDomain: "booking_local",
+      holderRef: "holder_286_transition",
+      sourceObjectRef: "offer_286_transition",
+      selectedAnchorRef: "slot_286_transition",
+      projectionFreshnessEnvelopeRef: "freshness::286_transition",
+      requestedState: "soft_selected",
+      supplierObservedAt: "2026-04-18T12:00:00.000Z",
+      expiresAt: "2026-04-18T12:05:00.000Z",
+    });
+
+    const held = await services.reservationAuthority.transitionReservation({
+      canonicalReservationKey: "canonical_reservation_key_286_transition",
+      fenceToken: softSelected.fence.fenceToken,
+      requestedState: "held",
+      observedAt: "2026-04-18T12:01:00.000Z",
+      expiresAt: "2026-04-18T12:03:00.000Z",
+      expectedReservationVersionRef: buildReservationVersionRef({
+        reservationId: softSelected.reservation!.reservationId,
+        reservationVersion: softSelected.reservation!.toSnapshot().reservationVersion,
+      }),
+      capacityIdentitySupportsExclusivity: true,
+    });
+    expect(held.projection.toSnapshot().truthState).toBe("exclusive_held");
+    expect(held.fence.toSnapshot().state).toBe("active");
+
+    const pending = await services.reservationAuthority.transitionReservation({
+      canonicalReservationKey: "canonical_reservation_key_286_transition",
+      fenceToken: held.fence.fenceToken,
+      requestedState: "pending_confirmation",
+      observedAt: "2026-04-18T12:01:30.000Z",
+      expectedReservationVersionRef: buildReservationVersionRef({
+        reservationId: held.reservation.reservationId,
+        reservationVersion: held.reservation.toSnapshot().reservationVersion,
+      }),
+    });
+    expect(pending.projection.toSnapshot().truthState).toBe("pending_confirmation");
+
+    const confirmed = await services.reservationAuthority.transitionReservation({
+      canonicalReservationKey: "canonical_reservation_key_286_transition",
+      fenceToken: pending.fence.fenceToken,
+      requestedState: "confirmed",
+      observedAt: "2026-04-18T12:02:00.000Z",
+      confirmedAt: "2026-04-18T12:02:00.000Z",
+      expectedReservationVersionRef: buildReservationVersionRef({
+        reservationId: pending.reservation.reservationId,
+        reservationVersion: pending.reservation.toSnapshot().reservationVersion,
+      }),
+    });
+    expect(confirmed.projection.toSnapshot().truthState).toBe("confirmed");
+
+    const disputed = await services.reservationAuthority.disputeReservation({
+      canonicalReservationKey: "canonical_reservation_key_286_transition",
+      fenceToken: confirmed.fence.fenceToken,
+      observedAt: "2026-04-18T12:02:30.000Z",
+      terminalReasonCode: "supplier_conflict_detected",
+      expectedReservationVersionRef: buildReservationVersionRef({
+        reservationId: confirmed.reservation.reservationId,
+        reservationVersion: confirmed.reservation.toSnapshot().reservationVersion,
+      }),
+    });
+    expect(disputed.projection.toSnapshot().truthState).toBe("disputed");
+    expect(disputed.fence.toSnapshot().state).toBe("disputed");
+  });
+
+  it("rejects stale reservationVersionRef on terminal reservation transitions", async () => {
+    const services = createReservationQueueServices();
+    const held = await services.reservationAuthority.claimReservation({
+      capacityIdentityRef: "capacity_286_stale_version",
+      canonicalReservationKey: "canonical_reservation_key_286_stale_version",
+      sourceDomain: "booking_local",
+      holderRef: "holder_286_stale_version",
+      sourceObjectRef: "offer_286_stale_version",
+      selectedAnchorRef: "slot_286_stale_version",
+      projectionFreshnessEnvelopeRef: "freshness::286_stale_version",
+      requestedState: "held",
+      supplierObservedAt: "2026-04-18T12:10:00.000Z",
+      expiresAt: "2026-04-18T12:13:00.000Z",
+    });
+
+    await expect(
+      services.reservationAuthority.releaseReservation({
+        canonicalReservationKey: "canonical_reservation_key_286_stale_version",
+        fenceToken: held.fence.fenceToken,
+        observedAt: "2026-04-18T12:10:30.000Z",
+        terminalReasonCode: "USER_CANCELLED",
+        expectedReservationVersionRef: `${held.reservation!.reservationId}@v999`,
+      }),
+    ).rejects.toMatchObject({
+      code: "STALE_RESERVATION_VERSION_REF",
+    });
   });
 
   it("commits snapshots, escalates overload, and preserves base queue in suggestions", async () => {

@@ -108,11 +108,14 @@ describe("staff shell seed routes: accessibility and regression", () => {
     const html = renderToStaticMarkup(<StaffShellSeedApp />);
 
     expect(html).toContain('data-testid="staff-shell-root"');
-    expect(html).toContain('aria-label="Clinical workspace sections"');
+    expect(html).toContain('data-testid="WorkspaceShellRouteFamily"');
+    expect(html).toContain('data-testid="WorkspaceNavRail"');
+    expect(html).toContain('aria-label="Workspace navigation"');
     expect(html).toContain('role="listbox"');
     expect(html).toContain('data-testid="today-workbench-hero"');
-    expect(html).toContain('data-testid="decision-dock"');
-    expect(html).toContain('data-dom-marker="selected-anchor"');
+    expect(html).not.toContain('data-testid="decision-dock"');
+    expect(html).toContain('data-testid="route-authority-card"');
+    expect(html).toContain('data-selected-anchor-ref="hero-recommended-queue"');
     expect(html).toContain('data-automation-surface="rf_staff_workspace"');
   });
 

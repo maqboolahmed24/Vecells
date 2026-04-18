@@ -9,6 +9,7 @@ import {
 } from "react";
 import { VecellLogoWordmark } from "@vecells/design-system";
 import { resolvePortalSupportPhase2Context } from "../../../packages/domain-kernel/src/patient-support-phase2-integration";
+import { tryResolvePhase3PatientWorkspaceConversationBundle } from "@vecells/domain-kernel";
 import {
   PATIENT_HOME_REQUESTS_DETAIL_TASK_ID,
   PATIENT_HOME_REQUESTS_DETAIL_VISUAL_MODE,
@@ -655,9 +656,11 @@ export function RequestLineageStrip({ detail }: { detail: PatientRequestDetailPr
 export function RequestDetailHero({
   detail,
   onReturn,
+  onOpenConversation,
 }: {
   detail: PatientRequestDetailProjection;
   onReturn: () => void;
+  onOpenConversation?: (() => void) | null;
 }) {
   return (
     <section
@@ -680,6 +683,18 @@ export function RequestDetailHero({
       </div>
       <h2 id="request-detail-heading">{detail.title}</h2>
       <p>{detail.patientSafeDetail}</p>
+      {onOpenConversation ? (
+        <div className="patient-casework__detail-hero-actions">
+          <button
+            type="button"
+            className="patient-casework__secondary-action"
+            data-testid="request-detail-open-conversation"
+            onClick={onOpenConversation}
+          >
+            Open conversation
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -803,16 +818,22 @@ function DetailRoute({
   detail,
   onReturn,
   onFocusPlaceholder,
+  onOpenConversation,
 }: {
   detail: PatientRequestDetailProjection;
   onReturn: () => void;
   onFocusPlaceholder: (child: PatientRequestDownstreamProjection) => void;
+  onOpenConversation?: (() => void) | null;
 }) {
   return (
     <div className="patient-casework__detail" data-testid="patient-request-detail-route">
       <div className="patient-casework__detail-main">
         <RequestLineageStrip detail={detail} />
-        <RequestDetailHero detail={detail} onReturn={onReturn} />
+        <RequestDetailHero
+          detail={detail}
+          onReturn={onReturn}
+          onOpenConversation={onOpenConversation}
+        />
         <section
           className="patient-casework__placeholder-grid"
           aria-label="Governed child surfaces"
@@ -865,6 +886,19 @@ export default function PatientHomeRequestsDetailRoutesApp() {
           detail={entry.requestDetail}
           onReturn={returnToRequests}
           onFocusPlaceholder={focusPlaceholder}
+          onOpenConversation={(() => {
+            const bundle = tryResolvePhase3PatientWorkspaceConversationBundle({
+              requestRef: entry.requestDetail.requestRef,
+              routeKey: "conversation_overview",
+            });
+            if (!bundle) {
+              return null;
+            }
+            return () =>
+              typeof window !== "undefined"
+                ? window.location.assign(bundle.routeRefs.overview)
+                : undefined;
+          })()}
         />
       ) : (
         <RequestsRoute

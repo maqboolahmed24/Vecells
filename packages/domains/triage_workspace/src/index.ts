@@ -48,7 +48,7 @@ export const packageContract = {
     "CBC_041_DOMAIN_PACKAGES_TO_EVENT_CONTRACTS",
     "CBC_041_DOMAIN_PACKAGES_TO_POLICY_AND_OBSERVABILITY",
   ],
-  objectFamilyCount: 61,
+  objectFamilyCount: 70,
   contractFamilyCount: 0,
   sourceContexts: ["triage_human_checkpoint", "phase1_triage_handoff"],
 } as const satisfies PackageContract;
@@ -414,6 +414,106 @@ export const ownedObjectFamilies = [
       "self-care-content-and-admin-resolution-blueprint.md#Self-care content governance / Suggested objects / AdviceRenderSettlement",
   },
   {
+    canonicalName: "AdviceAdminDependencySet",
+    objectKind: "record",
+    boundedContext: "triage_human_checkpoint",
+    authoritativeOwner: "Triage domain",
+    sourceRef:
+      "self-care-content-and-admin-resolution-blueprint.md#AdviceAdminDependencySet",
+  },
+  {
+    canonicalName: "AdviceUsageAnalyticsRecord",
+    objectKind: "record",
+    boundedContext: "triage_human_checkpoint",
+    authoritativeOwner: "Triage domain",
+    sourceRef:
+      "self-care-content-and-admin-resolution-blueprint.md#Self-care content governance / Suggested objects / AdviceUsageAnalyticsRecord",
+  },
+  {
+    canonicalName: "AdviceFollowUpWatchWindow",
+    objectKind: "window",
+    boundedContext: "triage_human_checkpoint",
+    authoritativeOwner: "Triage domain",
+    sourceRef:
+      "self-care-content-and-admin-resolution-blueprint.md#Self-care content governance / Suggested objects / AdviceFollowUpWatchWindow",
+  },
+  {
+    canonicalName: "PatientExpectationTemplate",
+    objectKind: "template",
+    boundedContext: "triage_human_checkpoint",
+    authoritativeOwner: "Triage domain",
+    sourceRef: "prompt/253.md#Deliverables to create",
+  },
+  {
+    canonicalName: "PatientExpectationTemplateVersion",
+    objectKind: "template_version",
+    boundedContext: "triage_human_checkpoint",
+    authoritativeOwner: "Triage domain",
+    sourceRef: "prompt/253.md#Mandatory gap closures you must perform",
+  },
+  {
+    canonicalName: "PatientExpectationTemplateVariant",
+    objectKind: "template_variant",
+    boundedContext: "triage_human_checkpoint",
+    authoritativeOwner: "Triage domain",
+    sourceRef: "prompt/253.md#Deliverables to create",
+  },
+  {
+    canonicalName: "AdminResolutionCase",
+    objectKind: "aggregate",
+    boundedContext: "triage_human_checkpoint",
+    authoritativeOwner: "Triage domain",
+    sourceRef:
+      "self-care-content-and-admin-resolution-blueprint.md#AdminResolutionCase",
+  },
+  {
+    canonicalName: "AdminResolutionSubtypeProfile",
+    objectKind: "profile",
+    boundedContext: "triage_human_checkpoint",
+    authoritativeOwner: "Triage domain",
+    sourceRef:
+      "self-care-content-and-admin-resolution-blueprint.md#AdminResolutionSubtypeProfile",
+  },
+  {
+    canonicalName: "AdminResolutionCompletionArtifact",
+    objectKind: "artifact",
+    boundedContext: "triage_human_checkpoint",
+    authoritativeOwner: "Triage domain",
+    sourceRef:
+      "self-care-content-and-admin-resolution-blueprint.md#AdminResolutionCompletionArtifact",
+  },
+  {
+    canonicalName: "AdminResolutionActionRecord",
+    objectKind: "record",
+    boundedContext: "triage_human_checkpoint",
+    authoritativeOwner: "Triage domain",
+    sourceRef:
+      "self-care-content-and-admin-resolution-blueprint.md#AdminResolutionActionRecord",
+  },
+  {
+    canonicalName: "AdminResolutionSettlement",
+    objectKind: "record",
+    boundedContext: "triage_human_checkpoint",
+    authoritativeOwner: "Triage domain",
+    sourceRef:
+      "self-care-content-and-admin-resolution-blueprint.md#AdminResolutionSettlement",
+  },
+  {
+    canonicalName: "AdminResolutionExperienceProjection",
+    objectKind: "projection",
+    boundedContext: "triage_human_checkpoint",
+    authoritativeOwner: "Triage domain",
+    sourceRef:
+      "self-care-content-and-admin-resolution-blueprint.md#AdminResolutionExperienceProjection",
+  },
+  {
+    canonicalName: "AdminResolutionCrossDomainReentry",
+    objectKind: "record",
+    boundedContext: "triage_human_checkpoint",
+    authoritativeOwner: "Triage domain",
+    sourceRef: "prompt/254.md#Deliverables to create",
+  },
+  {
     canonicalName: "SelfCareBoundarySupersessionRecord",
     objectKind: "record",
     boundedContext: "triage_human_checkpoint",
@@ -549,6 +649,13 @@ export const ownedObjectFamilies = [
 
 export const aggregateFamilies = [
   {
+    canonicalName: "AdminResolutionCase",
+    objectKind: "aggregate",
+    boundedContext: "triage_human_checkpoint",
+    authoritativeOwner: "Triage domain",
+    sourceRef: "prompt/251.md#Mission",
+  },
+  {
     canonicalName: "MoreInfoCycle",
     objectKind: "case",
     boundedContext: "triage_human_checkpoint",
@@ -673,6 +780,34 @@ export const domainServiceFamilies = [
     authoritativeOwner: "Triage domain",
     sourceRef: "prompt/250.md#Mission",
   },
+  {
+    canonicalName: "Phase3AdminResolutionPolicyKernelService",
+    objectKind: "other",
+    boundedContext: "triage_human_checkpoint",
+    authoritativeOwner: "Triage domain",
+    sourceRef: "prompt/251.md#Mission",
+  },
+  {
+    canonicalName: "Phase3AdviceAdminDependencyKernelService",
+    objectKind: "other",
+    boundedContext: "triage_human_checkpoint",
+    authoritativeOwner: "Triage domain",
+    sourceRef: "prompt/252.md#Mission",
+  },
+  {
+    canonicalName: "Phase3SelfCareOutcomeAnalyticsKernelService",
+    objectKind: "other",
+    boundedContext: "triage_human_checkpoint",
+    authoritativeOwner: "Triage domain",
+    sourceRef: "prompt/253.md#Mission",
+  },
+  {
+    canonicalName: "Phase3AdminResolutionSettlementKernelService",
+    objectKind: "other",
+    boundedContext: "triage_human_checkpoint",
+    authoritativeOwner: "Triage domain",
+    sourceRef: "prompt/254.md#Mission",
+  },
 ] as const satisfies readonly OwnedObjectFamily[];
 
 export const eventFamilies = [] as const satisfies readonly OwnedObjectFamily[];
@@ -696,6 +831,9 @@ export function bootstrapDomainModule() {
 export * from "./phase1-triage-task";
 export * from "./phase3-approval-escalation-kernel";
 export * from "./phase3-advice-render-kernel";
+export * from "./phase3-advice-admin-dependency-kernel";
+export * from "./phase3-admin-resolution-policy-kernel";
+export * from "./phase3-admin-resolution-settlement-kernel";
 export * from "./phase3-callback-kernel";
 export * from "./phase3-clinician-message-kernel";
 export * from "./phase3-direct-resolution-kernel";
@@ -703,6 +841,7 @@ export * from "./phase3-endpoint-decision-kernel";
 export * from "./phase3-more-info-kernel";
 export * from "./phase3-more-info-response-resafety";
 export * from "./phase3-reopen-launch-kernel";
+export * from "./phase3-self-care-outcome-analytics-kernel";
 export * from "./phase3-self-care-boundary-kernel";
 export * from "./phase3-task-completion-continuity-kernel";
 export * from "./phase3-triage-kernel";

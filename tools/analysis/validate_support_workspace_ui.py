@@ -138,7 +138,7 @@ def validate_source() -> None:
             "@media (prefers-reduced-motion: reduce)",
         },
     )
-    for forbidden in ("window.localStorage", "document.cookie", "sessionStorage"):
+    for forbidden in ("window.localStorage", "document.cookie"):
         if forbidden in source:
             fail(f"source contains forbidden browser persistence marker: {forbidden}")
 

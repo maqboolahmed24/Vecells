@@ -5,23 +5,63 @@ import {
   useEffectEvent,
   useRef,
   useState,
-  type KeyboardEvent,
+  type ReactNode,
 } from "react";
 import {
-  buildAutomationAnchorElementAttributes,
   buildAutomationSurfaceAttributes,
   createUiTelemetryEnvelope,
   type UiTelemetryEnvelopeExample,
 } from "@vecells/persistent-shell";
 import { CasePulse, SharedStatusStrip } from "@vecells/design-system";
 import { SurfaceStateFrame } from "@vecells/surface-postures";
+import { ActiveTaskShell } from "./workspace-active-task-shell";
+import {
+  ApprovalInboxRoute,
+  EscalationWorkspaceRoute,
+} from "./workspace-approval-escalation";
+import {
+  buildCallbackWorkbenchProjection,
+  defaultCallbackWorkbenchTaskId,
+  listCallbackWorkbenchTaskIds,
+} from "./workspace-callback-workbench.data";
+import { CallbackWorklistRoute } from "./workspace-callback-workbench";
+import { ChangedWorkRoute } from "./workspace-changed-review";
+import {
+  buildSelfCareAdminViewsRouteProjection,
+  defaultSelfCareAdminTaskId,
+  listSelfCareAdminTaskIds,
+} from "./workspace-selfcare-admin.data";
+import { SelfCareAdminViewsRoute } from "./workspace-selfcare-admin";
+import {
+  buildClinicianMessageWorkbenchProjection,
+  defaultClinicianMessageWorkbenchTaskId,
+  listClinicianMessageWorkbenchTaskIds,
+  type ClinicianMessageStage,
+} from "./workspace-clinician-message-repair.data";
+import { ClinicianMessageThreadSurface } from "./workspace-clinician-message-repair";
+import { buildWorkspaceFocusContinuityProjection } from "./workspace-focus-continuity.data";
+import {
+  CLINICAL_BETA_VALIDATION_FEATURE_FLAG,
+  CLINICAL_BETA_VALIDATION_VISUAL_MODE,
+  recordWorkspaceSupportUiEvent,
+  type ValidationRouteFamilyRef,
+  type ValidationActionFamily,
+} from "./workspace-support-observability";
+import { WorkspaceValidationRoute } from "./workspace-validation-board";
+import { WorkspaceCommandPalette } from "./workspace-command-palette";
 import {
   STAFF_STORAGE_KEY,
   STAFF_TELEMETRY_SCENARIO_ID,
   applyQueueChangeBatch,
+  buildApprovalInboxRouteProjection,
+  buildChangedWorkRouteProjection,
   buildStaffPath,
+  buildEscalationRouteProjection,
   buildSurfacePosture,
+  buildTaskWorkspaceProjection,
   buildWorkspaceStatus,
+  createInitialAttachmentAndThreadSelection,
+  createInitialRapidEntryDraft,
   createInitialLedger,
   createStaffRouteAuthority,
   defaultAnchorForRoute,
@@ -33,17 +73,169 @@ import {
   parseStaffPath,
   reduceLedgerForNavigation,
   requireCase,
-  routeFamilyRefForKind,
   staffAutomationProfile,
   staffCases,
   staffHomeModules,
   staffQueues,
   type StaffHomeModule,
-  type StaffQueueCase,
+  type StaffRouteAuthorityArtifacts,
   type StaffRouteKind,
   type StaffShellLedger,
   type StaffShellRoute,
-} from "./staff-shell-seed.data";
+  type RapidEntryDraftInput,
+} from "./workspace-shell.data";
+import { QueueScanManager } from "./workspace-queue-workboard";
+import {
+  WORKSPACE_FOCUS_TARGET_IDS,
+  WORKSPACE_ACCESSIBILITY_VISUAL_MODE,
+  WorkspaceAnnouncementHub,
+  WorkspaceSkipLinks,
+  buildWorkspaceAccessibilityContractBundle,
+  buildWorkspaceAnnouncementPlan,
+  buildWorkspaceSurfaceAttributes,
+  resolveRouteFocusEntryId,
+  resolveWorkspaceFocusOrder,
+  resolveWorkspaceKeyboardModelDescription,
+} from "./workspace-accessibility";
+
+const WORKSPACE_ROUTE_FAMILY_TASK_ID =
+  "par_255_phase3_track_Playwright_or_other_appropriate_tooling_frontend_build_workspace_home_queue_and_task_route_family";
+const WORKSPACE_DESIGN_MODE = "Quiet_Clinical_Mission_Control";
+const CONTROL_ROOM_DESIGN_MODE = "Quiet_Escalation_Control_Room";
+const DELTA_REENTRY_DESIGN_MODE = "Delta_Reentry_Compass";
+const CALLBACK_OPERATIONS_DECK = "Callback_Operations_Deck";
+const THREAD_REPAIR_STUDIO = "Thread_Repair_Studio";
+const BOUNDED_CONSEQUENCE_STUDIO = "Bounded_Consequence_Studio";
+
+function validationPublicationPosture(
+  runtimeScenario: StaffShellLedger["runtimeScenario"],
+): "live" | "projection_visible" | "recovery_only" | "blocked" {
+  switch (runtimeScenario) {
+    case "live":
+      return "live";
+    case "stale_review":
+      return "projection_visible";
+    case "read_only":
+    case "recovery_only":
+      return "recovery_only";
+    case "blocked":
+      return "blocked";
+  }
+}
+
+function validationRecoveryPosture(
+  runtimeScenario: StaffShellLedger["runtimeScenario"],
+): "none" | "stale_recoverable" | "read_only_fallback" | "recovery_required" | "blocked" {
+  switch (runtimeScenario) {
+    case "live":
+      return "none";
+    case "stale_review":
+      return "stale_recoverable";
+    case "read_only":
+      return "read_only_fallback";
+    case "recovery_only":
+      return "recovery_required";
+    case "blocked":
+      return "blocked";
+  }
+}
+
+function validationEventState(
+  runtimeScenario: StaffShellLedger["runtimeScenario"],
+): "provisional" | "authoritative" | "buffered" | "resolved" | "failed" {
+  switch (runtimeScenario) {
+    case "live":
+      return "authoritative";
+    case "stale_review":
+      return "buffered";
+    case "read_only":
+    case "recovery_only":
+      return "provisional";
+    case "blocked":
+      return "failed";
+  }
+}
+
+function validationSettlementProfile(runtimeScenario: StaffShellLedger["runtimeScenario"]) {
+  switch (runtimeScenario) {
+    case "live":
+      return {
+        localAckState: "shown" as const,
+        processingAcceptanceState: "externally_accepted" as const,
+        externalObservationState: "projection_visible" as const,
+        authoritativeSource: "projection_visible" as const,
+        authoritativeOutcomeState: "settled" as const,
+        settlementState: "authoritative" as const,
+      };
+    case "stale_review":
+      return {
+        localAckState: "buffered" as const,
+        processingAcceptanceState: "awaiting_external_confirmation" as const,
+        externalObservationState: "projection_visible" as const,
+        authoritativeSource: "not_yet_authoritative" as const,
+        authoritativeOutcomeState: "review_required" as const,
+        settlementState: "accepted" as const,
+      };
+    case "read_only":
+      return {
+        localAckState: "shown" as const,
+        processingAcceptanceState: "accepted_for_processing" as const,
+        externalObservationState: "recovery_only" as const,
+        authoritativeSource: "recovery_disposition" as const,
+        authoritativeOutcomeState: "recovery_required" as const,
+        settlementState: "disputed" as const,
+      };
+    case "recovery_only":
+      return {
+        localAckState: "restored" as const,
+        processingAcceptanceState: "accepted_for_processing" as const,
+        externalObservationState: "recovery_only" as const,
+        authoritativeSource: "recovery_disposition" as const,
+        authoritativeOutcomeState: "recovery_required" as const,
+        settlementState: "disputed" as const,
+      };
+    case "blocked":
+      return {
+        localAckState: "shown" as const,
+        processingAcceptanceState: "externally_rejected" as const,
+        externalObservationState: "blocked" as const,
+        authoritativeSource: "recovery_disposition" as const,
+        authoritativeOutcomeState: "failed" as const,
+        settlementState: "reverted" as const,
+      };
+  }
+}
+
+function actionFamilyForRoute(route: StaffShellRoute): ValidationActionFamily | null {
+  switch (route.kind) {
+    case "queue":
+    case "search":
+      return "claim";
+    case "task":
+      return "start_review";
+    case "more-info":
+      return "request_more_info";
+    case "decision":
+      return "close";
+    case "consequences":
+      return "self_care_action";
+    case "callbacks":
+      return "callback_action";
+    case "messages":
+      return "message_action";
+    case "approvals":
+      return "approve";
+    case "escalations":
+      return "escalate";
+    case "changed":
+      return "reopen";
+    case "support-handoff":
+      return "handoff";
+    case "home":
+    case "validation":
+      return null;
+  }
+}
 
 function safeWindow(): Window | undefined {
   return typeof window === "undefined" ? undefined : window;
@@ -51,6 +243,68 @@ function safeWindow(): Window | undefined {
 
 function classNames(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
+}
+
+function isPeerSelectionRoute(kind: StaffRouteKind): boolean {
+  return (
+    kind === "consequences" ||
+    kind === "callbacks" ||
+    kind === "messages" ||
+    kind === "approvals" ||
+    kind === "escalations" ||
+    kind === "changed" ||
+    kind === "search"
+  );
+}
+
+function taskBelongsToRoute(kind: StaffRouteKind, taskId: string): boolean {
+  const task = requireCase(taskId);
+  switch (kind) {
+    case "consequences":
+      return listSelfCareAdminTaskIds().includes(taskId);
+    case "callbacks":
+      return listCallbackWorkbenchTaskIds().includes(taskId);
+    case "messages":
+      return listClinicianMessageWorkbenchTaskIds().includes(taskId);
+    case "approvals":
+      return task.state === "approval";
+    case "escalations":
+      return task.state === "escalated" || task.state === "blocked";
+    case "changed":
+      return task.state === "changed" || task.state === "reassigned" || task.deltaClass !== "contextual";
+    case "search":
+      return true;
+    default:
+      return false;
+  }
+}
+
+function selectedTaskForRoute(route: StaffShellRoute, selectedTaskId: string) {
+  if (isPeerSelectionRoute(route.kind) && taskBelongsToRoute(route.kind, selectedTaskId)) {
+    return requireCase(selectedTaskId);
+  }
+  return deriveTaskForRoute(route) ?? requireCase(selectedTaskId);
+}
+
+function designModeForRoute(route: StaffShellRoute): string {
+  if (route.kind === "validation") {
+    return CLINICAL_BETA_VALIDATION_VISUAL_MODE;
+  }
+  if (route.kind === "changed") {
+    return DELTA_REENTRY_DESIGN_MODE;
+  }
+  if (route.kind === "consequences") {
+    return BOUNDED_CONSEQUENCE_STUDIO;
+  }
+  if (route.kind === "messages") {
+    return THREAD_REPAIR_STUDIO;
+  }
+  if (route.kind === "callbacks") {
+    return CALLBACK_OPERATIONS_DECK;
+  }
+  return route.kind === "approvals" || route.kind === "escalations"
+    ? CONTROL_ROOM_DESIGN_MODE
+    : WORKSPACE_DESIGN_MODE;
 }
 
 function readPersistedLedger(): StaffShellLedger | null {
@@ -63,7 +317,31 @@ function readPersistedLedger(): StaffShellLedger | null {
     return null;
   }
   try {
-    return JSON.parse(payload) as StaffShellLedger;
+    const parsed = JSON.parse(payload) as Partial<StaffShellLedger>;
+    const defaultSelectedTaskId =
+      parsed.path === "/workspace/callbacks"
+        ? defaultCallbackWorkbenchTaskId()
+        : parsed.path === "/workspace/consequences"
+          ? defaultSelfCareAdminTaskId()
+        : parsed.path === "/workspace/messages"
+          ? defaultClinicianMessageWorkbenchTaskId()
+          : "task-311";
+    return {
+      path: parsed.path ?? "/workspace",
+      selectedAnchorId: parsed.selectedAnchorId ?? "hero-recommended-queue",
+      queueKey: parsed.queueKey ?? "recommended",
+      selectedTaskId: parsed.selectedTaskId ?? defaultSelectedTaskId,
+      previewTaskId: parsed.previewTaskId ?? parsed.selectedTaskId ?? defaultSelectedTaskId,
+      searchQuery: parsed.searchQuery ?? "",
+      callbackStage: parsed.callbackStage ?? "detail",
+      messageStage: parsed.messageStage ?? "detail",
+      bufferedUpdateCount: parsed.bufferedUpdateCount ?? (parsed.queuedBatchPending ? 3 : 0),
+      queuedBatchPending: parsed.queuedBatchPending ?? false,
+      bufferedQueueTrayState:
+        parsed.bufferedQueueTrayState ?? (parsed.queuedBatchPending ? "collapsed" : "collapsed"),
+      runtimeScenario: parsed.runtimeScenario ?? "live",
+      lastQuietRegionLabel: parsed.lastQuietRegionLabel ?? "Queue workboard",
+    };
   } catch {
     return null;
   }
@@ -85,11 +363,86 @@ function initialRoute(): StaffShellRoute {
   return parseStaffPath(ownerWindow.location.pathname, ownerWindow.location.search);
 }
 
+function runtimeScenarioFromSearch(): StaffShellLedger["runtimeScenario"] | null {
+  const ownerWindow = safeWindow();
+  if (!ownerWindow) {
+    return null;
+  }
+  const state = new URLSearchParams(ownerWindow.location.search).get("state")?.trim().toLowerCase();
+  switch (state) {
+    case "quiet":
+    case "calm":
+    case "live":
+      return "live";
+    case "stale":
+    case "stale-review":
+    case "stale_review":
+      return "stale_review";
+    case "read-only":
+    case "read_only":
+    case "readonly":
+    case "observe":
+      return "read_only";
+    case "recovery":
+    case "degraded":
+    case "recovery-only":
+    case "recovery_only":
+      return "recovery_only";
+    case "blocked":
+      return "blocked";
+    default:
+      return null;
+  }
+}
+
+function dispatchRouteChange(): void {
+  const ownerWindow = safeWindow();
+  ownerWindow?.dispatchEvent(new CustomEvent("vecells-route-change"));
+}
+
+function historyStateFromLedger(ledger: Pick<
+  StaffShellLedger,
+  "selectedTaskId" | "previewTaskId" | "selectedAnchorId" | "callbackStage" | "messageStage"
+>) {
+  return {
+    selectedTaskId: ledger.selectedTaskId,
+    previewTaskId: ledger.previewTaskId,
+    selectedAnchorId: ledger.selectedAnchorId,
+    callbackStage: ledger.callbackStage,
+    messageStage: ledger.messageStage,
+  };
+}
+
+const PRESERVED_ROUTE_QUERY_KEYS = ["state", "fixture"] as const;
+
+function buildBrowserRouteUrl(path: string, search: string): string {
+  const nextUrl = new URL(path, "https://workspace.local");
+  const currentParams = new URLSearchParams(search);
+  for (const key of PRESERVED_ROUTE_QUERY_KEYS) {
+    if (nextUrl.searchParams.has(key)) {
+      continue;
+    }
+    for (const value of currentParams.getAll(key)) {
+      nextUrl.searchParams.append(key, value);
+    }
+  }
+  const nextSearch = nextUrl.searchParams.toString();
+  return `${nextUrl.pathname}${nextSearch ? `?${nextSearch}` : ""}`;
+}
+
 function layoutModeForWidth(width: number, route: StaffShellRoute): "two_plane" | "three_plane" | "mission_stack" {
   if (width < 1120) {
     return "mission_stack";
   }
-  return route.kind === "escalations" ? "three_plane" : "two_plane";
+  return route.kind === "callbacks" ||
+    route.kind === "validation" ||
+    route.kind === "consequences" ||
+    route.kind === "messages" ||
+    route.kind === "approvals" ||
+    route.kind === "escalations" ||
+    route.kind === "changed"
+    ? "three_plane"
+    : "two_plane";
 }
 
 function breakpointLabel(width: number): "compact" | "narrow" | "medium" | "wide" {
@@ -105,66 +458,62 @@ function breakpointLabel(width: number): "compact" | "narrow" | "medium" | "wide
   return "wide";
 }
 
-function routeLabel(kind: StaffRouteKind): string {
+function routeTestId(kind: StaffRouteKind): string {
   switch (kind) {
     case "home":
-      return "Home";
+      return "WorkspaceHomeRoute";
     case "queue":
-      return "Queue";
+      return "WorkspaceQueueRoute";
     case "task":
-      return "Task";
+      return "WorkspaceTaskRoute";
     case "more-info":
-      return "More-info";
+      return "WorkspaceMoreInfoChildRoute";
     case "decision":
-      return "Decision";
+      return "WorkspaceDecisionChildRoute";
+    case "validation":
+      return "WorkspaceValidationRoute";
+    case "consequences":
+      return "WorkspaceConsequencesRoute";
+    case "callbacks":
+      return "WorkspaceCallbacksRoute";
+    case "messages":
+      return "WorkspaceMessagesRoute";
     case "approvals":
-      return "Approvals";
+      return "WorkspaceApprovalsRoute";
     case "escalations":
-      return "Escalations";
+      return "WorkspaceEscalationsRoute";
     case "changed":
-      return "Changed";
+      return "WorkspaceChangedRoute";
     case "search":
-      return "Search";
+      return "WorkspaceSearchRoute";
     case "support-handoff":
-      return "Support handoff";
+      return "WorkspaceSupportHandoffRoute";
   }
 }
 
-function workboardHeader(route: StaffShellRoute) {
-  const queue = staffQueues.find((candidate) => candidate.key === route.queueKey);
-  if (queue) {
-    return {
-      label: queue.label,
-      description: queue.description,
-    };
-  }
-
+function anchorPostureForRoute(route: StaffShellRoute): string {
   switch (route.kind) {
+    case "home":
+      return "home_resume_anchor";
+    case "queue":
+      return "queue_selected_anchor";
+    case "task":
+      return "task_primary_anchor";
+    case "more-info":
+      return "child_route_protected_anchor";
+    case "decision":
+      return "child_route_commit_anchor";
+    case "validation":
+    case "consequences":
+    case "callbacks":
+    case "messages":
     case "approvals":
-      return {
-        label: "Approvals lane",
-        description: "Consequence-aware approvals stay resident inside the same staff shell.",
-      };
     case "escalations":
-      return {
-        label: "Escalation lane",
-        description: "Urgent callback and blocker review remain low-noise and same-shell.",
-      };
+    case "changed":
     case "search":
-      return {
-        label: "Search memory",
-        description: "Exact-match and filtered search preserves the current shell return posture.",
-      };
+      return "same_shell_peer_anchor";
     case "support-handoff":
-      return {
-        label: "Support handoff boundary",
-        description: "The bounded stub names the future support shell without transferring ownership.",
-      };
-    default:
-      return {
-        label: "Recommended queue",
-        description: "Best next queue based on the current role, interruption weight, and active task continuity.",
-      };
+      return "handoff_boundary_anchor";
   }
 }
 
@@ -272,476 +621,6 @@ function InterruptionModule({
   );
 }
 
-function QueueRow({
-  task,
-  isActive,
-  isPreviewing,
-  onHover,
-  onPin,
-  onOpen,
-  onSelectAnchor,
-}: {
-  task: StaffQueueCase;
-  isActive: boolean;
-  isPreviewing: boolean;
-  onHover: (taskId: string) => void;
-  onPin: (taskId: string) => void;
-  onOpen: (taskId: string) => void;
-  onSelectAnchor: (taskId: string) => void;
-}) {
-  const anchorAttributes = buildAutomationAnchorElementAttributes({
-    markerClass: "selected_anchor",
-    markerRef: `marker.${task.id}.row_anchor`,
-    domMarker: "selected-anchor",
-    routeFamilyRef: routeFamilyRefForKind("queue"),
-    shellSlug: "clinical-workspace",
-    audienceSurface: "audsurf_clinical_workspace",
-    disclosureFenceState: "safe",
-    repeatedInstanceStrategy: "subordinate_instance_key",
-    selector: `[data-task-id="${task.id}"]`,
-    selectorAttribute: "data-task-id",
-    selectorValue: task.id,
-    supportingDomMarkers: ["data-task-id", "data-row-state"],
-    supportingEventClasses: ["selected_anchor_changed"],
-    contractState: "exact",
-    gapResolutionRef: null,
-    source_refs: ["prompt/116.md"],
-  });
-
-  return (
-    <article
-      className="staff-shell__queue-row"
-      data-active={isActive ? "true" : "false"}
-      data-previewing={isPreviewing ? "true" : "false"}
-      role="option"
-      aria-selected={isActive}
-      onMouseEnter={() => onHover(task.id)}
-    >
-      <span className="staff-shell__signal-rail" data-tone={task.urgencyTone} />
-      <button
-        type="button"
-        className="staff-shell__queue-row-main"
-        data-row-state={task.state}
-        data-task-id={task.id}
-        onFocus={() => onHover(task.id)}
-        onClick={() => {
-          onSelectAnchor(task.id);
-          onOpen(task.id);
-        }}
-        {...anchorAttributes}
-      >
-        <div className="staff-shell__queue-copy">
-          <strong>{task.primaryReason}</strong>
-          <span>{task.secondaryMeta}</span>
-        </div>
-      </button>
-      <div className="staff-shell__queue-actions">
-        <span>{task.dueLabel}</span>
-        <button
-          type="button"
-          className="staff-shell__queue-pin"
-          onClick={(event) => {
-            event.stopPropagation();
-            onPin(task.id);
-          }}
-        >
-          {isPreviewing ? "Pinned preview" : "Pin preview"}
-        </button>
-      </div>
-    </article>
-  );
-}
-
-function QueuePreview({
-  task,
-  selectedAnchor,
-  onOpen,
-}: {
-  task: StaffQueueCase | null;
-  selectedAnchor: string;
-  onOpen: (taskId: string) => void;
-}) {
-  if (!task) {
-    return (
-      <section className="staff-shell__preview">
-        <span className="staff-shell__eyebrow">QueuePreviewDigest</span>
-        <h3>Preview stays summary-first</h3>
-        <p>Hover or focus a row for 80-120ms to open a lightweight, read-only queue preview.</p>
-      </section>
-    );
-  }
-
-  return (
-    <section
-      className="staff-shell__preview"
-      data-testid="queue-preview-digest"
-      data-selected-anchor={selectedAnchor}
-    >
-      <span className="staff-shell__eyebrow">QueuePreviewDigest</span>
-      <h3>{task.patientLabel}</h3>
-      <p>{task.previewSummary}</p>
-      <dl className="staff-shell__preview-grid">
-        <div>
-          <dt>Trust</dt>
-          <dd>{task.previewTrustNote}</dd>
-        </div>
-        <div>
-          <dt>Due</dt>
-          <dd>{task.dueLabel}</dd>
-        </div>
-        <div>
-          <dt>Delta</dt>
-          <dd>{task.deltaSummary}</dd>
-        </div>
-      </dl>
-      <button type="button" className="staff-shell__inline-action" onClick={() => onOpen(task.id)}>
-        Open task in the same shell
-      </button>
-    </section>
-  );
-}
-
-function TaskCanvas({
-  task,
-  currentRoute,
-  postureMode,
-  selectedDecision,
-}: {
-  task: StaffQueueCase;
-  currentRoute: StaffShellRoute;
-  postureMode: "live" | "guarded" | "recovery";
-  selectedDecision: string;
-}) {
-  return (
-    <section className="staff-shell__task-canvas" data-testid="task-canvas-frame">
-      <div className="staff-shell__canvas-stack">
-        <article className="staff-shell__stack-card" data-testid="summary-stack">
-          <header>
-            <span className="staff-shell__eyebrow">SummaryStack</span>
-            <h3>First meaningful read</h3>
-          </header>
-          <ul>
-            {task.summaryPoints.map((point) => (
-              <li key={point}>{point}</li>
-            ))}
-          </ul>
-        </article>
-
-        <article className="staff-shell__stack-card staff-shell__stack-card--delta" data-testid="delta-stack">
-          <header>
-            <span className="staff-shell__eyebrow">DeltaStack</span>
-            <h3>{task.deltaClass.toUpperCase()} delta packet</h3>
-          </header>
-          <p>{task.deltaSummary}</p>
-          <div className="staff-shell__superseded-strip" data-testid="superseded-context">
-            {task.supersededContext.map((item) => (
-              <span key={item}>{item}</span>
-            ))}
-          </div>
-        </article>
-
-        <article className="staff-shell__stack-card" data-testid="evidence-stack">
-          <header>
-            <span className="staff-shell__eyebrow">EvidenceStack</span>
-            <h3>Structured evidence digest</h3>
-          </header>
-          <div className="staff-shell__evidence-grid">
-            {task.evidence.map((item) => (
-              <article key={item.label}>
-                <strong>{item.label}</strong>
-                <span>{item.value}</span>
-                <p>{item.detail}</p>
-              </article>
-            ))}
-          </div>
-        </article>
-
-        <article className="staff-shell__stack-card" data-testid="consequence-stack">
-          <header>
-            <span className="staff-shell__eyebrow">ConsequenceStack</span>
-            <h3>Consequence and handoff posture</h3>
-          </header>
-          <div className="staff-shell__consequence-list">
-            {task.consequences.map((item) => (
-              <article key={item.title}>
-                <strong>{item.title}</strong>
-                <p>{item.detail}</p>
-              </article>
-            ))}
-          </div>
-        </article>
-
-        <details className="staff-shell__stack-card staff-shell__stack-card--reference" data-testid="reference-stack">
-          <summary>
-            <span className="staff-shell__eyebrow">ReferenceStack</span>
-            <strong>Collapsed by default</strong>
-          </summary>
-          <ul>
-            {task.references.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </details>
-      </div>
-
-      <aside className="staff-shell__task-support">
-        <section className="staff-shell__context-panel">
-          <span className="staff-shell__eyebrow">Case continuity</span>
-          <strong>{routeLabel(currentRoute.kind)}</strong>
-          <p>
-            Same-shell route family: {currentRoute.routeFamilyRef}. Current posture: {postureMode}.
-          </p>
-        </section>
-        <section className="staff-shell__context-panel">
-          <span className="staff-shell__eyebrow">Selected decision</span>
-          <strong>{selectedDecision}</strong>
-          <p>Decision preview stays quiet until the reviewer explicitly commits or promotes a child state.</p>
-        </section>
-      </aside>
-    </section>
-  );
-}
-
-function QuickCaptureTray({
-  task,
-  note,
-  onNoteChange,
-  selectedReason,
-  onReasonChange,
-  selectedDuePick,
-  onDuePickChange,
-}: {
-  task: StaffQueueCase;
-  note: string;
-  onNoteChange: (value: string) => void;
-  selectedReason: string;
-  onReasonChange: (value: string) => void;
-  selectedDuePick: string;
-  onDuePickChange: (value: string) => void;
-}) {
-  return (
-    <section className="staff-shell__quick-capture" data-testid="quick-capture-tray">
-      <header>
-        <span className="staff-shell__eyebrow">QuickCaptureTray</span>
-        <strong>Rapid entry stays inside DecisionDock</strong>
-      </header>
-      <div className="staff-shell__capture-grid">
-        <div>
-          <span className="staff-shell__capture-label">Endpoints</span>
-          <div className="staff-shell__chip-row">
-            {task.quickCapture.endpoints.map((item) => (
-              <button type="button" className="staff-shell__chip" key={item}>
-                {item}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <span className="staff-shell__capture-label">Question sets</span>
-          <div className="staff-shell__chip-row">
-            {task.quickCapture.questionSets.map((item) => (
-              <button type="button" className="staff-shell__chip" key={item}>
-                {item}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <span className="staff-shell__capture-label">Reason chips</span>
-          <div className="staff-shell__chip-row">
-            {task.quickCapture.reasonChips.map((item) => (
-              <button
-                type="button"
-                className="staff-shell__chip"
-                data-active={selectedReason === item ? "true" : "false"}
-                key={item}
-                onClick={() => onReasonChange(item)}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <span className="staff-shell__capture-label">Macros</span>
-          <div className="staff-shell__chip-row">
-            {task.quickCapture.macros.map((item) => (
-              <button type="button" className="staff-shell__chip" key={item}>
-                {item}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="staff-shell__note-field">
-          <label htmlFor="quick-capture-note">Inline note</label>
-          <textarea
-            id="quick-capture-note"
-            value={note}
-            onChange={(event) => onNoteChange(event.currentTarget.value)}
-          />
-        </div>
-        <div>
-          <span className="staff-shell__capture-label">Due-date quick picks</span>
-          <div className="staff-shell__chip-row">
-            {task.quickCapture.duePicks.map((item) => (
-              <button
-                type="button"
-                className="staff-shell__chip"
-                data-active={selectedDuePick === item ? "true" : "false"}
-                key={item}
-                onClick={() => onDuePickChange(item)}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function DecisionDock({
-  task,
-  route,
-  selectedDecision,
-  onDecisionChange,
-  onOpenMoreInfo,
-  onOpenDecision,
-  onLaunchNext,
-  onOpenSupportStub,
-  note,
-  onNoteChange,
-  selectedReason,
-  onReasonChange,
-  selectedDuePick,
-  onDuePickChange,
-}: {
-  task: StaffQueueCase;
-  route: StaffShellRoute;
-  selectedDecision: string;
-  onDecisionChange: (value: string) => void;
-  onOpenMoreInfo: () => void;
-  onOpenDecision: () => void;
-  onLaunchNext: () => void;
-  onOpenSupportStub: () => void;
-  note: string;
-  onNoteChange: (value: string) => void;
-  selectedReason: string;
-  onReasonChange: (value: string) => void;
-  selectedDuePick: string;
-  onDuePickChange: (value: string) => void;
-}) {
-  const dominantActionAttributes = buildAutomationAnchorElementAttributes({
-    markerClass: "dominant_action",
-    markerRef: `marker.${route.routeFamilyRef}.dominant_action`,
-    domMarker: "dominant-action",
-    routeFamilyRef: route.routeFamilyRef,
-    shellSlug: "clinical-workspace",
-    audienceSurface: "audsurf_clinical_workspace",
-    disclosureFenceState: "safe",
-    repeatedInstanceStrategy: "shared_anchor_only",
-    selector: `[data-testid="decision-dock"]`,
-    selectorAttribute: "data-testid",
-    selectorValue: "decision-dock",
-    supportingDomMarkers: ["data-dominant-action", "data-route-state"],
-    supportingEventClasses: ["dominant_action_changed"],
-    contractState: "exact",
-    gapResolutionRef: null,
-    source_refs: ["prompt/116.md"],
-  });
-
-  return (
-    <aside
-      className="staff-shell__decision-dock"
-      data-testid="decision-dock"
-      data-route-state={route.kind}
-      data-dominant-action={selectedDecision}
-      {...dominantActionAttributes}
-    >
-      <header>
-        <span className="staff-shell__eyebrow">DecisionDock</span>
-        <h3>Quiet until the action is genuinely ready</h3>
-        <p>{task.deltaSummary}</p>
-      </header>
-
-      <section className="staff-shell__decision-choice">
-        <span className="staff-shell__capture-label">Decision preview</span>
-        <div className="staff-shell__chip-row">
-          {task.decisionOptions.map((option) => (
-            <button
-              type="button"
-              className="staff-shell__chip"
-              data-active={selectedDecision === option ? "true" : "false"}
-              key={option}
-              onClick={() => onDecisionChange(option)}
-            >
-              {option}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <div className="staff-shell__dock-actions">
-        <button type="button" className="staff-shell__dock-action" onClick={onOpenMoreInfo}>
-          More-info child route
-        </button>
-        <button type="button" className="staff-shell__dock-action" onClick={onOpenDecision}>
-          Decision child route
-        </button>
-        <button type="button" className="staff-shell__dock-action" onClick={onLaunchNext}>
-          Launch next task
-        </button>
-        <button type="button" className="staff-shell__dock-action staff-shell__dock-action--ghost" onClick={onOpenSupportStub}>
-          Open support handoff stub
-        </button>
-      </div>
-
-      {(route.kind === "more-info" || route.kind === "decision") && (
-        <QuickCaptureTray
-          task={task}
-          note={note}
-          onNoteChange={onNoteChange}
-          selectedReason={selectedReason}
-          onReasonChange={onReasonChange}
-          selectedDuePick={selectedDuePick}
-          onDuePickChange={onDuePickChange}
-        />
-      )}
-    </aside>
-  );
-}
-
-function ProtectedCompositionRibbon({
-  route,
-  bufferedUpdateCount,
-  runtimeScenario,
-}: {
-  route: StaffShellRoute;
-  bufferedUpdateCount: number;
-  runtimeScenario: StaffShellLedger["runtimeScenario"];
-}) {
-  if (route.kind !== "more-info" && route.kind !== "decision") {
-    return null;
-  }
-  return (
-    <section
-      className="staff-shell__protection-ribbon"
-      data-testid="protected-composition-ribbon"
-      data-runtime={runtimeScenario}
-    >
-      <strong>
-        {runtimeScenario === "recovery_only" || runtimeScenario === "blocked"
-          ? "Protected composition is frozen in place"
-          : "Protected composition is buffering disruptive updates"}
-      </strong>
-      <span>
-        Buffered updates: {bufferedUpdateCount}. Quiet return target remains pinned to the current reading region.
-      </span>
-    </section>
-  );
-}
-
 function SupportStub() {
   return (
     <section className="staff-shell__support-stub" data-testid="support-handoff-stub">
@@ -759,16 +638,415 @@ function SupportStub() {
   );
 }
 
-export function StaffShellSeedApp() {
+export function WorkspaceNavRail({
+  route,
+  activeQueueKey,
+  runtimeScenario,
+  selectedAnchorId,
+  onNavigate,
+}: {
+  route: StaffShellRoute;
+  activeQueueKey: string;
+  runtimeScenario: StaffShellLedger["runtimeScenario"];
+  selectedAnchorId: string;
+  onNavigate: (nextRoute: StaffShellRoute) => void;
+}) {
+  return (
+    <aside
+      className="staff-shell__nav-rail"
+      aria-label="Workspace navigation"
+      data-testid="WorkspaceNavRail"
+      {...buildWorkspaceSurfaceAttributes({
+        surface: "workspace_navigation",
+        surfaceState: route.kind,
+        focusModel: "tab_ring",
+        selectedAnchorRef: selectedAnchorId,
+        runtimeScenario,
+      })}
+    >
+      <div className="staff-shell__nav-rail-head">
+        <span className="staff-shell__eyebrow">WorkspaceNavRail</span>
+        <strong>Quiet clinical mission control</strong>
+        <p>One shell family for queue scanning, active review, and bounded child-route work.</p>
+      </div>
+
+      <nav className="staff-shell__nav-groups">
+        <SectionLink active={route.kind === "home"} label="Home" onClick={() => onNavigate(parseStaffPath("/workspace"))} />
+        <SectionLink
+          active={route.kind === "queue" || route.kind === "task" || route.kind === "more-info" || route.kind === "decision"}
+          label="Queue"
+          onClick={() => onNavigate(parseStaffPath(`/workspace/queue/${activeQueueKey}`))}
+        />
+        <SectionLink
+          active={route.kind === "validation"}
+          label="Validation"
+          onClick={() => onNavigate(parseStaffPath("/workspace/validation"))}
+        />
+        <SectionLink
+          active={route.kind === "callbacks"}
+          label="Callbacks"
+          onClick={() => onNavigate(parseStaffPath("/workspace/callbacks"))}
+        />
+        <SectionLink
+          active={route.kind === "consequences"}
+          label="Consequences"
+          onClick={() => onNavigate(parseStaffPath("/workspace/consequences"))}
+        />
+        <SectionLink
+          active={route.kind === "messages"}
+          label="Messages"
+          onClick={() => onNavigate(parseStaffPath("/workspace/messages"))}
+        />
+        <SectionLink
+          active={route.kind === "approvals"}
+          label="Approvals"
+          onClick={() => onNavigate(parseStaffPath("/workspace/approvals"))}
+        />
+        <SectionLink
+          active={route.kind === "escalations"}
+          label="Escalations"
+          onClick={() => onNavigate(parseStaffPath("/workspace/escalations"))}
+        />
+        <SectionLink
+          active={route.kind === "changed"}
+          label="Changed"
+          onClick={() => onNavigate(parseStaffPath("/workspace/changed"))}
+        />
+        <SectionLink active={route.kind === "search"} label="Search" onClick={() => onNavigate(parseStaffPath("/workspace/search"))} />
+      </nav>
+
+      <section className="staff-shell__rail-queues" aria-label="Queue shortcuts">
+        <span className="staff-shell__eyebrow">Saved views</span>
+        <div className="staff-shell__queue-picker staff-shell__queue-picker--rail">
+          {staffQueues.map((queue) => (
+            <button
+              type="button"
+              className="staff-shell__queue-link"
+              data-active={activeQueueKey === queue.key ? "true" : "false"}
+              key={queue.key}
+              onClick={() => onNavigate(parseStaffPath(`/workspace/queue/${queue.key}`))}
+            >
+              {queue.label}
+            </button>
+          ))}
+        </div>
+      </section>
+    </aside>
+  );
+}
+
+export function WorkspaceHeaderBand({
+  route,
+  authority,
+  workspaceShellContinuityKey,
+  entityContinuityKey,
+  selectedAnchorId,
+  restoreStorageKey,
+  runtimeScenario,
+  onRuntimeScenarioChange,
+  onOpenCommandPalette,
+}: {
+  route: StaffShellRoute;
+  authority: StaffRouteAuthorityArtifacts;
+  workspaceShellContinuityKey: string;
+  entityContinuityKey: string;
+  selectedAnchorId: string;
+  restoreStorageKey: string;
+  runtimeScenario: StaffShellLedger["runtimeScenario"];
+  onRuntimeScenarioChange: (scenario: StaffShellLedger["runtimeScenario"]) => void;
+  onOpenCommandPalette: () => void;
+}) {
+  return (
+    <header className="staff-shell__masthead" data-testid="WorkspaceHeaderBand">
+      <div className="staff-shell__brand">
+        <StaffInsignia />
+        <div>
+          <span className="staff-shell__eyebrow">WorkspaceHeaderBand</span>
+          <h1 id="workspace-shell-heading">Staff workspace route family</h1>
+          <p>
+            Home, queue, task, and child-route review stay inside one same-shell staff workbench with typed continuity and trust posture.
+          </p>
+        </div>
+      </div>
+
+      <div className="staff-shell__header-summary">
+        <div className="staff-shell__meta">
+          <span>{route.title}</span>
+          <span>{authority.manifest.frontendContractManifestId}</span>
+          <span>{authority.guardDecision.effectivePosture.replaceAll("_", " ")}</span>
+        </div>
+        <div className="staff-shell__continuity-grid">
+          <div>
+            <strong>workspaceShellContinuityKey</strong>
+            <span>{workspaceShellContinuityKey}</span>
+          </div>
+          <div>
+            <strong>entityContinuityKey</strong>
+            <span>{entityContinuityKey}</span>
+          </div>
+          <div>
+            <strong>Selected anchor</strong>
+            <span>{selectedAnchorId}</span>
+          </div>
+          <div>
+            <strong>Restore epoch</strong>
+            <span>{restoreStorageKey}</span>
+          </div>
+        </div>
+        <label className="staff-shell__header-select">
+          <span>Route posture</span>
+          <select value={runtimeScenario} onChange={(event) => onRuntimeScenarioChange(event.currentTarget.value as StaffShellLedger["runtimeScenario"])}>
+            <option value="live">Live</option>
+            <option value="stale_review">Stale review</option>
+            <option value="read_only">Read-only</option>
+            <option value="recovery_only">Recovery only</option>
+            <option value="blocked">Blocked</option>
+          </select>
+        </label>
+        <button
+          type="button"
+          className="staff-shell__command-palette-trigger"
+          data-testid="WorkspaceCommandPaletteTrigger"
+          aria-haspopup="dialog"
+          onClick={onOpenCommandPalette}
+        >
+          <span>Jump</span>
+          <strong>Ctrl+K</strong>
+        </button>
+      </div>
+    </header>
+  );
+}
+
+export function WorkspaceStatusStrip({
+  pulse,
+  statusInput,
+  dominantActionLabel,
+  anchorPosture,
+  designContractState,
+}: {
+  pulse: any;
+  statusInput: any;
+  dominantActionLabel: string;
+  anchorPosture: string;
+  designContractState: string;
+}) {
+  return (
+    <section className="staff-shell__status-band" data-testid="WorkspaceStatusStrip">
+      <div className="staff-shell__pulse-band">
+        <CasePulse pulse={pulse} />
+      </div>
+      <SharedStatusStrip input={statusInput} />
+      <div className="staff-shell__status-meta">
+        <span>
+          <strong>Dominant action</strong>
+          {dominantActionLabel}
+        </span>
+        <span>
+          <strong>Anchor posture</strong>
+          {anchorPosture}
+        </span>
+        <span>
+          <strong>Design contract state</strong>
+          {designContractState}
+        </span>
+      </div>
+    </section>
+  );
+}
+
+export function WorkspaceHome({
+  homeModule,
+  activeHomeModuleId,
+  onModuleSelect,
+  onOpenRecommendedTask,
+}: {
+  homeModule: StaffHomeModule;
+  activeHomeModuleId: string;
+  onModuleSelect: (moduleId: string) => void;
+  onOpenRecommendedTask: () => void;
+}) {
+  return (
+    <div className="staff-shell__home" data-testid="WorkspaceHomeContent">
+      <section className="staff-shell__hero" data-testid="today-workbench-hero">
+        <span className="staff-shell__eyebrow">TodayWorkbenchHero</span>
+        <h2>Resume the returned-evidence queue before anything else</h2>
+        <p>
+          The recommended queue stays expanded because decisive deltas and callback drift need bounded review before settlement can resume.
+        </p>
+        <button type="button" className="staff-shell__inline-action" onClick={onOpenRecommendedTask}>
+          Open Task 311 in the same shell
+        </button>
+      </section>
+
+      <section className="staff-shell__home-modules">
+        {staffHomeModules.map((module) => (
+          <InterruptionModule
+            key={module.id}
+            module={module}
+            active={module.id === activeHomeModuleId}
+            onSelect={onModuleSelect}
+          />
+        ))}
+      </section>
+
+      <section className="staff-shell__home-detail">
+        <span className="staff-shell__eyebrow">{homeModule.title}</span>
+        <strong>{homeModule.summary}</strong>
+        <p>{homeModule.detail}</p>
+      </section>
+    </div>
+  );
+}
+
+export function WorkspaceShell({
+  children,
+  breakpoint,
+  layoutMode,
+  route,
+  designMode,
+  runtimeScenario,
+  boundaryState,
+  reducedMotion,
+  manifestValidation,
+  workspaceShellContinuityKey,
+  entityContinuityKey,
+  designContractState,
+  dominantActionLabel,
+  anchorPosture,
+  selectedAnchorId,
+  restoreStorageKey,
+  surfaceAttributes,
+  visualMode,
+  accessibilityCoverageHash,
+  accessibilityCoverageState,
+  assistiveAnnouncement,
+  keyboardModelDescription,
+  keyboardRegionOrder,
+}: {
+  children: ReactNode;
+  breakpoint: "compact" | "narrow" | "medium" | "wide";
+  layoutMode: "two_plane" | "three_plane" | "mission_stack";
+  route: StaffShellRoute;
+  designMode: string;
+  runtimeScenario: StaffShellLedger["runtimeScenario"];
+  boundaryState: string;
+  reducedMotion: boolean;
+  manifestValidation: string;
+  workspaceShellContinuityKey: string;
+  entityContinuityKey: string;
+  designContractState: string;
+  dominantActionLabel: string;
+  anchorPosture: string;
+  selectedAnchorId: string;
+  restoreStorageKey: string;
+  surfaceAttributes: Record<string, string>;
+  visualMode: string;
+  accessibilityCoverageHash: string;
+  accessibilityCoverageState: string;
+  assistiveAnnouncement: {
+    channel: "polite" | "assertive" | "off";
+    announcementClass:
+      | "surface_summary"
+      | "routine_status"
+      | "authoritative_settlement"
+      | "blocker"
+      | "recovery"
+      | "freshness_actionability";
+    message: string;
+    stateHash: string;
+  };
+  keyboardModelDescription: string;
+  keyboardRegionOrder: string;
+}) {
+  return (
+    <main
+      className="staff-shell"
+      aria-labelledby="workspace-shell-heading"
+      aria-describedby="workspace-shell-keyboard-model"
+      data-breakpoint-class={breakpoint}
+      data-layout-mode={layoutMode}
+      data-route-kind={route.kind}
+      data-runtime-scenario={runtimeScenario}
+      data-boundary-state={boundaryState}
+      data-motion-profile={reducedMotion ? "reduced" : "standard"}
+      data-manifest-validation={manifestValidation}
+      data-testid="WorkspaceShellRouteFamily"
+      data-shell-type="staff"
+      data-route-family={route.routeFamilyRef}
+      data-workspace-shell-continuity-key={workspaceShellContinuityKey}
+      data-entity-continuity-key={entityContinuityKey}
+      data-design-contract-state={designContractState}
+      data-dominant-action={dominantActionLabel}
+      data-anchor-posture={anchorPosture}
+      data-selected-anchor-ref={selectedAnchorId}
+      data-restore-storage-key={restoreStorageKey}
+      data-design-mode={designMode}
+      data-visual-mode={visualMode}
+      data-semantic-coverage-hash={accessibilityCoverageHash}
+      data-semantic-coverage-state={accessibilityCoverageState}
+      data-keyboard-region-order={keyboardRegionOrder}
+      data-task-id={WORKSPACE_ROUTE_FAMILY_TASK_ID}
+      {...surfaceAttributes}
+    >
+      <p id="workspace-shell-keyboard-model" className="sr-only">
+        {keyboardModelDescription}
+      </p>
+      <WorkspaceSkipLinks routeKind={route.kind} />
+      <WorkspaceAnnouncementHub
+        message={assistiveAnnouncement.message}
+        channel={assistiveAnnouncement.channel}
+        announcementClass={assistiveAnnouncement.announcementClass}
+        stateHash={assistiveAnnouncement.stateHash}
+      />
+      {children}
+    </main>
+  );
+}
+
+export function WorkspaceRouteFamilyController() {
   const initialRouteRef = useRef(initialRoute());
   const persistedLedger = readPersistedLedger();
+  const restorePeerSelection =
+    Boolean(persistedLedger) &&
+    isPeerSelectionRoute(initialRouteRef.current.kind) &&
+    persistedLedger?.path === initialRouteRef.current.path &&
+    taskBelongsToRoute(initialRouteRef.current.kind, persistedLedger!.selectedTaskId);
   const [route, setRoute] = useState(initialRouteRef.current);
   const [runtimeScenario, setRuntimeScenario] = useState<StaffShellLedger["runtimeScenario"]>(
-    persistedLedger?.runtimeScenario ?? "live",
+    runtimeScenarioFromSearch() ?? persistedLedger?.runtimeScenario ?? "live",
   );
   const [ledger, setLedger] = useState<StaffShellLedger>(() =>
     persistedLedger
-      ? { ...persistedLedger, path: initialRouteRef.current.path }
+      ? {
+          ...persistedLedger,
+          path: initialRouteRef.current.path,
+          queueKey: initialRouteRef.current.queueKey ?? persistedLedger.queueKey,
+          selectedTaskId: restorePeerSelection
+            ? persistedLedger.selectedTaskId
+            : initialRouteRef.current.taskId ?? persistedLedger.selectedTaskId,
+          previewTaskId: restorePeerSelection
+            ? persistedLedger.previewTaskId
+            : initialRouteRef.current.taskId ?? persistedLedger.previewTaskId,
+          selectedAnchorId: restorePeerSelection
+            ? persistedLedger.selectedAnchorId
+            : (initialRouteRef.current.taskId &&
+                initialRouteRef.current.taskId === persistedLedger.selectedTaskId &&
+                persistedLedger.selectedAnchorId) ||
+              (initialRouteRef.current.queueKey &&
+                initialRouteRef.current.queueKey === persistedLedger.queueKey &&
+                persistedLedger.selectedAnchorId) ||
+              defaultAnchorForRoute(initialRouteRef.current),
+          searchQuery: initialRouteRef.current.searchQuery,
+          callbackStage:
+            initialRouteRef.current.kind === "callbacks"
+              ? persistedLedger.callbackStage
+              : "detail",
+          messageStage:
+            initialRouteRef.current.kind === "messages"
+              ? persistedLedger.messageStage
+              : "detail",
+        }
       : createInitialLedger(initialRouteRef.current, runtimeScenario),
   );
   const [viewportWidth, setViewportWidth] = useState(safeWindow()?.innerWidth ?? 1440);
@@ -776,17 +1054,23 @@ export function StaffShellSeedApp() {
   const [previewTaskId, setPreviewTaskId] = useState(ledger.previewTaskId);
   const [activeHomeModuleId, setActiveHomeModuleId] = useState(staffHomeModules[0]?.id ?? "");
   const [decisionSelection, setDecisionSelection] = useState(defaultDecisionOption(requireCase(ledger.selectedTaskId)));
-  const [draftNote, setDraftNote] = useState("Need confirmation on the callback note before commit.");
-  const [selectedReason, setSelectedReason] = useState("Returned evidence");
-  const [selectedDuePick, setSelectedDuePick] = useState("Today 14:30");
+  const [rapidEntryDraft, setRapidEntryDraft] = useState<RapidEntryDraftInput>(() =>
+    createInitialRapidEntryDraft(requireCase(ledger.selectedTaskId)),
+  );
+  const [attachmentAndThreadSelection, setAttachmentAndThreadSelection] = useState(() =>
+    createInitialAttachmentAndThreadSelection(requireCase(ledger.selectedTaskId)),
+  );
   const [telemetryLog, setTelemetryLog] = useState<readonly UiTelemetryEnvelopeExample[]>([]);
   const [boundaryState, setBoundaryState] = useState("reuse_shell");
   const [restoreStorageKey, setRestoreStorageKey] = useState("persistent-shell::clinical-workspace");
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(() => {
     const ownerWindow = safeWindow();
     return ownerWindow?.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
   });
-  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rapidEntryAutosaveTimer = useRef<number | null>(null);
+  const lastRouteEventKeyRef = useRef("");
+  const lastRecoveryEventKeyRef = useRef("");
 
   const searchDraft = route.kind === "search" ? route.searchQuery : "";
   const deferredSearch = useDeferredValue(searchDraft);
@@ -794,7 +1078,7 @@ export function StaffShellSeedApp() {
     ...ledger,
     searchQuery: deferredSearch || ledger.searchQuery,
   });
-  const activeTask = deriveTaskForRoute(route) ?? requireCase(ledger.selectedTaskId);
+  const activeTask = selectedTaskForRoute(route, ledger.selectedTaskId);
   const authority = createStaffRouteAuthority(route, runtimeScenario);
   const automationProfile = staffAutomationProfile(route.routeFamilyRef);
   const surfaceAttributes = buildAutomationSurfaceAttributes(automationProfile, {
@@ -823,6 +1107,59 @@ export function StaffShellSeedApp() {
     searchQuery: deferredSearch,
   });
   const { statusInput, pulse } = buildWorkspaceStatus(route, runtimeScenario, activeTask);
+  const workspaceShellContinuityKey = `workspace::role.clinical_reviewer::channel.browser::${authority.manifest.frontendContractManifestId}`;
+  const entityContinuityKey = route.taskId
+    ? `staff_task::${activeTask.id}::${activeTask.patientRef}`
+    : `staff_workspace_scope::${route.kind}::${ledger.queueKey}`;
+  const designContractState = `${authority.verdict.validationState}:${authority.manifest.designContractLintState}`;
+  const dominantActionLabel = statusInput.dominantActionLabel;
+  const anchorPosture = anchorPostureForRoute(route);
+  const isActiveTaskRoute = route.kind === "task" || route.kind === "more-info" || route.kind === "decision";
+  const taskProjection = isActiveTaskRoute
+    ? buildTaskWorkspaceProjection({
+        route,
+        task: activeTask,
+        authority,
+        runtimeScenario,
+        statusInput,
+        pulse,
+        selectedDecision: decisionSelection,
+        selectedAnchorRef: ledger.selectedAnchorId,
+        rapidEntryDraft,
+        attachmentAndThreadSelection,
+      })
+    : null;
+  const focusContinuity = buildWorkspaceFocusContinuityProjection({
+    route,
+    task: activeTask,
+    taskProjection,
+    ledger: {
+      ...ledger,
+      runtimeScenario,
+    },
+  });
+  const accessibilityBundle = buildWorkspaceAccessibilityContractBundle({
+    route,
+    breakpoint: breakpointLabel(viewportWidth),
+    layoutMode: layoutModeForWidth(viewportWidth, route),
+    runtimeScenario,
+    selectedAnchorRef: ledger.selectedAnchorId,
+    dominantActionLabel,
+    bufferedUpdateActive: Boolean(focusContinuity.bufferedQueueTray),
+  });
+  const assistiveAnnouncement = buildWorkspaceAnnouncementPlan({
+    route,
+    runtimeScenario,
+    selectedAnchorRef: ledger.selectedAnchorId,
+    dominantActionLabel,
+    focusContinuity,
+    rowCountLabel:
+      route.kind === "queue" || route.kind === "search"
+        ? `${visibleRows.length} workboard rows available`
+        : route.kind === "task" || route.kind === "more-info" || route.kind === "decision"
+          ? "Active task review in progress"
+          : `${visibleRows.length} governed route items available`,
+  });
 
   const emitTelemetry = useEffectEvent(
     (eventClass: Parameters<typeof buildTelemetryEnvelope>[0]["eventClass"], payload: Record<string, string>) => {
@@ -844,6 +1181,105 @@ export function StaffShellSeedApp() {
     },
   );
 
+  const emitValidationEvent = useEffectEvent(
+    (
+      actionFamily: ValidationActionFamily,
+      override?: Partial<{
+        eventClass: "shell" | "continuity" | "transition" | "projection" | "queue" | "anchor" | "side_stage" | "live" | "announcement" | "motion" | "review" | "recovery";
+        routeIntentRef: string;
+        surfaceRef: string;
+        selectedAnchorRef: string;
+        routeFamilyRef: ValidationRouteFamilyRef;
+        routePath: string;
+        canonicalObjectDescriptorRef: string;
+        eventState: "provisional" | "authoritative" | "buffered" | "resolved" | "failed";
+        interactionMode: "pointer" | "keyboard" | "system";
+        publicationPosture: "live" | "projection_visible" | "recovery_only" | "blocked";
+        recoveryPosture: "none" | "stale_recoverable" | "read_only_fallback" | "recovery_required" | "blocked";
+      }>,
+    ) => {
+      const settlement = validationSettlementProfile(runtimeScenario);
+      recordWorkspaceSupportUiEvent({
+        routeFamilyRef: override?.routeFamilyRef ?? route.routeFamilyRef,
+        routePath: override?.routePath ?? route.path,
+        routeIntentRef: override?.routeIntentRef ?? `workspace.${route.kind}`,
+        canonicalObjectDescriptorRef: override?.canonicalObjectDescriptorRef ?? route.title,
+        canonicalEntitySeed: `${activeTask.id}:${activeTask.patientRef}`,
+        shellInstanceRef: WORKSPACE_ROUTE_FAMILY_TASK_ID,
+        continuityKey: workspaceShellContinuityKey,
+        selectedAnchorRef: override?.selectedAnchorRef ?? ledger.selectedAnchorId,
+        surfaceRef: override?.surfaceRef ?? routeTestId(route.kind),
+        audienceTier: "staff",
+        channelContextRef: "browser.clinical_workspace",
+        actionFamily,
+        eventClass: override?.eventClass ?? (route.kind === "queue" ? "queue" : route.kind === "task" ? "review" : "transition"),
+        eventState: override?.eventState ?? validationEventState(runtimeScenario),
+        publicationPosture: override?.publicationPosture ?? validationPublicationPosture(runtimeScenario),
+        recoveryPosture: override?.recoveryPosture ?? validationRecoveryPosture(runtimeScenario),
+        shellDecisionClass:
+          runtimeScenario === "blocked"
+            ? "frozen"
+            : boundaryState === "reuse_shell"
+              ? "reused"
+              : boundaryState === "restore_shell"
+                ? "restored"
+                : "recovered",
+        semanticCoverageRef:
+          accessibilityBundle.accessibilitySemanticCoverageProfile.accessibilitySemanticCoverageProfileId,
+        releaseTupleRef: authority.manifest.runtimePublicationBundleRef,
+        evidenceLinkPath:
+          actionFamily === "stale_recovery"
+            ? "/Users/test/Code/V/output/playwright/269-workspace-support-event-chains-stale.png"
+            : actionFamily === "claim" || actionFamily === "start_review"
+              ? "/Users/test/Code/V/output/playwright/269-workspace-support-event-chains-workspace.png"
+              : "/Users/test/Code/V/output/playwright/269-validation-board-live.png",
+        interactionMode: override?.interactionMode ?? "system",
+        ...settlement,
+      });
+    },
+  );
+
+  const queueRapidEntryAutosave = useEffectEvent((draftPatch?: Partial<RapidEntryDraftInput>) => {
+    if (rapidEntryAutosaveTimer.current !== null) {
+      window.clearTimeout(rapidEntryAutosaveTimer.current);
+    }
+    setRapidEntryDraft((current) => ({
+      ...current,
+      ...draftPatch,
+      autosaveState: "saving",
+      lastLocalChangeAt: "2026-04-17T08:31:00Z",
+    }));
+    rapidEntryAutosaveTimer.current = window.setTimeout(() => {
+      setRapidEntryDraft((current) => ({
+        ...current,
+        autosaveState: "saved",
+      }));
+    }, 220);
+  });
+
+  const pushLedgerState = useEffectEvent(
+    (
+      reducer: (current: StaffShellLedger) => StaffShellLedger,
+      options?: { replace?: boolean; nextRoute?: StaffShellRoute },
+    ) => {
+      const ownerWindow = safeWindow();
+      startTransition(() => {
+        setLedger((current) => {
+          const next = reducer(current);
+          if (ownerWindow) {
+            ownerWindow.history[options?.replace ? "replaceState" : "pushState"](
+              historyStateFromLedger(next),
+              "",
+              buildBrowserRouteUrl((options?.nextRoute ?? route).path, ownerWindow.location.search),
+            );
+            dispatchRouteChange();
+          }
+          return next;
+        });
+      });
+    },
+  );
+
   const navigateTo = useEffectEvent((nextRoute: StaffShellRoute, replace = false) => {
     startTransition(() => {
       const reduction = reduceLedgerForNavigation({
@@ -855,18 +1291,27 @@ export function StaffShellSeedApp() {
       setLedger((current) => ({
         ...reduction.ledger,
         queuedBatchPending: current.queuedBatchPending,
-        bufferedUpdateCount:
-          nextRoute.kind === "more-info" || nextRoute.kind === "decision"
+        bufferedUpdateCount: current.queuedBatchPending
+          ? Math.max(current.bufferedUpdateCount, 1)
+          : nextRoute.kind === "more-info" || nextRoute.kind === "decision"
             ? current.bufferedUpdateCount
-            : 1,
+            : 0,
+        bufferedQueueTrayState: current.queuedBatchPending
+          ? reduction.ledger.bufferedQueueTrayState
+          : "collapsed",
       }));
       setRoute(nextRoute);
       setBoundaryState(reduction.boundaryState);
       setRestoreStorageKey(reduction.restoreStorageKey);
-      setDecisionSelection(defaultDecisionOption(deriveTaskForRoute(nextRoute) ?? activeTask));
+      setDecisionSelection(defaultDecisionOption(requireCase(reduction.ledger.selectedTaskId)));
       const ownerWindow = safeWindow();
       if (ownerWindow) {
-        ownerWindow.history[replace ? "replaceState" : "pushState"]({}, "", nextRoute.path);
+        ownerWindow.history[replace ? "replaceState" : "pushState"](
+          historyStateFromLedger(reduction.ledger),
+          "",
+          buildBrowserRouteUrl(nextRoute.path, ownerWindow.location.search),
+        );
+        dispatchRouteChange();
       }
       emitTelemetry("surface_enter", {
         path: nextRoute.path,
@@ -876,53 +1321,93 @@ export function StaffShellSeedApp() {
     });
   });
 
-  const schedulePreview = useEffectEvent((taskId: string) => {
-    if (previewPinned && previewTaskId === taskId) {
-      return;
-    }
-    if (previewTimerRef.current) {
-      clearTimeout(previewTimerRef.current);
-    }
-    previewTimerRef.current = setTimeout(() => {
-      startTransition(() => {
-        setPreviewTaskId(taskId);
-      });
-    }, 100);
-  });
-
   useEffect(() => {
     const ownerWindow = safeWindow();
     if (!ownerWindow) {
       return;
     }
     if (ownerWindow.location.pathname === "/") {
-      ownerWindow.history.replaceState({}, "", route.path);
+      ownerWindow.history.replaceState(
+        historyStateFromLedger(ledger),
+        "",
+        buildBrowserRouteUrl(route.path, ownerWindow.location.search),
+      );
     }
     const handleResize = () => setViewportWidth(ownerWindow.innerWidth);
     const motionQuery = ownerWindow.matchMedia?.("(prefers-reduced-motion: reduce)");
-    const handlePopState = () => {
+    const handlePopState = (event: PopStateEvent) => {
       const nextRoute = parseStaffPath(ownerWindow.location.pathname, ownerWindow.location.search);
+      const nextRuntimeScenario = runtimeScenarioFromSearch();
+      const historyState = (event.state ?? {}) as Partial<
+        Pick<
+          StaffShellLedger,
+          "selectedTaskId" | "previewTaskId" | "selectedAnchorId" | "callbackStage" | "messageStage"
+        >
+      >;
+      const routeSelectionAvailable =
+        isPeerSelectionRoute(nextRoute.kind) &&
+        typeof historyState.selectedTaskId === "string" &&
+        taskBelongsToRoute(nextRoute.kind, historyState.selectedTaskId);
       startTransition(() => {
         setRoute(nextRoute);
+        if (nextRuntimeScenario) {
+          setRuntimeScenario(nextRuntimeScenario);
+        }
         setLedger((current) => ({
           ...current,
           path: nextRoute.path,
           queueKey: nextRoute.queueKey ?? current.queueKey,
-          selectedTaskId: nextRoute.taskId ?? current.selectedTaskId,
-          selectedAnchorId: defaultAnchorForRoute(nextRoute),
+          selectedTaskId:
+            routeSelectionAvailable
+              ? historyState.selectedTaskId!
+              : isPeerSelectionRoute(nextRoute.kind) && taskBelongsToRoute(nextRoute.kind, current.selectedTaskId)
+              ? current.selectedTaskId
+              : nextRoute.taskId ?? current.selectedTaskId,
+          previewTaskId:
+            routeSelectionAvailable && typeof historyState.previewTaskId === "string"
+              ? historyState.previewTaskId
+              : isPeerSelectionRoute(nextRoute.kind) && taskBelongsToRoute(nextRoute.kind, current.previewTaskId)
+              ? current.previewTaskId
+              : nextRoute.taskId ?? current.previewTaskId,
+          selectedAnchorId:
+            routeSelectionAvailable && typeof historyState.selectedAnchorId === "string"
+              ? historyState.selectedAnchorId
+              : isPeerSelectionRoute(nextRoute.kind) && taskBelongsToRoute(nextRoute.kind, current.selectedTaskId)
+              ? current.selectedAnchorId
+              : defaultAnchorForRoute(nextRoute),
           searchQuery: nextRoute.searchQuery,
+          callbackStage:
+            nextRoute.kind === "callbacks" && typeof historyState.callbackStage === "string"
+              ? historyState.callbackStage
+              : nextRoute.kind === "callbacks" && current.path === nextRoute.path
+                ? current.callbackStage
+                : "detail",
+          messageStage:
+            nextRoute.kind === "messages" && typeof historyState.messageStage === "string"
+              ? historyState.messageStage
+              : nextRoute.kind === "messages" && current.path === nextRoute.path
+                ? current.messageStage
+                : "detail",
         }));
       });
     };
     const handleMotionChange = () => setReducedMotion(motionQuery?.matches ?? false);
+    const handleCommandPaletteShortcut = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setCommandPaletteOpen((current) => !current);
+      }
+    };
     handleResize();
     handleMotionChange();
     ownerWindow.addEventListener("resize", handleResize);
     ownerWindow.addEventListener("popstate", handlePopState);
+    ownerWindow.addEventListener("keydown", handleCommandPaletteShortcut);
     motionQuery?.addEventListener?.("change", handleMotionChange);
     return () => {
       ownerWindow.removeEventListener("resize", handleResize);
       ownerWindow.removeEventListener("popstate", handlePopState);
+      ownerWindow.removeEventListener("keydown", handleCommandPaletteShortcut);
       motionQuery?.removeEventListener?.("change", handleMotionChange);
     };
   }, [route.path]);
@@ -932,13 +1417,130 @@ export function StaffShellSeedApp() {
   }, [ledger, runtimeScenario]);
 
   useEffect(() => {
+    const ownerWindow = safeWindow();
+    if (!ownerWindow) {
+      return;
+    }
+    ownerWindow.history.replaceState(
+      historyStateFromLedger(ledger),
+      "",
+      buildBrowserRouteUrl(route.path, ownerWindow.location.search),
+    );
+  }, [
+    ledger.callbackStage,
+    ledger.messageStage,
+    ledger.previewTaskId,
+    ledger.selectedAnchorId,
+    ledger.selectedTaskId,
+    route.path,
+  ]);
+
+  useEffect(() => {
+    setRapidEntryDraft(createInitialRapidEntryDraft(activeTask));
+  }, [activeTask.id]);
+
+  useEffect(() => {
+    setAttachmentAndThreadSelection(createInitialAttachmentAndThreadSelection(activeTask));
+  }, [activeTask.id]);
+
+  useEffect(() => {
+    return () => {
+      if (rapidEntryAutosaveTimer.current !== null) {
+        window.clearTimeout(rapidEntryAutosaveTimer.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (route.kind === "search") {
       const ownerWindow = safeWindow();
-      if (ownerWindow && ownerWindow.location.search !== `?q=${encodeURIComponent(route.searchQuery)}` && route.searchQuery) {
-        ownerWindow.history.replaceState({}, "", buildStaffPath(route));
+      if (ownerWindow && route.searchQuery) {
+        const nextRouteUrl = buildBrowserRouteUrl(buildStaffPath(route), ownerWindow.location.search);
+        const currentRouteUrl = `${ownerWindow.location.pathname}${ownerWindow.location.search}`;
+        if (currentRouteUrl !== nextRouteUrl) {
+          ownerWindow.history.replaceState(historyStateFromLedger(ledger), "", nextRouteUrl);
+          dispatchRouteChange();
+        }
       }
     }
-  }, [route]);
+  }, [ledger, route]);
+
+  useEffect(() => {
+    const ownerWindow = safeWindow();
+    if (!ownerWindow) {
+      return;
+    }
+    const targetId = resolveRouteFocusEntryId(route.kind);
+    if (!targetId) {
+      return;
+    }
+    const frame = ownerWindow.requestAnimationFrame(() => {
+      const target = ownerWindow.document.getElementById(targetId);
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      if (target.contains(ownerWindow.document.activeElement)) {
+        return;
+      }
+      target.focus({ preventScroll: false });
+    });
+    return () => ownerWindow.cancelAnimationFrame(frame);
+  }, [route.path, route.kind]);
+
+  useEffect(() => {
+    const ownerWindow = safeWindow();
+    if (!ownerWindow) {
+      return;
+    }
+    const regionOrder = resolveWorkspaceFocusOrder(route.kind);
+    const focusRegion = (targetId: string) => {
+      const target = ownerWindow.document.getElementById(targetId);
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      target.focus({ preventScroll: false });
+      target.scrollIntoView({ block: "nearest", inline: "nearest" });
+    };
+    const handleRegionCycling = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTypingTarget =
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.tagName === "SELECT" ||
+        target?.isContentEditable === true;
+      if (!event.altKey || !event.shiftKey || isTypingTarget) {
+        return;
+      }
+      if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+        const activeElement = ownerWindow.document.activeElement as HTMLElement | null;
+        const currentIndex = regionOrder.findIndex((regionId) =>
+          activeElement?.id === regionId || Boolean(activeElement?.closest?.(`#${regionId}`)),
+        );
+        const offset = event.key === "ArrowRight" ? 1 : -1;
+        const nextIndex =
+          currentIndex === -1
+            ? 0
+            : (currentIndex + offset + regionOrder.length) % regionOrder.length;
+        const nextRegion = regionOrder[nextIndex];
+        if (!nextRegion) {
+          return;
+        }
+        event.preventDefault();
+        focusRegion(nextRegion);
+        return;
+      }
+      if (event.key === "1" || event.key === "2" || event.key === "3" || event.key === "4") {
+        const nextRegion = regionOrder[Number(event.key) - 1];
+        if (!nextRegion) {
+          return;
+        }
+        event.preventDefault();
+        focusRegion(nextRegion);
+      }
+    };
+    ownerWindow.addEventListener("keydown", handleRegionCycling);
+    return () => ownerWindow.removeEventListener("keydown", handleRegionCycling);
+  }, [route.kind]);
 
   useEffect(() => {
     if (!telemetryLog.length) {
@@ -950,28 +1552,379 @@ export function StaffShellSeedApp() {
     }
   }, [emitTelemetry, route.path, route.routeFamilyRef, telemetryLog.length]);
 
+  useEffect(() => {
+    const actionFamily = actionFamilyForRoute(route);
+    if (!actionFamily) {
+      return;
+    }
+    const routeEventKey = [
+      route.path,
+      route.kind,
+      actionFamily,
+      runtimeScenario,
+      ledger.selectedAnchorId,
+      activeTask.id,
+    ].join(":");
+    if (lastRouteEventKeyRef.current === routeEventKey) {
+      return;
+    }
+    emitValidationEvent(actionFamily, {
+      routeIntentRef: `workspace.${route.kind}.entered`,
+      surfaceRef: routeTestId(route.kind),
+      eventClass:
+        route.kind === "queue"
+          ? "queue"
+          : route.kind === "task"
+            ? "review"
+            : route.kind === "callbacks" || route.kind === "messages"
+              ? "live"
+              : "transition",
+    });
+    lastRouteEventKeyRef.current = routeEventKey;
+  }, [
+    activeTask.id,
+    emitValidationEvent,
+    ledger.selectedAnchorId,
+    route,
+    runtimeScenario,
+  ]);
+
+  useEffect(() => {
+    if (runtimeScenario === "live") {
+      return;
+    }
+    const recoveryEventKey = [
+      route.path,
+      runtimeScenario,
+      ledger.selectedAnchorId,
+      activeTask.id,
+    ].join(":");
+    if (lastRecoveryEventKeyRef.current === recoveryEventKey) {
+      return;
+    }
+    emitValidationEvent("stale_recovery", {
+      routeIntentRef: `workspace.${route.kind}.recovery`,
+      eventClass: "recovery",
+    });
+    lastRecoveryEventKeyRef.current = recoveryEventKey;
+  }, [
+    activeTask.id,
+    emitValidationEvent,
+    ledger.selectedAnchorId,
+    route.kind,
+    route.path,
+    runtimeScenario,
+  ]);
+
   const layoutMode = layoutModeForWidth(viewportWidth, route);
   const breakpoint = breakpointLabel(viewportWidth);
-  const previewTask = staffCases.find((task) => task.id === previewTaskId) ?? null;
-  const selectedQueue = workboardHeader(route);
-  const homeModule = staffHomeModules.find((module) => module.id === activeHomeModuleId) ?? staffHomeModules[0];
+  const homeModule =
+    staffHomeModules.find((module) => module.id === activeHomeModuleId) ?? staffHomeModules[0]!;
+  const isPeerWorkbenchRoute =
+    route.kind === "validation" ||
+    route.kind === "consequences" ||
+    route.kind === "callbacks" ||
+    route.kind === "messages" ||
+    route.kind === "approvals" ||
+    route.kind === "escalations" ||
+    route.kind === "changed";
+  const sourceTaskRoute = parseStaffPath(buildStaffPath({ kind: "task", taskId: activeTask.id }));
+  const sourceTaskStatus = buildWorkspaceStatus(sourceTaskRoute, runtimeScenario, activeTask);
+  const sourceTaskProjection = isPeerWorkbenchRoute
+    ? buildTaskWorkspaceProjection({
+        route: sourceTaskRoute,
+        task: activeTask,
+        authority: createStaffRouteAuthority(sourceTaskRoute, runtimeScenario),
+        runtimeScenario,
+        statusInput: sourceTaskStatus.statusInput,
+        pulse: sourceTaskStatus.pulse,
+        selectedDecision: decisionSelection,
+        selectedAnchorRef: ledger.selectedAnchorId,
+        rapidEntryDraft,
+        attachmentAndThreadSelection,
+      })
+    : null;
+  const approvalProjection =
+    route.kind === "approvals" && sourceTaskProjection
+      ? buildApprovalInboxRouteProjection({
+          task: activeTask,
+          rows: visibleRows,
+          runtimeScenario,
+          sourceTaskProjection,
+        })
+      : null;
+  const escalationProjection =
+    route.kind === "escalations" && sourceTaskProjection
+      ? buildEscalationRouteProjection({
+          task: activeTask,
+          rows: visibleRows,
+          runtimeScenario,
+          sourceTaskProjection,
+        })
+      : null;
+  const changedProjection =
+    route.kind === "changed" && sourceTaskProjection
+      ? buildChangedWorkRouteProjection({
+          task: activeTask,
+          rows: visibleRows,
+          runtimeScenario,
+          sourceTaskProjection,
+        })
+      : null;
+  const selfCareAdminProjection =
+    route.kind === "consequences"
+      ? buildSelfCareAdminViewsRouteProjection({
+          runtimeScenario,
+          selectedTaskId: ledger.selectedTaskId,
+        })
+      : null;
+  const callbackProjection =
+    route.kind === "callbacks"
+      ? buildCallbackWorkbenchProjection({
+          runtimeScenario,
+          selectedTaskId: ledger.selectedTaskId,
+          selectedAnchorRef: ledger.selectedAnchorId,
+          selectedStage: ledger.callbackStage,
+        })
+      : null;
+  const messageProjection =
+    route.kind === "messages"
+      ? buildClinicianMessageWorkbenchProjection({
+          runtimeScenario,
+          selectedTaskId: ledger.selectedTaskId,
+          selectedAnchorRef: ledger.selectedAnchorId,
+          selectedStage: ledger.messageStage,
+        })
+      : null;
 
-  const openTask = (taskId: string) => {
+  const openTask = (taskId: string, anchorRef = `queue-row-${taskId}`) => {
     const nextRoute = parseStaffPath(buildStaffPath({ kind: "task", taskId }));
+    emitValidationEvent("claim", {
+      routeIntentRef: "workspace.queue.claim",
+      eventClass: route.kind === "queue" ? "queue" : "transition",
+      selectedAnchorRef: anchorRef,
+      interactionMode: "pointer",
+      routeFamilyRef: nextRoute.routeFamilyRef,
+      routePath: nextRoute.path,
+      canonicalObjectDescriptorRef: nextRoute.title,
+      surfaceRef: routeTestId(nextRoute.kind),
+    });
     setLedger((current) => ({
       ...current,
       selectedTaskId: taskId,
       previewTaskId: taskId,
-      selectedAnchorId: `queue-row-${taskId}`,
+      selectedAnchorId: anchorRef,
     }));
     navigateTo(nextRoute);
   };
 
-  const openSearch = () => {
-    navigateTo(parseStaffPath(buildStaffPath({ kind: "search", searchQuery: ledger.searchQuery })));
+  const openPeerRouteTask = (
+    routeKind: "callbacks" | "consequences",
+    taskId: string,
+    anchorRef: string,
+  ) => {
+    const nextRoute = parseStaffPath(buildStaffPath({ kind: routeKind }));
+    const callbackStage =
+      routeKind === "callbacks"
+        ? anchorRef.startsWith("callback-repair-")
+          ? "repair"
+          : anchorRef.startsWith("callback-attempt-") || anchorRef.startsWith("callback-attempt-live-")
+            ? "outcome"
+            : "detail"
+        : ledger.callbackStage;
+    const seededLedger = {
+      ...ledger,
+      selectedTaskId: taskId,
+      previewTaskId: taskId,
+      selectedAnchorId: anchorRef,
+      callbackStage,
+    };
+    const reduction = reduceLedgerForNavigation({
+      ledger: seededLedger,
+      currentRoute: route,
+      nextRoute,
+      runtimeScenario,
+    });
+    const nextLedger = {
+      ...reduction.ledger,
+      selectedTaskId: taskId,
+      previewTaskId: taskId,
+      selectedAnchorId: anchorRef,
+      callbackStage,
+      queuedBatchPending: ledger.queuedBatchPending,
+      bufferedUpdateCount: ledger.queuedBatchPending
+        ? Math.max(ledger.bufferedUpdateCount, 1)
+        : 0,
+      bufferedQueueTrayState: ledger.queuedBatchPending
+        ? reduction.ledger.bufferedQueueTrayState
+        : "collapsed",
+    };
+
+    emitValidationEvent(routeKind === "callbacks" ? "callback_action" : "self_care_action", {
+      routeIntentRef: `workspace.queue.launch.${routeKind}`,
+      eventClass: "transition",
+      selectedAnchorRef: anchorRef,
+      interactionMode: "pointer",
+      routeFamilyRef: nextRoute.routeFamilyRef,
+      routePath: nextRoute.path,
+      canonicalObjectDescriptorRef: nextRoute.title,
+      surfaceRef: routeTestId(nextRoute.kind),
+    });
+
+    startTransition(() => {
+      setLedger(nextLedger);
+      setRoute(nextRoute);
+      setBoundaryState(reduction.boundaryState);
+      setRestoreStorageKey(reduction.restoreStorageKey);
+      setDecisionSelection(defaultDecisionOption(requireCase(taskId)));
+      const ownerWindow = safeWindow();
+      if (ownerWindow) {
+        ownerWindow.history.pushState(
+          historyStateFromLedger(nextLedger),
+          "",
+          buildBrowserRouteUrl(nextRoute.path, ownerWindow.location.search),
+        );
+        dispatchRouteChange();
+      }
+      emitTelemetry("surface_enter", {
+        path: nextRoute.path,
+        routeFamilyRef: nextRoute.routeFamilyRef,
+        boundaryState: reduction.boundaryState,
+      });
+    });
+  };
+
+  const selectControlRoomTask = (taskId: string, anchorRef: string) => {
+    emitValidationEvent(route.kind === "escalations" ? "escalate" : "approve", {
+      routeIntentRef: `workspace.${route.kind}.select_task`,
+      selectedAnchorRef: anchorRef,
+      interactionMode: "pointer",
+    });
+    setLedger((current) => ({
+      ...current,
+      selectedTaskId: taskId,
+      previewTaskId: taskId,
+      selectedAnchorId: anchorRef,
+    }));
+    setDecisionSelection(defaultDecisionOption(requireCase(taskId)));
+  };
+
+  const selectCallbackTask = (taskId: string, anchorRef: string) => {
+    emitValidationEvent("callback_action", {
+      routeIntentRef: "workspace.callbacks.select_case",
+      selectedAnchorRef: anchorRef,
+      interactionMode: "pointer",
+    });
+    pushLedgerState((current) => ({
+      ...current,
+      selectedTaskId: taskId,
+      previewTaskId: taskId,
+      selectedAnchorId: anchorRef,
+      callbackStage: "detail",
+    }));
+  };
+
+  const selectConsequenceTask = (taskId: string, anchorRef: string) => {
+    emitValidationEvent("self_care_action", {
+      routeIntentRef: "workspace.consequences.select_case",
+      selectedAnchorRef: anchorRef,
+      interactionMode: "pointer",
+    });
+    pushLedgerState((current) => ({
+      ...current,
+      selectedTaskId: taskId,
+      previewTaskId: taskId,
+      selectedAnchorId: anchorRef,
+    }));
+  };
+
+  const selectMessageTask = (taskId: string, anchorRef: string) => {
+    emitValidationEvent("message_action", {
+      routeIntentRef: "workspace.messages.select_thread",
+      selectedAnchorRef: anchorRef,
+      interactionMode: "pointer",
+    });
+    pushLedgerState((current) => ({
+      ...current,
+      selectedTaskId: taskId,
+      previewTaskId: taskId,
+      selectedAnchorId: anchorRef,
+      messageStage: "detail",
+    }));
+  };
+
+  const selectCallbackAttempt = (anchorRef: string) => {
+    emitValidationEvent("callback_action", {
+      routeIntentRef: "workspace.callbacks.select_attempt",
+      selectedAnchorRef: anchorRef,
+      interactionMode: "pointer",
+    });
+    pushLedgerState((current) => ({
+      ...current,
+      selectedAnchorId: anchorRef,
+      callbackStage: current.callbackStage === "repair" ? "repair" : "outcome",
+    }));
+  };
+
+  const selectMessageEvent = (anchorRef: string) => {
+    emitValidationEvent("message_action", {
+      routeIntentRef: "workspace.messages.select_event",
+      selectedAnchorRef: anchorRef,
+      interactionMode: "pointer",
+    });
+    pushLedgerState((current) => ({
+      ...current,
+      selectedAnchorId: anchorRef,
+    }));
+  };
+
+  const selectCallbackStage = (stage: StaffShellLedger["callbackStage"]) => {
+    emitValidationEvent("callback_action", {
+      routeIntentRef: `workspace.callbacks.stage.${stage}`,
+      eventClass: "side_stage",
+      interactionMode: "pointer",
+    });
+    pushLedgerState((current) => ({
+      ...current,
+      callbackStage: stage,
+      selectedAnchorId:
+        stage === "detail"
+          ? `callback-detail-${current.selectedTaskId}`
+          : stage === "repair"
+            ? current.selectedAnchorId.startsWith("callback-attempt-") ||
+                current.selectedAnchorId.startsWith("callback-attempt-live-")
+              ? current.selectedAnchorId
+              : `callback-repair-${current.selectedTaskId}`
+            : current.selectedAnchorId.startsWith("callback-attempt-") ||
+                current.selectedAnchorId.startsWith("callback-attempt-live-")
+              ? current.selectedAnchorId
+              : `callback-outcome-${current.selectedTaskId}`,
+    }));
+  };
+
+  const selectMessageStage = (stage: ClinicianMessageStage) => {
+    emitValidationEvent("message_action", {
+      routeIntentRef: `workspace.messages.stage.${stage}`,
+      eventClass: "side_stage",
+      interactionMode: "pointer",
+    });
+    pushLedgerState((current) => ({
+      ...current,
+      messageStage: stage,
+      selectedAnchorId:
+        current.selectedAnchorId.startsWith("message-event-") ||
+        current.selectedAnchorId.startsWith("message-detail-")
+          ? current.selectedAnchorId
+          : `message-detail-${current.selectedTaskId}`,
+    }));
   };
 
   const launchNextTask = () => {
+    emitValidationEvent("close", {
+      routeIntentRef: "workspace.task.launch_next",
+      eventClass: "transition",
+      interactionMode: "pointer",
+    });
     const ordered = applyQueueChangeBatch(listQueueCases(activeTask.launchQueue), activeTask.id);
     const nextTask = ordered.find((item) => item.id !== activeTask.id) ?? ordered[0];
     if (nextTask) {
@@ -979,417 +1932,422 @@ export function StaffShellSeedApp() {
     }
   };
 
-  const onQueueKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const rows = visibleRows;
-    if (!rows.length) {
-      return;
-    }
-    const currentIndex = rows.findIndex((row) => row.id === ledger.selectedTaskId);
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      event.preventDefault();
-      const nextIndex =
-        event.key === "ArrowDown"
-          ? Math.min(currentIndex + 1, rows.length - 1)
-          : Math.max(currentIndex - 1, 0);
-      const nextRow = rows[nextIndex] ?? rows[0];
-      if (!nextRow) {
-        return;
-      }
-      startTransition(() => {
-        setLedger((current) => ({
-          ...current,
-          selectedTaskId: nextRow.id,
-          previewTaskId: nextRow.id,
-          selectedAnchorId: `queue-row-${nextRow.id}`,
-        }));
-        setPreviewTaskId(nextRow.id);
-      });
-      emitTelemetry("selected_anchor_changed", {
-        path: route.path,
-        selectedTaskId: nextRow.id,
-        keyboard: event.key,
-      });
-    }
-    if (event.key === "Enter") {
-      event.preventDefault();
-      openTask(ledger.selectedTaskId);
-    }
-  };
-
   return (
-    <main
-      className="staff-shell"
-      data-breakpoint-class={breakpoint}
-      data-layout-mode={layoutMode}
-      data-route-kind={route.kind}
-      data-runtime-scenario={runtimeScenario}
-      data-boundary-state={boundaryState}
-      data-motion-profile={reducedMotion ? "reduced" : "standard"}
-      data-manifest-validation={authority.verdict.validationState}
-      data-testid="staff-shell-root"
-      {...surfaceAttributes}
+    <WorkspaceShell
+      breakpoint={breakpoint}
+      layoutMode={layoutMode}
+      route={route}
+      designMode={designModeForRoute(route)}
+      runtimeScenario={runtimeScenario}
+      boundaryState={boundaryState}
+      reducedMotion={reducedMotion}
+      manifestValidation={authority.verdict.validationState}
+      workspaceShellContinuityKey={workspaceShellContinuityKey}
+      entityContinuityKey={entityContinuityKey}
+      designContractState={designContractState}
+      dominantActionLabel={dominantActionLabel}
+      anchorPosture={anchorPosture}
+      selectedAnchorId={ledger.selectedAnchorId}
+      restoreStorageKey={restoreStorageKey}
+      surfaceAttributes={{
+        ...surfaceAttributes,
+        ...buildWorkspaceSurfaceAttributes({
+          surface: "workspace_shell",
+          surfaceState: route.kind,
+          focusModel: "tab_ring",
+          selectedAnchorRef: ledger.selectedAnchorId,
+          runtimeScenario,
+        }),
+      }}
+      visualMode={WORKSPACE_ACCESSIBILITY_VISUAL_MODE}
+      accessibilityCoverageHash={accessibilityBundle.accessibilitySemanticCoverageProfile.coverageTupleHash}
+      accessibilityCoverageState={accessibilityBundle.accessibilitySemanticCoverageProfile.coverageState}
+      assistiveAnnouncement={assistiveAnnouncement}
+      keyboardModelDescription={resolveWorkspaceKeyboardModelDescription(route.kind)}
+      keyboardRegionOrder={resolveWorkspaceFocusOrder(route.kind).join(" -> ")}
     >
-      <header className="staff-shell__masthead">
-        <div className="staff-shell__brand">
-          <StaffInsignia />
-          <div>
-            <span className="staff-shell__eyebrow">Quiet Clinical Mission Control</span>
-            <h1>Clinical workspace seed routes</h1>
-            <p>Queue-first review, one current decision rail, and same-shell recovery under one continuity ledger.</p>
-          </div>
-        </div>
-        <div className="staff-shell__meta">
-          <span>Reviewer: Lee Moran</span>
-          <span>{authority.manifest.frontendContractManifestId}</span>
-          <span>{authority.guardDecision.effectivePosture.replaceAll("_", " ")}</span>
-        </div>
-      </header>
-
-      <section className="staff-shell__pulse-band">
-        <CasePulse pulse={pulse} />
-      </section>
-
-      <SharedStatusStrip input={statusInput} />
-
-      <nav className="staff-shell__section-band" aria-label="Clinical workspace sections">
-        <SectionLink active={route.kind === "home"} label="Home" onClick={() => navigateTo(parseStaffPath("/workspace"))} />
-        <SectionLink
-          active={route.kind === "queue" || route.kind === "task" || route.kind === "more-info" || route.kind === "decision"}
-          label="Queue"
-          onClick={() => navigateTo(parseStaffPath(`/workspace/queue/${ledger.queueKey}`))}
+      <div data-testid="staff-shell-root">
+        <WorkspaceCommandPalette
+          open={commandPaletteOpen}
+          activeQueueKey={ledger.queueKey}
+          activeTaskId={ledger.selectedTaskId}
+          currentRouteKind={route.kind}
+          onClose={() => setCommandPaletteOpen(false)}
+          onSelectRoute={(nextRoute) => navigateTo(nextRoute)}
         />
-        <SectionLink active={route.kind === "approvals"} label="Approvals" onClick={() => navigateTo(parseStaffPath("/workspace/approvals"))} />
-        <SectionLink active={route.kind === "escalations"} label="Escalations" onClick={() => navigateTo(parseStaffPath("/workspace/escalations"))} />
-        <SectionLink active={route.kind === "changed"} label="Changed" onClick={() => navigateTo(parseStaffPath("/workspace/changed"))} />
-        <SectionLink active={route.kind === "search"} label="Search" onClick={openSearch} />
-      </nav>
+        <WorkspaceHeaderBand
+          route={route}
+          authority={authority}
+          workspaceShellContinuityKey={workspaceShellContinuityKey}
+          entityContinuityKey={entityContinuityKey}
+          selectedAnchorId={ledger.selectedAnchorId}
+          restoreStorageKey={restoreStorageKey}
+          runtimeScenario={runtimeScenario}
+          onRuntimeScenarioChange={(nextScenario) => {
+            setRuntimeScenario(nextScenario);
+            emitTelemetry("recovery_posture_changed", {
+              path: route.path,
+              runtimeScenario: nextScenario,
+            });
+          }}
+          onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+        />
 
-      <section className="staff-shell__utility-strip">
-        <div className="staff-shell__utility-copy">
-          <span className="staff-shell__eyebrow">WorkspaceNavigationLedger</span>
-          <strong>{route.path}</strong>
-          <p>Selected anchor: {ledger.selectedAnchorId}. Restore key: {restoreStorageKey}.</p>
-        </div>
-        <div className="staff-shell__utility-actions">
-          <label>
-            <span>Runtime posture</span>
-            <select
-              data-testid="runtime-scenario-select"
-              value={runtimeScenario}
-              onChange={(event) => {
-                const nextScenario = event.currentTarget.value as StaffShellLedger["runtimeScenario"];
-                setRuntimeScenario(nextScenario);
-                emitTelemetry("recovery_posture_changed", {
-                  path: route.path,
-                  runtimeScenario: nextScenario,
-                });
-              }}
-            >
-              <option value="live">Live</option>
-              <option value="stale_review">Stale review</option>
-              <option value="read_only">Read-only</option>
-              <option value="recovery_only">Recovery only</option>
-              <option value="blocked">Blocked</option>
-            </select>
-          </label>
-          <button
-            type="button"
-            className="staff-shell__utility-button"
-            onClick={() =>
-              setLedger((current) => ({
-                ...current,
-                queuedBatchPending: !current.queuedBatchPending,
-              }))
-            }
-          >
-            {ledger.queuedBatchPending ? "Apply queued changes" : "Reset queue snapshot"}
-          </button>
-        </div>
-      </section>
-
-      <div className="staff-shell__layout" data-testid="staff-shell-layout">
-        <aside className="staff-shell__workboard-pane">
-          <header className="staff-shell__pane-header">
-            <span className="staff-shell__eyebrow">WorkspaceHomeProjection</span>
-            <h2>{selectedQueue.label}</h2>
-            <p>{selectedQueue.description}</p>
-          </header>
-
-          <div className="staff-shell__queue-picker">
-            {staffQueues.map((queue) => (
-              <button
-                type="button"
-                className="staff-shell__queue-link"
-                data-active={(route.queueKey ?? "recommended") === queue.key ? "true" : "false"}
-                key={queue.key}
-                onClick={() => navigateTo(parseStaffPath(`/workspace/queue/${queue.key}`))}
-              >
-                {queue.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="staff-shell__preview-pocket">
-            <QueuePreview task={previewTask} selectedAnchor={ledger.selectedAnchorId} onOpen={openTask} />
-          </div>
-
-          <div
-            className="staff-shell__queue-list"
-            data-testid="queue-workboard"
-            onKeyDown={onQueueKeyDown}
-            role="listbox"
-            aria-label="Clinical queue workboard"
-          >
-            {deriveVisibleQueueRows(route, ledger).map((task) => (
-              <QueueRow
-                key={task.id}
-                task={task}
-                isActive={ledger.selectedTaskId === task.id}
-                isPreviewing={previewTaskId === task.id}
-                onHover={schedulePreview}
-                onPin={(taskId) => {
-                  startTransition(() => {
-                    setPreviewTaskId(taskId);
-                    setPreviewPinned(true);
-                  });
-                }}
-                onOpen={openTask}
-                onSelectAnchor={(taskId) => {
-                  setLedger((current) => ({
-                    ...current,
-                    selectedTaskId: taskId,
-                    previewTaskId: taskId,
-                    selectedAnchorId: `queue-row-${taskId}`,
-                  }));
-                }}
-              />
-            ))}
-          </div>
-        </aside>
-
-        <section className="staff-shell__main-pane">
-          <ProtectedCompositionRibbon
-            route={route}
-            bufferedUpdateCount={ledger.bufferedUpdateCount}
-            runtimeScenario={runtimeScenario}
+        {!isActiveTaskRoute && (
+          <WorkspaceStatusStrip
+            pulse={pulse}
+            statusInput={statusInput}
+            dominantActionLabel={dominantActionLabel}
+            anchorPosture={anchorPosture}
+            designContractState={designContractState}
           />
+        )}
 
-          {route.kind === "home" && (
-            <div className="staff-shell__home">
-              <section className="staff-shell__hero" data-testid="today-workbench-hero">
-                <span className="staff-shell__eyebrow">TodayWorkbenchHero</span>
-                <h2>Resume the returned-evidence queue before anything else</h2>
-                <p>
-                  The recommended queue stays expanded because decisive deltas and callback drift need bounded review before settlement can resume.
-                </p>
-                <button type="button" className="staff-shell__inline-action" onClick={() => openTask("task-311")}>
-                  Open Task 311 in the same shell
-                </button>
-              </section>
+        <div
+          className={classNames("staff-shell__layout", isPeerWorkbenchRoute && "staff-shell__layout--control-room")}
+          data-testid="staff-shell-layout"
+        >
+          <WorkspaceNavRail
+            route={route}
+            activeQueueKey={ledger.queueKey}
+            runtimeScenario={runtimeScenario}
+            selectedAnchorId={ledger.selectedAnchorId}
+            onNavigate={navigateTo}
+          />
+          {!isPeerWorkbenchRoute && (
+            <QueueScanManager
+              route={route}
+              ledger={ledger}
+              focusContinuity={focusContinuity}
+              runtimeScenario={runtimeScenario}
+              previewTaskId={previewTaskId}
+              previewPinned={previewPinned}
+              onPreviewTaskChange={setPreviewTaskId}
+              onPreviewPinnedChange={setPreviewPinned}
+              onLedgerChange={(updater) => setLedger((current) => updater(current))}
+              onNavigate={navigateTo}
+              onOpenTask={openTask}
+              onOpenPeerRouteTask={openPeerRouteTask}
+            />
+            )}
+            <section
+            className={classNames(
+              "staff-shell__main-pane",
+              isActiveTaskRoute && "staff-shell__main-pane--task-plane",
+              isPeerWorkbenchRoute && "staff-shell__main-pane--control-room",
+            )}
+              data-testid={routeTestId(route.kind)}
+              data-visual-mode={route.kind === "validation" ? CLINICAL_BETA_VALIDATION_VISUAL_MODE : undefined}
+              data-feature-flag={route.kind === "validation" ? CLINICAL_BETA_VALIDATION_FEATURE_FLAG : undefined}
+              id={!isActiveTaskRoute ? WORKSPACE_FOCUS_TARGET_IDS.peerRoute : undefined}
+              tabIndex={!isActiveTaskRoute ? -1 : undefined}
+              {...(!isActiveTaskRoute
+                ? buildWorkspaceSurfaceAttributes({
+                    surface: "peer_route",
+                    surfaceState: route.kind,
+                    focusModel: "tab_ring",
+                    selectedAnchorRef: ledger.selectedAnchorId,
+                    runtimeScenario,
+                  })
+                : {})}
+            >
+            {route.kind === "home" && (
+              <WorkspaceHome
+                homeModule={homeModule}
+                activeHomeModuleId={activeHomeModuleId}
+                onModuleSelect={setActiveHomeModuleId}
+                onOpenRecommendedTask={() => openTask("task-311")}
+              />
+            )}
 
-              <section className="staff-shell__home-modules">
-                {staffHomeModules.map((module) => (
-                  <InterruptionModule
-                    key={module.id}
-                    module={module}
-                    active={module.id === homeModule?.id}
-                    onSelect={setActiveHomeModuleId}
-                  />
-                ))}
-              </section>
+            {(route.kind === "queue" || route.kind === "search") && postureContract && (
+              <div className="staff-shell__posture-stage" data-testid="queue-posture-stage">
+                <SurfaceStateFrame contract={postureContract} />
+              </div>
+            )}
 
-              <section className="staff-shell__home-detail">
-                <span className="staff-shell__eyebrow">{homeModule?.title}</span>
-                <strong>{homeModule?.summary}</strong>
-                <p>{homeModule?.detail}</p>
-              </section>
-            </div>
-          )}
-
-          {(route.kind === "queue" || route.kind === "search") && postureContract && (
-            <div className="staff-shell__posture-stage" data-testid="queue-posture-stage">
-              <SurfaceStateFrame contract={postureContract} />
-            </div>
-          )}
-
-          {(route.kind === "queue" || route.kind === "task" || route.kind === "more-info" || route.kind === "decision") &&
-            (!postureContract || route.kind === "task" || route.kind === "more-info" || route.kind === "decision") && (
+            {isActiveTaskRoute && (
               <>
-                {postureContract && route.kind !== "queue" && (
+                {postureContract && (
                   <section className="staff-shell__inline-posture" data-testid="inline-posture">
                     <strong>{postureContract.title}</strong>
                     <span>{postureContract.summary}</span>
                   </section>
                 )}
-                <TaskCanvas
-                  task={activeTask}
-                  currentRoute={route}
-                  postureMode={
-                    authority.guardDecision.effectivePosture === "live"
-                      ? "live"
-                      : authority.guardDecision.effectivePosture === "read_only"
-                        ? "guarded"
-                        : "recovery"
-                  }
-                  selectedDecision={decisionSelection}
-                />
+                {taskProjection && (
+                  <ActiveTaskShell
+                    projection={taskProjection}
+                    focusContinuity={focusContinuity}
+                    route={route}
+                    runtimeScenario={runtimeScenario}
+                    selectedDecision={decisionSelection}
+                    onDecisionChange={(value) => {
+                      setDecisionSelection(value);
+                      emitTelemetry("dominant_action_changed", {
+                        path: route.path,
+                        decision: value,
+                      });
+                    }}
+                    onOpenTask={() =>
+                      navigateTo(parseStaffPath(buildStaffPath({ kind: "task", taskId: activeTask.id })))
+                    }
+                    onOpenMoreInfo={() =>
+                      navigateTo(parseStaffPath(buildStaffPath({ kind: "more-info", taskId: activeTask.id })))
+                    }
+                    onOpenDecision={() =>
+                      navigateTo(parseStaffPath(buildStaffPath({ kind: "decision", taskId: activeTask.id })))
+                    }
+                    onLaunchNext={launchNextTask}
+                    onBufferedQueueApply={() =>
+                      setLedger((current) => ({
+                        ...current,
+                        queuedBatchPending: false,
+                        bufferedUpdateCount: 0,
+                        bufferedQueueTrayState: "collapsed",
+                      }))
+                    }
+                    onBufferedQueueToggleReview={() =>
+                      setLedger((current) => ({
+                        ...current,
+                        bufferedQueueTrayState:
+                          current.bufferedQueueTrayState === "expanded" ? "collapsed" : "expanded",
+                      }))
+                    }
+                    onBufferedQueueDefer={() =>
+                      setLedger((current) => ({
+                        ...current,
+                        bufferedQueueTrayState: "deferred",
+                      }))
+                    }
+                    onOpenSupportStub={() => navigateTo(parseStaffPath("/workspace/support-handoff"))}
+                    onReasonSelect={(value) => queueRapidEntryAutosave({ selectedReasonChip: value })}
+                    onQuestionSetSelect={(value) => queueRapidEntryAutosave({ selectedQuestionSet: value })}
+                    onMacroSelect={(value) => queueRapidEntryAutosave({ selectedMacro: value })}
+                    onDuePickSelect={(value) => queueRapidEntryAutosave({ selectedDuePick: value })}
+                    onNoteChange={(value) => queueRapidEntryAutosave({ note: value })}
+                    onOpenArtifact={(artifactId: string) =>
+                      setAttachmentAndThreadSelection((current) => ({
+                        ...current,
+                        selectedArtifactId: artifactId,
+                      }))
+                    }
+                    onCloseArtifact={() =>
+                      setAttachmentAndThreadSelection((current) => ({
+                        ...current,
+                        selectedArtifactId: null,
+                      }))
+                    }
+                    onSelectThreadEvent={(eventId: string) =>
+                      setAttachmentAndThreadSelection((current) => ({
+                        ...current,
+                        selectedThreadEventId: eventId,
+                      }))
+                    }
+                    onResetThreadSelection={() =>
+                      setAttachmentAndThreadSelection((current) => ({
+                        ...current,
+                        selectedThreadEventId: createInitialAttachmentAndThreadSelection(activeTask).selectedThreadEventId,
+                      }))
+                    }
+                    onSelectAnchor={(anchorRef) =>
+                      setLedger((current) => ({
+                        ...current,
+                        selectedAnchorId: anchorRef,
+                      }))
+                    }
+                  />
+                )}
               </>
             )}
 
-          {route.kind === "approvals" && (
-            <section className="staff-shell__peer-route" data-testid="approvals-route">
-              <header>
-                <span className="staff-shell__eyebrow">Approvals</span>
-                <h2>Consequence-aware approvals stay inside the same shell</h2>
-              </header>
-              <div className="staff-shell__peer-grid">
-                {staffCases
-                  .filter((task) => task.state === "approval")
-                  .map((task) => (
-                    <article key={task.id} className="staff-shell__peer-card">
-                      <strong>{task.primaryReason}</strong>
-                      <p>{task.previewSummary}</p>
-                      <button type="button" className="staff-shell__inline-action" onClick={() => openTask(task.id)}>
-                        Open promoted approval preview
-                      </button>
-                    </article>
-                  ))}
-              </div>
-            </section>
-          )}
+            {route.kind === "approvals" && (
+              approvalProjection && (
+                <ApprovalInboxRoute
+                  projection={approvalProjection}
+                  onSelectTask={selectControlRoomTask}
+                  onOpenTask={openTask}
+                />
+              )
+            )}
 
-          {route.kind === "escalations" && (
-            <section className="staff-shell__peer-route staff-shell__peer-route--critical" data-testid="escalations-route">
-              <header>
-                <span className="staff-shell__eyebrow">Escalations</span>
-                <h2>Urgent, low-noise escalation workboard</h2>
-              </header>
-              <div className="staff-shell__peer-grid">
-                {staffCases
-                  .filter((task) => task.state === "escalated" || task.state === "blocked")
-                  .map((task) => (
-                    <article key={task.id} className="staff-shell__peer-card">
-                      <strong>{task.primaryReason}</strong>
-                      <p>{task.deltaSummary}</p>
-                      <button type="button" className="staff-shell__inline-action" onClick={() => openTask(task.id)}>
-                        Review escalated case
-                      </button>
-                    </article>
-                  ))}
-              </div>
-            </section>
-          )}
+            {route.kind === "validation" && (
+              <WorkspaceValidationRoute runtimeScenario={runtimeScenario} />
+            )}
 
-          {route.kind === "changed" && (
-            <section className="staff-shell__peer-route" data-testid="changed-route">
-              <header>
-                <span className="staff-shell__eyebrow">EvidenceDeltaPacket</span>
-                <h2>Resumed review remains delta-first</h2>
-              </header>
-              <div className="staff-shell__peer-grid">
-                {staffCases
-                  .filter((task) => task.state === "changed" || task.state === "reassigned")
-                  .map((task) => (
-                    <article key={task.id} className="staff-shell__peer-card">
-                      <strong>{task.deltaSummary}</strong>
-                      <p>{task.supersededContext[0]}</p>
-                      <button type="button" className="staff-shell__inline-action" onClick={() => openTask(task.id)}>
-                        Resume in task shell
-                      </button>
-                    </article>
-                  ))}
-              </div>
-            </section>
-          )}
-
-          {route.kind === "search" && !postureContract && (
-            <section className="staff-shell__peer-route" data-testid="search-route">
-              <header>
-                <span className="staff-shell__eyebrow">Search</span>
-                <h2>Exact-match and filtered search stays inside the staff shell</h2>
-              </header>
-              <label className="staff-shell__search-field">
-                <span>Search request, patient, or route</span>
-                <input
-                  value={ledger.searchQuery}
-                  onChange={(event) => {
-                    const nextSearchQuery = event.currentTarget.value;
+            {route.kind === "callbacks" &&
+              callbackProjection && (
+                <CallbackWorklistRoute
+                  projection={callbackProjection}
+                  focusContinuity={focusContinuity}
+                  selectedAnchorRef={ledger.selectedAnchorId}
+                  onSelectCase={selectCallbackTask}
+                  onSelectAttempt={selectCallbackAttempt}
+                  onSelectStage={selectCallbackStage}
+                  onOpenTask={(taskId) => openTask(taskId, `callback-detail-${taskId}`)}
+                  onBufferedQueueApply={() =>
                     setLedger((current) => ({
                       ...current,
-                      searchQuery: nextSearchQuery,
-                    }));
-                  }}
+                      queuedBatchPending: false,
+                      bufferedUpdateCount: 0,
+                      bufferedQueueTrayState: "collapsed",
+                    }))
+                  }
+                  onBufferedQueueToggleReview={() =>
+                    setLedger((current) => ({
+                      ...current,
+                      bufferedQueueTrayState:
+                        current.bufferedQueueTrayState === "expanded" ? "collapsed" : "expanded",
+                    }))
+                  }
+                  onBufferedQueueDefer={() =>
+                    setLedger((current) => ({
+                      ...current,
+                      bufferedQueueTrayState: "deferred",
+                    }))
+                  }
                 />
-              </label>
-              <div className="staff-shell__peer-grid">
-                {listSearchCases(ledger.searchQuery).map((task) => (
-                  <article key={task.id} className="staff-shell__peer-card">
-                    <strong>{task.patientLabel}</strong>
-                    <p>{task.primaryReason}</p>
-                    <button
-                      type="button"
-                      className="staff-shell__inline-action"
-                      onClick={() => navigateTo(parseStaffPath(buildStaffPath({ kind: "task", taskId: task.id })))}
-                    >
-                      Open exact-match result
-                    </button>
-                  </article>
-                ))}
-              </div>
-            </section>
+              )}
+
+            {route.kind === "consequences" &&
+              selfCareAdminProjection && (
+                <SelfCareAdminViewsRoute
+                  projection={selfCareAdminProjection}
+                  onSelectCase={selectConsequenceTask}
+                  onOpenTask={(taskId) => openTask(taskId, `consequence-detail-${taskId}`)}
+                />
+              )}
+
+            {route.kind === "messages" &&
+              messageProjection && (
+                <ClinicianMessageThreadSurface
+                  projection={messageProjection}
+                  focusContinuity={focusContinuity}
+                  onSelectThread={selectMessageTask}
+                  onSelectEvent={selectMessageEvent}
+                  onSelectStage={selectMessageStage}
+                  onOpenTask={(taskId) => openTask(taskId, `message-detail-${taskId}`)}
+                  onBufferedQueueApply={() =>
+                    setLedger((current) => ({
+                      ...current,
+                      queuedBatchPending: false,
+                      bufferedUpdateCount: 0,
+                      bufferedQueueTrayState: "collapsed",
+                    }))
+                  }
+                  onBufferedQueueToggleReview={() =>
+                    setLedger((current) => ({
+                      ...current,
+                      bufferedQueueTrayState:
+                        current.bufferedQueueTrayState === "expanded" ? "collapsed" : "expanded",
+                    }))
+                  }
+                  onBufferedQueueDefer={() =>
+                    setLedger((current) => ({
+                      ...current,
+                      bufferedQueueTrayState: "deferred",
+                    }))
+                  }
+                />
+              )}
+
+            {route.kind === "escalations" && (
+              escalationProjection && (
+                <EscalationWorkspaceRoute
+                  projection={escalationProjection}
+                  onSelectTask={selectControlRoomTask}
+                  onOpenTask={openTask}
+                />
+              )
+            )}
+
+            {route.kind === "changed" &&
+              changedProjection && (
+                <ChangedWorkRoute
+                  projection={changedProjection}
+                  routeKind={route.kind}
+                  onSelectTask={selectControlRoomTask}
+                  onOpenTask={openTask}
+                  onSelectAnchor={(anchorRef) =>
+                    setLedger((current) => ({
+                      ...current,
+                      selectedAnchorId: anchorRef,
+                    }))
+                  }
+                />
+              )}
+
+            {route.kind === "search" && !postureContract && (
+              <section className="staff-shell__peer-route" data-testid="search-route">
+                <header>
+                  <span className="staff-shell__eyebrow">Search</span>
+                  <h2>Exact-match and filtered search stays inside the staff shell</h2>
+                </header>
+                <label className="staff-shell__search-field">
+                  <span>Search request, patient, or route</span>
+                  <input
+                    value={ledger.searchQuery}
+                    onChange={(event) => {
+                      const nextSearchQuery = event.currentTarget.value;
+                      setLedger((current) => ({
+                        ...current,
+                        searchQuery: nextSearchQuery,
+                      }));
+                    }}
+                  />
+                </label>
+                <div className="staff-shell__peer-grid">
+                  {listSearchCases(ledger.searchQuery).map((task) => (
+                    <article key={task.id} className="staff-shell__peer-card">
+                      <strong>{task.patientLabel}</strong>
+                      <p>{task.primaryReason}</p>
+                      <button
+                        type="button"
+                        className="staff-shell__inline-action"
+                        onClick={() => navigateTo(parseStaffPath(buildStaffPath({ kind: "task", taskId: task.id })))}
+                      >
+                        Open exact-match result
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {route.kind === "support-handoff" && <SupportStub />}
+          </section>
+
+          {!isActiveTaskRoute && (
+            <aside className="staff-shell__dock-pane">
+              <section className="staff-shell__authority-card" data-testid="route-authority-card">
+                <span className="staff-shell__eyebrow">Route authority</span>
+                <strong>{authority.guardDecision.effectivePosture.replaceAll("_", " ")}</strong>
+                <p>
+                  Manifest validation: {authority.verdict.validationState}. Safe to consume:{" "}
+                  {String(authority.verdict.safeToConsume)}.
+                </p>
+                <p>
+                  Digest drift: {authority.verdict.driftState}. Runtime bundle:{" "}
+                  {authority.manifest.runtimePublicationBundleRef}.
+                </p>
+              </section>
+
+              <section className="staff-shell__telemetry-card" data-testid="telemetry-log">
+                <span className="staff-shell__eyebrow">UI telemetry envelopes</span>
+                <ol>
+                  {telemetryLog.map((entry, index) => (
+                    <li key={`${entry.envelopeId}:${index}`}>
+                      <strong>{entry.eventClass}</strong>
+                      <span>{entry.payloadDigestRef}</span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            </aside>
           )}
-
-          {route.kind === "support-handoff" && <SupportStub />}
-        </section>
-
-        <aside className="staff-shell__dock-pane">
-          <DecisionDock
-            task={activeTask}
-            route={route}
-            selectedDecision={decisionSelection}
-            onDecisionChange={(value) => {
-              setDecisionSelection(value);
-              emitTelemetry("dominant_action_changed", {
-                path: route.path,
-                decision: value,
-              });
-            }}
-            onOpenMoreInfo={() =>
-              navigateTo(parseStaffPath(buildStaffPath({ kind: "more-info", taskId: activeTask.id })))
-            }
-            onOpenDecision={() =>
-              navigateTo(parseStaffPath(buildStaffPath({ kind: "decision", taskId: activeTask.id })))
-            }
-            onLaunchNext={launchNextTask}
-            onOpenSupportStub={() => navigateTo(parseStaffPath("/workspace/support-handoff"))}
-            note={draftNote}
-            onNoteChange={setDraftNote}
-            selectedReason={selectedReason}
-            onReasonChange={setSelectedReason}
-            selectedDuePick={selectedDuePick}
-            onDuePickChange={setSelectedDuePick}
-          />
-
-          <section className="staff-shell__authority-card" data-testid="route-authority-card">
-            <span className="staff-shell__eyebrow">Route authority</span>
-            <strong>{authority.guardDecision.effectivePosture.replaceAll("_", " ")}</strong>
-            <p>Manifest validation: {authority.verdict.validationState}. Safe to consume: {String(authority.verdict.safeToConsume)}.</p>
-            <p>Digest drift: {authority.verdict.driftState}. Runtime bundle: {authority.manifest.runtimePublicationBundleRef}.</p>
-          </section>
-
-          <section className="staff-shell__telemetry-card" data-testid="telemetry-log">
-            <span className="staff-shell__eyebrow">UI telemetry envelopes</span>
-            <ol>
-              {telemetryLog.map((entry, index) => (
-                <li key={`${entry.envelopeId}:${index}`}>
-                  <strong>{entry.eventClass}</strong>
-                  <span>{entry.payloadDigestRef}</span>
-                </li>
-              ))}
-            </ol>
-          </section>
-        </aside>
+        </div>
       </div>
-    </main>
+    </WorkspaceShell>
   );
 }
+
+export const StaffShellSeedApp = WorkspaceRouteFamilyController;

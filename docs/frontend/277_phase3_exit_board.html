@@ -1,0 +1,890 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>277 Phase 3 Exit Board</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f5f7fb;
+        --panel: #ffffff;
+        --inset: #eef2f7;
+        --border: #d7dfea;
+        --text-strong: #0f172a;
+        --text: #334155;
+        --muted: #64748b;
+        --approved: #0f766e;
+        --constrained: #b7791f;
+        --withheld: #b42318;
+        --evidence: #3158e0;
+        --shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--text);
+        font-family: Inter, "Segoe UI", Arial, sans-serif;
+      }
+
+      body {
+        min-height: 100vh;
+      }
+
+      a {
+        color: var(--evidence);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      .board {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 1.25rem;
+        display: grid;
+        gap: 1rem;
+      }
+
+      .masthead,
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 0.5rem;
+        box-shadow: var(--shadow);
+      }
+
+      .masthead {
+        min-height: 72px;
+        padding: 1rem 1.25rem;
+        display: grid;
+        gap: 0.85rem;
+      }
+
+      .eyebrow {
+        font-size: 0.74rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--evidence);
+      }
+
+      h1, h2, h3, h4, p {
+        margin: 0;
+      }
+
+      .muted {
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .verdict-band {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 1rem;
+        align-items: start;
+      }
+
+      .verdict-copy {
+        display: grid;
+        gap: 0.65rem;
+      }
+
+      .verdict-band[data-verdict="approved"] {
+        border-left: 6px solid var(--approved);
+      }
+
+      .verdict-band[data-verdict="go_with_constraints"] {
+        border-left: 6px solid var(--constrained);
+      }
+
+      .verdict-band[data-verdict="withheld"] {
+        border-left: 6px solid var(--withheld);
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        min-height: 32px;
+        padding: 0.35rem 0.65rem;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        font-size: 0.82rem;
+        background: var(--inset);
+        color: var(--text-strong);
+      }
+
+      .chip[data-tone="approved"] {
+        color: var(--approved);
+        border-color: rgba(15, 118, 110, 0.3);
+        background: rgba(15, 118, 110, 0.08);
+      }
+
+      .chip[data-tone="go_with_constraints"] {
+        color: var(--constrained);
+        border-color: rgba(183, 121, 31, 0.3);
+        background: rgba(183, 121, 31, 0.1);
+      }
+
+      .chip[data-tone="withheld"] {
+        color: var(--withheld);
+        border-color: rgba(180, 35, 24, 0.3);
+        background: rgba(180, 35, 24, 0.08);
+      }
+
+      .chip[data-tone="evidence"] {
+        color: var(--evidence);
+        border-color: rgba(49, 88, 224, 0.25);
+        background: rgba(49, 88, 224, 0.08);
+      }
+
+      .preview-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: flex-end;
+      }
+
+      .preview-button {
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text-strong);
+        border-radius: 999px;
+        min-height: 40px;
+        padding: 0.55rem 0.85rem;
+        cursor: pointer;
+      }
+
+      .preview-button[data-active="true"] {
+        border-color: var(--evidence);
+        color: var(--evidence);
+        background: rgba(49, 88, 224, 0.08);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 8fr) minmax(320px, 4fr);
+        gap: 1rem;
+      }
+
+      .stack {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .panel {
+        padding: 1rem;
+        display: grid;
+        gap: 0.85rem;
+      }
+
+      .region-header {
+        display: grid;
+        gap: 0.3rem;
+      }
+
+      .phase-braid {
+        display: grid;
+        gap: 0.85rem;
+      }
+
+      .phase-braid-diagram {
+        display: grid;
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+        gap: 0.55rem;
+      }
+
+      .phase-node {
+        border: 1px solid var(--border);
+        background: var(--inset);
+        border-radius: 0.45rem;
+        padding: 0.7rem 0.65rem;
+        display: grid;
+        gap: 0.35rem;
+        min-height: 88px;
+      }
+
+      .phase-node[data-status="approved"] {
+        border-color: rgba(15, 118, 110, 0.25);
+      }
+
+      .phase-node[data-status="go_with_constraints"] {
+        border-color: rgba(183, 121, 31, 0.25);
+      }
+
+      .phase-node[data-status="withheld"] {
+        border-color: rgba(180, 35, 24, 0.25);
+      }
+
+      .phase-braid-table,
+      .suite-table,
+      .manifest-table,
+      .boundary-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.88rem;
+      }
+
+      .phase-braid-table th,
+      .phase-braid-table td,
+      .suite-table th,
+      .suite-table td,
+      .manifest-table th,
+      .manifest-table td,
+      .boundary-table th,
+      .boundary-table td {
+        border-bottom: 1px solid var(--border);
+        padding: 0.55rem 0.4rem;
+        text-align: left;
+        vertical-align: top;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      .ladder {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .scorecard-row {
+        border: 1px solid var(--border);
+        border-radius: 0.45rem;
+        background: var(--panel);
+      }
+
+      .scorecard-row > summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 0.85rem 0.95rem;
+        display: grid;
+        gap: 0.55rem;
+      }
+
+      .scorecard-row > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .summary-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.75rem;
+        align-items: start;
+      }
+
+      .summary-head > div {
+        min-width: 0;
+      }
+
+      .row-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        min-width: 0;
+      }
+
+      .summary-body {
+        color: var(--muted);
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      .scorecard-detail {
+        border-top: 1px solid var(--border);
+        padding: 0.85rem 0.95rem 0.95rem;
+        display: grid;
+        gap: 0.75rem;
+        background: rgba(238, 242, 247, 0.45);
+      }
+
+      .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+      }
+
+      .detail-list {
+        display: grid;
+        gap: 0.35rem;
+      }
+
+      .detail-list li {
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      .suite-grid,
+      .constraint-list,
+      .ledger-list,
+      .boundary-grid {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .constraint-card,
+      .ledger-card,
+      .boundary-card {
+        border: 1px solid var(--border);
+        border-radius: 0.45rem;
+        background: var(--inset);
+        padding: 0.8rem 0.85rem;
+        display: grid;
+        gap: 0.45rem;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      .boundary-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .rail-kpis {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.6rem;
+      }
+
+      .kpi {
+        border: 1px solid var(--border);
+        border-radius: 0.45rem;
+        background: var(--inset);
+        padding: 0.75rem 0.8rem;
+        display: grid;
+        gap: 0.25rem;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      .kpi strong {
+        font-size: 1.1rem;
+        color: var(--text-strong);
+      }
+
+      .lower-zone {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 1rem;
+      }
+
+      .span-5 { grid-column: span 5; }
+      .span-4 { grid-column: span 4; }
+      .span-3 { grid-column: span 3; }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      button:focus-visible,
+      summary:focus-visible,
+      a:focus-visible {
+        outline: 2px solid var(--evidence);
+        outline-offset: 2px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+
+      @media (max-width: 1100px) {
+        .layout,
+        .lower-zone {
+          grid-template-columns: 1fr;
+        }
+
+        .span-5,
+        .span-4,
+        .span-3 {
+          grid-column: auto;
+        }
+
+        .phase-braid-diagram {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 720px) {
+        .board {
+          padding: 0.85rem;
+        }
+
+        .verdict-band {
+          grid-template-columns: 1fr;
+        }
+
+        .preview-controls {
+          justify-content: flex-start;
+        }
+
+        .phase-braid-diagram,
+        .detail-grid,
+        .boundary-grid,
+        .rail-kpis {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main
+      class="board"
+      data-testid="Phase3ExitBoard"
+      data-visual-mode="Human_Checkpoint_Exit_Board"
+      data-current-verdict=""
+      data-active-verdict=""
+      data-preview-mode="false"
+      data-reduced-motion=""
+    >
+      <section class="masthead verdict-band" data-testid="VerdictBand">
+        <div class="verdict-copy">
+          <div class="eyebrow">Human checkpoint exit board</div>
+          <h1 id="verdict-title">Loading Phase 3 exit verdict...</h1>
+          <p class="muted" id="verdict-summary">Fetching decision data.</p>
+          <div class="chip-row" id="verdict-chip-row"></div>
+        </div>
+        <div class="preview-controls" data-testid="VerdictScenarioControls" aria-label="Verdict preview controls"></div>
+      </section>
+
+      <div class="layout">
+        <div class="stack">
+          <section class="panel" data-testid="PhaseBraid">
+            <div class="region-header">
+              <h2>Phase braid</h2>
+              <p class="muted">Compact 3A to 3H status with table parity.</p>
+            </div>
+            <div class="phase-braid">
+              <div class="phase-braid-diagram" data-testid="PhaseBraidDiagram"></div>
+              <table class="phase-braid-table" data-testid="PhaseBraidTable">
+                <thead>
+                  <tr><th>Phase</th><th>Meaning</th><th>Status</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel" data-testid="ConformanceLadder">
+            <div class="region-header">
+              <h2>Conformance ladder</h2>
+              <p class="muted">One row per Phase 3 capability family with current status, proof mode, and evidence trace.</p>
+            </div>
+            <div class="chip-row" id="scorecard-summary-row"></div>
+            <div class="ladder" id="scorecard-ladder"></div>
+          </section>
+        </div>
+
+        <div class="stack">
+          <section class="panel" data-testid="EvidenceManifestPanel">
+            <div class="region-header">
+              <h2>Evidence manifest</h2>
+              <p class="muted">Current suite freshness and machine-auditable artifacts.</p>
+            </div>
+            <div class="rail-kpis" id="evidence-kpis"></div>
+            <table class="suite-table" data-testid="EvidenceFreshnessMatrix">
+              <thead>
+                <tr><th>Task</th><th>Visual mode</th><th>Verdict</th><th>Summary</th></tr>
+              </thead>
+              <tbody id="suite-table-body"></tbody>
+            </table>
+            <table class="manifest-table" data-testid="EvidenceManifestTable">
+              <thead>
+                <tr><th>Evidence</th><th>Row</th><th>Kind</th><th>Owner</th></tr>
+              </thead>
+              <tbody id="manifest-table-body"></tbody>
+            </table>
+          </section>
+
+          <section class="panel" data-testid="RiskAndConstraintPanel">
+            <div class="region-header">
+              <h2>Risk and constraints</h2>
+              <p class="muted">These are the explicit reasons the exit is constrained rather than live-ready.</p>
+            </div>
+            <div class="constraint-list" id="constraint-list"></div>
+          </section>
+        </div>
+      </div>
+
+      <div class="lower-zone">
+        <section class="panel span-5" data-testid="CarryForwardBoundaryMap">
+          <div class="region-header">
+            <h2>Carry-forward boundary map</h2>
+            <p class="muted">Phase 3 closes here. Phase 4 and live-later work continue from explicit published seams.</p>
+          </div>
+          <div class="boundary-grid" data-testid="CarryForwardBoundaryDiagram"></div>
+          <table class="boundary-table" data-testid="CarryForwardBoundaryTable">
+            <thead>
+              <tr><th>Owner</th><th>Item</th><th>Category</th><th>Risk</th></tr>
+            </thead>
+            <tbody id="boundary-table-body"></tbody>
+          </table>
+        </section>
+
+        <section class="panel span-4" data-testid="DecisionLedger">
+          <div class="region-header">
+            <h2>Decision ledger</h2>
+            <p class="muted">The mandatory gate questions answered directly.</p>
+          </div>
+          <div class="ledger-list" id="decision-ledger-list"></div>
+        </section>
+
+        <section class="panel span-3" data-testid="BoundarySummaryPanel">
+          <div class="region-header">
+            <h2>Clinical beta and live-later boundary</h2>
+            <p class="muted">What is approved now, what remains phase-gated, and what is explicitly withheld.</p>
+          </div>
+          <div class="boundary-card" id="boundary-summary-card"></div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const ROOT = document.querySelector("[data-testid='Phase3ExitBoard']");
+      const DATA_BASE = "../../data/analysis";
+      const SUITE_BASE = "../../data/test";
+      const params = new URLSearchParams(window.location.search);
+      const previewVerdict = params.get("previewVerdict");
+      const allowedPreviews = new Set(["approved", "go_with_constraints", "withheld"]);
+
+      const verdictMeta = {
+        approved: {
+          title: "Approved",
+          tone: "approved",
+          summary:
+            "Preview posture only. Use this to review the fully approved visual state. The current repository verdict remains whatever the decision file publishes.",
+        },
+        go_with_constraints: {
+          title: "Go with constraints",
+          tone: "go_with_constraints",
+          summary:
+            "Current repository posture when the decision file says constraints remain explicit and non-blocking for the Phase 4 entry boundary.",
+        },
+        withheld: {
+          title: "Withheld",
+          tone: "withheld",
+          summary:
+            "Preview posture only. Use this to review the fail-closed withheld visual state. The current repository verdict remains whatever the decision file publishes.",
+        },
+      };
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function toRepoHref(repoRoot, absolutePath) {
+        if (!absolutePath || typeof absolutePath !== "string") {
+          return "#";
+        }
+        if (absolutePath.startsWith(repoRoot)) {
+          return absolutePath.slice(repoRoot.length) || "/";
+        }
+        return absolutePath;
+      }
+
+      function parseCsv(text) {
+        const lines = text.trim().split(/\r?\n/).filter(Boolean);
+        if (!lines.length) {
+          return [];
+        }
+        const headers = lines[0].split(",");
+        return lines.slice(1).map((line) => {
+          const values = line.split(",");
+          const record = {};
+          headers.forEach((header, index) => {
+            record[header] = values[index] ?? "";
+          });
+          return record;
+        });
+      }
+
+      function setSearchParam(name, value) {
+        const next = new URL(window.location.href);
+        if (value) {
+          next.searchParams.set(name, value);
+        } else {
+          next.searchParams.delete(name);
+        }
+        window.location.href = next.toString();
+      }
+
+      function renderVerdict(decision, rows) {
+        const activeVerdict = allowedPreviews.has(previewVerdict) ? previewVerdict : decision.verdict;
+        const actualVerdictMeta = verdictMeta[decision.verdict];
+        const activeMeta = verdictMeta[activeVerdict];
+        ROOT.dataset.currentVerdict = decision.verdict;
+        ROOT.dataset.activeVerdict = activeVerdict;
+        ROOT.dataset.previewMode = String(activeVerdict !== decision.verdict);
+        ROOT.dataset.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "reduce" : "no-preference";
+
+        const title = document.getElementById("verdict-title");
+        const summary = document.getElementById("verdict-summary");
+        const chipRow = document.getElementById("verdict-chip-row");
+        const controls = document.querySelector("[data-testid='VerdictScenarioControls']");
+        const verdictBand = document.querySelector("[data-testid='VerdictBand']");
+
+        verdictBand.dataset.verdict = activeVerdict;
+        title.textContent = activeVerdict === decision.verdict
+          ? `Phase 3 verdict: ${actualVerdictMeta.title}`
+          : `Preview posture: ${activeMeta.title}`;
+
+        summary.textContent = activeVerdict === decision.verdict
+          ? decision.decisionStatement
+          : activeMeta.summary;
+
+        chipRow.innerHTML = `
+          <span class="chip" data-tone="${actualVerdictMeta.tone}">Current verdict: ${actualVerdictMeta.title}</span>
+          <span class="chip" data-tone="approved">Phase 4 entry: ${decision.phase4EntryVerdict}</span>
+          <span class="chip" data-tone="approved">Clinical beta: ${decision.clinicalBetaVerdict}</span>
+          <span class="chip" data-tone="withheld">Live-provider rollout: ${decision.liveProviderRolloutVerdict}</span>
+          <span class="chip" data-tone="evidence">${decision.scorecardSummary.rowCount} scorecard rows</span>
+          <span class="chip" data-tone="evidence">${rows.length} capability families traced</span>
+          ${activeVerdict !== decision.verdict ? '<span class="chip" data-tone="evidence">Preview only</span>' : ''}
+        `;
+
+        controls.innerHTML = [
+          ["", "Current"],
+          ["approved", "Approved"],
+          ["go_with_constraints", "Go with constraints"],
+          ["withheld", "Withheld"],
+        ].map(([value, label]) => `
+          <button
+            type="button"
+            class="preview-button"
+            data-preview="${value || 'current'}"
+            data-active="${(!value && activeVerdict === decision.verdict) || value === activeVerdict}"
+            aria-pressed="${(!value && activeVerdict === decision.verdict) || value === activeVerdict}"
+          >${label}</button>
+        `).join("");
+
+        controls.querySelectorAll(".preview-button").forEach((button) => {
+          button.addEventListener("click", () => {
+            const value = button.getAttribute("data-preview");
+            setSearchParam("previewVerdict", value === "current" ? "" : value);
+          });
+        });
+      }
+
+      function renderPhaseBraid(decision) {
+        const diagram = document.querySelector("[data-testid='PhaseBraidDiagram']");
+        const tableBody = document.querySelector("[data-testid='PhaseBraidTable'] tbody");
+        diagram.innerHTML = decision.phaseBraid.map((phase) => `
+          <article class="phase-node" data-status="${phase.status}">
+            <strong>${phase.phaseId}</strong>
+            <span>${phase.label}</span>
+            <span class="chip" data-tone="${phase.status}">${phase.status.replaceAll("_", " ")}</span>
+          </article>
+        `).join("");
+        tableBody.innerHTML = decision.phaseBraid.map((phase) => `
+          <tr>
+            <td>${phase.phaseId}</td>
+            <td>${phase.label}</td>
+            <td><span class="chip" data-tone="${phase.status}">${phase.status.replaceAll("_", " ")}</span></td>
+          </tr>
+        `).join("");
+      }
+
+      function renderScorecard(decision, rows) {
+        const summaryRow = document.getElementById("scorecard-summary-row");
+        const ladder = document.getElementById("scorecard-ladder");
+        summaryRow.innerHTML = `
+          <span class="chip" data-tone="approved">${decision.scorecardSummary.approvedCount} approved</span>
+          <span class="chip" data-tone="go_with_constraints">${decision.scorecardSummary.goWithConstraintsCount} constrained</span>
+          <span class="chip" data-tone="withheld">${decision.scorecardSummary.withheldCount} withheld</span>
+          <span class="chip" data-tone="evidence">${decision.scorecardSummary.deferredNonBlockingCount} deferred non-blocking</span>
+        `;
+
+        ladder.innerHTML = rows.map((row) => `
+          <details class="scorecard-row" data-row-id="${row.rowId}" open>
+            <summary>
+              <div class="summary-head">
+                <div>
+                  <strong>${row.capabilityFamily}</strong>
+                  <div class="row-meta">
+                    <span class="chip" data-tone="${row.status}">${row.status.replaceAll("_", " ")}</span>
+                    <span class="chip" data-tone="evidence">${row.proofMode}</span>
+                    <span class="chip">${row.phaseBraidRefs.join(" · ")}</span>
+                  </div>
+                </div>
+                <span class="chip">${row.rowId}</span>
+              </div>
+              <div class="summary-body">${escapeHtml(row.summary)}</div>
+            </summary>
+            <div class="scorecard-detail">
+              <div class="detail-grid">
+                <div>
+                  <h3>Source sections</h3>
+                  <ul class="detail-list">
+                    ${row.sourceSections.map((entry) => `<li>${escapeHtml(entry)}</li>`).join("")}
+                  </ul>
+                </div>
+                <div>
+                  <h3>Owning tasks</h3>
+                  <ul class="detail-list">
+                    ${row.owningTasks.map((entry) => `<li>${escapeHtml(entry)}</li>`).join("")}
+                  </ul>
+                </div>
+              </div>
+              <div class="detail-grid">
+                <div>
+                  <h3>Implementation evidence</h3>
+                  <ul class="detail-list">
+                    ${row.implementationEvidence.map((entry) => `<li><a href="${toRepoHref(decision.repoRoot, entry)}" target="_blank" rel="noreferrer">${escapeHtml(entry.split("/").slice(-1)[0])}</a></li>`).join("")}
+                  </ul>
+                </div>
+                <div>
+                  <h3>Automated proof</h3>
+                  <ul class="detail-list">
+                    ${row.automatedProofArtifacts.map((entry) => `<li><a href="${toRepoHref(decision.repoRoot, entry)}" target="_blank" rel="noreferrer">${escapeHtml(entry.split("/").slice(-1)[0])}</a></li>`).join("")}
+                  </ul>
+                </div>
+              </div>
+              <div>
+                <strong>Blocking rationale</strong>
+                <p class="muted">${escapeHtml(row.blockingRationale || "None")}</p>
+              </div>
+            </div>
+          </details>
+        `).join("");
+      }
+
+      function renderEvidence(decision, suites, manifestRows) {
+        document.getElementById("evidence-kpis").innerHTML = `
+          <div class="kpi"><span class="muted">Decisive suites</span><strong>${suites.length}</strong></div>
+          <div class="kpi"><span class="muted">Manifest entries</span><strong>${manifestRows.length}</strong></div>
+          <div class="kpi"><span class="muted">Constraint count</span><strong>${decision.constraints.length}</strong></div>
+          <div class="kpi"><span class="muted">Generated at</span><strong>${decision.generatedAt}</strong></div>
+        `;
+
+        document.getElementById("suite-table-body").innerHTML = suites.map((suite) => `
+          <tr>
+            <td>${suite.taskId}</td>
+            <td>${suite.visualMode}</td>
+            <td><span class="chip" data-tone="approved">${suite.suiteVerdict}</span></td>
+            <td>${escapeHtml(JSON.stringify(suite.summary))}</td>
+          </tr>
+        `).join("");
+
+        document.getElementById("manifest-table-body").innerHTML = manifestRows.slice(0, 12).map((entry) => `
+          <tr>
+            <td><a href="${toRepoHref(decision.repoRoot, entry.artifactPath)}" target="_blank" rel="noreferrer">${escapeHtml(entry.evidenceId)}</a></td>
+            <td>${entry.rowId}</td>
+            <td>${entry.evidenceKind}</td>
+            <td>${entry.ownerTask}</td>
+          </tr>
+        `).join("");
+      }
+
+      function renderConstraints(decision) {
+        document.getElementById("constraint-list").innerHTML = decision.constraints.map((constraint) => `
+          <article class="constraint-card">
+            <div class="chip-row">
+              <span class="chip" data-tone="go_with_constraints">${constraint.constraintId}</span>
+              <span class="chip">${constraint.scope.replaceAll("_", " ")}</span>
+              <span class="chip" data-tone="evidence">Owner: ${constraint.ownerTask}</span>
+            </div>
+            <strong>${escapeHtml(constraint.summary)}</strong>
+            <p class="muted">${escapeHtml(constraint.nextAction)}</p>
+          </article>
+        `).join("");
+      }
+
+      function renderBoundary(decision, openItems) {
+        const grouped = {
+          phase4_boundary: openItems.filter((item) => item.category === "phase4_boundary"),
+          phase4_execution: openItems.filter((item) => item.category === "phase4_execution"),
+          live_later: openItems.filter((item) => item.category === "live_later"),
+        };
+        document.querySelector("[data-testid='CarryForwardBoundaryDiagram']").innerHTML = [
+          ["Phase 3 closed truth", grouped.phase4_boundary],
+          ["Phase 4 implementation", grouped.phase4_execution],
+          ["Live-later onboarding", grouped.live_later],
+        ].map(([label, items]) => `
+          <article class="boundary-card">
+            <strong>${label}</strong>
+            <ul class="detail-list">
+              ${items.map((item) => `<li>${escapeHtml(item.ownerTask)} · ${escapeHtml(item.title)}</li>`).join("")}
+            </ul>
+          </article>
+        `).join("");
+
+        document.getElementById("boundary-table-body").innerHTML = openItems.map((item) => `
+          <tr>
+            <td>${item.ownerTask}</td>
+            <td>${escapeHtml(item.title)}</td>
+            <td>${item.category.replaceAll("_", " ")}</td>
+            <td>${escapeHtml(item.risk)}</td>
+          </tr>
+        `).join("");
+
+        document.getElementById("boundary-summary-card").innerHTML = `
+          <p><strong>Approved now</strong></p>
+          <p class="muted">Human Checkpoint completion, clinical beta continuation, and Phase 4 freeze-task entry.</p>
+          <p><strong>Withheld now</strong></p>
+          <p class="muted">Live-provider rollout, live control-plane claims, and any claim that BookingIntent seeds mean the Booking Engine already exists.</p>
+        `;
+      }
+
+      function renderLedger(decision) {
+        document.getElementById("decision-ledger-list").innerHTML = decision.mandatoryQuestions.map((entry) => `
+          <article class="ledger-card">
+            <div class="chip-row">
+              <span class="chip">${entry.questionId}</span>
+              <span class="chip" data-tone="${entry.answerStatus === 'approved' ? 'approved' : 'go_with_constraints'}">${entry.answerStatus.replaceAll("_", " ")}</span>
+            </div>
+            <strong>${escapeHtml(entry.question)}</strong>
+            <p class="muted">${escapeHtml(entry.answer)}</p>
+          </article>
+        `).join("");
+      }
+
+      Promise.all([
+        fetch(`${DATA_BASE}/277_phase3_exit_gate_decision.json`).then((response) => response.json()),
+        fetch(`${DATA_BASE}/277_phase3_conformance_rows.json`).then((response) => response.json()),
+        fetch(`${DATA_BASE}/277_phase3_open_items_and_phase4_carry_forward.json`).then((response) => response.json()),
+        fetch(`${DATA_BASE}/277_phase3_evidence_manifest.csv`).then((response) => response.text()),
+      ]).then(([decision, rows, openItems, manifestText]) => {
+        const manifestRows = parseCsv(manifestText);
+        renderVerdict(decision, rows);
+        renderPhaseBraid(decision);
+        renderScorecard(decision, rows);
+        renderEvidence(decision, decision.decisiveSuites, manifestRows);
+        renderConstraints(decision);
+        renderBoundary(decision, openItems);
+        renderLedger(decision);
+      }).catch((error) => {
+        document.getElementById("verdict-title").textContent = "Failed to load Phase 3 exit board";
+        document.getElementById("verdict-summary").textContent = String(error);
+      });
+    </script>
+  </body>
+</html>

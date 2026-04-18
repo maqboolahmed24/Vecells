@@ -11,6 +11,7 @@ import "./signed-in-request-start-restore.css";
 import "./contact-truth-preference-ui.css";
 import "./cross-channel-receipt-status-parity.css";
 import "./patient-home-requests-detail-routes.css";
+import "./patient-conversation-surface.css";
 import "./patient-more-info-callback-contact-repair.css";
 import "./patient-records-communications.css";
 import "./patient-support-phase2-bridge.css";
@@ -39,6 +40,9 @@ import CrossChannelReceiptStatusParityApp, {
 import PatientHomeRequestsDetailRoutesApp, {
   isPatientHomeRequestsDetailPath,
 } from "./patient-home-requests-detail-routes";
+import PatientConversationSurfaceApp, {
+  isPatientConversationPath,
+} from "./patient-conversation-surface";
 import MoreInfoCallbackContactRepairApp, {
   isMoreInfoCallbackContactRepairPath,
 } from "./patient-more-info-callback-contact-repair";
@@ -71,6 +75,9 @@ export default function App() {
   }
   if (isAuthenticatedHomeStatusTrackerPath(pathname)) {
     return <AuthenticatedHomeStatusTrackerApp />;
+  }
+  if (isPatientConversationPath(pathname)) {
+    return <PatientConversationSurfaceApp />;
   }
   if (isMoreInfoCallbackContactRepairPath(pathname)) {
     return <MoreInfoCallbackContactRepairApp />;

@@ -32,7 +32,6 @@ PREREQUISITES = [
 ]
 
 REQUIRED_SOURCE_MARKERS = {
-    "Support_Masking_Fallback_Knowledge_Atlas",
     "SupportMaskingFallbackRouteContract",
     "SupportReadOnlyFallbackProjection",
     "SupportPresentationArtifact",
@@ -128,6 +127,8 @@ def validate_checklist() -> None:
 def validate_source() -> None:
     source = read(SOURCE)
     require_markers("source", source, REQUIRED_SOURCE_MARKERS)
+    if "Support_Masking_Fallback_Knowledge_Atlas" not in source and "Forensic_Support_Deck" not in source:
+        fail("source missing support visual mode marker")
     require_markers("app", read(APP), {"SupportWorkspaceApp", "isSupportWorkspacePath"})
     require_markers(
         "styles",

@@ -1,9 +1,14 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { formatVecellTitle } from "@vecells/design-system";
 import {
   resolvePortalSupportPhase2Context,
   type PortalSupportPhase2Context,
 } from "../../../packages/domain-kernel/src/patient-support-phase2-integration";
+import {
+  recordWorkspaceSupportUiEvent,
+  type RuntimeValidationScenario,
+  type ValidationActionFamily,
+} from "./workspace-support-observability";
 
 export type SupportWorkspaceScenario = "calm" | "active" | "provisional" | "degraded" | "blocked";
 export type SupportShellMode = "live" | "provisional" | "observe_only" | "replay" | "read_only_recovery";
@@ -375,11 +380,78 @@ export interface SupportReplaySession {
   readonly supportReplayEvidenceBoundaryRef: string;
   readonly currentMaskScopeRef: string;
   readonly disclosureCeilingRef: string;
-  readonly restoreState: "frozen" | "delta_review" | "restore_required" | "read_only_recovery";
+  readonly restoreState:
+    | "frozen"
+    | "delta_review"
+    | "restore_required"
+    | "restore_ready"
+    | "restored"
+    | "read_only_recovery";
   readonly investigationQuestion: string;
   readonly queueAnchorRef: string;
   readonly selectedTimelineAnchorRef: string;
   readonly returnRouteLabel: string;
+}
+
+export type SupportReplayState =
+  | "frozen"
+  | "delta_review"
+  | "restore_required"
+  | "restore_ready"
+  | "restored"
+  | "read_only_recovery";
+export type SupportReplayDeltaReviewState = "none" | "queued" | "blocking";
+export type SupportReplayRestoreState =
+  | "required"
+  | "ready"
+  | "blocked"
+  | "restored"
+  | "read_only_recovery";
+export type SupportLinkedContextMode = "history" | "knowledge" | "subject";
+
+export interface SupportReplayDeltaReviewItem {
+  readonly deltaId: string;
+  readonly title: string;
+  readonly summary: string;
+  readonly severity: "low" | "medium" | "high";
+  readonly restoreImpact: "informational" | "confirm" | "blocking";
+  readonly anchorRef: string;
+  readonly queuedAtLabel: string;
+}
+
+export interface SupportReplayDeltaReview {
+  readonly projectionName: "SupportReplayDeltaReview";
+  readonly supportReplayDeltaReviewId: string;
+  readonly supportReplaySessionId: string;
+  readonly deltaReviewState: SupportReplayDeltaReviewState;
+  readonly highestSeverity: "low" | "medium" | "high" | "none";
+  readonly summary: string;
+  readonly items: readonly SupportReplayDeltaReviewItem[];
+}
+
+export interface SupportReplayDraftHold {
+  readonly projectionName: "SupportReplayDraftHold";
+  readonly supportReplayDraftHoldId: string;
+  readonly supportReplaySessionId: string;
+  readonly heldDraftState: "preserved" | "stale" | "released";
+  readonly heldDraftRefs: readonly string[];
+  readonly heldActionSummary: string;
+  readonly heldDraftDisposition: "preserve" | "rebase" | "drop";
+}
+
+export interface SupportReplayRestoreSettlement {
+  readonly projectionName: "SupportReplayRestoreSettlement";
+  readonly supportReplayRestoreSettlementId: string;
+  readonly supportReplaySessionId: string;
+  readonly restoreState: SupportReplayRestoreState;
+  readonly blockerCodes: readonly string[];
+  readonly matchedContinuityKey: boolean;
+  readonly matchedAnchor: boolean;
+  readonly matchedMaskScope: boolean;
+  readonly matchedRouteIntent: boolean;
+  readonly matchedScopeMember: boolean;
+  readonly heldDraftDisposition: "preserve" | "rebase" | "drop" | "none";
+  readonly settlementSummary: string;
 }
 
 interface SupportKnowledgeCardView {
@@ -459,6 +531,7 @@ interface ParsedSupportRoute {
 interface SupportWorkspaceDataset {
   readonly phase2Context: PortalSupportPhase2Context;
   readonly shellMode: SupportShellMode;
+  readonly replayState: SupportReplayState;
   readonly ticketWorkspace: SupportTicketWorkspaceProjection;
   readonly actionLease: SupportActionLease;
   readonly actionSettlement: SupportActionSettlement;
@@ -486,6 +559,9 @@ interface SupportWorkspaceDataset {
   readonly observeSession: SupportObserveSession | null;
   readonly replaySession: SupportReplaySession | null;
   readonly replayEvidenceBoundary: SupportReplayEvidenceBoundary | null;
+  readonly replayDeltaReview: SupportReplayDeltaReview | null;
+  readonly replayDraftHold: SupportReplayDraftHold | null;
+  readonly replayRestoreSettlement: SupportReplayRestoreSettlement | null;
   readonly routeModeSummary: string;
 }
 
@@ -495,14 +571,147 @@ interface SupportWorkspaceQueryState {
   readonly fallbackReason: SupportFallbackReason;
   readonly disclosureState: SupportDisclosureState;
   readonly assistState: SupportKnowledgeAssistQueryState;
+  readonly replayState: SupportReplayState;
+  readonly deltaReviewState: SupportReplayDeltaReviewState;
+  readonly restoreState: SupportReplayRestoreState;
+  readonly linkedContextMode: SupportLinkedContextMode;
 }
 
-export const SUPPORT_WORKSPACE_VISUAL_MODE = "Support_Masking_Fallback_Knowledge_Atlas";
+export const SUPPORT_WORKSPACE_VISUAL_MODE = "Forensic_Support_Deck";
 export const SUPPORT_WORKSPACE_STYLE_SYSTEM = "Support_Ticket_Omnichannel_Shell";
 const ROUTE_CHANGE_EVENT = "vecells-route-change";
 const DEFAULT_TICKET_ID = "support_ticket_218_delivery_failure";
 const DEFAULT_OBSERVE_SESSION_ID = "support_observe_session_218_delivery_failure";
 const DEFAULT_REPLAY_SESSION_ID = "support_replay_session_218_delivery_failure";
+
+function validationScenarioFromSupportScenario(
+  scenario: SupportWorkspaceScenario,
+): RuntimeValidationScenario {
+  switch (scenario) {
+    case "calm":
+    case "active":
+      return "live";
+    case "provisional":
+      return "stale_review";
+    case "degraded":
+      return "recovery_only";
+    case "blocked":
+      return "blocked";
+  }
+}
+
+function validationPublicationPostureForSupport(
+  shellMode: SupportShellMode,
+): "live" | "projection_visible" | "recovery_only" | "blocked" {
+  switch (shellMode) {
+    case "live":
+      return "live";
+    case "provisional":
+    case "observe_only":
+    case "replay":
+      return "projection_visible";
+    case "read_only_recovery":
+      return "recovery_only";
+  }
+}
+
+function validationRecoveryPostureForSupport(
+  shellMode: SupportShellMode,
+  scenario: SupportWorkspaceScenario,
+): "none" | "stale_recoverable" | "read_only_fallback" | "recovery_required" | "blocked" {
+  if (scenario === "blocked") {
+    return "blocked";
+  }
+  if (shellMode === "read_only_recovery") {
+    return "read_only_fallback";
+  }
+  if (shellMode === "replay" || shellMode === "observe_only" || scenario === "degraded") {
+    return "recovery_required";
+  }
+  if (scenario === "provisional") {
+    return "stale_recoverable";
+  }
+  return "none";
+}
+
+function validationEventStateForSupport(
+  shellMode: SupportShellMode,
+  scenario: SupportWorkspaceScenario,
+): "provisional" | "authoritative" | "buffered" | "resolved" | "failed" {
+  if (scenario === "blocked") {
+    return "failed";
+  }
+  if (shellMode === "provisional" || shellMode === "replay") {
+    return "buffered";
+  }
+  if (shellMode === "observe_only" || shellMode === "read_only_recovery" || scenario === "degraded") {
+    return "provisional";
+  }
+  return "authoritative";
+}
+
+function validationSettlementProfileForSupport(
+  shellMode: SupportShellMode,
+  scenario: SupportWorkspaceScenario,
+) {
+  if (scenario === "blocked") {
+    return {
+      localAckState: "shown" as const,
+      processingAcceptanceState: "externally_rejected" as const,
+      externalObservationState: "blocked" as const,
+      authoritativeSource: "recovery_disposition" as const,
+      authoritativeOutcomeState: "failed" as const,
+      settlementState: "reverted" as const,
+    };
+  }
+  if (shellMode === "read_only_recovery") {
+    return {
+      localAckState: "restored" as const,
+      processingAcceptanceState: "accepted_for_processing" as const,
+      externalObservationState: "recovery_only" as const,
+      authoritativeSource: "recovery_disposition" as const,
+      authoritativeOutcomeState: "recovery_required" as const,
+      settlementState: "disputed" as const,
+    };
+  }
+  if (shellMode === "replay" || shellMode === "observe_only" || scenario === "provisional") {
+    return {
+      localAckState: "shown" as const,
+      processingAcceptanceState: "awaiting_external_confirmation" as const,
+      externalObservationState: "projection_visible" as const,
+      authoritativeSource: "not_yet_authoritative" as const,
+      authoritativeOutcomeState: "review_required" as const,
+      settlementState: "accepted" as const,
+    };
+  }
+  return {
+    localAckState: "shown" as const,
+    processingAcceptanceState: "externally_accepted" as const,
+    externalObservationState: "projection_visible" as const,
+    authoritativeSource: "projection_visible" as const,
+    authoritativeOutcomeState: "settled" as const,
+    settlementState: "authoritative" as const,
+  };
+}
+
+function actionFamilyForSupportRoute(route: ParsedSupportRoute): ValidationActionFamily | null {
+  switch (route.routeKey) {
+    case "ticket-history":
+      return "history_reveal";
+    case "ticket-knowledge":
+      return "knowledge_reveal";
+    case "ticket-replay":
+      return "support_replay";
+    case "ticket-action":
+      return route.actionKey === "callback_reschedule"
+        ? "callback_action"
+        : "message_action";
+    case "ticket-conversation":
+      return "message_action";
+    default:
+      return null;
+  }
+}
 
 export const SUPPORT_ROUTE_REGISTRY: Record<SupportWorkspaceRouteKey, SupportMaskingFallbackRouteContract> = {
   "ticket-overview": {
@@ -663,6 +872,59 @@ function parseAssistState(search: string): SupportKnowledgeAssistQueryState {
       return value;
     default:
       return "auto";
+  }
+}
+
+function parseReplayState(search: string): SupportReplayState {
+  const value = new URLSearchParams(search).get("replay");
+  switch (value) {
+    case "delta_review":
+    case "restore_required":
+    case "restore_ready":
+    case "restored":
+    case "read_only_recovery":
+      return value;
+    case "frozen":
+    default:
+      return "frozen";
+  }
+}
+
+function parseDeltaReviewState(search: string): SupportReplayDeltaReviewState {
+  const value = new URLSearchParams(search).get("delta");
+  switch (value) {
+    case "queued":
+    case "blocking":
+      return value;
+    case "none":
+    default:
+      return "none";
+  }
+}
+
+function parseRestoreState(search: string): SupportReplayRestoreState {
+  const value = new URLSearchParams(search).get("restore");
+  switch (value) {
+    case "ready":
+    case "blocked":
+    case "restored":
+    case "read_only_recovery":
+      return value;
+    case "required":
+    default:
+      return "required";
+  }
+}
+
+function parseLinkedContextMode(search: string): SupportLinkedContextMode {
+  const value = new URLSearchParams(search).get("linked");
+  switch (value) {
+    case "knowledge":
+    case "subject":
+      return value;
+    case "history":
+    default:
+      return "history";
   }
 }
 
@@ -1103,6 +1365,33 @@ function createSupportWorkspaceDataset(
   const fallbackReason = deriveFallbackReason(route, query.scenario, query.fallbackReason);
   const shellMode = deriveShellMode(route, query.scenario, fallbackReason);
   const effectiveMaskScopeRef = deriveMaskScopeRef(shellMode, query.disclosureState);
+  const replayRouteActive = route.routeKey === "ticket-replay" || fallbackReason === "replay_restore_failure";
+  const replayState: SupportReplayState =
+    !replayRouteActive
+      ? "frozen"
+      : shellMode === "read_only_recovery"
+        ? "read_only_recovery"
+        : query.replayState;
+  const deltaReviewState: SupportReplayDeltaReviewState =
+    !replayRouteActive
+      ? "none"
+      : replayState === "delta_review"
+        ? query.deltaReviewState === "none"
+          ? "queued"
+          : query.deltaReviewState
+        : replayState === "read_only_recovery"
+          ? "blocking"
+          : query.deltaReviewState;
+  const restoreState: SupportReplayRestoreState =
+    !replayRouteActive
+      ? "required"
+      : replayState === "restore_ready"
+        ? "ready"
+        : replayState === "restored"
+          ? "restored"
+          : replayState === "read_only_recovery"
+            ? "read_only_recovery"
+            : query.restoreState;
   const actionKey = route.actionKey ?? "controlled_resend";
   const phase2Search = new URLSearchParams();
   phase2Search.set("state", query.scenario);
@@ -1649,7 +1938,7 @@ function createSupportWorkspaceDataset(
       : null;
 
   const replayEvidenceBoundary =
-    route.routeKey === "ticket-replay" || fallbackReason === "replay_restore_failure"
+    replayRouteActive
       ? {
           projectionName: "SupportReplayEvidenceBoundary",
           supportReplayEvidenceBoundaryId: "support_replay_evidence_boundary_219_delivery_failure",
@@ -1674,7 +1963,7 @@ function createSupportWorkspaceDataset(
       : null;
 
   const replaySession =
-    route.routeKey === "ticket-replay" || fallbackReason === "replay_restore_failure"
+    replayRouteActive
       ? {
           projectionName: "SupportReplaySession",
           supportReplaySessionId: route.replaySessionId ?? DEFAULT_REPLAY_SESSION_ID,
@@ -1683,12 +1972,143 @@ function createSupportWorkspaceDataset(
           supportReplayEvidenceBoundaryRef: replayEvidenceBoundary?.supportReplayEvidenceBoundaryId ?? "support_replay_evidence_boundary_219_delivery_failure",
           currentMaskScopeRef: effectiveMaskScopeRef,
           disclosureCeilingRef: "disclosure_ceiling_support_replay_boundary",
-          restoreState: shellMode === "read_only_recovery" ? "read_only_recovery" : "frozen",
+          restoreState:
+            replayState === "delta_review"
+              ? "delta_review"
+              : replayState === "restore_required"
+                ? "restore_required"
+                : replayState === "restore_ready"
+                  ? "restore_ready"
+                  : replayState === "restored"
+                    ? "restored"
+                    : replayState === "read_only_recovery"
+                      ? "read_only_recovery"
+                      : "frozen",
           investigationQuestion: "Why did the secure-link email failure require a callback-safe resend path?",
           queueAnchorRef: "repair_queue_anchor",
           selectedTimelineAnchorRef: query.selectedAnchorRef,
           returnRouteLabel: "Return to governed ticket summary",
         } satisfies SupportReplaySession
+      : null;
+
+  const replayDeltaReviewItems: readonly SupportReplayDeltaReviewItem[] =
+    !replayRouteActive
+      ? []
+      : ([
+          {
+            deltaId: "delta_provider_retry_queued",
+            title: "Provider retry landed after replay entry",
+            summary: "A later provider retry notice arrived outside the frozen boundary and needs explicit review before restore.",
+            severity: "medium",
+            restoreImpact: "confirm",
+            anchorRef: "delivery_failure_bundle",
+            queuedAtLabel: "08:57",
+          },
+          {
+            deltaId: "delta_callback_window_changed",
+            title: "Callback promise moved forward by support",
+            summary: "The callback-safe window was edited after replay entry and would change the visible promise if restore proceeds.",
+            severity: deltaReviewState === "blocking" ? "high" : "medium",
+            restoreImpact: deltaReviewState === "blocking" ? "blocking" : "confirm",
+            anchorRef: "callback_summary_214",
+            queuedAtLabel: "08:59",
+          },
+          {
+            deltaId: "delta_disclosure_expired",
+            title: "History disclosure ceiling expired",
+            summary: "Expanded history detail is no longer lawful to restore without a fresh disclosure record.",
+            severity: "high",
+            restoreImpact: "blocking",
+            anchorRef: "envelope_214_reply",
+            queuedAtLabel: "09:01",
+          },
+        ] satisfies readonly SupportReplayDeltaReviewItem[]).slice(
+          0,
+          deltaReviewState === "none" ? 0 : deltaReviewState === "queued" ? 2 : 3,
+        );
+
+  const replayDeltaReview =
+    replayRouteActive && replaySession
+      ? {
+          projectionName: "SupportReplayDeltaReview",
+          supportReplayDeltaReviewId: "support_replay_delta_review_219_delivery_failure",
+          supportReplaySessionId: replaySession.supportReplaySessionId,
+          deltaReviewState: deltaReviewState,
+          highestSeverity:
+            deltaReviewState === "none"
+              ? "none"
+              : deltaReviewState === "blocking"
+                ? "high"
+                : "medium",
+          summary:
+            deltaReviewState === "blocking"
+              ? "Queued live changes now block restore until support confirms the callback promise, disclosure ceiling, and later provider signals."
+              : deltaReviewState === "queued"
+                ? "Later live changes are buffered for review before the shell can restore live controls."
+                : "No queued live changes are waiting outside the current replay boundary.",
+          items: replayDeltaReviewItems,
+        } satisfies SupportReplayDeltaReview
+      : null;
+
+  const replayDraftHold =
+    replayRouteActive && replaySession
+      ? {
+          projectionName: "SupportReplayDraftHold",
+          supportReplayDraftHoldId: "support_replay_draft_hold_219_delivery_failure",
+          supportReplaySessionId: replaySession.supportReplaySessionId,
+          heldDraftState:
+            restoreState === "restored"
+              ? "released"
+              : shellMode === "read_only_recovery"
+                ? "stale"
+                : "preserved",
+          heldDraftRefs: ["support_draft_hold_reply_214", "support_draft_hold_repair_macro_214"],
+          heldActionSummary:
+            restoreState === "restored"
+              ? "Drafts were revalidated and released back into the live ticket shell."
+              : "Draft reply text and repair macros remain outside the replay evidence boundary until restore law settles.",
+          heldDraftDisposition:
+            restoreState === "restored" ? "preserve" : restoreState === "blocked" || restoreState === "read_only_recovery" ? "rebase" : "preserve",
+        } satisfies SupportReplayDraftHold
+      : null;
+
+  const replayRestoreSettlement =
+    replayRouteActive && replaySession
+      ? {
+          projectionName: "SupportReplayRestoreSettlement",
+          supportReplayRestoreSettlementId: "support_replay_restore_settlement_219_delivery_failure",
+          supportReplaySessionId: replaySession.supportReplaySessionId,
+          restoreState,
+          blockerCodes:
+            restoreState === "blocked"
+              ? ["callback_window_changed", "disclosure_ceiling_expired"]
+              : restoreState === "read_only_recovery"
+                ? ["runtime_publication_drift", "continuity_tuple_drift"]
+                : restoreState === "required"
+                  ? ["restore_confirmation_missing"]
+                  : [],
+          matchedContinuityKey: restoreState !== "read_only_recovery",
+          matchedAnchor: restoreState !== "blocked",
+          matchedMaskScope: restoreState !== "read_only_recovery",
+          matchedRouteIntent: restoreState === "ready" || restoreState === "restored",
+          matchedScopeMember: restoreState !== "read_only_recovery",
+          heldDraftDisposition:
+            restoreState === "restored"
+              ? "preserve"
+              : restoreState === "blocked" || restoreState === "read_only_recovery"
+                ? "rebase"
+                : "preserve",
+          settlementSummary:
+            restoreState === "ready"
+              ? "Restore can return to live work because the current ticket, anchor, mask scope, and held draft posture still match."
+              : restoreState === "restored"
+                ? "Live work was re-armed against the same ticket anchor after replay validation completed."
+                : restoreState === "blocked"
+                  ? "Restore is blocked until the buffered deltas and callback promise drift are reviewed."
+                  : restoreState === "read_only_recovery"
+                    ? "Replay cannot safely restore live work. The shell stays same-ticket and read-only."
+                    : "Replay remains frozen until support explicitly validates the current anchor, mask scope, and held drafts.",
+        } satisfies SupportReplayRestoreSettlement
       : null;
 
   const ticketWorkspace: SupportTicketWorkspaceProjection = {
@@ -1761,7 +2181,11 @@ function createSupportWorkspaceDataset(
       : shellMode === "observe_only"
         ? "Observe-only mode keeps the same shell, anchor, and disclosure ceiling visible."
         : shellMode === "replay"
-          ? "Replay freezes the ticket chronology against the current evidence boundary."
+          ? replayDeltaReview?.deltaReviewState === "blocking"
+            ? "Replay freezes the ticket chronology and shows blocking deltas before any restore can proceed."
+            : replayDeltaReview?.deltaReviewState === "queued"
+              ? "Replay freezes the ticket chronology and buffers later live changes into queued delta review."
+              : "Replay freezes the ticket chronology against the current evidence boundary."
           : query.scenario === "provisional"
             ? "Provisional posture keeps current chronology visible while live confirmation catches up."
             : "Live support posture remains same-shell and anchor preserving.";
@@ -1769,6 +2193,7 @@ function createSupportWorkspaceDataset(
   return {
     phase2Context,
     shellMode,
+    replayState,
     ticketWorkspace,
     actionLease,
     actionSettlement,
@@ -1811,6 +2236,9 @@ function createSupportWorkspaceDataset(
     observeSession,
     replaySession,
     replayEvidenceBoundary,
+    replayDeltaReview,
+    replayDraftHold,
+    replayRestoreSettlement,
     routeModeSummary,
   };
 }
@@ -1828,7 +2256,60 @@ function buildSearch(query: SupportWorkspaceQueryState): string {
   if (query.assistState !== "auto") {
     params.set("assist", query.assistState);
   }
+  if (query.replayState !== "frozen") {
+    params.set("replay", query.replayState);
+  }
+  if (query.deltaReviewState !== "none") {
+    params.set("delta", query.deltaReviewState);
+  }
+  if (query.restoreState !== "required") {
+    params.set("restore", query.restoreState);
+  }
+  if (query.linkedContextMode !== "history") {
+    params.set("linked", query.linkedContextMode);
+  }
   return `?${params.toString()}`;
+}
+
+interface SupportReplayGate {
+  readonly supportTicketId: string;
+  readonly replaySessionId: string;
+  readonly restoreState: SupportReplayRestoreState;
+}
+
+const SUPPORT_REPLAY_GATE_STORAGE_KEY = "vecells.supportReplayGate";
+
+function readSupportReplayGate(): SupportReplayGate | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const raw = window.sessionStorage.getItem(SUPPORT_REPLAY_GATE_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as SupportReplayGate;
+    if (!parsed.supportTicketId || !parsed.replaySessionId || !parsed.restoreState) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeSupportReplayGate(gate: SupportReplayGate): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.sessionStorage.setItem(SUPPORT_REPLAY_GATE_STORAGE_KEY, JSON.stringify(gate));
+}
+
+function clearSupportReplayGate(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.sessionStorage.removeItem(SUPPORT_REPLAY_GATE_STORAGE_KEY);
 }
 
 function useSupportWorkspaceRouter() {
@@ -1855,6 +2336,10 @@ function useSupportWorkspaceRouter() {
       fallbackReason: parseFallbackReason(locationState.search),
       disclosureState: parseDisclosureState(locationState.search),
       assistState: parseAssistState(locationState.search),
+      replayState: parseReplayState(locationState.search),
+      deltaReviewState: parseDeltaReviewState(locationState.search),
+      restoreState: parseRestoreState(locationState.search),
+      linkedContextMode: parseLinkedContextMode(locationState.search),
     }),
     [locationState.search],
   );
@@ -2555,12 +3040,18 @@ export function GovernedChildRoutePlaceholder({
 export function ActionWorkbenchDock({
   dataset,
   routeKey,
+  replayGateActive = false,
+  onReturnToReplay,
 }: {
   dataset: SupportWorkspaceDataset;
   routeKey: SupportWorkspaceRouteKey;
+  replayGateActive?: boolean;
+  onReturnToReplay?: () => void;
 }) {
   const buttonLabel =
-    dataset.shellMode === "read_only_recovery"
+    replayGateActive
+      ? "Return to replay restore"
+      : dataset.shellMode === "read_only_recovery"
       ? "Read-only fallback"
       : dataset.shellMode === "observe_only"
         ? "Observe only"
@@ -2575,6 +3066,7 @@ export function ActionWorkbenchDock({
                 : "Stage bounded action";
 
   const disabled =
+    replayGateActive ||
     dataset.shellMode === "read_only_recovery" ||
     dataset.shellMode === "observe_only" ||
     dataset.shellMode === "replay" ||
@@ -2586,7 +3078,9 @@ export function ActionWorkbenchDock({
       <p className="support-workspace__eyebrow">Action workbench</p>
       <h2>{routeKey === "ticket-conversation" ? "Current conversation posture" : dataset.actionView.label}</h2>
       <p>
-        {dataset.shellMode === "read_only_recovery"
+        {replayGateActive
+          ? "A replay restore settlement is still pending for this ticket. The dock stays visible, but live mutation authority remains gated until replay restore completes."
+          : dataset.shellMode === "read_only_recovery"
           ? "Fallback keeps the decision dock visible, but removes writable authority until the current support tuple is reacquired."
           : dataset.shellMode === "observe_only"
             ? "Observe-only posture keeps context visible while reply, resend, and identity-correction controls stay suppressed."
@@ -2627,6 +3121,16 @@ export function ActionWorkbenchDock({
       <button type="button" className="support-workspace__primary-action" data-testid="support-action-cta" disabled={disabled}>
         {buttonLabel}
       </button>
+      {replayGateActive && onReturnToReplay ? (
+        <button
+          type="button"
+          className="support-workspace__rail-link"
+          data-testid="support-return-to-replay"
+          onClick={onReturnToReplay}
+        >
+          Open replay restore
+        </button>
+      ) : null}
       <p className="support-workspace__dock-note">{dataset.actionView.nextStepLabel}</p>
     </aside>
   );
@@ -2709,11 +3213,16 @@ function ObserveRoutePanel({
 
 function ReplayBoundaryPanel({
   dataset,
+  framed = true,
 }: {
   dataset: SupportWorkspaceDataset;
+  framed?: boolean;
 }) {
   return (
-    <section className="support-workspace__route-panel" data-testid="SupportReplayBoundaryPanel">
+    <section
+      className={framed ? "support-workspace__route-panel" : "support-workspace__route-panel-body"}
+      data-testid="SupportReplayBoundaryPanel"
+    >
       <div className="support-workspace__section-heading">
         <div>
           <p className="support-workspace__eyebrow">Replay boundary</p>
@@ -2746,16 +3255,460 @@ function ReplayBoundaryPanel({
   );
 }
 
+export function SupportHistoryView({
+  dataset,
+  compact = false,
+  onExpand,
+}: {
+  dataset: SupportWorkspaceDataset;
+  compact?: boolean;
+  onExpand?: () => void;
+}) {
+  if (!compact) {
+    return (
+      <div data-testid="SupportHistoryView" data-disclosure-state={dataset.subjectContextBinding.bindingState}>
+        <SubjectHistorySummaryPanel dataset={dataset} onExpand={onExpand ?? (() => undefined)} />
+      </div>
+    );
+  }
+  const rows = compact ? dataset.historyRows.slice(0, 2) : dataset.historyRows;
+  return (
+    <section
+      className="support-workspace__linked-context-card"
+      data-testid="SupportHistoryView"
+      data-disclosure-state={dataset.subjectContextBinding.bindingState}
+    >
+      <div className="support-workspace__section-heading">
+        <div>
+          <p className="support-workspace__eyebrow">Support history</p>
+          <h2>{compact ? "Linked subject history" : "History stays same-shell and disclosure-bound."}</h2>
+        </div>
+        <MaskScopeBadge
+          label={dataset.subjectContextBinding.bindingState === "expanded" ? "expanded" : "summary only"}
+          tone={
+            dataset.subjectContextBinding.bindingState === "blocked"
+              ? "blocked"
+              : dataset.subjectContextBinding.bindingState === "expanded"
+                ? "observe"
+                : "neutral"
+          }
+        />
+      </div>
+      <div className="support-workspace__linked-context-list">
+        {rows.map((row) => (
+          <article
+            key={row.historyRef}
+            className="support-workspace__linked-context-item"
+            data-mask-state={row.maskedState}
+          >
+            <div className="support-workspace__timeline-meta">
+              <span>{row.timeLabel}</span>
+              <span>{row.disclosureClass}</span>
+            </div>
+            <strong>{row.title}</strong>
+            <p>{row.summary}</p>
+          </article>
+        ))}
+      </div>
+      {compact && onExpand ? (
+        <button type="button" className="support-workspace__rail-link" onClick={onExpand}>
+          {dataset.subjectContextBinding.bindingState === "expanded" ? "History widened" : "Request governed widen"}
+        </button>
+      ) : null}
+    </section>
+  );
+}
+
+export function SupportKnowledgeView({
+  dataset,
+  compact = false,
+}: {
+  dataset: SupportWorkspaceDataset;
+  compact?: boolean;
+}) {
+  if (!compact) {
+    return (
+      <div data-testid="SupportKnowledgeView" data-knowledge-state={dataset.knowledgeBinding.bindingState}>
+        <KnowledgeRoutePanel dataset={dataset} />
+      </div>
+    );
+  }
+  const cards = compact ? dataset.knowledgeCards.slice(0, 2) : dataset.knowledgeCards.slice(0, 3);
+  return (
+    <section
+      className="support-workspace__linked-context-card"
+      data-testid="SupportKnowledgeView"
+      data-knowledge-state={dataset.knowledgeBinding.bindingState}
+    >
+      <div className="support-workspace__section-heading">
+        <div>
+          <p className="support-workspace__eyebrow">Support knowledge</p>
+          <h2>{compact ? "Ranked linked guidance" : "Knowledge stays route-bound, not detached."}</h2>
+        </div>
+        <StatusChip
+          label={`assist: ${labelize(dataset.knowledgeAssistLease.leaseState)}`}
+          tone={
+            dataset.knowledgeAssistLease.leaseState === "executable"
+              ? "authoritative"
+              : dataset.knowledgeAssistLease.leaseState === "blocked"
+                ? "blocked"
+                : "provisional"
+          }
+        />
+      </div>
+      <div className="support-workspace__linked-context-list">
+        {cards.map((card) => (
+          <article
+            key={card.recommendationRef}
+            className="support-workspace__linked-context-item"
+            data-card-state={card.state}
+          >
+            <div className="support-workspace__timeline-meta">
+              <span>{labelize(card.kind)}</span>
+              <span>{card.policyMarker}</span>
+            </div>
+            <strong>{card.title}</strong>
+            <p>{card.whyNow}</p>
+            <small>{card.previewLabel}</small>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function SupportLinkedContextView({
+  dataset,
+  mode,
+  onModeChange,
+  onExpandHistory,
+}: {
+  dataset: SupportWorkspaceDataset;
+  mode: SupportLinkedContextMode;
+  onModeChange: (mode: SupportLinkedContextMode) => void;
+  onExpandHistory: () => void;
+}) {
+  return (
+    <section
+      className="support-workspace__linked-context-shell"
+      data-testid="SupportLinkedContextView"
+      data-linked-context-mode={mode}
+    >
+      <div className="support-workspace__section-heading">
+        <div>
+          <p className="support-workspace__eyebrow">Linked context</p>
+          <h2>History, knowledge, and subject summary stay bound to the same ticket anchor.</h2>
+        </div>
+        <MaskScopeBadge label={dataset.effectiveMaskScopeRef} tone={dataset.shellMode === "replay" ? "replay" : "neutral"} />
+      </div>
+      <div className="support-workspace__segment-tabs" role="tablist" aria-label="Linked context views">
+        {(["history", "knowledge", "subject"] as const).map((candidate) => (
+          <button
+            key={candidate}
+            type="button"
+            role="tab"
+            aria-selected={mode === candidate}
+            data-active={mode === candidate ? "true" : "false"}
+            onClick={() => onModeChange(candidate)}
+          >
+            {candidate === "subject" ? "Subject 360" : labelize(candidate)}
+          </button>
+        ))}
+      </div>
+      {mode === "history" ? <SupportHistoryView dataset={dataset} compact onExpand={onExpandHistory} /> : null}
+      {mode === "knowledge" ? <SupportKnowledgeView dataset={dataset} compact /> : null}
+      {mode === "subject" ? (
+        <div className="support-workspace__linked-context-card" data-testid="SupportLinkedSubjectView">
+          <Subject360SummaryPanel
+            projection={dataset.subject360}
+            extensionLabel={dataset.extensionLabel}
+            phase2Context={dataset.phase2Context}
+          />
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+export function SupportReplayDeltaReviewPanel({
+  replayDeltaReview,
+}: {
+  replayDeltaReview: SupportReplayDeltaReview;
+}) {
+  return (
+    <section
+      className="support-workspace__replay-panel support-workspace__replay-panel--delta"
+      data-testid="SupportReplayDeltaReviewPanel"
+      data-delta-review-state={replayDeltaReview.deltaReviewState}
+    >
+      <div className="support-workspace__section-heading">
+        <div>
+          <p className="support-workspace__eyebrow">SupportReplayDeltaReview</p>
+          <h2>Queued live changes during replay</h2>
+        </div>
+        <StatusChip
+          label={replayDeltaReview.deltaReviewState}
+          tone={
+            replayDeltaReview.deltaReviewState === "blocking"
+              ? "blocked"
+              : replayDeltaReview.deltaReviewState === "queued"
+                ? "provisional"
+                : "authoritative"
+          }
+        />
+      </div>
+      <p>{replayDeltaReview.summary}</p>
+      {replayDeltaReview.items.length === 0 ? (
+        <div className="support-workspace__linked-context-item">
+          <strong>No buffered deltas</strong>
+          <p>The current replay boundary and live chronology still match.</p>
+        </div>
+      ) : (
+        <div className="support-workspace__replay-delta-list">
+          {replayDeltaReview.items.map((item) => (
+            <article
+              key={item.deltaId}
+              className="support-workspace__replay-delta-item"
+              data-severity={item.severity}
+              data-restore-impact={item.restoreImpact}
+            >
+              <div className="support-workspace__timeline-meta">
+                <span>{item.queuedAtLabel}</span>
+                <span>{item.anchorRef}</span>
+              </div>
+              <strong>{item.title}</strong>
+              <p>{item.summary}</p>
+              <div className="support-workspace__dock-metrics">
+                <StatusChip
+                  label={`severity: ${item.severity}`}
+                  tone={item.severity === "high" ? "blocked" : item.severity === "medium" ? "provisional" : "neutral"}
+                />
+                <StatusChip
+                  label={`restore: ${item.restoreImpact}`}
+                  tone={item.restoreImpact === "blocking" ? "blocked" : item.restoreImpact === "confirm" ? "provisional" : "neutral"}
+                />
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+export function SupportReplayRestoreBridge({
+  replaySession,
+  replayDraftHold,
+  replayRestoreSettlement,
+  onRestore,
+  onReturnToReplay,
+}: {
+  replaySession: SupportReplaySession;
+  replayDraftHold: SupportReplayDraftHold | null;
+  replayRestoreSettlement: SupportReplayRestoreSettlement;
+  onRestore: () => void;
+  onReturnToReplay?: () => void;
+}) {
+  const ready = replayRestoreSettlement.restoreState === "ready";
+  const restored = replayRestoreSettlement.restoreState === "restored";
+  const blocked =
+    replayRestoreSettlement.restoreState === "blocked" ||
+    replayRestoreSettlement.restoreState === "read_only_recovery";
+  const buttonLabel = restored
+    ? "Restore settled"
+    : ready
+      ? "Restore live ticket"
+      : onReturnToReplay
+        ? "Return to replay restore"
+        : "Restore blocked";
+
+  return (
+    <section
+      className="support-workspace__replay-panel support-workspace__replay-panel--restore"
+      data-testid="SupportReplayRestoreBridge"
+      data-restore-state={replayRestoreSettlement.restoreState}
+    >
+      <div className="support-workspace__section-heading">
+        <div>
+          <p className="support-workspace__eyebrow">SupportReplayRestoreBridge</p>
+          <h2>Replay restore remains explicit</h2>
+        </div>
+        <StatusChip
+          label={replayRestoreSettlement.restoreState}
+          tone={ready || restored ? "authoritative" : blocked ? "blocked" : "provisional"}
+        />
+      </div>
+      <p>{replayRestoreSettlement.settlementSummary}</p>
+      <div className="support-workspace__history-summary-grid">
+        <article>
+          <strong>Checkpoint</strong>
+          <span>{replaySession.supportReplayCheckpointId}</span>
+        </article>
+        <article>
+          <strong>Mask scope</strong>
+          <span>{replaySession.currentMaskScopeRef}</span>
+        </article>
+        <article>
+          <strong>Anchor</strong>
+          <span>{replaySession.selectedTimelineAnchorRef}</span>
+        </article>
+        <article>
+          <strong>Held draft</strong>
+          <span>{replayDraftHold?.heldDraftDisposition ?? "none"}</span>
+        </article>
+      </div>
+      {replayRestoreSettlement.blockerCodes.length > 0 ? (
+        <div className="support-workspace__linked-context-list">
+          {replayRestoreSettlement.blockerCodes.map((code) => (
+            <article key={code} className="support-workspace__linked-context-item" data-blocker={code}>
+              <strong>{labelize(code)}</strong>
+              <p>Restore law keeps live controls inert until this blocker is cleared or explicitly superseded.</p>
+            </article>
+          ))}
+        </div>
+      ) : null}
+      <div className="support-workspace__replay-actions">
+        <button
+          type="button"
+          className="support-workspace__primary-action"
+          onClick={ready ? onRestore : onReturnToReplay}
+          disabled={!ready && !onReturnToReplay}
+        >
+          {buttonLabel}
+        </button>
+        <p className="support-workspace__dock-note">
+          Draft posture: {replayDraftHold?.heldActionSummary ?? "No held draft outside the replay boundary."}
+        </p>
+      </div>
+    </section>
+  );
+}
+
+export function SupportReplaySurface({
+  dataset,
+  onRestore,
+}: {
+  dataset: SupportWorkspaceDataset;
+  onRestore: () => void;
+}) {
+  if (!dataset.replaySession || !dataset.replayEvidenceBoundary || !dataset.replayRestoreSettlement) {
+    return null;
+  }
+  return (
+    <section
+      className="support-workspace__route-panel support-workspace__route-panel--replay"
+      data-testid="SupportReplaySurface"
+      data-replay-state={dataset.replayState}
+      data-replay-checkpoint={dataset.replaySession.supportReplayCheckpointId}
+      data-mask-scope={dataset.replaySession.currentMaskScopeRef}
+    >
+      <div className="support-workspace__section-heading">
+        <div>
+          <p className="support-workspace__eyebrow">SupportReplaySurface</p>
+          <h2>Replay keeps the evidence boundary and restore law visible.</h2>
+        </div>
+        <StatusChip
+          label={dataset.replayState}
+          tone={
+            dataset.replayState === "restore_ready" || dataset.replayState === "restored"
+              ? "authoritative"
+              : dataset.replayState === "read_only_recovery"
+                ? "blocked"
+                : "provisional"
+          }
+        />
+      </div>
+      <p>{dataset.replaySession.investigationQuestion}</p>
+      <ReplayBoundaryPanel dataset={dataset} framed={false} />
+      <div className="support-workspace__replay-boundary-grid">
+        <article className="support-workspace__linked-context-item">
+          <strong>Included evidence</strong>
+          <p>{dataset.replayEvidenceBoundary.includedEventRefs.join(", ")}</p>
+        </article>
+        <article className="support-workspace__linked-context-item">
+          <strong>Excluded drafts and mutable work</strong>
+          <p>
+            {dataset.replayEvidenceBoundary.excludedDraftRefs.length} drafts and{" "}
+            {dataset.replayEvidenceBoundary.excludedOutboundAttemptRefs.length} outbound attempts remain outside replay.
+          </p>
+        </article>
+      </div>
+      {dataset.replayDeltaReview ? <SupportReplayDeltaReviewPanel replayDeltaReview={dataset.replayDeltaReview} /> : null}
+      <SupportReplayRestoreBridge
+        replaySession={dataset.replaySession}
+        replayDraftHold={dataset.replayDraftHold}
+        replayRestoreSettlement={dataset.replayRestoreSettlement}
+        onRestore={onRestore}
+      />
+    </section>
+  );
+}
+
+export function SupportTicketChildRouteShell({
+  dataset,
+  routeKey,
+  title,
+  summary,
+  topology,
+  mainContent,
+  promotedRegion,
+}: {
+  dataset: SupportWorkspaceDataset;
+  routeKey: SupportWorkspaceRouteKey;
+  title: string;
+  summary: string;
+  topology: "two_plane" | "three_plane";
+  mainContent: ReactNode;
+  promotedRegion?: ReactNode;
+}) {
+  return (
+    <section
+      className="support-workspace__child-route-shell"
+      data-testid="SupportTicketChildRouteShell"
+      data-route-key={routeKey}
+      data-shell-topology={topology}
+      data-support-shell-mode={dataset.shellMode}
+      data-replay-state={dataset.replayState}
+      data-mask-scope={dataset.effectiveMaskScopeRef}
+      data-replay-checkpoint={dataset.replaySession?.supportReplayCheckpointId ?? "none"}
+      data-delta-review-state={dataset.replayDeltaReview?.deltaReviewState ?? "none"}
+      data-restore-state={dataset.replayRestoreSettlement?.restoreState ?? "required"}
+    >
+      <header className="support-workspace__child-route-header">
+        <div>
+          <p className="support-workspace__eyebrow">SupportTicketChildRouteShell</p>
+          <h2>{title}</h2>
+          <p>{summary}</p>
+        </div>
+        <div className="support-workspace__dock-metrics">
+          <StatusChip label={`mode: ${dataset.shellMode}`} tone={dataset.shellMode === "live" ? "authoritative" : dataset.shellMode === "replay" ? "provisional" : "blocked"} />
+          <StatusChip
+            label={`anchor: ${dataset.ticketWorkspace.selectedTimelineAnchorRef}`}
+            tone="neutral"
+          />
+        </div>
+      </header>
+      <div className="support-workspace__child-route-grid" data-topology={topology}>
+        <div className="support-workspace__child-route-main">{mainContent}</div>
+        {promotedRegion ? <aside className="support-workspace__child-route-side">{promotedRegion}</aside> : null}
+      </div>
+    </section>
+  );
+}
+
 function SupportWorkspaceShell({
   route,
   pathname,
   queryState,
   dataset,
   reducedMotion,
+  replayGate,
   onNavigate,
   onScenarioChange,
   onAnchorSelect,
   onDisclosureExpand,
+  onLinkedContextChange,
+  onRestoreFromReplay,
   children,
 }: {
   route: ParsedSupportRoute;
@@ -2763,14 +3716,27 @@ function SupportWorkspaceShell({
   queryState: SupportWorkspaceQueryState;
   dataset: SupportWorkspaceDataset;
   reducedMotion: boolean;
+  replayGate: {
+    supportTicketId: string;
+    replaySessionId: string;
+    restoreState: SupportReplayRestoreState;
+  } | null;
   onNavigate: (path: string, overrides?: Partial<SupportWorkspaceQueryState>) => void;
   onScenarioChange: (nextScenario: SupportWorkspaceScenario) => void;
   onAnchorSelect: (anchorRef: string) => void;
   onDisclosureExpand: () => void;
+  onLinkedContextChange: (mode: SupportLinkedContextMode) => void;
+  onRestoreFromReplay: () => void;
   children: ReactNode;
 }) {
   const contract = SUPPORT_ROUTE_REGISTRY[route.routeKey];
   const actionKey = route.actionKey ?? dataset.actionView.actionKey;
+  const replayGateActive = Boolean(
+    replayGate &&
+      replayGate.supportTicketId === route.supportTicketId &&
+      replayGate.restoreState !== "restored" &&
+      route.routeKey !== "ticket-replay",
+  );
 
   return (
     <div
@@ -2785,7 +3751,12 @@ function SupportWorkspaceShell({
       data-route-path={pathname}
       data-motion-mode={reducedMotion ? "reduced" : "full"}
       data-shell-mode={dataset.shellMode}
+      data-support-shell-mode={dataset.shellMode}
+      data-replay-state={dataset.replayState}
       data-mask-scope={dataset.effectiveMaskScopeRef}
+      data-replay-checkpoint={dataset.replaySession?.supportReplayCheckpointId ?? replayGate?.replaySessionId ?? "none"}
+      data-delta-review-state={dataset.replayDeltaReview?.deltaReviewState ?? "none"}
+      data-restore-state={replayGateActive ? replayGate?.restoreState ?? "required" : dataset.replayRestoreSettlement?.restoreState ?? "required"}
       data-fallback-active={dataset.fallbackProjection ? "true" : "false"}
       data-truth-kernel={dataset.phase2Context.truthKernel}
       data-shared-request-ref={dataset.phase2Context.fixture.requestRef}
@@ -2798,7 +3769,10 @@ function SupportWorkspaceShell({
       <a className="support-workspace__skip-link" href="#support-workspace-main">
         Skip to support workspace
       </a>
-      <div className="support-workspace__layout">
+      <div
+        className="support-workspace__layout"
+        data-shell-topology={route.routeKey === "ticket-replay" ? "three_plane" : "two_plane"}
+      >
         <aside className="support-workspace__left-rail">
           <button type="button" className="support-workspace__rail-home" onClick={() => onNavigate("/ops/support/inbox/repair")}>
             Inbox
@@ -2892,6 +3866,20 @@ function SupportWorkspaceShell({
               {queryState.disclosureState === "expanded" ? "Expanded history" : "Request governed widen"}
             </button>
           </div>
+          {route.routeKey !== "ticket-overview" ? (
+            <SupportLinkedContextView
+              dataset={dataset}
+              mode={
+                route.routeKey === "ticket-history"
+                  ? "history"
+                  : route.routeKey === "ticket-knowledge"
+                    ? "knowledge"
+                    : queryState.linkedContextMode
+              }
+              onModeChange={onLinkedContextChange}
+              onExpandHistory={onDisclosureExpand}
+            />
+          ) : null}
         </aside>
 
         <main id="support-workspace-main" className="support-workspace__main">
@@ -2907,6 +3895,62 @@ function SupportWorkspaceShell({
             actionLease={dataset.actionLease}
             effectiveMaskScopeRef={dataset.effectiveMaskScopeRef}
           />
+
+          {replayGateActive && replayGate ? (
+            <SupportReplayRestoreBridge
+              replaySession={
+                dataset.replaySession ?? {
+                  projectionName: "SupportReplaySession",
+                  supportReplaySessionId: replayGate.replaySessionId,
+                  supportTicketId: replayGate.supportTicketId,
+                  supportReplayCheckpointId: replayGate.replaySessionId,
+                  supportReplayEvidenceBoundaryRef: "pending_replay_boundary",
+                  currentMaskScopeRef: dataset.effectiveMaskScopeRef,
+                  disclosureCeilingRef: "disclosure_ceiling_support_replay_boundary",
+                  restoreState: "restore_required",
+                  investigationQuestion: "Replay restore is still required before live work can resume.",
+                  queueAnchorRef: "repair_queue_anchor",
+                  selectedTimelineAnchorRef: queryState.selectedAnchorRef,
+                  returnRouteLabel: "Return to replay restore",
+                }
+              }
+              replayDraftHold={dataset.replayDraftHold}
+              replayRestoreSettlement={
+                dataset.replayRestoreSettlement ?? {
+                  projectionName: "SupportReplayRestoreSettlement",
+                  supportReplayRestoreSettlementId: "support_replay_restore_gate_pending",
+                  supportReplaySessionId: replayGate.replaySessionId,
+                  restoreState: replayGate.restoreState,
+                  blockerCodes:
+                    replayGate.restoreState === "blocked"
+                      ? ["delta_review_pending", "restore_revalidation_pending"]
+                      : ["restore_revalidation_pending"],
+                  matchedContinuityKey: true,
+                  matchedAnchor: false,
+                  matchedMaskScope: true,
+                  matchedRouteIntent: false,
+                  matchedScopeMember: true,
+                  heldDraftDisposition: "preserve",
+                  settlementSummary:
+                    replayGate.restoreState === "blocked"
+                      ? "A prior replay session still holds this ticket in restore review. Live controls stay inert until support returns to the replay bridge."
+                      : "Replay restore is still required. The current ticket shell stays visible, but writable authority does not return yet.",
+                }
+              }
+              onRestore={onRestoreFromReplay}
+              onReturnToReplay={() =>
+                onNavigate(`/ops/support/replay/${replayGate.replaySessionId}`, {
+                  restoreState: replayGate.restoreState,
+                  replayState:
+                    replayGate.restoreState === "ready"
+                      ? "restore_ready"
+                      : replayGate.restoreState === "blocked"
+                        ? "delta_review"
+                        : "restore_required",
+                })
+              }
+            />
+          ) : null}
 
           <div className="support-workspace__segment-tabs" role="tablist" aria-label="Support ticket routes" data-testid="SupportSegmentTabs">
             <button
@@ -2967,7 +4011,25 @@ function SupportWorkspaceShell({
         </main>
 
         <div className="support-workspace__right-rail">
-          <ActionWorkbenchDock dataset={dataset} routeKey={route.routeKey} />
+          <ActionWorkbenchDock
+            dataset={dataset}
+            routeKey={route.routeKey}
+            replayGateActive={replayGateActive}
+            onReturnToReplay={
+              replayGate
+                ? () =>
+                    onNavigate(`/ops/support/replay/${replayGate.replaySessionId}`, {
+                      restoreState: replayGate.restoreState,
+                      replayState:
+                        replayGate.restoreState === "ready"
+                          ? "restore_ready"
+                          : replayGate.restoreState === "blocked"
+                            ? "delta_review"
+                            : "restore_required",
+                    })
+                : undefined
+            }
+          />
           <KnowledgeStackRail dataset={dataset} />
           <Subject360SummaryPanel
             projection={dataset.subject360}
@@ -3013,10 +4075,19 @@ function ConversationRoute({
       {dataset.fallbackProjection ? (
         <ReadOnlyFallbackHero fallbackProjection={dataset.fallbackProjection} artifact={dataset.strongestArtifact} onNavigate={onNavigate} />
       ) : null}
-      <OmnichannelTimeline dataset={dataset} selectedAnchorRef={selectedAnchorRef} />
-      <GovernedChildRoutePlaceholder
-        routeLabel="Conversation plane"
-        summary="Conversation stays inside the same shell. Reply, note, and channel-specific detail remain route-aware instead of opening a second product."
+      <SupportTicketChildRouteShell
+        dataset={dataset}
+        routeKey="ticket-conversation"
+        title="Conversation stays same-shell and anchor preserving."
+        summary="Support can review the current exchange without leaving the governed ticket shell or widening beyond the current mask scope."
+        topology="two_plane"
+        mainContent={<OmnichannelTimeline dataset={dataset} selectedAnchorRef={selectedAnchorRef} />}
+        promotedRegion={
+          <GovernedChildRoutePlaceholder
+            routeLabel="Conversation plane"
+            summary="Reply, note, and channel-specific detail remain route-aware instead of opening a detached support page."
+          />
+        }
       />
     </div>
   );
@@ -3038,8 +4109,15 @@ function HistoryRoute({
       {dataset.fallbackProjection ? (
         <ReadOnlyFallbackHero fallbackProjection={dataset.fallbackProjection} artifact={dataset.strongestArtifact} onNavigate={onNavigate} />
       ) : null}
-      <SubjectHistorySummaryPanel dataset={dataset} onExpand={onDisclosureExpand} />
-      <OmnichannelTimeline dataset={dataset} selectedAnchorRef={selectedAnchorRef} />
+      <SupportTicketChildRouteShell
+        dataset={dataset}
+        routeKey="ticket-history"
+        title="History detail remains same-shell and disclosure-bound."
+        summary="Wider history never becomes a detached utility page. The same anchor, ticket lineage, and mask scope remain visible throughout."
+        topology="two_plane"
+        mainContent={<OmnichannelTimeline dataset={dataset} selectedAnchorRef={selectedAnchorRef} />}
+        promotedRegion={<SupportHistoryView dataset={dataset} onExpand={onDisclosureExpand} />}
+      />
     </div>
   );
 }
@@ -3058,8 +4136,15 @@ function KnowledgeRoute({
       {dataset.fallbackProjection ? (
         <ReadOnlyFallbackHero fallbackProjection={dataset.fallbackProjection} artifact={dataset.strongestArtifact} onNavigate={onNavigate} />
       ) : null}
-      <KnowledgeRoutePanel dataset={dataset} />
-      <OmnichannelTimeline dataset={dataset} selectedAnchorRef={selectedAnchorRef} />
+      <SupportTicketChildRouteShell
+        dataset={dataset}
+        routeKey="ticket-knowledge"
+        title="Knowledge promotion remains bound to the current ticket anchor."
+        summary="Ranked guidance stays mask-safe and same-shell, even when the operator pivots between knowledge, conversation, and replay."
+        topology="two_plane"
+        mainContent={<OmnichannelTimeline dataset={dataset} selectedAnchorRef={selectedAnchorRef} />}
+        promotedRegion={<SupportKnowledgeView dataset={dataset} />}
+      />
     </div>
   );
 }
@@ -3094,10 +4179,19 @@ function ActionRoute({
       {dataset.fallbackProjection ? (
         <ReadOnlyFallbackHero fallbackProjection={dataset.fallbackProjection} artifact={dataset.strongestArtifact} onNavigate={onNavigate} />
       ) : null}
-      <OmnichannelTimeline dataset={dataset} selectedAnchorRef={selectedAnchorRef} />
-      <GovernedChildRoutePlaceholder
-        routeLabel={`${labelize(actionKey)} route`}
-        summary="This action child route keeps the same chronology and selected anchor while the sticky workbench stages one bounded action at a time."
+      <SupportTicketChildRouteShell
+        dataset={dataset}
+        routeKey="ticket-action"
+        title={`${labelize(actionKey)} stays governed by the current ticket tuple.`}
+        summary="The action child route keeps the same chronology and selected anchor while the workbench stages one bounded action at a time."
+        topology="two_plane"
+        mainContent={<OmnichannelTimeline dataset={dataset} selectedAnchorRef={selectedAnchorRef} />}
+        promotedRegion={
+          <GovernedChildRoutePlaceholder
+            routeLabel={`${labelize(actionKey)} route`}
+            summary="This action child route keeps the same chronology and selected anchor while the sticky workbench stages one bounded action at a time."
+          />
+        }
       />
     </div>
   );
@@ -3117,8 +4211,15 @@ function ObserveRoute({
       {dataset.fallbackProjection ? (
         <ReadOnlyFallbackHero fallbackProjection={dataset.fallbackProjection} artifact={dataset.strongestArtifact} onNavigate={onNavigate} />
       ) : null}
-      <ObserveRoutePanel dataset={dataset} />
-      <OmnichannelTimeline dataset={dataset} selectedAnchorRef={selectedAnchorRef} />
+      <SupportTicketChildRouteShell
+        dataset={dataset}
+        routeKey="ticket-observe"
+        title="Observe mode keeps the same shell while writable authority is suppressed."
+        summary="Support can inspect the current chronology and linked context without silently widening or re-arming mutation controls."
+        topology="two_plane"
+        mainContent={<OmnichannelTimeline dataset={dataset} selectedAnchorRef={selectedAnchorRef} />}
+        promotedRegion={<ObserveRoutePanel dataset={dataset} />}
+      />
     </div>
   );
 }
@@ -3127,18 +4228,27 @@ function ReplayRoute({
   dataset,
   selectedAnchorRef,
   onNavigate,
+  onRestore,
 }: {
   dataset: SupportWorkspaceDataset;
   selectedAnchorRef: string;
   onNavigate: (path: string) => void;
+  onRestore: () => void;
 }) {
   return (
     <div className="support-workspace__center-stack" data-testid="SupportReplayRoute">
       {dataset.fallbackProjection ? (
         <ReadOnlyFallbackHero fallbackProjection={dataset.fallbackProjection} artifact={dataset.strongestArtifact} onNavigate={onNavigate} />
       ) : null}
-      <ReplayBoundaryPanel dataset={dataset} />
-      <OmnichannelTimeline dataset={dataset} selectedAnchorRef={selectedAnchorRef} />
+      <SupportTicketChildRouteShell
+        dataset={dataset}
+        routeKey="ticket-replay"
+        title="Replay is a governed forensic deck, not a detached log viewer."
+        summary="The shell freezes the selected anchor, shows the exact evidence boundary, buffers later live changes into delta review, and restores live work only after explicit revalidation."
+        topology="three_plane"
+        mainContent={<OmnichannelTimeline dataset={dataset} selectedAnchorRef={selectedAnchorRef} />}
+        promotedRegion={<SupportReplaySurface dataset={dataset} onRestore={onRestore} />}
+      />
     </div>
   );
 }
@@ -3164,6 +4274,9 @@ export function SupportWorkspaceApp() {
   const { route, pathname, queryState, navigate } = useSupportWorkspaceRouter();
   const reducedMotion = useReducedMotionPreference();
   const dataset = useMemo(() => createSupportWorkspaceDataset(route, queryState), [route, queryState]);
+  const [replayGate, setReplayGate] = useState<SupportReplayGate | null>(() => readSupportReplayGate());
+  const lastSupportRouteEventKeyRef = useRef("");
+  const lastSupportRecoveryEventKeyRef = useRef("");
 
   useEffect(() => {
     if (typeof document !== "undefined") {
@@ -3171,7 +4284,174 @@ export function SupportWorkspaceApp() {
     }
   }, [route.supportTicketId]);
 
+  useEffect(() => {
+    const actionFamily = actionFamilyForSupportRoute(route);
+    if (!actionFamily) {
+      return;
+    }
+    const routeEventKey = [
+      route.routeKey,
+      queryState.selectedAnchorRef,
+      queryState.scenario,
+      dataset.shellMode,
+      route.actionKey ?? "none",
+    ].join(":");
+    if (lastSupportRouteEventKeyRef.current === routeEventKey) {
+      return;
+    }
+    recordWorkspaceSupportUiEvent({
+      routeFamilyRef: "rf_support_ticket_workspace",
+      routePath: pathname,
+      routeIntentRef: `support.${route.routeKey}.entered`,
+      canonicalObjectDescriptorRef: SUPPORT_ROUTE_REGISTRY[route.routeKey].testId,
+      canonicalEntitySeed: route.supportTicketId,
+      shellInstanceRef: "par_267_phase3_track_playwright_frontend_support_replay_linked_context",
+      continuityKey: dataset.ticketWorkspace.workspaceContinuityKey,
+      selectedAnchorRef: queryState.selectedAnchorRef,
+      surfaceRef: SUPPORT_ROUTE_REGISTRY[route.routeKey].testId,
+      audienceTier: "support",
+      channelContextRef: "browser.support_workspace",
+      actionFamily,
+      eventClass:
+        route.routeKey === "ticket-replay"
+          ? "recovery"
+          : route.routeKey === "ticket-history" || route.routeKey === "ticket-knowledge"
+            ? "projection"
+            : "transition",
+      eventState: validationEventStateForSupport(dataset.shellMode, queryState.scenario),
+      publicationPosture: validationPublicationPostureForSupport(dataset.shellMode),
+      recoveryPosture: validationRecoveryPostureForSupport(dataset.shellMode, queryState.scenario),
+      shellDecisionClass:
+        dataset.shellMode === "read_only_recovery"
+          ? "frozen"
+          : route.routeKey === "ticket-replay"
+            ? "restored"
+            : "reused",
+      semanticCoverageRef: "SupportMaskingFallbackRouteContract",
+      releaseTupleRef: dataset.runtimeBinding.frontendContractManifestRef,
+      evidenceLinkPath:
+        route.routeKey === "ticket-replay"
+          ? "/Users/test/Code/V/output/playwright/269-workspace-support-event-chains-support.png"
+          : "/Users/test/Code/V/output/playwright/269-validation-board-support-integrity.png",
+      interactionMode: "system",
+      maskedContactDescriptor: route.routeKey === "ticket-action" ? "m***@vecells.invalid" : null,
+      ...validationSettlementProfileForSupport(dataset.shellMode, queryState.scenario),
+    });
+    lastSupportRouteEventKeyRef.current = routeEventKey;
+  }, [dataset, pathname, queryState.scenario, queryState.selectedAnchorRef, route]);
+
+  useEffect(() => {
+    if (dataset.shellMode === "live" && queryState.scenario !== "blocked") {
+      return;
+    }
+    const recoveryEventKey = [
+      route.routeKey,
+      queryState.scenario,
+      dataset.shellMode,
+      queryState.selectedAnchorRef,
+    ].join(":");
+    if (lastSupportRecoveryEventKeyRef.current === recoveryEventKey) {
+      return;
+    }
+    recordWorkspaceSupportUiEvent({
+      routeFamilyRef: "rf_support_ticket_workspace",
+      routePath: pathname,
+      routeIntentRef: `support.${route.routeKey}.recovery`,
+      canonicalObjectDescriptorRef: SUPPORT_ROUTE_REGISTRY[route.routeKey].testId,
+      canonicalEntitySeed: route.supportTicketId,
+      shellInstanceRef: "par_267_phase3_track_playwright_frontend_support_replay_linked_context",
+      continuityKey: dataset.ticketWorkspace.workspaceContinuityKey,
+      selectedAnchorRef: queryState.selectedAnchorRef,
+      surfaceRef: SUPPORT_ROUTE_REGISTRY[route.routeKey].testId,
+      audienceTier: "support",
+      channelContextRef: "browser.support_workspace",
+      actionFamily: "stale_recovery",
+      eventClass: "recovery",
+      eventState: validationEventStateForSupport(dataset.shellMode, queryState.scenario),
+      publicationPosture: validationPublicationPostureForSupport(dataset.shellMode),
+      recoveryPosture: validationRecoveryPostureForSupport(dataset.shellMode, queryState.scenario),
+      shellDecisionClass: "frozen",
+      semanticCoverageRef: "SupportMaskingFallbackRouteContract",
+      releaseTupleRef: dataset.runtimeBinding.frontendContractManifestRef,
+      evidenceLinkPath: "/Users/test/Code/V/output/playwright/269-workspace-support-event-chains-support.png",
+      interactionMode: "system",
+      maskedContactDescriptor: "m***@vecells.invalid",
+      ...validationSettlementProfileForSupport(dataset.shellMode, queryState.scenario),
+    });
+    lastSupportRecoveryEventKeyRef.current = recoveryEventKey;
+  }, [
+    dataset.runtimeBinding.frontendContractManifestRef,
+    dataset.shellMode,
+    dataset.ticketWorkspace.workspaceContinuityKey,
+    pathname,
+    queryState.scenario,
+    queryState.selectedAnchorRef,
+    route.routeKey,
+    route.supportTicketId,
+  ]);
+
+  useEffect(() => {
+    if (!dataset.replaySession || !dataset.replayRestoreSettlement) {
+      if (route.routeKey !== "ticket-replay") {
+        setReplayGate(readSupportReplayGate());
+      }
+      return;
+    }
+    if (dataset.replayRestoreSettlement.restoreState === "restored") {
+      clearSupportReplayGate();
+      setReplayGate(null);
+      return;
+    }
+    const nextGate = {
+      supportTicketId: route.supportTicketId,
+      replaySessionId: dataset.replaySession.supportReplaySessionId,
+      restoreState: dataset.replayRestoreSettlement.restoreState,
+    } satisfies SupportReplayGate;
+    writeSupportReplayGate(nextGate);
+    setReplayGate(nextGate);
+  }, [
+    dataset.replayRestoreSettlement,
+    dataset.replaySession,
+    route.routeKey,
+    route.supportTicketId,
+  ]);
+
   const navigateToPath = (path: string) => navigate(path);
+  const restoreFromReplay = () => {
+    recordWorkspaceSupportUiEvent({
+      routeFamilyRef: "rf_support_ticket_workspace",
+      routePath: pathname,
+      routeIntentRef: "support.replay.restore",
+      canonicalObjectDescriptorRef: "SupportReplayRestoreBridge",
+      canonicalEntitySeed: route.supportTicketId,
+      shellInstanceRef: "par_267_phase3_track_playwright_frontend_support_replay_linked_context",
+      continuityKey: dataset.ticketWorkspace.workspaceContinuityKey,
+      selectedAnchorRef: queryState.selectedAnchorRef,
+      surfaceRef: "SupportReplayRestoreBridge",
+      audienceTier: "support",
+      channelContextRef: "browser.support_workspace",
+      actionFamily: "support_restore",
+      eventClass: "transition",
+      eventState: validationEventStateForSupport(dataset.shellMode, queryState.scenario),
+      publicationPosture: validationPublicationPostureForSupport(dataset.shellMode),
+      recoveryPosture: validationRecoveryPostureForSupport(dataset.shellMode, queryState.scenario),
+      shellDecisionClass: "restored",
+      semanticCoverageRef: "SupportMaskingFallbackRouteContract",
+      releaseTupleRef: dataset.runtimeBinding.frontendContractManifestRef,
+      evidenceLinkPath: "/Users/test/Code/V/output/playwright/269-workspace-support-event-chains-support.png",
+      interactionMode: "pointer",
+      maskedContactDescriptor: "m***@vecells.invalid",
+      ...validationSettlementProfileForSupport(dataset.shellMode, queryState.scenario),
+    });
+    clearSupportReplayGate();
+    setReplayGate(null);
+    navigate(`/ops/support/tickets/${route.supportTicketId}`, {
+      replayState: "frozen",
+      deltaReviewState: "none",
+      restoreState: "required",
+      fallbackReason: "none",
+    });
+  };
 
   return (
     <SupportWorkspaceShell
@@ -3180,6 +4460,7 @@ export function SupportWorkspaceApp() {
       queryState={queryState}
       dataset={dataset}
       reducedMotion={reducedMotion}
+      replayGate={replayGate}
       onNavigate={navigate}
       onScenarioChange={(nextScenario) => navigate(pathname, { scenario: nextScenario })}
       onAnchorSelect={(anchorRef) => navigate(pathname, { selectedAnchorRef: anchorRef })}
@@ -3189,6 +4470,8 @@ export function SupportWorkspaceApp() {
           fallbackReason: queryState.disclosureState === "expanded" ? "none" : queryState.fallbackReason,
         })
       }
+      onLinkedContextChange={(mode) => navigate(pathname, { linkedContextMode: mode })}
+      onRestoreFromReplay={restoreFromReplay}
     >
       {route.routeKey === "ticket-overview" ? (
         <OverviewRoute dataset={dataset} selectedAnchorRef={queryState.selectedAnchorRef} onNavigate={navigateToPath} />
@@ -3218,7 +4501,12 @@ export function SupportWorkspaceApp() {
         <ObserveRoute dataset={dataset} selectedAnchorRef={queryState.selectedAnchorRef} onNavigate={navigateToPath} />
       ) : null}
       {route.routeKey === "ticket-replay" ? (
-        <ReplayRoute dataset={dataset} selectedAnchorRef={queryState.selectedAnchorRef} onNavigate={navigateToPath} />
+        <ReplayRoute
+          dataset={dataset}
+          selectedAnchorRef={queryState.selectedAnchorRef}
+          onNavigate={navigateToPath}
+          onRestore={restoreFromReplay}
+        />
       ) : null}
     </SupportWorkspaceShell>
   );

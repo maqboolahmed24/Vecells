@@ -3,8 +3,10 @@ import "@vecells/surface-postures/surface-postures.css";
 import { useEffect, useState } from "react";
 import "./staff-entry-surfaces.css";
 import "./support-workspace-shell.css";
+import "./workspace-shell.css";
 import { StaffEntrySurfaceApp } from "./staff-entry-surfaces";
 import { SupportWorkspaceApp, isSupportWorkspacePath } from "./support-workspace-shell";
+import { WorkspaceRouteFamilyController, isWorkspaceShellPath } from "./workspace-shell";
 
 function readPathname() {
   return typeof window === "undefined" ? "/workspace" : window.location.pathname;
@@ -26,5 +28,11 @@ export default function App() {
     };
   }, []);
 
-  return isSupportWorkspacePath(pathname) ? <SupportWorkspaceApp /> : <StaffEntrySurfaceApp />;
+  if (isSupportWorkspacePath(pathname)) {
+    return <SupportWorkspaceApp />;
+  }
+  if (isWorkspaceShellPath(pathname)) {
+    return <WorkspaceRouteFamilyController />;
+  }
+  return <StaffEntrySurfaceApp />;
 }

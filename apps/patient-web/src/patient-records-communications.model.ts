@@ -2,6 +2,7 @@ import {
   makePatientRequestReturnBundle215,
   type PatientRequestReturnBundle,
 } from "./patient-home-requests-detail-routes.model";
+import { tryResolvePhase3PatientWorkspaceConversationBundle } from "@vecells/domain-kernel";
 
 export const PATIENT_RECORDS_COMMUNICATIONS_TASK_ID =
   "par_217_crosscutting_track_Playwright_or_other_appropriate_tooling_frontend_build_health_record_and_communications_timeline_views";
@@ -697,6 +698,15 @@ const communicationClusters: readonly PatientConversationCluster[] = [
   }),
 ];
 
+function requestRefForCluster(clusterRef: string): string | null {
+  return (
+    tryResolvePhase3PatientWorkspaceConversationBundle({
+      clusterRef,
+      routeKey: "conversation_messages",
+    })?.requestRef ?? null
+  );
+}
+
 function defaultResultInterpretationFixture(): Omit<
   PatientResultInterpretationProjection,
   "projectionName"
@@ -728,10 +738,12 @@ function makeCluster(input: {
   return {
     projectionName: "PatientConversationCluster",
     clusterRef: input.clusterRef,
-    governingObjectRef:
-      input.clusterRef === "cluster_214_derm" ? "request_211_a" : input.clusterRef,
-    careEpisodeLabel:
-      input.clusterRef === "cluster_214_derm" ? "Dermatology" : "Practice communications",
+    governingObjectRef: requestRefForCluster(input.clusterRef) ?? input.clusterRef,
+    careEpisodeLabel: requestRefForCluster(input.clusterRef) === "request_211_a"
+      ? "Dermatology"
+      : requestRefForCluster(input.clusterRef) === "request_215_callback"
+        ? "Callback follow-up"
+        : "Practice communications",
     selectedAnchorRef: `${input.clusterRef}_anchor`,
     clusterRouteRef: input.route,
     previewDigest: {
@@ -893,8 +905,9 @@ export function resolveRecordsCommunicationsEntry(
       : repair
         ? "delivery_failure"
         : "pending";
+  const requestRef = requestRefForCluster(cluster.clusterRef) ?? "request_211_a";
   const returnBundle = {
-    ...makePatientRequestReturnBundle215("request_211_a", "all", "soft_navigation"),
+    ...makePatientRequestReturnBundle215(requestRef, "all", "soft_navigation"),
     disclosurePosture: "child_route" as const,
   };
 

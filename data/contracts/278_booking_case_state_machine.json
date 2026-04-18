@@ -1,0 +1,788 @@
+{
+  "taskId": "seq_278",
+  "contractVersion": "278.phase4.booking-case-freeze.v1",
+  "visualMode": "Booking_Case_State_Atlas",
+  "aggregate": "BookingCase",
+  "closureAuthority": "LifecycleCoordinator",
+  "stateFamilies": [
+    {
+      "familyId": "intake",
+      "label": "Intake",
+      "summary": "Phase 3 handoff has been acknowledged but the booking kernel has not yet opened search truth.",
+      "states": [
+        "handoff_received",
+        "capability_checked"
+      ]
+    },
+    {
+      "familyId": "search",
+      "label": "Search",
+      "summary": "Local booking is live, the search policy is current, and the shell is moving through offer discovery and slot choice.",
+      "states": [
+        "searching_local",
+        "offers_ready",
+        "selecting",
+        "revalidating"
+      ]
+    },
+    {
+      "familyId": "commit",
+      "label": "Commit",
+      "summary": "A chosen slot is crossing reservation, confirmation, or reconciliation truth boundaries.",
+      "states": [
+        "commit_pending",
+        "booked",
+        "confirmation_pending",
+        "supplier_reconciliation_pending"
+      ]
+    },
+    {
+      "familyId": "continuation",
+      "label": "Continuation",
+      "summary": "Local booking could not settle directly and now depends on waitlist, callback, hub, or explicit failure truth.",
+      "states": [
+        "waitlisted",
+        "fallback_to_hub",
+        "callback_fallback",
+        "booking_failed"
+      ]
+    },
+    {
+      "familyId": "managed",
+      "label": "Manage and Close",
+      "summary": "An authoritative appointment exists or the booking branch is durably finished.",
+      "states": [
+        "managed",
+        "closed"
+      ]
+    }
+  ],
+  "states": [
+    {
+      "stateId": "handoff_received",
+      "familyId": "intake",
+      "familyLabel": "Intake",
+      "summary": "The booking branch exists only as a direct-resolution handoff and proposed lineage child link.",
+      "dominantAuthority": "Phase 3 BookingIntent plus the proposed LineageCaseLink.",
+      "entryPredicateSummary": "Phase 3 BookingIntent is unsuperseded, ownership fences are current, and the booking link is still the proposed child for the request lineage.",
+      "routeCue": "Summary-only booking launch card inside the patient or staff shell."
+    },
+    {
+      "stateId": "capability_checked",
+      "familyId": "intake",
+      "familyLabel": "Intake",
+      "summary": "The case has validated current booking capability, route publication, trust, and identity posture but has not opened a live slot search yet.",
+      "dominantAuthority": "BookingCapabilityResolution and BookingCapabilityProjection.",
+      "entryPredicateSummary": "The bound capability tuple still matches route, publication, trust, and governing-object posture for the active audience.",
+      "routeCue": "Capability gate summary with allowed next actions."
+    },
+    {
+      "stateId": "searching_local",
+      "familyId": "search",
+      "familyLabel": "Search",
+      "summary": "The case is actively running local search under one SearchPolicy and one current capability tuple.",
+      "dominantAuthority": "SearchPolicy plus BookingCapabilityResolution plus SlotSetSnapshot.",
+      "entryPredicateSummary": "Capability is live for search and the case owns one active SearchPolicy.",
+      "routeCue": "Search-first workspace with calm loading, empty, or partial posture inside the same shell."
+    },
+    {
+      "stateId": "offers_ready",
+      "familyId": "search",
+      "familyLabel": "Search",
+      "summary": "Current snapshot and offer session expose a lawful set of local choices.",
+      "dominantAuthority": "OfferSession plus ReservationTruthProjection plus rank proof.",
+      "entryPredicateSummary": "A live OfferSession exists and the linked snapshot remains selectable for the active case version and policy bundle.",
+      "routeCue": "Offer list or calendar with explicit rank disclosure and truthful hold wording."
+    },
+    {
+      "stateId": "selecting",
+      "familyId": "search",
+      "familyLabel": "Search",
+      "summary": "The shell holds a chosen slot candidate but not yet a fresh revalidation outcome.",
+      "dominantAuthority": "OfferSession selection tuple and the selected anchor tuple hash.",
+      "entryPredicateSummary": "One offered slot is selected and its tuple hash still resolves to the same canonical slot identity.",
+      "routeCue": "Selection state that preserves the chosen slot anchor across same-shell child routes."
+    },
+    {
+      "stateId": "revalidating",
+      "familyId": "search",
+      "familyLabel": "Search",
+      "summary": "The selected slot is being checked against supplier truth and the original SearchPolicy before commit can start.",
+      "dominantAuthority": "BookingTransaction preflight, SearchPolicy, and current capability tuple.",
+      "entryPredicateSummary": "A chosen slot is undergoing the authoritative supplier or local preflight check for the same policy bundle.",
+      "routeCue": "Selected slot remains visible while writable mutation is temporarily paused."
+    },
+    {
+      "stateId": "commit_pending",
+      "familyId": "commit",
+      "familyLabel": "Commit",
+      "summary": "A commit path is in flight and must not be mistaken for final booking.",
+      "dominantAuthority": "BookingTransaction and ReservationTruthProjection.",
+      "entryPredicateSummary": "Reservation and request fences are live, dispatch has started, and authoritative outcome is still pending.",
+      "routeCue": "Pending confirmation wording stays summary-first and suppresses false calmness."
+    },
+    {
+      "stateId": "booked",
+      "familyId": "commit",
+      "familyLabel": "Commit",
+      "summary": "The commit path has authoritative booking proof and can now open management posture.",
+      "dominantAuthority": "BookingConfirmationTruthProjection and AppointmentRecord.",
+      "entryPredicateSummary": "Confirmation truth is confirmed and an AppointmentRecord exists on the same lineage.",
+      "routeCue": "Booked summary transitions into management inside the same shell."
+    },
+    {
+      "stateId": "confirmation_pending",
+      "familyId": "commit",
+      "familyLabel": "Commit",
+      "summary": "The supplier has accepted or is processing the booking but durable confirmation truth is still pending.",
+      "dominantAuthority": "BookingConfirmationTruthProjection.",
+      "entryPredicateSummary": "Confirmation truth state is confirmation_pending and the same transaction chain remains current.",
+      "routeCue": "Chosen slot or booked summary stays visible until authoritative settlement lands."
+    },
+    {
+      "stateId": "supplier_reconciliation_pending",
+      "familyId": "commit",
+      "familyLabel": "Commit",
+      "summary": "Supplier truth is ambiguous or disputed and the case must preserve provenance while freezing mutation.",
+      "dominantAuthority": "ExternalConfirmationGate and BookingConfirmationTruthProjection.",
+      "entryPredicateSummary": "Confirmation truth state is reconciliation_required and a reconciliation gate is attached to the same lineage.",
+      "routeCue": "Same-shell recovery posture with explicit reconciliation explanation."
+    },
+    {
+      "stateId": "waitlisted",
+      "familyId": "continuation",
+      "familyLabel": "Continuation",
+      "summary": "The case is still lawfully waiting for local supply and has not yet crossed into callback or hub fallback.",
+      "dominantAuthority": "WaitlistEntry, WaitlistDeadlineEvaluation, and WaitlistContinuationTruthProjection.",
+      "entryPredicateSummary": "Active WaitlistEntry exists, offerabilityState is waitlist_safe or at_risk, and required fallback route remains stay_local_waitlist.",
+      "routeCue": "Waitlist truth remains visible with deadline risk and dominant next step."
+    },
+    {
+      "stateId": "fallback_to_hub",
+      "familyId": "continuation",
+      "familyLabel": "Continuation",
+      "summary": "Local booking has durably transferred to the hub path.",
+      "dominantAuthority": "WaitlistFallbackObligation and HubCoordinationCase typed seam.",
+      "entryPredicateSummary": "Current fallback obligation requires hub and a hub coordination child link exists for the same booking lineage.",
+      "routeCue": "Read-only provenance plus governed handoff status."
+    },
+    {
+      "stateId": "callback_fallback",
+      "familyId": "continuation",
+      "familyLabel": "Continuation",
+      "summary": "Local booking has durably transferred to governed callback handling.",
+      "dominantAuthority": "WaitlistFallbackObligation and CallbackCase typed seam.",
+      "entryPredicateSummary": "Current fallback obligation requires callback and the linked CallbackCase plus CallbackExpectationEnvelope exist on the same fallback fence.",
+      "routeCue": "Read-only provenance plus callback expectation summary."
+    },
+    {
+      "stateId": "booking_failed",
+      "familyId": "continuation",
+      "familyLabel": "Continuation",
+      "summary": "The current local booking branch ended without an active waitlist or fallback continuation.",
+      "dominantAuthority": "BookingException and continuation truth.",
+      "entryPredicateSummary": "No active continuation path remains and the current booking attempt has failed under the authoritative outcome chain.",
+      "routeCue": "Recovery-only branch summary with no local writable controls."
+    },
+    {
+      "stateId": "managed",
+      "familyId": "managed",
+      "familyLabel": "Manage and Close",
+      "summary": "An authoritative appointment exists and the case has entered its manage lifecycle.",
+      "dominantAuthority": "AppointmentRecord, BookingConfirmationTruthProjection, and BookingManageSettlement.",
+      "entryPredicateSummary": "Appointment exists with authoritative confirmation proof and manage posture is not hidden.",
+      "routeCue": "Appointment summary with manage, cancel, or reschedule child routes."
+    },
+    {
+      "stateId": "closed",
+      "familyId": "managed",
+      "familyLabel": "Manage and Close",
+      "summary": "The booking branch is durably finished, but request closure remains a coordinator decision.",
+      "dominantAuthority": "BookingCase branch settlement only; not request closure.",
+      "entryPredicateSummary": "Case-level work is finished and no further booking mutation is legal for the active lineage branch.",
+      "routeCue": "Summary-only review or appointment history view."
+    }
+  ],
+  "authorityAxes": [
+    {
+      "axisId": "case_state",
+      "label": "Booking case workflow",
+      "governingField": "BookingCase.status",
+      "ownerTask": "seq_278",
+      "notes": "Top-level workflow status only."
+    },
+    {
+      "axisId": "capability_state",
+      "label": "Capability truth",
+      "governingField": "BookingCapabilityResolution.capabilityState",
+      "ownerTask": "seq_279",
+      "notes": "Search or manage eligibility must not be inferred from BookingCase.status."
+    },
+    {
+      "axisId": "reservation_truth",
+      "label": "Reservation and hold truth",
+      "governingField": "ReservationTruthProjection.truthState",
+      "ownerTask": "seq_280",
+      "notes": "Holds, exclusivity, and offer expiry stay on reservation truth, not case state."
+    },
+    {
+      "axisId": "confirmation_truth",
+      "label": "Confirmation truth",
+      "governingField": "BookingConfirmationTruthProjection.confirmationTruthState",
+      "ownerTask": "seq_280",
+      "notes": "Booked wording, manage exposure, and artifact readiness derive from confirmation truth only."
+    },
+    {
+      "axisId": "manage_posture",
+      "label": "Manage posture",
+      "governingField": "BookingManageSettlement + manage exposure fields",
+      "ownerTask": "seq_280",
+      "notes": "Cancel, reschedule, and reminder posture are separate from top-level case state."
+    },
+    {
+      "axisId": "route_publication_posture",
+      "label": "Route publication and recovery",
+      "governingField": "SurfacePublication + RuntimePublicationBundle + RouteFreezeDisposition + ReleaseRecoveryDisposition",
+      "ownerTask": "seq_278",
+      "notes": "Same-shell writability is publication-governed and can degrade without changing the booking workflow state."
+    }
+  ],
+  "transitions": [
+    {
+      "transitionId": "T278_001",
+      "from": "handoff_received",
+      "to": "capability_checked",
+      "predicateId": "P278_HANDOFF_ACKNOWLEDGED",
+      "predicate": "Current BookingIntent is unsuperseded, its proposed LineageCaseLink is still current for the request lineage, and request ownership fences are valid for case creation.",
+      "controllingObject": "BookingIntent + LineageCaseLink",
+      "ownerTask": "seq_278",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    },
+    {
+      "transitionId": "T278_002",
+      "from": "capability_checked",
+      "to": "searching_local",
+      "predicateId": "P278_CAPABILITY_LIVE_FOR_SEARCH",
+      "predicate": "BookingCapabilityResolution.capabilityState is live_self_service or live_staff_assist for the active audience, binding hashes remain current, and route publication plus trust posture still match the capability tuple.",
+      "controllingObject": "BookingCapabilityResolution + BookingCapabilityProjection",
+      "ownerTask": "seq_279",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    },
+    {
+      "transitionId": "T278_003",
+      "from": "searching_local",
+      "to": "offers_ready",
+      "predicateId": "P278_OFFERS_DISCLOSED",
+      "predicate": "A live OfferSession exists on the active BookingCase version, policy bundle, capability binding, and selectable snapshot.",
+      "controllingObject": "OfferSession + SlotSetSnapshot",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    },
+    {
+      "transitionId": "T278_004",
+      "from": "searching_local",
+      "to": "waitlisted",
+      "predicateId": "P278_WAITLIST_SAFE",
+      "predicate": "Active WaitlistEntry exists, WaitlistDeadlineEvaluation.offerabilityState is waitlist_safe or at_risk, and WaitlistFallbackObligation.requiredFallbackRoute remains stay_local_waitlist.",
+      "controllingObject": "WaitlistEntry + WaitlistDeadlineEvaluation + WaitlistFallbackObligation",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    },
+    {
+      "transitionId": "T278_005",
+      "from": "searching_local",
+      "to": "callback_fallback",
+      "predicateId": "P278_CALLBACK_REQUIRED",
+      "predicate": "Current WaitlistFallbackObligation.requiredFallbackRoute equals callback and the same fallback fence already owns a linked CallbackCase plus CallbackExpectationEnvelope.",
+      "controllingObject": "WaitlistFallbackObligation + CallbackCase seam",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    },
+    {
+      "transitionId": "T278_006",
+      "from": "searching_local",
+      "to": "fallback_to_hub",
+      "predicateId": "P278_HUB_REQUIRED",
+      "predicate": "Current WaitlistFallbackObligation.requiredFallbackRoute equals hub and the same booking lineage already owns a durably created HubCoordinationCase.",
+      "controllingObject": "WaitlistFallbackObligation + HubCoordinationCase seam",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    },
+    {
+      "transitionId": "T278_007",
+      "from": "searching_local",
+      "to": "booking_failed",
+      "predicateId": "P278_SEARCH_FAILED_NO_CONTINUATION",
+      "predicate": "The current local booking attempt ended without an active continuation path, waitlist, or durable fallback transfer.",
+      "controllingObject": "BookingException + continuation truth",
+      "ownerTask": "seq_278",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    },
+    {
+      "transitionId": "T278_008",
+      "from": "offers_ready",
+      "to": "selecting",
+      "predicateId": "P278_SLOT_CHOSEN",
+      "predicate": "One offered slot and its tuple hash have been selected from the current OfferSession.",
+      "controllingObject": "OfferSession",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    },
+    {
+      "transitionId": "T278_009",
+      "from": "offers_ready",
+      "to": "waitlisted",
+      "predicateId": "P278_WAITLIST_CHOSEN_FROM_OFFERS",
+      "predicate": "The case elects or is forced into waitlist and an active WaitlistEntry plus safe waitlist truth exist.",
+      "controllingObject": "WaitlistEntry + WaitlistContinuationTruthProjection",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    },
+    {
+      "transitionId": "T278_010",
+      "from": "offers_ready",
+      "to": "callback_fallback",
+      "predicateId": "P278_OFFERS_TO_CALLBACK",
+      "predicate": "Fallback obligation now requires callback and no safe local continuation remains.",
+      "controllingObject": "WaitlistFallbackObligation",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    },
+    {
+      "transitionId": "T278_011",
+      "from": "offers_ready",
+      "to": "fallback_to_hub",
+      "predicateId": "P278_OFFERS_TO_HUB",
+      "predicate": "Fallback obligation now requires hub and a hub coordination transfer has been durably started.",
+      "controllingObject": "WaitlistFallbackObligation",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    },
+    {
+      "transitionId": "T278_012",
+      "from": "offers_ready",
+      "to": "booking_failed",
+      "predicateId": "P278_OFFERS_EXHAUSTED",
+      "predicate": "Current offer generation ended and no lawful local continuation survived.",
+      "controllingObject": "OfferSession + BookingException",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    },
+    {
+      "transitionId": "T278_013",
+      "from": "selecting",
+      "to": "revalidating",
+      "predicateId": "P278_REVALIDATION_STARTED",
+      "predicate": "A chosen slot is being checked against supplier state and the original SearchPolicy.",
+      "controllingObject": "BookingTransaction preflight",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    },
+    {
+      "transitionId": "T278_014",
+      "from": "selecting",
+      "to": "offers_ready",
+      "predicateId": "P278_SELECTION_CLEARED",
+      "predicate": "Selected slot or anchor was explicitly cleared while the offer session remained live.",
+      "controllingObject": "OfferSession",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    },
+    {
+      "transitionId": "T278_015",
+      "from": "selecting",
+      "to": "waitlisted",
+      "predicateId": "P278_SELECTION_TO_WAITLIST",
+      "predicate": "The case joins waitlist from the selection posture and the waitlist truth remains safe.",
+      "controllingObject": "WaitlistEntry + WaitlistContinuationTruthProjection",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    },
+    {
+      "transitionId": "T278_016",
+      "from": "selecting",
+      "to": "callback_fallback",
+      "predicateId": "P278_SELECTION_TO_CALLBACK",
+      "predicate": "Selection was invalidated and fallback obligation now requires callback.",
+      "controllingObject": "WaitlistFallbackObligation",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    },
+    {
+      "transitionId": "T278_017",
+      "from": "selecting",
+      "to": "fallback_to_hub",
+      "predicateId": "P278_SELECTION_TO_HUB",
+      "predicate": "Selection was invalidated and fallback obligation now requires hub transfer.",
+      "controllingObject": "WaitlistFallbackObligation",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    },
+    {
+      "transitionId": "T278_018",
+      "from": "selecting",
+      "to": "booking_failed",
+      "predicateId": "P278_SELECTION_FAILED",
+      "predicate": "Selection is no longer actionable and no safe local continuation survives.",
+      "controllingObject": "BookingException",
+      "ownerTask": "seq_278",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    },
+    {
+      "transitionId": "T278_019",
+      "from": "revalidating",
+      "to": "commit_pending",
+      "predicateId": "P278_PREFLIGHT_VALID",
+      "predicate": "Current supplier or local preflight passed against the same SearchPolicy, capability tuple, and request ownership fences.",
+      "controllingObject": "BookingTransaction",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth"
+    },
+    {
+      "transitionId": "T278_020",
+      "from": "revalidating",
+      "to": "offers_ready",
+      "predicateId": "P278_PREFLIGHT_REFRESH_REQUIRED",
+      "predicate": "Current slot can no longer be committed but the offer session remains recoverable for the same case version and policy bundle.",
+      "controllingObject": "BookingTransaction + OfferSession",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth"
+    },
+    {
+      "transitionId": "T278_021",
+      "from": "revalidating",
+      "to": "waitlisted",
+      "predicateId": "P278_PREFLIGHT_TO_WAITLIST",
+      "predicate": "Preflight proves no safe immediate local commit and the current waitlist path remains safe.",
+      "controllingObject": "WaitlistEntry + WaitlistDeadlineEvaluation",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    },
+    {
+      "transitionId": "T278_022",
+      "from": "revalidating",
+      "to": "callback_fallback",
+      "predicateId": "P278_PREFLIGHT_TO_CALLBACK",
+      "predicate": "Preflight or freshness drift triggered callback fallback obligation on the same lineage.",
+      "controllingObject": "WaitlistFallbackObligation",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    },
+    {
+      "transitionId": "T278_023",
+      "from": "revalidating",
+      "to": "fallback_to_hub",
+      "predicateId": "P278_PREFLIGHT_TO_HUB",
+      "predicate": "Preflight or freshness drift triggered hub fallback obligation on the same lineage.",
+      "controllingObject": "WaitlistFallbackObligation",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    },
+    {
+      "transitionId": "T278_024",
+      "from": "revalidating",
+      "to": "booking_failed",
+      "predicateId": "P278_PREFLIGHT_FAILED",
+      "predicate": "No safe continuation survived revalidation failure.",
+      "controllingObject": "BookingException + continuation truth",
+      "ownerTask": "seq_278",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth"
+    },
+    {
+      "transitionId": "T278_025",
+      "from": "commit_pending",
+      "to": "booked",
+      "predicateId": "P278_COMMIT_CONFIRMED",
+      "predicate": "Authoritative proof exists as durable provider reference or same-commit read-after-write, an AppointmentRecord exists, and confirmation truth is confirmed.",
+      "controllingObject": "BookingTransaction + BookingConfirmationTruthProjection + AppointmentRecord",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth"
+    },
+    {
+      "transitionId": "T278_026",
+      "from": "commit_pending",
+      "to": "confirmation_pending",
+      "predicateId": "P278_COMMIT_WAITING_CONFIRMATION",
+      "predicate": "Commit path is accepted for processing but confirmation truth is still pending.",
+      "controllingObject": "BookingTransaction + BookingConfirmationTruthProjection",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth"
+    },
+    {
+      "transitionId": "T278_027",
+      "from": "commit_pending",
+      "to": "supplier_reconciliation_pending",
+      "predicateId": "P278_COMMIT_AMBIGUOUS",
+      "predicate": "Commit path observed ambiguous or disputed supplier truth and opened an external confirmation gate.",
+      "controllingObject": "BookingTransaction + ExternalConfirmationGate",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth"
+    },
+    {
+      "transitionId": "T278_028",
+      "from": "commit_pending",
+      "to": "waitlisted",
+      "predicateId": "P278_COMMIT_TO_WAITLIST",
+      "predicate": "Commit could not settle immediately and waitlist continuation remains lawful.",
+      "controllingObject": "WaitlistEntry + WaitlistContinuationTruthProjection",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth"
+    },
+    {
+      "transitionId": "T278_029",
+      "from": "commit_pending",
+      "to": "callback_fallback",
+      "predicateId": "P278_COMMIT_TO_CALLBACK",
+      "predicate": "Commit path degraded into callback fallback under the current fallback obligation.",
+      "controllingObject": "WaitlistFallbackObligation",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth"
+    },
+    {
+      "transitionId": "T278_030",
+      "from": "commit_pending",
+      "to": "fallback_to_hub",
+      "predicateId": "P278_COMMIT_TO_HUB",
+      "predicate": "Commit path degraded into hub fallback under the current fallback obligation.",
+      "controllingObject": "WaitlistFallbackObligation",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth"
+    },
+    {
+      "transitionId": "T278_031",
+      "from": "commit_pending",
+      "to": "booking_failed",
+      "predicateId": "P278_COMMIT_FAILED",
+      "predicate": "Commit path failed with no active continuation path.",
+      "controllingObject": "BookingTransaction + BookingException",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth"
+    },
+    {
+      "transitionId": "T278_032",
+      "from": "booked",
+      "to": "managed",
+      "predicateId": "P278_MANAGE_LIFECYCLE_OPEN",
+      "predicate": "AppointmentRecord exists with authoritative confirmation truth and manage posture is now exposed.",
+      "controllingObject": "AppointmentRecord + BookingConfirmationTruthProjection",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4F. Appointment management: cancel, reschedule, reminders, and detail updates"
+    },
+    {
+      "transitionId": "T278_033",
+      "from": "confirmation_pending",
+      "to": "managed",
+      "predicateId": "P278_PENDING_TO_MANAGED",
+      "predicate": "Pending confirmation settled into authoritative confirmed appointment truth.",
+      "controllingObject": "BookingConfirmationTruthProjection",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth"
+    },
+    {
+      "transitionId": "T278_034",
+      "from": "confirmation_pending",
+      "to": "supplier_reconciliation_pending",
+      "predicateId": "P278_PENDING_TO_RECONCILIATION",
+      "predicate": "Pending confirmation degraded into ambiguous or disputed supplier truth.",
+      "controllingObject": "ExternalConfirmationGate",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth"
+    },
+    {
+      "transitionId": "T278_035",
+      "from": "confirmation_pending",
+      "to": "booking_failed",
+      "predicateId": "P278_PENDING_FAILED",
+      "predicate": "Supplier or authoritative read path rejected the booking and no continuation survives.",
+      "controllingObject": "BookingConfirmationTruthProjection",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth"
+    },
+    {
+      "transitionId": "T278_036",
+      "from": "confirmation_pending",
+      "to": "callback_fallback",
+      "predicateId": "P278_PENDING_TO_CALLBACK",
+      "predicate": "Pending confirmation crossed into callback fallback under current continuation truth.",
+      "controllingObject": "WaitlistFallbackObligation",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth"
+    },
+    {
+      "transitionId": "T278_037",
+      "from": "confirmation_pending",
+      "to": "fallback_to_hub",
+      "predicateId": "P278_PENDING_TO_HUB",
+      "predicate": "Pending confirmation crossed into hub fallback under current continuation truth.",
+      "controllingObject": "WaitlistFallbackObligation",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth"
+    },
+    {
+      "transitionId": "T278_038",
+      "from": "supplier_reconciliation_pending",
+      "to": "managed",
+      "predicateId": "P278_RECONCILIATION_CONFIRMED",
+      "predicate": "Reconciliation produced authoritative confirmed appointment truth on the same lineage.",
+      "controllingObject": "ExternalConfirmationGate + BookingConfirmationTruthProjection",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth"
+    },
+    {
+      "transitionId": "T278_039",
+      "from": "supplier_reconciliation_pending",
+      "to": "booking_failed",
+      "predicateId": "P278_RECONCILIATION_FAILED",
+      "predicate": "Reconciliation closed with authoritative failure and no continuation survives.",
+      "controllingObject": "ExternalConfirmationGate + BookingException",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth"
+    },
+    {
+      "transitionId": "T278_040",
+      "from": "supplier_reconciliation_pending",
+      "to": "callback_fallback",
+      "predicateId": "P278_RECONCILIATION_TO_CALLBACK",
+      "predicate": "Reconciliation requires callback fallback on the same booking lineage.",
+      "controllingObject": "WaitlistFallbackObligation",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth"
+    },
+    {
+      "transitionId": "T278_041",
+      "from": "supplier_reconciliation_pending",
+      "to": "fallback_to_hub",
+      "predicateId": "P278_RECONCILIATION_TO_HUB",
+      "predicate": "Reconciliation requires hub fallback on the same booking lineage.",
+      "controllingObject": "WaitlistFallbackObligation",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth"
+    },
+    {
+      "transitionId": "T278_042",
+      "from": "waitlisted",
+      "to": "selecting",
+      "predicateId": "P278_WAITLIST_OFFER_VISIBLE",
+      "predicate": "WaitlistContinuationTruthProjection.patientVisibleState is offer_available and the active offer still resolves to the same booking case lineage.",
+      "controllingObject": "WaitlistContinuationTruthProjection + WaitlistOffer",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4E. Waitlist, fallback, and no-slot truth"
+    },
+    {
+      "transitionId": "T278_043",
+      "from": "waitlisted",
+      "to": "revalidating",
+      "predicateId": "P278_WAITLIST_ACCEPTED_PENDING_BOOKING",
+      "predicate": "Waitlist offer was accepted and the released slot is being revalidated for booking.",
+      "controllingObject": "WaitlistOffer + BookingTransaction",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4E. Waitlist, fallback, and no-slot truth"
+    },
+    {
+      "transitionId": "T278_044",
+      "from": "waitlisted",
+      "to": "callback_fallback",
+      "predicateId": "P278_WAITLIST_TO_CALLBACK",
+      "predicate": "Current waitlist truth says callback_expected or fallback obligation requires callback.",
+      "controllingObject": "WaitlistContinuationTruthProjection + WaitlistFallbackObligation",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4E. Waitlist, fallback, and no-slot truth"
+    },
+    {
+      "transitionId": "T278_045",
+      "from": "waitlisted",
+      "to": "fallback_to_hub",
+      "predicateId": "P278_WAITLIST_TO_HUB",
+      "predicate": "Current waitlist truth says hub_review_pending or fallback obligation requires hub.",
+      "controllingObject": "WaitlistContinuationTruthProjection + WaitlistFallbackObligation",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4E. Waitlist, fallback, and no-slot truth"
+    },
+    {
+      "transitionId": "T278_046",
+      "from": "waitlisted",
+      "to": "booking_failed",
+      "predicateId": "P278_WAITLIST_EXPIRED",
+      "predicate": "Waitlist continuation truth is expired and no active fallback survives.",
+      "controllingObject": "WaitlistContinuationTruthProjection",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4E. Waitlist, fallback, and no-slot truth"
+    },
+    {
+      "transitionId": "T278_047",
+      "from": "waitlisted",
+      "to": "managed",
+      "predicateId": "P278_WAITLIST_CONFIRMED",
+      "predicate": "Waitlist path produced authoritative appointment truth and the case entered manage posture.",
+      "controllingObject": "BookingConfirmationTruthProjection + AppointmentRecord",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4E. Waitlist, fallback, and no-slot truth"
+    },
+    {
+      "transitionId": "T278_048",
+      "from": "managed",
+      "to": "searching_local",
+      "predicateId": "P278_MANAGE_REBOOK",
+      "predicate": "A reschedule or immediate rebook flow opens replacement search under the same shell and current booking lineage.",
+      "controllingObject": "AppointmentManageCommand + BookingCase",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4F. Appointment management: cancel, reschedule, reminders, and detail updates"
+    },
+    {
+      "transitionId": "T278_049",
+      "from": "managed",
+      "to": "supplier_reconciliation_pending",
+      "predicateId": "P278_MANAGE_RECONCILIATION",
+      "predicate": "Appointment manage mutation is waiting on disputed or ambiguous supplier truth.",
+      "controllingObject": "BookingManageSettlement + ExternalConfirmationGate",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4F. Appointment management: cancel, reschedule, reminders, and detail updates"
+    },
+    {
+      "transitionId": "T278_050",
+      "from": "managed",
+      "to": "closed",
+      "predicateId": "P278_MANAGE_FINISHED",
+      "predicate": "Manage lifecycle is durably finished for the booking branch and no further booking mutation remains.",
+      "controllingObject": "BookingManageSettlement",
+      "ownerTask": "seq_280",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4F. Appointment management: cancel, reschedule, reminders, and detail updates"
+    },
+    {
+      "transitionId": "T278_051",
+      "from": "callback_fallback",
+      "to": "closed",
+      "predicateId": "P278_CALLBACK_BRANCH_CLOSED",
+      "predicate": "Callback transfer is durably acknowledged and the booking branch has no remaining local mutation path.",
+      "controllingObject": "CallbackCase seam + LineageCaseLink",
+      "ownerTask": "seq_278",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4E. Waitlist, fallback, and no-slot truth"
+    },
+    {
+      "transitionId": "T278_052",
+      "from": "fallback_to_hub",
+      "to": "closed",
+      "predicateId": "P278_HUB_BRANCH_CLOSED",
+      "predicate": "Hub transfer is durably acknowledged and the booking branch has no remaining local mutation path.",
+      "controllingObject": "HubCoordinationCase seam + LineageCaseLink",
+      "ownerTask": "seq_278",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4E. Waitlist, fallback, and no-slot truth"
+    },
+    {
+      "transitionId": "T278_053",
+      "from": "booking_failed",
+      "to": "closed",
+      "predicateId": "P278_FAILURE_BRANCH_CLOSED",
+      "predicate": "Failure branch has no active continuation or manage posture and remains booking-branch-local only.",
+      "controllingObject": "BookingException",
+      "ownerTask": "seq_278",
+      "sourceRef": "blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine"
+    }
+  ],
+  "prohibitedInterpretations": [
+    "BookingCase.status may not imply capability state, reservation truth, or confirmation truth by itself.",
+    "Booking child routes are same-shell child states, not detached mini-apps.",
+    "BookingCase may not close the request directly.",
+    "Late triage supersession or wrong-patient freeze may not be ignored after booking opens."
+  ]
+}

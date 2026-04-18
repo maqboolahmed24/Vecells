@@ -6,8 +6,14 @@ import {
   createPhase1TriageHandoffService,
   createPhase3ApprovalEscalationKernelService,
   createPhase3ApprovalEscalationKernelStore,
+  createPhase3AdviceAdminDependencyKernelService,
+  createPhase3AdviceAdminDependencyKernelStore,
   createPhase3AdviceRenderKernelService,
   createPhase3AdviceRenderKernelStore,
+  createPhase3AdminResolutionPolicyKernelService,
+  createPhase3AdminResolutionPolicyKernelStore,
+  createPhase3AdminResolutionSettlementKernelService,
+  createPhase3AdminResolutionSettlementKernelStore,
   createPhase3CallbackKernelService,
   createPhase3CallbackKernelStore,
   createPhase3ClinicianMessageKernelService,
@@ -16,6 +22,8 @@ import {
   createPhase3DirectResolutionKernelStore,
   createPhase3ReopenLaunchKernelService,
   createPhase3ReopenLaunchKernelStore,
+  createPhase3SelfCareOutcomeAnalyticsKernelService,
+  createPhase3SelfCareOutcomeAnalyticsKernelStore,
   createPhase3SelfCareBoundaryKernelService,
   createPhase3SelfCareBoundaryKernelStore,
   createPhase3TaskCompletionContinuityKernelService,
@@ -56,8 +64,14 @@ describe("public package surface", () => {
     expect(typeof createPhase1TriageHandoffService).toBe("function");
     expect(typeof createPhase3ApprovalEscalationKernelStore).toBe("function");
     expect(typeof createPhase3ApprovalEscalationKernelService).toBe("function");
+    expect(typeof createPhase3AdviceAdminDependencyKernelStore).toBe("function");
+    expect(typeof createPhase3AdviceAdminDependencyKernelService).toBe("function");
     expect(typeof createPhase3AdviceRenderKernelStore).toBe("function");
     expect(typeof createPhase3AdviceRenderKernelService).toBe("function");
+    expect(typeof createPhase3AdminResolutionPolicyKernelStore).toBe("function");
+    expect(typeof createPhase3AdminResolutionPolicyKernelService).toBe("function");
+    expect(typeof createPhase3AdminResolutionSettlementKernelStore).toBe("function");
+    expect(typeof createPhase3AdminResolutionSettlementKernelService).toBe("function");
     expect(typeof createPhase3CallbackKernelStore).toBe("function");
     expect(typeof createPhase3CallbackKernelService).toBe("function");
     expect(typeof createPhase3ClinicianMessageKernelStore).toBe("function");
@@ -66,6 +80,8 @@ describe("public package surface", () => {
     expect(typeof createPhase3DirectResolutionKernelService).toBe("function");
     expect(typeof createPhase3ReopenLaunchKernelStore).toBe("function");
     expect(typeof createPhase3ReopenLaunchKernelService).toBe("function");
+    expect(typeof createPhase3SelfCareOutcomeAnalyticsKernelStore).toBe("function");
+    expect(typeof createPhase3SelfCareOutcomeAnalyticsKernelService).toBe("function");
     expect(typeof createPhase3SelfCareBoundaryKernelStore).toBe("function");
     expect(typeof createPhase3SelfCareBoundaryKernelService).toBe("function");
     expect(typeof createPhase3TaskCompletionContinuityKernelStore).toBe("function");

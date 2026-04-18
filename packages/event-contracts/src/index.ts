@@ -44,8 +44,8 @@ export const ownedContractFamilies = [
       "prompt/048.md",
     ],
     namespaceCount: 22,
-    contractCount: 192,
-    schemaArtifactCount: 192,
+    contractCount: 193,
+    schemaArtifactCount: 193,
   },
 ] as const;
 
@@ -150,7 +150,7 @@ export const canonicalEventNamespaces = [
     owningBoundedContextRef: "booking",
     eventPurposeClass: "domain_lifecycle",
     defaultDisclosureClass: "minimum_necessary_booking",
-    contractCount: 17,
+    contractCount: 18,
     defectState: "declared",
   },
   {
@@ -1299,6 +1299,18 @@ export const canonicalEventContracts = [
     schemaVersionRef: "CESV_TRIAGE_TASK_COMPLETION_CONTINUITY_UPDATED_V1",
     compatibilityMode: "new_version_required",
     replaySemantics: "idempotent_replace",
+    defectState: "declared",
+  },
+  {
+    canonicalEventContractId: "CEC_BOOKING_CASE_CREATED",
+    eventName: "booking.case.created",
+    namespaceCode: "booking",
+    owningBoundedContextRef: "booking",
+    governingObjectType: "BookingCase",
+    eventPurpose: "lifecycle",
+    schemaVersionRef: "CESV_BOOKING_CASE_CREATED_V1",
+    compatibilityMode: "additive_only",
+    replaySemantics: "append_only",
     defectState: "declared",
   },
   {
@@ -3418,6 +3430,15 @@ export const schemaArtifactCatalog = {
       artifactSha256: "7fb0d59a0fd039d87ab4f173ebe79c8cac1a2e12122bfa53ffc998cfd4ef29bf",
       compatibilityMode: "new_version_required",
       replaySemantics: "idempotent_replace",
+    },
+    {
+      eventName: "booking.case.created",
+      canonicalEventContractRef: "CEC_BOOKING_CASE_CREATED",
+      schemaVersionRef: "CESV_BOOKING_CASE_CREATED_V1",
+      artifactPath: "packages/event-contracts/schemas/booking/booking.case.created.v1.schema.json",
+      artifactSha256: "b76e9f7380c4d72c8dde14f8cf7753274db5d1581af62f0ea944f283ede9aa81",
+      compatibilityMode: "additive_only",
+      replaySemantics: "append_only",
     },
     {
       eventName: "booking.capability.resolved",

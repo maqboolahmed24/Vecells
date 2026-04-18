@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vecells.local/contracts/278_booking_intent_handoff.schema.json",
+  "title": "278 BookingIntent handoff",
+  "description": "Executable Phase 3 to Phase 4 handoff contract. Phase 4 must start from this lineage-bound seed instead of browser-local booking state.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "intentId",
+    "episodeRef",
+    "requestId",
+    "requestLineageRef",
+    "sourceTriageTaskRef",
+    "lineageCaseLinkRef",
+    "priorityBand",
+    "timeframe",
+    "modality",
+    "clinicianType",
+    "continuityPreference",
+    "accessNeeds",
+    "patientPreferenceSummary",
+    "createdFromDecisionId",
+    "decisionEpochRef",
+    "decisionSupersessionRecordRef",
+    "lifecycleLeaseRef",
+    "leaseAuthorityRef",
+    "leaseTtlSeconds",
+    "ownershipEpoch",
+    "fencingToken",
+    "currentLineageFenceEpoch",
+    "intentState",
+    "commandActionRecordRef",
+    "commandSettlementRecordRef",
+    "lifecycleClosureAuthority",
+    "createdAt",
+    "updatedAt",
+    "version"
+  ],
+  "properties": {
+    "intentId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable BookingIntent identifier."
+    },
+    "episodeRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Episode ref carried from triage lineage."
+    },
+    "requestId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Canonical request identifier."
+    },
+    "requestLineageRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Canonical RequestLineage identifier."
+    },
+    "sourceTriageTaskRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Origin triage task identifier."
+    },
+    "lineageCaseLinkRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Proposed booking child link minted during Phase 3 handoff."
+    },
+    "priorityBand": {
+      "type": "string",
+      "description": "Priority band carried from triage."
+    },
+    "timeframe": {
+      "type": "string",
+      "description": "Requested timeframe summary carried from triage."
+    },
+    "modality": {
+      "type": "string",
+      "description": "Requested modality carried from triage."
+    },
+    "clinicianType": {
+      "type": "string",
+      "description": "Requested clinician type carried from triage."
+    },
+    "continuityPreference": {
+      "type": "string",
+      "description": "Continuity preference carried from triage."
+    },
+    "accessNeeds": {
+      "type": "string",
+      "description": "Access-needs summary carried from triage."
+    },
+    "patientPreferenceSummary": {
+      "type": "string",
+      "description": "Patient preference summary emitted by Phase 3."
+    },
+    "createdFromDecisionId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Endpoint decision that created the handoff."
+    },
+    "decisionEpochRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Current live DecisionEpoch at handoff time.",
+      "x-phase4TargetField": "sourceDecisionEpochRef"
+    },
+    "decisionSupersessionRecordRef": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 0,
+      "description": "Decision supersession record captured at handoff time, if any.",
+      "x-phase4TargetField": "sourceDecisionSupersessionRef"
+    },
+    "lifecycleLeaseRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Request lifecycle lease captured at handoff time.",
+      "x-phase4TargetField": "requestLifecycleLeaseRef"
+    },
+    "leaseAuthorityRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Authority that minted the lifecycle lease."
+    },
+    "leaseTtlSeconds": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Lease TTL carried from Phase 3."
+    },
+    "ownershipEpoch": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Request ownership epoch captured at handoff time.",
+      "x-phase4TargetField": "ownershipEpoch"
+    },
+    "fencingToken": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Single-writer fence token captured at handoff time."
+    },
+    "currentLineageFenceEpoch": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Current lineage fence epoch at handoff time."
+    },
+    "intentState": {
+      "type": "string",
+      "enum": [
+        "proposed",
+        "acknowledged",
+        "superseded",
+        "recovery_only"
+      ],
+      "description": "Governed handoff posture. Booking launch is legal only while the intent remains proposed or acknowledged on the current lineage."
+    },
+    "commandActionRecordRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Phase 3 command action record for the handoff."
+    },
+    "commandSettlementRecordRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Phase 3 settlement record for the handoff."
+    },
+    "lifecycleClosureAuthority": {
+      "const": "LifecycleCoordinator",
+      "description": "Booking handoff does not close the request; LifecycleCoordinator remains the only closure authority."
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "x-governedInvariants": [
+    "Phase 4 must start from BookingIntent lineage and may not open a blank appointment page.",
+    "decisionEpochRef maps directly onto BookingCase.sourceDecisionEpochRef and must still match the current unsuperseded triage decision before booking mutation begins.",
+    "decisionSupersessionRecordRef maps directly onto BookingCase.sourceDecisionSupersessionRef and freezes mutation when superseded.",
+    "lifecycleLeaseRef, ownershipEpoch, fencingToken, and currentLineageFenceEpoch preserve request ownership into BookingCase creation and all later mutation paths.",
+    "LifecycleCoordinator remains the only request-closure authority; the booking branch may settle only its own lineage work."
+  ]
+}

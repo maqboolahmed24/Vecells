@@ -241,17 +241,17 @@ export async function run() {
     await page.locator("[data-testid='queue-workboard']").waitFor();
     const task412Button = page.locator('[data-task-id="task-412"]');
     await task412Button.hover();
-    await page.locator("[data-testid='queue-preview-digest']").waitFor();
+    await page.locator("[data-testid='queue-preview-pocket']").waitFor();
     await page.waitForTimeout(140);
     assertCondition(
-      (await page.locator("[data-testid='queue-preview-digest'] h3").innerText()) === "Elena Morris",
+      (await page.locator("[data-testid='queue-preview-pocket'] strong").first().innerText()) === "Elena Morris",
       "Queue preview did not switch after hover dwell.",
     );
-    const task412PinButton = task412Button
+    await page.getByRole("button", { name: "Pin preview" }).click();
+    const task412OpenButton = task412Button
       .locator("xpath=ancestor::article[contains(@class,'staff-shell__queue-row')][1]")
-      .locator(".staff-shell__queue-pin");
-    await task412PinButton.click();
-    await task412Button.click();
+      .locator(".staff-shell__queue-open-button");
+    await task412OpenButton.click();
     await page.waitForURL(`${baseUrl}/workspace/task/task-412`);
     await page.waitForFunction(
       () =>

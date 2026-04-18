@@ -373,6 +373,7 @@ class Phase3ApprovalEscalationApplicationImpl
       this.triageApplication.controlPlaneRepositories,
       this.idGenerator,
     );
+    this.wrapEndpointInvalidation();
   }
 
   async queryTaskApprovalEscalation(taskId: string): Promise<Phase3ApprovalEscalationBundle> {
@@ -758,24 +759,6 @@ class Phase3ApprovalEscalationApplicationImpl
         recordedAt: input.recordedAt,
         manualReplace: true,
       });
-      const currentBundle = await this.service.queryTaskBundle(task.taskId);
-      if (
-        currentBundle.checkpoint &&
-        currentBundle.checkpoint.decisionEpochRef === decisionBundle.epoch.epochId &&
-        currentBundle.checkpoint.state !== "superseded"
-      ) {
-        await this.service.invalidateCheckpoint({
-          checkpointId: currentBundle.checkpoint.checkpointId,
-          invalidationReasonClass: "epoch_superseded",
-          invalidatedAt: input.recordedAt,
-          decisionSupersessionRecordRef:
-            invalidated.supersessionRecord?.decisionSupersessionRecordId ?? null,
-        });
-        await this.releaseSupersededCheckpoint(
-          (await this.requireCheckpoint(task.taskId, currentBundle.checkpoint.checkpointId)),
-          input.recordedAt,
-        );
-      }
       invariant(
         invalidated.supersessionRecord,
         "DECISION_SUPERSESSION_REQUIRED",
@@ -847,6 +830,51 @@ class Phase3ApprovalEscalationApplicationImpl
     const task = await this.triageApplication.triageRepositories.getTask(taskId);
     invariant(task, "TRIAGE_TASK_NOT_FOUND", `TriageTask ${taskId} is required.`);
     return task.toSnapshot() as TaskLeaseContextSnapshot;
+  }
+
+  private wrapEndpointInvalidation(): void {
+    const originalInvalidate =
+      this.endpointApplication.invalidateStaleDecision.bind(this.endpointApplication);
+    this.endpointApplication.invalidateStaleDecision = async (input) => {
+      const result = await originalInvalidate(input);
+      if (result.supersessionRecord) {
+        await this.invalidateApprovalCheckpointForSupersededEpoch({
+          taskId: input.taskId,
+          supersededDecisionEpochRef: result.supersessionRecord.priorDecisionEpochRef,
+          recordedAt: input.recordedAt,
+          decisionSupersessionRecordRef:
+            result.supersessionRecord.decisionSupersessionRecordId,
+        });
+      }
+      return result;
+    };
+  }
+
+  private async invalidateApprovalCheckpointForSupersededEpoch(input: {
+    taskId: string;
+    supersededDecisionEpochRef: string;
+    recordedAt: string;
+    decisionSupersessionRecordRef: string;
+  }): Promise<void> {
+    const currentBundle = await this.service.queryTaskBundle(input.taskId);
+    if (
+      !currentBundle.checkpoint ||
+      currentBundle.checkpoint.decisionEpochRef !== input.supersededDecisionEpochRef ||
+      currentBundle.checkpoint.state === "superseded"
+    ) {
+      return;
+    }
+
+    await this.service.invalidateCheckpoint({
+      checkpointId: currentBundle.checkpoint.checkpointId,
+      invalidationReasonClass: "epoch_superseded",
+      invalidatedAt: input.recordedAt,
+      decisionSupersessionRecordRef: input.decisionSupersessionRecordRef,
+    });
+    await this.releaseSupersededCheckpoint(
+      await this.requireCheckpoint(input.taskId, currentBundle.checkpoint.checkpointId),
+      input.recordedAt,
+    );
   }
 
   private async requireCheckpoint(

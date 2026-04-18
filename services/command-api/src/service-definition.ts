@@ -452,6 +452,36 @@ export const serviceDefinition = {
       idempotencyRequired: false,
     },
     {
+      routeId: "workspace_task_phase3_patient_workspace_conversation_current",
+      method: "GET",
+      path: "/v1/workspace/tasks/{taskId}/patient-workspace-conversation",
+      contractFamily: "Phase3PatientWorkspaceConversationBundleContract",
+      purpose:
+        "Resolve one merged patient and workspace conversation bundle so more-info, callback, thread, repair, and recovery routes agree on the same lineage truth.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "patient_request_phase3_workspace_conversation_current",
+      method: "GET",
+      path: "/v1/me/requests/{requestRef}/conversation-merge",
+      contractFamily: "Phase3PatientWorkspaceConversationBundleContract",
+      purpose:
+        "Resolve the patient conversation child-route bundle from the same canonical lineage that workspace more-info, callback, and message actions mutate.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "patient_message_cluster_phase3_workspace_conversation_current",
+      method: "GET",
+      path: "/v1/me/messages/{clusterId}/conversation-merge",
+      contractFamily: "Phase3PatientWorkspaceConversationBundleContract",
+      purpose:
+        "Resolve request-linked callback, thread, repair, and return continuity from a patient message cluster without detaching the patient from the governing request shell.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
       routeId: "internal_workspace_task_refresh_patient_conversation_projection",
       method: "POST",
       path: "/internal/v1/workspace/tasks/{taskId}:refresh-patient-conversation",
@@ -838,6 +868,246 @@ export const serviceDefinition = {
       contractFamily: "AdviceRenderQuarantineCommandContract",
       purpose:
         "Quarantine the current advice render when trust or publication posture blocks fresh visible advice while preserving governed provenance.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "workspace_task_admin_resolution_current",
+      method: "GET",
+      path: "/v1/workspace/tasks/{taskId}/admin-resolution",
+      contractFamily: "AdminResolutionPolicyBundleContract",
+      purpose:
+        "Expose the current AdminResolutionCase, current subtype policy, completion artifact, and continuity freeze posture for one bounded admin-resolution task.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "workspace_admin_resolution_subtype_policy_current",
+      method: "GET",
+      path: "/internal/v1/workspace/admin-resolution/subtypes/{adminResolutionSubtypeRef}",
+      contractFamily: "AdminResolutionSubtypePolicyContract",
+      purpose:
+        "Fetch one canonical AdminResolutionSubtypeProfile through the governed registry instead of route-local prose or queue labels.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "workspace_task_open_admin_resolution_case",
+      method: "POST",
+      path: "/v1/workspace/tasks/{taskId}:open-admin-resolution-case",
+      contractFamily: "OpenAdminResolutionCaseCommandContract",
+      purpose:
+        "Open the canonical AdminResolutionCase only from the current legal bounded-admin boundary tuple and live admin-resolution starter.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "workspace_task_reclassify_admin_resolution_subtype",
+      method: "POST",
+      path: "/v1/workspace/tasks/{taskId}/admin-resolution/{adminResolutionCaseId}:reclassify-subtype",
+      contractFamily: "ReclassifyAdminResolutionSubtypeCommandContract",
+      purpose:
+        "Reclassify routed or active bounded admin work onto one canonical subtype profile instead of leaving it as prose routing.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "workspace_task_enter_admin_resolution_waiting_state",
+      method: "POST",
+      path: "/v1/workspace/tasks/{taskId}/admin-resolution/{adminResolutionCaseId}:enter-waiting-state",
+      contractFamily: "EnterAdminResolutionWaitingStateCommandContract",
+      purpose:
+        "Enter one typed waiting posture only when dependency shape, owner, SLA clock, and expiry or repair rule all match subtype policy.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "workspace_task_cancel_admin_resolution_wait",
+      method: "POST",
+      path: "/v1/workspace/tasks/{taskId}/admin-resolution/{adminResolutionCaseId}:cancel-wait",
+      contractFamily: "CancelAdminResolutionWaitCommandContract",
+      purpose:
+        "Cancel one active admin waiting posture and restore in-progress work without widening into a generic waiting bucket.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "workspace_task_record_admin_resolution_completion_artifact",
+      method: "POST",
+      path: "/v1/workspace/tasks/{taskId}/admin-resolution/{adminResolutionCaseId}:record-completion-artifact",
+      contractFamily: "RecordAdminResolutionCompletionArtifactCommandContract",
+      purpose:
+        "Record one typed AdminResolutionCompletionArtifact so bounded admin completion is proof-backed instead of a generic done toggle.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "workspace_task_advice_admin_dependency_current",
+      method: "GET",
+      path: "/v1/workspace/tasks/{taskId}/advice-admin-dependency",
+      contractFamily: "AdviceAdminDependencySetBundleContract",
+      purpose:
+        "Expose the current AdviceAdminDependencySet, dominant blocker, dominant recovery route, and reopen posture for the active self-care or bounded-admin tuple.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "workspace_task_evaluate_advice_admin_dependency_set",
+      method: "POST",
+      path: "/v1/workspace/tasks/{taskId}:evaluate-advice-admin-dependency-set",
+      contractFamily: "EvaluateAdviceAdminDependencySetCommandContract",
+      purpose:
+        "Evaluate dependency legality for the live boundary tuple and reject stale tuple writes as stale_recoverable instead of silently mutating consequence state.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "workspace_task_refresh_advice_admin_dependency_set",
+      method: "POST",
+      path: "/v1/workspace/tasks/{taskId}:refresh-advice-admin-dependency-set",
+      contractFamily: "RefreshAdviceAdminDependencySetCommandContract",
+      purpose:
+        "Refresh the current AdviceAdminDependencySet against canonical reachability, render, admin, and conversation truth while preserving idempotent reuse on the same tuple.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "workspace_task_recalculate_advice_admin_reopen_state",
+      method: "POST",
+      path: "/v1/workspace/tasks/{taskId}:recalculate-advice-admin-reopen-state",
+      contractFamily: "RecalculateAdviceAdminReopenStateCommandContract",
+      purpose:
+        "Recalculate reopen and clinical reentry posture from the canonical trigger registry when dependency blockers or boundary drift change under the same request lineage.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "workspace_task_self_care_outcome_analytics_current",
+      method: "GET",
+      path: "/v1/workspace/tasks/{taskId}/self-care-outcome-analytics",
+      contractFamily: "SelfCareOutcomeAnalyticsBundleContract",
+      purpose:
+        "Expose the current expectation-template resolution, typed outcome analytics records, and watch-window analytics linkage for one Phase 3 self-care or bounded-admin task.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "workspace_task_follow_up_watch_analytics_current",
+      method: "GET",
+      path: "/v1/workspace/tasks/{taskId}/follow-up-watch-analytics",
+      contractFamily: "AdviceFollowUpWatchAnalyticsContract",
+      purpose:
+        "Expose AdviceFollowUpWatchWindow rows and the typed AdviceUsageAnalyticsRecord chain linked to those windows for the current task.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "workspace_publish_patient_expectation_template_version",
+      method: "POST",
+      path: "/internal/v1/workspace/patient-expectation-templates:publish-version",
+      contractFamily: "PublishPatientExpectationTemplateVersionCommandContract",
+      purpose:
+        "Publish one governed patient expectation template version with explicit channel, locale, readability, accessibility, release, and delivery-mode coverage.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "workspace_task_resolve_patient_expectation_template",
+      method: "POST",
+      path: "/v1/workspace/tasks/{taskId}:resolve-patient-expectation-template",
+      contractFamily: "ResolvePatientExpectationTemplateCommandContract",
+      purpose:
+        "Resolve the current patient expectation wording against the live self-care or bounded-admin tuple without letting free text drift outside the canonical registry.",
+      bodyRequired: true,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "workspace_task_record_advice_outcome_analytics",
+      method: "POST",
+      path: "/internal/v1/workspace/tasks/{taskId}:record-advice-outcome-analytics",
+      contractFamily: "RecordAdviceOutcomeAnalyticsCommandContract",
+      purpose:
+        "Record typed self-care outcome analytics and link them to the active AdviceFollowUpWatchWindow without changing operational authority.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "workspace_task_record_admin_outcome_analytics",
+      method: "POST",
+      path: "/internal/v1/workspace/tasks/{taskId}:record-admin-outcome-analytics",
+      contractFamily: "RecordAdminOutcomeAnalyticsCommandContract",
+      purpose:
+        "Record typed bounded-admin outcome analytics against the current subtype, completion artifact, and expectation-template chain without implying settlement truth.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "workspace_task_admin_resolution_settlement_current",
+      method: "GET",
+      path: "/v1/workspace/tasks/{taskId}/admin-resolution-settlement",
+      contractFamily: "AdminResolutionSettlementBundleContract",
+      purpose:
+        "Expose the authoritative AdminResolutionSettlement chain, current AdminResolutionExperienceProjection, and governed re-entry record for one bounded admin task.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "workspace_task_record_admin_resolution_settlement",
+      method: "POST",
+      path: "/v1/workspace/tasks/{taskId}/admin-resolution/{adminResolutionCaseId}:record-settlement",
+      contractFamily: "RecordAdminResolutionSettlementCommandContract",
+      purpose:
+        "Record one authoritative bounded-admin settlement against the current boundary, dependency, continuity, and publication tuple.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "workspace_task_settle_admin_notification",
+      method: "POST",
+      path: "/v1/workspace/tasks/{taskId}/admin-resolution/{adminResolutionCaseId}:settle-notification",
+      contractFamily: "SettleAdminNotificationCommandContract",
+      purpose:
+        "Settle the patient-notified posture without collapsing notification, waiting, and completion into one generic done state.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "workspace_task_settle_admin_waiting_state",
+      method: "POST",
+      path: "/v1/workspace/tasks/{taskId}/admin-resolution/{adminResolutionCaseId}:settle-waiting-state",
+      contractFamily: "SettleAdminWaitingStateCommandContract",
+      purpose:
+        "Settle one live waiting_dependency posture only while the bounded-admin tuple remains legal and the case is genuinely in waiting state.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "workspace_task_settle_admin_completion",
+      method: "POST",
+      path: "/v1/workspace/tasks/{taskId}/admin-resolution/{adminResolutionCaseId}:settle-completion",
+      contractFamily: "SettleAdminCompletionCommandContract",
+      purpose:
+        "Enter completed only when the current tuple, completion artifact, expectation binding, and continuity envelope all remain authoritative.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "workspace_task_reopen_admin_resolution_for_review",
+      method: "POST",
+      path: "/v1/workspace/tasks/{taskId}/admin-resolution/{adminResolutionCaseId}:reopen-for-review",
+      contractFamily: "ReopenAdminResolutionForReviewCommandContract",
+      purpose:
+        "Freeze bounded-admin consequence and reopen governed review with lineage-safe provenance instead of a route-local status flip.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "workspace_task_resolve_admin_cross_domain_reentry",
+      method: "POST",
+      path: "/v1/workspace/tasks/{taskId}/admin-resolution/{adminResolutionCaseId}:resolve-cross-domain-reentry",
+      contractFamily: "ResolveAdminCrossDomainReentryCommandContract",
+      purpose:
+        "Resolve the correct re-entry domain from current boundary, dependency, and stale tuple truth and write one canonical re-entry artifact.",
       bodyRequired: true,
       idempotencyRequired: true,
     },
@@ -1752,6 +2022,26 @@ export const serviceDefinition = {
       idempotencyRequired: true,
     },
     {
+      routeId: "workspace_queue_phase3_execution_merge_current",
+      method: "GET",
+      path: "/v1/workspace/queues/{queueKey}/phase3-execution-merge",
+      contractFamily: "Phase3QueueCallbackAdminMergeContract",
+      purpose:
+        "Expose one queue-visible digest that joins queue rank, callback consequence, self-care or bounded-admin, completion settlement, and next-task gate posture.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "workspace_task_phase3_execution_merge_current",
+      method: "GET",
+      path: "/v1/workspace/tasks/{taskId}/phase3-execution-merge",
+      contractFamily: "Phase3QueueCallbackAdminMergeTaskContract",
+      purpose:
+        "Expose the merged Phase 3 execution bundle for one task so queue, callback, consequence, completion, and next-task surfaces read the same authority chain.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
       routeId: "identity_audit_event_publish",
       method: "POST",
       path: "/identity/audit/events",
@@ -2230,6 +2520,486 @@ export const serviceDefinition = {
         "Expose the explicit route profile registry consumed by the central capability decision engine.",
       bodyRequired: false,
       idempotencyRequired: false,
+    },
+    {
+      routeId: "booking_case_current",
+      method: "GET",
+      path: "/v1/bookings/cases/{bookingCaseId}",
+      contractFamily: "BookingCaseBundleContract",
+      purpose:
+        "Expose the current BookingCase, durable BookingIntent lineage, SearchPolicy ref, and append-only transition journal for one booking branch.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "booking_case_create_from_intent",
+      method: "POST",
+      path: "/internal/v1/bookings/cases:create-from-intent",
+      contractFamily: "CreateBookingCaseFromIntentCommandContract",
+      purpose:
+        "Create or replay one Phase 4 BookingCase from the current Phase 3 booking handoff lineage without widening capability, slot, offer, or waitlist authority.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_case_mark_capability_checked",
+      method: "POST",
+      path: "/internal/v1/bookings/cases/{bookingCaseId}:mark-capability-checked",
+      contractFamily: "BookingCaseCapabilityCheckedCommandContract",
+      purpose:
+        "Acknowledge that the booking case handoff tuple remains current and can enter capability_checked before any live slot search starts.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_case_begin_local_search",
+      method: "POST",
+      path: "/internal/v1/bookings/cases/{bookingCaseId}:begin-local-search",
+      contractFamily: "BookingCaseBeginLocalSearchCommandContract",
+      purpose:
+        "Enter searching_local only when the current capability tuple is live and one SearchPolicy has been durably recorded.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_case_publish_offers_ready",
+      method: "POST",
+      path: "/internal/v1/bookings/cases/{bookingCaseId}:publish-offers-ready",
+      contractFamily: "BookingCaseOffersReadyCommandContract",
+      purpose:
+        "Advance the booking branch into offers_ready when a typed OfferSession ref exists, without claiming offer-generation ownership.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_case_start_selection",
+      method: "POST",
+      path: "/internal/v1/bookings/cases/{bookingCaseId}:start-selection",
+      contractFamily: "BookingCaseSelectionCommandContract",
+      purpose:
+        "Advance the booking branch into selecting against one typed selected-slot ref and the live booking tuple.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_case_start_revalidation",
+      method: "POST",
+      path: "/internal/v1/bookings/cases/{bookingCaseId}:start-revalidation",
+      contractFamily: "BookingCaseRevalidationCommandContract",
+      purpose:
+        "Advance the booking branch into revalidating without locally re-deriving reservation or commit semantics.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_case_enter_commit_pending",
+      method: "POST",
+      path: "/internal/v1/bookings/cases/{bookingCaseId}:enter-commit-pending",
+      contractFamily: "BookingCaseCommitPendingCommandContract",
+      purpose:
+        "Advance the booking branch into commit_pending against the current selected-slot tuple while keeping BookingTransaction authority external to 282.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_case_mark_confirmation_pending",
+      method: "POST",
+      path: "/internal/v1/bookings/cases/{bookingCaseId}:mark-confirmation-pending",
+      contractFamily: "BookingCaseConfirmationPendingCommandContract",
+      purpose:
+        "Advance the booking branch into confirmation_pending when authoritative confirmation truth is pending on the same lineage.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_case_mark_supplier_reconciliation_pending",
+      method: "POST",
+      path: "/internal/v1/bookings/cases/{bookingCaseId}:mark-supplier-reconciliation-pending",
+      contractFamily: "BookingCaseSupplierReconciliationPendingCommandContract",
+      purpose:
+        "Advance the booking branch into supplier_reconciliation_pending when authoritative booking truth is ambiguous or disputed on the same lineage.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_case_mark_waitlisted",
+      method: "POST",
+      path: "/internal/v1/bookings/cases/{bookingCaseId}:mark-waitlisted",
+      contractFamily: "BookingCaseWaitlistedCommandContract",
+      purpose:
+        "Advance the booking branch into waitlisted only when typed waitlist truth refs exist, without claiming waitlist policy authority.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_case_mark_callback_fallback",
+      method: "POST",
+      path: "/internal/v1/bookings/cases/{bookingCaseId}:mark-callback-fallback",
+      contractFamily: "BookingCaseCallbackFallbackCommandContract",
+      purpose:
+        "Advance the booking branch into callback_fallback only when the typed fallback obligation and linked callback case refs exist.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_case_mark_hub_fallback",
+      method: "POST",
+      path: "/internal/v1/bookings/cases/{bookingCaseId}:mark-hub-fallback",
+      contractFamily: "BookingCaseHubFallbackCommandContract",
+      purpose:
+        "Advance the booking branch into fallback_to_hub only when the typed fallback obligation and linked hub case refs exist.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_case_mark_booking_failed",
+      method: "POST",
+      path: "/internal/v1/bookings/cases/{bookingCaseId}:mark-booking-failed",
+      contractFamily: "BookingCaseFailureCommandContract",
+      purpose:
+        "Advance the booking branch into booking_failed when the authoritative continuation path has ended without live waitlist or fallback truth.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_case_mark_booked",
+      method: "POST",
+      path: "/internal/v1/bookings/cases/{bookingCaseId}:mark-booked",
+      contractFamily: "BookingCaseBookedCommandContract",
+      purpose:
+        "Advance the booking branch into booked only when typed appointment and confirmation-truth refs exist on the current lineage.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_case_mark_managed",
+      method: "POST",
+      path: "/internal/v1/bookings/cases/{bookingCaseId}:mark-managed",
+      contractFamily: "BookingCaseManagedCommandContract",
+      purpose:
+        "Advance the booking branch into managed when authoritative appointment truth exists, without granting request closure authority.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_case_close",
+      method: "POST",
+      path: "/internal/v1/bookings/cases/{bookingCaseId}:close",
+      contractFamily: "BookingCaseCloseCommandContract",
+      purpose:
+        "Close one finished booking branch without directly closing the canonical request lifecycle.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_case_capability_current",
+      method: "GET",
+      path: "/v1/bookings/cases/{bookingCaseId}/capability",
+      contractFamily: "BookingCapabilityResolutionContract",
+      purpose:
+        "Resolve one current BookingCapabilityResolution and BookingCapabilityProjection for the exact booking-case tuple.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "appointment_manage_capability_current",
+      method: "GET",
+      path: "/v1/appointments/{appointmentId}/manage-capability",
+      contractFamily: "AppointmentManageCapabilityResolutionContract",
+      purpose:
+        "Resolve one current BookingCapabilityResolution and BookingCapabilityProjection for the exact appointment-manage tuple.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "booking_case_capability_resolve",
+      method: "POST",
+      path: "/internal/v1/bookings/capabilities:resolve-case",
+      contractFamily: "ResolveBookingCaseCapabilityCommandContract",
+      purpose:
+        "Compile the current binding and persist one lawful booking-case capability tuple for the exact tenant, provider, audience, and route context.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "appointment_manage_capability_resolve",
+      method: "POST",
+      path: "/internal/v1/bookings/capabilities:resolve-appointment-manage",
+      contractFamily: "ResolveAppointmentManageCapabilityCommandContract",
+      purpose:
+        "Compile the current binding and persist one lawful appointment-manage capability tuple for the exact tenant, provider, audience, and route context.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_capability_diagnostics",
+      method: "GET",
+      path: "/internal/v1/bookings/capabilities/diagnostics",
+      contractFamily: "BookingCapabilityDiagnosticsContract",
+      purpose:
+        "Inspect the current matrix row, binding, fallback actions, blocked reasons, and projection for internal diagnostics without widening booking truth.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "booking_case_slot_search_current",
+      method: "GET",
+      path: "/v1/bookings/cases/{bookingCaseId}/slot-search/current",
+      contractFamily: "SlotSearchSessionContract",
+      purpose:
+        "Resolve the current frozen SlotSearchSession, SlotSetSnapshot, recovery state, and candidate index for one booking case.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "booking_slot_snapshot_page",
+      method: "GET",
+      path: "/v1/bookings/slot-snapshots/{slotSetSnapshotId}/pages/{pageNumber}",
+      contractFamily: "SlotSetSnapshotPageContract",
+      purpose:
+        "Fetch one page from the frozen SnapshotCandidateIndex after re-evaluating the active booking-case and capability tuple.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "booking_slot_snapshot_day_bucket",
+      method: "GET",
+      path: "/v1/bookings/slot-snapshots/{slotSetSnapshotId}/days/{localDayKey}",
+      contractFamily: "SlotSetSnapshotDayBucketContract",
+      purpose:
+        "Fetch one local-day bucket from the frozen SnapshotCandidateIndex after re-evaluating the active booking-case and capability tuple.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "booking_case_slot_search_start",
+      method: "POST",
+      path: "/internal/v1/bookings/cases/{bookingCaseId}:start-slot-search",
+      contractFamily: "StartSlotSearchCommandContract",
+      purpose:
+        "Execute one bounded supplier search and freeze a SlotSearchSession plus SlotSetSnapshot against the live booking-case and capability tuple.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_slot_search_refresh",
+      method: "POST",
+      path: "/internal/v1/bookings/slot-snapshots/{slotSetSnapshotId}:refresh",
+      contractFamily: "RefreshSlotSearchCommandContract",
+      purpose:
+        "Refresh or supersede the current booking slot snapshot without widening beyond the live SearchPolicy and capability tuple.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_slot_search_invalidate",
+      method: "POST",
+      path: "/internal/v1/bookings/slot-snapshots/{slotSetSnapshotId}:invalidate",
+      contractFamily: "InvalidateSlotSnapshotCommandContract",
+      purpose:
+        "Invalidate a stale or disputed slot snapshot while preserving its recovery provenance and clearing the current snapshot pointer.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_case_offer_session_current",
+      method: "GET",
+      path: "/v1/bookings/cases/{bookingCaseId}/offers/current",
+      contractFamily: "OfferSessionContract",
+      purpose:
+        "Resolve the current authoritative OfferSession, CapacityRankProof, explanation rows, and branch posture for one booking case.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "booking_offer_session_page",
+      method: "GET",
+      path: "/v1/bookings/offer-sessions/{offerSessionId}/pages/{pageNumber}",
+      contractFamily: "OfferSessionPageContract",
+      purpose:
+        "Slice the persisted CapacityRankProof into one stable page without rescoring the current slot snapshot.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "booking_offer_session_compare",
+      method: "GET",
+      path: "/v1/bookings/offer-sessions/{offerSessionId}/compare",
+      contractFamily: "OfferSessionCompareContract",
+      purpose:
+        "Return a compare subset in the persisted proof order so browser compare mode cannot fork ranking or reason-cue truth.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "booking_case_offer_session_create",
+      method: "POST",
+      path: "/internal/v1/bookings/cases/{bookingCaseId}:create-offer-session",
+      contractFamily: "CreateOfferSessionCommandContract",
+      purpose:
+        "Compile one deterministic RankPlan, CapacityRankProof, explanation set, and OfferSession from the current lawful slot snapshot.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_case_offer_session_refresh",
+      method: "POST",
+      path: "/internal/v1/bookings/cases/{bookingCaseId}:refresh-offer-session",
+      contractFamily: "RefreshOfferSessionCommandContract",
+      purpose:
+        "Supersede the current OfferSession from the latest lawful slot snapshot while keeping ranking replay append-only.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_offer_session_select_candidate",
+      method: "POST",
+      path: "/internal/v1/bookings/offer-sessions/{offerSessionId}:select-candidate",
+      contractFamily: "SelectOfferCandidateCommandContract",
+      purpose:
+        "Verify one selection token and selection-proof hash, then move the BookingCase into selecting without claiming hold or commit truth.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_reservation_truth_current",
+      method: "GET",
+      path: "/v1/bookings/reservations/scopes/{scopeFamily}/{scopeObjectRef}",
+      contractFamily: "BookingReservationTruthContract",
+      purpose:
+        "Resolve the authoritative CapacityReservation, ReservationTruthProjection, fence token, and append-only audit journal for one offer-session or waitlist scope.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "booking_reservation_soft_select",
+      method: "POST",
+      path: "/internal/v1/bookings/reservations/scopes/{scopeFamily}/{scopeObjectRef}:soft-select",
+      contractFamily: "BookingReservationSoftSelectCommandContract",
+      purpose:
+        "Create or refresh one bounded soft_selected CapacityReservation without implying exclusivity.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_reservation_acquire_hold",
+      method: "POST",
+      path: "/internal/v1/bookings/reservations/scopes/{scopeFamily}/{scopeObjectRef}:acquire-hold",
+      contractFamily: "BookingReservationAcquireHoldCommandContract",
+      purpose:
+        "Acquire or refresh one real exclusive hold only when the current binding allows reservationSemantics = exclusive_hold.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_reservation_mark_pending_confirmation",
+      method: "POST",
+      path: "/internal/v1/bookings/reservations/scopes/{scopeFamily}/{scopeObjectRef}:mark-pending-confirmation",
+      contractFamily: "BookingReservationPendingConfirmationCommandContract",
+      purpose:
+        "Advance one active reservation into pending_confirmation on the same fenced scope and truth basis.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_reservation_mark_confirmed",
+      method: "POST",
+      path: "/internal/v1/bookings/reservations/scopes/{scopeFamily}/{scopeObjectRef}:mark-confirmed",
+      contractFamily: "BookingReservationConfirmedCommandContract",
+      purpose:
+        "Mark one reservation confirmed on the same fenced scope and reservation version.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_reservation_release",
+      method: "POST",
+      path: "/internal/v1/bookings/reservations/scopes/{scopeFamily}/{scopeObjectRef}:release",
+      contractFamily: "BookingReservationReleaseCommandContract",
+      purpose:
+        "Release one active reservation and immediately degrade ReservationTruthProjection authority.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_reservation_expire",
+      method: "POST",
+      path: "/internal/v1/bookings/reservations/scopes/{scopeFamily}/{scopeObjectRef}:expire",
+      contractFamily: "BookingReservationExpireCommandContract",
+      purpose:
+        "Expire one active reservation and immediately degrade ReservationTruthProjection authority.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_reservation_mark_disputed",
+      method: "POST",
+      path: "/internal/v1/bookings/reservations/scopes/{scopeFamily}/{scopeObjectRef}:mark-disputed",
+      contractFamily: "BookingReservationDisputedCommandContract",
+      purpose:
+        "Mark one reservation disputed on the same fenced scope when provider truth or external evidence conflicts.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_reservation_expiry_sweep",
+      method: "POST",
+      path: "/internal/v1/bookings/reservations:expire-stale",
+      contractFamily: "BookingReservationExpirySweepCommandContract",
+      purpose:
+        "Sweep active soft-selected or held reservations whose bounded expiry has elapsed and refresh truth projections safely.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_case_commit_current",
+      method: "GET",
+      path: "/v1/bookings/cases/{bookingCaseId}/commit/current",
+      contractFamily: "BookingTransactionBundleContract",
+      purpose:
+        "Resolve the current BookingTransaction, BookingConfirmationTruthProjection, AppointmentRecord, exception, reservation truth, and transition journal for one booking case.",
+      bodyRequired: false,
+      idempotencyRequired: false,
+    },
+    {
+      routeId: "booking_case_begin_commit",
+      method: "POST",
+      path: "/internal/v1/bookings/cases/{bookingCaseId}:begin-commit",
+      contractFamily: "BeginBookingCommitCommandContract",
+      purpose:
+        "Run preflight revalidation, reservation fencing, idempotent dispatch, authoritative success classification, and confirmation-truth settlement from the current selected offer.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_transaction_record_authoritative_observation",
+      method: "POST",
+      path: "/internal/v1/bookings/transactions/{bookingTransactionId}:record-authoritative-observation",
+      contractFamily: "RecordBookingAuthoritativeObservationCommandContract",
+      purpose:
+        "Collapse supplier callbacks and read-after-write observations through the canonical receipt-checkpoint chain before booking truth is refreshed.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_transaction_reconcile_ambiguous",
+      method: "POST",
+      path: "/internal/v1/bookings/transactions/{bookingTransactionId}:reconcile-ambiguous",
+      contractFamily: "ReconcileBookingCommitCommandContract",
+      purpose:
+        "Resolve a pending or disputed BookingTransaction into confirmed, failed, or expired truth without rewriting the original transaction chain.",
+      bodyRequired: true,
+      idempotencyRequired: true,
+    },
+    {
+      routeId: "booking_transaction_release_or_supersede_failed",
+      method: "POST",
+      path: "/internal/v1/bookings/transactions/{bookingTransactionId}:release-or-supersede-failed",
+      contractFamily: "ReleaseBookingFailedTransactionCommandContract",
+      purpose:
+        "Release or supersede a failed, expired, or reconciliation-required BookingTransaction while keeping compensation and recovery append-only.",
+      bodyRequired: true,
+      idempotencyRequired: true,
     },
   ] as const satisfies readonly ServiceRouteDefinition[],
   topics: {

@@ -1,0 +1,842 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>275 Boundary Reopen Assurance Lab</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0d1118;
+        --panel: #151c27;
+        --panel-strong: #1b2431;
+        --border: #2e3947;
+        --text: #eff4fb;
+        --muted: #9ca9bb;
+        --accent: #69b3ff;
+        --accent-soft: rgba(105, 179, 255, 0.14);
+        --good: #6fd7b8;
+        --warn: #f0c36a;
+        --bad: #ff8d8d;
+        --violet: #b69bff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Inter, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(105, 179, 255, 0.12), transparent 24rem),
+          linear-gradient(180deg, #0b1018 0%, #111824 100%);
+        color: var(--text);
+      }
+
+      .lab-shell {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 20rem minmax(0, 1fr);
+      }
+
+      .rail {
+        border-right: 1px solid var(--border);
+        background: rgba(10, 15, 22, 0.88);
+        padding: 1.5rem;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow: auto;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        line-height: 1.2;
+      }
+
+      .rail-copy {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .rail-copy p,
+      .panel p,
+      .matrix-card p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .scenario-list {
+        display: grid;
+        gap: 0.75rem;
+        margin-top: 1.25rem;
+      }
+
+      .scenario-button {
+        width: 100%;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: inherit;
+        text-align: left;
+        padding: 0.95rem 1rem;
+        border-radius: 0.5rem;
+        display: grid;
+        gap: 0.35rem;
+        cursor: pointer;
+      }
+
+      .scenario-button[data-selected="true"] {
+        border-color: var(--accent);
+        background: linear-gradient(180deg, rgba(105, 179, 255, 0.16), rgba(17, 24, 36, 0.96));
+        box-shadow: 0 0 0 1px rgba(105, 179, 255, 0.22);
+      }
+
+      .scenario-token {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
+
+      .main {
+        padding: 1.5rem;
+        display: grid;
+        gap: 1rem;
+      }
+
+      .hero {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        border: 1px solid var(--border);
+        background: rgba(21, 28, 39, 0.92);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+      }
+
+      .hero-copy {
+        display: grid;
+        gap: 0.65rem;
+        min-width: 0;
+      }
+
+      .hero-copy p {
+        margin: 0;
+        color: var(--muted);
+        max-width: 66ch;
+      }
+
+      .signal-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-content: flex-start;
+        justify-content: flex-end;
+      }
+
+      .chip {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 0.4rem 0.7rem;
+        font-size: 0.8rem;
+        white-space: nowrap;
+      }
+
+      .chip[data-tone="good"] {
+        color: var(--good);
+        border-color: rgba(111, 215, 184, 0.35);
+        background: rgba(111, 215, 184, 0.08);
+      }
+
+      .chip[data-tone="warn"] {
+        color: var(--warn);
+        border-color: rgba(240, 195, 106, 0.34);
+        background: rgba(240, 195, 106, 0.08);
+      }
+
+      .chip[data-tone="bad"] {
+        color: var(--bad);
+        border-color: rgba(255, 141, 141, 0.34);
+        background: rgba(255, 141, 141, 0.08);
+      }
+
+      .chip[data-tone="violet"] {
+        color: var(--violet);
+        border-color: rgba(182, 155, 255, 0.34);
+        background: rgba(182, 155, 255, 0.08);
+      }
+
+      .grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+      }
+
+      .panel {
+        border: 1px solid var(--border);
+        background: rgba(21, 28, 39, 0.92);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        display: grid;
+        gap: 0.9rem;
+      }
+
+      .panel header {
+        display: grid;
+        gap: 0.4rem;
+      }
+
+      .span-7 { grid-column: span 7; }
+      .span-5 { grid-column: span 5; }
+      .span-4 { grid-column: span 4; }
+      .span-8 { grid-column: span 8; }
+      .span-12 { grid-column: span 12; }
+
+      .ladder {
+        display: grid;
+        gap: 0.7rem;
+      }
+
+      .ladder-step,
+      .matrix-card,
+      .artifact-card,
+      .trigger-row,
+      .parity-card,
+      .defect-row {
+        border: 1px solid var(--border);
+        border-radius: 0.45rem;
+        background: var(--panel-strong);
+        padding: 0.8rem 0.9rem;
+      }
+
+      .ladder-step strong,
+      .matrix-card strong,
+      .artifact-card strong,
+      .trigger-row strong,
+      .parity-card strong,
+      .defect-row strong {
+        display: block;
+        margin-bottom: 0.35rem;
+      }
+
+      .ladder-step span,
+      .matrix-card span,
+      .artifact-card span,
+      .trigger-row span,
+      .parity-card span,
+      .defect-row span {
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+
+      .matrix {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .artifact-stack,
+      .trigger-stack,
+      .parity-grid,
+      .defect-stack {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .parity-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .sequence {
+        display: grid;
+        gap: 0.55rem;
+      }
+
+      .sequence-line {
+        display: grid;
+        grid-template-columns: 10rem 1fr;
+        gap: 0.75rem;
+        padding-top: 0.55rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+      }
+
+      .sequence-line:first-child {
+        border-top: 0;
+        padding-top: 0;
+      }
+
+      .footnote {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      @media (max-width: 980px) {
+        .lab-shell {
+          grid-template-columns: 1fr;
+        }
+
+        .rail {
+          position: static;
+          height: auto;
+          border-right: 0;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .grid,
+        .parity-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .span-4,
+        .span-5,
+        .span-7,
+        .span-8,
+        .span-12 {
+          grid-column: span 1;
+        }
+
+        .hero {
+          flex-direction: column;
+        }
+
+        .signal-strip {
+          justify-content: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      class="lab-shell"
+      data-testid="BoundaryReopenAssuranceLab"
+      data-visual-mode="Boundary_Reopen_Assurance_Lab"
+      data-selected-scenario-id=""
+    >
+      <aside class="rail" data-testid="ScenarioFamilyRail">
+        <div class="rail-copy">
+          <span class="eyebrow">Boundary_Reopen_Assurance_Lab</span>
+          <h1>Boundary and consequence assurance</h1>
+          <p>
+            Premium consequence-governance board for boundary ladders, blocker matrices,
+            completion-artifact cards, and reopen sequence logic.
+          </p>
+        </div>
+        <div class="scenario-list" id="scenario-list"></div>
+      </aside>
+
+      <main class="main">
+        <section class="hero">
+          <div class="hero-copy">
+            <span class="eyebrow" id="scenario-family"></span>
+            <h2 id="scenario-title"></h2>
+            <p id="scenario-summary"></p>
+          </div>
+          <div class="signal-strip" id="signal-strip"></div>
+        </section>
+
+        <section
+          class="panel"
+          data-testid="BoundaryDecisionBoard"
+          data-boundary-mode=""
+          data-advice-settlement=""
+          data-admin-settlement=""
+        >
+          <header>
+            <span class="eyebrow">BoundaryDecisionBoard</span>
+            <h3>Boundary ladders</h3>
+            <p>Canonical meaning, operational scope, and settlement state for the selected consequence tuple.</p>
+          </header>
+          <div class="ladder" id="boundary-ladder"></div>
+        </section>
+
+        <div class="grid">
+          <section
+            class="panel span-7"
+            data-testid="DependencyAndBlockerMatrix"
+            data-dependency-state=""
+            data-recovery-route=""
+          >
+            <header>
+              <span class="eyebrow">DependencyAndBlockerMatrix</span>
+              <h3>Dependency and blocker matrix</h3>
+              <p>Dominant recovery route, blocker severity, and dependency posture that govern whether fresh mutation is legal.</p>
+            </header>
+            <div class="matrix" id="dependency-matrix"></div>
+          </section>
+
+          <section class="panel span-5" data-testid="CompletionArtifactInspector" data-artifact-state="">
+            <header>
+              <span class="eyebrow">CompletionArtifactInspector</span>
+              <h3>Completion artifact cards</h3>
+              <p>Completion remains valid only when the artifact, patient wording, and tuple all agree.</p>
+            </header>
+            <div class="artifact-stack" id="artifact-stack"></div>
+          </section>
+        </div>
+
+        <div class="grid">
+          <section class="panel span-7" data-testid="ReopenTriggerLedger" data-reopen-state="">
+            <header>
+              <span class="eyebrow">ReopenTriggerLedger</span>
+              <h3>Reopen sequence diagram</h3>
+              <p>New symptom report, material patient evidence, invalidated advice settlement, and dependency drift must freeze stale calmness immediately.</p>
+            </header>
+            <div class="trigger-stack" id="trigger-stack"></div>
+          </section>
+
+          <section
+            class="panel span-5"
+            data-testid="ParityAcrossPatientStaffSupport"
+            data-boundary-tuple=""
+          >
+            <header>
+              <span class="eyebrow">ParityAcrossPatientStaffSupport</span>
+              <h3>Patient, staff, and support parity</h3>
+              <p>Each digest preserves the same boundary tuple, operational scope, and reopen posture.</p>
+            </header>
+            <div class="parity-grid" id="parity-grid"></div>
+          </section>
+        </div>
+
+        <section class="panel" data-testid="DefectAndRemediationPanel">
+          <header>
+            <span class="eyebrow">DefectAndRemediationPanel</span>
+            <h3>Defect and remediation ledger</h3>
+            <p>The 275 suite is expected to run clean. Repository-owned defects would be recorded here with rerun status.</p>
+          </header>
+          <div class="defect-stack" id="defect-stack"></div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const scenarios = {
+        self_care_live: {
+          family: "Boundary classification",
+          title: "Self-care informational advice stays bounded",
+          summary:
+            "The boundary remains self_care. Advice is renderable, the patient summary is honest, and soft copy may not widen the lane into bounded admin.",
+          chips: [
+            ["Boundary self_care", "good"],
+            ["Advice renderable", "good"],
+            ["Admin not applicable", "violet"],
+            ["Reopen stable", "good"],
+          ],
+          boundaryMode: "self_care",
+          adviceSettlement: "renderable",
+          adminSettlement: "not_applicable",
+          boundaryTuple: "boundary_tuple::task-311::self-care-v4",
+          ladder: [
+            ["clinicalMeaningState", "informational_only", "Soft copy stays informational and may not imply bounded admin completion."],
+            ["operationalFollowUpScope", "self_serve_guidance", "Only patient-safe guidance and safety-net wording are legal on this tuple."],
+            ["approval and release", "approved + current release watch", "Advice bundle and patient expectation wording are current."],
+            ["decision note", "soft_copy_no_boundary_change", "Staff note improvements do not alter the underlying consequence authority."],
+          ],
+          dependencyState: "clear",
+          recoveryRoute: "dominant_recovery_route::task-311::none",
+          blockers: [
+            ["No current dependency blocker", "This consequence stays informational and does not open an admin case.", "accent"],
+          ],
+          artifactState: "not_applicable",
+          artifactCards: [
+            ["Advice bundle version", "advice_bundle_version::inhaler-guidance::v12", "Renderable because approval, bundle, and expectation text all match the same tuple."],
+            ["Patient expectation", "patient_expectation_template::self-care-guidance-v4", "We are sharing guidance, not opening an admin follow-up case."],
+          ],
+          reopenState: "stable",
+          triggers: [
+            ["no current reopen trigger", "The current evidence tuple is calm and publishable."],
+          ],
+          parity: [
+            ["Patient", "We are sharing guidance, not opening an admin follow-up case."],
+            ["Staff", "Informational guidance only. This path may not imply bounded admin completion."],
+            ["Support", "Support sees the same self-care tuple and may not relabel the request as bounded admin."],
+          ],
+          defects: [
+            ["No repository defect", "Self-care boundary classification and patient expectation parity remain correct after rerun."],
+          ],
+        },
+        admin_waiting_dependency: {
+          family: "Advice render, waiting, and completion artifacts",
+          title: "Bounded admin waiting keeps blockers dominant",
+          summary:
+            "The boundary remains admin_resolution, but completion is frozen because external confirmation is missing and the patient summary must remain waiting-only.",
+          chips: [
+            ["Boundary admin_resolution", "warn"],
+            ["Advice superseded", "warn"],
+            ["Admin waiting_dependency", "warn"],
+            ["Recovery blocker live", "bad"],
+          ],
+          boundaryMode: "admin_resolution",
+          adviceSettlement: "superseded",
+          adminSettlement: "waiting_dependency",
+          boundaryTuple: "boundary_tuple::task-507::admin-blocked-v3",
+          ladder: [
+            ["clinicalMeaningState", "bounded_admin_only", "The lane is bounded admin only and does not re-open clinical judgement."],
+            ["operationalFollowUpScope", "bounded_admin_resolution", "Notify and completion posture remain subordinate to dependency truth."],
+            ["waiting reason", "external_confirmation", "The dominant blocker remains unresolved external medication routing confirmation."],
+            ["patient wording", "summary_safe", "The patient sees a waiting update, not a completion message."],
+          ],
+          dependencyState: "blocked_pending_external_confirmation",
+          recoveryRoute: "dominant_recovery_route::task-507::external_confirmation",
+          blockers: [
+            ["External confirmation is missing", "Notify and complete controls must stay frozen until durable confirmation exists.", "critical"],
+            ["Duplicate watch remains secondary", "Lineage provenance is visible, but it may not outrank the dominant blocker.", "caution"],
+          ],
+          artifactState: "missing",
+          artifactCards: [
+            ["Completion artifact", "Artifact not yet recorded", "Completion stays illegal until the artifact, expectation summary, and delivery posture match."],
+            ["Patient expectation", "patient_expectation_template::admin-waiting::medication-v2", "The patient sees a waiting update, not a completion message."],
+          ],
+          reopenState: "stable",
+          triggers: [
+            ["dependency still governing", "The lane remains bounded admin, but the blocker owns calmness."],
+          ],
+          parity: [
+            ["Patient", "The patient sees a waiting update, not a completion message."],
+            ["Staff", "Bounded admin work is still legal, but the dominant blocker is unresolved external confirmation."],
+            ["Support", "Support may escalate the blocker but may not calm the case early."],
+          ],
+          defects: [
+            ["No repository defect", "Waiting posture, blocker dominance, and patient wording remained aligned after rerun."],
+          ],
+        },
+        admin_completed_artifact: {
+          family: "Advice render, waiting, and completion artifacts",
+          title: "Completed bounded admin stays artifact-bound",
+          summary:
+            "Completed admin work stays visible in-shell only because the typed completion artifact, expectation summary, and tuple are all aligned.",
+          chips: [
+            ["Boundary admin_resolution", "warn"],
+            ["Advice withheld", "violet"],
+            ["Admin completed", "good"],
+            ["Artifact present", "good"],
+          ],
+          boundaryMode: "admin_resolution",
+          adviceSettlement: "withheld",
+          adminSettlement: "completed",
+          boundaryTuple: "boundary_tuple::task-208::admin-complete-v2",
+          ladder: [
+            ["clinicalMeaningState", "bounded_admin_only", "Completion remains bounded admin and may not be relabeled as fresh clinical advice."],
+            ["completion artifact", "AdminResolutionCompletionArtifact current", "Document issued and patient wording stay attached to the same tuple."],
+            ["patient wording", "full", "The patient sees a completion update tied to the issued document."],
+            ["reopen posture", "stable", "No reopen trigger is active while the tuple stays current."],
+          ],
+          dependencyState: "clear",
+          recoveryRoute: "dominant_recovery_route::task-208::none",
+          blockers: [
+            ["No current blocker", "The completion artifact, settlement, and expectation template all point at the same tuple.", "accent"],
+          ],
+          artifactState: "present",
+          artifactCards: [
+            ["Completion artifact", "admin_resolution_completion_artifact::task-208::document-issued", "Document issued at 11:04 and linked to the current patient expectation summary."],
+            ["Expectation tuple", "patient_expectation_template::admin-completion::document-v3", "Completed bounded admin follow-up remains visible, not reclassified."],
+          ],
+          reopenState: "stable",
+          triggers: [
+            ["no current reopen trigger", "Reopen remains dormant until fresh drift or material evidence arrives."],
+          ],
+          parity: [
+            ["Patient", "The patient sees a completion update tied to the issued document."],
+            ["Staff", "Completed bounded admin follow-up stays visible with its typed completion artifact."],
+            ["Support", "Support sees the same tuple and completion artifact, not a generic calm-success badge."],
+          ],
+          defects: [
+            ["No repository defect", "Artifact-bound completion stayed tuple-aligned and did not outrun expectation text."],
+          ],
+        },
+        stale_epoch_freeze: {
+          family: "Boundary classification",
+          title: "Stale decision epoch freezes fresh consequence issue",
+          summary:
+            "A stale DecisionEpoch invalidates the current boundary and prevents fresh issue even when the last draft or prior summary remains visible in place.",
+          chips: [
+            ["Boundary blocked", "bad"],
+            ["Advice invalidated", "bad"],
+            ["Admin stale_recoverable", "warn"],
+            ["Recovery only", "bad"],
+          ],
+          boundaryMode: "blocked_pending_review",
+          adviceSettlement: "invalidated",
+          adminSettlement: "stale_recoverable",
+          boundaryTuple: "boundary_tuple::task-311::stale-epoch-v5",
+          ladder: [
+            ["clinicalMeaningState", "informational_only", "The meaning does not widen just because stale copy remains on screen."],
+            ["DecisionEpoch", "stale", "Current fence truth is no longer live, so fresh issue is blocked."],
+            ["surface posture", "stale_recoverable", "The same shell stays visible, but mutation and publish controls freeze in place."],
+            ["soft copy", "not authoritative", "Soft copy may orient the reviewer, but it does not override the stale authority chain."],
+          ],
+          dependencyState: "repair_required",
+          recoveryRoute: "dominant_recovery_route::task-311::refresh_projection",
+          blockers: [
+            ["Stale authority chain", "The last issue draft is preserved, but fresh consequence output stays frozen until the tuple refreshes.", "critical"],
+          ],
+          artifactState: "preserved_only",
+          artifactCards: [
+            ["Preserved draft", "self-care confirmation draft", "Visible for recovery only and no longer fresh authority."],
+          ],
+          reopenState: "reopen_required",
+          triggers: [
+            ["stale DecisionEpoch", "Fresh issue is frozen until the current fence and trust chain are restored."],
+          ],
+          parity: [
+            ["Patient", "Recovery-safe wording only. No fresh advice is implied."],
+            ["Staff", "Same-shell draft is preserved but frozen under stale-recoverable posture."],
+            ["Support", "Support sees recovery-only posture and may not treat the stale route as calm."],
+          ],
+          defects: [
+            ["No repository defect", "Stale boundary posture remained read-only and did not auto-resolve."],
+          ],
+        },
+        release_watch_quarantined: {
+          family: "Dependency, release-watch, and reopen",
+          title: "Release watch quarantine suppresses fresh patient consequence",
+          summary:
+            "Release-watch or trust quarantine keeps the shell visible but forces recovery-only wording. Fresh patient-facing consequence is suppressed immediately.",
+          chips: [
+            ["Boundary self_care", "warn"],
+            ["Advice quarantined", "bad"],
+            ["Trust degraded", "bad"],
+            ["Patient placeholder", "warn"],
+          ],
+          boundaryMode: "self_care",
+          adviceSettlement: "quarantined",
+          adminSettlement: "not_applicable",
+          boundaryTuple: "boundary_tuple::task-311::release-watch-quarantine-v7",
+          ladder: [
+            ["approval and release", "release_watch_quarantined", "Publication and trust drift suppress fresh patient-facing consequence."],
+            ["surface posture", "recovery_only", "The same shell remains visible so provenance is preserved."],
+            ["patient wording", "placeholder_safe", "Patient-facing expectation falls back to a recovery-safe placeholder."],
+            ["reason code", "release_trust_quarantined", "Fresh consequence issue is explicitly blocked by release law."],
+          ],
+          dependencyState: "repair_required",
+          recoveryRoute: "dominant_recovery_route::task-311::release_repair",
+          blockers: [
+            ["Release watch is quarantined", "Current trust posture forbids fresh issue or calm patient wording.", "critical"],
+          ],
+          artifactState: "suppressed",
+          artifactCards: [
+            ["Advice settlement", "quarantined", "Current content approval no longer authorizes a fresh patient-facing render."],
+          ],
+          reopenState: "reopen_required",
+          triggers: [
+            ["invalidated advice settlement", "Quarantine suppresses fresh advice and drives the route into recovery."],
+          ],
+          parity: [
+            ["Patient", "Recovery-safe placeholder only while the release watch is quarantined."],
+            ["Staff", "Advice render is quarantined and may not be re-issued."],
+            ["Support", "Support digest shows release quarantine and may not calm the consequence path."],
+          ],
+          defects: [
+            ["No repository defect", "Release-watch drift correctly forced recovery-only posture after rerun."],
+          ],
+        },
+        reopened_boundary: {
+          family: "Dependency, release-watch, and reopen",
+          title: "Reopened boundary preserves provenance without calm-success",
+          summary:
+            "New symptom report, material patient evidence, or invalidated advice settlement reopens the boundary. Prior artifact remains visible for provenance only.",
+          chips: [
+            ["Boundary clinician_review_required", "bad"],
+            ["Advice invalidated", "bad"],
+            ["Admin reopened_for_review", "bad"],
+            ["Provenance preserved", "violet"],
+          ],
+          boundaryMode: "clinician_review_required",
+          adviceSettlement: "invalidated",
+          adminSettlement: "reopened_for_review",
+          boundaryTuple: "boundary_tuple::task-118::reopened-v5",
+          ladder: [
+            ["clinicalMeaningState", "clinician_reentry_required", "The prior bounded admin outcome is no longer current authority."],
+            ["operationalFollowUpScope", "none", "Fresh bounded admin mutation stays frozen until review recommits."],
+            ["artifact posture", "provenance_only", "Prior completion artifact remains visible for context but no longer calms the case."],
+            ["patient wording", "placeholder_safe", "The patient view falls back to recovery-safe wording."],
+          ],
+          dependencyState: "disputed",
+          recoveryRoute: "dominant_recovery_route::task-118::triage_review",
+          blockers: [
+            ["Boundary tuple reopened for review", "The prior admin completion is provenance only and cannot authorize new completion.", "critical"],
+            ["Patient wording reverted to recovery-safe placeholder", "Patient and staff surfaces stay aligned by freezing the old completion wording.", "caution"],
+          ],
+          artifactState: "provenance_only",
+          artifactCards: [
+            ["Prior completion artifact", "admin_resolution_completion_artifact::task-118::demographics-updated", "Visible for provenance only and no longer current authority."],
+          ],
+          reopenState: "reopened",
+          triggers: [
+            ["new symptom report", "Fresh symptoms invalidate prior calm-success posture."],
+            ["material patient evidence", "New patient evidence requires clinician re-entry."],
+            ["invalidated advice settlement", "Invalidated advice keeps stale consequence frozen."],
+            ["dependency drift", "Reopen fence stays active until the replacement tuple settles."],
+          ],
+          parity: [
+            ["Patient", "The patient view falls back to recovery-safe wording."],
+            ["Staff", "Clinician review required before more consequence work."],
+            ["Support", "Support sees the prior artifact as provenance only and may not mark the case calm-success."],
+          ],
+          defects: [
+            ["No repository defect", "Reopened provenance stayed visible without relabeling the route as completed."],
+          ],
+        },
+      };
+
+      function renderScenario(scenarioId) {
+        const scenario = scenarios[scenarioId] || scenarios.self_care_live;
+        const root = document.querySelector("[data-testid='BoundaryReopenAssuranceLab']");
+        root.setAttribute("data-selected-scenario-id", scenarioId);
+
+        document.getElementById("scenario-family").textContent = scenario.family;
+        document.getElementById("scenario-title").textContent = scenario.title;
+        document.getElementById("scenario-summary").textContent = scenario.summary;
+
+        const signalStrip = document.getElementById("signal-strip");
+        signalStrip.innerHTML = scenario.chips
+          .map(
+            ([label, tone]) =>
+              `<span class="chip" data-tone="${tone}">${label}</span>`,
+          )
+          .join("");
+
+        const boundaryBoard = document.querySelector("[data-testid='BoundaryDecisionBoard']");
+        boundaryBoard.setAttribute("data-boundary-mode", scenario.boundaryMode);
+        boundaryBoard.setAttribute("data-advice-settlement", scenario.adviceSettlement);
+        boundaryBoard.setAttribute("data-admin-settlement", scenario.adminSettlement);
+        document.getElementById("boundary-ladder").innerHTML = scenario.ladder
+          .map(
+            ([label, value, note]) => `
+              <article class="ladder-step">
+                <strong>${label}</strong>
+                <span>${value}</span>
+                <p>${note}</p>
+              </article>`,
+          )
+          .join("");
+
+        const dependencyMatrix = document.querySelector("[data-testid='DependencyAndBlockerMatrix']");
+        dependencyMatrix.setAttribute("data-dependency-state", scenario.dependencyState);
+        dependencyMatrix.setAttribute("data-recovery-route", scenario.recoveryRoute);
+        document.getElementById("dependency-matrix").innerHTML = `
+          <article class="matrix-card">
+            <strong>Dependency state</strong>
+            <span>${scenario.dependencyState}</span>
+            <p>${scenario.recoveryRoute}</p>
+          </article>
+          ${scenario.blockers
+            .map(
+              ([label, note, tone]) => `
+                <article class="matrix-card">
+                  <strong>${label}</strong>
+                  <span>tone = ${tone}</span>
+                  <p>${note}</p>
+                </article>`,
+            )
+            .join("")}
+        `;
+
+        const artifactInspector = document.querySelector("[data-testid='CompletionArtifactInspector']");
+        artifactInspector.setAttribute("data-artifact-state", scenario.artifactState);
+        document.getElementById("artifact-stack").innerHTML = scenario.artifactCards
+          .map(
+            ([label, ref, note]) => `
+              <article class="artifact-card">
+                <strong>${label}</strong>
+                <span>${ref}</span>
+                <p>${note}</p>
+              </article>`,
+          )
+          .join("");
+
+        const reopenLedger = document.querySelector("[data-testid='ReopenTriggerLedger']");
+        reopenLedger.setAttribute("data-reopen-state", scenario.reopenState);
+        document.getElementById("trigger-stack").innerHTML = `
+          <div class="sequence">
+            ${scenario.triggers
+              .map(
+                ([label, note]) => `
+                  <div class="sequence-line">
+                    <strong>${label}</strong>
+                    <p>${note}</p>
+                  </div>`,
+              )
+              .join("")}
+          </div>
+        `;
+
+        const parity = document.querySelector("[data-testid='ParityAcrossPatientStaffSupport']");
+        parity.setAttribute("data-boundary-tuple", scenario.boundaryTuple);
+        document.getElementById("parity-grid").innerHTML = scenario.parity
+          .map(
+            ([label, note]) => `
+              <article class="parity-card">
+                <strong>${label}</strong>
+                <span>${scenario.boundaryTuple}</span>
+                <p>${note}</p>
+              </article>`,
+          )
+          .join("");
+
+        document.getElementById("defect-stack").innerHTML = scenario.defects
+          .map(
+            ([label, note]) => `
+              <article class="defect-row">
+                <strong>${label}</strong>
+                <span>suiteVerdict = passed_without_repository_fix</span>
+                <p>${note}</p>
+              </article>`,
+          )
+          .join("");
+
+        document.querySelectorAll(".scenario-button").forEach((button) => {
+          button.setAttribute(
+            "data-selected",
+            button.getAttribute("data-scenario-id") === scenarioId ? "true" : "false",
+          );
+        });
+      }
+
+      function initRail() {
+        const rail = document.getElementById("scenario-list");
+        rail.innerHTML = Object.entries(scenarios)
+          .map(
+            ([scenarioId, scenario]) => `
+              <button
+                type="button"
+                class="scenario-button"
+                data-scenario-id="${scenarioId}"
+                data-selected="false"
+              >
+                <strong>${scenario.title}</strong>
+                <span>${scenario.family}</span>
+                <span class="scenario-token">${scenarioId}</span>
+              </button>`,
+          )
+          .join("");
+
+        rail.querySelectorAll(".scenario-button").forEach((button) => {
+          button.addEventListener("click", () => {
+            const scenarioId = button.getAttribute("data-scenario-id");
+            const url = new URL(window.location.href);
+            url.searchParams.set("scenario", scenarioId);
+            window.history.replaceState({}, "", url);
+            renderScenario(scenarioId);
+          });
+        });
+      }
+
+      initRail();
+      const url = new URL(window.location.href);
+      renderScenario(url.searchParams.get("scenario") || "self_care_live");
+    </script>
+  </body>
+</html>

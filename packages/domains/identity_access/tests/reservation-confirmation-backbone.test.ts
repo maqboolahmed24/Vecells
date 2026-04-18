@@ -67,6 +67,121 @@ describe("reservation confirmation backbone", () => {
     expect(() => validateExternalConfirmationGateState(gate.toSnapshot())).not.toThrow();
   });
 
+  it("maps the lawful reservation state family to truthful projection semantics", async () => {
+    const authority = createReservationConfirmationAuthorityService(
+      createReservationConfirmationStore(),
+    );
+    const cases = [
+      {
+        state: "soft_selected" as const,
+        commitMode: "truthful_nonexclusive" as const,
+        expiresAt: "2026-04-18T12:05:00.000Z",
+        confirmedAt: null,
+        releasedAt: null,
+        terminalReasonCode: null,
+        truthState: "truthful_nonexclusive",
+        displayExclusivityState: "nonexclusive",
+        countdownMode: "none",
+      },
+      {
+        state: "held" as const,
+        commitMode: "exclusive_hold" as const,
+        expiresAt: "2026-04-18T12:05:00.000Z",
+        confirmedAt: null,
+        releasedAt: null,
+        terminalReasonCode: null,
+        truthState: "exclusive_held",
+        displayExclusivityState: "exclusive",
+        countdownMode: "hold_expiry",
+      },
+      {
+        state: "pending_confirmation" as const,
+        commitMode: "degraded_manual_pending" as const,
+        expiresAt: null,
+        confirmedAt: null,
+        releasedAt: null,
+        terminalReasonCode: null,
+        truthState: "pending_confirmation",
+        displayExclusivityState: "none",
+        countdownMode: "none",
+      },
+      {
+        state: "confirmed" as const,
+        commitMode: "degraded_manual_pending" as const,
+        expiresAt: null,
+        confirmedAt: "2026-04-18T12:06:00.000Z",
+        releasedAt: null,
+        terminalReasonCode: null,
+        truthState: "confirmed",
+        displayExclusivityState: "none",
+        countdownMode: "none",
+      },
+      {
+        state: "released" as const,
+        commitMode: "truthful_nonexclusive" as const,
+        expiresAt: null,
+        confirmedAt: null,
+        releasedAt: "2026-04-18T12:06:30.000Z",
+        terminalReasonCode: "user_cancelled",
+        truthState: "released",
+        displayExclusivityState: "none",
+        countdownMode: "none",
+      },
+      {
+        state: "expired" as const,
+        commitMode: "exclusive_hold" as const,
+        expiresAt: "2026-04-18T12:07:00.000Z",
+        confirmedAt: null,
+        releasedAt: null,
+        terminalReasonCode: "hold_ttl_elapsed",
+        truthState: "expired",
+        displayExclusivityState: "none",
+        countdownMode: "none",
+      },
+      {
+        state: "disputed" as const,
+        commitMode: "degraded_manual_pending" as const,
+        expiresAt: null,
+        confirmedAt: null,
+        releasedAt: null,
+        terminalReasonCode: "supplier_conflict_detected",
+        truthState: "disputed",
+        displayExclusivityState: "none",
+        countdownMode: "none",
+      },
+    ];
+
+    for (const entry of cases) {
+      const reservation = await authority.recordCapacityReservation({
+        reservationId: `reservation_286_projection_${entry.state}`,
+        capacityIdentityRef: `capacity_286_projection_${entry.state}`,
+        canonicalReservationKey: `canonical_reservation_key_286_projection_${entry.state}`,
+        sourceDomain: "booking_local",
+        holderRef: `holder_286_projection_${entry.state}`,
+        state: entry.state,
+        commitMode: entry.commitMode,
+        supplierObservedAt: "2026-04-18T12:00:00.000Z",
+        expiresAt: entry.expiresAt,
+        confirmedAt: entry.confirmedAt,
+        releasedAt: entry.releasedAt,
+        terminalReasonCode: entry.terminalReasonCode,
+      });
+      const projection = await authority.refreshReservationTruthProjection({
+        reservationId: reservation.reservationId,
+        sourceObjectRef: `source_object_286_projection_${entry.state}`,
+        selectedAnchorRef: `selected_anchor_286_projection_${entry.state}`,
+        projectionFreshnessEnvelopeRef: `freshness::286_projection_${entry.state}`,
+        generatedAt: "2026-04-18T12:00:05.000Z",
+        capacityIdentitySupportsExclusivity: true,
+      });
+      expect(projection.toSnapshot().truthState).toBe(entry.truthState);
+      expect(projection.toSnapshot().displayExclusivityState).toBe(
+        entry.displayExclusivityState,
+      );
+      expect(projection.toSnapshot().countdownMode).toBe(entry.countdownMode);
+    }
+  });
+
   it("forces contradictory evidence into disputed gate state", async () => {
     const harness = createReservationConfirmationSimulationHarness();
     const results = await harness.runAllScenarios();

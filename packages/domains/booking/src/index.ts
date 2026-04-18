@@ -199,6 +199,22 @@ export const ownedObjectFamilies = [
       "phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine / Backend work / OfferSession",
   },
   {
+    canonicalName: "CapacityRankProof",
+    objectKind: "projection",
+    boundedContext: "booking",
+    authoritativeOwner: "Booking domain",
+    sourceRef:
+      "phase-0-the-foundation-protocol.md#10.2 Capacity ranking proof",
+  },
+  {
+    canonicalName: "CapacityRankExplanation",
+    objectKind: "projection",
+    boundedContext: "booking",
+    authoritativeOwner: "Booking domain",
+    sourceRef:
+      "phase-0-the-foundation-protocol.md#10.2 Capacity ranking proof",
+  },
+  {
     canonicalName: "PatientAppointmentArtifactProjection",
     objectKind: "projection",
     boundedContext: "booking",
@@ -384,6 +400,22 @@ export const policyFamilies = [
     sourceRef:
       "phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine / Backend work / SearchPolicy",
   },
+  {
+    canonicalName: "CapacityRankDisclosurePolicy",
+    objectKind: "policy",
+    boundedContext: "booking",
+    authoritativeOwner: "Booking domain",
+    sourceRef:
+      "phase-0-the-foundation-protocol.md#10.2 Capacity ranking proof",
+  },
+  {
+    canonicalName: "RankPlan",
+    objectKind: "policy",
+    boundedContext: "booking",
+    authoritativeOwner: "Booking domain",
+    sourceRef:
+      "phase-4-the-booking-engine.md#4D. Slot scoring, offer orchestration, and selection experience / Backend work / RankPlan",
+  },
 ] as const satisfies readonly OwnedObjectFamily[];
 
 export const projectionFamilies = [
@@ -456,3 +488,9 @@ export function bootstrapDomainModule() {
     projectionFamilies: projectionFamilies.length,
   };
 }
+
+export * from "./phase4-booking-case-kernel";
+export * from "./phase4-booking-capability-engine";
+export * from "./phase4-slot-search-snapshot-pipeline";
+export * from "./phase4-capacity-rank-offer-engine";
+export * from "./phase4-booking-commit-engine";

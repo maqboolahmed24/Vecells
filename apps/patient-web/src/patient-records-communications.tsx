@@ -692,6 +692,10 @@ export function ConversationBraid({
 }) {
   const cluster = entry.activeCluster;
   const repairRequired = entry.composerLease.leaseState === "blocked";
+  const requestConversationPath =
+    cluster.governingObjectRef.startsWith("request_")
+      ? `/requests/${cluster.governingObjectRef}/conversation/messages?origin=messages`
+      : null;
   return (
     <section
       className="patient-correspondence__braid"
@@ -720,16 +724,28 @@ export function ConversationBraid({
             Repair contact route
           </button>
         ) : (
-          <button
-            type="button"
-            onClick={() =>
-              onNavigate(
-                `/messages/${cluster.clusterRef}/thread/${entry.conversationThread.threadId}`,
-              )
-            }
-          >
-            Open thread
-          </button>
+          <div className="patient-correspondence__button-row">
+            <button
+              type="button"
+              onClick={() =>
+                onNavigate(
+                  `/messages/${cluster.clusterRef}/thread/${entry.conversationThread.threadId}`,
+                )
+              }
+            >
+              Open thread
+            </button>
+            {requestConversationPath ? (
+              <button
+                type="button"
+                className="patient-correspondence__secondary-action"
+                data-testid="message-open-request-conversation"
+                onClick={() => onNavigate(requestConversationPath)}
+              >
+                Open request conversation
+              </button>
+            ) : null}
+          </div>
         )}
       </div>
       <ConversationCallbackCard

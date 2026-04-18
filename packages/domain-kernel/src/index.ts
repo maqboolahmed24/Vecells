@@ -17,6 +17,7 @@ export function makeFoundationRef(family: string, key: string): FoundationRef {
 export * from "./cache-live-transport";
 export * from "./event-spine";
 export * from "./phase3-triage-fencing";
+export * from "./phase3-patient-workspace-conversation-bundle";
 export * from "./patient-support-phase2-integration";
 export * from "./review-bundle-contracts";
 export * from "./request-intake-backbone";
