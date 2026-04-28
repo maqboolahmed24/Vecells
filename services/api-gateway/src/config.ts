@@ -5,7 +5,9 @@ export interface ServiceConfig {
   serviceName: "api-gateway";
   environment: ServiceEnvironment;
   logLevel: LogLevel;
+  serviceHost: string;
   servicePort: number;
+  adminHost: string;
   adminPort: number;
   maxPayloadBytes: number;
   gracefulShutdownMs: number;
@@ -17,6 +19,20 @@ export interface ServiceConfig {
 }
 
 const SERVICE_SECRET_REFS = ["AUTH_EDGE_SESSION_SECRET_REF", "AUTH_EDGE_SIGNING_KEY_REF"] as const;
+
+function readStringFromKeys(
+  env: Record<string, string | undefined>,
+  keys: readonly string[],
+  fallback: string,
+): string {
+  for (const key of keys) {
+    const value = env[key];
+    if (value && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return fallback;
+}
 
 function readNumber(
   env: Record<string, string | undefined>,
@@ -99,7 +115,18 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       ["debug", "info", "warn", "error"] as const,
       "info",
     ),
-    servicePort: readNumberFromKeys(env, ["API_GATEWAY_SERVICE_PORT", "API_GATEWAY_PORT"], 7100, 0),
+    serviceHost: readStringFromKeys(
+      env,
+      ["API_GATEWAY_SERVICE_HOST", "API_GATEWAY_HOST", "HOST"],
+      "127.0.0.1",
+    ),
+    servicePort: readNumberFromKeys(
+      env,
+      ["API_GATEWAY_SERVICE_PORT", "API_GATEWAY_PORT", "PORT"],
+      7100,
+      0,
+    ),
+    adminHost: readStringFromKeys(env, ["API_GATEWAY_ADMIN_HOST"], "127.0.0.1"),
     adminPort: readNumber(env, "API_GATEWAY_ADMIN_PORT", 7200, 0),
     maxPayloadBytes: readNumber(env, "API_GATEWAY_MAX_PAYLOAD_BYTES", 65536, 1),
     gracefulShutdownMs: readNumber(env, "API_GATEWAY_GRACEFUL_SHUTDOWN_MS", 5000, 1),
@@ -132,7 +159,9 @@ export function redactConfig(config: ServiceConfig): Record<string, unknown> {
     serviceName: config.serviceName,
     environment: config.environment,
     logLevel: config.logLevel,
+    serviceHost: config.serviceHost,
     servicePort: config.servicePort,
+    adminHost: config.adminHost,
     adminPort: config.adminPort,
     maxPayloadBytes: config.maxPayloadBytes,
     gracefulShutdownMs: config.gracefulShutdownMs,

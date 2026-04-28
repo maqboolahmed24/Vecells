@@ -16,7 +16,7 @@ This is easier and safer than sending seven Render URLs or requiring testers to 
 
 ## Implementation Direction
 
-Add a small app-level gate later:
+The small app-level gate lives in `services/internal-entrypoint`.
 
 - `INTERNAL_TEST_PASSWORD_HASH`
 - `SESSION_SECRET`
@@ -27,6 +27,14 @@ Add a small app-level gate later:
 - no raw secrets in the repo
 
 Do not store the shared password in Git. Generate the hash locally or in Render Dashboard and store only the hash as an env var.
+
+Generate the password hash without printing the raw password:
+
+```bash
+INTERNAL_TEST_PASSWORD="replace-with-shared-test-password" pnpm --dir services/internal-entrypoint hash-password
+```
+
+Store only the resulting hash in Render as `INTERNAL_TEST_PASSWORD_HASH`. Generate `SESSION_SECRET` outside Git with a random value and store it only in Render.
 
 ## Backend Exposure
 
@@ -71,4 +79,3 @@ Before sending the URL to testers:
 4. Each app link loads.
 5. Logout returns to password page.
 6. Backend/admin/private URLs are not directly exposed in tester instructions.
-

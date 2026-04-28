@@ -8,7 +8,9 @@ describe("command-api config", () => {
     });
 
     expect(config.serviceName).toBe("command-api");
+    expect(config.serviceHost).toBe("127.0.0.1");
     expect(config.servicePort).toBe(7101);
+    expect(config.adminHost).toBe("127.0.0.1");
     expect(config.adminPort).toBe(7201);
     expect(config.secretRefs.length).toBe(2);
     expect(config.idempotencyTtlSeconds).toBe(900);
@@ -27,5 +29,20 @@ describe("command-api config", () => {
         COMMAND_API_IDEMPOTENCY_TTL_SECONDS: "invalid",
       }),
     ).toThrow(/Invalid/);
+  });
+
+  it("can read Render-style host and PORT values", () => {
+    const config = loadConfig({
+      VECELLS_ENVIRONMENT: "production",
+      HOST: "0.0.0.0",
+      PORT: "10000",
+      COMMAND_API_ADMIN_HOST: "127.0.0.1",
+      COMMAND_API_ADMIN_PORT: "0",
+    });
+
+    expect(config.serviceHost).toBe("0.0.0.0");
+    expect(config.servicePort).toBe(10000);
+    expect(config.adminHost).toBe("127.0.0.1");
+    expect(config.adminPort).toBe(0);
   });
 });

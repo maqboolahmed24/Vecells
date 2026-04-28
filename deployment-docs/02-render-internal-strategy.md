@@ -108,20 +108,20 @@ pnpm --dir services/adapter-simulators build
 
 ## Required Render Readiness Code Changes
 
-Do these in the later Render readiness task:
+Current implementation status:
 
-1. Add root Node version pinning.
-   - Current local Node: `v24.10.0`.
+1. Root Node version pinning exists.
+   - Local Node observed during the audit: `v24.10.0`.
    - GitHub workflows use Node 24.
-   - Render currently defaults new Node services to Node `24.14.1`, but pinning avoids drift.
-2. Update HTTP services to bind `0.0.0.0`.
-   - Render web services require `0.0.0.0`.
-   - Use `process.env.PORT` for the public service port.
-   - Keep admin/private ports either disabled in Render or available only on private services.
-3. Decide whether each backend is a `web`, `pserv`, or `worker`.
-4. Add an internal access gate.
-5. Add Render environment variables and secret placeholders.
-6. Create `render.yaml` only after the Git branch is clean and the service choices are final.
+   - `.node-version` pins Render-compatible Node `24.14.1`; `package.json` constrains Node to the Node 24 line.
+2. HTTP services now support Render-compatible host/port settings.
+   - Local defaults remain `127.0.0.1`.
+   - Render can set `HOST=0.0.0.0`.
+   - Service ports can use service-specific variables or Render `PORT`.
+3. The first internal deployment scope uses one public `web` service: `services/internal-entrypoint`.
+4. Backend/private services are omitted from the first Blueprint until a smoke-tested flow requires them.
+5. Internal access gate exists in `services/internal-entrypoint`.
+6. `render.yaml` defines the first internal Blueprint.
 
 ## Proposed Environment Variables
 
@@ -164,4 +164,3 @@ First internal deployment should be a small, controlled preview:
 - no external provider integrations;
 - no official custom domain;
 - no public launch messaging.
-

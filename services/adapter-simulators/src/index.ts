@@ -7,7 +7,10 @@ import { foundationFixtureCatalog } from "@vecells/test-fixtures";
 import { createSimulatorBackplaneRuntime } from "./backplane";
 
 export { createSimulatorBackplaneRuntime } from "./backplane";
-export { createAttachmentScanSimulator, attachmentScanScenarios } from "./attachment-scan-simulator";
+export {
+  createAttachmentScanSimulator,
+  attachmentScanScenarios,
+} from "./attachment-scan-simulator";
 export { createSimulatorSdk } from "./sdk-clients";
 export type { AttachmentScanScenarioId } from "./attachment-scan-simulator";
 export type {
@@ -17,7 +20,38 @@ export type {
   SimulatorFamilyCode,
 } from "./backplane";
 
-const port = Number(process.env.PORT ?? "7104");
+function readStringFromKeys(keys: readonly string[], fallback: string): string {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (value && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return fallback;
+}
+
+function readNumberFromKeys(keys: readonly string[], fallback: number): number {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (value && value.trim().length > 0) {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        throw new Error(`Invalid ${key} value: expected number >= 0`);
+      }
+      return parsed;
+    }
+  }
+  return fallback;
+}
+
+const host = readStringFromKeys(
+  ["ADAPTER_SIMULATORS_SERVICE_HOST", "ADAPTER_SIMULATORS_HOST", "HOST"],
+  "127.0.0.1",
+);
+const port = readNumberFromKeys(
+  ["ADAPTER_SIMULATORS_SERVICE_PORT", "ADAPTER_SIMULATORS_PORT", "PORT"],
+  7104,
+);
 
 const scaffold = {
   service: "adapter-simulators",
@@ -65,7 +99,7 @@ export function createSimulatorBackplaneServer(options?: {
 
     try {
       if (method === "GET" && url === "/health") {
-        sendJson(response, 200, { ok: true, service: scaffold.service, port });
+        sendJson(response, 200, { ok: true, service: scaffold.service, host, port });
         return;
       }
       if (method === "GET" && url === "/simulators") {
@@ -176,8 +210,8 @@ export function createSimulatorBackplaneServer(options?: {
 
 function main(): void {
   const server = createSimulatorBackplaneServer();
-  server.listen(port, "127.0.0.1", () => {
-    console.log(`[${scaffold.service}] simulator service listening on http://127.0.0.1:${port}`);
+  server.listen(port, host, () => {
+    console.log(`[${scaffold.service}] simulator service listening on http://${host}:${port}`);
   });
 }
 

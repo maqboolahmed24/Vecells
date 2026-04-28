@@ -73,6 +73,24 @@ Start with Choice A unless a tester flow explicitly requires durable shared stat
 
 Do not use laptop-hosted Postgres for the Render deployment.
 
+## Final First-Deploy Decision
+
+The first internal Render deployment uses Choice A: synthetic/disposable mode.
+
+Implications:
+
+- no Render Postgres resource is required for the first Blueprint;
+- no `DATABASE_URL` is required for the first smoke pass;
+- tester work is limited to navigation, UI continuity, shell behavior, and synthetic flows;
+- testers must not enter real patient data;
+- state can be lost on browser reset, redeploy, restart, or service spin-down.
+
+Reset boundary:
+
+- use the protected entrypoint action `POST /reset-client-state` to clear same-origin browser state for the internal entrypoint;
+- if a tester has stale state, ask them to log out, run the browser-state reset action, and reload the affected app route;
+- no seed command is required while the deployment remains synthetic/disposable.
+
 ## Data Safety Rules
 
 - Use only synthetic data.
@@ -86,13 +104,13 @@ Do not use laptop-hosted Postgres for the Render deployment.
 
 Before a production-like internal pilot, map these local emulator responsibilities to Render-compatible services:
 
-| Local component | Current local file | Render direction |
-| --- | --- | --- |
-| Domain store | `infra/data-storage/local/data-storage-emulator.compose.yaml` | Render Postgres or explicit service DB |
-| FHIR store | `infra/data-storage/local/data-storage-emulator.compose.yaml` | Render Postgres, likely separate schema/database |
-| Event spine | `infra/event-spine/local/event-spine-emulator.compose.yaml` | NATS private service or omit |
-| Cache/live transport | `infra/cache-live-transport/local/cache-live-transport-emulator.compose.yaml` | Render Key Value/Valkey or omit |
-| Object storage | `infra/object-storage/local/object-storage-emulator.compose.yaml` | external object store or private MinIO service only if needed |
+| Local component      | Current local file                                                            | Render direction                                              |
+| -------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Domain store         | `infra/data-storage/local/data-storage-emulator.compose.yaml`                 | Render Postgres or explicit service DB                        |
+| FHIR store           | `infra/data-storage/local/data-storage-emulator.compose.yaml`                 | Render Postgres, likely separate schema/database              |
+| Event spine          | `infra/event-spine/local/event-spine-emulator.compose.yaml`                   | NATS private service or omit                                  |
+| Cache/live transport | `infra/cache-live-transport/local/cache-live-transport-emulator.compose.yaml` | Render Key Value/Valkey or omit                               |
+| Object storage       | `infra/object-storage/local/object-storage-emulator.compose.yaml`             | external object store or private MinIO service only if needed |
 
 ## Migration Readiness
 
@@ -103,4 +121,3 @@ Current deployment docs do not define database migrations. A later task must ans
 - Are domain and FHIR stores separate Render databases or schemas in one database?
 - What is the seed/reset command for internal testers?
 - How do we wipe test data safely?
-

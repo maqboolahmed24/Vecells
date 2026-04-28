@@ -5,7 +5,9 @@ export interface ServiceConfig {
   serviceName: "notification-worker";
   environment: ServiceEnvironment;
   logLevel: LogLevel;
+  serviceHost: string;
   servicePort: number;
+  adminHost: string;
   adminPort: number;
   maxPayloadBytes: number;
   gracefulShutdownMs: number;
@@ -22,6 +24,20 @@ const SERVICE_SECRET_REFS = [
   "NOTIFICATION_WEBHOOK_SECRET_REF",
   "NOTIFICATION_SIGNING_KEY_REF",
 ] as const;
+
+function readStringFromKeys(
+  env: Record<string, string | undefined>,
+  keys: readonly string[],
+  fallback: string,
+): string {
+  for (const key of keys) {
+    const value = env[key];
+    if (value && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return fallback;
+}
 
 function readNumber(
   env: Record<string, string | undefined>,
@@ -104,12 +120,18 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       ["debug", "info", "warn", "error"] as const,
       "info",
     ),
+    serviceHost: readStringFromKeys(
+      env,
+      ["NOTIFICATION_WORKER_SERVICE_HOST", "NOTIFICATION_WORKER_HOST", "HOST"],
+      "127.0.0.1",
+    ),
     servicePort: readNumberFromKeys(
       env,
-      ["NOTIFICATION_WORKER_SERVICE_PORT", "NOTIFICATION_WORKER_PORT"],
+      ["NOTIFICATION_WORKER_SERVICE_PORT", "NOTIFICATION_WORKER_PORT", "PORT"],
       7103,
       0,
     ),
+    adminHost: readStringFromKeys(env, ["NOTIFICATION_WORKER_ADMIN_HOST"], "127.0.0.1"),
     adminPort: readNumber(env, "NOTIFICATION_WORKER_ADMIN_PORT", 7203, 0),
     maxPayloadBytes: readNumber(env, "NOTIFICATION_WORKER_MAX_PAYLOAD_BYTES", 65536, 1),
     gracefulShutdownMs: readNumber(env, "NOTIFICATION_WORKER_GRACEFUL_SHUTDOWN_MS", 5000, 1),
@@ -148,7 +170,9 @@ export function redactConfig(config: ServiceConfig): Record<string, unknown> {
     serviceName: config.serviceName,
     environment: config.environment,
     logLevel: config.logLevel,
+    serviceHost: config.serviceHost,
     servicePort: config.servicePort,
+    adminHost: config.adminHost,
     adminPort: config.adminPort,
     maxPayloadBytes: config.maxPayloadBytes,
     gracefulShutdownMs: config.gracefulShutdownMs,

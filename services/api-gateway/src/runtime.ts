@@ -225,10 +225,10 @@ function matchRoute(method: string, pathname: string): ServiceRouteDefinition | 
   );
 }
 
-function listen(server: http.Server, port: number): Promise<void> {
+function listen(server: http.Server, port: number, host: string): Promise<void> {
   return new Promise((resolve, reject) => {
     server.once("error", reject);
-    server.listen(port, "127.0.0.1", () => {
+    server.listen(port, host, () => {
       server.removeListener("error", reject);
       resolve();
     });
@@ -575,14 +575,16 @@ export function createRuntime(config: ServiceConfig): ServiceRuntime {
       });
 
       await Promise.all([
-        listen(serviceServer, config.servicePort),
-        listen(adminServer, config.adminPort),
+        listen(serviceServer, config.servicePort, config.serviceHost),
+        listen(adminServer, config.adminPort, config.adminHost),
       ]);
       ports.service = getBoundPort(serviceServer);
       ports.admin = getBoundPort(adminServer);
 
       logger.info("service_runtime_started", {
+        serviceHost: config.serviceHost,
         servicePort: ports.service,
+        adminHost: config.adminHost,
         adminPort: ports.admin,
         routeCount: serviceDefinition.routeCatalog.length,
       });
@@ -599,7 +601,9 @@ export function createRuntime(config: ServiceConfig): ServiceRuntime {
       serviceServer = undefined;
       adminServer = undefined;
       logger.info("service_runtime_stopped", {
+        serviceHost: config.serviceHost,
         servicePort: ports.service,
+        adminHost: config.adminHost,
         adminPort: ports.admin,
       });
     },

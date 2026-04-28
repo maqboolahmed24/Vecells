@@ -5,7 +5,9 @@ export interface ServiceConfig {
   serviceName: "projection-worker";
   environment: ServiceEnvironment;
   logLevel: LogLevel;
+  serviceHost: string;
   servicePort: number;
+  adminHost: string;
   adminPort: number;
   maxPayloadBytes: number;
   gracefulShutdownMs: number;
@@ -30,6 +32,20 @@ function readString(
 ): string {
   const value = env[key];
   return value && value.trim().length > 0 ? value.trim() : fallback;
+}
+
+function readStringFromKeys(
+  env: Record<string, string | undefined>,
+  keys: readonly string[],
+  fallback: string,
+): string {
+  for (const key of keys) {
+    const value = env[key];
+    if (value && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return fallback;
 }
 
 function readNumber(
@@ -113,12 +129,18 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       ["debug", "info", "warn", "error"] as const,
       "info",
     ),
+    serviceHost: readStringFromKeys(
+      env,
+      ["PROJECTION_WORKER_SERVICE_HOST", "PROJECTION_WORKER_HOST", "HOST"],
+      "127.0.0.1",
+    ),
     servicePort: readNumberFromKeys(
       env,
-      ["PROJECTION_WORKER_SERVICE_PORT", "PROJECTION_WORKER_PORT"],
+      ["PROJECTION_WORKER_SERVICE_PORT", "PROJECTION_WORKER_PORT", "PORT"],
       7102,
       0,
     ),
+    adminHost: readStringFromKeys(env, ["PROJECTION_WORKER_ADMIN_HOST"], "127.0.0.1"),
     adminPort: readNumber(env, "PROJECTION_WORKER_ADMIN_PORT", 7202, 0),
     maxPayloadBytes: readNumber(env, "PROJECTION_WORKER_MAX_PAYLOAD_BYTES", 65536, 1),
     gracefulShutdownMs: readNumber(env, "PROJECTION_WORKER_GRACEFUL_SHUTDOWN_MS", 5000, 1),
@@ -152,7 +174,9 @@ export function redactConfig(config: ServiceConfig): Record<string, unknown> {
     serviceName: config.serviceName,
     environment: config.environment,
     logLevel: config.logLevel,
+    serviceHost: config.serviceHost,
     servicePort: config.servicePort,
+    adminHost: config.adminHost,
     adminPort: config.adminPort,
     maxPayloadBytes: config.maxPayloadBytes,
     gracefulShutdownMs: config.gracefulShutdownMs,

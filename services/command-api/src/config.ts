@@ -5,7 +5,9 @@ export interface ServiceConfig {
   serviceName: "command-api";
   environment: ServiceEnvironment;
   logLevel: LogLevel;
+  serviceHost: string;
   servicePort: number;
+  adminHost: string;
   adminPort: number;
   maxPayloadBytes: number;
   gracefulShutdownMs: number;
@@ -29,6 +31,20 @@ function readString(
 ): string {
   const value = env[key];
   return value && value.trim().length > 0 ? value.trim() : fallback;
+}
+
+function readStringFromKeys(
+  env: Record<string, string | undefined>,
+  keys: readonly string[],
+  fallback: string,
+): string {
+  for (const key of keys) {
+    const value = env[key];
+    if (value && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return fallback;
 }
 
 function readNumber(
@@ -112,7 +128,18 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       ["debug", "info", "warn", "error"] as const,
       "info",
     ),
-    servicePort: readNumberFromKeys(env, ["COMMAND_API_SERVICE_PORT", "COMMAND_API_PORT"], 7101, 0),
+    serviceHost: readStringFromKeys(
+      env,
+      ["COMMAND_API_SERVICE_HOST", "COMMAND_API_HOST", "HOST"],
+      "127.0.0.1",
+    ),
+    servicePort: readNumberFromKeys(
+      env,
+      ["COMMAND_API_SERVICE_PORT", "COMMAND_API_PORT", "PORT"],
+      7101,
+      0,
+    ),
+    adminHost: readStringFromKeys(env, ["COMMAND_API_ADMIN_HOST"], "127.0.0.1"),
     adminPort: readNumber(env, "COMMAND_API_ADMIN_PORT", 7201, 0),
     maxPayloadBytes: readNumber(env, "COMMAND_API_MAX_PAYLOAD_BYTES", 65536, 1),
     gracefulShutdownMs: readNumber(env, "COMMAND_API_GRACEFUL_SHUTDOWN_MS", 5000, 1),
@@ -146,7 +173,9 @@ export function redactConfig(config: ServiceConfig): Record<string, unknown> {
     serviceName: config.serviceName,
     environment: config.environment,
     logLevel: config.logLevel,
+    serviceHost: config.serviceHost,
     servicePort: config.servicePort,
+    adminHost: config.adminHost,
     adminPort: config.adminPort,
     maxPayloadBytes: config.maxPayloadBytes,
     gracefulShutdownMs: config.gracefulShutdownMs,
