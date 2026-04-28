@@ -1,0 +1,1089 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>308 Phase 4 Manage Waitlist Truth Lab</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f7f8fa;
+        --shell: #eef2f6;
+        --panel: #ffffff;
+        --inset: #e8eef3;
+        --stroke: #d5dde7;
+        --text-strong: #0f172a;
+        --text: #334155;
+        --text-muted: #64748b;
+        --manage-accent: #3158e0;
+        --waitlist-accent: #5b61f6;
+        --recovery-accent: #b42318;
+        --warning-accent: #b7791f;
+        --confirmed-accent: #0f766e;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at top left, rgba(49, 88, 224, 0.08), transparent 32%),
+          linear-gradient(180deg, #fbfcfe 0%, var(--canvas) 38%, #eef3f8 100%);
+        color: var(--text-strong);
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      main {
+        width: min(1680px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 20px 0 36px;
+        display: grid;
+        gap: 18px;
+      }
+
+      .surface,
+      .rail,
+      .canvas,
+      .inspector,
+      .evidence-table {
+        border: 1px solid var(--stroke);
+        border-radius: 26px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 22px 48px rgba(15, 23, 42, 0.08);
+      }
+
+      .masthead {
+        min-height: 72px;
+        padding: 18px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        background:
+          linear-gradient(135deg, rgba(49, 88, 224, 0.1), transparent 32%),
+          linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+      }
+
+      .masthead-copy {
+        display: grid;
+        gap: 6px;
+      }
+
+      .eyebrow {
+        color: var(--text-muted);
+        font-size: 0.76rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .masthead h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .summary-band {
+        padding: 18px 24px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .summary-band-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .summary-chip {
+        border-radius: 18px;
+        background: var(--shell);
+        padding: 12px 14px;
+        display: grid;
+        gap: 4px;
+      }
+
+      .summary-chip strong {
+        font-size: 0.96rem;
+      }
+
+      .layout {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: 300px minmax(0, 1fr) 420px;
+      }
+
+      .rail,
+      .canvas,
+      .inspector {
+        min-height: 720px;
+        padding: 18px;
+      }
+
+      .rail {
+        display: grid;
+        gap: 14px;
+        align-content: start;
+      }
+
+      .rail-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .scenario-button {
+        width: 100%;
+        text-align: left;
+        border: 1px solid var(--stroke);
+        background: var(--panel);
+        border-radius: 20px;
+        padding: 14px;
+        display: grid;
+        gap: 6px;
+        cursor: pointer;
+      }
+
+      .scenario-button[aria-pressed="true"] {
+        border-color: rgba(49, 88, 224, 0.28);
+        background: linear-gradient(180deg, rgba(49, 88, 224, 0.08), rgba(91, 97, 246, 0.06));
+        box-shadow: inset 0 0 0 1px rgba(49, 88, 224, 0.08);
+      }
+
+      .scenario-button strong {
+        font-size: 0.98rem;
+      }
+
+      .scenario-button span {
+        color: var(--text);
+      }
+
+      .canvas {
+        display: grid;
+        gap: 16px;
+        grid-template-rows: auto auto 1fr;
+        background: linear-gradient(
+          180deg,
+          #ffffff 0%,
+          #fafcff 28%,
+          rgba(232, 238, 243, 0.54) 100%
+        );
+      }
+
+      .canvas-head {
+        display: grid;
+        gap: 8px;
+      }
+
+      .lane-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .lane {
+        border-radius: 22px;
+        background: var(--shell);
+        border: 1px solid rgba(213, 221, 231, 0.95);
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .lane-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .lane-pill {
+        min-height: 30px;
+        padding: 0 10px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.76rem;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .lane[data-tone="manage"] .lane-pill {
+        background: rgba(49, 88, 224, 0.12);
+        color: var(--manage-accent);
+      }
+
+      .lane[data-tone="waitlist"] .lane-pill {
+        background: rgba(91, 97, 246, 0.12);
+        color: var(--waitlist-accent);
+      }
+
+      .lane[data-tone="assisted"] .lane-pill {
+        background: rgba(183, 121, 31, 0.14);
+        color: var(--warning-accent);
+      }
+
+      .lane[data-tone="reconciliation"] .lane-pill {
+        background: rgba(180, 35, 24, 0.12);
+        color: var(--recovery-accent);
+      }
+
+      .lane-strip {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: 176px minmax(0, 1fr);
+      }
+
+      .lane-state {
+        border-radius: 18px;
+        padding: 12px;
+        background: var(--panel);
+        border: 1px solid rgba(213, 221, 231, 0.9);
+      }
+
+      .lane-state strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .lane-flow {
+        border-radius: 18px;
+        padding: 12px;
+        background: linear-gradient(180deg, rgba(232, 238, 243, 0.72), rgba(255, 255, 255, 0.92));
+        border: 1px solid rgba(213, 221, 231, 0.82);
+      }
+
+      .canvas-foot {
+        border-radius: 20px;
+        background: var(--inset);
+        padding: 14px;
+        color: var(--text);
+      }
+
+      .inspector {
+        display: grid;
+        gap: 16px;
+        align-content: start;
+      }
+
+      .inspector-card {
+        border-radius: 20px;
+        background: var(--shell);
+        padding: 14px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .inspector-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .inspector-row {
+        display: grid;
+        gap: 4px;
+      }
+
+      .inspector-row span:first-child {
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .trace-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 42px;
+        padding: 0 14px;
+        border-radius: 999px;
+        background: rgba(15, 118, 110, 0.1);
+        color: var(--confirmed-accent);
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .evidence-table {
+        padding: 12px 16px 18px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        text-align: left;
+        padding: 12px 10px;
+        border-bottom: 1px solid rgba(213, 221, 231, 0.88);
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      td {
+        color: var(--text);
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 10px;
+        border-radius: 999px;
+        font-size: 0.76rem;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .status-pill[data-status="passed"] {
+        background: rgba(15, 118, 110, 0.12);
+        color: var(--confirmed-accent);
+      }
+
+      .status-pill[data-status="summary_only"] {
+        background: rgba(183, 121, 31, 0.14);
+        color: var(--warning-accent);
+      }
+
+      .status-pill[data-status="recovery_only"] {
+        background: rgba(180, 35, 24, 0.12);
+        color: var(--recovery-accent);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          scroll-behavior: auto !important;
+          transition: none !important;
+          animation: none !important;
+        }
+      }
+
+      @media (max-width: 1480px) {
+        .layout {
+          grid-template-columns: 300px minmax(0, 1fr);
+        }
+
+        .inspector {
+          grid-column: 1 / -1;
+          min-height: auto;
+        }
+      }
+
+      @media (max-width: 1120px) {
+        .summary-band-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .rail,
+        .canvas,
+        .inspector {
+          min-height: auto;
+        }
+
+        .lane-strip {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main data-testid="phase4-manage-waitlist-truth-lab" id="truth-lab-root">
+      <section class="surface masthead">
+        <div class="masthead-copy">
+          <span class="eyebrow">308 evidence lab</span>
+          <h1>Phase 4 release-sensitive booking truth</h1>
+        </div>
+        <div>
+          <strong id="masthead-status">Passed with explicit browser-backed provenance</strong>
+        </div>
+      </section>
+
+      <section class="surface summary-band" aria-label="Truth summary band">
+        <div class="eyebrow">Summary band</div>
+        <p id="summary-copy"></p>
+        <div class="summary-band-grid" id="summary-band-grid"></div>
+      </section>
+
+      <div class="layout">
+        <nav class="rail" aria-labelledby="scenario-rail-heading">
+          <div>
+            <div class="eyebrow">Scenario rail</div>
+            <h2 id="scenario-rail-heading">Review slices</h2>
+          </div>
+          <div
+            class="rail-list"
+            id="scenario-list"
+            role="listbox"
+            aria-label="308 evidence scenarios"
+          ></div>
+        </nav>
+
+        <section class="canvas" aria-labelledby="canvas-heading">
+          <header class="canvas-head">
+            <div class="eyebrow">Truth canvas</div>
+            <h2 id="canvas-heading"></h2>
+            <p id="canvas-copy"></p>
+          </header>
+          <div class="lane-grid" id="lane-grid"></div>
+          <div class="canvas-foot" id="canvas-footnote"></div>
+        </section>
+
+        <aside class="inspector" aria-labelledby="inspector-heading">
+          <div>
+            <div class="eyebrow">Inspector</div>
+            <h2 id="inspector-heading">Selected scenario</h2>
+          </div>
+          <div class="inspector-card">
+            <a class="trace-link" id="trace-link" href="#" target="_blank" rel="noreferrer"
+              >Open trace artifact</a
+            >
+            <p id="inspector-narrative"></p>
+          </div>
+          <div class="inspector-card inspector-list" id="inspector-list"></div>
+        </aside>
+      </div>
+
+      <section class="evidence-table" aria-labelledby="evidence-heading">
+        <div class="eyebrow">Machine-readable parity</div>
+        <h2 id="evidence-heading">Evidence rows</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Area</th>
+              <th>Case</th>
+              <th>Status</th>
+              <th>Provider</th>
+              <th>Environment</th>
+              <th>Artifact</th>
+            </tr>
+          </thead>
+          <tbody id="evidence-rows"></tbody>
+        </table>
+      </section>
+    </main>
+
+    <script>
+      window.__truthLabData = {
+        scenarios: [
+          {
+            id: "manage-live-fence",
+            buttonLabel: "Manage live fence",
+            shortLabel: "Manage",
+            headline: "Writable manage stays tied to current truth",
+            summary:
+              "The browser and integration layers both prove that live manage posture exists only while the current capability tuple, confirmation truth, and continuity fence stay current.",
+            summaryStats: [
+              ["Manage", "writable only while confirmed"],
+              ["Waitlist", "unchanged in this slice"],
+              ["Assisted", "not primary here"],
+              ["Reconciliation", "no detached calmness"],
+            ],
+            lanes: [
+              {
+                family: "manage",
+                title: "Appointment manage",
+                tone: "manage",
+                state: "writable",
+                body: "Cancel, reschedule, and detail-update stay in one shell only while the capability tuple remains current.",
+                flow: "Live route -> same-shell action -> pending settlement -> authoritative refresh gate",
+              },
+              {
+                family: "waitlist",
+                title: "Waitlist continuity",
+                tone: "waitlist",
+                state: "monitoring",
+                body: "Waitlist state is unaffected by the happy-path manage proof.",
+                flow: "No deadline reset or fallback mutation from manage-only actions",
+              },
+              {
+                family: "assisted",
+                title: "Staff-assisted handoff",
+                tone: "assisted",
+                state: "idle",
+                body: "Assisted booking remains outside the writable patient-manage path.",
+                flow: "No lineage transfer without explicit staff handoff",
+              },
+              {
+                family: "reconciliation",
+                title: "Reconciliation",
+                tone: "reconciliation",
+                state: "guarded",
+                body: "Confirmation calmness still depends on authoritative read-after-write truth.",
+                flow: "No calm artifact or completion wording before final truth",
+              },
+            ],
+            footnote:
+              "Primary proof sources: MANAGE308_001, MANAGE308_002, BROWSER308_001. Accessibility checks cover focus visibility and minimum target size on the high-risk manage controls.",
+            traceHref: "../../output/playwright/308-patient-manage-truth-trace.zip",
+            narrative:
+              "This slice closes the stale-manage-buttons gap. The browser proof only accepts writable posture on the fully current route and rejects confirmation-pending or stale-route drift as soon as the markers change.",
+            inspector: [
+              ["Governing objects", "PatientAppointmentManageProjection, AppointmentManageCommand"],
+              ["Provider posture", "vecells_local_gateway with same-shell patient manage routing"],
+              ["Environment", "patient_web_vite_local"],
+              ["Risk closed", "Stale calmness reopening destructive controls"],
+            ],
+            evidenceRows: [
+              [
+                "Manage truth",
+                "MANAGE308_001",
+                "passed",
+                "vecells_local_gateway",
+                "patient_same_shell",
+                "tests/integration/308_manage_command_truth.spec.ts",
+              ],
+              [
+                "Manage truth",
+                "MANAGE308_002",
+                "passed",
+                "vecells_local_gateway",
+                "patient_same_shell",
+                "tests/integration/308_manage_command_truth.spec.ts",
+              ],
+              [
+                "Browser",
+                "BROWSER308_001",
+                "passed",
+                "patient_web_static_routes",
+                "patient_web_vite_local",
+                "output/playwright/308-patient-manage-truth-trace.zip",
+              ],
+            ],
+          },
+          {
+            id: "manage-summary-only-pending",
+            buttonLabel: "Pending freeze",
+            shortLabel: "Manage",
+            headline: "Pending and stale manage routes stay summary-only",
+            summary:
+              "Pending confirmation and stale route continuity both downgrade ordinary manage posture without dropping the patient into a detached recovery page.",
+            summaryStats: [
+              ["Manage", "summary-only under pending or stale truth"],
+              ["Waitlist", "unchanged"],
+              ["Assisted", "unchanged"],
+              ["Reconciliation", "calmness still blocked"],
+            ],
+            lanes: [
+              {
+                family: "manage",
+                title: "Appointment manage",
+                tone: "manage",
+                state: "summary_only",
+                body: "Confirmation-pending and stale route shells preserve orientation but suppress mutation controls.",
+                flow: "Confirmed -> pending or stale -> summary-only -> explicit refresh or support",
+              },
+              {
+                family: "waitlist",
+                title: "Waitlist continuity",
+                tone: "waitlist",
+                state: "steady",
+                body: "Waitlist deadlines and offers do not reset because manage posture degraded.",
+                flow: "Separate continuity object remains unchanged",
+              },
+              {
+                family: "assisted",
+                title: "Staff-assisted handoff",
+                tone: "assisted",
+                state: "steady",
+                body: "Staff booking remains the escalation path, not a hidden side effect.",
+                flow: "Escalation remains explicit and lineage-bound",
+              },
+              {
+                family: "reconciliation",
+                title: "Reconciliation",
+                tone: "reconciliation",
+                state: "held",
+                body: "No route can overclaim final confirmation when manage posture is degraded.",
+                flow: "Pending or stale never upgrades to final calmness",
+              },
+            ],
+            footnote:
+              "Primary proof sources: MANAGE308_003 and BROWSER308_001 accessibility snapshots for pending and stale manage routes.",
+            traceHref: "../../output/playwright/308-patient-manage-truth-trace.zip",
+            narrative:
+              "This slice keeps the booked summary available for orientation while forcing every mutating manage affordance to fail closed until the route or truth can be refreshed.",
+            inspector: [
+              [
+                "Governing objects",
+                "PatientAppointmentManageProjection, RecoveryContinuationToken",
+              ],
+              ["Provider posture", "confirmed booking lineage preserved as provenance"],
+              ["Environment", "patient_web_vite_local"],
+              ["Risk closed", "Summary-safe recovery replaced by generic failure or hidden drift"],
+            ],
+            evidenceRows: [
+              [
+                "Manage truth",
+                "MANAGE308_003",
+                "passed",
+                "vecells_local_gateway",
+                "patient_same_shell",
+                "tests/integration/308_manage_command_truth.spec.ts",
+              ],
+              [
+                "Browser",
+                "BROWSER308_001",
+                "summary_only",
+                "patient_web_static_routes",
+                "patient_web_vite_local",
+                "output/playwright/308-manage-stale-accessibility.json",
+              ],
+            ],
+          },
+          {
+            id: "waitlist-fallback-debt",
+            buttonLabel: "Waitlist debt",
+            shortLabel: "Waitlist",
+            headline: "One waitlist deadline and fallback debt model survives every offer outcome",
+            summary:
+              "Offer acceptance, expiry, supersession, and callback escalation all preserve one authoritative waitlist deadline and fallback obligation instead of resetting from local route heuristics.",
+            summaryStats: [
+              ["Manage", "independent of waitlist debt"],
+              ["Waitlist", "deadline and fallback stay monotone"],
+              ["Assisted", "hub or staff takeover remains explicit"],
+              ["Reconciliation", "not primary here"],
+            ],
+            lanes: [
+              {
+                family: "manage",
+                title: "Appointment manage",
+                tone: "manage",
+                state: "separate",
+                body: "Manage does not reopen because a waitlist offer changed.",
+                flow: "Booked-manage semantics remain independent",
+              },
+              {
+                family: "waitlist",
+                title: "Waitlist continuity",
+                tone: "waitlist",
+                state: "monotone",
+                body: "Actionable, expired, superseded, fallback-due, and callback-transferred states all remain explicit.",
+                flow: "Offer available -> expired or superseded -> fallback due -> callback expected",
+              },
+              {
+                family: "assisted",
+                title: "Staff-assisted handoff",
+                tone: "assisted",
+                state: "available",
+                body: "Hub or staff help remains the governed continuation only when fallback authority says so.",
+                flow: "No silent transfer from waitlist to assisted work",
+              },
+              {
+                family: "reconciliation",
+                title: "Reconciliation",
+                tone: "reconciliation",
+                state: "not_primary",
+                body: "No disputed booking calmness is minted by waitlist transitions.",
+                flow: "Waitlist proof remains separate from booking confirmation truth",
+              },
+            ],
+            footnote:
+              "Primary proof sources: WAIT308_001, WAIT308_002, WAIT308_003, PROP308_001, and BROWSER308_002. Mobile overflow and target-size checks apply to the fallback-due route.",
+            traceHref: "../../output/playwright/308-waitlist-offer-and-fallback-trace.zip",
+            narrative:
+              "This slice closes the reset-the-debt gap. Every visible waitlist route continues to reflect the engine’s current deadline and fallback authority instead of route-local optimism.",
+            inspector: [
+              [
+                "Governing objects",
+                "WaitlistDeadlineEvaluation, WaitlistFallbackObligation, WaitlistContinuationTruthProjection",
+              ],
+              ["Provider posture", "vecells_local_gateway and local waitlist rules"],
+              ["Environment", "patient_web_vite_local"],
+              ["Risk closed", "Offer expiry or supersession silently resetting fallback authority"],
+            ],
+            evidenceRows: [
+              [
+                "Waitlist truth",
+                "WAIT308_001",
+                "passed",
+                "vecells_local_gateway",
+                "practice_local_gateway",
+                "tests/integration/308_waitlist_deadline_and_fallback.spec.ts",
+              ],
+              [
+                "Waitlist truth",
+                "WAIT308_002",
+                "passed",
+                "vecells_local_gateway",
+                "practice_local_gateway",
+                "tests/integration/308_waitlist_deadline_and_fallback.spec.ts",
+              ],
+              [
+                "Waitlist truth",
+                "WAIT308_003",
+                "passed",
+                "vecells_local_gateway",
+                "practice_local_gateway",
+                "tests/integration/308_waitlist_deadline_and_fallback.spec.ts",
+              ],
+              [
+                "Property",
+                "PROP308_001",
+                "passed",
+                "vecells_local_gateway",
+                "practice_local_gateway",
+                "tests/property/308_waitlist_truth_properties.spec.ts",
+              ],
+              [
+                "Browser",
+                "BROWSER308_002",
+                "passed",
+                "patient_web_static_routes",
+                "patient_web_vite_local",
+                "output/playwright/308-waitlist-offer-and-fallback-trace.zip",
+              ],
+            ],
+          },
+          {
+            id: "assisted-stale-owner",
+            buttonLabel: "Assisted stale owner",
+            shortLabel: "Assisted",
+            headline: "Staff-assisted booking is a fenced lineage, not just a panel",
+            summary:
+              "The handoff panel preserves decision epoch, review lease, compare anchors, and settlement posture. Stale-owner drift freezes mutation while keeping provenance visible.",
+            summaryStats: [
+              ["Manage", "support escalation remains explicit"],
+              ["Waitlist", "separate continuation"],
+              ["Assisted", "stale-owner blocks mutation"],
+              ["Reconciliation", "pending confirmation remains non-booked"],
+            ],
+            lanes: [
+              {
+                family: "manage",
+                title: "Appointment manage",
+                tone: "manage",
+                state: "escalation_only",
+                body: "Patient manage cannot silently borrow staff-assisted lineage.",
+                flow: "Escalation path remains explicit",
+              },
+              {
+                family: "waitlist",
+                title: "Waitlist continuity",
+                tone: "waitlist",
+                state: "separate",
+                body: "Waitlist state does not mutate the staff booking lease or epoch.",
+                flow: "No hidden ownership transfer",
+              },
+              {
+                family: "assisted",
+                title: "Staff-assisted handoff",
+                tone: "assisted",
+                state: "reacquire_required",
+                body: "Compare anchors stay visible, but selection controls freeze when the review lease or publication tuple drifts.",
+                flow: "Compare live -> stale owner detected -> reacquire required -> mutation blocked",
+              },
+              {
+                family: "reconciliation",
+                title: "Reconciliation",
+                tone: "reconciliation",
+                state: "pending_or_recovery",
+                body: "Pending confirmation remains explicit and non-booked on the workspace route.",
+                flow: "Pending settlement never upgrades to confirmed wording",
+              },
+            ],
+            footnote:
+              "Primary proof sources: ASSIST308_001, ASSIST308_002, ASSIST308_003, and BROWSER308_003. The browser proof checks focus protection, frozen slot controls, and live status regions.",
+            traceHref: "../../output/playwright/308-staff-assisted-booking-and-recovery-trace.zip",
+            narrative:
+              "This slice closes the assisted-booking-is-just-UI gap. The browser surface remains a projection of lineage, lease, and settlement truth rather than a separate booking product with its own optimistic state.",
+            inspector: [
+              ["Governing objects", "StaffBookingHandoffProjection, review lease, decision epoch"],
+              ["Provider posture", "clinical workspace staff shell"],
+              ["Environment", "clinical_workspace_vite_local"],
+              ["Risk closed", "Stale epoch or stale owner continuing to mutate supplier state"],
+            ],
+            evidenceRows: [
+              [
+                "Assisted truth",
+                "ASSIST308_001",
+                "passed",
+                "vecells_local_gateway",
+                "clinical_workspace_staff_shell",
+                "tests/integration/308_assisted_booking_handoff_and_lease.spec.ts",
+              ],
+              [
+                "Assisted truth",
+                "ASSIST308_002",
+                "passed",
+                "vecells_local_gateway",
+                "clinical_workspace_staff_shell",
+                "tests/integration/308_assisted_booking_handoff_and_lease.spec.ts",
+              ],
+              [
+                "Assisted truth",
+                "ASSIST308_003",
+                "passed",
+                "vecells_local_gateway",
+                "clinical_workspace_staff_shell",
+                "tests/integration/308_assisted_booking_handoff_and_lease.spec.ts",
+              ],
+              [
+                "Browser",
+                "BROWSER308_003",
+                "passed",
+                "clinical_workspace_static_routes",
+                "clinical_workspace_vite_local",
+                "output/playwright/308-staff-assisted-booking-and-recovery-trace.zip",
+              ],
+            ],
+          },
+          {
+            id: "reconciliation-parity",
+            buttonLabel: "Reconciliation parity",
+            shortLabel: "Recovery",
+            headline: "Patient, artifact, and staff recovery wording stays monotone",
+            summary:
+              "Disputed or reconciliation-required booking truth does not mint quiet success, detached artifact readiness, or mismatched patient-versus-staff status language.",
+            summaryStats: [
+              ["Manage", "hidden or summary-only under recovery"],
+              ["Waitlist", "not primary"],
+              ["Assisted", "reacquire or manual attention"],
+              ["Reconciliation", "recovery-only until authoritative closure"],
+            ],
+            lanes: [
+              {
+                family: "manage",
+                title: "Appointment manage",
+                tone: "manage",
+                state: "hidden_or_summary_only",
+                body: "Manage calmness remains suppressed while confirmation truth is disputed.",
+                flow: "No writable manage posture under reconciliation-required truth",
+              },
+              {
+                family: "waitlist",
+                title: "Waitlist continuity",
+                tone: "waitlist",
+                state: "not_primary",
+                body: "Waitlist continuity does not override booking recovery truth.",
+                flow: "Separate continuity remains separate",
+              },
+              {
+                family: "assisted",
+                title: "Staff-assisted handoff",
+                tone: "assisted",
+                state: "recovery_fenced",
+                body: "Workspace reconciliation route stays blocked from calm completion wording.",
+                flow: "Ambiguous commit -> reconciliation required -> reacquire or manual attention",
+              },
+              {
+                family: "reconciliation",
+                title: "Reconciliation",
+                tone: "reconciliation",
+                state: "recovery_only",
+                body: "Patient confirmation surface, artifact frame, and staff route all stay recovery-first until authoritative truth closes the chain.",
+                flow: "Confirmed contrast -> disputed route -> artifact blocked -> staff route aligned",
+              },
+            ],
+            footnote:
+              "Primary proof sources: RECON308_001, RECON308_002, RECON308_003, and BROWSER308_004. Separate patient, artifact, and staff contexts were used to avoid cross-surface state bleed.",
+            traceHref: "../../output/playwright/308-reconciliation-patient-trace.zip",
+            narrative:
+              "This slice closes the reconciliation-lives-only-in-workers gap. Browser-visible patient, artifact, and staff surfaces all reflect the same recovery-first posture until the booking truth genuinely settles.",
+            inspector: [
+              [
+                "Governing objects",
+                "ExternalConfirmationGate, disputed confirmation posture, artifact parity frame",
+              ],
+              [
+                "Provider posture",
+                "patient and staff recovery surfaces in isolated Playwright contexts",
+              ],
+              ["Environment", "patient_web_vite_local and clinical_workspace_vite_local"],
+              ["Risk closed", "Duplicate calm confirmation or artifact grant under disputed truth"],
+            ],
+            evidenceRows: [
+              [
+                "Reconciliation truth",
+                "RECON308_001",
+                "passed",
+                "optum_emis_web",
+                "patient_and_worker_truth_chain",
+                "tests/integration/308_reconciliation_and_dispute_truth.spec.ts",
+              ],
+              [
+                "Reconciliation truth",
+                "RECON308_002",
+                "passed",
+                "vecells_local_gateway",
+                "patient_and_worker_truth_chain",
+                "tests/integration/308_reconciliation_and_dispute_truth.spec.ts",
+              ],
+              [
+                "Reconciliation truth",
+                "RECON308_003",
+                "passed",
+                "vecells_local_gateway",
+                "patient_and_worker_truth_chain",
+                "tests/integration/308_reconciliation_and_dispute_truth.spec.ts",
+              ],
+              [
+                "Browser",
+                "BROWSER308_004",
+                "recovery_only",
+                "patient_and_staff_static_routes",
+                "patient_web_vite_local|clinical_workspace_vite_local",
+                "output/playwright/308-reconciliation-patient-trace.zip",
+              ],
+            ],
+          },
+        ],
+      };
+
+      const scenarios = window.__truthLabData.scenarios;
+      let selectedIndex = 0;
+
+      const scenarioList = document.getElementById("scenario-list");
+      const summaryCopy = document.getElementById("summary-copy");
+      const summaryBandGrid = document.getElementById("summary-band-grid");
+      const canvasHeading = document.getElementById("canvas-heading");
+      const canvasCopy = document.getElementById("canvas-copy");
+      const canvasFootnote = document.getElementById("canvas-footnote");
+      const laneGrid = document.getElementById("lane-grid");
+      const traceLink = document.getElementById("trace-link");
+      const inspectorNarrative = document.getElementById("inspector-narrative");
+      const inspectorList = document.getElementById("inspector-list");
+      const evidenceRows = document.getElementById("evidence-rows");
+
+      function statusClass(status) {
+        return status;
+      }
+
+      function renderScenarioButtons() {
+        scenarioList.innerHTML = "";
+        scenarios.forEach((scenario, index) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "scenario-button";
+          button.setAttribute("role", "option");
+          button.setAttribute("aria-pressed", index === selectedIndex ? "true" : "false");
+          button.setAttribute("aria-selected", index === selectedIndex ? "true" : "false");
+          button.dataset.index = String(index);
+          button.innerHTML = `
+            <div class="eyebrow">${scenario.shortLabel}</div>
+            <strong>${scenario.buttonLabel}</strong>
+            <span>${scenario.headline}</span>
+          `;
+          button.addEventListener("click", () => selectScenario(index, true));
+          button.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              selectScenario((index + 1) % scenarios.length, true);
+            }
+            if (event.key === "ArrowUp") {
+              event.preventDefault();
+              selectScenario((index - 1 + scenarios.length) % scenarios.length, true);
+            }
+          });
+          scenarioList.appendChild(button);
+        });
+      }
+
+      function renderSelectedScenario() {
+        const scenario = scenarios[selectedIndex];
+        summaryCopy.textContent = scenario.summary;
+        summaryBandGrid.innerHTML = scenario.summaryStats
+          .map(
+            ([label, value]) => `
+              <div class="summary-chip">
+                <span class="eyebrow">${label}</span>
+                <strong>${value}</strong>
+              </div>
+            `,
+          )
+          .join("");
+
+        canvasHeading.textContent = scenario.headline;
+        canvasCopy.textContent = scenario.summary;
+        canvasFootnote.textContent = scenario.footnote;
+        laneGrid.innerHTML = scenario.lanes
+          .map(
+            (lane) => `
+              <article class="lane" data-tone="${lane.tone}" tabindex="0" aria-label="${lane.title}">
+                <div class="lane-head">
+                  <div>
+                    <div class="eyebrow">${lane.family}</div>
+                    <h3>${lane.title}</h3>
+                  </div>
+                  <span class="lane-pill">${lane.state.replaceAll("_", " ")}</span>
+                </div>
+                <div class="lane-strip">
+                  <div class="lane-state">
+                    <strong>Current truth</strong>
+                    <span>${lane.body}</span>
+                  </div>
+                  <div class="lane-flow">
+                    <strong>Transition strip</strong>
+                    <span>${lane.flow}</span>
+                  </div>
+                </div>
+              </article>
+            `,
+          )
+          .join("");
+
+        traceLink.href = scenario.traceHref;
+        traceLink.textContent = `Open trace artifact: ${scenario.traceHref.split("/").pop()}`;
+        inspectorNarrative.textContent = scenario.narrative;
+        inspectorList.innerHTML = scenario.inspector
+          .map(
+            ([label, value]) => `
+              <div class="inspector-row">
+                <span>${label}</span>
+                <strong>${value}</strong>
+              </div>
+            `,
+          )
+          .join("");
+
+        evidenceRows.innerHTML = scenario.evidenceRows
+          .map(
+            ([area, caseId, status, provider, environment, artifact]) => `
+              <tr>
+                <td>${area}</td>
+                <td>${caseId}</td>
+                <td><span class="status-pill" data-status="${statusClass(status)}">${status.replaceAll("_", " ")}</span></td>
+                <td>${provider}</td>
+                <td>${environment}</td>
+                <td>${artifact}</td>
+              </tr>
+            `,
+          )
+          .join("");
+
+        Array.from(scenarioList.querySelectorAll(".scenario-button")).forEach((button, index) => {
+          button.setAttribute("aria-pressed", index === selectedIndex ? "true" : "false");
+          button.setAttribute("aria-selected", index === selectedIndex ? "true" : "false");
+        });
+      }
+
+      function selectScenario(index, moveFocus) {
+        selectedIndex = index;
+        renderSelectedScenario();
+        if (moveFocus) {
+          const button = scenarioList.querySelector(`[data-index="${index}"]`);
+          button?.focus();
+        }
+      }
+
+      renderScenarioButtons();
+      renderSelectedScenario();
+    </script>
+  </body>
+</html>

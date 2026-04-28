@@ -1,0 +1,2146 @@
+export const pdsAccessPack = {
+  "task_id": "seq_027",
+  "generated_at": "2026-04-09T18:44:57Z",
+  "mission": "Create the PDS FHIR onboarding-and-feature-flag execution pack with two explicit parts: a rehearsal-grade local PDS sandbox plus access-control studio now, and a gated real digital-onboarding and optional-live-access strategy later.",
+  "visual_mode": "Identity_Trace_Studio",
+  "source_precedence": [
+    "prompt/027.md",
+    "prompt/shared_operating_contract_026_to_035.md",
+    "prompt/AGENT.md",
+    "prompt/checklist.md",
+    "blueprint/blueprint-init.md",
+    "blueprint/phase-0-the-foundation-protocol.md",
+    "blueprint/phase-2-identity-and-echoes.md",
+    "blueprint/phase-7-inside-the-nhs-app.md",
+    "blueprint/platform-runtime-and-release-blueprint.md",
+    "blueprint/forensic-audit-findings.md",
+    "docs/external/21_integration_priority_and_execution_matrix.md",
+    "docs/external/23_secret_ownership_and_rotation_model.md",
+    "docs/risk/18_master_risk_register.md",
+    "https://digital.nhs.uk/developer/api-catalogue/personal-demographics-service-fhir/onboarding-support-information",
+    "https://digital.nhs.uk/developer/api-catalogue/personal-demographics-service-fhir",
+    "https://digital.nhs.uk/services/personal-demographics-service/access-data-on-the-personal-demographics-service",
+    "https://digital.nhs.uk/services/personal-demographics-service/integration-guidance",
+    "https://digital.nhs.uk/developer/api-catalogue/personal-demographics-service-fhir/integrated-products",
+    "https://digital.nhs.uk/developer/assurance/scal-process-for-apis-and-services",
+    "https://digital.nhs.uk/services/partner-onboarding/operations"
+  ],
+  "official_guidance": [
+    {
+      "source_id": "official_pds_onboarding_support_info",
+      "title": "PDS FHIR API onboarding support information",
+      "url": "https://digital.nhs.uk/developer/api-catalogue/personal-demographics-service-fhir/onboarding-support-information",
+      "captured_on": "2026-04-09",
+      "summary": "The onboarding support page states that PDS FHIR uses digital onboarding, requires a hazard log upload, and requires one connecting-systems risk log per access mode used.",
+      "grounding": [
+        "Digital onboarding is the stated onboarding route.",
+        "A completed hazard log must be uploaded in the portal.",
+        "Risk-based assurance requires evidence testing against the mitigations recorded in each chosen access-mode risk log.",
+        "Published templates exist for application-restricted, healthcare worker, healthcare worker with update, and patient access modes."
+      ]
+    },
+    {
+      "source_id": "official_pds_fhir_api_catalogue",
+      "title": "Personal Demographics Service - FHIR API",
+      "url": "https://digital.nhs.uk/developer/api-catalogue/personal-demographics-service-fhir",
+      "captured_on": "2026-04-09",
+      "summary": "The API catalogue defines PDS FHIR as the FHIR route for accessing demographics such as name, address, date of birth, related people, registered GP, nominated pharmacy, and NHS number.",
+      "grounding": [
+        "PDS FHIR is the modern API surface for search, retrieval, and some update flows.",
+        "Registered GP and nominated pharmacy are in scope for the FHIR representation."
+      ]
+    },
+    {
+      "source_id": "official_access_data_on_pds",
+      "title": "Access data on the Personal Demographics Service",
+      "url": "https://digital.nhs.uk/services/personal-demographics-service/access-data-on-the-personal-demographics-service",
+      "captured_on": "2026-04-09",
+      "summary": "NHS England describes the PDS FHIR API as the newest and simplest integration route, states that requests are assessed case by case, and notes the secure-network expectation for smartcard-backed use.",
+      "grounding": [
+        "PDS FHIR is described as the newest and simplest integration route.",
+        "A secure network connection is required when using smartcards.",
+        "Novel or analytics-like requests can be referred for legal or governance review."
+      ]
+    },
+    {
+      "source_id": "official_pds_integration_guidance",
+      "title": "Personal Demographics Service integration guidance",
+      "url": "https://digital.nhs.uk/services/personal-demographics-service/integration-guidance",
+      "captured_on": "2026-04-09",
+      "summary": "The integration guidance separates search, synchronisation, patient self-service, and patient updates. It explicitly says patient updates use NHS login and patient access mode.",
+      "grounding": [
+        "User-facing apps access PDS indirectly through system-to-system interfaces such as PDS FHIR.",
+        "Local systems that keep a local patient record must synchronise with PDS regularly.",
+        "Patients updating their own information must be strongly authenticated with NHS login and the app must use patient access mode."
+      ]
+    },
+    {
+      "source_id": "official_pds_integrated_products",
+      "title": "PDS FHIR API - integrated products",
+      "url": "https://digital.nhs.uk/developer/api-catalogue/personal-demographics-service-fhir/integrated-products",
+      "captured_on": "2026-04-09",
+      "summary": "The integrated-products page shows currently approved products and labels across application-restricted, healthcare worker, healthcare worker with update, patient access, and healthcare worker mode without update.",
+      "grounding": [
+        "Application-restricted approval is common for patient-facing or system-mediated products.",
+        "Healthcare worker and healthcare worker with update remain current approved labels.",
+        "Patient access is present in the live approved-product roster.",
+        "Healthcare worker mode without update appears in the roster and is normalised below to the read-only healthcare worker class."
+      ]
+    },
+    {
+      "source_id": "official_scal_process",
+      "title": "Supplier Conformance Assessment List (SCAL)",
+      "url": "https://digital.nhs.uk/developer/assurance/scal-process-for-apis-and-services",
+      "captured_on": "2026-04-09",
+      "summary": "SCAL is the document-based assurance route and the page states DOS is the primary online route. It captures technical, clinical safety, information-governance, security, and organisational risk evidence.",
+      "grounding": [
+        "Digital Onboarding Service is the primary online assurance route.",
+        "Assurance evidence spans technical conformance, clinical safety, IG and security, and organisational risk."
+      ]
+    },
+    {
+      "source_id": "official_partner_onboarding_operations",
+      "title": "Partner onboarding operations",
+      "url": "https://digital.nhs.uk/services/partner-onboarding/operations",
+      "captured_on": "2026-04-09",
+      "summary": "The operations page lists PDS FHIR as a digital-onboarding service and names the four published access-mode families for that service.",
+      "grounding": [
+        "Digital onboarding is a standardised NHS England onboarding path.",
+        "PDS FHIR is listed with application-restricted, health worker, health worker with update, and patient access modes."
+      ]
+    }
+  ],
+  "assumptions": [
+    {
+      "assumption_id": "ASSUMPTION_PDS_ONBOARDING_FIELD_MAP_IS_STRUCTURED_NOT_VERBATIM",
+      "summary": "The public PDS pages disclose the onboarding mechanics and required evidence but not a full public form schema for every DOS field. The field map below therefore turns the public mechanics into a deterministic Vecells dossier structure instead of claiming it is a verbatim portal export.",
+      "consequence": "The dossier can be rehearsed locally now while still mapping cleanly to later portal work."
+    },
+    {
+      "assumption_id": "ASSUMPTION_PDS_MODE_LABEL_NORMALISATION",
+      "summary": "Current official pages use both 'healthcare worker' and 'healthcare worker mode without update'. This pack normalises those labels to read-only `healthcare_worker` while preserving the source-dated alias.",
+      "consequence": "Vecells avoids inventing a fifth baseline mode while still recording the official wording drift."
+    },
+    {
+      "assumption_id": "ASSUMPTION_PDS_UPDATE_FLOWS_STAY_FUTURE_AND_FAIL_CLOSED",
+      "summary": "The blueprint makes PDS optional and subordinate to local matching plus governed binding. Any update-capable PDS posture therefore stays future-only, default-off, and blocked by stronger gates.",
+      "consequence": "The mock service can simulate update-capable access modes without implying that Vecells will use them in the current baseline."
+    }
+  ],
+  "upstream_inputs": {
+    "phase0_gate_verdict": "data/analysis/phase0_gate_verdict.json",
+    "coverage_summary": "data/analysis/coverage_summary.json",
+    "integration_priority_matrix": "data/analysis/integration_priority_matrix.json",
+    "external_dependencies": "data/analysis/external_dependencies.json",
+    "secret_ownership_map": "data/analysis/secret_ownership_map.json",
+    "route_family_inventory": "data/analysis/route_family_inventory.csv",
+    "gateway_surface_split_matrix": "data/analysis/gateway_surface_split_matrix.csv",
+    "master_risk_register": "data/analysis/master_risk_register.json"
+  },
+  "phase0_verdict": "withheld",
+  "pds_integration": {
+    "integration_id": "int_identity_pds_optional_enrichment",
+    "integration_family": "patient_data_enrichment",
+    "integration_name": "Optional PDS enrichment seam",
+    "source_dependency_ids": [
+      "dep_pds_fhir_enrichment"
+    ],
+    "source_dependency_names": [
+      "Optional PDS enrichment seam"
+    ],
+    "baseline_role": "optional_flagged",
+    "authoritative_truth_class": "supporting_demographic_enrichment_only",
+    "patient_safety_impact": "medium",
+    "control_plane_impact": "medium",
+    "lineage_or_closure_dependency": "indirect",
+    "channel_dependency_classes": [
+      "browser_web",
+      "support_recovery",
+      "governance_review"
+    ],
+    "bounded_context_refs": [
+      "identity_access",
+      "governance",
+      "support_operations"
+    ],
+    "current_mock_feasibility": "high",
+    "live_onboarding_latency_band": "contract_heavy",
+    "sponsor_or_assurance_gate": "required",
+    "recommended_lane": "actual_later",
+    "why_mock_now": "Only a thin no-op or fixture seam is required now so the identity model proves PDS is optional and cannot silently become the baseline truth source.",
+    "why_actual_later": "PDS access carries legal-basis, approval, and feature-flag prerequisites and remains a later enrichment strategy rather than a current-baseline blocker.",
+    "minimum_mock_fidelity": "Model enrichment absent, enrichment available, partial demographic corroboration, and enrichment rejected without letting the seam widen identity authority or hide local matching uncertainty.",
+    "minimum_live_readiness_conditions": [
+      "seq_027 produces the optional sandbox and feature-flag plan",
+      "seq_040 freezes the no-PDS degraded default and no-authority-escalation law",
+      "Any tenant rollout remains behind explicit legal-basis and governance approval"
+    ],
+    "later_task_refs": [
+      "seq_022",
+      "seq_023",
+      "seq_027",
+      "seq_040"
+    ],
+    "risk_refs": [
+      "RISK_STATE_004"
+    ],
+    "notes": "Do not rank PDS above NHS login. The seam may enrich matching confidence later, but it does not replace append-only binding law or become a shortcut for ownership claims.",
+    "source_refs": [
+      "blueprint/phase-2-identity-and-echoes.md#2C. Patient linkage, demographic confidence, and optional PDS enrichment",
+      "blueprint/blueprint-init.md#10. Identity, consent, security, and policy",
+      "data/analysis/dependency_truth_and_fallback_matrix.csv#dep_pds_fhir_enrichment",
+      "phase-2-identity-and-echoes.md#2C. Patient linkage, demographic confidence, and optional PDS enrichment",
+      "blueprint-init.md#10. Identity, consent, security, and policy",
+      "phase-cards.md#Phase 2 - Identity and Echoes"
+    ],
+    "watch_lifecycle_states": [
+      "replaceable_by_simulator"
+    ],
+    "watch_dependency_ids": [
+      "dep_pds_fhir_enrichment"
+    ],
+    "phase0_blocker_refs": [],
+    "touchpoint_ids": [],
+    "truth_proof_digest": [
+      "A legally permitted PDS lookup correlated to the current linkage candidate set and accepted as supporting evidence by IdentityBindingAuthority."
+    ],
+    "ambiguity_modes": [
+      "Legal basis or onboarding still incomplete",
+      "PDS response conflicts with local or telephony evidence",
+      "Feature flag disabled for the current tenant or route"
+    ],
+    "fallback_modes": [
+      "Local matching only with partial_match or review posture",
+      "Support-assisted correction without widening identity truth",
+      "Keep enrichment fully off while preserving baseline identity flow"
+    ],
+    "mock_placeholder_only": [
+      "real demographics",
+      "real organisation identifiers",
+      "tenant rollout cohorts"
+    ],
+    "failure_injection_expectations": [
+      "PDS unavailable",
+      "partial enrichment only",
+      "enrichment contradicts local match candidate"
+    ],
+    "cannot_be_authoritative": [
+      "standalone PDS record lookup",
+      "PDS response without local binding review"
+    ],
+    "patient_safety_consequence": 2,
+    "canonical_truth_effect": 1,
+    "patient_visible_continuity": 1,
+    "operator_truth_supportability": 2,
+    "mockability_quality": 5,
+    "live_acquisition_latency": 4,
+    "approval_burden": 4,
+    "security_privacy_burden": 4,
+    "coupling_risk_if_delayed": 2,
+    "readiness_value_unlocked": 1,
+    "proof_rigor_demand": 1,
+    "mock_now_execution_score": 115,
+    "actual_provider_strategy_later_score": 122,
+    "quadrant_live_acquisition_friction": 69,
+    "quadrant_mvp_control_plane_necessity": 30,
+    "summary_dependency_names": "Optional PDS enrichment seam",
+    "mock_now_execution_rank": 15,
+    "mock_now_execution_ordering_key": "15:int_identity_pds_optional_enrichment",
+    "actual_provider_strategy_later_rank": 14,
+    "actual_provider_strategy_later_ordering_key": "14:int_identity_pds_optional_enrichment",
+    "rank_delta_live_minus_mock": -1
+  },
+  "pds_dependency": {
+    "dependency_id": "dep_pds_fhir_enrichment",
+    "dependency_name": "Optional PDS enrichment seam",
+    "dependency_class": "patient_data_enrichment",
+    "dependency_layer": "optional_feature_flagged",
+    "baseline_scope": "optional_flagged",
+    "source_file_refs": [
+      "phase-2-identity-and-echoes.md#2C. Patient linkage, demographic confidence, and optional PDS enrichment",
+      "blueprint-init.md#10. Identity, consent, security, and policy",
+      "phase-cards.md#Phase 2 - Identity and Echoes"
+    ],
+    "business_purpose": "Optionally enrich patient-linking evidence with governed PDS demographics after legal basis and onboarding are complete.",
+    "bound_bounded_contexts": [
+      "identity_access",
+      "governance",
+      "support_operations"
+    ],
+    "integration_mode": "Feature-flagged enrichment adapter behind IdentityBindingAuthority; no route may depend on PDS before legal basis and onboarding complete.",
+    "adapter_contract_family": "pds_enrichment_adapter",
+    "authoritative_success_proof": "A legally permitted PDS lookup correlated to the current linkage candidate set and accepted as supporting evidence by IdentityBindingAuthority.",
+    "non_authoritative_signals": [
+      "NHS login contact claim",
+      "Single local demographic candidate without sufficient confidence",
+      "Stale demographic cache"
+    ],
+    "ambiguity_modes": [
+      "Legal basis or onboarding still incomplete",
+      "PDS response conflicts with local or telephony evidence",
+      "Feature flag disabled for the current tenant or route"
+    ],
+    "fallback_or_recovery_modes": [
+      "Local matching only with partial_match or review posture",
+      "Support-assisted correction without widening identity truth",
+      "Keep enrichment fully off while preserving baseline identity flow"
+    ],
+    "simulator_allowed": "yes",
+    "local_stub_strategy": "Use synthetic PDS response fixtures and fail-closed enrichment toggles; keep real credentials and legal-basis proof out of this task.",
+    "assurance_or_onboarding_obligations": [
+      "Document the legal basis, onboarding state, and tenant flag plan before enabling PDS.",
+      "Keep PDS evidence subordinate to IdentityBindingAuthority rather than direct patientRef writes.",
+      "Treat PDS enablement as a reversible, audited capability toggle with route-level blast-radius awareness."
+    ],
+    "operator_or_runbook_dependencies": [
+      "PDS-disabled fallback runbook",
+      "Identity conflict and repair escalation runbook"
+    ],
+    "future_provisioning_task_refs": [
+      "seq_021",
+      "seq_023",
+      "seq_027",
+      "seq_039",
+      "seq_040"
+    ],
+    "browser_automation_task_refs": [
+      "seq_027"
+    ],
+    "future_browser_automation_required": true,
+    "browser_automation_candidate_portal_or_console": "PDS FHIR sandbox access request and onboarding portals",
+    "manual_checkpoints": [
+      "Legal basis and governance approval before sandbox or live access",
+      "Tenant feature-flag review before any patient-visible enrichment"
+    ],
+    "blocked_by_prior_approval_or_contract": true,
+    "secrets_or_credentials_classes": [
+      "api_client_credentials",
+      "client_certificate",
+      "organisation_identity"
+    ],
+    "tenant_or_org_scope": "Tenant and organisation specific; optional per rollout cohort.",
+    "deferred_reason_if_any": "Optional enrichment only. Baseline identity completeness must work without PDS.",
+    "touchpoint_ids": [],
+    "affects_patient_visible_truth": true,
+    "notes": "Optional by corpus law: PDS is an enrichment seam, not a baseline blocker and not a substitute for NHS login or local binding governance."
+  },
+  "risk_bindings": [
+    {
+      "risk_id": "RISK_STATE_004",
+      "risk_title": "identityState plus nullable patientRef derived from IdentityBinding",
+      "risk_class": "privacy",
+      "source_type": "derived_gap_closure",
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md",
+        "forensic-audit-findings.md",
+        "blueprint-init.md",
+        "blueprint-init.md#10. Identity, consent, security, and policy",
+        "phase-cards.md#Card 3: Phase 2 - Identity and Echoes",
+        "phase-0-the-foundation-protocol.md#3. Non-negotiable invariants",
+        "forensic-audit-findings.md#Finding 50 - The concrete `Request` schema dropped identity-binding references and treated `patientRef` as unconditional",
+        "patient-account-and-communications-blueprint.md#Requests browsing contract",
+        "staff-operations-and-support-blueprint.md#Support desk model",
+        "phase-3-the-human-checkpoint.md#Backend work",
+        "phase-4-the-booking-engine.md#Backend work",
+        "phase-5-the-network-horizon.md#Backend work",
+        "phase-6-the-pharmacy-loop.md#Backend work",
+        "phase-9-the-assurance-ledger.md#Backend work"
+      ],
+      "finding_refs": [
+        "FINDING_050",
+        "FINDING_055"
+      ],
+      "problem_statement": "Use `identityState = anonymous | partial_match | matched | claimed`; treat `patientRef` as nullable and derive it only from settled `IdentityBinding`.",
+      "failure_mode": "RISK_STATE_004 route-level auth copy can still imply stable identity before claim and binding settle.",
+      "leading_indicators": [
+        "Reject any summary or schema that assumes unconditional `patientRef` or uses `ownershipState` instead of `identityState`.",
+        "Missing evidence class: IdentityRepairEvidenceBundle",
+        "Runtime tuple drift across RuntimePublicationBundle"
+      ],
+      "trigger_conditions": [
+        "Summary or architecture text compresses the canonical control into generic prose.",
+        "A gate or release tuple remains green while the stronger canonical primitive is absent from evidence.",
+        "A current-baseline flow relies on publication or shell posture that the canonical winner says must fail closed."
+      ],
+      "affected_phase_refs": [
+        "phase_0",
+        "phase_2",
+        "phase_7",
+        "cross_phase_controls"
+      ],
+      "affected_requirement_ids": [
+        "GAP-FINDING-050",
+        "GAP-FINDING-055",
+        "REQ-INV-004",
+        "REQ-INV-005"
+      ],
+      "affected_task_refs": [
+        "seq_024",
+        "seq_025",
+        "seq_027",
+        "seq_046",
+        "seq_047",
+        "seq_048",
+        "seq_049",
+        "par_062",
+        "par_063",
+        "par_064",
+        "par_065",
+        "par_066",
+        "par_067",
+        "par_068",
+        "par_069",
+        "par_070",
+        "par_071",
+        "par_072",
+        "par_073",
+        "par_074",
+        "par_075",
+        "par_076",
+        "par_077",
+        "par_078",
+        "par_079",
+        "par_080",
+        "par_081",
+        "par_082",
+        "seq_132",
+        "seq_133",
+        "seq_134",
+        "seq_135",
+        "seq_136",
+        "seq_137",
+        "seq_138",
+        "seq_170",
+        "seq_171",
+        "seq_172",
+        "seq_173",
+        "seq_174",
+        "par_175",
+        "par_176",
+        "par_177",
+        "par_178",
+        "par_179",
+        "par_180",
+        "par_181",
+        "par_182",
+        "par_183",
+        "par_184",
+        "par_185",
+        "par_186",
+        "par_187",
+        "par_188",
+        "par_189",
+        "par_190",
+        "par_191",
+        "par_192",
+        "par_193",
+        "par_194",
+        "par_195",
+        "par_196",
+        "par_197",
+        "par_198",
+        "par_199",
+        "par_200",
+        "par_201",
+        "seq_204",
+        "seq_205",
+        "seq_206",
+        "seq_207",
+        "seq_208"
+      ],
+      "affected_gate_refs": [
+        "GATE_OPTIONAL_PDS_ENABLEMENT",
+        "GATE_P0_0B_TO_0C",
+        "GATE_P0_EXIT",
+        "GATE_P2_PARALLEL_MERGE",
+        "GATE_P2_EXIT"
+      ],
+      "affected_dependency_refs": [
+        "dep_nhs_login_rail",
+        "dep_pds_fhir_enrichment",
+        "dep_telephony_ivr_recording_provider",
+        "dep_transcription_processing_provider",
+        "dep_im1_pairing_programme"
+      ],
+      "affected_persona_refs": [],
+      "affected_channel_refs": [],
+      "current_control_refs": [
+        "IdentityRepairEvidenceBundle",
+        "ControlStatusSnapshot",
+        "RuntimePublicationBundle",
+        "MS_EXT_NHS_LOGIN_ONBOARDING",
+        "MS_EXT_OPTIONAL_PDS_ENRICHMENT",
+        "MS_P0_0B_DOMAIN_KERNEL",
+        "MS_P0_0G_EXIT_PROOF_AND_FOUNDATION_SIGNOFF",
+        "MS_P2_DEFINITION_AND_ENTRY",
+        "MS_P2_PARALLEL_IDENTITY_AND_TELEPHONY",
+        "MS_P2_PROOF_AND_REGRESSION"
+      ],
+      "mitigation_actions": [
+        "Use `identityState = anonymous | partial_match | matched | claimed`; treat `patientRef` as nullable and derive it only from settled `IdentityBinding`.",
+        "Reject any summary or schema that assumes unconditional `patientRef` or uses `ownershipState` instead of `identityState`.",
+        "Keep linked gates blocked until identityState plus nullable patientRef derived from IdentityBinding is represented in current evidence."
+      ],
+      "contingency_actions": [
+        "Freeze writable or calm posture and fall back to the last authoritative summary or read-only state.",
+        "Escalate to architecture or release review instead of inventing route-local exceptions."
+      ],
+      "linked_milestone_refs": [
+        "MS_EXT_NHS_LOGIN_ONBOARDING",
+        "MS_EXT_OPTIONAL_PDS_ENRICHMENT",
+        "MS_P0_0B_DOMAIN_KERNEL",
+        "MS_P0_0G_EXIT_PROOF_AND_FOUNDATION_SIGNOFF",
+        "MS_P2_DEFINITION_AND_ENTRY",
+        "MS_P2_PARALLEL_IDENTITY_AND_TELEPHONY",
+        "MS_P2_PROOF_AND_REGRESSION",
+        "MS_P2_EXIT_GATE"
+      ],
+      "notes": "canonical_conflict risk carried forward from seq_002 summary reconciliation.",
+      "likelihood": "medium",
+      "impact_patient_safety": "medium",
+      "impact_service": "medium",
+      "impact_privacy": "extreme",
+      "impact_delivery": "high",
+      "impact_release": "high",
+      "detectability": "hard",
+      "owner_role": "ROLE_DPO",
+      "control_strength": "partial",
+      "status": "watching",
+      "critical_path_relevance": "on_path",
+      "gate_impact": "watch",
+      "dependency_lifecycle_states": [
+        "onboarding",
+        "replaceable_by_simulator"
+      ],
+      "risk_score": 36,
+      "target_due_ref": "GATE_OPTIONAL_PDS_ENABLEMENT"
+    },
+    {
+      "risk_id": "HZ_WRONG_PATIENT_BINDING",
+      "risk_title": "Wrong-patient binding or correction failure",
+      "risk_class": "privacy",
+      "source_type": "assurance_workstream",
+      "source_refs": [
+        "phase-2-the-identity-and-echoes.md#2H. Hardening, safety evidence, and the formal Phase 2 exit gate",
+        "phase-9-the-assurance-ledger.md#IdentityRepairEvidenceBundle"
+      ],
+      "finding_refs": [],
+      "problem_statement": "Identity binding, secure-link redemption, or correction flow could expose or act on the wrong patient if freezes, evidence, and release ordering fail.",
+      "failure_mode": "privacy breach; clinical action on wrong patient; wrong-patient reassurance",
+      "leading_indicators": [
+        "SafetyCase delta packet",
+        "Session and binding regression suites"
+      ],
+      "trigger_conditions": [
+        "CHG_IDENTITY_BINDING_OR_SESSION",
+        "CHG_PARTNER_CONFIGURATION_OR_REDIRECTS"
+      ],
+      "affected_phase_refs": [
+        "external_readiness",
+        "phase_0",
+        "phase_2"
+      ],
+      "affected_requirement_ids": [],
+      "affected_task_refs": [
+        "seq_021",
+        "seq_022",
+        "seq_023",
+        "seq_024",
+        "seq_025",
+        "seq_026",
+        "par_122",
+        "par_124",
+        "par_125",
+        "par_126",
+        "seq_132",
+        "seq_133",
+        "seq_134",
+        "seq_135",
+        "seq_136",
+        "seq_137",
+        "seq_138",
+        "seq_202",
+        "seq_203"
+      ],
+      "affected_gate_refs": [
+        "GATE_EXTERNAL_TO_FOUNDATION",
+        "GATE_P0_LONG_LEAD_ASSURANCE_MERGE",
+        "GATE_P0_EXIT"
+      ],
+      "affected_dependency_refs": [
+        "dep_nhs_login_rail",
+        "dep_im1_pairing_programme",
+        "dep_nhs_assurance_and_standards_sources",
+        "dep_sms_notification_provider",
+        "dep_email_notification_provider",
+        "dep_cross_org_secure_messaging_mesh"
+      ],
+      "affected_persona_refs": [],
+      "affected_channel_refs": [],
+      "current_control_refs": [
+        "HazardLog delta packet",
+        "Identity repair evidence bundle",
+        "DPIA delta packet",
+        "SafetyCase delta packet",
+        "Session and binding regression suites",
+        "WS_CLINICAL_MANUFACTURER",
+        "WS_DATA_PROTECTION_PRIVACY",
+        "WS_CLINICAL_DEPLOYMENT_USE"
+      ],
+      "control_strength": "partial",
+      "mitigation_actions": [
+        "HazardLog delta packet",
+        "Identity repair evidence bundle",
+        "DPIA delta packet",
+        "SafetyCase delta packet",
+        "Session and binding regression suites",
+        "WS_CLINICAL_MANUFACTURER",
+        "WS_DATA_PROTECTION_PRIVACY",
+        "WS_CLINICAL_DEPLOYMENT_USE"
+      ],
+      "contingency_actions": [
+        "Hold the linked gate and keep the experience in explicit safety-review or recovery posture.",
+        "Escalate through the named safety and privacy signoff chain before widening writable actions."
+      ],
+      "owner_role": "ROLE_MANUFACTURER_CSO",
+      "status": "mitigating",
+      "linked_milestone_refs": [
+        "MS_EXT_STRATEGY_AND_ACCOUNT_PLAN",
+        "MS_EXT_NHS_LOGIN_ONBOARDING",
+        "MS_EXT_IM1_SCAL_READINESS",
+        "MS_P0_0G_DSPT_READINESS",
+        "MS_P0_0G_NHS_LOGIN_ONBOARDING_EVIDENCE",
+        "MS_P0_0G_CLINICAL_AND_PRIVACY_REVIEW_CADENCE",
+        "MS_P0_0G_EXIT_PROOF_AND_FOUNDATION_SIGNOFF",
+        "MS_P2_EXTERNAL_CONFIG"
+      ],
+      "notes": "Mandatory seed hazard carried forward as a live risk row and gate input.",
+      "likelihood": "medium",
+      "impact_patient_safety": "medium",
+      "impact_service": "medium",
+      "impact_privacy": "extreme",
+      "impact_delivery": "high",
+      "impact_release": "high",
+      "detectability": "hard",
+      "critical_path_relevance": "on_path",
+      "gate_impact": "blocking",
+      "dependency_lifecycle_states": [
+        "onboarding",
+        "current",
+        "replaceable_by_simulator"
+      ],
+      "risk_score": 38,
+      "target_due_ref": "GATE_EXTERNAL_TO_FOUNDATION"
+    }
+  ],
+  "access_mode_alias_map": {
+    "application_restricted": [
+      "Application Restricted",
+      "Application-restricted"
+    ],
+    "healthcare_worker": [
+      "Healthcare worker",
+      "Healthcare Worker",
+      "Healthcare worker mode without update"
+    ],
+    "healthcare_worker_with_update": [
+      "Healthcare worker with update",
+      "Health Worker Access with Update"
+    ],
+    "patient_access": [
+      "Patient access",
+      "Patient Access Mode"
+    ],
+    "other_if_officially_supported": []
+  },
+  "access_rows": [
+    {
+      "pds_use_case_id": "PDS_UC_SECURE_LINK_TRACE",
+      "route_family_ref": "rf_patient_secure_link_recovery",
+      "action_scope": "read_only_trace_after_local_match_ambiguity",
+      "access_mode": "application_restricted",
+      "why_pds_is_needed": "Secure-link recovery can encounter multiple plausible local candidates and needs optional supporting demographics to narrow the review set.",
+      "why_local_matching_alone_is_not_sufficient": "A single local ambiguous cluster can still require a national corroboration source before support or patient recovery copy becomes specific.",
+      "legal_basis_summary": "Direct-care recovery support for an already active patient journey; no analytics or cohort lookup.",
+      "feature_flag_name": "pds.enrichment.route.secure_link_recovery",
+      "default_state": "internal_only",
+      "identity_binding_impact": "Supporting evidence only; IdentityBindingAuthority remains the only writer of durable binding and derived patientRef.",
+      "wrong_patient_risk_controls": [
+        "require_local_candidate_set_first",
+        "never_bind_from_pds_success_alone",
+        "freeze_to_identity_repair_on_conflict",
+        "mask_identifier_in_logs"
+      ],
+      "required_hazard_log_refs": [
+        "ART_PDS_HAZARD_LOG"
+      ],
+      "required_risk_log_refs": [
+        "ART_PDS_RISKLOG_APPLICATION_RESTRICTED"
+      ],
+      "mock_now_support_level": "full_search_and_read",
+      "actual_later_gate_refs": [
+        "GATE_EXTERNAL_TO_FOUNDATION",
+        "LIVE_GATE_PDS_LEGAL_BASIS_APPROVED",
+        "PDS_LIVE_GATE_USE_CASE_TRACEABLE",
+        "PDS_LIVE_GATE_HAZARD_LOG_CURRENT",
+        "PDS_LIVE_GATE_RISK_LOGS_CURRENT"
+      ],
+      "fallback_if_unavailable": "Retain local partial_match or review posture and continue with governed support recovery.",
+      "notes": "This is the highest-value current rehearsal route because it proves PDS can help without becoming baseline truth.",
+      "route_family_name": "rf_patient_secure_link_recovery",
+      "shell_id": "",
+      "source_refs": [
+        "prompt/027.md",
+        "blueprint/phase-2-identity-and-echoes.md#2C. Patient linkage, demographic confidence, and optional PDS enrichment",
+        "blueprint/phase-0-the-foundation-protocol.md#5.4 patientRef write control",
+        "blueprint/phase-0-the-foundation-protocol.md#2.2A IdentityBindingAuthority",
+        "blueprint/blueprint-init.md#10. Identity, consent, security, and policy"
+      ],
+      "requires_real_provider_mutation": "no"
+    },
+    {
+      "pds_use_case_id": "PDS_UC_PATIENT_HOME_CONTACT_REFRESH",
+      "route_family_ref": "rf_patient_home",
+      "action_scope": "patient_initiated_contact_refresh_preview",
+      "access_mode": "patient_access",
+      "why_pds_is_needed": "Patient home may later show a controlled refresh or correction path for contact details already held in PDS.",
+      "why_local_matching_alone_is_not_sufficient": "The local profile and patient preferences are intentionally separate from PDS-held contact data, so a later compare view needs the upstream source.",
+      "legal_basis_summary": "Patient self-service update or review after strong NHS login authentication; future-only and default-off.",
+      "feature_flag_name": "pds.patient_access.route.patient_home_contact_refresh",
+      "default_state": "off",
+      "identity_binding_impact": "None; this route may update demographic detail but must not mutate Request.patientRef or claim durable ownership.",
+      "wrong_patient_risk_controls": [
+        "require_high_assurance_nhs_login",
+        "show_before_after_compare",
+        "separate_contact_preferences_from_pds_data",
+        "rollback_on_conflict_or_stale_record"
+      ],
+      "required_hazard_log_refs": [
+        "ART_PDS_HAZARD_LOG"
+      ],
+      "required_risk_log_refs": [
+        "ART_PDS_RISKLOG_PATIENT_ACCESS"
+      ],
+      "mock_now_support_level": "read_only_preview",
+      "actual_later_gate_refs": [
+        "LIVE_GATE_PDS_LEGAL_BASIS_APPROVED",
+        "PDS_LIVE_GATE_USE_CASE_TRACEABLE",
+        "PDS_LIVE_GATE_ROUTE_FLAG_DEFAULT_OFF",
+        "PDS_LIVE_GATE_WRONG_PATIENT_PLAN_CURRENT"
+      ],
+      "fallback_if_unavailable": "Keep patient preferences local and route any update desire to a non-PDS placeholder or manual support advice.",
+      "notes": "The blueprint does not require PDS for authenticated home; this row is future-only by design.",
+      "route_family_name": "rf_patient_home",
+      "shell_id": "",
+      "source_refs": [
+        "prompt/027.md",
+        "blueprint/phase-2-identity-and-echoes.md#2C. Patient linkage, demographic confidence, and optional PDS enrichment",
+        "blueprint/phase-0-the-foundation-protocol.md#5.4 patientRef write control",
+        "blueprint/phase-0-the-foundation-protocol.md#2.2A IdentityBindingAuthority",
+        "blueprint/blueprint-init.md#10. Identity, consent, security, and policy"
+      ],
+      "requires_real_provider_mutation": "yes"
+    },
+    {
+      "pds_use_case_id": "PDS_UC_PATIENT_HOME_NOMINATED_PHARMACY",
+      "route_family_ref": "rf_patient_home",
+      "action_scope": "patient_initiated_nominated_pharmacy_preview",
+      "access_mode": "patient_access",
+      "why_pds_is_needed": "Patient home may later preview or update nominated pharmacy facts that live in PDS.",
+      "why_local_matching_alone_is_not_sufficient": "A local route-specific pharmacy choice record is not the same thing as the nominated-pharmacy fact held in PDS.",
+      "legal_basis_summary": "Patient self-service with strong authentication in patient access mode; future-only.",
+      "feature_flag_name": "pds.patient_access.route.patient_home_nominated_pharmacy",
+      "default_state": "off",
+      "identity_binding_impact": "None; pharmacy preference evidence stays separate from durable patient binding.",
+      "wrong_patient_risk_controls": [
+        "require_high_assurance_nhs_login",
+        "show_route_vs_pds_difference_explicitly",
+        "no_automatic_request_mutation",
+        "rollback_on_mismatch_or_pds_outage"
+      ],
+      "required_hazard_log_refs": [
+        "ART_PDS_HAZARD_LOG"
+      ],
+      "required_risk_log_refs": [
+        "ART_PDS_RISKLOG_PATIENT_ACCESS"
+      ],
+      "mock_now_support_level": "read_only_preview",
+      "actual_later_gate_refs": [
+        "LIVE_GATE_PDS_LEGAL_BASIS_APPROVED",
+        "PDS_LIVE_GATE_USE_CASE_TRACEABLE",
+        "PDS_LIVE_GATE_ROUTE_FLAG_DEFAULT_OFF",
+        "PDS_LIVE_GATE_ALLOW_REAL_PROVIDER_MUTATION"
+      ],
+      "fallback_if_unavailable": "Continue using local route choice only and clearly label PDS-backed nominated-pharmacy data as unavailable.",
+      "notes": "Included because the public PDS guidance explicitly references nominated pharmacy in patient-facing national apps.",
+      "route_family_name": "rf_patient_home",
+      "shell_id": "",
+      "source_refs": [
+        "prompt/027.md",
+        "blueprint/phase-2-identity-and-echoes.md#2C. Patient linkage, demographic confidence, and optional PDS enrichment",
+        "blueprint/phase-0-the-foundation-protocol.md#5.4 patientRef write control",
+        "blueprint/phase-0-the-foundation-protocol.md#2.2A IdentityBindingAuthority",
+        "blueprint/blueprint-init.md#10. Identity, consent, security, and policy"
+      ],
+      "requires_real_provider_mutation": "yes"
+    },
+    {
+      "pds_use_case_id": "PDS_UC_STAFF_DIRECT_CARE_TRACE",
+      "route_family_ref": "rf_staff_workspace",
+      "action_scope": "care_setting_trace_and_read",
+      "access_mode": "healthcare_worker",
+      "why_pds_is_needed": "Operations or clinical staff can need a bounded direct-care trace when local evidence is insufficient to identify the correct patient safely.",
+      "why_local_matching_alone_is_not_sufficient": "Direct-care staff may need a nationally current demographic source when local data is stale or conflicting.",
+      "legal_basis_summary": "Direct care by a healthcare worker with strong user authentication and role-appropriate access.",
+      "feature_flag_name": "pds.healthcare_worker.route.staff_workspace_trace",
+      "default_state": "internal_only",
+      "identity_binding_impact": "Supporting evidence only; any resulting binding decision still routes through IdentityBindingAuthority.",
+      "wrong_patient_risk_controls": [
+        "strong_worker_authentication",
+        "role_and_legitimate_relationship_check",
+        "read_only_evidence_path",
+        "mandatory_identity_repair_on_conflict"
+      ],
+      "required_hazard_log_refs": [
+        "ART_PDS_HAZARD_LOG"
+      ],
+      "required_risk_log_refs": [
+        "ART_PDS_RISKLOG_HEALTHCARE_WORKER"
+      ],
+      "mock_now_support_level": "full_search_and_read",
+      "actual_later_gate_refs": [
+        "LIVE_GATE_PDS_LEGAL_BASIS_APPROVED",
+        "PDS_LIVE_GATE_ACCESS_MODE_SELECTED",
+        "PDS_LIVE_GATE_SECURE_NETWORK_PATH_PLANNED",
+        "PDS_LIVE_GATE_RISK_LOGS_CURRENT"
+      ],
+      "fallback_if_unavailable": "Use local trace plus manual confirmation workflow and keep the request on hold or review where needed.",
+      "notes": "This row is bounded to direct-care-style identity review, not generic staff browsing.",
+      "route_family_name": "rf_staff_workspace",
+      "shell_id": "",
+      "source_refs": [
+        "prompt/027.md",
+        "blueprint/phase-2-identity-and-echoes.md#2C. Patient linkage, demographic confidence, and optional PDS enrichment",
+        "blueprint/phase-0-the-foundation-protocol.md#5.4 patientRef write control",
+        "blueprint/phase-0-the-foundation-protocol.md#2.2A IdentityBindingAuthority",
+        "blueprint/blueprint-init.md#10. Identity, consent, security, and policy"
+      ],
+      "requires_real_provider_mutation": "no"
+    },
+    {
+      "pds_use_case_id": "PDS_UC_SUPPORT_IDENTITY_REVIEW",
+      "route_family_ref": "rf_support_ticket_workspace",
+      "action_scope": "support_mediated_identity_review",
+      "access_mode": "healthcare_worker",
+      "why_pds_is_needed": "Support and safety reviewers can need national demographic corroboration while triaging identity disputes or misbinding signals.",
+      "why_local_matching_alone_is_not_sufficient": "Some support cases involve stale or contradictory local evidence and require a separate corroboration source before recovery guidance is given.",
+      "legal_basis_summary": "Direct-care-adjacent operational review with named worker, bounded route scope, and full audit.",
+      "feature_flag_name": "pds.healthcare_worker.route.support_identity_review",
+      "default_state": "internal_only",
+      "identity_binding_impact": "Support can gather evidence only; support cannot settle durable binding locally.",
+      "wrong_patient_risk_controls": [
+        "named_worker_and_case_reason_required",
+        "read_only_review_surface",
+        "support_cannot_override_identity_authority",
+        "freeze_case_on_conflict"
+      ],
+      "required_hazard_log_refs": [
+        "ART_PDS_HAZARD_LOG"
+      ],
+      "required_risk_log_refs": [
+        "ART_PDS_RISKLOG_HEALTHCARE_WORKER"
+      ],
+      "mock_now_support_level": "full_search_and_read",
+      "actual_later_gate_refs": [
+        "LIVE_GATE_PDS_LEGAL_BASIS_APPROVED",
+        "PDS_LIVE_GATE_USE_CASE_TRACEABLE",
+        "PDS_LIVE_GATE_WRONG_PATIENT_PLAN_CURRENT",
+        "PDS_LIVE_GATE_NAMED_APPROVER_PRESENT"
+      ],
+      "fallback_if_unavailable": "Continue support recovery using local evidence bundles and explicit 'PDS unavailable' operator copy.",
+      "notes": "This use case exists to prove safe support behavior, not to widen routine support visibility.",
+      "route_family_name": "rf_support_ticket_workspace",
+      "shell_id": "",
+      "source_refs": [
+        "prompt/027.md",
+        "blueprint/phase-2-identity-and-echoes.md#2C. Patient linkage, demographic confidence, and optional PDS enrichment",
+        "blueprint/phase-0-the-foundation-protocol.md#5.4 patientRef write control",
+        "blueprint/phase-0-the-foundation-protocol.md#2.2A IdentityBindingAuthority",
+        "blueprint/blueprint-init.md#10. Identity, consent, security, and policy"
+      ],
+      "requires_real_provider_mutation": "no"
+    },
+    {
+      "pds_use_case_id": "PDS_UC_SUPPORT_CONTACT_CORRECTION",
+      "route_family_ref": "rf_support_ticket_workspace",
+      "action_scope": "staff_mediated_contact_update",
+      "access_mode": "healthcare_worker_with_update",
+      "why_pds_is_needed": "Later support workflows may need a tightly controlled path for correcting or forwarding an upstream contact update where policy permits.",
+      "why_local_matching_alone_is_not_sufficient": "A local preference update does not alter the national demographic record and can leave future patient-facing services inconsistent.",
+      "legal_basis_summary": "Future-only worker-mediated update path with stricter approval, evidence, and network posture than read-only review.",
+      "feature_flag_name": "pds.healthcare_worker_update.route.support_contact_correction",
+      "default_state": "off",
+      "identity_binding_impact": "No direct binding change; update-capable access cannot be used as a backdoor to claim or repair patient ownership.",
+      "wrong_patient_risk_controls": [
+        "dual_review_before_update",
+        "show_pre_and_post_values",
+        "rollback_if_wrong_subject_suspected",
+        "no_request_or_episode_patient_ref_write"
+      ],
+      "required_hazard_log_refs": [
+        "ART_PDS_HAZARD_LOG"
+      ],
+      "required_risk_log_refs": [
+        "ART_PDS_RISKLOG_HEALTHCARE_WORKER_UPDATE"
+      ],
+      "mock_now_support_level": "mode_simulated_read_only",
+      "actual_later_gate_refs": [
+        "LIVE_GATE_PDS_LEGAL_BASIS_APPROVED",
+        "PDS_LIVE_GATE_ACCESS_MODE_SELECTED",
+        "PDS_LIVE_GATE_HAZARD_LOG_CURRENT",
+        "PDS_LIVE_GATE_ALLOW_REAL_PROVIDER_MUTATION"
+      ],
+      "fallback_if_unavailable": "Keep the correction local, capture a support note, and hand off to the external correction process instead of mutating upstream data.",
+      "notes": "This row stays future-only and is simulated without real write capability in the mock service.",
+      "route_family_name": "rf_support_ticket_workspace",
+      "shell_id": "",
+      "source_refs": [
+        "prompt/027.md",
+        "blueprint/phase-2-identity-and-echoes.md#2C. Patient linkage, demographic confidence, and optional PDS enrichment",
+        "blueprint/phase-0-the-foundation-protocol.md#5.4 patientRef write control",
+        "blueprint/phase-0-the-foundation-protocol.md#2.2A IdentityBindingAuthority",
+        "blueprint/blueprint-init.md#10. Identity, consent, security, and policy"
+      ],
+      "requires_real_provider_mutation": "yes"
+    },
+    {
+      "pds_use_case_id": "PDS_UC_GOVERNANCE_TRACE",
+      "route_family_ref": "rf_governance_shell",
+      "action_scope": "audit_and_wrong_patient_investigation",
+      "access_mode": "healthcare_worker",
+      "why_pds_is_needed": "Governance investigations may need a read-only trace to compare what the external demographic source held at review time.",
+      "why_local_matching_alone_is_not_sufficient": "An investigation can require external corroboration of the demographic facts that informed a support or identity decision.",
+      "legal_basis_summary": "Governed investigation and safety review; no broad browsing or analytics.",
+      "feature_flag_name": "pds.healthcare_worker.route.governance_trace",
+      "default_state": "internal_only",
+      "identity_binding_impact": "None directly; any corrective bind still requires the same repair and authority chain.",
+      "wrong_patient_risk_controls": [
+        "investigation_case_reference_required",
+        "read_only_audit_view",
+        "minimise_field_exposure",
+        "full_audit_log_and_masking"
+      ],
+      "required_hazard_log_refs": [
+        "ART_PDS_HAZARD_LOG"
+      ],
+      "required_risk_log_refs": [
+        "ART_PDS_RISKLOG_HEALTHCARE_WORKER"
+      ],
+      "mock_now_support_level": "full_search_and_read",
+      "actual_later_gate_refs": [
+        "LIVE_GATE_PDS_LEGAL_BASIS_APPROVED",
+        "PDS_LIVE_GATE_USE_CASE_TRACEABLE",
+        "PDS_LIVE_GATE_RISK_LOGS_CURRENT",
+        "PDS_LIVE_GATE_NAMED_APPROVER_PRESENT"
+      ],
+      "fallback_if_unavailable": "Continue with local audit evidence and record the external corroboration gap explicitly.",
+      "notes": "This route is investigation-specific and does not authorise routine operational use.",
+      "route_family_name": "rf_governance_shell",
+      "shell_id": "",
+      "source_refs": [
+        "prompt/027.md",
+        "blueprint/phase-2-identity-and-echoes.md#2C. Patient linkage, demographic confidence, and optional PDS enrichment",
+        "blueprint/phase-0-the-foundation-protocol.md#5.4 patientRef write control",
+        "blueprint/phase-0-the-foundation-protocol.md#2.2A IdentityBindingAuthority",
+        "blueprint/blueprint-init.md#10. Identity, consent, security, and policy"
+      ],
+      "requires_real_provider_mutation": "no"
+    },
+    {
+      "pds_use_case_id": "PDS_UC_GOVERNANCE_UPDATE",
+      "route_family_ref": "rf_governance_shell",
+      "action_scope": "approved_demographic_correction_rehearsal",
+      "access_mode": "healthcare_worker_with_update",
+      "why_pds_is_needed": "A later governance-approved correction workflow may need update-capable access for upstream remediation evidence.",
+      "why_local_matching_alone_is_not_sufficient": "Governance cannot assume a local correction resolves an upstream demographic defect or stale PDS fact.",
+      "legal_basis_summary": "Exceptional, named-approver correction path only; never baseline and never self-service.",
+      "feature_flag_name": "pds.healthcare_worker_update.route.governance_correction",
+      "default_state": "off",
+      "identity_binding_impact": "Upstream demographic correction does not itself repair durable binding; the repair chain remains separate and explicit.",
+      "wrong_patient_risk_controls": [
+        "exception_case_reference_required",
+        "dual_approval_and_change_record",
+        "explicit_rollback_rehearsal",
+        "repair_chain_kept_separate_from_update"
+      ],
+      "required_hazard_log_refs": [
+        "ART_PDS_HAZARD_LOG"
+      ],
+      "required_risk_log_refs": [
+        "ART_PDS_RISKLOG_HEALTHCARE_WORKER_UPDATE"
+      ],
+      "mock_now_support_level": "mode_simulated_read_only",
+      "actual_later_gate_refs": [
+        "LIVE_GATE_PDS_LEGAL_BASIS_APPROVED",
+        "PDS_LIVE_GATE_HAZARD_LOG_CURRENT",
+        "PDS_LIVE_GATE_RISK_LOGS_CURRENT",
+        "PDS_LIVE_GATE_ALLOW_REAL_PROVIDER_MUTATION"
+      ],
+      "fallback_if_unavailable": "Record the correction need locally and route it through the partner correction backlog rather than mutating live data.",
+      "notes": "Explicitly future-only and gated by manual approval plus rollback rehearsal.",
+      "route_family_name": "rf_governance_shell",
+      "shell_id": "",
+      "source_refs": [
+        "prompt/027.md",
+        "blueprint/phase-2-identity-and-echoes.md#2C. Patient linkage, demographic confidence, and optional PDS enrichment",
+        "blueprint/phase-0-the-foundation-protocol.md#5.4 patientRef write control",
+        "blueprint/phase-0-the-foundation-protocol.md#2.2A IdentityBindingAuthority",
+        "blueprint/blueprint-init.md#10. Identity, consent, security, and policy"
+      ],
+      "requires_real_provider_mutation": "yes"
+    },
+    {
+      "pds_use_case_id": "PDS_UC_REQUESTS_PHARMACY_COMPARE",
+      "route_family_ref": "rf_patient_requests",
+      "action_scope": "read_only_nominated_pharmacy_compare",
+      "access_mode": "application_restricted",
+      "why_pds_is_needed": "The request route may later compare a local pharmacy selection with the PDS nominated-pharmacy fact to explain divergence safely.",
+      "why_local_matching_alone_is_not_sufficient": "A local request-time pharmacy choice is route-specific and may diverge from the enduring nominated-pharmacy record held in PDS.",
+      "legal_basis_summary": "Direct-care request support and explanation only; no automated pharmacy mutation.",
+      "feature_flag_name": "pds.application_restricted.route.requests_pharmacy_compare",
+      "default_state": "off",
+      "identity_binding_impact": "None; pharmacy comparison is not an identity-authority action.",
+      "wrong_patient_risk_controls": [
+        "require_existing_local_binding_or_review_case",
+        "show_difference_as_compare_not_truth_override",
+        "do_not_auto_rewrite_pharmacy_case",
+        "fall_back_cleanly_when_unavailable"
+      ],
+      "required_hazard_log_refs": [
+        "ART_PDS_HAZARD_LOG"
+      ],
+      "required_risk_log_refs": [
+        "ART_PDS_RISKLOG_APPLICATION_RESTRICTED"
+      ],
+      "mock_now_support_level": "full_search_and_read",
+      "actual_later_gate_refs": [
+        "LIVE_GATE_PDS_LEGAL_BASIS_APPROVED",
+        "PDS_LIVE_GATE_USE_CASE_TRACEABLE",
+        "PDS_LIVE_GATE_ROUTE_FLAG_DEFAULT_OFF"
+      ],
+      "fallback_if_unavailable": "Keep route-local pharmacy truth only and label PDS corroboration as unavailable.",
+      "notes": "Included to preserve the blueprint separation between route-local pharmacy truth and wider demographic facts.",
+      "route_family_name": "rf_patient_requests",
+      "shell_id": "",
+      "source_refs": [
+        "prompt/027.md",
+        "blueprint/phase-2-identity-and-echoes.md#2C. Patient linkage, demographic confidence, and optional PDS enrichment",
+        "blueprint/phase-0-the-foundation-protocol.md#5.4 patientRef write control",
+        "blueprint/phase-0-the-foundation-protocol.md#2.2A IdentityBindingAuthority",
+        "blueprint/blueprint-init.md#10. Identity, consent, security, and policy"
+      ],
+      "requires_real_provider_mutation": "no"
+    }
+  ],
+  "feature_flags": [
+    {
+      "flag_name": "pds.enrichment.route.secure_link_recovery",
+      "route_family_ref": "rf_patient_secure_link_recovery",
+      "pds_use_case_id": "PDS_UC_SECURE_LINK_TRACE",
+      "default_state": "internal_only",
+      "rollout_states": [
+        "off",
+        "internal_only",
+        "cohort_limited",
+        "ready_for_live"
+      ],
+      "kill_switch_name": "pds.global.kill_switch",
+      "kill_switch_scope": "all_pds_calls_and_rendering",
+      "why_optional_not_required": "Local matching and governed IdentityBinding remain the baseline path even when the flag is on.",
+      "activation_requirements": [
+        "source_traceable_use_case",
+        "explicit_legal_basis",
+        "current_hazard_and_risk_logs",
+        "wrong_patient_mitigation_pack"
+      ],
+      "rollback_triggers": [
+        "wrong_patient_signal_rate_exceeds_threshold",
+        "p95_latency_breach",
+        "stale_or_contradictory_rate_exceeds_threshold",
+        "feature_flag_scope_drift_detected"
+      ],
+      "route_binding_notes": "This is the highest-value current rehearsal route because it proves PDS can help without becoming baseline truth."
+    },
+    {
+      "flag_name": "pds.patient_access.route.patient_home_contact_refresh",
+      "route_family_ref": "rf_patient_home",
+      "pds_use_case_id": "PDS_UC_PATIENT_HOME_CONTACT_REFRESH",
+      "default_state": "off",
+      "rollout_states": [
+        "off",
+        "internal_only",
+        "cohort_limited",
+        "ready_for_live"
+      ],
+      "kill_switch_name": "pds.global.kill_switch",
+      "kill_switch_scope": "all_pds_calls_and_rendering",
+      "why_optional_not_required": "Local matching and governed IdentityBinding remain the baseline path even when the flag is on.",
+      "activation_requirements": [
+        "source_traceable_use_case",
+        "explicit_legal_basis",
+        "current_hazard_and_risk_logs",
+        "wrong_patient_mitigation_pack"
+      ],
+      "rollback_triggers": [
+        "wrong_patient_signal_rate_exceeds_threshold",
+        "p95_latency_breach",
+        "stale_or_contradictory_rate_exceeds_threshold",
+        "feature_flag_scope_drift_detected"
+      ],
+      "route_binding_notes": "The blueprint does not require PDS for authenticated home; this row is future-only by design."
+    },
+    {
+      "flag_name": "pds.patient_access.route.patient_home_nominated_pharmacy",
+      "route_family_ref": "rf_patient_home",
+      "pds_use_case_id": "PDS_UC_PATIENT_HOME_NOMINATED_PHARMACY",
+      "default_state": "off",
+      "rollout_states": [
+        "off",
+        "internal_only",
+        "cohort_limited",
+        "ready_for_live"
+      ],
+      "kill_switch_name": "pds.global.kill_switch",
+      "kill_switch_scope": "all_pds_calls_and_rendering",
+      "why_optional_not_required": "Local matching and governed IdentityBinding remain the baseline path even when the flag is on.",
+      "activation_requirements": [
+        "source_traceable_use_case",
+        "explicit_legal_basis",
+        "current_hazard_and_risk_logs",
+        "wrong_patient_mitigation_pack"
+      ],
+      "rollback_triggers": [
+        "wrong_patient_signal_rate_exceeds_threshold",
+        "p95_latency_breach",
+        "stale_or_contradictory_rate_exceeds_threshold",
+        "feature_flag_scope_drift_detected"
+      ],
+      "route_binding_notes": "Included because the public PDS guidance explicitly references nominated pharmacy in patient-facing national apps."
+    },
+    {
+      "flag_name": "pds.healthcare_worker.route.staff_workspace_trace",
+      "route_family_ref": "rf_staff_workspace",
+      "pds_use_case_id": "PDS_UC_STAFF_DIRECT_CARE_TRACE",
+      "default_state": "internal_only",
+      "rollout_states": [
+        "off",
+        "internal_only",
+        "cohort_limited",
+        "ready_for_live"
+      ],
+      "kill_switch_name": "pds.global.kill_switch",
+      "kill_switch_scope": "all_pds_calls_and_rendering",
+      "why_optional_not_required": "Local matching and governed IdentityBinding remain the baseline path even when the flag is on.",
+      "activation_requirements": [
+        "source_traceable_use_case",
+        "explicit_legal_basis",
+        "current_hazard_and_risk_logs",
+        "wrong_patient_mitigation_pack"
+      ],
+      "rollback_triggers": [
+        "wrong_patient_signal_rate_exceeds_threshold",
+        "p95_latency_breach",
+        "stale_or_contradictory_rate_exceeds_threshold",
+        "feature_flag_scope_drift_detected"
+      ],
+      "route_binding_notes": "This row is bounded to direct-care-style identity review, not generic staff browsing."
+    },
+    {
+      "flag_name": "pds.healthcare_worker.route.support_identity_review",
+      "route_family_ref": "rf_support_ticket_workspace",
+      "pds_use_case_id": "PDS_UC_SUPPORT_IDENTITY_REVIEW",
+      "default_state": "internal_only",
+      "rollout_states": [
+        "off",
+        "internal_only",
+        "cohort_limited",
+        "ready_for_live"
+      ],
+      "kill_switch_name": "pds.global.kill_switch",
+      "kill_switch_scope": "all_pds_calls_and_rendering",
+      "why_optional_not_required": "Local matching and governed IdentityBinding remain the baseline path even when the flag is on.",
+      "activation_requirements": [
+        "source_traceable_use_case",
+        "explicit_legal_basis",
+        "current_hazard_and_risk_logs",
+        "wrong_patient_mitigation_pack"
+      ],
+      "rollback_triggers": [
+        "wrong_patient_signal_rate_exceeds_threshold",
+        "p95_latency_breach",
+        "stale_or_contradictory_rate_exceeds_threshold",
+        "feature_flag_scope_drift_detected"
+      ],
+      "route_binding_notes": "This use case exists to prove safe support behavior, not to widen routine support visibility."
+    },
+    {
+      "flag_name": "pds.healthcare_worker_update.route.support_contact_correction",
+      "route_family_ref": "rf_support_ticket_workspace",
+      "pds_use_case_id": "PDS_UC_SUPPORT_CONTACT_CORRECTION",
+      "default_state": "off",
+      "rollout_states": [
+        "off",
+        "internal_only",
+        "cohort_limited",
+        "ready_for_live"
+      ],
+      "kill_switch_name": "pds.global.kill_switch",
+      "kill_switch_scope": "all_pds_calls_and_rendering",
+      "why_optional_not_required": "Local matching and governed IdentityBinding remain the baseline path even when the flag is on.",
+      "activation_requirements": [
+        "source_traceable_use_case",
+        "explicit_legal_basis",
+        "current_hazard_and_risk_logs",
+        "wrong_patient_mitigation_pack"
+      ],
+      "rollback_triggers": [
+        "wrong_patient_signal_rate_exceeds_threshold",
+        "p95_latency_breach",
+        "stale_or_contradictory_rate_exceeds_threshold",
+        "feature_flag_scope_drift_detected"
+      ],
+      "route_binding_notes": "This row stays future-only and is simulated without real write capability in the mock service."
+    },
+    {
+      "flag_name": "pds.healthcare_worker.route.governance_trace",
+      "route_family_ref": "rf_governance_shell",
+      "pds_use_case_id": "PDS_UC_GOVERNANCE_TRACE",
+      "default_state": "internal_only",
+      "rollout_states": [
+        "off",
+        "internal_only",
+        "cohort_limited",
+        "ready_for_live"
+      ],
+      "kill_switch_name": "pds.global.kill_switch",
+      "kill_switch_scope": "all_pds_calls_and_rendering",
+      "why_optional_not_required": "Local matching and governed IdentityBinding remain the baseline path even when the flag is on.",
+      "activation_requirements": [
+        "source_traceable_use_case",
+        "explicit_legal_basis",
+        "current_hazard_and_risk_logs",
+        "wrong_patient_mitigation_pack"
+      ],
+      "rollback_triggers": [
+        "wrong_patient_signal_rate_exceeds_threshold",
+        "p95_latency_breach",
+        "stale_or_contradictory_rate_exceeds_threshold",
+        "feature_flag_scope_drift_detected"
+      ],
+      "route_binding_notes": "This route is investigation-specific and does not authorise routine operational use."
+    },
+    {
+      "flag_name": "pds.healthcare_worker_update.route.governance_correction",
+      "route_family_ref": "rf_governance_shell",
+      "pds_use_case_id": "PDS_UC_GOVERNANCE_UPDATE",
+      "default_state": "off",
+      "rollout_states": [
+        "off",
+        "internal_only",
+        "cohort_limited",
+        "ready_for_live"
+      ],
+      "kill_switch_name": "pds.global.kill_switch",
+      "kill_switch_scope": "all_pds_calls_and_rendering",
+      "why_optional_not_required": "Local matching and governed IdentityBinding remain the baseline path even when the flag is on.",
+      "activation_requirements": [
+        "source_traceable_use_case",
+        "explicit_legal_basis",
+        "current_hazard_and_risk_logs",
+        "wrong_patient_mitigation_pack"
+      ],
+      "rollback_triggers": [
+        "wrong_patient_signal_rate_exceeds_threshold",
+        "p95_latency_breach",
+        "stale_or_contradictory_rate_exceeds_threshold",
+        "feature_flag_scope_drift_detected"
+      ],
+      "route_binding_notes": "Explicitly future-only and gated by manual approval plus rollback rehearsal."
+    },
+    {
+      "flag_name": "pds.application_restricted.route.requests_pharmacy_compare",
+      "route_family_ref": "rf_patient_requests",
+      "pds_use_case_id": "PDS_UC_REQUESTS_PHARMACY_COMPARE",
+      "default_state": "off",
+      "rollout_states": [
+        "off",
+        "internal_only",
+        "cohort_limited",
+        "ready_for_live"
+      ],
+      "kill_switch_name": "pds.global.kill_switch",
+      "kill_switch_scope": "all_pds_calls_and_rendering",
+      "why_optional_not_required": "Local matching and governed IdentityBinding remain the baseline path even when the flag is on.",
+      "activation_requirements": [
+        "source_traceable_use_case",
+        "explicit_legal_basis",
+        "current_hazard_and_risk_logs",
+        "wrong_patient_mitigation_pack"
+      ],
+      "rollback_triggers": [
+        "wrong_patient_signal_rate_exceeds_threshold",
+        "p95_latency_breach",
+        "stale_or_contradictory_rate_exceeds_threshold",
+        "feature_flag_scope_drift_detected"
+      ],
+      "route_binding_notes": "Included to preserve the blueprint separation between route-local pharmacy truth and wider demographic facts."
+    },
+    {
+      "flag_name": "pds.global.kill_switch",
+      "route_family_ref": "all_flagged_routes",
+      "pds_use_case_id": "PDS_GLOBAL",
+      "default_state": "internal_only",
+      "rollout_states": [
+        "internal_only"
+      ],
+      "kill_switch_name": "pds.global.kill_switch",
+      "kill_switch_scope": "all_pds_calls_and_rendering",
+      "why_optional_not_required": "The kill switch exists so PDS can be removed instantly without taking baseline identity or request flows down.",
+      "activation_requirements": [
+        "operator_access_to_flag_console"
+      ],
+      "rollback_triggers": [
+        "manual_operator_trigger",
+        "provider_outage",
+        "policy_or_legal_basis_withdrawn",
+        "route_specific_harm_signal"
+      ],
+      "route_binding_notes": "This flag never establishes a live route by itself; it only removes optional capability."
+    }
+  ],
+  "onboarding_fields": [
+    {
+      "field_id": "fld_org_name",
+      "section": "organisation",
+      "label": "Organisation name",
+      "origin_class": "derived_dossier",
+      "official_basis": "digital onboarding identifies the connecting organisation",
+      "expected_value": "Vecells placeholder legal entity",
+      "gate_refs": [
+        "PDS_LIVE_GATE_USE_CASE_TRACEABLE"
+      ]
+    },
+    {
+      "field_id": "fld_org_ods_code",
+      "section": "organisation",
+      "label": "Organisation ODS code",
+      "origin_class": "derived_dossier",
+      "official_basis": "onboarding and network approvals are organisation specific",
+      "expected_value": "ORG-PLACEHOLDER",
+      "gate_refs": [
+        "PDS_LIVE_GATE_USE_CASE_TRACEABLE"
+      ]
+    },
+    {
+      "field_id": "fld_product_name",
+      "section": "product",
+      "label": "Product name",
+      "origin_class": "derived_dossier",
+      "official_basis": "digital onboarding and SCAL both capture product identity",
+      "expected_value": "Vecells PDS Optional Enrichment Adapter",
+      "gate_refs": [
+        "PDS_LIVE_GATE_USE_CASE_TRACEABLE"
+      ]
+    },
+    {
+      "field_id": "fld_product_summary",
+      "section": "product",
+      "label": "Product summary",
+      "origin_class": "derived_dossier",
+      "official_basis": "use case and legal basis must be explicit, not vague narrative",
+      "expected_value": "Optional supporting demographic enrichment behind default-off route flags.",
+      "gate_refs": [
+        "PDS_LIVE_GATE_USE_CASE_TRACEABLE"
+      ]
+    },
+    {
+      "field_id": "fld_purpose_and_use_case",
+      "section": "use_case",
+      "label": "Purpose and use case",
+      "origin_class": "official_guidance_requirement",
+      "official_basis": "official onboarding expects purpose and use case to justify access",
+      "expected_value": "One or more bounded route-family use cases from pds_access_mode_matrix.csv",
+      "gate_refs": [
+        "PDS_LIVE_GATE_USE_CASE_TRACEABLE"
+      ]
+    },
+    {
+      "field_id": "fld_legal_basis_summary",
+      "section": "use_case",
+      "label": "Legal basis summary",
+      "origin_class": "official_guidance_requirement",
+      "official_basis": "the access-data guidance says requests are assessed case by case and legal review can be required",
+      "expected_value": "Direct care or patient self-service legal basis per access row",
+      "gate_refs": [
+        "LIVE_GATE_PDS_LEGAL_BASIS_APPROVED"
+      ]
+    },
+    {
+      "field_id": "fld_route_family_refs",
+      "section": "use_case",
+      "label": "Route family refs",
+      "origin_class": "derived_dossier",
+      "official_basis": "Vecells must bind each PDS use case to exact route families",
+      "expected_value": "rf_patient_secure_link_recovery; rf_patient_home; rf_staff_workspace; rf_support_ticket_workspace; rf_governance_shell; rf_patient_requests",
+      "gate_refs": [
+        "PDS_LIVE_GATE_USE_CASE_TRACEABLE"
+      ]
+    },
+    {
+      "field_id": "fld_access_modes_used",
+      "section": "access_model",
+      "label": "Access modes used",
+      "origin_class": "official_guidance_requirement",
+      "official_basis": "the onboarding support page requires one risk log per access mode used",
+      "expected_value": "application_restricted; healthcare_worker; healthcare_worker_with_update; patient_access",
+      "gate_refs": [
+        "PDS_LIVE_GATE_ACCESS_MODE_SELECTED"
+      ]
+    },
+    {
+      "field_id": "fld_secure_network_expectation",
+      "section": "access_model",
+      "label": "Secure network connection expectation",
+      "origin_class": "official_guidance_requirement",
+      "official_basis": "the access-data page notes secure-network expectations for smartcard-backed use",
+      "expected_value": "HSCN or equivalent planned where smartcard or worker access is used",
+      "gate_refs": [
+        "PDS_LIVE_GATE_SECURE_NETWORK_PATH_PLANNED"
+      ]
+    },
+    {
+      "field_id": "fld_access_method_choice",
+      "section": "access_model",
+      "label": "Access method choice",
+      "origin_class": "official_guidance_requirement",
+      "official_basis": "official access guidance expects the access method to be justified",
+      "expected_value": "PDS FHIR only; no SMSP fallback hidden inside this task",
+      "gate_refs": [
+        "PDS_LIVE_GATE_ACCESS_MODE_SELECTED"
+      ]
+    },
+    {
+      "field_id": "fld_why_local_matching_not_enough",
+      "section": "identity",
+      "label": "Why local matching alone is not enough",
+      "origin_class": "derived_dossier",
+      "official_basis": "prompt 027 requires this to be structured per row",
+      "expected_value": "Exact per-row rationale from pds_access_mode_matrix.csv",
+      "gate_refs": [
+        "PDS_LIVE_GATE_USE_CASE_TRACEABLE"
+      ]
+    },
+    {
+      "field_id": "fld_identity_binding_separation",
+      "section": "identity",
+      "label": "Identity binding separation statement",
+      "origin_class": "derived_dossier",
+      "official_basis": "Vecells identity law",
+      "expected_value": "PDS lookup never writes Request.patientRef directly; IdentityBindingAuthority only.",
+      "gate_refs": [
+        "PDS_LIVE_GATE_WRONG_PATIENT_PLAN_CURRENT"
+      ]
+    },
+    {
+      "field_id": "fld_wrong_patient_controls",
+      "section": "identity",
+      "label": "Wrong-patient mitigation controls",
+      "origin_class": "official_guidance_requirement",
+      "official_basis": "risk-based assurance and hazard mitigation must be evidenced",
+      "expected_value": "freeze, review, audit, masking, rollback, no direct bind",
+      "gate_refs": [
+        "PDS_LIVE_GATE_WRONG_PATIENT_PLAN_CURRENT"
+      ]
+    },
+    {
+      "field_id": "fld_hazard_log_ref",
+      "section": "safety",
+      "label": "Hazard log reference",
+      "origin_class": "official_guidance_requirement",
+      "official_basis": "hazard log upload is mandatory in digital onboarding",
+      "expected_value": "ART_PDS_HAZARD_LOG",
+      "gate_refs": [
+        "PDS_LIVE_GATE_HAZARD_LOG_CURRENT"
+      ]
+    },
+    {
+      "field_id": "fld_risk_log_refs",
+      "section": "safety",
+      "label": "Connecting systems risk log refs",
+      "origin_class": "official_guidance_requirement",
+      "official_basis": "one risk log is required for each access mode used",
+      "expected_value": "Access-mode-specific artifact refs from pds_hazard_risk_artifact_matrix.csv",
+      "gate_refs": [
+        "PDS_LIVE_GATE_RISK_LOGS_CURRENT"
+      ]
+    },
+    {
+      "field_id": "fld_mitigation_test_plan",
+      "section": "safety",
+      "label": "Mitigation evidence test plan",
+      "origin_class": "official_guidance_requirement",
+      "official_basis": "the test team arranges evidence testing of the listed mitigations",
+      "expected_value": "Browser and API rehearsal suite against each mitigation class",
+      "gate_refs": [
+        "PDS_LIVE_GATE_RISK_LOGS_CURRENT"
+      ]
+    },
+    {
+      "field_id": "fld_feature_flag_default_off",
+      "section": "rollout",
+      "label": "Feature-flag default-off statement",
+      "origin_class": "derived_dossier",
+      "official_basis": "prompt 027 mandatory gap closure",
+      "expected_value": "All PDS route flags stay off or internal_only until live gates clear",
+      "gate_refs": [
+        "PDS_LIVE_GATE_ROUTE_FLAG_DEFAULT_OFF"
+      ]
+    },
+    {
+      "field_id": "fld_rollout_cohort",
+      "section": "rollout",
+      "label": "Rollout cohort and blast radius",
+      "origin_class": "derived_dossier",
+      "official_basis": "route family and cohort scoping are required to keep PDS optional and reversible",
+      "expected_value": "tenant + route + environment cohort definition",
+      "gate_refs": [
+        "PDS_LIVE_GATE_ROUTE_FLAG_DEFAULT_OFF"
+      ]
+    },
+    {
+      "field_id": "fld_kill_switch_plan",
+      "section": "rollout",
+      "label": "Kill switch and rollback plan",
+      "origin_class": "derived_dossier",
+      "official_basis": "prompt 027 requires rollback conditions and kill switches",
+      "expected_value": "pds.global.kill_switch plus per-route default-off rollback",
+      "gate_refs": [
+        "PDS_LIVE_GATE_ROLLBACK_REHEARSED"
+      ]
+    },
+    {
+      "field_id": "fld_named_approver",
+      "section": "approvals",
+      "label": "Named approver",
+      "origin_class": "derived_dossier",
+      "official_basis": "real onboarding remains blocked without a named approver",
+      "expected_value": "ROLE_INTEROPERABILITY_LEAD",
+      "gate_refs": [
+        "PDS_LIVE_GATE_NAMED_APPROVER_PRESENT"
+      ]
+    },
+    {
+      "field_id": "fld_environment_target",
+      "section": "approvals",
+      "label": "Environment target",
+      "origin_class": "derived_dossier",
+      "official_basis": "live gates require an exact environment target",
+      "expected_value": "sandbox or integration equivalent",
+      "gate_refs": [
+        "PDS_LIVE_GATE_ENVIRONMENT_TARGET_PRESENT"
+      ]
+    },
+    {
+      "field_id": "fld_secret_capture_plan",
+      "section": "approvals",
+      "label": "Secret capture plan",
+      "origin_class": "derived_dossier",
+      "official_basis": "seq_023 already freezes principal and certificate ownership rules",
+      "expected_value": "ACC_PDS_SANDPIT_PRINCIPAL; KEY_PDS_SANDPIT_CERT via dual control",
+      "gate_refs": [
+        "LIVE_GATE_PDS_LEGAL_BASIS_APPROVED"
+      ]
+    },
+    {
+      "field_id": "fld_dspt_and_security_posture",
+      "section": "assurance",
+      "label": "DSPT and security posture",
+      "origin_class": "official_guidance_requirement",
+      "official_basis": "SCAL and digital onboarding both require IG and security evidence",
+      "expected_value": "current DSPT posture plus vault-backed secret plan",
+      "gate_refs": [
+        "PDS_LIVE_GATE_RISK_LOGS_CURRENT"
+      ]
+    },
+    {
+      "field_id": "fld_cloud_storage_posture",
+      "section": "assurance",
+      "label": "Cloud and storage posture",
+      "origin_class": "derived_dossier",
+      "official_basis": "official access pages warn that design details can be impacted by onboarding requirements",
+      "expected_value": "No real demographic fixtures in repo; masked logs only; audited storage classes only.",
+      "gate_refs": [
+        "PDS_LIVE_GATE_RISK_LOGS_CURRENT"
+      ]
+    },
+    {
+      "field_id": "fld_partner_onboarding_contact",
+      "section": "assurance",
+      "label": "Partner onboarding contact",
+      "origin_class": "official_guidance_requirement",
+      "official_basis": "SCAL and partner onboarding support routes are explicit on the official pages",
+      "expected_value": "ROLE_INTEROPERABILITY_LEAD",
+      "gate_refs": [
+        "PDS_LIVE_GATE_USE_CASE_TRACEABLE"
+      ]
+    }
+  ],
+  "hazard_artifacts": [
+    {
+      "artifact_id": "ART_PDS_HAZARD_LOG",
+      "artifact_type": "hazard_log",
+      "access_modes": "application_restricted;healthcare_worker;healthcare_worker_with_update;patient_access",
+      "route_family_refs": "all_pds_routes",
+      "owner_role": "ROLE_MANUFACTURER_CSO",
+      "freshness_rule": "review_on_every_use_case_or_access_mode_change",
+      "source_refs": "official_pds_onboarding_support_info; HZ_WRONG_PATIENT_BINDING",
+      "gate_refs": "PDS_LIVE_GATE_HAZARD_LOG_CURRENT",
+      "notes": "Use the official PDS hazard log template or an equivalent that covers the same hazards."
+    },
+    {
+      "artifact_id": "ART_PDS_RISKLOG_APPLICATION_RESTRICTED",
+      "artifact_type": "connecting_systems_risk_log",
+      "access_modes": "application_restricted",
+      "route_family_refs": "rf_patient_secure_link_recovery;rf_patient_requests",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "freshness_rule": "current_for_each_access_mode_in_use",
+      "source_refs": "official_pds_onboarding_support_info",
+      "gate_refs": "PDS_LIVE_GATE_RISK_LOGS_CURRENT",
+      "notes": "Required because the official onboarding support page publishes a dedicated template for application-restricted mode."
+    },
+    {
+      "artifact_id": "ART_PDS_RISKLOG_HEALTHCARE_WORKER",
+      "artifact_type": "connecting_systems_risk_log",
+      "access_modes": "healthcare_worker",
+      "route_family_refs": "rf_staff_workspace;rf_support_ticket_workspace;rf_governance_shell",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "freshness_rule": "current_for_each_access_mode_in_use",
+      "source_refs": "official_pds_onboarding_support_info; official_pds_integrated_products",
+      "gate_refs": "PDS_LIVE_GATE_RISK_LOGS_CURRENT",
+      "notes": "Normalised to the read-only worker class even where the roster says 'healthcare worker mode without update'."
+    },
+    {
+      "artifact_id": "ART_PDS_RISKLOG_HEALTHCARE_WORKER_UPDATE",
+      "artifact_type": "connecting_systems_risk_log",
+      "access_modes": "healthcare_worker_with_update",
+      "route_family_refs": "rf_support_ticket_workspace;rf_governance_shell",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "freshness_rule": "current_for_each_access_mode_in_use",
+      "source_refs": "official_pds_onboarding_support_info; official_pds_integrated_products",
+      "gate_refs": "PDS_LIVE_GATE_RISK_LOGS_CURRENT; PDS_LIVE_GATE_ALLOW_REAL_PROVIDER_MUTATION",
+      "notes": "Update-capable risk log is required before any write-like rehearsal can move beyond simulated mode."
+    },
+    {
+      "artifact_id": "ART_PDS_RISKLOG_PATIENT_ACCESS",
+      "artifact_type": "connecting_systems_risk_log",
+      "access_modes": "patient_access",
+      "route_family_refs": "rf_patient_home",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "freshness_rule": "current_for_each_access_mode_in_use",
+      "source_refs": "official_pds_onboarding_support_info; official_pds_integration_guidance",
+      "gate_refs": "PDS_LIVE_GATE_RISK_LOGS_CURRENT; PDS_LIVE_GATE_ALLOW_REAL_PROVIDER_MUTATION",
+      "notes": "Patient access is explicitly current in the official roster and integration guidance, but remains future-only in Vecells."
+    },
+    {
+      "artifact_id": "ART_PDS_LEGAL_BASIS_DOSSIER",
+      "artifact_type": "legal_basis_dossier",
+      "access_modes": "all_selected_modes",
+      "route_family_refs": "all_pds_routes",
+      "owner_role": "ROLE_DPO",
+      "freshness_rule": "refresh_on_scope_or_route_change",
+      "source_refs": "official_access_data_on_pds; LIVE_GATE_PDS_LEGAL_BASIS_APPROVED",
+      "gate_refs": "LIVE_GATE_PDS_LEGAL_BASIS_APPROVED",
+      "notes": "Structured route-family legal basis fields prevent vague narrative approval."
+    },
+    {
+      "artifact_id": "ART_PDS_WRONG_PATIENT_MITIGATION_PLAN",
+      "artifact_type": "wrong_patient_mitigation",
+      "access_modes": "all_selected_modes",
+      "route_family_refs": "all_pds_routes",
+      "owner_role": "ROLE_MANUFACTURER_CSO",
+      "freshness_rule": "refresh_on_identity_or_repair_policy_change",
+      "source_refs": "HZ_WRONG_PATIENT_BINDING; RISK_STATE_004",
+      "gate_refs": "PDS_LIVE_GATE_WRONG_PATIENT_PLAN_CURRENT",
+      "notes": "Must prove no lookup can shortcut IdentityBindingAuthority or identity repair."
+    },
+    {
+      "artifact_id": "ART_PDS_ROUTE_FLAG_APPROVAL",
+      "artifact_type": "feature_flag_approval",
+      "access_modes": "all_selected_modes",
+      "route_family_refs": "all_pds_routes",
+      "owner_role": "ROLE_GOVERNANCE_LEAD",
+      "freshness_rule": "refresh_on_tenant_or_route_blast_radius_change",
+      "source_refs": "prompt/027.md",
+      "gate_refs": "PDS_LIVE_GATE_ROUTE_FLAG_DEFAULT_OFF",
+      "notes": "Each route-family flag stays default-off or internal-only until this approval exists."
+    },
+    {
+      "artifact_id": "ART_PDS_SECURE_NETWORK_PLAN",
+      "artifact_type": "network_connectivity_plan",
+      "access_modes": "healthcare_worker;healthcare_worker_with_update",
+      "route_family_refs": "rf_staff_workspace;rf_support_ticket_workspace;rf_governance_shell",
+      "owner_role": "ROLE_PLATFORM_GOVERNANCE_LEAD",
+      "freshness_rule": "refresh_on_auth_pattern_or_network_path_change",
+      "source_refs": "official_access_data_on_pds",
+      "gate_refs": "PDS_LIVE_GATE_SECURE_NETWORK_PATH_PLANNED",
+      "notes": "Worker modes require an explicit secure-network and strong-auth posture plan."
+    },
+    {
+      "artifact_id": "ART_PDS_EVIDENCE_TEST_PLAN",
+      "artifact_type": "mitigation_evidence_test_plan",
+      "access_modes": "all_selected_modes",
+      "route_family_refs": "all_pds_routes",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "freshness_rule": "refresh_on_new_risk_log_version",
+      "source_refs": "official_pds_onboarding_support_info",
+      "gate_refs": "PDS_LIVE_GATE_RISK_LOGS_CURRENT",
+      "notes": "The official onboarding support page says the test team arranges evidence testing of the mitigations."
+    },
+    {
+      "artifact_id": "ART_PDS_ROLLBACK_REHEARSAL",
+      "artifact_type": "rollback_rehearsal",
+      "access_modes": "all_selected_modes",
+      "route_family_refs": "all_pds_routes",
+      "owner_role": "ROLE_RELEASE_MANAGER",
+      "freshness_rule": "refresh_each_release_candidate",
+      "source_refs": "prompt/027.md; docs/external/21_mock_first_vs_actual_later_strategy.md",
+      "gate_refs": "PDS_LIVE_GATE_ROLLBACK_REHEARSED",
+      "notes": "Kill switch plus degraded fallback must be rehearsed before any real onboarding is attempted."
+    },
+    {
+      "artifact_id": "ART_PDS_SECRET_CAPTURE_PLAN",
+      "artifact_type": "secret_capture_plan",
+      "access_modes": "application_restricted;healthcare_worker;healthcare_worker_with_update;patient_access",
+      "route_family_refs": "all_pds_routes",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "freshness_rule": "refresh_on_provider_material_change",
+      "source_refs": "seq_023 secret ownership outputs",
+      "gate_refs": "LIVE_GATE_PDS_LEGAL_BASIS_APPROVED",
+      "notes": "Principal and certificate capture remain blocked placeholders until legal basis and feature-flag approval clear."
+    },
+    {
+      "artifact_id": "ART_PDS_DATA_HANDLING_NOTE",
+      "artifact_type": "data_handling_rule",
+      "access_modes": "all_selected_modes",
+      "route_family_refs": "all_pds_routes",
+      "owner_role": "ROLE_DPO",
+      "freshness_rule": "refresh_on retention or masking policy update",
+      "source_refs": "seq_010 data classification outputs; prompt/027.md",
+      "gate_refs": "PDS_LIVE_GATE_RISK_LOGS_CURRENT",
+      "notes": "No real NHS numbers or demographic fixtures in repo; logs and screenshots must remain masked."
+    }
+  ],
+  "live_gate_pack": {
+    "current_submission_posture": "blocked",
+    "required_env": [
+      "PDS_NAMED_APPROVER",
+      "PDS_ENVIRONMENT_TARGET",
+      "PDS_ORGANISATION_ODS",
+      "PDS_USE_CASE_OWNER",
+      "ALLOW_REAL_PROVIDER_MUTATION"
+    ],
+    "selector_map": {
+      "base_profile": {
+        "mode_toggle_actual": "[data-testid='mode-toggle-actual']",
+        "page_tab_use_case": "[data-testid='page-tab-Use_Case_and_Legal_Basis']",
+        "page_tab_rollback": "[data-testid='page-tab-Rollback_and_Kill_Switches']",
+        "route_button": "[data-testid='route-button-rf_patient_secure_link_recovery']",
+        "field_approver": "[data-testid='actual-field-named-approver']",
+        "field_environment": "[data-testid='actual-field-environment-target']",
+        "field_ods": "[data-testid='actual-field-org-ods']",
+        "field_owner": "[data-testid='actual-field-use-case-owner']",
+        "field_allow_mutation": "[data-testid='actual-field-allow-mutation']",
+        "final_submit": "[data-testid='actual-submit-button']",
+        "hazard_row": "[data-testid='artifact-row-ART_PDS_HAZARD_LOG']",
+        "risk_row": "[data-testid='artifact-row-ART_PDS_RISKLOG_APPLICATION_RESTRICTED']"
+      }
+    },
+    "live_gates": [
+      {
+        "gate_id": "GATE_EXTERNAL_TO_FOUNDATION",
+        "label": "External readiness gate",
+        "status": "blocked",
+        "reason": "Planning and architecture foundation are frozen enough to open external-readiness work, but actual Phase 0 entry remains withheld because the current-baseline external-readiness gate is still blocked by onboarding, assurance, and simulator-freeze dependencies."
+      },
+      {
+        "gate_id": "LIVE_GATE_PDS_LEGAL_BASIS_APPROVED",
+        "label": "PDS legal basis and feature-flag approval",
+        "status": "blocked",
+        "reason": "Inherited from seq_023: legal basis, tenant feature flag, and enrichment posture remain pending."
+      },
+      {
+        "gate_id": "PDS_LIVE_GATE_USE_CASE_TRACEABLE",
+        "label": "Use case is source-traceable and route-bound",
+        "status": "pass",
+        "reason": "This pack structures each use case with route-family, access-mode, and fallback law."
+      },
+      {
+        "gate_id": "PDS_LIVE_GATE_ROUTE_FLAG_DEFAULT_OFF",
+        "label": "Route flags remain default-off or internal-only",
+        "status": "pass",
+        "reason": "All route rows are encoded as off or internal_only in the registry."
+      },
+      {
+        "gate_id": "PDS_LIVE_GATE_ACCESS_MODE_SELECTED",
+        "label": "Exact access mode selected and justified",
+        "status": "review_required",
+        "reason": "Mode choices are drafted, but official onboarding is blocked until a real use-case subset is approved."
+      },
+      {
+        "gate_id": "PDS_LIVE_GATE_HAZARD_LOG_CURRENT",
+        "label": "Hazard log is current",
+        "status": "review_required",
+        "reason": "The artifact plan exists, but no live hazard-log pack is approved yet."
+      },
+      {
+        "gate_id": "PDS_LIVE_GATE_RISK_LOGS_CURRENT",
+        "label": "Risk logs are current for each access mode used",
+        "status": "review_required",
+        "reason": "The official per-mode templates are mapped, but no signed live set exists yet."
+      },
+      {
+        "gate_id": "PDS_LIVE_GATE_WRONG_PATIENT_PLAN_CURRENT",
+        "label": "Wrong-patient mitigation plan is current",
+        "status": "review_required",
+        "reason": "The mitigation controls are encoded but still need named approver sign-off for any real onboarding."
+      },
+      {
+        "gate_id": "PDS_LIVE_GATE_SECURE_NETWORK_PATH_PLANNED",
+        "label": "Secure-network path is planned where worker access is used",
+        "status": "review_required",
+        "reason": "Official guidance requires the network posture to be explicit for smartcard-backed worker use."
+      },
+      {
+        "gate_id": "PDS_LIVE_GATE_NAMED_APPROVER_PRESENT",
+        "label": "Named approver is present",
+        "status": "blocked",
+        "reason": "Real provider work remains blocked without a named approver input."
+      },
+      {
+        "gate_id": "PDS_LIVE_GATE_ENVIRONMENT_TARGET_PRESENT",
+        "label": "Environment target is present",
+        "status": "blocked",
+        "reason": "No real sandbox or integration target should be attempted without an exact environment target."
+      },
+      {
+        "gate_id": "PDS_LIVE_GATE_ROLLBACK_REHEARSED",
+        "label": "Rollback and kill switch have been rehearsed",
+        "status": "review_required",
+        "reason": "The rollback model is encoded in the studio, but a named release rehearsal is still required."
+      },
+      {
+        "gate_id": "PDS_LIVE_GATE_ALLOW_REAL_PROVIDER_MUTATION",
+        "label": "Real provider mutation is explicitly enabled",
+        "status": "blocked",
+        "reason": "Fail-closed by default until ALLOW_REAL_PROVIDER_MUTATION=true is set."
+      }
+    ]
+  },
+  "mock_service": {
+    "base_url_default": "http://127.0.0.1:4176",
+    "access_profiles": [
+      {
+        "access_mode": "application_restricted",
+        "aliases": [
+          "Application Restricted",
+          "Application-restricted"
+        ],
+        "supports_read": "yes",
+        "supports_update": "no"
+      },
+      {
+        "access_mode": "healthcare_worker",
+        "aliases": [
+          "Healthcare worker",
+          "Healthcare Worker",
+          "Healthcare worker mode without update"
+        ],
+        "supports_read": "yes",
+        "supports_update": "no"
+      },
+      {
+        "access_mode": "healthcare_worker_with_update",
+        "aliases": [
+          "Healthcare worker with update",
+          "Health Worker Access with Update"
+        ],
+        "supports_read": "yes",
+        "supports_update": "yes"
+      },
+      {
+        "access_mode": "patient_access",
+        "aliases": [
+          "Patient access",
+          "Patient Access Mode"
+        ],
+        "supports_read": "yes",
+        "supports_update": "yes"
+      },
+      {
+        "access_mode": "other_if_officially_supported",
+        "aliases": [],
+        "supports_read": "yes",
+        "supports_update": "no"
+      }
+    ],
+    "patients": [
+      {
+        "patient_id": "pds_pt_meridian_001",
+        "match_key": "meridian-alex-1985",
+        "scenario_tags": [
+          "matched",
+          "partial_field_policy"
+        ],
+        "display_name": "Alex Meridian",
+        "birth_date": "1985-03-14",
+        "gender": "other",
+        "identifier_value": "VX-MOCK-001",
+        "address_line": "17 Atlas Quay",
+        "city": "Leeds",
+        "postcode": "VX1 4AA",
+        "telecom": "+44 7000 100001",
+        "registered_gp": "Riverside Practice",
+        "registered_gp_ods": "A12345",
+        "nominated_pharmacy": "Harbour Chemist",
+        "nominated_pharmacy_ods": "F12345",
+        "staleness_state": "current",
+        "contradiction_note": ""
+      },
+      {
+        "patient_id": "pds_pt_meridian_002",
+        "match_key": "meridian-alex-1985",
+        "scenario_tags": [
+          "ambiguous"
+        ],
+        "display_name": "Alex Meridian",
+        "birth_date": "1985-03-14",
+        "gender": "other",
+        "identifier_value": "VX-MOCK-002",
+        "address_line": "4 Beacon Street",
+        "city": "Leeds",
+        "postcode": "VX1 9ZZ",
+        "telecom": "+44 7000 100002",
+        "registered_gp": "North Signal Medical Centre",
+        "registered_gp_ods": "B54321",
+        "nominated_pharmacy": "North Signal Pharmacy",
+        "nominated_pharmacy_ods": "F54321",
+        "staleness_state": "current",
+        "contradiction_note": ""
+      },
+      {
+        "patient_id": "pds_pt_sable_003",
+        "match_key": "sable-jordan-1992",
+        "scenario_tags": [
+          "low_confidence"
+        ],
+        "display_name": "Jordan Sable",
+        "birth_date": "1992-11-08",
+        "gender": "female",
+        "identifier_value": "VX-MOCK-003",
+        "address_line": "91 Lattice Grove",
+        "city": "Hull",
+        "postcode": "VX2 3BC",
+        "telecom": "+44 7000 100003",
+        "registered_gp": "Harbour Lane Surgery",
+        "registered_gp_ods": "C13579",
+        "nominated_pharmacy": "Lattice Pharmacy",
+        "nominated_pharmacy_ods": "F24680",
+        "staleness_state": "current",
+        "contradiction_note": ""
+      },
+      {
+        "patient_id": "pds_pt_quarry_004",
+        "match_key": "quarry-casey-1978",
+        "scenario_tags": [
+          "stale_demographics"
+        ],
+        "display_name": "Casey Quarry",
+        "birth_date": "1978-06-29",
+        "gender": "male",
+        "identifier_value": "VX-MOCK-004",
+        "address_line": "2 Old Ferry Row",
+        "city": "York",
+        "postcode": "VX4 7PQ",
+        "telecom": "+44 7000 100004",
+        "registered_gp": "Stonebridge Practice",
+        "registered_gp_ods": "D97531",
+        "nominated_pharmacy": "Bridge Pharmacy",
+        "nominated_pharmacy_ods": "F86420",
+        "staleness_state": "expired_business_effective_date",
+        "contradiction_note": ""
+      },
+      {
+        "patient_id": "pds_pt_ember_005",
+        "match_key": "ember-riley-2001",
+        "scenario_tags": [
+          "contradictory_detail"
+        ],
+        "display_name": "Riley Ember",
+        "birth_date": "2001-01-17",
+        "gender": "female",
+        "identifier_value": "VX-MOCK-005",
+        "address_line": "48 Lantern Close",
+        "city": "Sheffield",
+        "postcode": "VX5 6LM",
+        "telecom": "+44 7000 100005",
+        "registered_gp": "Lantern Family Practice",
+        "registered_gp_ods": "E11223",
+        "nominated_pharmacy": "Lantern Pharmacy",
+        "nominated_pharmacy_ods": "F22110",
+        "staleness_state": "current",
+        "contradiction_note": "Local preference file says no nominated pharmacy, but PDS still carries one."
+      },
+      {
+        "patient_id": "pds_pt_harbour_006",
+        "match_key": "harbour-taylor-1989",
+        "scenario_tags": [
+          "matched",
+          "nominated_pharmacy_focus"
+        ],
+        "display_name": "Taylor Harbour",
+        "birth_date": "1989-04-03",
+        "gender": "male",
+        "identifier_value": "VX-MOCK-006",
+        "address_line": "8 Tidal Court",
+        "city": "Liverpool",
+        "postcode": "VX8 2PL",
+        "telecom": "+44 7000 100006",
+        "registered_gp": "Mersey Walk Practice",
+        "registered_gp_ods": "G10101",
+        "nominated_pharmacy": "Tidal Pharmacy",
+        "nominated_pharmacy_ods": "F99887",
+        "staleness_state": "current",
+        "contradiction_note": ""
+      }
+    ],
+    "scenarios": [
+      {
+        "scenario_id": "matched",
+        "label": "Matched",
+        "search_status": "200",
+        "read_status": "200",
+        "result_class": "matched",
+        "description": "Single high-confidence supporting demographic match."
+      },
+      {
+        "scenario_id": "ambiguous",
+        "label": "Ambiguous",
+        "search_status": "200",
+        "read_status": "409",
+        "result_class": "ambiguous",
+        "description": "Two plausible candidates; no durable binding change is allowed."
+      },
+      {
+        "scenario_id": "low_confidence",
+        "label": "Low confidence",
+        "search_status": "200",
+        "read_status": "200",
+        "result_class": "low_confidence",
+        "description": "One candidate is present but the corroboration margin stays below bind-safe thresholds."
+      },
+      {
+        "scenario_id": "no_match",
+        "label": "No match",
+        "search_status": "200",
+        "read_status": "404",
+        "result_class": "no_match",
+        "description": "No patient candidate satisfies the requested trace."
+      },
+      {
+        "scenario_id": "stale_demographics",
+        "label": "Stale demographics",
+        "search_status": "200",
+        "read_status": "200",
+        "result_class": "stale_demographics",
+        "description": "Returned record carries expired business-effective contact details."
+      },
+      {
+        "scenario_id": "contradictory_detail",
+        "label": "Contradictory detail",
+        "search_status": "200",
+        "read_status": "200",
+        "result_class": "contradictory_detail",
+        "description": "PDS data contradicts a local or route-specific fact and must be reviewed, not silently trusted."
+      },
+      {
+        "scenario_id": "partial_field_policy",
+        "label": "Partial field policy",
+        "search_status": "200",
+        "read_status": "200",
+        "result_class": "partial_field_policy",
+        "description": "The response deliberately omits some fields to simulate minimum-necessary or partial-data posture."
+      },
+      {
+        "scenario_id": "throttled",
+        "label": "Throttled",
+        "search_status": "429",
+        "read_status": "429",
+        "result_class": "throttled",
+        "description": "The adapter has crossed its safe retry budget and must fall back locally."
+      },
+      {
+        "scenario_id": "degraded",
+        "label": "Degraded",
+        "search_status": "503",
+        "read_status": "503",
+        "result_class": "degraded",
+        "description": "Upstream PDS is unavailable or degraded; Vecells must continue safely without enrichment."
+      }
+    ],
+    "logging_policy": {
+      "masking": "All identifiers are masked to first 2 and last 2 characters only.",
+      "retention": "In-memory only for rehearsal; no file persistence.",
+      "forbidden": [
+        "real_nhs_numbers",
+        "real_patient_demographics",
+        "unmasked_console_echo"
+      ]
+    }
+  },
+  "rollback_signals": [
+    {
+      "signal_id": "ROLLBACK_SIG_WRONG_PATIENT_SPIKE",
+      "signal": "wrong_patient_signal_rate_exceeds_threshold",
+      "threshold": "more than 1 unresolved signal in the latest cohort or any confirmed wrong-patient event"
+    },
+    {
+      "signal_id": "ROLLBACK_SIG_P95_LATENCY",
+      "signal": "p95_latency_breach",
+      "threshold": "more than 900ms across three consecutive monitoring windows"
+    },
+    {
+      "signal_id": "ROLLBACK_SIG_CONTRADICTION_RATE",
+      "signal": "stale_or_contradictory_rate_exceeds_threshold",
+      "threshold": "more than 5% contradictory-or-stale traces within the current cohort"
+    },
+    {
+      "signal_id": "ROLLBACK_SIG_SCOPE_DRIFT",
+      "signal": "feature_flag_scope_drift_detected",
+      "threshold": "Any route receives PDS rendering without an approved feature-flag tuple"
+    }
+  ],
+  "summary": {
+    "access_row_count": 9,
+    "feature_flag_count": 10,
+    "field_count": 25,
+    "official_guidance_field_count": 11,
+    "derived_field_count": 14,
+    "hazard_artifact_count": 13,
+    "live_gate_count": 13,
+    "blocked_live_gate_count": 5,
+    "review_live_gate_count": 6,
+    "pass_live_gate_count": 2,
+    "mock_patient_count": 6,
+    "scenario_count": 9
+  }
+} as const;

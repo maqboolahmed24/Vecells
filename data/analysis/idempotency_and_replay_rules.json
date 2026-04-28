@@ -1,0 +1,244 @@
+{
+  "baseline_id": "vecells_backend_runtime_baseline_v1",
+  "mission": "Encode the authoritative idempotency, replay, and collision-handling law for the chosen backend runtime baseline.",
+  "summary": {
+    "idempotency_strategy_count": 8,
+    "replay_rule_count": 8,
+    "effect_lane_count": 20,
+    "timer_family_count": 17,
+    "unresolved_gap_count": 0
+  },
+  "laws": [
+    "Every externally consequential mutation must originate from the durable outbox or an equivalent durable queue position tied back to CommandActionRecord.",
+    "Transport acknowledgement, webhook arrival, or provider acceptance is evidence only; user-visible success requires the governing proof upgrade and settlement chain.",
+    "Duplicate or reordered receipts may widen or supersede pending posture, but they may not mint a second business result.",
+    "Projection rebuild replays immutable canonical events under published contract versions; projections never become canonical truth during or after replay.",
+    "Raw PHI, transcripts, message bodies, phone numbers, and artifact contents move only by governed references or masked descriptors."
+  ],
+  "idempotency_strategies": [
+    {
+      "strategy_id": "IDEMP_MUTATION_COMMAND",
+      "label": "Command action dedupe",
+      "dedupe_key_formula": "commandActionId or canonical mutation tuple hash",
+      "applies_to": [
+        "svc_command_api",
+        "store_domain_transaction"
+      ],
+      "result_if_duplicate": "return existing CommandSettlementRecord",
+      "source_refs": [
+        "forensic-audit-findings.md#Finding 04 - No idempotency envelope on submit or replayed commands"
+      ]
+    },
+    {
+      "strategy_id": "IDEMP_ADAPTER_EFFECT",
+      "label": "Canonical adapter effect key",
+      "dedupe_key_formula": "H(actionRecordId || actionScope || governingObjectRef || expectedEffectSetHash || intentGeneration)",
+      "applies_to": [
+        "queue_command_outbox",
+        "svc_notification_worker",
+        "svc_integration_worker"
+      ],
+      "result_if_duplicate": "reuse the live AdapterDispatchAttempt",
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#6.6A Adapter outbox, inbox, and callback replay rule"
+      ]
+    },
+    {
+      "strategy_id": "IDEMP_ADAPTER_RECEIPT",
+      "label": "Receipt checkpoint replay key",
+      "dedupe_key_formula": "adapter correlation key plus ordering policy tuple",
+      "applies_to": [
+        "queue_adapter_receipt_inbox"
+      ],
+      "result_if_duplicate": "update the existing attempt or open ReplayCollisionReview",
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#6.6A Adapter outbox, inbox, and callback replay rule"
+      ]
+    },
+    {
+      "strategy_id": "IDEMP_BOOKING_COMMIT",
+      "label": "Booking commit idempotency",
+      "dedupe_key_formula": "BookingTransaction.idempotencyKey plus selected candidate hash",
+      "applies_to": [
+        "svc_integration_worker"
+      ],
+      "result_if_duplicate": "reuse the current BookingTransaction or authoritative confirmation gate",
+      "source_refs": [
+        "phase-4-the-booking-engine.md#BookingTransaction"
+      ]
+    },
+    {
+      "strategy_id": "IDEMP_PHARMACY_DISPATCH",
+      "label": "Pharmacy dispatch idempotency",
+      "dedupe_key_formula": "dispatchPlanHash plus packageHash plus provider scope",
+      "applies_to": [
+        "svc_integration_worker"
+      ],
+      "result_if_duplicate": "reuse the current PharmacyDispatchAttempt",
+      "source_refs": [
+        "phase-6-the-pharmacy-loop.md#PharmacyDispatchAttempt"
+      ]
+    },
+    {
+      "strategy_id": "IDEMP_PHARMACY_OUTCOME_ENVELOPE",
+      "label": "Pharmacy outcome evidence replay key",
+      "dedupe_key_formula": "rawPayloadHash || semanticPayloadHash || replayKey",
+      "applies_to": [
+        "svc_integration_worker"
+      ],
+      "result_if_duplicate": "duplicate_ignored or collision review",
+      "source_refs": [
+        "phase-6-the-pharmacy-loop.md#Outcome reconciliation algorithm"
+      ]
+    },
+    {
+      "strategy_id": "IDEMP_TIMER_WAKEUP_CURSOR",
+      "label": "Timer wakeup cursor",
+      "dedupe_key_formula": "checkpointRef plus dueAt plus monotone revision",
+      "applies_to": [
+        "svc_timer_orchestrator",
+        "store_timer_state"
+      ],
+      "result_if_duplicate": "recompute current checkpoint and no-op if unchanged",
+      "source_refs": [
+        "phase-3-the-human-checkpoint.md#MoreInfoReplyWindowCheckpoint"
+      ]
+    },
+    {
+      "strategy_id": "IDEMP_ASSURANCE_RESTORE_GATE",
+      "label": "Restore and assurance action gate",
+      "dedupe_key_formula": "selected anchor tuple plus restore intent hash",
+      "applies_to": [
+        "svc_assurance_worker"
+      ],
+      "result_if_duplicate": "return the current restore or review settlement",
+      "source_refs": [
+        "phase-9-the-assurance-ledger.md#9C. Audit explorer, break-glass review, and support replay"
+      ]
+    }
+  ],
+  "replay_rules": [
+    {
+      "rule_id": "REPLAY_CANONICAL_EVENT_APPEND_ONLY",
+      "label": "Canonical event append-only replay",
+      "legal_replay_outcomes": [
+        "append_only",
+        "observational"
+      ],
+      "collision_posture": "quarantine or publish new contract version"
+    },
+    {
+      "rule_id": "REPLAY_COMMAND_SETTLEMENT_CHAIN",
+      "label": "Command settlement replay",
+      "legal_replay_outcomes": [
+        "return existing settlement",
+        "supersede with governed settlement"
+      ],
+      "collision_posture": "open assurance review and do not mint second result"
+    },
+    {
+      "rule_id": "REPLAY_ADAPTER_RECEIPT_CHECKPOINT",
+      "label": "Adapter receipt checkpoint replay",
+      "legal_replay_outcomes": [
+        "exact_replay",
+        "semantic_replay",
+        "stale_ignore"
+      ],
+      "collision_posture": "ReplayCollisionReview"
+    },
+    {
+      "rule_id": "REPLAY_PROJECTION_FROM_EVENT_HISTORY",
+      "label": "Projection rebuild from immutable event history",
+      "legal_replay_outcomes": [
+        "route-safe rebuild",
+        "summary_only cutover",
+        "recovery_only cutover"
+      ],
+      "collision_posture": "block publication until compatibility digest matches"
+    },
+    {
+      "rule_id": "REPLAY_FHIR_MAPPING_FROM_DOMAIN_EVENTS",
+      "label": "FHIR rematerialization from published mapping contracts",
+      "legal_replay_outcomes": [
+        "derived version refresh",
+        "superseding derivative"
+      ],
+      "collision_posture": "publish new mapping contract and replay proof"
+    },
+    {
+      "rule_id": "REPLAY_PHARMACY_OUTCOME_RECONCILIATION",
+      "label": "Pharmacy outcome replay classification",
+      "legal_replay_outcomes": [
+        "duplicate_ignored",
+        "review_required",
+        "reopened_for_safety"
+      ],
+      "collision_posture": "case-local reconciliation gate blocks closure"
+    },
+    {
+      "rule_id": "REPLAY_SUPPORT_RESTORE_SCOPE",
+      "label": "Support replay and restore scope replay",
+      "legal_replay_outcomes": [
+        "masked_read_only",
+        "restore_allowed"
+      ],
+      "collision_posture": "restore gate remains closed until current scope tuple matches"
+    },
+    {
+      "rule_id": "REPLAY_TIMER_CHECKPOINT_RECOMPUTE",
+      "label": "Timer checkpoint recompute",
+      "legal_replay_outcomes": [
+        "no_change",
+        "new_deadline_revision",
+        "fallback_required"
+      ],
+      "collision_posture": "preserve latest monotone checkpoint only"
+    }
+  ],
+  "async_effect_matrix_refs": [
+    "EFFECT_DEP_NHS_LOGIN_RAIL",
+    "EFFECT_DEP_PDS_FHIR_ENRICHMENT",
+    "EFFECT_DEP_TELEPHONY_IVR_RECORDING_PROVIDER",
+    "EFFECT_DEP_TRANSCRIPTION_PROCESSING_PROVIDER",
+    "EFFECT_DEP_SMS_NOTIFICATION_PROVIDER",
+    "EFFECT_DEP_EMAIL_NOTIFICATION_PROVIDER",
+    "EFFECT_DEP_MALWARE_SCANNING_PROVIDER",
+    "EFFECT_DEP_IM1_PAIRING_PROGRAMME",
+    "EFFECT_DEP_GP_SYSTEM_SUPPLIER_PATHS",
+    "EFFECT_DEP_LOCAL_BOOKING_SUPPLIER_ADAPTERS",
+    "EFFECT_DEP_NETWORK_CAPACITY_PARTNER_FEEDS",
+    "EFFECT_DEP_CROSS_ORG_SECURE_MESSAGING_MESH",
+    "EFFECT_DEP_ORIGIN_PRACTICE_ACK_RAIL",
+    "EFFECT_DEP_PHARMACY_DIRECTORY_DOHS",
+    "EFFECT_DEP_PHARMACY_REFERRAL_TRANSPORT",
+    "EFFECT_DEP_PHARMACY_OUTCOME_OBSERVATION",
+    "EFFECT_DEP_PHARMACY_URGENT_RETURN_PROFESSIONAL_ROUTES",
+    "EFFECT_DEP_NHS_APP_EMBEDDED_CHANNEL_ECOSYSTEM",
+    "EFFECT_DEP_ASSISTIVE_MODEL_VENDOR_FAMILY",
+    "EFFECT_DEP_NHS_ASSURANCE_AND_STANDARDS_SOURCES"
+  ],
+  "timer_family_refs": [
+    "TIM_MORE_INFO_REPLY_WINDOW",
+    "TIM_MORE_INFO_REMINDERS",
+    "TIM_CALLBACK_EXPECTATION_WINDOW",
+    "TIM_CALLBACK_MISSED_WINDOW_REPAIR",
+    "TIM_BOOKING_CONFIRMATION_GATE",
+    "TIM_WAITLIST_DEADLINE",
+    "TIM_WAITLIST_OFFER_EXPIRY",
+    "TIM_HUB_CANDIDATE_REFRESH",
+    "TIM_HUB_PATIENT_CHOICE_EXPIRY",
+    "TIM_HUB_PRACTICE_ACK_DUE",
+    "TIM_HUB_COORDINATION_SLA",
+    "TIM_PHARMACY_DISPATCH_PROOF_DEADLINE",
+    "TIM_PHARMACY_OUTCOME_RECONCILIATION_WINDOW",
+    "TIM_PHARMACY_BOUNCE_BACK_REPAIR",
+    "TIM_SESSION_EXPIRY",
+    "TIM_ACCESS_GRANT_EXPIRY",
+    "TIM_SECURE_LINK_RECOVERY_EXPIRY"
+  ],
+  "source_refs": [
+    "phase-0-the-foundation-protocol.md#6.6A Adapter outbox, inbox, and callback replay rule",
+    "callback-and-clinician-messaging-loop.md",
+    "phase-6-the-pharmacy-loop.md#Outcome reconciliation algorithm"
+  ]
+}

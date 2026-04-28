@@ -1,0 +1,836 @@
+{
+  "task_id": "seq_043",
+  "generated_at": "2026-04-13T14:51:06+00:00",
+  "captured_on": "2026-04-11",
+  "visual_mode": "Runtime_Service_Map",
+  "mission": "Scaffold the canonical runtime service skeletons for the API gateway, command API, projection worker, and notification worker with explicit runtime boundaries, typed configuration, observability hooks, and readiness-first contract seams.",
+  "source_precedence": [
+    "prompt/043.md",
+    "prompt/shared_operating_contract_036_to_045.md",
+    "prompt/AGENT.md",
+    "prompt/checklist.md",
+    "data/analysis/repo_topology_manifest.json",
+    "data/analysis/degraded_mode_defaults.json",
+    "data/analysis/monorepo_scaffold_manifest.json",
+    "docs/architecture/41_repository_topology_rules.md",
+    "docs/architecture/42_monorepo_scaffold_plan.md",
+    "blueprint/phase-0-the-foundation-protocol.md",
+    "blueprint/platform-runtime-and-release-blueprint.md",
+    "blueprint/platform-frontend-blueprint.md",
+    "blueprint/forensic-audit-findings.md"
+  ],
+  "summary": {
+    "service_count": 4,
+    "route_count": 8,
+    "topic_count": 14,
+    "package_count": 13,
+    "degraded_dependency_count": 4
+  },
+  "services": [
+    {
+      "artifact_id": "service_api_gateway",
+      "service_slug": "api-gateway",
+      "display_name": "API Gateway",
+      "package_name": "@vecells/api-gateway",
+      "repo_path": "services/api-gateway",
+      "owner_context_code": "platform_runtime",
+      "owner_context_label": "Platform Runtime",
+      "workload_family": "gateway_ingress",
+      "purpose": "Own ingress HTTP, auth/session edge adapters, request correlation, rate limiting, and release-aware route-to-BFF handoff without becoming a hidden truth owner.",
+      "truth_boundary": "Ingress policy only. The gateway does not own mutation settlement, projection freshness truth, or provider delivery truth.",
+      "ports": {
+        "service": {
+          "env_keys": [
+            "API_GATEWAY_SERVICE_PORT",
+            "API_GATEWAY_PORT"
+          ],
+          "default": 7100
+        },
+        "admin": {
+          "env_keys": [
+            "API_GATEWAY_ADMIN_PORT"
+          ],
+          "default": 7200
+        }
+      },
+      "routes": [
+        {
+          "route_id": "list_ingress_surfaces",
+          "method": "GET",
+          "path": "/ingress/surfaces",
+          "contract_family": "GatewayBffSurface",
+          "purpose": "Expose shell-facing gateway surfaces, route families, and ingress policy seams.",
+          "body_required": false,
+          "idempotency_required": false
+        },
+        {
+          "route_id": "get_release_awareness",
+          "method": "GET",
+          "path": "/ingress/release-awareness",
+          "contract_family": "ReleaseGateEvidence",
+          "purpose": "Expose release ring, publication watch, and route-freeze awareness hooks.",
+          "body_required": false,
+          "idempotency_required": false
+        }
+      ],
+      "topics": {
+        "consumes": [],
+        "publishes": [
+          "gateway.request.observed",
+          "gateway.freeze.reviewed"
+        ]
+      },
+      "contract_packages": [
+        "@vecells/api-contracts",
+        "@vecells/authz-policy",
+        "@vecells/observability",
+        "@vecells/release-controls"
+      ],
+      "domain_packages": [],
+      "dependency_packages": [
+        "@vecells/api-contracts",
+        "@vecells/authz-policy",
+        "@vecells/observability",
+        "@vecells/release-controls"
+      ],
+      "allowed_dependency_rules": [
+        "packages/api-contracts",
+        "packages/authz-policy",
+        "packages/observability",
+        "packages/release-controls"
+      ],
+      "forbidden_dependency_rules": [
+        "packages/domains/* private internals",
+        "apps/*",
+        "packages/fhir-mapping",
+        "direct adapter SDK imports"
+      ],
+      "readiness_checks": [
+        {
+          "name": "shell_surface_contracts",
+          "detail": "Published gateway surface contracts load from the shared API contract package.",
+          "failure_mode": "Fail closed to read-only ingress if route surface inventory cannot load."
+        },
+        {
+          "name": "auth_edge_mode",
+          "detail": "Auth/session edge mode remains explicit and never implies writable authority by callback alone.",
+          "failure_mode": "Return claim-pending or auth-read-only posture instead of promoting to full access."
+        },
+        {
+          "name": "release_publication_watch",
+          "detail": "Publication and route-freeze awareness hooks remain wired before ingress proceeds.",
+          "failure_mode": "Downgrade to observe-only freeze posture and require operator review."
+        }
+      ],
+      "retry_profiles": [
+        {
+          "class": "transient_backoff",
+          "triggers": [
+            "downstream surface timeout",
+            "auth edge simulator jitter"
+          ],
+          "outcome": "Retry inside ingress guard window and emit gateway.request.observed watch events."
+        },
+        {
+          "class": "permanent_freeze",
+          "triggers": [
+            "publication drift",
+            "route freeze enforcement"
+          ],
+          "outcome": "Hold ingress at the edge and expose release-aware freeze status instead of forwarding."
+        }
+      ],
+      "secret_refs": [
+        "AUTH_EDGE_SESSION_SECRET_REF",
+        "AUTH_EDGE_SIGNING_KEY_REF"
+      ],
+      "env_contract": [
+        {
+          "key": "RATE_LIMIT_PER_MINUTE",
+          "property": "rateLimitPerMinute",
+          "type": "number",
+          "default": 180,
+          "minimum": 1,
+          "description": "Ingress allowance before gateway rate limiting becomes active."
+        },
+        {
+          "key": "AUTH_EDGE_MODE",
+          "property": "authEdgeMode",
+          "type": "enum",
+          "values": [
+            "simulator",
+            "watch",
+            "hybrid"
+          ],
+          "default": "hybrid",
+          "description": "Controls whether auth/session edge adapters run in simulator-only, watch-only, or hybrid posture."
+        },
+        {
+          "key": "ROUTE_FREEZE_MODE",
+          "property": "routeFreezeMode",
+          "type": "enum",
+          "values": [
+            "observe",
+            "enforce"
+          ],
+          "default": "observe",
+          "description": "Controls whether route-freeze awareness is advisory or enforcement-based at ingress."
+        }
+      ],
+      "dependency_profiles": [
+        {
+          "dependency_id": "dep_nhs_login_rail",
+          "dependency_name": "NHS login authentication rail",
+          "blocker_label": "Hard blocker",
+          "ambiguity_label": "Auth Authority Pending",
+          "degraded_mode_default": "Freeze the route in claim-pending or auth-read-only posture until writable authority is re-proven for the same subject and route intent.",
+          "manual_fallback_default": "Route to support-assisted recovery or a secure-link continuation path without widening identity truth.",
+          "default_contract_axis": "writable_authority"
+        }
+      ],
+      "admin_routes": [
+        "/health",
+        "/ready",
+        "/manifest"
+      ],
+      "test_harnesses": [
+        {
+          "kind": "unit",
+          "path": "services/api-gateway/tests/config.test.js"
+        },
+        {
+          "kind": "integration",
+          "path": "services/api-gateway/tests/runtime.integration.test.js"
+        }
+      ],
+      "composition_root": "services/api-gateway/src/runtime.ts#createRuntime"
+    },
+    {
+      "artifact_id": "service_command_api",
+      "service_slug": "command-api",
+      "display_name": "Command API",
+      "package_name": "@vecells/command-api",
+      "repo_path": "services/command-api",
+      "owner_context_code": "platform_runtime",
+      "owner_context_label": "Platform Runtime",
+      "workload_family": "mutation_command_ingress",
+      "purpose": "Own mutation command ingress, validation, idempotency envelope reservation, route-intent hooks, mutation gates, and outbox publication seams without implementing feature logic yet.",
+      "truth_boundary": "Command acceptance is not settlement truth. Finality requires downstream settlement, projection freshness, and external proof where contracts demand it.",
+      "ports": {
+        "service": {
+          "env_keys": [
+            "COMMAND_API_SERVICE_PORT",
+            "COMMAND_API_PORT"
+          ],
+          "default": 7101
+        },
+        "admin": {
+          "env_keys": [
+            "COMMAND_API_ADMIN_PORT"
+          ],
+          "default": 7201
+        }
+      },
+      "routes": [
+        {
+          "route_id": "submit_command",
+          "method": "POST",
+          "path": "/commands/submit",
+          "contract_family": "MutationCommandContract",
+          "purpose": "Reserve idempotency, validate route-intent hooks, and queue outbox publication.",
+          "body_required": true,
+          "idempotency_required": true
+        },
+        {
+          "route_id": "describe_command_contracts",
+          "method": "GET",
+          "path": "/commands/contracts",
+          "contract_family": "MutationCommandContract",
+          "purpose": "Expose the mutation contract seam, settlement ladder, and outbox publication shape.",
+          "body_required": false,
+          "idempotency_required": false
+        }
+      ],
+      "topics": {
+        "consumes": [],
+        "publishes": [
+          "command.accepted",
+          "command.outbox.pending"
+        ]
+      },
+      "contract_packages": [
+        "@vecells/api-contracts",
+        "@vecells/authz-policy",
+        "@vecells/event-contracts",
+        "@vecells/observability",
+        "@vecells/release-controls",
+        "@vecells/domain-kernel"
+      ],
+      "domain_packages": [
+        "@vecells/domain-analytics-assurance",
+        "@vecells/domain-identity-access",
+        "@vecells/domain-intake-safety"
+      ],
+      "dependency_packages": [
+        "@vecells/api-contracts",
+        "@vecells/authz-policy",
+        "@vecells/event-contracts",
+        "@vecells/fhir-mapping",
+        "@vecells/observability",
+        "@vecells/release-controls",
+        "@vecells/domain-kernel",
+        "@vecells/domain-analytics-assurance",
+        "@vecells/domain-identity-access",
+        "@vecells/domain-intake-safety"
+      ],
+      "allowed_dependency_rules": [
+        "packages/domains/* (public entrypoints only)",
+        "packages/domain-kernel",
+        "packages/event-contracts",
+        "packages/api-contracts",
+        "packages/authz-policy",
+        "packages/fhir-mapping",
+        "packages/observability",
+        "packages/release-controls"
+      ],
+      "forbidden_dependency_rules": [
+        "apps/*",
+        "packages/design-system",
+        "tools/** runtime bypasses"
+      ],
+      "readiness_checks": [
+        {
+          "name": "idempotency_envelope",
+          "detail": "An explicit idempotency reservation seam exists before commands are accepted.",
+          "failure_mode": "Reject command ingress rather than creating duplicate or ambiguous mutation attempts."
+        },
+        {
+          "name": "route_intent_hook",
+          "detail": "Route-intent validation remains explicit before a command is queued.",
+          "failure_mode": "Hold the command in validation-required posture instead of inferring caller intent."
+        },
+        {
+          "name": "outbox_publication",
+          "detail": "Outbox publication remains a separate seam from command acceptance and settlement.",
+          "failure_mode": "Keep the command in accepted-but-unpublished posture and surface it via readiness manifests."
+        }
+      ],
+      "retry_profiles": [
+        {
+          "class": "transient_command_retry",
+          "triggers": [
+            "idempotency store contention",
+            "outbox append timeout"
+          ],
+          "outcome": "Retry within the bounded command window while keeping a single idempotency key in control."
+        },
+        {
+          "class": "manual_settlement_review",
+          "triggers": [
+            "scope mismatch",
+            "route-intent ambiguity"
+          ],
+          "outcome": "Escalate to named review rather than marking the command settled."
+        }
+      ],
+      "secret_refs": [
+        "COMMAND_IDEMPOTENCY_STORE_REF",
+        "COMMAND_MUTATION_GATE_SECRET_REF"
+      ],
+      "env_contract": [
+        {
+          "key": "IDEMPOTENCY_TTL_SECONDS",
+          "property": "idempotencyTtlSeconds",
+          "type": "number",
+          "default": 900,
+          "minimum": 30,
+          "description": "Time-to-live for reserved idempotency keys."
+        },
+        {
+          "key": "OUTBOX_TOPIC",
+          "property": "outboxTopic",
+          "type": "string",
+          "default": "command.outbox.pending",
+          "description": "Event topic used for deferred outbox publication."
+        },
+        {
+          "key": "MUTATION_GATE_MODE",
+          "property": "mutationGateMode",
+          "type": "enum",
+          "values": [
+            "observe",
+            "enforce",
+            "named_review"
+          ],
+          "default": "named_review",
+          "description": "Controls whether mutation gates observe, enforce, or require named review."
+        },
+        {
+          "key": "ROUTE_INTENT_MODE",
+          "property": "routeIntentMode",
+          "type": "enum",
+          "values": [
+            "required",
+            "warn",
+            "disabled"
+          ],
+          "default": "required",
+          "description": "Controls route-intent hook strictness at command ingress."
+        }
+      ],
+      "dependency_profiles": [
+        {
+          "dependency_id": "dep_nhs_login_rail",
+          "dependency_name": "NHS login authentication rail",
+          "blocker_label": "Hard blocker",
+          "ambiguity_label": "Auth Authority Pending",
+          "degraded_mode_default": "Freeze the route in claim-pending or auth-read-only posture until writable authority is re-proven for the same subject and route intent.",
+          "manual_fallback_default": "Route to support-assisted recovery or a secure-link continuation path without widening identity truth.",
+          "default_contract_axis": "writable_authority"
+        },
+        {
+          "dependency_id": "dep_pds_fhir_enrichment",
+          "dependency_name": "Optional PDS enrichment seam",
+          "blocker_label": "Watch only",
+          "ambiguity_label": "Governed Enrichment Withheld",
+          "degraded_mode_default": "Keep enrichment fully off and rely on local matching only; do not widen patient identity confidence from incomplete or legally unapproved PDS signals.",
+          "manual_fallback_default": "Support-assisted correction or governed local review without changing the baseline identity contract.",
+          "default_contract_axis": "optional_enrichment"
+        }
+      ],
+      "admin_routes": [
+        "/health",
+        "/ready",
+        "/manifest"
+      ],
+      "test_harnesses": [
+        {
+          "kind": "unit",
+          "path": "services/command-api/tests/config.test.js"
+        },
+        {
+          "kind": "integration",
+          "path": "services/command-api/tests/runtime.integration.test.js"
+        }
+      ],
+      "composition_root": "services/command-api/src/runtime.ts#createRuntime"
+    },
+    {
+      "artifact_id": "service_projection_worker",
+      "service_slug": "projection-worker",
+      "display_name": "Projection Worker",
+      "package_name": "@vecells/projection-worker",
+      "repo_path": "services/projection-worker",
+      "owner_context_code": "platform_runtime",
+      "owner_context_label": "Platform Runtime",
+      "workload_family": "projection_read_derivation",
+      "purpose": "Own event consumption, rebuild/backfill hooks, projection freshness markers, stale-read posture, and dead-letter seams for derived read models.",
+      "truth_boundary": "Projection output is derived read state only. It never becomes the write authority and it never hides freshness or continuity debt.",
+      "ports": {
+        "service": {
+          "env_keys": [
+            "PROJECTION_WORKER_SERVICE_PORT",
+            "PROJECTION_WORKER_PORT"
+          ],
+          "default": 7102
+        },
+        "admin": {
+          "env_keys": [
+            "PROJECTION_WORKER_ADMIN_PORT"
+          ],
+          "default": 7202
+        }
+      },
+      "routes": [
+        {
+          "route_id": "intake_event",
+          "method": "POST",
+          "path": "/events/intake",
+          "contract_family": "ProjectionContractFamily",
+          "purpose": "Accept an event-envelope placeholder, stage projection rebuild work, and expose dead-letter posture.",
+          "body_required": true,
+          "idempotency_required": false
+        },
+        {
+          "route_id": "projection_freshness",
+          "method": "GET",
+          "path": "/projections/freshness",
+          "contract_family": "ProjectionQueryContract",
+          "purpose": "Expose freshness budgets, stale-read posture, continuity watch, and backfill hooks.",
+          "body_required": false,
+          "idempotency_required": false
+        }
+      ],
+      "topics": {
+        "consumes": [
+          "command.accepted",
+          "projection.rebuild.requested",
+          "projection.backfill.requested"
+        ],
+        "publishes": [
+          "projection.updated",
+          "projection.dead-lettered"
+        ]
+      },
+      "contract_packages": [
+        "@vecells/api-contracts",
+        "@vecells/event-contracts",
+        "@vecells/fhir-mapping",
+        "@vecells/observability",
+        "@vecells/release-controls"
+      ],
+      "domain_packages": [
+        "@vecells/domain-analytics-assurance",
+        "@vecells/domain-operations"
+      ],
+      "dependency_packages": [
+        "@vecells/api-contracts",
+        "@vecells/event-contracts",
+        "@vecells/fhir-mapping",
+        "@vecells/observability",
+        "@vecells/release-controls",
+        "@vecells/domain-analytics-assurance",
+        "@vecells/domain-operations"
+      ],
+      "allowed_dependency_rules": [
+        "packages/domains/* (public projections only)",
+        "packages/domain-kernel",
+        "packages/event-contracts",
+        "packages/api-contracts",
+        "packages/fhir-mapping",
+        "packages/observability",
+        "packages/release-controls"
+      ],
+      "forbidden_dependency_rules": [
+        "apps/*",
+        "packages/design-system",
+        "direct browser clients"
+      ],
+      "readiness_checks": [
+        {
+          "name": "projection_freshness_budget",
+          "detail": "Projection freshness budget exists before derived reads are exposed as current.",
+          "failure_mode": "Shift to stale-read posture with explicit freshness markers."
+        },
+        {
+          "name": "dead_letter_seam",
+          "detail": "Poison event and dead-letter seams exist before worker intake proceeds.",
+          "failure_mode": "Divert poison events and preserve continuity evidence instead of silently dropping work."
+        },
+        {
+          "name": "backfill_hooks",
+          "detail": "Rebuild and backfill hooks stay wired for later catch-up work.",
+          "failure_mode": "Surface backfill debt explicitly rather than allowing projection drift to accumulate invisibly."
+        }
+      ],
+      "retry_profiles": [
+        {
+          "class": "transient_projection_retry",
+          "triggers": [
+            "consumer batch timeout",
+            "projection write contention"
+          ],
+          "outcome": "Retry within the freshness budget and preserve the original event lineage."
+        },
+        {
+          "class": "poison_event_dead_letter",
+          "triggers": [
+            "schema mismatch",
+            "trust or continuity contradiction"
+          ],
+          "outcome": "Route the event to dead-letter review and mark affected read models stale."
+        }
+      ],
+      "secret_refs": [
+        "PROJECTION_CURSOR_STORE_REF",
+        "PROJECTION_DEAD_LETTER_STORE_REF"
+      ],
+      "env_contract": [
+        {
+          "key": "CONSUMER_BATCH_SIZE",
+          "property": "consumerBatchSize",
+          "type": "number",
+          "default": 25,
+          "minimum": 1,
+          "description": "Maximum event count consumed per placeholder worker batch."
+        },
+        {
+          "key": "FRESHNESS_BUDGET_SECONDS",
+          "property": "freshnessBudgetSeconds",
+          "type": "number",
+          "default": 45,
+          "minimum": 1,
+          "description": "Freshness budget before a projection is explicitly considered stale."
+        },
+        {
+          "key": "DEAD_LETTER_TOPIC",
+          "property": "deadLetterTopic",
+          "type": "string",
+          "default": "projection.dead-lettered",
+          "description": "Topic used for poison events and dead-letter review."
+        },
+        {
+          "key": "REBUILD_WINDOW_MODE",
+          "property": "rebuildWindowMode",
+          "type": "enum",
+          "values": [
+            "scheduled",
+            "operator_only"
+          ],
+          "default": "scheduled",
+          "description": "Controls whether rebuild work may be scheduled automatically or requires an operator."
+        },
+        {
+          "key": "POISON_RETRY_LIMIT",
+          "property": "poisonRetryLimit",
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "description": "Number of retry attempts before a poison event is dead-lettered."
+        }
+      ],
+      "dependency_profiles": [
+        {
+          "dependency_id": "dep_pds_fhir_enrichment",
+          "dependency_name": "Optional PDS enrichment seam",
+          "blocker_label": "Watch only",
+          "ambiguity_label": "Governed Enrichment Withheld",
+          "degraded_mode_default": "Keep enrichment fully off and rely on local matching only; do not widen patient identity confidence from incomplete or legally unapproved PDS signals.",
+          "manual_fallback_default": "Support-assisted correction or governed local review without changing the baseline identity contract.",
+          "default_contract_axis": "optional_enrichment"
+        }
+      ],
+      "admin_routes": [
+        "/health",
+        "/ready",
+        "/manifest"
+      ],
+      "test_harnesses": [
+        {
+          "kind": "unit",
+          "path": "services/projection-worker/tests/config.test.js"
+        },
+        {
+          "kind": "integration",
+          "path": "services/projection-worker/tests/runtime.integration.test.js"
+        }
+      ],
+      "composition_root": "services/projection-worker/src/runtime.ts#createRuntime"
+    },
+    {
+      "artifact_id": "service_notification_worker",
+      "service_slug": "notification-worker",
+      "display_name": "Notification Worker",
+      "package_name": "@vecells/notification-worker",
+      "repo_path": "services/notification-worker",
+      "owner_context_code": "platform_integration",
+      "owner_context_label": "Platform Integration",
+      "workload_family": "notification_dispatch_and_settlement",
+      "purpose": "Own dispatch envelopes, provider adapter boundaries, settlement callbacks, controlled resend hooks, and secret-safe delivery seams without embedding live provider credentials.",
+      "truth_boundary": "Dispatch acceptance is not delivery truth. Provider callbacks, resend policy, and settlement evidence stay explicit and can fail closed.",
+      "ports": {
+        "service": {
+          "env_keys": [
+            "NOTIFICATION_WORKER_SERVICE_PORT",
+            "NOTIFICATION_WORKER_PORT"
+          ],
+          "default": 7103
+        },
+        "admin": {
+          "env_keys": [
+            "NOTIFICATION_WORKER_ADMIN_PORT"
+          ],
+          "default": 7203
+        }
+      },
+      "routes": [
+        {
+          "route_id": "dispatch_envelope",
+          "method": "POST",
+          "path": "/dispatch/envelopes",
+          "contract_family": "CanonicalEventContract",
+          "purpose": "Accept a placeholder dispatch envelope and expose provider/settlement seams.",
+          "body_required": true,
+          "idempotency_required": true
+        },
+        {
+          "route_id": "dispatch_settlement",
+          "method": "GET",
+          "path": "/dispatch/settlement",
+          "contract_family": "DependencyDegradationProfile",
+          "purpose": "Expose delivery settlement ladder, resend controls, and safe provider boundary posture.",
+          "body_required": false,
+          "idempotency_required": false
+        }
+      ],
+      "topics": {
+        "consumes": [
+          "notification.dispatch.requested",
+          "notification.resend.requested",
+          "notification.provider.callback"
+        ],
+        "publishes": [
+          "notification.dispatch.accepted",
+          "notification.delivery.settled",
+          "notification.delivery.dead-lettered"
+        ]
+      },
+      "contract_packages": [
+        "@vecells/api-contracts",
+        "@vecells/authz-policy",
+        "@vecells/event-contracts",
+        "@vecells/observability",
+        "@vecells/release-controls"
+      ],
+      "domain_packages": [
+        "@vecells/domain-communications",
+        "@vecells/domain-identity-access",
+        "@vecells/domain-support"
+      ],
+      "dependency_packages": [
+        "@vecells/api-contracts",
+        "@vecells/authz-policy",
+        "@vecells/event-contracts",
+        "@vecells/observability",
+        "@vecells/release-controls",
+        "@vecells/domain-communications",
+        "@vecells/domain-identity-access",
+        "@vecells/domain-support"
+      ],
+      "allowed_dependency_rules": [
+        "packages/domains/communications",
+        "packages/domains/identity_access",
+        "packages/domains/support",
+        "packages/event-contracts",
+        "packages/api-contracts",
+        "packages/authz-policy",
+        "packages/observability",
+        "packages/release-controls"
+      ],
+      "forbidden_dependency_rules": [
+        "apps/*",
+        "packages/design-system",
+        "real provider credentials in source"
+      ],
+      "readiness_checks": [
+        {
+          "name": "provider_secret_boundary",
+          "detail": "Provider credentials and webhook material remain env-ref-only and never land in fixtures or manifests.",
+          "failure_mode": "Fail closed before any placeholder provider action is attempted."
+        },
+        {
+          "name": "delivery_settlement",
+          "detail": "Delivery callbacks and settlement status remain separate from dispatch acceptance.",
+          "failure_mode": "Mark the envelope awaiting_settlement and hold resend review open."
+        },
+        {
+          "name": "controlled_resend",
+          "detail": "Resend is an explicit hook with cooldown or named-review posture, not an automatic blind retry.",
+          "failure_mode": "Escalate to review-required resend posture."
+        }
+      ],
+      "retry_profiles": [
+        {
+          "class": "transient_provider_retry",
+          "triggers": [
+            "provider timeout",
+            "callback jitter",
+            "temporary suppression"
+          ],
+          "outcome": "Retry inside the delivery window while preserving envelope lineage and idempotency."
+        },
+        {
+          "class": "permanent_delivery_review",
+          "triggers": [
+            "hard bounce",
+            "invalid destination",
+            "provider suppression"
+          ],
+          "outcome": "Escalate to settlement review or manual resend rather than inferring recovery."
+        }
+      ],
+      "secret_refs": [
+        "NOTIFICATION_PROVIDER_SECRET_REF",
+        "NOTIFICATION_WEBHOOK_SECRET_REF",
+        "NOTIFICATION_SIGNING_KEY_REF"
+      ],
+      "env_contract": [
+        {
+          "key": "DISPATCH_BATCH_SIZE",
+          "property": "dispatchBatchSize",
+          "type": "number",
+          "default": 50,
+          "minimum": 1,
+          "description": "Maximum number of envelopes staged in one placeholder dispatch batch."
+        },
+        {
+          "key": "PROVIDER_MODE",
+          "property": "providerMode",
+          "type": "enum",
+          "values": [
+            "simulator",
+            "shadow",
+            "hybrid"
+          ],
+          "default": "simulator",
+          "description": "Controls whether provider adapters run in simulator, shadow, or hybrid posture."
+        },
+        {
+          "key": "CALLBACK_SETTLEMENT_WINDOW_SECONDS",
+          "property": "callbackSettlementWindowSeconds",
+          "type": "number",
+          "default": 300,
+          "minimum": 1,
+          "description": "How long the worker waits before delivery becomes explicitly settlement-pending."
+        },
+        {
+          "key": "RESEND_GUARD_MODE",
+          "property": "resendGuardMode",
+          "type": "enum",
+          "values": [
+            "manual_review",
+            "cooldown_only"
+          ],
+          "default": "manual_review",
+          "description": "Controls whether resend requires named review or a cooldown-only gate."
+        }
+      ],
+      "dependency_profiles": [
+        {
+          "dependency_id": "dep_sms_notification_provider",
+          "dependency_name": "SMS delivery provider",
+          "blocker_label": "Watch only",
+          "ambiguity_label": "Delivery Or Recipient Disputed",
+          "degraded_mode_default": "Withdraw seeded continuation trust and fall back to challenge-based continuation or another governed contact route when recipient or delivery truth is disputed.",
+          "manual_fallback_default": "Support reissue or bounded callback under the same grant lineage rather than silent re-send.",
+          "default_contract_axis": "seeded_continuation_delivery"
+        },
+        {
+          "dependency_id": "dep_email_notification_provider",
+          "dependency_name": "Email and notification delivery provider",
+          "blocker_label": "Hard blocker",
+          "ambiguity_label": "Delivery Or Thread Unresolved",
+          "degraded_mode_default": "Preserve a read-only, pending-delivery, or repair-needed posture until current delivery evidence or a governed fallback settles the route.",
+          "manual_fallback_default": "Use controlled resend, callback escalation, or support repair under the same authoritative communication chain.",
+          "default_contract_axis": "delivery_truth"
+        }
+      ],
+      "admin_routes": [
+        "/health",
+        "/ready",
+        "/manifest"
+      ],
+      "test_harnesses": [
+        {
+          "kind": "unit",
+          "path": "services/notification-worker/tests/config.test.js"
+        },
+        {
+          "kind": "integration",
+          "path": "services/notification-worker/tests/runtime.integration.test.js"
+        }
+      ],
+      "composition_root": "services/notification-worker/src/runtime.ts#createRuntime"
+    }
+  ]
+}

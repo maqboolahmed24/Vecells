@@ -1,0 +1,149 @@
+{
+  "taskId": "par_414",
+  "schemaVersion": "414.replayable-provenance-and-trainability.v1",
+  "packageName": "@vecells/domain-assistive-provenance",
+  "services": [
+    {
+      "serviceName": "AssistivePromptPackageRegistry",
+      "responsibility": "register governed prompt packages bound to release candidate or watch tuple lineage"
+    },
+    {
+      "serviceName": "AssistivePromptSnapshotStore",
+      "responsibility": "store immutable prompt snapshots with canonical hash, masking class, disclosure class, and variable schema hash"
+    },
+    {
+      "serviceName": "AssistiveInferenceLogService",
+      "responsibility": "persist replayable inference logs from refs and hashes only"
+    },
+    {
+      "serviceName": "AssistiveProvenanceEnvelopeWriter",
+      "responsibility": "write one provenance envelope per assistive artifact revision"
+    },
+    {
+      "serviceName": "AssistiveReplayManifestAssembler",
+      "responsibility": "assemble governed replay manifests from immutable model, prompt, evidence, policy, schema, calibration, and runtime refs"
+    },
+    {
+      "serviceName": "FeedbackEligibilityMaterializer",
+      "responsibility": "materialize settlement-backed FeedbackEligibilityFlag objects"
+    },
+    {
+      "serviceName": "TrainabilityRevocationService",
+      "responsibility": "append trainability revocation evidence and replacement revoked flags"
+    },
+    {
+      "serviceName": "AssistiveProvenanceExportGuard",
+      "responsibility": "guard replay and provenance export so raw prompt or evidence content cannot leak"
+    }
+  ],
+  "persistedObjects": [
+    "AssistivePromptPackage",
+    "AssistivePromptSnapshot",
+    "AssistiveInferenceLog",
+    "AssistiveProvenanceEnvelope",
+    "AssistiveReplayManifest",
+    "FeedbackEligibilityFlag",
+    "TrainabilityRevocationRecord",
+    "AssistiveProvenanceExportDecision",
+    "AssistiveProvenanceAuditRecord"
+  ],
+  "promptSnapshotPolicy": {
+    "immutabilityMarker": "prompt_snapshot_immutable",
+    "requiredLineage": "releaseCandidateRef or watchTupleHash",
+    "requiredBindings": [
+      "capabilityCode",
+      "promptPackageRef",
+      "maskingClass",
+      "disclosureClass",
+      "variableSchemaRef",
+      "variableSchemaHash",
+      "canonicalHash"
+    ]
+  },
+  "inferenceLogPolicy": {
+    "routineTelemetryRule": "refs and hashes only",
+    "requiredRefs": [
+      "modelVersionRef",
+      "promptSnapshotRef",
+      "inputEvidenceSnapshotRefs",
+      "inputEvidenceSnapshotHash",
+      "inputDerivationPackageRefs",
+      "policyBundleRef",
+      "outputSchemaBundleRef",
+      "calibrationBundleRef",
+      "runtimeImageRef",
+      "surfacePublicationRef",
+      "runtimePublicationBundleRef",
+      "outputArtifactRefs",
+      "assistiveRunSettlementRef"
+    ],
+    "failClosedMarker": "missing_provenance_fail_closed"
+  },
+  "feedbackEligibilityPolicy": {
+    "eligibleOnlyWhen": [
+      "chainState = settled_clean",
+      "finalHumanArtifactRef exists",
+      "authoritativeWorkflowSettlementRef exists",
+      "workflowSettlementState = settled",
+      "no incident link",
+      "not dual-review or policy-exception pending adjudication",
+      "labelQualityState in routine_clean | adjudicated",
+      "counterfactualCompletenessState in complete | not_applicable"
+    ],
+    "defaultStates": ["pending_settlement", "requires_adjudication", "excluded"],
+    "revocationRule": "append TrainabilityRevocationRecord and replacement revoked FeedbackEligibilityFlag"
+  },
+  "replayManifestPolicy": {
+    "pins": [
+      "modelVersionRef",
+      "promptSnapshotRef",
+      "inputEvidenceSnapshotHash",
+      "outputSchemaBundleRef",
+      "calibrationBundleRef",
+      "policyBundleRef",
+      "runtimeImageRef",
+      "runtimePublicationBundleRef",
+      "releaseCandidateRef or watchTupleHash",
+      "replayHarnessVersionRef"
+    ]
+  },
+  "exportPolicy": {
+    "rawContentDefault": "blocked",
+    "fullReplayAudience": "assurance or safety only",
+    "externalHandoffRequires": ["outboundNavigationGrantRef", "artifactPresentationContractRef"]
+  },
+  "invariants": [
+    {
+      "code": "prompt_snapshot_immutable",
+      "severity": "blocker"
+    },
+    {
+      "code": "inference_log_refs_hashes_only",
+      "severity": "blocker"
+    },
+    {
+      "code": "provenance_envelope_one_per_artifact_revision",
+      "severity": "blocker"
+    },
+    {
+      "code": "feedback_eligibility_settlement_backed",
+      "severity": "blocker"
+    },
+    {
+      "code": "trainability_revocation_appends_not_mutates",
+      "severity": "blocker"
+    },
+    {
+      "code": "replay_manifest_pins_model_prompt_evidence_policy_runtime",
+      "severity": "blocker"
+    },
+    {
+      "code": "missing_provenance_fail_closed",
+      "severity": "blocker"
+    },
+    {
+      "code": "provenance_export_guard_blocks_raw_content",
+      "severity": "blocker"
+    }
+  ]
+}

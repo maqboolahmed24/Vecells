@@ -1,0 +1,164 @@
+{
+  "taskId": "par_409",
+  "schemaVersion": "409.recommendation-orchestrator-contract.v1",
+  "contractFamily": "assistive_bounded_suggestion_orchestrator",
+  "sourceGateRef": "data/contracts/403_phase8_track_readiness_registry.json",
+  "launchPacketRef": "data/launchpacks/403_track_launch_packet_409.json",
+  "upstreamContractRefs": [
+    "data/contracts/404_assistive_evaluation_contracts.json",
+    "data/contracts/405_assistive_release_candidate_contracts.json",
+    "data/contracts/406_evaluation_runtime_contract.json",
+    "data/contracts/408_documentation_composer_contract.json"
+  ],
+  "runtimePackage": {
+    "packageName": "@vecells/domain-assistive-suggestion",
+    "sourceRoot": "packages/domains/assistive_suggestion/src",
+    "separationLaw": "The suggestion orchestrator persists typed risk signals, question recommendations, endpoint hypotheses, prediction sets, abstention, leases, and settlements. It cannot create EndpointDecision records or mutate authoritative workflow state."
+  },
+  "services": [
+    {
+      "serviceName": "SuggestionEnvelopeService",
+      "ownedApis": ["createSuggestionEnvelope", "invalidateEnvelope", "getSuggestionEnvelope"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "RuleGuardEngine",
+      "ownedApis": ["evaluateRuleGuards"],
+      "requiresActorContext": false
+    },
+    {
+      "serviceName": "RiskSignalExtractor",
+      "ownedApis": ["extractRiskSignals"],
+      "requiresActorContext": false
+    },
+    {
+      "serviceName": "QuestionRecommendationService",
+      "ownedApis": ["recommendQuestionSets"],
+      "requiresActorContext": false
+    },
+    {
+      "serviceName": "EndpointHypothesisRanker",
+      "ownedApis": ["rankEndpointHypotheses"],
+      "requiresActorContext": false
+    },
+    {
+      "serviceName": "ConformalPredictionSetService",
+      "ownedApis": ["constructPredictionSet"],
+      "requiresActorContext": false
+    },
+    {
+      "serviceName": "AbstentionService",
+      "ownedApis": ["createAbstentionRecord"],
+      "requiresActorContext": false
+    },
+    {
+      "serviceName": "SuggestionActionService",
+      "ownedApis": ["issueDraftInsertionLease", "submitAction", "settleAction"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "SuggestionPresentationArtifactService",
+      "ownedApis": ["createPresentationArtifact"],
+      "requiresActorContext": true
+    }
+  ],
+  "persistedObjects": [
+    "SuggestionCalibrationBundle",
+    "SuggestionEnvelope",
+    "RiskSignal",
+    "EndpointHypothesis",
+    "QuestionSetRecommendation",
+    "ConformalPredictionSet",
+    "AbstentionRecord",
+    "RuleGuardResult",
+    "SuggestionDraftInsertionLease",
+    "SuggestionSurfaceBinding",
+    "SuggestionActionRecord",
+    "SuggestionActionSettlement",
+    "SuggestionPresentationArtifact",
+    "SuggestionAuditRecord"
+  ],
+  "migrationRef": "services/command-api/migrations/409_phase8_recommendation_orchestrator.sql",
+  "pipelinePolicy": {
+    "stages": [
+      "structured_fact_extraction",
+      "rule_guards_first",
+      "full_space_calibration",
+      "allowed_set_mass",
+      "conformal_prediction_set",
+      "harm_and_uncertainty_gate",
+      "abstention_or_review_only",
+      "draft_action_settlement"
+    ],
+    "forbiddenShortcuts": [
+      "masked-subset calibration",
+      "renormalized confidence without full-space mass",
+      "free-form chatbot output",
+      "endpoint decision mutation",
+      "local panel acknowledgement as authoritative settlement"
+    ]
+  },
+  "calibrationPolicy": {
+    "noLocalDefaults": true,
+    "requiredPins": ["releaseCohortRef", "watchTupleRef", "calibrationVersion", "uncertaintySelectorVersionRef", "conformalBundleRef", "thresholdSetRef"],
+    "visibleConfidenceSuppressedWhen": [
+      "validated calibration set missing",
+      "validated uncertainty selector missing",
+      "validated conformal window missing",
+      "release cohort mismatch",
+      "watch tuple mismatch"
+    ]
+  },
+  "abstentionPolicy": {
+    "firstClassObject": "AbstentionRecord",
+    "hardAbstainWhen": ["rule guard hard stop", "allowed-set mass below gamma floor", "epistemic uncertainty above block threshold", "conformal allowed intersection empty"],
+    "reviewOnlyWhen": ["disallowed or higher-severity mass remains material", "visible set is not sharp", "calibration visibility is suppressed"]
+  },
+  "actionPolicy": {
+    "insertIsDraftOnly": true,
+    "requiresLiveLease": true,
+    "requiredSettlementRefs": ["RouteIntentBinding", "CommandActionRecord", "CommandSettlementRecord", "TransitionEnvelope", "ReleaseRecoveryDisposition"],
+    "resultIdentityMustMatchAction": true
+  },
+  "presentationPolicy": {
+    "summaryFirst": true,
+    "requiresArtifactPresentationContract": true,
+    "externalHandoffRequiresOutboundNavigationGrant": true,
+    "rawArtifactUrlForbidden": true
+  },
+  "invariants": [
+    {
+      "invariantId": "INV409_001",
+      "statement": "SuggestionEnvelope binds to frozen context, review version, decision epoch, policy bundle, lineage fence, and active surface binding."
+    },
+    {
+      "invariantId": "INV409_002",
+      "statement": "RuleGuardResult is explicit and computed before visible or insert eligibility."
+    },
+    {
+      "invariantId": "INV409_003",
+      "statement": "Full-space calibrated probabilities exist before allowed-set masking or conditional renormalization."
+    },
+    {
+      "invariantId": "INV409_004",
+      "statement": "EndpointHypothesis carries evidence coverage, expected harm, confidence descriptor, rule guard state, and prediction-set state."
+    },
+    {
+      "invariantId": "INV409_005",
+      "statement": "AbstentionRecord is produced for weak evidence, high uncertainty, hard guard stops, empty conformal allowed set, or unsafe residual mass."
+    },
+    {
+      "invariantId": "INV409_006",
+      "statement": "SuggestionDraftInsertionLease can insert only a draft proposal into a live DecisionDock for the same selected anchor, review version, policy bundle, allowed-set hash, and lineage fence."
+    },
+    {
+      "invariantId": "INV409_007",
+      "statement": "SuggestionActionSettlement preserves action identity and may not convert local acknowledgement into authoritative workflow mutation."
+    },
+    {
+      "invariantId": "INV409_008",
+      "statement": "SuggestionPresentationArtifact blocks raw artifact URLs and external handoff without an outbound navigation grant."
+    }
+  ],
+  "downstreamConsumers": ["par_410", "par_411", "par_412", "par_413", "par_414", "par_415"]
+}

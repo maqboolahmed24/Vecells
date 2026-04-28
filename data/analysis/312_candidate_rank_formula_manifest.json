@@ -1,0 +1,263 @@
+{
+  "taskId": "seq_312",
+  "contractVersion": "312.phase5.policy-capacity-ranking-freeze.v1",
+  "rankPlanVersionRef": "312.rank-plan.network-candidate.v1",
+  "uncertaintyModelVersionRef": "312.uncertainty-model.network-candidate.v1",
+  "policyTupleHashField": "policyTupleHash",
+  "formulas": [
+    {
+      "formulaId": "windowClass",
+      "name": "windowClass(c,s)",
+      "expression": "requiredWindowFit(c,s)",
+      "units": "ordinal band",
+      "range": "{2,1,0}",
+      "variables": [
+        {
+          "name": "requiredWindowFit(c,s)",
+          "units": "ordinal band",
+          "description": "Resolved window fit where 2 = inside required window, 1 = inside approved variance window, 0 = outside window but still visible by policy."
+        }
+      ],
+      "notes": [
+        "This band is ordered before all convenience terms.",
+        "It must not be reintroduced into `baseUtility(c,s)`."
+      ]
+    },
+    {
+      "formulaId": "u_modality",
+      "name": "u_modality(c,s)",
+      "expression": "1 when modality is compatible, otherwise 0",
+      "units": "unitless",
+      "range": "{0,1}",
+      "variables": [
+        {
+          "name": "modalityCompatibility",
+          "units": "binary",
+          "description": "Whether the candidate modality is clinically and operationally compatible."
+        }
+      ],
+      "notes": [
+        "The compatibility check is explicit, not inferred from route-local copy."
+      ]
+    },
+    {
+      "formulaId": "u_access",
+      "name": "u_access(c,s)",
+      "expression": "accessibilityFit(c,s)",
+      "units": "unitless",
+      "range": "[0,1]",
+      "variables": [
+        {
+          "name": "accessibilityFit(c,s)",
+          "units": "unitless",
+          "description": "Normalized patient accessibility and burden fit under the current case constraints."
+        }
+      ],
+      "notes": [
+        "Accessibility fit is a normalized feature and remains visible in the explanation tuple."
+      ]
+    },
+    {
+      "formulaId": "u_travel",
+      "name": "u_travel(c,s)",
+      "expression": "exp(-travelMinutes(c,s) / tau_travel)",
+      "units": "unitless",
+      "range": "(0,1]",
+      "variables": [
+        {
+          "name": "travelMinutes(c,s)",
+          "units": "minutes",
+          "description": "Estimated travel burden for the patient."
+        },
+        {
+          "name": "tau_travel",
+          "units": "minutes",
+          "description": "Travel-time decay constant versioned in the rank plan."
+        }
+      ],
+      "notes": [
+        "Travel convenience cannot outrank the window class band."
+      ]
+    },
+    {
+      "formulaId": "u_wait",
+      "name": "u_wait(c,s)",
+      "expression": "exp(-waitMinutes(s) / tau_wait)",
+      "units": "unitless",
+      "range": "(0,1]",
+      "variables": [
+        {
+          "name": "waitMinutes(s)",
+          "units": "minutes",
+          "description": "Time from current evaluation to the candidate start time."
+        },
+        {
+          "name": "tau_wait",
+          "units": "minutes",
+          "description": "Wait-time decay constant versioned in the rank plan."
+        }
+      ],
+      "notes": [
+        "Wait fit is within-band only and does not replace the required-window rule."
+      ]
+    },
+    {
+      "formulaId": "u_fresh",
+      "name": "u_fresh(c,s)",
+      "expression": "exp(-stalenessMinutes(s) / tau_fresh)",
+      "units": "unitless",
+      "range": "(0,1]",
+      "variables": [
+        {
+          "name": "stalenessMinutes(s)",
+          "units": "minutes",
+          "description": "Age of the source snapshot at evaluation time."
+        },
+        {
+          "name": "tau_fresh",
+          "units": "minutes",
+          "description": "Freshness decay constant versioned in the rank plan."
+        }
+      ],
+      "notes": [
+        "Freshness contributes to utility and separately informs source admission and uncertainty."
+      ]
+    },
+    {
+      "formulaId": "baseUtility",
+      "name": "baseUtility(c,s)",
+      "expression": "w_modality * u_modality(c,s) + w_access * u_access(c,s) + w_travel * u_travel(c,s) + w_wait * u_wait(c,s) + w_fresh * u_fresh(c,s)",
+      "units": "unitless",
+      "range": "[0,1]",
+      "variables": [
+        {
+          "name": "w_modality,w_access,w_travel,w_wait,w_fresh",
+          "units": "unitless",
+          "description": "Rank-plan weights with `sum w_* = 1`."
+        }
+      ],
+      "notes": [
+        "Window fit is deliberately excluded to prevent double-counting.",
+        "Weights version with the persisted rank plan."
+      ]
+    },
+    {
+      "formulaId": "uncertaintyRadius",
+      "name": "uncertaintyRadius(c,s)",
+      "expression": "epsilon_alpha(c,s)",
+      "units": "unitless risk radius",
+      "range": "[0,+inf)",
+      "variables": [
+        {
+          "name": "epsilon_alpha(c,s)",
+          "units": "unitless risk radius",
+          "description": "Calibrated uncertainty from trust class, staleness, duplicate-capacity collision risk, and recent adapter drift."
+        }
+      ],
+      "notes": [
+        "Uncertainty is persisted as proof, not hidden in copy.",
+        "The uncertainty model versions separately from the rank plan."
+      ]
+    },
+    {
+      "formulaId": "robustFit",
+      "name": "robustFit(c,s)",
+      "expression": "baseUtility(c,s) - lambda_uncertainty * uncertaintyRadius(c,s)",
+      "units": "unitless",
+      "range": "(-inf,1]",
+      "variables": [
+        {
+          "name": "lambda_uncertainty",
+          "units": "unitless",
+          "description": "Penalty multiplier versioned in the same rank plan."
+        }
+      ],
+      "notes": [
+        "Robust fit is the within-band score used after window class and trust tier."
+      ]
+    }
+  ],
+  "dominanceFrontierRule": {
+    "comparatorTuple": [
+      "windowClass",
+      "sourceTrustState",
+      "robustFit",
+      "startAt"
+    ],
+    "weakDominanceDefinition": "If s1 weakly dominates s2 on the comparator tuple and strictly improves at least one coordinate, s2 is removed from patient-offerable and direct-commit frontiers.",
+    "persistedIn": "CrossSiteDecisionPlan.dominanceDecisions[]"
+  },
+  "lexicographicOrder": [
+    {
+      "position": 1,
+      "key": "windowClass",
+      "direction": "desc"
+    },
+    {
+      "position": 2,
+      "key": "sourceTrustTier",
+      "direction": "desc"
+    },
+    {
+      "position": 3,
+      "key": "robustFit",
+      "direction": "desc"
+    },
+    {
+      "position": 4,
+      "key": "travelMinutes",
+      "direction": "asc"
+    },
+    {
+      "position": 5,
+      "key": "startAt",
+      "direction": "asc"
+    },
+    {
+      "position": 6,
+      "key": "candidateId",
+      "direction": "asc"
+    }
+  ],
+  "sourceTrustTiers": [
+    {
+      "sourceTrustState": "trusted",
+      "sourceTrustTier": 2,
+      "patientOfferable": "yes",
+      "directCommit": "yes",
+      "diagnosticVisible": "yes",
+      "notes": "Trusted supply may join patient-offerable and direct-commit frontiers when routing and variance also allow it."
+    },
+    {
+      "sourceTrustState": "degraded",
+      "sourceTrustTier": 1,
+      "patientOfferable": "no",
+      "directCommit": "no",
+      "diagnosticVisible": "callback_only_or_diagnostic_only",
+      "notes": "Degraded supply may remain visible only for diagnostic or callback-fallback reasoning. It is never ordinary direct-booking truth."
+    },
+    {
+      "sourceTrustState": "quarantined",
+      "sourceTrustTier": 0,
+      "patientOfferable": "no",
+      "directCommit": "no",
+      "diagnosticVisible": "ops_only_diagnostic",
+      "notes": "Quarantined supply is excluded from bookable and patient-offerable frontiers. It survives only as diagnostic evidence or a typed policy exception."
+    }
+  ],
+  "separationLaws": [
+    "Routing, approved variance, and capacity admission decide patient-offerable and direct-commit frontiers.",
+    "Service-obligation and practice-visibility rules may mint ledgers, exceptions, and acknowledgement debt but may not silently re-score, hide, or reorder candidates.",
+    "Window fit remains a separate hard band and may not be double-counted inside utility.",
+    "Uncertainty remains a persisted proof field rather than a route-local copy heuristic."
+  ],
+  "xSourceRefs": [
+    "blueprint/phase-5-the-network-horizon.md#5C. Enhanced Access policy engine and network capacity ingestion",
+    "blueprint/phase-5-the-network-horizon.md#5D. Coordination queue, candidate ranking, and SLA engine",
+    "blueprint/phase-cards.md#Card-6",
+    "blueprint/phase-4-the-booking-engine.md#ranking-order-and-visible-cues-must-derive-from-persisted-proof",
+    "blueprint/phase-0-the-foundation-protocol.md#publication-and-bundle-discipline",
+    "blueprint/phase-0-the-foundation-protocol.md#assurance-and-trust-carry-forward",
+    "docs/architecture/311_phase5_hub_case_and_acting_context_contract.md"
+  ]
+}

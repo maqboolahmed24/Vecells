@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>281 Phase 4 Parallel Tracks Gate Board</title>
+    <style>
+      :root {
+        --canvas: #F7F8FA;
+        --shell: #EEF2F6;
+        --panel: #FFFFFF;
+        --inset: #E8EEF3;
+        --text-strong: #0F1720;
+        --text-default: #24313D;
+        --text-muted: #5E6B78;
+        --accent-ready: #0F766E;
+        --accent-blocked: #B42318;
+        --accent-deferred: #B7791F;
+        --accent-dependency: #3158E0;
+        --accent-risk: #5B61F6;
+        --border: rgba(15, 23, 32, 0.08);
+        --shadow: 0 18px 40px rgba(15, 23, 32, 0.06);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html, body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--text-default);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        letter-spacing: 0;
+      }
+
+      body {
+        padding: 20px;
+      }
+
+      button, select {
+        font: inherit;
+        letter-spacing: 0;
+      }
+
+      .board-shell {
+        max-width: 1680px;
+        margin: 0 auto;
+        background: var(--shell);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        min-height: calc(100vh - 40px);
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr) 420px;
+        grid-template-rows: 72px auto auto minmax(0, 1fr) auto;
+        gap: 0;
+        overflow: hidden;
+      }
+
+      .masthead {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.74);
+        backdrop-filter: blur(14px);
+      }
+
+      .brand-lockup {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .grid-mark {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, rgba(49, 88, 224, 0.14), rgba(91, 97, 246, 0.08));
+        display: grid;
+        place-items: center;
+      }
+
+      .wordmark {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-strong);
+      }
+
+      .wordmark span {
+        color: var(--accent-dependency);
+      }
+
+      .mode-copy {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      .summary-strip {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        padding: 16px 20px;
+      }
+
+      .summary-band {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        min-height: 64px;
+      }
+
+      .summary-band strong {
+        font-size: 28px;
+        color: var(--text-strong);
+      }
+
+      .tone-ready { border-left: 4px solid var(--accent-ready); }
+      .tone-blocked { border-left: 4px solid var(--accent-blocked); }
+      .tone-deferred { border-left: 4px solid var(--accent-deferred); }
+      .tone-dependency { border-left: 4px solid var(--accent-dependency); }
+
+      .filters {
+        grid-column: 1 / -1;
+        display: flex;
+        gap: 12px;
+        padding: 0 20px 16px;
+        flex-wrap: wrap;
+      }
+
+      .filter {
+        display: grid;
+        gap: 6px;
+      }
+
+      .filter label {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      .filter select {
+        min-width: 172px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+
+      .rail {
+        padding: 0 16px 20px 20px;
+        border-right: 1px solid var(--border);
+        overflow: auto;
+      }
+
+      .rail h2,
+      .center h2,
+      .inspector h2,
+      .lower-ledger h2 {
+        margin: 0 0 12px;
+        font-size: 13px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        letter-spacing: 0.04em;
+      }
+
+      .track-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .track-button {
+        text-align: left;
+        width: 100%;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        padding: 12px;
+        border-radius: 8px;
+        display: grid;
+        gap: 6px;
+        cursor: pointer;
+        min-height: 78px;
+        transition: border-color 120ms ease, transform 120ms ease, box-shadow 120ms ease;
+      }
+
+      .track-button[aria-current="true"] {
+        border-color: var(--accent-dependency);
+        box-shadow: 0 0 0 2px rgba(49, 88, 224, 0.12);
+      }
+
+      .track-button:hover {
+        transform: translateY(-1px);
+      }
+
+      .track-button:focus-visible,
+      .graph-node:focus-visible,
+      .readiness-row:focus-visible,
+      select:focus-visible {
+        outline: 3px solid rgba(49, 88, 224, 0.28);
+        outline-offset: 2px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        width: fit-content;
+      }
+
+      .pill-ready { background: rgba(15, 118, 110, 0.12); color: var(--accent-ready); }
+      .pill-blocked { background: rgba(180, 35, 24, 0.1); color: var(--accent-blocked); }
+      .pill-deferred { background: rgba(183, 121, 31, 0.14); color: var(--accent-deferred); }
+
+      .track-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      .center {
+        padding: 0 20px 20px;
+        overflow: auto;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+
+      .panel-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: baseline;
+        margin-bottom: 12px;
+      }
+
+      .panel-head p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 13px;
+      }
+
+      .dependency-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+        gap: 16px;
+      }
+
+      .graph-shell {
+        background: var(--inset);
+        border-radius: 10px;
+        padding: 10px;
+        overflow: auto;
+      }
+
+      svg {
+        display: block;
+        width: 100%;
+        min-width: 680px;
+        height: auto;
+      }
+
+      .graph-edge {
+        stroke: rgba(94, 107, 120, 0.34);
+        stroke-width: 2;
+        fill: none;
+      }
+
+      .graph-edge.highlight {
+        stroke: var(--accent-dependency);
+        stroke-width: 3;
+      }
+
+      .graph-node rect {
+        fill: var(--panel);
+        stroke: rgba(94, 107, 120, 0.24);
+        stroke-width: 1.5;
+        rx: 10;
+        ry: 10;
+      }
+
+      .graph-node.active rect {
+        stroke: var(--accent-dependency);
+        stroke-width: 2.5;
+      }
+
+      .graph-node.ready rect { fill: rgba(15, 118, 110, 0.08); }
+      .graph-node.blocked rect { fill: rgba(180, 35, 24, 0.06); }
+      .graph-node.deferred rect { fill: rgba(183, 121, 31, 0.08); }
+      .graph-node text {
+        fill: var(--text-strong);
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .graph-node .sub {
+        fill: var(--text-muted);
+        font-size: 11px;
+        font-weight: 500;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      th, td {
+        text-align: left;
+        padding: 9px 10px;
+        border-bottom: 1px solid rgba(15, 23, 32, 0.07);
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .readiness-row {
+        cursor: pointer;
+        background: transparent;
+        border: 0;
+        padding: 0;
+        width: 100%;
+        text-align: inherit;
+      }
+
+      .readiness-row[data-active="true"] {
+        background: rgba(49, 88, 224, 0.06);
+      }
+
+      .braid-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .braid-card {
+        background: var(--inset);
+        border-radius: 10px;
+        padding: 12px;
+        border: 1px solid transparent;
+      }
+
+      .braid-card.active {
+        border-color: var(--accent-risk);
+      }
+
+      .braid-card h3 {
+        margin: 0 0 8px;
+        font-size: 14px;
+        color: var(--text-strong);
+      }
+
+      .braid-card p {
+        margin: 0 0 10px;
+        color: var(--text-muted);
+        font-size: 13px;
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .chip {
+        border-radius: 999px;
+        background: rgba(49, 88, 224, 0.08);
+        color: var(--accent-dependency);
+        padding: 4px 8px;
+        font-size: 12px;
+      }
+
+      .inspector {
+        padding: 0 20px 20px 16px;
+        border-left: 1px solid var(--border);
+        overflow: auto;
+      }
+
+      .inspector .panel {
+        position: sticky;
+        top: 16px;
+      }
+
+      .inspector dl {
+        display: grid;
+        grid-template-columns: 120px minmax(0, 1fr);
+        gap: 8px 12px;
+        margin: 0;
+      }
+
+      .inspector dt {
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      .inspector dd {
+        margin: 0;
+        font-size: 13px;
+      }
+
+      .list-block {
+        display: grid;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .list-block ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .list-block li {
+        margin-bottom: 6px;
+        line-height: 1.45;
+      }
+
+      .lower-ledger {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 16px;
+        padding: 0 20px 20px;
+      }
+
+      .muted {
+        color: var(--text-muted);
+      }
+
+      .empty-state {
+        padding: 20px 0;
+        color: var(--text-muted);
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      @media (max-width: 1280px) {
+        .board-shell {
+          grid-template-columns: 280px minmax(0, 1fr);
+        }
+
+        .inspector {
+          grid-column: 1 / -1;
+          border-left: 0;
+          border-top: 1px solid var(--border);
+          padding-left: 20px;
+        }
+
+        .inspector .panel {
+          position: static;
+        }
+      }
+
+      @media (max-width: 920px) {
+        body {
+          padding: 0;
+        }
+
+        .board-shell {
+          min-height: 100vh;
+          border: 0;
+          border-radius: 0;
+          grid-template-columns: 1fr;
+        }
+
+        .summary-strip,
+        .filters,
+        .lower-ledger,
+        .dependency-layout,
+        .braid-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .rail, .center, .inspector {
+          border: 0;
+          padding: 0 16px 16px;
+        }
+
+        svg {
+          min-width: 580px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0s !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0s !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main
+      class="board-shell"
+      data-testid="Phase4ParallelGateBoard"
+      data-visual-mode="Phase4_Parallel_Gate_Board"
+      data-active-track=""
+      data-filter-status="all"
+      data-filter-owner="all"
+      data-filter-family="all"
+      data-filter-chain="all"
+      data-reduced-motion="false"
+    >
+      <header class="masthead" data-testid="GateMasthead">
+        <div class="brand-lockup">
+          <div class="grid-mark" aria-hidden="true">
+            <svg
+              data-testid="phase4_launch_grid_mark"
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <rect x="1.5" y="1.5" width="7" height="7" rx="2" stroke="#3158E0" stroke-width="1.5" />
+              <rect x="11.5" y="1.5" width="7" height="7" rx="2" stroke="#5B61F6" stroke-width="1.5" />
+              <rect x="1.5" y="11.5" width="7" height="7" rx="2" stroke="#0F766E" stroke-width="1.5" />
+              <rect x="11.5" y="11.5" width="7" height="7" rx="2" stroke="#B7791F" stroke-width="1.5" />
+            </svg>
+          </div>
+          <div>
+            <div class="wordmark">Vec<span>ells</span></div>
+            <div class="mode-copy">Phase4_Parallel_Gate_Board</div>
+          </div>
+        </div>
+        <div class="mode-copy">Generated 2026-04-18. One launch board, one owner map, one gate.</div>
+      </header>
+
+      <section class="summary-strip" data-testid="GateSummaryStrip" aria-label="Gate summary bands"></section>
+
+      <section class="filters" data-testid="GateFilters" aria-label="Track filters">
+        <div class="filter">
+          <label for="status-filter">Status</label>
+          <select id="status-filter" data-testid="StatusFilter">
+            <option value="all">All statuses</option>
+            <option value="ready">Ready</option>
+            <option value="blocked">Blocked</option>
+            <option value="deferred">Deferred</option>
+          </select>
+        </div>
+        <div class="filter">
+          <label for="owner-filter">Owner</label>
+          <select id="owner-filter" data-testid="OwnerFilter"></select>
+        </div>
+        <div class="filter">
+          <label for="family-filter">Object family</label>
+          <select id="family-filter" data-testid="ObjectFamilyFilter"></select>
+        </div>
+        <div class="filter">
+          <label for="chain-filter">Invalidation chain</label>
+          <select id="chain-filter" data-testid="ChainFilter"></select>
+        </div>
+      </section>
+
+      <aside class="rail" data-testid="TrackRail" aria-labelledby="track-rail-heading">
+        <h2 id="track-rail-heading">Tracks</h2>
+        <div class="track-list" id="track-list"></div>
+      </aside>
+
+      <section class="center" aria-label="Dependency and readiness canvas">
+        <section class="panel" data-testid="DependencyLatticeRegion">
+          <div class="panel-head">
+            <div>
+              <h2>Dependency lattice</h2>
+              <p>Tracks, direct blockers, and parallel-safe launch boundary.</p>
+            </div>
+            <div class="muted" id="dependency-summary"></div>
+          </div>
+          <div class="dependency-layout">
+            <div class="graph-shell">
+              <svg
+                id="dependency-lattice"
+                data-testid="DependencyLattice"
+                aria-label="Dependency lattice"
+                role="img"
+                viewBox="0 0 960 720"
+              ></svg>
+            </div>
+            <div>
+              <table data-testid="DependencyLatticeTable">
+                <thead>
+                  <tr>
+                    <th>Track</th>
+                    <th>Status</th>
+                    <th>Upstream</th>
+                  </tr>
+                </thead>
+                <tbody id="dependency-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" data-testid="ReadinessMatrixRegion">
+          <div class="panel-head">
+            <div>
+              <h2>Readiness matrix</h2>
+              <p>Exact launch posture, owner, object family, and blocker law.</p>
+            </div>
+          </div>
+          <table data-testid="ReadinessMatrixTable">
+            <thead>
+              <tr>
+                <th>Track</th>
+                <th>Status</th>
+                <th>Owner</th>
+                <th>Primary objects</th>
+                <th>Readiness note</th>
+              </tr>
+            </thead>
+            <tbody id="readiness-table-body"></tbody>
+          </table>
+        </section>
+
+        <section class="panel" data-testid="InvalidationBraidRegion">
+          <div class="panel-head">
+            <div>
+              <h2>Invalidation braid</h2>
+              <p>Cross-track invalidation law that must stay aligned while the programme runs in parallel.</p>
+            </div>
+          </div>
+          <div class="braid-grid" id="braid-grid"></div>
+          <table data-testid="InvalidationBraidTable">
+            <thead>
+              <tr>
+                <th>Chain</th>
+                <th>Owning tracks</th>
+                <th>Law</th>
+              </tr>
+            </thead>
+            <tbody id="braid-table-body"></tbody>
+          </table>
+        </section>
+      </section>
+
+      <aside class="inspector" aria-label="Launch packet inspector">
+        <section class="panel" data-testid="LaunchPacketInspector">
+          <div class="panel-head">
+            <div>
+              <h2>Launch packet inspector</h2>
+              <p id="inspector-caption">Track-specific objective, boundaries, and merge law.</p>
+            </div>
+          </div>
+          <div id="inspector-shell"></div>
+        </section>
+      </aside>
+
+      <section class="lower-ledger" aria-label="Evidence and gaps">
+        <section class="panel" data-testid="EvidenceLedger">
+          <div class="panel-head">
+            <div>
+              <h2>Evidence ledger</h2>
+              <p>Selected-track contract references, surface roots, and mandatory tests.</p>
+            </div>
+          </div>
+          <table data-testid="EvidenceTable">
+            <thead>
+              <tr>
+                <th>Kind</th>
+                <th>Value</th>
+              </tr>
+            </thead>
+            <tbody id="evidence-table-body"></tbody>
+          </table>
+        </section>
+        <section class="panel" data-testid="GapLedger">
+          <div class="panel-head">
+            <div>
+              <h2>Gap ledger</h2>
+              <p>Machine-readable unresolved or remediated seams that matter for launch.</p>
+            </div>
+          </div>
+          <table data-testid="GapTable">
+            <thead>
+              <tr>
+                <th>Gap</th>
+                <th>Status</th>
+                <th>Owner</th>
+                <th>Resolution</th>
+              </tr>
+            </thead>
+            <tbody id="gap-table-body"></tbody>
+          </table>
+        </section>
+      </section>
+    </main>
+
+    <script id="atlas-data" type="application/json">{&quot;taskId&quot;: &quot;seq_281&quot;, &quot;generatedAt&quot;: &quot;2026-04-18&quot;, &quot;visualMode&quot;: &quot;Phase4_Parallel_Gate_Board&quot;, &quot;contractVersion&quot;: &quot;281.phase4.parallel-gate.v1&quot;, &quot;summaryBands&quot;: [{&quot;bandId&quot;: &quot;ready&quot;, &quot;label&quot;: &quot;Wave 1 ready&quot;, &quot;count&quot;: 2, &quot;tone&quot;: &quot;ready&quot;}, {&quot;bandId&quot;: &quot;blocked&quot;, &quot;label&quot;: &quot;Blocked&quot;, &quot;count&quot;: 18, &quot;tone&quot;: &quot;blocked&quot;}, {&quot;bandId&quot;: &quot;deferred&quot;, &quot;label&quot;: &quot;Deferred&quot;, &quot;count&quot;: 9, &quot;tone&quot;: &quot;deferred&quot;}, {&quot;bandId&quot;: &quot;collisions&quot;, &quot;label&quot;: &quot;Collisions remediated&quot;, &quot;count&quot;: 25, &quot;tone&quot;: &quot;dependency&quot;}], &quot;tracks&quot;: [{&quot;trackId&quot;: &quot;par_282&quot;, &quot;title&quot;: &quot;Executable BookingCase kernel and durable intent lineage&quot;, &quot;wave&quot;: &quot;first_wave&quot;, &quot;status&quot;: &quot;ready&quot;, &quot;statusLabel&quot;: &quot;Ready&quot;, &quot;ownerRole&quot;: &quot;booking_kernel&quot;, &quot;objectFamilyGroup&quot;: &quot;booking_case&quot;, &quot;primaryObjectFamilies&quot;: [&quot;BookingIntent&quot;, &quot;BookingCase&quot;, &quot;SearchPolicy&quot;, &quot;BookingCaseTransitionJournal&quot;], &quot;upstreamTrackRefs&quot;: [], &quot;invalidationChainRefs&quot;: [&quot;IC_281_ROUTE_PUBLICATION_CONTINUITY&quot;, &quot;IC_281_RESERVATION_CONFIRMATION_MANAGE&quot;], &quot;blockedReason&quot;: &quot;&quot;, &quot;readinessReason&quot;: &quot;Ready now because 278 froze the case kernel, 279 froze capability inputs, 280 froze downstream typed seams, and 281 forbids 282 from claiming slot or capability ownership.&quot;, &quot;launchPacketRef&quot;: &quot;/Users/test/Code/V/data/launchpacks/281_track_launch_packet_282.json&quot;, &quot;parallelSafeWith&quot;: [&quot;par_283&quot;], &quot;mergeCriteria&quot;: [&quot;Schema fields and state vocabulary must remain byte-compatible with 278.&quot;, &quot;Migrations must preserve replayable BookingIntent lineage and append-only transition audit.&quot;, &quot;Event emission must use the 281 owner remap and never emit slot, offer, reminder, waitlist, or reconciliation events from 282.&quot;, &quot;Stale decision epoch, stale request lease, and identity-repair freeze tests must fail closed.&quot;, &quot;Telemetry and audit output must remain PHI-safe on case transition surfaces.&quot;], &quot;mandatoryTests&quot;: [&quot;pnpm --dir /Users/test/Code/V/packages/domains/booking typecheck&quot;, &quot;pnpm --dir /Users/test/Code/V/services/command-api typecheck&quot;, &quot;pnpm --dir /Users/test/Code/V/packages/domains/booking exec vitest run tests/phase4-booking-case-kernel.test.ts&quot;, &quot;pnpm --dir /Users/test/Code/V/services/command-api exec vitest run tests/phase4-booking-case.integration.test.js&quot;, &quot;python3 /Users/test/Code/V/tools/analysis/validate_282_booking_case_kernel.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_282_booking_case_kernel.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/packages/domains/booking/src/index.ts&quot;, &quot;/Users/test/Code/V/packages/domains/booking/src/phase4-booking-case-kernel.ts&quot;, &quot;/Users/test/Code/V/packages/domains/booking/tests/phase4-booking-case-kernel.test.ts&quot;, &quot;/Users/test/Code/V/services/command-api/src/phase4-booking-case.ts&quot;, &quot;/Users/test/Code/V/services/command-api/tests/phase4-booking-case.integration.test.js&quot;, &quot;/Users/test/Code/V/services/command-api/migrations/131_phase4_booking_case_kernel.sql&quot;], &quot;currentGapRefs&quot;: [&quot;/Users/test/Code/V/data/analysis/PHASE4_PARALLEL_INTERFACE_GAP_EVENT_OWNER_DRIFT.json&quot;, &quot;/Users/test/Code/V/data/analysis/PHASE4_PARALLEL_INTERFACE_GAP_LIVE_PROVIDER_AND_FETCH_ADOPTION.json&quot;], &quot;promptTaskId&quot;: &quot;282_par_phase4_track_backend_build_booking_case_state_machine_and_booking_intent_records&quot;}, {&quot;trackId&quot;: &quot;par_283&quot;, &quot;title&quot;: &quot;Executable capability matrix compiler and tuple resolution engine&quot;, &quot;wave&quot;: &quot;first_wave&quot;, &quot;status&quot;: &quot;ready&quot;, &quot;statusLabel&quot;: &quot;Ready&quot;, &quot;ownerRole&quot;: &quot;capability_engine&quot;, &quot;objectFamilyGroup&quot;: &quot;capability_tuple&quot;, &quot;primaryObjectFamilies&quot;: [&quot;ProviderCapabilityMatrix&quot;, &quot;AdapterContractProfile&quot;, &quot;DependencyDegradationProfile&quot;, &quot;AuthoritativeReadAndConfirmationGatePolicy&quot;, &quot;BookingProviderAdapterBinding&quot;, &quot;BookingCapabilityResolution&quot;, &quot;BookingCapabilityProjection&quot;], &quot;upstreamTrackRefs&quot;: [], &quot;invalidationChainRefs&quot;: [&quot;IC_281_CAPABILITY_TUPLE_DRIFT&quot;, &quot;IC_281_ROUTE_PUBLICATION_CONTINUITY&quot;], &quot;blockedReason&quot;: &quot;&quot;, &quot;readinessReason&quot;: &quot;Ready now because 279 froze the tuple law and 281 explicitly blocks 283 from redefining BookingCase or slot semantics while allowing a parallel compile-and-resolve path.&quot;, &quot;launchPacketRef&quot;: &quot;/Users/test/Code/V/data/launchpacks/281_track_launch_packet_283.json&quot;, &quot;parallelSafeWith&quot;: [&quot;par_282&quot;], &quot;mergeCriteria&quot;: [&quot;Schema fields, capability states, and tuple hash inputs must remain byte-compatible with 279.&quot;, &quot;Binding compilation must name exactly one current adapter profile, degradation profile, and confirmation gate policy.&quot;, &quot;Capability tuple supersession must invalidate stale resolutions without widening patient action scope.&quot;, &quot;Blocked reasons and fallback actions must remain machine-readable for downstream UI and support tracks.&quot;, &quot;Telemetry and diagnostics must stay PHI-safe and reason-code based.&quot;], &quot;mandatoryTests&quot;: [&quot;pnpm --dir /Users/test/Code/V/packages/domains/booking typecheck&quot;, &quot;pnpm --dir /Users/test/Code/V/services/command-api typecheck&quot;, &quot;pnpm --dir /Users/test/Code/V/packages/domains/booking exec vitest run tests/phase4-booking-capability-engine.test.ts&quot;, &quot;pnpm --dir /Users/test/Code/V/services/command-api exec vitest run tests/phase4-booking-capability.integration.test.js&quot;, &quot;python3 /Users/test/Code/V/tools/analysis/validate_283_capability_engine.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_283_capability_engine.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/packages/domains/booking/src/index.ts&quot;, &quot;/Users/test/Code/V/packages/domains/booking/src/phase4-booking-capability-engine.ts&quot;, &quot;/Users/test/Code/V/packages/domains/booking/tests/phase4-booking-capability-engine.test.ts&quot;, &quot;/Users/test/Code/V/services/command-api/src/phase4-booking-capability.ts&quot;, &quot;/Users/test/Code/V/services/command-api/tests/phase4-booking-capability.integration.test.js&quot;, &quot;/Users/test/Code/V/services/command-api/migrations/132_phase4_booking_capability_engine.sql&quot;], &quot;currentGapRefs&quot;: [&quot;/Users/test/Code/V/data/analysis/PHASE4_PARALLEL_INTERFACE_GAP_EVENT_OWNER_DRIFT.json&quot;, &quot;/Users/test/Code/V/data/analysis/PHASE4_PARALLEL_INTERFACE_GAP_LIVE_PROVIDER_AND_FETCH_ADOPTION.json&quot;], &quot;promptTaskId&quot;: &quot;283_par_phase4_track_backend_build_provider_capability_matrix_and_adapter_binding_compiler&quot;}, {&quot;trackId&quot;: &quot;par_284&quot;, &quot;title&quot;: &quot;Slot search, normalization, and availability snapshot pipeline&quot;, &quot;wave&quot;: &quot;backend_wave&quot;, &quot;status&quot;: &quot;blocked&quot;, &quot;statusLabel&quot;: &quot;Blocked&quot;, &quot;ownerRole&quot;: &quot;slot_snapshot_pipeline&quot;, &quot;objectFamilyGroup&quot;: &quot;slot_snapshot&quot;, &quot;primaryObjectFamilies&quot;: [&quot;SlotSearchSession&quot;, &quot;ProviderSearchSlice&quot;, &quot;TemporalNormalizationEnvelope&quot;, &quot;CanonicalSlotIdentity&quot;, &quot;NormalizedSlot&quot;, &quot;SnapshotCandidateIndex&quot;, &quot;SlotSetSnapshot&quot;, &quot;SlotSnapshotRecoveryState&quot;], &quot;upstreamTrackRefs&quot;: [&quot;par_282&quot;, &quot;par_283&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_CAPABILITY_TUPLE_DRIFT&quot;, &quot;IC_281_SNAPSHOT_EXPIRY&quot;], &quot;blockedReason&quot;: &quot;Needs executable BookingCase and capability-query surfaces before snapshot production is lawful.&quot;, &quot;readinessReason&quot;: &quot;Blocked until 282 publishes durable case creation and 283 publishes live capability resolution queries for the exact tuple.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Must consume 282 and 283 surfaces instead of recreating case or capability truth locally.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_284_slot_snapshot_pipeline.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_284_slot_snapshot_pipeline.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/packages/domains/booking/src/phase4-slot-search-pipeline.ts&quot;, &quot;/Users/test/Code/V/services/command-api/src/phase4-slot-search.ts&quot;, &quot;/Users/test/Code/V/packages/event-contracts/schemas/booking/booking.slots.fetched.v1.schema.json&quot;], &quot;currentGapRefs&quot;: [], &quot;promptTaskId&quot;: &quot;284_par_phase4_track_backend_build_slot_search_normalization_and_availability_snapshot_pipeline&quot;}, {&quot;trackId&quot;: &quot;par_285&quot;, &quot;title&quot;: &quot;Slot scoring, offer orchestration, and selection rules&quot;, &quot;wave&quot;: &quot;backend_wave&quot;, &quot;status&quot;: &quot;blocked&quot;, &quot;statusLabel&quot;: &quot;Blocked&quot;, &quot;ownerRole&quot;: &quot;offer_orchestration&quot;, &quot;objectFamilyGroup&quot;: &quot;offer_ranking&quot;, &quot;primaryObjectFamilies&quot;: [&quot;RankPlan&quot;, &quot;CapacityRankProof&quot;, &quot;CapacityRankExplanation&quot;, &quot;OfferSession&quot;], &quot;upstreamTrackRefs&quot;: [&quot;par_284&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_CAPABILITY_TUPLE_DRIFT&quot;, &quot;IC_281_SNAPSHOT_EXPIRY&quot;], &quot;blockedReason&quot;: &quot;Needs 284 snapshot production and freshness law.&quot;, &quot;readinessReason&quot;: &quot;Blocked until 284 publishes canonical snapshot and candidate-index truth.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Must keep truthful non-exclusive offer posture distinct from reservation authority.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_285_capacity_rank_and_offer_sessions.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_285_capacity_rank_and_offer_sessions.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/packages/domains/booking/src/phase4-offer-orchestration.ts&quot;, &quot;/Users/test/Code/V/services/command-api/src/phase4-offers.ts&quot;, &quot;/Users/test/Code/V/packages/event-contracts/schemas/booking/booking.offers.created.v1.schema.json&quot;], &quot;currentGapRefs&quot;: [], &quot;promptTaskId&quot;: &quot;285_par_phase4_track_backend_build_slot_scoring_offer_orchestration_and_selection_rules&quot;}, {&quot;trackId&quot;: &quot;par_286&quot;, &quot;title&quot;: &quot;Reservation authority, soft hold, and real hold flows&quot;, &quot;wave&quot;: &quot;backend_wave&quot;, &quot;status&quot;: &quot;blocked&quot;, &quot;statusLabel&quot;: &quot;Blocked&quot;, &quot;ownerRole&quot;: &quot;reservation_authority&quot;, &quot;objectFamilyGroup&quot;: &quot;reservation_truth&quot;, &quot;primaryObjectFamilies&quot;: [&quot;CapacityReservation&quot;, &quot;ReservationTruthProjection&quot;], &quot;upstreamTrackRefs&quot;: [&quot;par_285&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_CAPABILITY_TUPLE_DRIFT&quot;, &quot;IC_281_SNAPSHOT_EXPIRY&quot;, &quot;IC_281_RESERVATION_CONFIRMATION_MANAGE&quot;], &quot;blockedReason&quot;: &quot;Needs offer-session ownership and ranking proof from 285.&quot;, &quot;readinessReason&quot;: &quot;Blocked until 285 owns ranked offer sessions and truthful selection semantics.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Must not let selected state imply held state before reservation truth exists.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_286_reservation_authority_soft_hold_and_real_hold_flows.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_286_reservation_authority_soft_hold_and_real_hold_flows.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/packages/domains/booking/src/phase4-reservation-authority.ts&quot;, &quot;/Users/test/Code/V/services/command-api/src/phase4-reservation-authority.ts&quot;], &quot;currentGapRefs&quot;: [], &quot;promptTaskId&quot;: &quot;286_par_phase4_track_backend_build_reservation_authority_soft_hold_and_real_hold_flows&quot;}, {&quot;trackId&quot;: &quot;par_287&quot;, &quot;title&quot;: &quot;Commit path, revalidation, appointment record, and compensation logic&quot;, &quot;wave&quot;: &quot;backend_wave&quot;, &quot;status&quot;: &quot;blocked&quot;, &quot;statusLabel&quot;: &quot;Blocked&quot;, &quot;ownerRole&quot;: &quot;commit_pipeline&quot;, &quot;objectFamilyGroup&quot;: &quot;commit_truth&quot;, &quot;primaryObjectFamilies&quot;: [&quot;BookingTransaction&quot;, &quot;ExternalConfirmationGate&quot;, &quot;BookingConfirmationTruthProjection&quot;, &quot;AppointmentRecord&quot;], &quot;upstreamTrackRefs&quot;: [&quot;par_286&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_CAPABILITY_TUPLE_DRIFT&quot;, &quot;IC_281_SNAPSHOT_EXPIRY&quot;, &quot;IC_281_RESERVATION_CONFIRMATION_MANAGE&quot;], &quot;blockedReason&quot;: &quot;Needs reservation authority and truthful hold inputs from 286.&quot;, &quot;readinessReason&quot;: &quot;Blocked until 286 publishes hold and reservation truth that commit can lawfully revalidate and consume.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Must be the only owner of commit-path state and initial authoritative appointment creation.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_287_booking_commit_pipeline.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_287_booking_commit_pipeline.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/packages/domains/booking/src/phase4-booking-commit.ts&quot;, &quot;/Users/test/Code/V/services/command-api/src/phase4-booking-commit.ts&quot;, &quot;/Users/test/Code/V/packages/event-contracts/schemas/booking/booking.commit.started.v1.schema.json&quot;], &quot;currentGapRefs&quot;: [], &quot;promptTaskId&quot;: &quot;287_par_phase4_track_backend_build_commit_path_revalidation_booking_record_and_compensation_logic&quot;}, {&quot;trackId&quot;: &quot;par_288&quot;, &quot;title&quot;: &quot;Appointment management cancel, reschedule, and detail update commands&quot;, &quot;wave&quot;: &quot;backend_wave&quot;, &quot;status&quot;: &quot;blocked&quot;, &quot;statusLabel&quot;: &quot;Blocked&quot;, &quot;ownerRole&quot;: &quot;manage_commands&quot;, &quot;objectFamilyGroup&quot;: &quot;manage_and_artifact&quot;, &quot;primaryObjectFamilies&quot;: [&quot;AppointmentManageCommand&quot;, &quot;BookingManageSettlement&quot;, &quot;BookingContinuityEvidenceProjection&quot;, &quot;AppointmentPresentationArtifact&quot;], &quot;upstreamTrackRefs&quot;: [&quot;par_287&quot;, &quot;par_283&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_CAPABILITY_TUPLE_DRIFT&quot;, &quot;IC_281_RESERVATION_CONFIRMATION_MANAGE&quot;, &quot;IC_281_ROUTE_PUBLICATION_CONTINUITY&quot;], &quot;blockedReason&quot;: &quot;Needs booked appointment truth from 287 and capability projection from 283.&quot;, &quot;readinessReason&quot;: &quot;Blocked until 287 publishes appointment truth and 283 publishes live manage exposure truth.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Must preserve same-shell continuity and never infer manage exposure from appointment presence alone.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_288_appointment_management_cancel_reschedule_and_detail_update_commands.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_288_appointment_management_cancel_reschedule_and_detail_update_commands.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/packages/domains/booking/src/phase4-appointment-manage.ts&quot;, &quot;/Users/test/Code/V/services/command-api/src/phase4-appointment-manage.ts&quot;], &quot;currentGapRefs&quot;: [], &quot;promptTaskId&quot;: &quot;288_par_phase4_track_backend_build_appointment_management_cancel_reschedule_and_detail_update_commands&quot;}, {&quot;trackId&quot;: &quot;par_289&quot;, &quot;title&quot;: &quot;Reminder scheduler and notification settlement&quot;, &quot;wave&quot;: &quot;backend_wave&quot;, &quot;status&quot;: &quot;blocked&quot;, &quot;statusLabel&quot;: &quot;Blocked&quot;, &quot;ownerRole&quot;: &quot;reminder_scheduler&quot;, &quot;objectFamilyGroup&quot;: &quot;reminder&quot;, &quot;primaryObjectFamilies&quot;: [&quot;ReminderPlan&quot;], &quot;upstreamTrackRefs&quot;: [&quot;par_287&quot;, &quot;par_288&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_RESERVATION_CONFIRMATION_MANAGE&quot;, &quot;IC_281_ROUTE_PUBLICATION_CONTINUITY&quot;], &quot;blockedReason&quot;: &quot;Needs appointment truth and manage mutation settlement.&quot;, &quot;readinessReason&quot;: &quot;Blocked until 287 creates authoritative AppointmentRecord and 288 owns reminder-change manage settlement.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Must keep reminder schedule truth separate from manage command and appointment truth.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_289_reminder_scheduler_and_notification_settlement_for_appointments.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_289_reminder_scheduler_and_notification_settlement_for_appointments.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/packages/domains/booking/src/phase4-reminder-scheduler.ts&quot;, &quot;/Users/test/Code/V/services/command-api/src/phase4-reminder-scheduler.ts&quot;], &quot;currentGapRefs&quot;: [&quot;/Users/test/Code/V/data/analysis/PHASE4_PARALLEL_INTERFACE_GAP_LIVE_PROVIDER_AND_FETCH_ADOPTION.json&quot;], &quot;promptTaskId&quot;: &quot;289_par_phase4_track_backend_build_reminder_scheduler_and_notification_settlement_for_appointments&quot;}, {&quot;trackId&quot;: &quot;par_290&quot;, &quot;title&quot;: &quot;Smart waitlist, transactional autofill, and deadline logic&quot;, &quot;wave&quot;: &quot;backend_wave&quot;, &quot;status&quot;: &quot;blocked&quot;, &quot;statusLabel&quot;: &quot;Blocked&quot;, &quot;ownerRole&quot;: &quot;waitlist_runtime&quot;, &quot;objectFamilyGroup&quot;: &quot;waitlist_and_fallback&quot;, &quot;primaryObjectFamilies&quot;: [&quot;WaitlistEntry&quot;, &quot;WaitlistDeadlineEvaluation&quot;, &quot;WaitlistFallbackObligation&quot;, &quot;WaitlistOffer&quot;, &quot;WaitlistContinuationTruthProjection&quot;], &quot;upstreamTrackRefs&quot;: [&quot;par_286&quot;, &quot;par_287&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_WAITLIST_FALLBACK_TYPED&quot;, &quot;IC_281_RESERVATION_CONFIRMATION_MANAGE&quot;], &quot;blockedReason&quot;: &quot;Needs reservation and commit truth before autofill and fallback obligations are legal.&quot;, &quot;readinessReason&quot;: &quot;Blocked until no-supply, unavailable, and commit ambiguity branches are emitted by 286 and 287.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Must keep waitlist and fallback typed instead of branching from generic booking failure.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_290_smart_waitlist_transactional_autofill_and_deadline_logic.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_290_smart_waitlist_transactional_autofill_and_deadline_logic.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/packages/domains/booking/src/phase4-smart-waitlist.ts&quot;, &quot;/Users/test/Code/V/services/command-api/src/phase4-smart-waitlist.ts&quot;], &quot;currentGapRefs&quot;: [&quot;/Users/test/Code/V/data/analysis/PHASE4_PARALLEL_INTERFACE_GAP_WAITLIST_FALLBACK_OWNER_MAP.json&quot;], &quot;promptTaskId&quot;: &quot;290_par_phase4_track_backend_build_smart_waitlist_transactional_autofill_and_deadline_logic&quot;}, {&quot;trackId&quot;: &quot;par_291&quot;, &quot;title&quot;: &quot;Staff-assisted booking exception queue and handoff panel API&quot;, &quot;wave&quot;: &quot;backend_wave&quot;, &quot;status&quot;: &quot;blocked&quot;, &quot;statusLabel&quot;: &quot;Blocked&quot;, &quot;ownerRole&quot;: &quot;staff_assisted_api&quot;, &quot;objectFamilyGroup&quot;: &quot;assisted_booking&quot;, &quot;primaryObjectFamilies&quot;: [&quot;AssistedBookingSession&quot;, &quot;BookingException&quot;, &quot;BookingExceptionQueue&quot;], &quot;upstreamTrackRefs&quot;: [&quot;par_290&quot;, &quot;par_287&quot;, &quot;par_288&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_WAITLIST_FALLBACK_TYPED&quot;, &quot;IC_281_ROUTE_PUBLICATION_CONTINUITY&quot;], &quot;blockedReason&quot;: &quot;Needs waitlist/fallback truth and commit/manage exception inputs.&quot;, &quot;readinessReason&quot;: &quot;Blocked until 290 emits typed fallback obligations and 287/288 publish the exception-causing booking truth.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Must consume fallback obligations instead of inventing a second assisted-booking branch model.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_291_staff_assisted_booking_exception_queue_and_handoff_panel_api.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_291_staff_assisted_booking_exception_queue_and_handoff_panel_api.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/packages/domains/booking/src/phase4-staff-assisted-booking.ts&quot;, &quot;/Users/test/Code/V/services/command-api/src/phase4-staff-assisted-booking.ts&quot;], &quot;currentGapRefs&quot;: [&quot;/Users/test/Code/V/data/analysis/PHASE4_PARALLEL_INTERFACE_GAP_WAITLIST_FALLBACK_OWNER_MAP.json&quot;], &quot;promptTaskId&quot;: &quot;291_par_phase4_track_backend_build_staff_assisted_booking_exception_queue_and_handoff_panel_api&quot;}, {&quot;trackId&quot;: &quot;par_292&quot;, &quot;title&quot;: &quot;Booking reconciliation and external confirmation dispute worker&quot;, &quot;wave&quot;: &quot;backend_wave&quot;, &quot;status&quot;: &quot;blocked&quot;, &quot;statusLabel&quot;: &quot;Blocked&quot;, &quot;ownerRole&quot;: &quot;reconciliation_worker&quot;, &quot;objectFamilyGroup&quot;: &quot;reconciliation&quot;, &quot;primaryObjectFamilies&quot;: [&quot;BookingReconciliationActionRecord&quot;, &quot;ExternalConfirmationEvidenceEnvelope&quot;, &quot;BookingConfirmationTruthProjection&quot;], &quot;upstreamTrackRefs&quot;: [&quot;par_287&quot;, &quot;par_290&quot;, &quot;par_291&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_RESERVATION_CONFIRMATION_MANAGE&quot;, &quot;IC_281_WAITLIST_FALLBACK_TYPED&quot;], &quot;blockedReason&quot;: &quot;Needs commit outputs, exception signals, and fallback branches before reconciliation can converge truth.&quot;, &quot;readinessReason&quot;: &quot;Blocked until 287 emits ambiguous or pending confirmation states and 290/291 publish fallback and exception paths that the worker may settle.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Must be the only ongoing owner of confirmation-truth convergence after initial commit settlement.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_292_booking_reconciliation_worker.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_292_booking_reconciliation_worker.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/services/command-api/src/phase4-booking-reconciliation.ts&quot;, &quot;/Users/test/Code/V/services/command-api/tests/phase4-booking-reconciliation.integration.test.js&quot;], &quot;currentGapRefs&quot;: [&quot;/Users/test/Code/V/data/analysis/PHASE4_PARALLEL_INTERFACE_GAP_EVENT_OWNER_DRIFT.json&quot;], &quot;promptTaskId&quot;: &quot;292_par_phase4_track_backend_build_booking_reconciliation_and_external_confirmation_dispute_worker&quot;}, {&quot;trackId&quot;: &quot;par_293&quot;, &quot;title&quot;: &quot;Patient appointment scheduling workspace&quot;, &quot;wave&quot;: &quot;frontend_wave&quot;, &quot;status&quot;: &quot;blocked&quot;, &quot;statusLabel&quot;: &quot;Blocked&quot;, &quot;ownerRole&quot;: &quot;patient_booking_frontend&quot;, &quot;objectFamilyGroup&quot;: &quot;patient_workspace&quot;, &quot;primaryObjectFamilies&quot;: [&quot;PatientAppointmentWorkspaceProjection&quot;, &quot;PatientAppointmentListProjection&quot;], &quot;upstreamTrackRefs&quot;: [&quot;par_282&quot;, &quot;par_283&quot;, &quot;par_284&quot;, &quot;par_285&quot;, &quot;par_287&quot;, &quot;par_292&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_CAPABILITY_TUPLE_DRIFT&quot;, &quot;IC_281_ROUTE_PUBLICATION_CONTINUITY&quot;], &quot;blockedReason&quot;: &quot;Needs executable backend booking truth from 282 to 292.&quot;, &quot;readinessReason&quot;: &quot;Blocked until the core backend booking path exists end to end; otherwise the workspace would simulate booking truth locally.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Must render from authoritative capability, snapshot, offer, and confirmation projections rather than local heuristics.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_293_patient_booking_workspace.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_293_patient_booking_workspace.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/apps/patient-web/src/patient-booking-workspace.tsx&quot;], &quot;currentGapRefs&quot;: [&quot;/Users/test/Code/V/data/analysis/PHASE4_PARALLEL_INTERFACE_GAP_LIVE_PROVIDER_AND_FETCH_ADOPTION.json&quot;], &quot;promptTaskId&quot;: &quot;293_par_phase4_track_Playwright_or_other_appropriate_tooling_frontend_build_patient_appointment_scheduling_workspace&quot;}, {&quot;trackId&quot;: &quot;par_294&quot;, &quot;title&quot;: &quot;Slot search results and freshness states&quot;, &quot;wave&quot;: &quot;frontend_wave&quot;, &quot;status&quot;: &quot;blocked&quot;, &quot;statusLabel&quot;: &quot;Blocked&quot;, &quot;ownerRole&quot;: &quot;patient_booking_search_frontend&quot;, &quot;objectFamilyGroup&quot;: &quot;patient_search&quot;, &quot;primaryObjectFamilies&quot;: [&quot;SlotSearchResultsSurface&quot;], &quot;upstreamTrackRefs&quot;: [&quot;par_293&quot;, &quot;par_284&quot;, &quot;par_285&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_CAPABILITY_TUPLE_DRIFT&quot;, &quot;IC_281_SNAPSHOT_EXPIRY&quot;], &quot;blockedReason&quot;: &quot;Needs patient workspace shell and backend snapshot truth.&quot;, &quot;readinessReason&quot;: &quot;Blocked until 293 establishes the patient booking shell and 284/285 publish snapshot and ranking truth.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Must render freshness and stale states from snapshot recovery, not route-local timers.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_294_slot_results_and_freshness.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_294_slot_results_and_freshness.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/apps/patient-web/src/patient-booking-search-results.tsx&quot;], &quot;currentGapRefs&quot;: [], &quot;promptTaskId&quot;: &quot;294_par_phase4_track_Playwright_or_other_appropriate_tooling_frontend_build_slot_search_results_and_availability_freshness_states&quot;}, {&quot;trackId&quot;: &quot;par_295&quot;, &quot;title&quot;: &quot;Offer selection flow with truthful hold posture&quot;, &quot;wave&quot;: &quot;frontend_wave&quot;, &quot;status&quot;: &quot;blocked&quot;, &quot;statusLabel&quot;: &quot;Blocked&quot;, &quot;ownerRole&quot;: &quot;patient_offer_frontend&quot;, &quot;objectFamilyGroup&quot;: &quot;patient_selection&quot;, &quot;primaryObjectFamilies&quot;: [&quot;OfferSelectionSurface&quot;], &quot;upstreamTrackRefs&quot;: [&quot;par_294&quot;, &quot;par_286&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_SNAPSHOT_EXPIRY&quot;, &quot;IC_281_RESERVATION_CONFIRMATION_MANAGE&quot;], &quot;blockedReason&quot;: &quot;Needs 286 reservation truth on top of 294 search results.&quot;, &quot;readinessReason&quot;: &quot;Blocked until offer and reservation truth exist together.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Must keep selected and held postures distinct and consume reservation truth exactly.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_295_offer_selection_truthful_hold.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_295_offer_selection_truthful_hold.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/apps/patient-web/src/patient-offer-selection.tsx&quot;], &quot;currentGapRefs&quot;: [], &quot;promptTaskId&quot;: &quot;295_par_phase4_track_Playwright_or_other_appropriate_tooling_frontend_build_offer_selection_flow_with_truthful_hold_posture&quot;}, {&quot;trackId&quot;: &quot;par_296&quot;, &quot;title&quot;: &quot;Confirmation pending, disputed, and recovery states&quot;, &quot;wave&quot;: &quot;frontend_wave&quot;, &quot;status&quot;: &quot;blocked&quot;, &quot;statusLabel&quot;: &quot;Blocked&quot;, &quot;ownerRole&quot;: &quot;patient_confirmation_frontend&quot;, &quot;objectFamilyGroup&quot;: &quot;patient_confirmation&quot;, &quot;primaryObjectFamilies&quot;: [&quot;BookingConfirmationRecoverySurface&quot;], &quot;upstreamTrackRefs&quot;: [&quot;par_295&quot;, &quot;par_287&quot;, &quot;par_292&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_RESERVATION_CONFIRMATION_MANAGE&quot;, &quot;IC_281_ROUTE_PUBLICATION_CONTINUITY&quot;], &quot;blockedReason&quot;: &quot;Needs commit and reconciliation truth.&quot;, &quot;readinessReason&quot;: &quot;Blocked until 287 and 292 publish authoritative confirmation and dispute truth.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Must never treat accepted-for-processing as booked truth.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_296_confirmation_pending_disputed_and_recovery.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_296_confirmation_pending_disputed_and_recovery.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/apps/patient-web/src/patient-booking-confirmation.tsx&quot;], &quot;currentGapRefs&quot;: [], &quot;promptTaskId&quot;: &quot;296_par_phase4_track_Playwright_or_other_appropriate_tooling_frontend_build_confirmation_pending_disputed_and_recovery_states&quot;}, {&quot;trackId&quot;: &quot;par_297&quot;, &quot;title&quot;: &quot;Appointment detail, cancel, reschedule, and reminder views&quot;, &quot;wave&quot;: &quot;frontend_wave&quot;, &quot;status&quot;: &quot;blocked&quot;, &quot;statusLabel&quot;: &quot;Blocked&quot;, &quot;ownerRole&quot;: &quot;patient_manage_frontend&quot;, &quot;objectFamilyGroup&quot;: &quot;patient_manage&quot;, &quot;primaryObjectFamilies&quot;: [&quot;PatientAppointmentManageProjection&quot;], &quot;upstreamTrackRefs&quot;: [&quot;par_296&quot;, &quot;par_288&quot;, &quot;par_289&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_CAPABILITY_TUPLE_DRIFT&quot;, &quot;IC_281_RESERVATION_CONFIRMATION_MANAGE&quot;, &quot;IC_281_ROUTE_PUBLICATION_CONTINUITY&quot;], &quot;blockedReason&quot;: &quot;Needs 288 and 289 backend manage/reminder implementation plus 296 confirmation recovery.&quot;, &quot;readinessReason&quot;: &quot;Blocked until appointment truth, manage settlement, and reminder scheduling exist.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Must render manage exposure only from capability, continuity, and confirmation truth together.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_297_appointment_manage_views.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_297_appointment_manage_views.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/apps/patient-web/src/patient-appointment-manage.tsx&quot;], &quot;currentGapRefs&quot;: [], &quot;promptTaskId&quot;: &quot;297_par_phase4_track_Playwright_or_other_appropriate_tooling_frontend_build_appointment_detail_cancel_reschedule_and_reminder_views&quot;}, {&quot;trackId&quot;: &quot;par_298&quot;, &quot;title&quot;: &quot;Waitlist enrolment, management, and offer acceptance views&quot;, &quot;wave&quot;: &quot;frontend_wave&quot;, &quot;status&quot;: &quot;blocked&quot;, &quot;statusLabel&quot;: &quot;Blocked&quot;, &quot;ownerRole&quot;: &quot;patient_waitlist_frontend&quot;, &quot;objectFamilyGroup&quot;: &quot;patient_waitlist&quot;, &quot;primaryObjectFamilies&quot;: [&quot;WaitlistExperienceSurface&quot;], &quot;upstreamTrackRefs&quot;: [&quot;par_297&quot;, &quot;par_290&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_WAITLIST_FALLBACK_TYPED&quot;, &quot;IC_281_ROUTE_PUBLICATION_CONTINUITY&quot;], &quot;blockedReason&quot;: &quot;Needs 290 waitlist runtime and 297 manage/detail continuity.&quot;, &quot;readinessReason&quot;: &quot;Blocked until 290 publishes waitlist truth and 297 publishes appointment detail continuity.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Must consume typed waitlist and fallback reasons instead of inventing local continuation meaning.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_298_waitlist_views.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_298_waitlist_views.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/apps/patient-web/src/patient-booking-waitlist.tsx&quot;], &quot;currentGapRefs&quot;: [&quot;/Users/test/Code/V/data/analysis/PHASE4_PARALLEL_INTERFACE_GAP_WAITLIST_FALLBACK_OWNER_MAP.json&quot;], &quot;promptTaskId&quot;: &quot;298_par_phase4_track_Playwright_or_other_appropriate_tooling_frontend_build_waitlist_enrolment_management_and_offer_acceptance_views&quot;}, {&quot;trackId&quot;: &quot;par_299&quot;, &quot;title&quot;: &quot;Staff booking handoff panel and assisted booking views&quot;, &quot;wave&quot;: &quot;frontend_wave&quot;, &quot;status&quot;: &quot;blocked&quot;, &quot;statusLabel&quot;: &quot;Blocked&quot;, &quot;ownerRole&quot;: &quot;staff_booking_frontend&quot;, &quot;objectFamilyGroup&quot;: &quot;staff_assist&quot;, &quot;primaryObjectFamilies&quot;: [&quot;StaffBookingHandoffPanel&quot;], &quot;upstreamTrackRefs&quot;: [&quot;par_298&quot;, &quot;par_291&quot;, &quot;par_283&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_CAPABILITY_TUPLE_DRIFT&quot;, &quot;IC_281_WAITLIST_FALLBACK_TYPED&quot;, &quot;IC_281_ROUTE_PUBLICATION_CONTINUITY&quot;], &quot;blockedReason&quot;: &quot;Needs backend assisted-booking and waitlist truth before staff UI can be honest.&quot;, &quot;readinessReason&quot;: &quot;Blocked until 291 publishes assisted-booking API truth and 298 publishes waitlist continuation context.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Must remain a projection over 291-owned backend truth, not a second assisted-booking state machine.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_299_staff_booking_handoff_panel.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_299_staff_booking_handoff_panel.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/apps/clinical-workspace/src/staff-booking-handoff-panel.tsx&quot;], &quot;currentGapRefs&quot;: [], &quot;promptTaskId&quot;: &quot;299_par_phase4_track_Playwright_or_other_appropriate_tooling_frontend_build_staff_booking_handoff_panel_and_assisted_booking_views&quot;}, {&quot;trackId&quot;: &quot;par_300&quot;, &quot;title&quot;: &quot;Record-origin continuation and booking entry surfaces&quot;, &quot;wave&quot;: &quot;frontend_wave&quot;, &quot;status&quot;: &quot;blocked&quot;, &quot;statusLabel&quot;: &quot;Blocked&quot;, &quot;ownerRole&quot;: &quot;patient_record_entry_frontend&quot;, &quot;objectFamilyGroup&quot;: &quot;record_entry&quot;, &quot;primaryObjectFamilies&quot;: [&quot;RecordOriginBookingEntrySurface&quot;], &quot;upstreamTrackRefs&quot;: [&quot;par_293&quot;, &quot;par_297&quot;, &quot;par_299&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_ROUTE_PUBLICATION_CONTINUITY&quot;], &quot;blockedReason&quot;: &quot;Needs 293, 297, and 299 to land core entry surfaces first.&quot;, &quot;readinessReason&quot;: &quot;Blocked until the patient and staff booking entry routes exist.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Must consume established route registry and continuity evidence instead of inventing new entry anchors.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_300_record_origin_booking_entry.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_300_record_origin_booking_entry.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/apps/patient-web/src/patient-booking-entry.tsx&quot;], &quot;currentGapRefs&quot;: [], &quot;promptTaskId&quot;: &quot;300_par_phase4_track_Playwright_or_other_appropriate_tooling_frontend_build_record_origin_continuation_and_booking_entry_surfaces&quot;}, {&quot;trackId&quot;: &quot;par_301&quot;, &quot;title&quot;: &quot;Patient action recovery envelopes for booking failures&quot;, &quot;wave&quot;: &quot;frontend_wave&quot;, &quot;status&quot;: &quot;blocked&quot;, &quot;statusLabel&quot;: &quot;Blocked&quot;, &quot;ownerRole&quot;: &quot;patient_recovery_frontend&quot;, &quot;objectFamilyGroup&quot;: &quot;recovery_envelope&quot;, &quot;primaryObjectFamilies&quot;: [&quot;PatientActionRecoveryEnvelope&quot;], &quot;upstreamTrackRefs&quot;: [&quot;par_296&quot;, &quot;par_298&quot;, &quot;par_300&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_ROUTE_PUBLICATION_CONTINUITY&quot;, &quot;IC_281_WAITLIST_FALLBACK_TYPED&quot;], &quot;blockedReason&quot;: &quot;Needs 296, 298, and 300 before recovery envelopes can be coherent.&quot;, &quot;readinessReason&quot;: &quot;Blocked until confirmation recovery, waitlist continuity, and entry continuation surfaces exist.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Must preserve same-shell recovery law from 280 instead of inventing detached failure pages.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_301_booking_recovery_envelopes.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_301_booking_recovery_envelopes.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/apps/patient-web/src/patient-booking-recovery.tsx&quot;], &quot;currentGapRefs&quot;: [], &quot;promptTaskId&quot;: &quot;301_par_phase4_track_Playwright_or_other_appropriate_tooling_frontend_build_patient_action_recovery_envelopes_for_booking_failures&quot;}, {&quot;trackId&quot;: &quot;par_302&quot;, &quot;title&quot;: &quot;Mobile responsive booking and manage flows&quot;, &quot;wave&quot;: &quot;frontend_wave&quot;, &quot;status&quot;: &quot;deferred&quot;, &quot;statusLabel&quot;: &quot;Deferred&quot;, &quot;ownerRole&quot;: &quot;mobile_hardening&quot;, &quot;objectFamilyGroup&quot;: &quot;mobile_and_artifact&quot;, &quot;primaryObjectFamilies&quot;: [&quot;MobileResponsiveBookingFlow&quot;], &quot;upstreamTrackRefs&quot;: [&quot;par_301&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_ROUTE_PUBLICATION_CONTINUITY&quot;], &quot;blockedReason&quot;: &quot;Deferred behind core route implementation.&quot;, &quot;readinessReason&quot;: &quot;Deferred until the core desktop booking and recovery routes are implemented and stable enough to harden responsively.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;This is polish and device hardening, not a prerequisite for the first backend implementation wave.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_302_booking_mobile_responsive.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_302_booking_mobile_responsive.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/apps/patient-web/src&quot;], &quot;currentGapRefs&quot;: [], &quot;promptTaskId&quot;: &quot;302_par_phase4_track_Playwright_or_other_appropriate_tooling_frontend_build_mobile_responsive_booking_and_manage_flows&quot;}, {&quot;trackId&quot;: &quot;par_303&quot;, &quot;title&quot;: &quot;Accessibility and artifact parity for booking documents&quot;, &quot;wave&quot;: &quot;frontend_wave&quot;, &quot;status&quot;: &quot;deferred&quot;, &quot;statusLabel&quot;: &quot;Deferred&quot;, &quot;ownerRole&quot;: &quot;artifact_accessibility_frontend&quot;, &quot;objectFamilyGroup&quot;: &quot;mobile_and_artifact&quot;, &quot;primaryObjectFamilies&quot;: [&quot;PatientAppointmentArtifactProjection&quot;], &quot;upstreamTrackRefs&quot;: [&quot;par_301&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_ROUTE_PUBLICATION_CONTINUITY&quot;], &quot;blockedReason&quot;: &quot;Deferred behind core manage, recovery, and artifact generation work.&quot;, &quot;readinessReason&quot;: &quot;Deferred until appointment detail, recovery envelopes, and core artifact generation exist.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Artifact accessibility hardening follows core artifact generation; it does not unblock the first backend wave.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_303_booking_artifact_parity.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_303_booking_artifact_parity.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/apps/patient-web/src/patient-booking-artifacts.tsx&quot;], &quot;currentGapRefs&quot;: [], &quot;promptTaskId&quot;: &quot;303_par_phase4_track_Playwright_or_other_appropriate_tooling_frontend_build_accessibility_and_artifact_parity_for_booking_documents&quot;}, {&quot;trackId&quot;: &quot;seq_304&quot;, &quot;title&quot;: &quot;Configure provider sandboxes and callback endpoints&quot;, &quot;wave&quot;: &quot;deferred_activation&quot;, &quot;status&quot;: &quot;deferred&quot;, &quot;statusLabel&quot;: &quot;Deferred&quot;, &quot;ownerRole&quot;: &quot;provider_activation&quot;, &quot;objectFamilyGroup&quot;: &quot;provider_activation&quot;, &quot;primaryObjectFamilies&quot;: [&quot;ProviderSandboxConfiguration&quot;], &quot;upstreamTrackRefs&quot;: [&quot;par_283&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_CAPABILITY_TUPLE_DRIFT&quot;], &quot;blockedReason&quot;: &quot;Deferred by live-provider scope boundary.&quot;, &quot;readinessReason&quot;: &quot;Deferred because 277 and 281 explicitly keep live-provider activation outside the first local-booking implementation wave.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Live supplier onboarding remains later and simulator-backed seams must not be relabeled as ready.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_304_provider_sandbox_setup.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_304_provider_sandbox_setup.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/tools/provider-sandboxes&quot;], &quot;currentGapRefs&quot;: [&quot;/Users/test/Code/V/data/analysis/PHASE4_PARALLEL_INTERFACE_GAP_LIVE_PROVIDER_AND_FETCH_ADOPTION.json&quot;], &quot;promptTaskId&quot;: &quot;304_seq_phase4_use_Playwright_or_other_appropriate_tooling_browser_automation_to_configure_booking_provider_sandboxes_and_callback_endpoints&quot;}, {&quot;trackId&quot;: &quot;seq_305&quot;, &quot;title&quot;: &quot;Capture provider capability evidence and test credentials&quot;, &quot;wave&quot;: &quot;deferred_activation&quot;, &quot;status&quot;: &quot;deferred&quot;, &quot;statusLabel&quot;: &quot;Deferred&quot;, &quot;ownerRole&quot;: &quot;provider_activation&quot;, &quot;objectFamilyGroup&quot;: &quot;provider_activation&quot;, &quot;primaryObjectFamilies&quot;: [&quot;ProviderCapabilityEvidencePack&quot;], &quot;upstreamTrackRefs&quot;: [&quot;seq_304&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_CAPABILITY_TUPLE_DRIFT&quot;], &quot;blockedReason&quot;: &quot;Deferred by live-provider scope boundary.&quot;, &quot;readinessReason&quot;: &quot;Deferred because provider evidence cannot exist before live sandbox onboarding and remains outside the first local-booking wave.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Evidence capture is intentionally later than local implementation readiness.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_305_provider_capability_evidence.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_305_provider_capability_evidence.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/tools/provider-evidence&quot;], &quot;currentGapRefs&quot;: [&quot;/Users/test/Code/V/data/analysis/PHASE4_PARALLEL_INTERFACE_GAP_LIVE_PROVIDER_AND_FETCH_ADOPTION.json&quot;], &quot;promptTaskId&quot;: &quot;305_seq_phase4_use_Playwright_or_other_appropriate_tooling_browser_automation_to_capture_booking_provider_capability_evidence_and_test_credentials&quot;}, {&quot;trackId&quot;: &quot;seq_306&quot;, &quot;title&quot;: &quot;Integrate local booking with triage, portal, and notification workflows&quot;, &quot;wave&quot;: &quot;deferred_activation&quot;, &quot;status&quot;: &quot;deferred&quot;, &quot;statusLabel&quot;: &quot;Deferred&quot;, &quot;ownerRole&quot;: &quot;runtime_integration&quot;, &quot;objectFamilyGroup&quot;: &quot;integration&quot;, &quot;primaryObjectFamilies&quot;: [&quot;BookingPortalNotificationIntegration&quot;], &quot;upstreamTrackRefs&quot;: [&quot;seq_305&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_ROUTE_PUBLICATION_CONTINUITY&quot;, &quot;IC_281_RESERVATION_CONFIRMATION_MANAGE&quot;], &quot;blockedReason&quot;: &quot;Deferred behind provider onboarding and full frontend/runtime completion.&quot;, &quot;readinessReason&quot;: &quot;Deferred because integration should consume stable runtime and provider evidence rather than shaping the first local implementation wave.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Integration remains later than local backend kernel and capability delivery.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_306_booking_triage_notification_integration.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_306_booking_triage_notification_integration.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/services/command-api/src/phase4-booking-integration.ts&quot;], &quot;currentGapRefs&quot;: [&quot;/Users/test/Code/V/data/analysis/PHASE4_PARALLEL_INTERFACE_GAP_LIVE_PROVIDER_AND_FETCH_ADOPTION.json&quot;], &quot;promptTaskId&quot;: &quot;306_seq_phase4_merge_Playwright_or_other_appropriate_tooling_integrate_local_booking_with_triage_portal_and_notification_workflows&quot;}, {&quot;trackId&quot;: &quot;seq_307&quot;, &quot;title&quot;: &quot;Capability matrix, slot snapshot, hold, commit, and compensation suites&quot;, &quot;wave&quot;: &quot;deferred_assurance&quot;, &quot;status&quot;: &quot;deferred&quot;, &quot;statusLabel&quot;: &quot;Deferred&quot;, &quot;ownerRole&quot;: &quot;assurance&quot;, &quot;objectFamilyGroup&quot;: &quot;assurance&quot;, &quot;primaryObjectFamilies&quot;: [&quot;Phase4CoreMatrixSuite&quot;], &quot;upstreamTrackRefs&quot;: [&quot;seq_306&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_CAPABILITY_TUPLE_DRIFT&quot;, &quot;IC_281_SNAPSHOT_EXPIRY&quot;, &quot;IC_281_RESERVATION_CONFIRMATION_MANAGE&quot;], &quot;blockedReason&quot;: &quot;Deferred until runtime implementation exists.&quot;, &quot;readinessReason&quot;: &quot;Deferred until the backend runtime path and integration path exist; assurance cannot lead implementation here.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Core suite work follows implementation and integration, not vice versa.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_307_phase4_booking_core_matrix.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_307_phase4_booking_core_matrix.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/tests/playwright&quot;], &quot;currentGapRefs&quot;: [], &quot;promptTaskId&quot;: &quot;307_seq_phase4_Playwright_or_other_appropriate_tooling_testing_run_capability_matrix_slot_snapshot_hold_commit_and_compensation_suites&quot;}, {&quot;trackId&quot;: &quot;seq_308&quot;, &quot;title&quot;: &quot;Manage, waitlist, assisted booking, and reconciliation suites&quot;, &quot;wave&quot;: &quot;deferred_assurance&quot;, &quot;status&quot;: &quot;deferred&quot;, &quot;statusLabel&quot;: &quot;Deferred&quot;, &quot;ownerRole&quot;: &quot;assurance&quot;, &quot;objectFamilyGroup&quot;: &quot;assurance&quot;, &quot;primaryObjectFamilies&quot;: [&quot;Phase4ManageWaitlistAssistedMatrixSuite&quot;], &quot;upstreamTrackRefs&quot;: [&quot;seq_307&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_RESERVATION_CONFIRMATION_MANAGE&quot;, &quot;IC_281_WAITLIST_FALLBACK_TYPED&quot;], &quot;blockedReason&quot;: &quot;Deferred until manage, waitlist, assisted, and reconciliation work exists.&quot;, &quot;readinessReason&quot;: &quot;Deferred until the later backend and frontend tracks land.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Assurance remains later than the tracks it proves.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_308_phase4_manage_waitlist_assisted_matrix.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_308_phase4_manage_waitlist_assisted_matrix.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/tests/playwright&quot;], &quot;currentGapRefs&quot;: [], &quot;promptTaskId&quot;: &quot;308_seq_phase4_Playwright_or_other_appropriate_tooling_testing_run_manage_waitlist_assisted_booking_and_reconciliation_suites&quot;}, {&quot;trackId&quot;: &quot;seq_309&quot;, &quot;title&quot;: &quot;Patient and staff booking end-to-end, accessibility, and load suites&quot;, &quot;wave&quot;: &quot;deferred_assurance&quot;, &quot;status&quot;: &quot;deferred&quot;, &quot;statusLabel&quot;: &quot;Deferred&quot;, &quot;ownerRole&quot;: &quot;assurance&quot;, &quot;objectFamilyGroup&quot;: &quot;assurance&quot;, &quot;primaryObjectFamilies&quot;: [&quot;Phase4BookingE2ESuite&quot;], &quot;upstreamTrackRefs&quot;: [&quot;seq_308&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_ROUTE_PUBLICATION_CONTINUITY&quot;], &quot;blockedReason&quot;: &quot;Deferred until prior implementation and assurance waves finish.&quot;, &quot;readinessReason&quot;: &quot;Deferred until the end-to-end runtime and UI surface exists.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;End-to-end proof is a final-wave activity.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_309_phase4_e2e_suite.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_309_phase4_e2e_suite.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/tests/playwright&quot;], &quot;currentGapRefs&quot;: [], &quot;promptTaskId&quot;: &quot;309_seq_phase4_Playwright_or_other_appropriate_tooling_testing_run_patient_staff_booking_end_to_end_accessibility_and_load_suites&quot;}, {&quot;trackId&quot;: &quot;seq_310&quot;, &quot;title&quot;: &quot;Phase 4 exit gate approve booking engine completion&quot;, &quot;wave&quot;: &quot;deferred_assurance&quot;, &quot;status&quot;: &quot;deferred&quot;, &quot;statusLabel&quot;: &quot;Deferred&quot;, &quot;ownerRole&quot;: &quot;governance&quot;, &quot;objectFamilyGroup&quot;: &quot;assurance&quot;, &quot;primaryObjectFamilies&quot;: [&quot;Phase4BookingExitGate&quot;], &quot;upstreamTrackRefs&quot;: [&quot;seq_309&quot;], &quot;invalidationChainRefs&quot;: [&quot;IC_281_CAPABILITY_TUPLE_DRIFT&quot;, &quot;IC_281_SNAPSHOT_EXPIRY&quot;, &quot;IC_281_RESERVATION_CONFIRMATION_MANAGE&quot;, &quot;IC_281_ROUTE_PUBLICATION_CONTINUITY&quot;, &quot;IC_281_WAITLIST_FALLBACK_TYPED&quot;], &quot;blockedReason&quot;: &quot;Deferred until all prior tracks complete.&quot;, &quot;readinessReason&quot;: &quot;Deferred because exit approval follows all implementation, provider, integration, and assurance work.&quot;, &quot;launchPacketRef&quot;: null, &quot;parallelSafeWith&quot;: [], &quot;mergeCriteria&quot;: [&quot;Exit approval is the end of the programme wave, not the start.&quot;], &quot;mandatoryTests&quot;: [&quot;python3 ./tools/analysis/validate_310_phase4_exit_gate.py&quot;], &quot;validatorScript&quot;: &quot;python3 ./tools/analysis/validate_310_phase4_exit_gate.py&quot;, &quot;expectedSurfaceRoots&quot;: [&quot;/Users/test/Code/V/docs/governance&quot;], &quot;currentGapRefs&quot;: [], &quot;promptTaskId&quot;: &quot;310_seq_phase4_exit_gate_approve_booking_engine_completion&quot;}], &quot;objectFamilyGroups&quot;: [&quot;assisted_booking&quot;, &quot;assurance&quot;, &quot;booking_case&quot;, &quot;capability_tuple&quot;, &quot;commit_truth&quot;, &quot;integration&quot;, &quot;manage_and_artifact&quot;, &quot;mobile_and_artifact&quot;, &quot;offer_ranking&quot;, &quot;patient_confirmation&quot;, &quot;patient_manage&quot;, &quot;patient_search&quot;, &quot;patient_selection&quot;, &quot;patient_waitlist&quot;, &quot;patient_workspace&quot;, &quot;provider_activation&quot;, &quot;reconciliation&quot;, &quot;record_entry&quot;, &quot;recovery_envelope&quot;, &quot;reminder&quot;, &quot;reservation_truth&quot;, &quot;slot_snapshot&quot;, &quot;staff_assist&quot;, &quot;waitlist_and_fallback&quot;], &quot;ownerRoles&quot;: [&quot;artifact_accessibility_frontend&quot;, &quot;assurance&quot;, &quot;booking_kernel&quot;, &quot;capability_engine&quot;, &quot;commit_pipeline&quot;, &quot;governance&quot;, &quot;manage_commands&quot;, &quot;mobile_hardening&quot;, &quot;offer_orchestration&quot;, &quot;patient_booking_frontend&quot;, &quot;patient_booking_search_frontend&quot;, &quot;patient_confirmation_frontend&quot;, &quot;patient_manage_frontend&quot;, &quot;patient_offer_frontend&quot;, &quot;patient_record_entry_frontend&quot;, &quot;patient_recovery_frontend&quot;, &quot;patient_waitlist_frontend&quot;, &quot;provider_activation&quot;, &quot;reconciliation_worker&quot;, &quot;reminder_scheduler&quot;, &quot;reservation_authority&quot;, &quot;runtime_integration&quot;, &quot;slot_snapshot_pipeline&quot;, &quot;staff_assisted_api&quot;, &quot;staff_booking_frontend&quot;, &quot;waitlist_runtime&quot;], &quot;invalidationChains&quot;: [{&quot;chainId&quot;: &quot;IC_281_CAPABILITY_TUPLE_DRIFT&quot;, &quot;title&quot;: &quot;Capability tuple drift&quot;, &quot;summary&quot;: &quot;Any matrix, trust, publication, linkage, or governing-object drift supersedes stale search, offer, selection, manage, and command state.&quot;, &quot;impactObjects&quot;: [&quot;BookingCapabilityResolution&quot;, &quot;SlotSetSnapshot&quot;, &quot;OfferSession&quot;, &quot;ReservationTruthProjection&quot;, &quot;PatientAppointmentManageProjection&quot;, &quot;AppointmentManageCommand&quot;], &quot;ownerTrackIds&quot;: [&quot;par_283&quot;, &quot;par_284&quot;, &quot;par_285&quot;, &quot;par_286&quot;, &quot;par_288&quot;, &quot;par_297&quot;], &quot;law&quot;: &quot;Capability tuple drift invalidates stale snapshots, offers, selected slots, manage views, and command drafts.&quot;}, {&quot;chainId&quot;: &quot;IC_281_SNAPSHOT_EXPIRY&quot;, &quot;title&quot;: &quot;Snapshot expiry without provenance loss&quot;, &quot;summary&quot;: &quot;Expired snapshots freeze selection and commit paths while preserving evidence and anchor provenance.&quot;, &quot;impactObjects&quot;: [&quot;SlotSetSnapshot&quot;, &quot;SlotSnapshotRecoveryState&quot;, &quot;OfferSession&quot;, &quot;BookingTransaction&quot;], &quot;ownerTrackIds&quot;: [&quot;par_284&quot;, &quot;par_285&quot;, &quot;par_287&quot;, &quot;par_294&quot;, &quot;par_295&quot;], &quot;law&quot;: &quot;Snapshot expiry invalidates selection and commit paths without erasing provenance.&quot;}, {&quot;chainId&quot;: &quot;IC_281_RESERVATION_CONFIRMATION_MANAGE&quot;, &quot;title&quot;: &quot;Reservation, confirmation, and manage cohesion&quot;, &quot;summary&quot;: &quot;Reservation truth, confirmation truth, appointment record, manage exposure, reminder posture, and reconciliation state cannot drift apart.&quot;, &quot;impactObjects&quot;: [&quot;CapacityReservation&quot;, &quot;ReservationTruthProjection&quot;, &quot;BookingTransaction&quot;, &quot;BookingConfirmationTruthProjection&quot;, &quot;AppointmentRecord&quot;, &quot;BookingManageSettlement&quot;, &quot;ReminderPlan&quot;], &quot;ownerTrackIds&quot;: [&quot;par_286&quot;, &quot;par_287&quot;, &quot;par_288&quot;, &quot;par_289&quot;, &quot;par_292&quot;, &quot;par_297&quot;], &quot;law&quot;: &quot;Reservation truth, confirmation truth, and manage exposure cannot drift apart.&quot;}, {&quot;chainId&quot;: &quot;IC_281_ROUTE_PUBLICATION_CONTINUITY&quot;, &quot;title&quot;: &quot;Route publication and continuity freeze&quot;, &quot;summary&quot;: &quot;Publication, embedded session, or continuity evidence drift freezes stale booking mutation in the same shell.&quot;, &quot;impactObjects&quot;: [&quot;BookingContinuityEvidenceProjection&quot;, &quot;PatientAppointmentWorkspaceProjection&quot;, &quot;PatientAppointmentManageProjection&quot;, &quot;PatientAppointmentArtifactProjection&quot;], &quot;ownerTrackIds&quot;: [&quot;par_288&quot;, &quot;par_293&quot;, &quot;par_297&quot;, &quot;par_300&quot;, &quot;par_301&quot;, &quot;par_303&quot;], &quot;law&quot;: &quot;Route publication, embedded session, or continuity-evidence drift freezes stale booking mutation in the same shell.&quot;}, {&quot;chainId&quot;: &quot;IC_281_WAITLIST_FALLBACK_TYPED&quot;, &quot;title&quot;: &quot;Typed waitlist and fallback obligation chain&quot;, &quot;summary&quot;: &quot;No-supply, deadline, fallback, callback, hub handoff, and assisted-booking branches remain typed and owner-bound.&quot;, &quot;impactObjects&quot;: [&quot;WaitlistEntry&quot;, &quot;WaitlistOffer&quot;, &quot;WaitlistFallbackObligation&quot;, &quot;WaitlistContinuationTruthProjection&quot;, &quot;AssistedBookingSession&quot;, &quot;BookingExceptionQueue&quot;], &quot;ownerTrackIds&quot;: [&quot;par_290&quot;, &quot;par_291&quot;, &quot;par_298&quot;, &quot;par_299&quot;, &quot;par_301&quot;], &quot;law&quot;: &quot;Waitlist and fallback obligations remain typed dependencies rather than improvised later branches.&quot;}], &quot;eventOwnerOverrides&quot;: [{&quot;eventName&quot;: &quot;booking.case.created&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_282&quot;, &quot;status&quot;: &quot;consistent&quot;, &quot;reason&quot;: &quot;BookingCase creation stays in the kernel track.&quot;}, {&quot;eventName&quot;: &quot;booking.capability.resolved&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_283&quot;, &quot;gateOwner&quot;: &quot;par_283&quot;, &quot;status&quot;: &quot;consistent&quot;, &quot;reason&quot;: &quot;Capability tuple resolution stays solely in the capability engine.&quot;}, {&quot;eventName&quot;: &quot;booking.slots.fetched&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_284&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Slot fetch lifecycle truth belongs to the slot snapshot pipeline, not the BookingCase kernel.&quot;}, {&quot;eventName&quot;: &quot;booking.offers.created&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_285&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Offer generation belongs to the ranking and orchestration track.&quot;}, {&quot;eventName&quot;: &quot;booking.slot.selected&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_285&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Selection rules belong to the offer orchestration track before hold and commit authority attach.&quot;}, {&quot;eventName&quot;: &quot;booking.slot.revalidated&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_287&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Commit-path revalidation belongs to the booking transaction track.&quot;}, {&quot;eventName&quot;: &quot;booking.slot.revalidation.failed&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_287&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Failed revalidation is part of commit-path truth, not case-kernel generic state.&quot;}, {&quot;eventName&quot;: &quot;booking.commit.started&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_287&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;BookingTransaction owns commit start truth.&quot;}, {&quot;eventName&quot;: &quot;booking.commit.confirmation_pending&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_287&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Initial confirmation-pending settlement belongs to commit.&quot;}, {&quot;eventName&quot;: &quot;booking.commit.reconciliation_pending&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_287&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Initial ambiguous reconciliation pending is emitted by commit before worker follow-up.&quot;}, {&quot;eventName&quot;: &quot;booking.commit.confirmed&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_287&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Immediate authoritative confirmation belongs to commit.&quot;}, {&quot;eventName&quot;: &quot;booking.commit.ambiguous&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_287&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Ambiguous commit outcomes originate in commit logic and are later reconciled by 292.&quot;}, {&quot;eventName&quot;: &quot;booking.confirmation.truth.updated&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_292&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Ongoing confirmation-truth convergence belongs to reconciliation and dispute handling.&quot;}, {&quot;eventName&quot;: &quot;booking.appointment.created&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_287&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;AppointmentRecord creation belongs to authoritative commit success.&quot;}, {&quot;eventName&quot;: &quot;booking.reminders.scheduled&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_289&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Reminder scheduling belongs to ReminderPlan orchestration.&quot;}, {&quot;eventName&quot;: &quot;booking.cancelled&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_288&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Cancel mutations belong to appointment management commands.&quot;}, {&quot;eventName&quot;: &quot;booking.reschedule.started&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_288&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Reschedule start belongs to appointment management commands.&quot;}, {&quot;eventName&quot;: &quot;booking.waitlist.joined&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_290&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Waitlist entry creation belongs to the smart waitlist track.&quot;}, {&quot;eventName&quot;: &quot;booking.waitlist.deadline_evaluated&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_290&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Deadline evaluation belongs to smart waitlist logic.&quot;}, {&quot;eventName&quot;: &quot;booking.waitlist.offer.sent&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_290&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Waitlist offers belong to smart waitlist logic.&quot;}, {&quot;eventName&quot;: &quot;booking.waitlist.offer.accepted&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_290&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Waitlist offer acceptance belongs to waitlist truth and continuation logic.&quot;}, {&quot;eventName&quot;: &quot;booking.waitlist.offer.expired&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_290&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Waitlist offer expiry belongs to waitlist truth and deadline logic.&quot;}, {&quot;eventName&quot;: &quot;booking.waitlist.offer.superseded&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_290&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Waitlist offer supersession belongs to waitlist truth and deadline logic.&quot;}, {&quot;eventName&quot;: &quot;booking.waitlist.fallback.required&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_290&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Fallback obligation belongs to waitlist and no-supply continuation logic.&quot;}, {&quot;eventName&quot;: &quot;booking.fallback.callback_requested&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_290&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Typed callback fallback is decided by waitlist and fallback obligation truth before staff handling.&quot;}, {&quot;eventName&quot;: &quot;booking.fallback.hub_requested&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_290&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;Typed hub fallback is decided by waitlist and fallback obligation truth before staff handling.&quot;}, {&quot;eventName&quot;: &quot;booking.exception.raised&quot;, &quot;frozenCatalogOwner&quot;: &quot;par_282&quot;, &quot;gateOwner&quot;: &quot;par_291&quot;, &quot;status&quot;: &quot;collision_remediated&quot;, &quot;reason&quot;: &quot;BookingExceptionQueue ownership belongs to assisted booking and exception handling.&quot;}], &quot;consistencyRows&quot;: [{&quot;rowId&quot;: &quot;CC_281_001&quot;, &quot;artifact&quot;: &quot;BookingIntent -&gt; BookingCase lineage&quot;, &quot;origin278&quot;: &quot;frozen&quot;, &quot;origin279&quot;: &quot;not_applicable&quot;, &quot;origin280&quot;: &quot;consumed_only&quot;, &quot;ownerTrack&quot;: &quot;par_282&quot;, &quot;consistencyStatus&quot;: &quot;consistent&quot;, &quot;notes&quot;: &quot;278 freezes the handoff and 281 keeps 282 as the only kernel owner.&quot;}, {&quot;rowId&quot;: &quot;CC_281_002&quot;, &quot;artifact&quot;: &quot;BookingCase status vocabulary&quot;, &quot;origin278&quot;: &quot;frozen&quot;, &quot;origin279&quot;: &quot;not_applicable&quot;, &quot;origin280&quot;: &quot;consumed_by_commit_and_manage&quot;, &quot;ownerTrack&quot;: &quot;par_282&quot;, &quot;consistencyStatus&quot;: &quot;consistent&quot;, &quot;notes&quot;: &quot;No later track may fork workflow state vocabulary.&quot;}, {&quot;rowId&quot;: &quot;CC_281_003&quot;, &quot;artifact&quot;: &quot;SearchPolicy ownership&quot;, &quot;origin278&quot;: &quot;frozen&quot;, &quot;origin279&quot;: &quot;consumed_only&quot;, &quot;origin280&quot;: &quot;consumed_only&quot;, &quot;ownerTrack&quot;: &quot;par_282&quot;, &quot;consistencyStatus&quot;: &quot;consistent&quot;, &quot;notes&quot;: &quot;Search policy remains case-owned even when consumed by snapshot and ranking tracks.&quot;}, {&quot;rowId&quot;: &quot;CC_281_004&quot;, &quot;artifact&quot;: &quot;Capability tuple inventory/binding/resolution/projection split&quot;, &quot;origin278&quot;: &quot;not_applicable&quot;, &quot;origin279&quot;: &quot;frozen&quot;, &quot;origin280&quot;: &quot;consumed_by_search_commit_manage&quot;, &quot;ownerTrack&quot;: &quot;par_283&quot;, &quot;consistencyStatus&quot;: &quot;consistent&quot;, &quot;notes&quot;: &quot;279 split remains authoritative and 281 preserves it.&quot;}, {&quot;rowId&quot;: &quot;CC_281_005&quot;, &quot;artifact&quot;: &quot;Capability tuple drift invalidation&quot;, &quot;origin278&quot;: &quot;route_and_case_freeze&quot;, &quot;origin279&quot;: &quot;frozen&quot;, &quot;origin280&quot;: &quot;frozen_formula_consumers&quot;, &quot;ownerTrack&quot;: &quot;par_283&quot;, &quot;consistencyStatus&quot;: &quot;consistent&quot;, &quot;notes&quot;: &quot;281 propagates 279 tuple drift into 284 to 297 consumers without assigning duplicate owners.&quot;}, {&quot;rowId&quot;: &quot;CC_281_006&quot;, &quot;artifact&quot;: &quot;Slot snapshot and SnapshotSelectable law&quot;, &quot;origin278&quot;: &quot;not_applicable&quot;, &quot;origin279&quot;: &quot;tuple_inputs_only&quot;, &quot;origin280&quot;: &quot;frozen&quot;, &quot;ownerTrack&quot;: &quot;par_284&quot;, &quot;consistencyStatus&quot;: &quot;consistent&quot;, &quot;notes&quot;: &quot;284 owns snapshot production; later tracks consume expiry and provenance state only.&quot;}, {&quot;rowId&quot;: &quot;CC_281_007&quot;, &quot;artifact&quot;: &quot;Offer truthful non-exclusive posture&quot;, &quot;origin278&quot;: &quot;selection path only&quot;, &quot;origin279&quot;: &quot;capability input only&quot;, &quot;origin280&quot;: &quot;frozen&quot;, &quot;ownerTrack&quot;: &quot;par_285&quot;, &quot;consistencyStatus&quot;: &quot;consistent&quot;, &quot;notes&quot;: &quot;285 owns selection and offer wording before reservation truth starts in 286.&quot;}, {&quot;rowId&quot;: &quot;CC_281_008&quot;, &quot;artifact&quot;: &quot;Selected vs held distinction&quot;, &quot;origin278&quot;: &quot;selection path only&quot;, &quot;origin279&quot;: &quot;not_applicable&quot;, &quot;origin280&quot;: &quot;frozen&quot;, &quot;ownerTrack&quot;: &quot;par_286&quot;, &quot;consistencyStatus&quot;: &quot;consistent&quot;, &quot;notes&quot;: &quot;281 keeps hold truth in 286 and blocks 295 from faking it in the browser.&quot;}, {&quot;rowId&quot;: &quot;CC_281_009&quot;, &quot;artifact&quot;: &quot;Commit revalidation and BookingTransaction&quot;, &quot;origin278&quot;: &quot;generic events only&quot;, &quot;origin279&quot;: &quot;binding and policy inputs&quot;, &quot;origin280&quot;: &quot;frozen&quot;, &quot;ownerTrack&quot;: &quot;par_287&quot;, &quot;consistencyStatus&quot;: &quot;consistent&quot;, &quot;notes&quot;: &quot;287 owns commit-path revalidation and transaction state.&quot;}, {&quot;rowId&quot;: &quot;CC_281_010&quot;, &quot;artifact&quot;: &quot;Reservation truth vs confirmation truth vs manage exposure&quot;, &quot;origin278&quot;: &quot;case-level only&quot;, &quot;origin279&quot;: &quot;gate-policy inputs&quot;, &quot;origin280&quot;: &quot;frozen&quot;, &quot;ownerTrack&quot;: &quot;par_286|par_287|par_288|par_292&quot;, &quot;consistencyStatus&quot;: &quot;consistent_with_split_owners&quot;, &quot;notes&quot;: &quot;281 keeps one owner per object and a typed invalidation chain across them.&quot;}, {&quot;rowId&quot;: &quot;CC_281_011&quot;, &quot;artifact&quot;: &quot;Reminder scheduling&quot;, &quot;origin278&quot;: &quot;generic event only&quot;, &quot;origin279&quot;: &quot;capability input only&quot;, &quot;origin280&quot;: &quot;frozen&quot;, &quot;ownerTrack&quot;: &quot;par_289&quot;, &quot;consistencyStatus&quot;: &quot;consistent&quot;, &quot;notes&quot;: &quot;ReminderPlan stays first-class and later than manage command settlement.&quot;}, {&quot;rowId&quot;: &quot;CC_281_012&quot;, &quot;artifact&quot;: &quot;Waitlist and fallback typed seams&quot;, &quot;origin278&quot;: &quot;frozen_names_only&quot;, &quot;origin279&quot;: &quot;not_applicable&quot;, &quot;origin280&quot;: &quot;frozen_but_generic_owner_labels&quot;, &quot;ownerTrack&quot;: &quot;par_290|par_291&quot;, &quot;consistencyStatus&quot;: &quot;collision_remediated&quot;, &quot;notes&quot;: &quot;281 replaces generic owner labels with exact tracks.&quot;}, {&quot;rowId&quot;: &quot;CC_281_013&quot;, &quot;artifact&quot;: &quot;Assisted booking exception ownership&quot;, &quot;origin278&quot;: &quot;frozen_names_only&quot;, &quot;origin279&quot;: &quot;not_applicable&quot;, &quot;origin280&quot;: &quot;typed fallback inputs only&quot;, &quot;ownerTrack&quot;: &quot;par_291&quot;, &quot;consistencyStatus&quot;: &quot;consistent&quot;, &quot;notes&quot;: &quot;Staff-assisted exception queue remains distinct from waitlist runtime.&quot;}, {&quot;rowId&quot;: &quot;CC_281_014&quot;, &quot;artifact&quot;: &quot;Confirmation truth convergence worker&quot;, &quot;origin278&quot;: &quot;event catalog generic&quot;, &quot;origin279&quot;: &quot;gate-policy inputs&quot;, &quot;origin280&quot;: &quot;confirmation truth frozen&quot;, &quot;ownerTrack&quot;: &quot;par_292&quot;, &quot;consistencyStatus&quot;: &quot;collision_remediated&quot;, &quot;notes&quot;: &quot;281 reassigns booking.confirmation.truth.updated to 292.&quot;}, {&quot;rowId&quot;: &quot;CC_281_015&quot;, &quot;artifact&quot;: &quot;Patient workspace route registry and projections&quot;, &quot;origin278&quot;: &quot;frozen&quot;, &quot;origin279&quot;: &quot;capability projection input&quot;, &quot;origin280&quot;: &quot;continuity and manage rules&quot;, &quot;ownerTrack&quot;: &quot;par_293|par_297|par_300|par_301|par_303&quot;, &quot;consistencyStatus&quot;: &quot;consistent_with_split_owners&quot;, &quot;notes&quot;: &quot;281 splits frontend ownership by route family rather than by backend contract pack.&quot;}, {&quot;rowId&quot;: &quot;CC_281_016&quot;, &quot;artifact&quot;: &quot;Route publication and continuity freeze&quot;, &quot;origin278&quot;: &quot;frozen route registry&quot;, &quot;origin279&quot;: &quot;publication and trust inputs&quot;, &quot;origin280&quot;: &quot;RouteWritable formula&quot;, &quot;ownerTrack&quot;: &quot;par_288|par_293|par_297|par_300|par_301&quot;, &quot;consistencyStatus&quot;: &quot;consistent&quot;, &quot;notes&quot;: &quot;281 keeps the same-shell freeze law intact across backend and frontend tracks.&quot;}, {&quot;rowId&quot;: &quot;CC_281_017&quot;, &quot;artifact&quot;: &quot;booking.slots.fetched implementation owner&quot;, &quot;origin278&quot;: &quot;par_282&quot;, &quot;origin279&quot;: &quot;not_applicable&quot;, &quot;origin280&quot;: &quot;snapshot contract&quot;, &quot;ownerTrack&quot;: &quot;par_284&quot;, &quot;consistencyStatus&quot;: &quot;collision_remediated&quot;, &quot;notes&quot;: &quot;Explicit gate override blocks 282 from absorbing snapshot event ownership.&quot;}, {&quot;rowId&quot;: &quot;CC_281_018&quot;, &quot;artifact&quot;: &quot;booking.offers.created implementation owner&quot;, &quot;origin278&quot;: &quot;par_282&quot;, &quot;origin279&quot;: &quot;not_applicable&quot;, &quot;origin280&quot;: &quot;offer contract&quot;, &quot;ownerTrack&quot;: &quot;par_285&quot;, &quot;consistencyStatus&quot;: &quot;collision_remediated&quot;, &quot;notes&quot;: &quot;Explicit gate override assigns offer event ownership to 285.&quot;}, {&quot;rowId&quot;: &quot;CC_281_019&quot;, &quot;artifact&quot;: &quot;booking.reminders.scheduled implementation owner&quot;, &quot;origin278&quot;: &quot;par_282&quot;, &quot;origin279&quot;: &quot;not_applicable&quot;, &quot;origin280&quot;: &quot;reminder contract&quot;, &quot;ownerTrack&quot;: &quot;par_289&quot;, &quot;consistencyStatus&quot;: &quot;collision_remediated&quot;, &quot;notes&quot;: &quot;Reminder scheduling event belongs to 289 only.&quot;}, {&quot;rowId&quot;: &quot;CC_281_020&quot;, &quot;artifact&quot;: &quot;Deferred provider activation scope&quot;, &quot;origin278&quot;: &quot;live_later boundary only&quot;, &quot;origin279&quot;: &quot;simulator-backed matrix reality&quot;, &quot;origin280&quot;: &quot;provider execution deferred&quot;, &quot;ownerTrack&quot;: &quot;seq_304|seq_305|seq_306&quot;, &quot;consistencyStatus&quot;: &quot;deferred_by_scope&quot;, &quot;notes&quot;: &quot;281 keeps live-provider activation and evidence out of the first local wave.&quot;}], &quot;gaps&quot;: [{&quot;gapId&quot;: &quot;PHASE4_281_GAP_001&quot;, &quot;title&quot;: &quot;278 event implementation ownership is too broad for downstream parallel work.&quot;, &quot;status&quot;: &quot;remediated_by_gate&quot;, &quot;ownerTask&quot;: &quot;seq_281&quot;, &quot;affectedTracks&quot;: [&quot;par_282&quot;, &quot;par_284&quot;, &quot;par_285&quot;, &quot;par_287&quot;, &quot;par_289&quot;, &quot;par_290&quot;, &quot;par_291&quot;, &quot;par_292&quot;], &quot;resolution&quot;: &quot;281 publishes the explicit event-owner override registry and treats the 278 implementationOwnerTask field as non-authoritative for parallel launch.&quot;, &quot;evidenceRefs&quot;: [&quot;/Users/test/Code/V/data/contracts/278_booking_case_event_catalog.json&quot;, &quot;/Users/test/Code/V/data/analysis/PHASE4_PARALLEL_INTERFACE_GAP_EVENT_OWNER_DRIFT.json&quot;]}, {&quot;gapId&quot;: &quot;PHASE4_281_GAP_002&quot;, &quot;title&quot;: &quot;280 gap ownership uses generic track labels for waitlist and fallback seams.&quot;, &quot;status&quot;: &quot;remediated_by_gate&quot;, &quot;ownerTask&quot;: &quot;seq_281&quot;, &quot;affectedTracks&quot;: [&quot;par_290&quot;, &quot;par_291&quot;, &quot;par_292&quot;, &quot;par_298&quot;, &quot;par_301&quot;], &quot;resolution&quot;: &quot;281 maps exact owners for waitlist runtime, assisted booking, and reconciliation.&quot;, &quot;evidenceRefs&quot;: [&quot;/Users/test/Code/V/data/analysis/PHASE4_INTERFACE_GAP_SLOT_OFFER_COMMIT_MANAGE.json&quot;, &quot;/Users/test/Code/V/data/analysis/PHASE4_PARALLEL_INTERFACE_GAP_WAITLIST_FALLBACK_OWNER_MAP.json&quot;]}, {&quot;gapId&quot;: &quot;PHASE4_281_GAP_003&quot;, &quot;title&quot;: &quot;Live provider activation and evidence capture remain outside the first local-booking wave.&quot;, &quot;status&quot;: &quot;deferred&quot;, &quot;ownerTask&quot;: &quot;seq_304&quot;, &quot;affectedTracks&quot;: [&quot;seq_304&quot;, &quot;seq_305&quot;, &quot;seq_306&quot;, &quot;seq_310&quot;], &quot;resolution&quot;: &quot;Keep provider onboarding deferred and simulator-backed until the dedicated activation wave starts.&quot;, &quot;evidenceRefs&quot;: [&quot;/Users/test/Code/V/data/analysis/PHASE4_PARALLEL_INTERFACE_GAP_LIVE_PROVIDER_AND_FETCH_ADOPTION.json&quot;]}, {&quot;gapId&quot;: &quot;PHASE4_281_GAP_004&quot;, &quot;title&quot;: &quot;Frontend booking routes cannot switch to live fetch until backend runtime tracks exist.&quot;, &quot;status&quot;: &quot;blocked&quot;, &quot;ownerTask&quot;: &quot;par_293&quot;, &quot;affectedTracks&quot;: [&quot;par_293&quot;, &quot;par_294&quot;, &quot;par_295&quot;, &quot;par_296&quot;, &quot;par_297&quot;, &quot;par_298&quot;, &quot;par_299&quot;, &quot;par_300&quot;, &quot;par_301&quot;], &quot;resolution&quot;: &quot;281 blocks the frontend wave behind 282 to 292 rather than letting the shell compose local fake truth.&quot;, &quot;evidenceRefs&quot;: [&quot;/Users/test/Code/V/data/analysis/PHASE4_PARALLEL_INTERFACE_GAP_LIVE_PROVIDER_AND_FETCH_ADOPTION.json&quot;]}], &quot;firstWaveTrackIds&quot;: [&quot;par_282&quot;, &quot;par_283&quot;], &quot;launchPackets&quot;: {&quot;par_282&quot;: {&quot;taskId&quot;: &quot;par_282&quot;, &quot;promptTaskId&quot;: &quot;282_par_phase4_track_backend_build_booking_case_state_machine_and_booking_intent_records&quot;, &quot;objective&quot;: &quot;Implement the executable BookingCase kernel, durable BookingIntent lineage, and append-only transition journal without re-owning capability, slot, or waitlist semantics.&quot;, &quot;authoritativeSourceSections&quot;: [&quot;/Users/test/Code/V/prompt/shared_operating_contract_276_to_283.md&quot;, &quot;/Users/test/Code/V/blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;, &quot;/Users/test/Code/V/blueprint/phase-0-the-foundation-protocol.md&quot;, &quot;/Users/test/Code/V/docs/architecture/278_phase4_booking_case_contract_and_state_machine.md&quot;, &quot;/Users/test/Code/V/docs/api/281_phase4_track_interface_registry.md&quot;], &quot;objectOwnership&quot;: [&quot;BookingIntent&quot;, &quot;BookingCase&quot;, &quot;SearchPolicy&quot;, &quot;BookingCaseTransitionJournal&quot;], &quot;inputContracts&quot;: [&quot;/Users/test/Code/V/data/contracts/278_booking_intent_handoff.schema.json&quot;, &quot;/Users/test/Code/V/data/contracts/278_booking_case.schema.json&quot;, &quot;/Users/test/Code/V/data/contracts/278_search_policy.schema.json&quot;, &quot;/Users/test/Code/V/data/contracts/278_booking_case_state_machine.json&quot;, &quot;/Users/test/Code/V/data/contracts/278_booking_case_event_catalog.json&quot;, &quot;/Users/test/Code/V/data/contracts/279_booking_capability_resolution.schema.json&quot;, &quot;/Users/test/Code/V/data/contracts/280_booking_transaction.schema.json&quot;, &quot;/Users/test/Code/V/data/contracts/281_phase4_track_readiness_registry.json&quot;], &quot;forbiddenLocalShortcuts&quot;: [&quot;Do not infer capability from supplier name, route family, or appointment presence.&quot;, &quot;Do not emit slot, offer, reminder, waitlist, or reconciliation events from 282.&quot;, &quot;Do not widen or rename BookingCase.status.&quot;, &quot;Do not close the canonical request from the booking case kernel.&quot;], &quot;expectedFiles&quot;: [&quot;/Users/test/Code/V/packages/domains/booking/src/index.ts&quot;, &quot;/Users/test/Code/V/packages/domains/booking/src/phase4-booking-case-kernel.ts&quot;, &quot;/Users/test/Code/V/packages/domains/booking/tests/phase4-booking-case-kernel.test.ts&quot;, &quot;/Users/test/Code/V/services/command-api/src/phase4-booking-case.ts&quot;, &quot;/Users/test/Code/V/services/command-api/tests/phase4-booking-case.integration.test.js&quot;, &quot;/Users/test/Code/V/services/command-api/migrations/131_phase4_booking_case_kernel.sql&quot;], &quot;mandatoryTests&quot;: [&quot;pnpm --dir /Users/test/Code/V/packages/domains/booking typecheck&quot;, &quot;pnpm --dir /Users/test/Code/V/services/command-api typecheck&quot;, &quot;pnpm --dir /Users/test/Code/V/packages/domains/booking exec vitest run tests/phase4-booking-case-kernel.test.ts&quot;, &quot;pnpm --dir /Users/test/Code/V/services/command-api exec vitest run tests/phase4-booking-case.integration.test.js&quot;, &quot;python3 /Users/test/Code/V/tools/analysis/validate_282_booking_case_kernel.py&quot;], &quot;expectedDownstreamDependents&quot;: [&quot;par_284&quot;, &quot;par_287&quot;, &quot;par_293&quot;, &quot;par_299&quot;], &quot;failClosedConditions&quot;: [&quot;Stale sourceDecisionEpochRef or superseded request lease rejects mutation.&quot;, &quot;Identity-repair freeze suppresses live booking mutation.&quot;, &quot;Unknown transition edge rejects with append-only audit.&quot;, &quot;Any attempt to write later-owned object families from 282 is a gate violation.&quot;], &quot;currentGapsAndTemporarySeams&quot;: [&quot;/Users/test/Code/V/data/analysis/PHASE4_PARALLEL_INTERFACE_GAP_EVENT_OWNER_DRIFT.json&quot;, &quot;/Users/test/Code/V/data/analysis/PHASE4_PARALLEL_INTERFACE_GAP_LIVE_PROVIDER_AND_FETCH_ADOPTION.json&quot;], &quot;parallelHandshake&quot;: {&quot;safeWith&quot;: [&quot;par_283&quot;], &quot;rule&quot;: &quot;282 may consume 279 and 280 refs as opaque typed seams only. It may not implement matrix rows, tuple hashing, or capability projections.&quot;}, &quot;mergeCriteria&quot;: [&quot;Schema fields and state vocabulary must remain byte-compatible with 278.&quot;, &quot;Migrations must preserve replayable BookingIntent lineage and append-only transition audit.&quot;, &quot;Event emission must use the 281 owner remap and never emit slot, offer, reminder, waitlist, or reconciliation events from 282.&quot;, &quot;Stale decision epoch, stale request lease, and identity-repair freeze tests must fail closed.&quot;, &quot;Telemetry and audit output must remain PHI-safe on case transition surfaces.&quot;]}, &quot;par_283&quot;: {&quot;taskId&quot;: &quot;par_283&quot;, &quot;promptTaskId&quot;: &quot;283_par_phase4_track_backend_build_provider_capability_matrix_and_adapter_binding_compiler&quot;, &quot;objective&quot;: &quot;Implement the executable capability matrix compiler and tuple resolution engine without re-owning BookingCase semantics or slot/commit truth.&quot;, &quot;authoritativeSourceSections&quot;: [&quot;/Users/test/Code/V/prompt/shared_operating_contract_276_to_283.md&quot;, &quot;/Users/test/Code/V/blueprint/phase-4-the-booking-engine.md#4B. Provider capability matrix and adapter seam&quot;, &quot;/Users/test/Code/V/blueprint/platform-runtime-and-release-blueprint.md&quot;, &quot;/Users/test/Code/V/docs/architecture/279_phase4_provider_capability_matrix_and_adapter_seam.md&quot;, &quot;/Users/test/Code/V/docs/api/281_phase4_track_interface_registry.md&quot;], &quot;objectOwnership&quot;: [&quot;ProviderCapabilityMatrix&quot;, &quot;AdapterContractProfile&quot;, &quot;DependencyDegradationProfile&quot;, &quot;AuthoritativeReadAndConfirmationGatePolicy&quot;, &quot;BookingProviderAdapterBinding&quot;, &quot;BookingCapabilityResolution&quot;, &quot;BookingCapabilityProjection&quot;], &quot;inputContracts&quot;: [&quot;/Users/test/Code/V/data/contracts/279_provider_capability_matrix.schema.json&quot;, &quot;/Users/test/Code/V/data/contracts/279_adapter_contract_profile_registry.json&quot;, &quot;/Users/test/Code/V/data/contracts/279_dependency_degradation_profile_registry.json&quot;, &quot;/Users/test/Code/V/data/contracts/279_authoritative_read_and_confirmation_gate_policy_registry.json&quot;, &quot;/Users/test/Code/V/data/contracts/279_booking_provider_adapter_binding.schema.json&quot;, &quot;/Users/test/Code/V/data/contracts/279_booking_capability_resolution.schema.json&quot;, &quot;/Users/test/Code/V/data/contracts/279_booking_capability_projection.schema.json&quot;, &quot;/Users/test/Code/V/data/contracts/278_booking_case.schema.json&quot;, &quot;/Users/test/Code/V/data/contracts/281_phase4_track_readiness_registry.json&quot;], &quot;forbiddenLocalShortcuts&quot;: [&quot;Do not mutate BookingCase.status or SearchPolicy semantics in 283.&quot;, &quot;Do not infer slot, reservation, confirmation, or waitlist truth from capability alone.&quot;, &quot;Do not widen patient action scope beyond BookingCapabilityProjection.&quot;, &quot;Do not let more than one binding or policy seam be current for a legal tuple.&quot;], &quot;expectedFiles&quot;: [&quot;/Users/test/Code/V/packages/domains/booking/src/index.ts&quot;, &quot;/Users/test/Code/V/packages/domains/booking/src/phase4-booking-capability-engine.ts&quot;, &quot;/Users/test/Code/V/packages/domains/booking/tests/phase4-booking-capability-engine.test.ts&quot;, &quot;/Users/test/Code/V/services/command-api/src/phase4-booking-capability.ts&quot;, &quot;/Users/test/Code/V/services/command-api/tests/phase4-booking-capability.integration.test.js&quot;, &quot;/Users/test/Code/V/services/command-api/migrations/132_phase4_booking_capability_engine.sql&quot;], &quot;mandatoryTests&quot;: [&quot;pnpm --dir /Users/test/Code/V/packages/domains/booking typecheck&quot;, &quot;pnpm --dir /Users/test/Code/V/services/command-api typecheck&quot;, &quot;pnpm --dir /Users/test/Code/V/packages/domains/booking exec vitest run tests/phase4-booking-capability-engine.test.ts&quot;, &quot;pnpm --dir /Users/test/Code/V/services/command-api exec vitest run tests/phase4-booking-capability.integration.test.js&quot;, &quot;python3 /Users/test/Code/V/tools/analysis/validate_283_capability_engine.py&quot;], &quot;expectedDownstreamDependents&quot;: [&quot;par_284&quot;, &quot;par_288&quot;, &quot;par_293&quot;, &quot;seq_304&quot;, &quot;seq_307&quot;], &quot;failClosedConditions&quot;: [&quot;Ambiguous matrix row or binding compilation fails blocked, not partial.&quot;, &quot;Publication, trust, linkage, or governing-object drift supersedes stale capability resolutions.&quot;, &quot;Any attempt to render patient self-service actions from blocked or assisted-only capability is a gate violation.&quot;, &quot;Any attempt to own booking case or slot truth from 283 is a gate violation.&quot;], &quot;currentGapsAndTemporarySeams&quot;: [&quot;/Users/test/Code/V/data/analysis/PHASE4_PARALLEL_INTERFACE_GAP_EVENT_OWNER_DRIFT.json&quot;, &quot;/Users/test/Code/V/data/analysis/PHASE4_PARALLEL_INTERFACE_GAP_LIVE_PROVIDER_AND_FETCH_ADOPTION.json&quot;], &quot;parallelHandshake&quot;: {&quot;safeWith&quot;: [&quot;par_282&quot;], &quot;rule&quot;: &quot;283 consumes BookingCase and SearchPolicy as fixed contract inputs only. It may not redefine case transitions or create a second booking kernel.&quot;}, &quot;mergeCriteria&quot;: [&quot;Schema fields, capability states, and tuple hash inputs must remain byte-compatible with 279.&quot;, &quot;Binding compilation must name exactly one current adapter profile, degradation profile, and confirmation gate policy.&quot;, &quot;Capability tuple supersession must invalidate stale resolutions without widening patient action scope.&quot;, &quot;Blocked reasons and fallback actions must remain machine-readable for downstream UI and support tracks.&quot;, &quot;Telemetry and diagnostics must stay PHI-safe and reason-code based.&quot;]}}}</script>
+    <script>
+      const decoder = document.createElement("textarea");
+      decoder.innerHTML = document.getElementById("atlas-data").textContent;
+      const data = JSON.parse(decoder.value);
+
+      const root = document.querySelector("[data-testid='Phase4ParallelGateBoard']");
+      const trackList = document.getElementById("track-list");
+      const summaryStrip = document.querySelector("[data-testid='GateSummaryStrip']");
+      const ownerFilter = document.getElementById("owner-filter");
+      const familyFilter = document.getElementById("family-filter");
+      const chainFilter = document.getElementById("chain-filter");
+      const statusFilter = document.getElementById("status-filter");
+      const dependencySvg = document.getElementById("dependency-lattice");
+      const dependencyTableBody = document.getElementById("dependency-table-body");
+      const readinessTableBody = document.getElementById("readiness-table-body");
+      const braidGrid = document.getElementById("braid-grid");
+      const braidTableBody = document.getElementById("braid-table-body");
+      const inspectorShell = document.getElementById("inspector-shell");
+      const evidenceTableBody = document.getElementById("evidence-table-body");
+      const gapTableBody = document.getElementById("gap-table-body");
+      const dependencySummary = document.getElementById("dependency-summary");
+
+      const state = {
+        selectedTrackId: data.firstWaveTrackIds[0],
+        status: "all",
+        owner: "all",
+        family: "all",
+        chain: "all",
+      };
+
+      const waveOrder = ["first_wave", "backend_wave", "frontend_wave", "deferred_activation", "deferred_assurance"];
+      const statusToneClass = {
+        ready: "pill-ready",
+        blocked: "pill-blocked",
+        deferred: "pill-deferred",
+      };
+      const statusColor = {
+        ready: "#0F766E",
+        blocked: "#B42318",
+        deferred: "#B7791F",
+      };
+
+      function populateFilters() {
+        const owners = ["all", ...data.ownerRoles];
+        const families = ["all", ...data.objectFamilyGroups];
+        const chains = ["all", ...data.invalidationChains.map((chain) => chain.chainId)];
+
+        ownerFilter.innerHTML = owners
+          .map((owner) => `<option value="${owner}">${owner === "all" ? "All owners" : owner}</option>`)
+          .join("");
+        familyFilter.innerHTML = families
+          .map((family) => `<option value="${family}">${family === "all" ? "All families" : family}</option>`)
+          .join("");
+        chainFilter.innerHTML = chains
+          .map((chain) => `<option value="${chain}">${chain === "all" ? "All chains" : chain}</option>`)
+          .join("");
+      }
+
+      function matches(track) {
+        const statusMatch = state.status === "all" || track.status === state.status;
+        const ownerMatch = state.owner === "all" || track.ownerRole === state.owner;
+        const familyMatch = state.family === "all" || track.objectFamilyGroup === state.family;
+        const chainMatch =
+          state.chain === "all" || track.invalidationChainRefs.includes(state.chain);
+        return statusMatch && ownerMatch && familyMatch && chainMatch;
+      }
+
+      function visibleTracks() {
+        return data.tracks.filter(matches);
+      }
+
+      function ensureSelection(visible) {
+        if (!visible.some((track) => track.trackId === state.selectedTrackId)) {
+          state.selectedTrackId = visible.length ? visible[0].trackId : data.tracks[0].trackId;
+        }
+      }
+
+      function selectedTrack() {
+        return data.tracks.find((track) => track.trackId === state.selectedTrackId) || data.tracks[0];
+      }
+
+      function relatedTrackIds(track) {
+        const direct = new Set([track.trackId, ...(track.upstreamTrackRefs || []), ...(track.parallelSafeWith || [])]);
+        for (const candidate of data.tracks) {
+          if ((candidate.upstreamTrackRefs || []).includes(track.trackId)) {
+            direct.add(candidate.trackId);
+          }
+        }
+        return direct;
+      }
+
+      function renderSummary() {
+        summaryStrip.innerHTML = data.summaryBands
+          .map(
+            (band) => `
+              <div class="summary-band tone-${band.tone}" data-testid="SummaryBand-${band.bandId}">
+                <div>
+                  <div class="muted">${band.label}</div>
+                  <strong>${band.count}</strong>
+                </div>
+              </div>
+            `,
+          )
+          .join("");
+      }
+
+      function renderRail(visible) {
+        const related = relatedTrackIds(selectedTrack());
+        trackList.innerHTML = visible.length
+          ? visible
+              .map(
+                (track) => `
+                  <button
+                    type="button"
+                    class="track-button"
+                    id="TrackButton-${track.trackId}"
+                    data-testid="TrackButton-${track.trackId}"
+                    data-status="${track.status}"
+                    data-owner="${track.ownerRole}"
+                    data-family="${track.objectFamilyGroup}"
+                    aria-current="${track.trackId === state.selectedTrackId ? "true" : "false"}"
+                  >
+                    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
+                      <strong>${track.trackId}</strong>
+                      <span class="pill ${statusToneClass[track.status]}">${track.statusLabel}</span>
+                    </div>
+                    <div>${track.title}</div>
+                    <div class="track-meta">
+                      <span>${track.ownerRole}</span>
+                      <span>${track.objectFamilyGroup}</span>
+                      <span>${related.has(track.trackId) ? "linked" : "peer"}</span>
+                    </div>
+                  </button>
+                `,
+              )
+              .join("")
+          : `<div class="empty-state" data-testid="TrackRailEmpty">No tracks match the current filters.</div>`;
+
+        for (const button of trackList.querySelectorAll(".track-button")) {
+          button.addEventListener("click", () => {
+            state.selectedTrackId = button.dataset.testid?.replace("TrackButton-", "") || button.id.replace("TrackButton-", "");
+            render();
+          });
+          button.addEventListener("keydown", (event) => {
+            const items = [...trackList.querySelectorAll(".track-button")];
+            const index = items.indexOf(button);
+            if (event.key === "ArrowDown" && items[index + 1]) {
+              event.preventDefault();
+              items[index + 1].focus();
+            }
+            if (event.key === "ArrowUp" && items[index - 1]) {
+              event.preventDefault();
+              items[index - 1].focus();
+            }
+            if ((event.key === "Enter" || event.key === " ") && button.id) {
+              event.preventDefault();
+              state.selectedTrackId = button.id.replace("TrackButton-", "");
+              render();
+            }
+          });
+        }
+      }
+
+      function renderDependencyLattice(visible) {
+        const selected = selectedTrack();
+        const related = relatedTrackIds(selected);
+        const lanes = waveOrder.filter((wave) => visible.some((track) => track.wave === wave));
+        const columnWidth = 176;
+        const columnGap = 16;
+        const nodeWidth = 160;
+        const nodeHeight = 56;
+        const rowGap = 18;
+        const laneGroups = lanes.map((wave) => visible.filter((track) => track.wave === wave));
+        const positions = new Map();
+        laneGroups.forEach((tracks, laneIndex) => {
+          tracks.forEach((track, rowIndex) => {
+            const x = 20 + laneIndex * (columnWidth + columnGap);
+            const y = 24 + rowIndex * (nodeHeight + rowGap);
+            positions.set(track.trackId, { x, y });
+          });
+        });
+        const maxRows = Math.max(...laneGroups.map((group) => group.length), 1);
+        const svgWidth = Math.max(920, 40 + lanes.length * (columnWidth + columnGap));
+        const svgHeight = 80 + maxRows * (nodeHeight + rowGap);
+        dependencySvg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
+
+        const edges = [];
+        for (const track of visible) {
+          const from = positions.get(track.trackId);
+          for (const upstream of track.upstreamTrackRefs) {
+            if (!positions.has(upstream)) continue;
+            const to = positions.get(upstream);
+            const highlight = related.has(track.trackId) && related.has(upstream);
+            edges.push(`
+              <path
+                class="graph-edge ${highlight ? "highlight" : ""}"
+                data-testid="DependencyEdge-${upstream}-${track.trackId}"
+                d="M ${to.x + nodeWidth} ${to.y + nodeHeight / 2} C ${to.x + nodeWidth + 30} ${to.y + nodeHeight / 2}, ${from.x - 30} ${from.y + nodeHeight / 2}, ${from.x} ${from.y + nodeHeight / 2}"
+              />
+            `);
+          }
+        }
+
+        const nodes = visible
+          .map((track) => {
+            const point = positions.get(track.trackId);
+            const active = track.trackId === state.selectedTrackId;
+            const linked = related.has(track.trackId);
+            return `
+              <g
+                class="graph-node ${track.status} ${active ? "active" : ""}"
+                data-testid="DependencyNode-${track.trackId}"
+                data-track="${track.trackId}"
+                tabindex="0"
+                transform="translate(${point.x}, ${point.y})"
+              >
+                <rect width="${nodeWidth}" height="${nodeHeight}" />
+                <text x="12" y="22">${track.trackId}</text>
+                <text class="sub" x="12" y="40">${linked ? "linked" : track.statusLabel.toLowerCase()}</text>
+              </g>
+            `;
+          })
+          .join("");
+
+        dependencySvg.innerHTML = edges.join("") + nodes;
+        dependencySummary.textContent = `${visible.length} visible tracks | active ${selected.trackId}`;
+
+        for (const node of dependencySvg.querySelectorAll(".graph-node")) {
+          node.addEventListener("click", () => {
+            state.selectedTrackId = node.dataset.track;
+            render();
+          });
+          node.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              state.selectedTrackId = node.dataset.track;
+              render();
+            }
+          });
+        }
+
+        dependencyTableBody.innerHTML = visible
+          .map(
+            (track) => `
+              <tr data-testid="DependencyRow-${track.trackId}" data-active="${track.trackId === state.selectedTrackId ? "true" : "false"}">
+                <td>${track.trackId}</td>
+                <td><span class="pill ${statusToneClass[track.status]}">${track.statusLabel}</span></td>
+                <td>${track.upstreamTrackRefs.length ? track.upstreamTrackRefs.join(", ") : "none"}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function renderReadinessMatrix(visible) {
+        readinessTableBody.innerHTML = visible
+          .map(
+            (track) => `
+              <tr
+                class="readiness-row"
+                id="ReadinessRow-${track.trackId}"
+                data-testid="ReadinessRow-${track.trackId}"
+                data-active="${track.trackId === state.selectedTrackId ? "true" : "false"}"
+                tabindex="0"
+              >
+                <td>${track.trackId}</td>
+                <td><span class="pill ${statusToneClass[track.status]}">${track.statusLabel}</span></td>
+                <td>${track.ownerRole}</td>
+                <td>${track.primaryObjectFamilies.join(", ")}</td>
+                <td>${track.blockedReason || track.readinessReason}</td>
+              </tr>
+            `,
+          )
+          .join("");
+
+        for (const row of readinessTableBody.querySelectorAll(".readiness-row")) {
+          row.addEventListener("click", () => {
+            state.selectedTrackId = row.id.replace("ReadinessRow-", "");
+            render();
+          });
+          row.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              state.selectedTrackId = row.id.replace("ReadinessRow-", "");
+              render();
+            }
+          });
+        }
+      }
+
+      function renderBraid() {
+        const active = selectedTrack();
+        braidGrid.innerHTML = data.invalidationChains
+          .map((chain) => {
+            const isActive = active.invalidationChainRefs.includes(chain.chainId);
+            return `
+              <article
+                class="braid-card ${isActive ? "active" : ""}"
+                data-testid="InvalidationChain-${chain.chainId}"
+                data-active="${isActive ? "true" : "false"}"
+              >
+                <h3>${chain.title}</h3>
+                <p>${chain.summary}</p>
+                <div class="chip-row">${chain.impactObjects.map((item) => `<span class="chip">${item}</span>`).join("")}</div>
+              </article>
+            `;
+          })
+          .join("");
+
+        braidTableBody.innerHTML = data.invalidationChains
+          .map(
+            (chain) => `
+              <tr data-testid="InvalidationRow-${chain.chainId}">
+                <td>${chain.chainId}</td>
+                <td>${chain.ownerTrackIds.join(", ")}</td>
+                <td>${chain.law}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function renderInspector() {
+        const track = selectedTrack();
+        const launchPacket = track.launchPacketRef ? data.launchPackets[track.trackId] : null;
+        inspectorShell.innerHTML = `
+          <div class="pill ${statusToneClass[track.status]}" data-testid="InspectorStatus">${track.statusLabel}</div>
+          <h3 style="margin:12px 0 10px;font-size:20px;color:var(--text-strong);" data-testid="InspectorTrackTitle">${track.trackId} · ${track.title}</h3>
+          <dl>
+            <dt>Owner</dt>
+            <dd data-testid="InspectorOwner">${track.ownerRole}</dd>
+            <dt>Family</dt>
+            <dd data-testid="InspectorFamily">${track.objectFamilyGroup}</dd>
+            <dt>Parallel-safe</dt>
+            <dd data-testid="InspectorParallel">${track.parallelSafeWith.length ? track.parallelSafeWith.join(", ") : "none"}</dd>
+            <dt>Validator</dt>
+            <dd data-testid="InspectorValidator">${track.validatorScript}</dd>
+          </dl>
+          <div class="list-block">
+            <strong>Primary objects</strong>
+            <ul>${track.primaryObjectFamilies.map((item) => `<li>${item}</li>`).join("")}</ul>
+          </div>
+          <div class="list-block">
+            <strong>${track.status === "ready" ? "Launch rule" : "Blocker"}</strong>
+            <div data-testid="InspectorReason">${track.blockedReason || track.readinessReason}</div>
+          </div>
+          <div class="list-block">
+            <strong>Merge criteria</strong>
+            <ul>${track.mergeCriteria.map((item) => `<li>${item}</li>`).join("") || "<li>Gate keeps this track out of the first wave.</li>"}</ul>
+          </div>
+          <div class="list-block">
+            <strong>Mandatory tests</strong>
+            <ul>${track.mandatoryTests.map((item) => `<li>${item}</li>`).join("")}</ul>
+          </div>
+          <div class="list-block" data-testid="LaunchPacketPanel">
+            <strong>Launch packet</strong>
+            ${
+              launchPacket
+                ? `<ul>
+                    <li><span class="muted">Objective:</span> ${launchPacket.objective}</li>
+                    <li><span class="muted">Forbidden shortcuts:</span> ${launchPacket.forbiddenLocalShortcuts.join("; ")}</li>
+                    <li><span class="muted">Fail closed:</span> ${launchPacket.failClosedConditions.join("; ")}</li>
+                  </ul>`
+                : `<div class="muted">No launch packet is published because this track is not ready to start.</div>`
+            }
+          </div>
+        `;
+      }
+
+      function renderEvidence() {
+        const track = selectedTrack();
+        const rows = [
+          ["prompt", track.promptTaskId],
+          ["surface roots", track.expectedSurfaceRoots.join(" | ")],
+          ["upstream contracts", track.upstreamContractRefs.join(" | ") || "none"],
+          ["mandatory tests", track.mandatoryTests.join(" | ")],
+          ["current gaps", track.currentGapRefs.join(" | ") || "none"],
+        ];
+        evidenceTableBody.innerHTML = rows
+          .map(
+            ([kind, value]) => `
+              <tr data-testid="EvidenceRow-${kind.replace(/\s+/g, '-')}">
+                <td>${kind}</td>
+                <td>${value}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function renderGaps() {
+        const track = selectedTrack();
+        const visibleGaps = data.gaps.filter(
+          (gap) =>
+            gap.ownerTask === track.trackId ||
+            gap.affectedTracks.includes(track.trackId) ||
+            track.currentGapRefs.some((ref) => ref.endsWith(gap.gapId + ".json")) ||
+            track.currentGapRefs.some((ref) => ref.includes("PHASE4_PARALLEL_INTERFACE_GAP")),
+        );
+        const rows = visibleGaps.length ? visibleGaps : data.gaps;
+        gapTableBody.innerHTML = rows
+          .map(
+            (gap) => `
+              <tr data-testid="GapRow-${gap.gapId}">
+                <td>${gap.gapId}</td>
+                <td>${gap.status}</td>
+                <td>${gap.ownerTask}</td>
+                <td>${gap.resolution}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function render() {
+        const visible = visibleTracks();
+        ensureSelection(visible);
+        const track = selectedTrack();
+        root.dataset.activeTrack = track.trackId;
+        root.dataset.filterStatus = state.status;
+        root.dataset.filterOwner = state.owner;
+        root.dataset.filterFamily = state.family;
+        root.dataset.filterChain = state.chain;
+        renderSummary();
+        renderRail(visible);
+        renderDependencyLattice(visible);
+        renderReadinessMatrix(visible);
+        renderBraid();
+        renderInspector();
+        renderEvidence();
+        renderGaps();
+      }
+
+      statusFilter.addEventListener("change", () => {
+        state.status = statusFilter.value;
+        render();
+      });
+      ownerFilter.addEventListener("change", () => {
+        state.owner = ownerFilter.value;
+        render();
+      });
+      familyFilter.addEventListener("change", () => {
+        state.family = familyFilter.value;
+        render();
+      });
+      chainFilter.addEventListener("change", () => {
+        state.chain = chainFilter.value;
+        render();
+      });
+
+      root.dataset.reducedMotion =
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "true" : "false";
+
+      populateFilters();
+      render();
+    </script>
+  </body>
+</html>

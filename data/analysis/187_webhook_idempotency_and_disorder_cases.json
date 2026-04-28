@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "187.phase2.telephony-edge.v1",
+  "signaturePolicyVersion": "telephony-edge-signature-hmac-sha256-v1",
+  "payloadDisclosureBoundary": "provider_payload_shape_stops_at_normalizer",
+  "cases": [
+    {
+      "caseId": "TEL187_VALID_SIGNATURE_FAST_ACK",
+      "providerRef": "telephony_provider_simulator",
+      "callbackClass": "call.started",
+      "expectedValidationState": "validated",
+      "expectedAckStatus": 204,
+      "expectedWorkerQueued": true,
+      "expectedCanonicalEventType": "call_started",
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_TELEPHONY_EDGE_UNSIGNED_CALLBACK_TRUST_V1"
+    },
+    {
+      "caseId": "TEL187_BAD_SIGNATURE_REJECTED",
+      "providerRef": "telephony_provider_simulator",
+      "callbackClass": "call.started",
+      "expectedValidationState": "signature_failed",
+      "expectedAckStatus": 401,
+      "expectedWorkerQueued": false,
+      "expectedCanonicalEventType": null,
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_TELEPHONY_EDGE_UNSIGNED_CALLBACK_TRUST_V1"
+    },
+    {
+      "caseId": "TEL187_DUPLICATE_CALLBACK_COLLAPSED",
+      "providerRef": "telephony_provider_simulator",
+      "callbackClass": "call.started",
+      "deliveryPattern": "same_event_id_same_payload_digest",
+      "expectedReplayDisposition": "duplicate_replayed",
+      "expectedLogicalEventCount": 1,
+      "expectedWorkerSideEffects": 1,
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_TELEPHONY_EDGE_DUPLICATE_CALLBACK_SIDE_EFFECTS_V1"
+    },
+    {
+      "caseId": "TEL187_IDEMPOTENCY_COLLISION_REJECTED",
+      "providerRef": "telephony_provider_simulator",
+      "callbackClass": "call.started",
+      "deliveryPattern": "same_idempotency_key_different_payload_digest",
+      "expectedReplayDisposition": "idempotency_collision_rejected",
+      "expectedAckStatus": 409,
+      "expectedWorkerQueued": false,
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_TELEPHONY_EDGE_DUPLICATE_CALLBACK_SIDE_EFFECTS_V1"
+    },
+    {
+      "caseId": "TEL187_RECORDING_BEFORE_START_BUFFERED",
+      "providerRef": "telephony_provider_simulator",
+      "callbackClass": "recording.available",
+      "deliveryPattern": "recording_available_before_call_started",
+      "expectedBufferState": "waiting_for_call_started",
+      "expectedReplayAfterStart": true,
+      "expectedFinalCallState": "recording_available",
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_TELEPHONY_EDGE_OUT_OF_ORDER_BLINDNESS_V1"
+    },
+    {
+      "caseId": "TEL187_RAW_PAYLOAD_QUARANTINED_ONLY",
+      "providerRef": "telephony_provider_simulator",
+      "callbackClass": "recording.available",
+      "forbiddenDownstreamFields": ["callerNumber", "recordingUrl", "providerCallId"],
+      "allowedDownstreamFields": ["maskedCallerRef", "recordingArtifactRef", "providerPayloadRef"],
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_TELEPHONY_EDGE_VENDOR_PAYLOAD_LEAKAGE_V1"
+    },
+    {
+      "caseId": "TEL187_LATE_RECORDING_AFTER_TERMINAL_PRESERVED",
+      "providerRef": "telephony_provider_simulator",
+      "callbackClass": "recording.available",
+      "deliveryPattern": "recording_available_after_call_abandoned",
+      "expectedTerminalStatePreserved": true,
+      "expectedRecordingRefAppended": true,
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_TELEPHONY_EDGE_REPLAY_PATH_V1"
+    },
+    {
+      "caseId": "TEL187_PROVIDER_ERROR_NORMALIZED",
+      "providerRef": "telephony_provider_simulator",
+      "callbackClass": "provider.error",
+      "expectedCanonicalEventType": "provider_error_recorded",
+      "expectedCallState": "provider_error",
+      "expectedRawErrorCodeBoundary": "providerErrorRef",
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_TELEPHONY_EDGE_REPLAY_PATH_V1"
+    }
+  ]
+}

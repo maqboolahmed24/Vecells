@@ -1,0 +1,971 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reservation Queue Control Studio</title>
+    <style>
+      :root {
+        --canvas: #f7f9fc;
+        --panel: #ffffff;
+        --rail: #eef2f7;
+        --inset: #f4f7fb;
+        --text-strong: #0f172a;
+        --text-default: #1e293b;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+        --reservation: #2563eb;
+        --fairness: #7c3aed;
+        --overload: #d97706;
+        --blocked: #c24141;
+        --ready: #059669;
+        --shadow: 0 22px 48px rgba(15, 23, 42, 0.08);
+        --radius-lg: 24px;
+        --radius-md: 18px;
+        --transition-fast: 120ms ease;
+        --transition-med: 180ms ease;
+        --transition-slow: 220ms ease;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top right, rgba(37, 99, 235, 0.08), transparent 28%),
+          linear-gradient(180deg, #fbfdff 0%, var(--canvas) 58%);
+        color: var(--text-default);
+      }
+      body[data-reduced-motion="true"] * {
+        transition: none !important;
+        animation: none !important;
+        scroll-behavior: auto !important;
+      }
+      .shell {
+        max-width: 1560px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      .masthead {
+        min-height: 76px;
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        padding: 16px 20px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(226, 232, 240, 0.92);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(14px);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .brand-mark {
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(124, 58, 237, 0.14));
+        border: 1px solid rgba(37, 99, 235, 0.18);
+      }
+      .brand-copy h1 {
+        margin: 0;
+        font-size: 1.05rem;
+        color: var(--text-strong);
+      }
+      .brand-copy p {
+        margin: 4px 0 0;
+        font-size: 0.88rem;
+        color: var(--text-muted);
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(110px, 1fr));
+        gap: 10px;
+        width: min(720px, 100%);
+      }
+      .metric {
+        min-height: 52px;
+        padding: 10px 12px;
+        border-radius: 16px;
+        background: var(--inset);
+        border: 1px solid var(--border);
+      }
+      .metric-label {
+        font-size: 0.74rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+      }
+      .metric-value {
+        margin-top: 6px;
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--text-strong);
+      }
+      .workspace {
+        margin-top: 22px;
+        display: grid;
+        grid-template-columns: 324px minmax(0, 1fr) 416px;
+        gap: 20px;
+        align-items: start;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow);
+      }
+      .left-rail,
+      .visual-panel,
+      .table-panel,
+      .inspector {
+        padding: 18px;
+      }
+      .left-rail h2,
+      .visual-panel h2,
+      .table-panel h2,
+      .inspector h2 {
+        margin: 0 0 6px;
+        font-size: 0.98rem;
+        color: var(--text-strong);
+      }
+      .subtle {
+        margin: 0 0 14px;
+        font-size: 0.88rem;
+        line-height: 1.5;
+        color: var(--text-muted);
+      }
+      .control-group {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--text-default);
+      }
+      select {
+        min-height: 44px;
+        padding: 0 14px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--inset);
+        color: var(--text-default);
+      }
+      select:focus-visible,
+      button:focus-visible {
+        outline: 3px solid rgba(37, 99, 235, 0.18);
+        outline-offset: 2px;
+      }
+      .filter-note {
+        padding: 14px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(37, 99, 235, 0.09), rgba(124, 58, 237, 0.08));
+      }
+      .center-stack {
+        display: grid;
+        gap: 18px;
+      }
+      .visual-panel {
+        min-height: 300px;
+        transition:
+          transform var(--transition-med),
+          border-color var(--transition-fast);
+      }
+      .visual-panel[data-selected-scenario] {
+        border-color: rgba(37, 99, 235, 0.26);
+      }
+      .timeline,
+      .heat-grid {
+        display: grid;
+        gap: 12px;
+      }
+      .timeline-item,
+      .heat-item,
+      .row-select {
+        width: 100%;
+        text-align: left;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: var(--rail);
+        padding: 14px;
+        color: var(--text-default);
+        cursor: pointer;
+        transition:
+          border-color var(--transition-fast),
+          transform var(--transition-fast),
+          background var(--transition-med);
+      }
+      .timeline-item:hover,
+      .heat-item:hover,
+      .row-select:hover {
+        transform: translateY(-1px);
+      }
+      .timeline-item[data-selected="true"],
+      .heat-item[data-selected="true"],
+      .row[data-selected="true"] .row-select {
+        border-color: rgba(37, 99, 235, 0.32);
+        background: rgba(37, 99, 235, 0.08);
+      }
+      .timeline-meta,
+      .heat-meta,
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.8rem;
+      }
+      .timeline-meta,
+      .heat-meta {
+        color: var(--text-muted);
+      }
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .chip {
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 0.74rem;
+        font-weight: 700;
+        background: rgba(100, 116, 139, 0.12);
+        color: var(--text-default);
+      }
+      .chip.reservation {
+        background: rgba(37, 99, 235, 0.12);
+        color: var(--reservation);
+      }
+      .chip.fairness {
+        background: rgba(124, 58, 237, 0.12);
+        color: var(--fairness);
+      }
+      .chip.overload {
+        background: rgba(217, 119, 6, 0.12);
+        color: var(--overload);
+      }
+      .chip.blocked {
+        background: rgba(194, 65, 65, 0.12);
+        color: var(--blocked);
+      }
+      .chip.ready {
+        background: rgba(5, 150, 105, 0.12);
+        color: var(--ready);
+      }
+      .parity {
+        margin-top: 12px;
+        font-size: 0.86rem;
+        line-height: 1.5;
+        color: var(--text-muted);
+      }
+      .advisory-body {
+        min-height: 150px;
+        padding: 16px;
+        border-radius: 20px;
+        background: linear-gradient(180deg, rgba(124, 58, 237, 0.08), rgba(255, 255, 255, 0.92));
+        border: 1px solid rgba(124, 58, 237, 0.12);
+      }
+      .lower-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+        vertical-align: top;
+        font-size: 0.84rem;
+      }
+      th {
+        font-size: 0.74rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .row[data-selected="true"] td {
+        background: rgba(37, 99, 235, 0.06);
+      }
+      .inspector {
+        position: sticky;
+        top: 92px;
+        min-height: 420px;
+        transition:
+          transform var(--transition-slow),
+          opacity var(--transition-med);
+      }
+      .inspector-block {
+        margin-top: 18px;
+        padding-top: 18px;
+        border-top: 1px solid var(--border);
+      }
+      .inspector-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 14px;
+      }
+      @media (max-width: 1320px) {
+        .workspace {
+          grid-template-columns: 300px minmax(0, 1fr);
+        }
+        .inspector {
+          grid-column: 1 / -1;
+          position: static;
+        }
+      }
+      @media (max-width: 980px) {
+        .masthead {
+          position: static;
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+        .lower-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="masthead">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M4 18V6H11C14.3 6 16 7.6 16 10.3C16 12 15.1 13.2 13.4 13.8L16.8 18H13.9L10.9 14.2H6.7V18H4Z"
+                fill="#2563EB"
+              />
+              <path d="M18.2 6H20L16.5 18H14.7L18.2 6Z" fill="#7C3AED" />
+            </svg>
+          </div>
+          <div class="brand-copy">
+            <h1>Vecells Reservation Queue Control</h1>
+            <p>Reservation_Queue_Control_Studio</p>
+          </div>
+        </div>
+        <div class="metrics" id="metrics"></div>
+      </header>
+
+      <main class="workspace">
+        <aside class="panel left-rail">
+          <h2>Filters</h2>
+          <p class="subtle">
+            Slice reservation truth, queue posture, fairness mode, and actor view without letting
+            local sorting redefine control truth.
+          </p>
+          <div class="control-group">
+            <label for="reservation-state-filter">Reservation State</label>
+            <select id="reservation-state-filter" data-testid="filter-reservation-state"></select>
+          </div>
+          <div class="control-group">
+            <label for="queue-filter">Queue</label>
+            <select id="queue-filter" data-testid="filter-queue"></select>
+          </div>
+          <div class="control-group">
+            <label for="fairness-mode-filter">Fairness Mode</label>
+            <select id="fairness-mode-filter" data-testid="filter-fairness-mode"></select>
+          </div>
+          <div class="control-group">
+            <label for="actor-filter">Actor</label>
+            <select id="actor-filter" data-testid="filter-actor"></select>
+          </div>
+          <div class="filter-note" id="filter-note">Loading control cases...</div>
+        </aside>
+
+        <section class="center-stack">
+          <section class="panel visual-panel" data-testid="fence-timeline">
+            <h2>Reservation Fence Timeline</h2>
+            <p class="subtle">
+              Each fence is short-lived and tied to one canonical reservation key. Conflict-blocked
+              attempts stay visible instead of disappearing into calm success.
+            </p>
+            <div class="timeline" id="fence-timeline-list"></div>
+            <p class="parity" id="fence-parity">Waiting for reservation cases.</p>
+          </section>
+
+          <section class="panel visual-panel" data-testid="fairness-heat-surface">
+            <h2>Queue Fairness Heat Surface</h2>
+            <p class="subtle">
+              Committed queue order lands first. Fairness merge and overload posture are replayable
+              control facts, not workstation-local heuristics.
+            </p>
+            <div class="heat-grid" id="heat-grid"></div>
+            <p class="parity" id="heat-parity">Waiting for queue snapshots.</p>
+          </section>
+
+          <section class="panel visual-panel" data-testid="advisory-strip">
+            <h2>Next Task Advisory Strip</h2>
+            <div class="advisory-body" id="advisory-body"></div>
+            <p class="parity" id="advisory-parity">
+              Advice stays downstream from the committed queue snapshot.
+            </p>
+          </section>
+
+          <section class="lower-grid">
+            <section class="panel table-panel" data-testid="reservation-table">
+              <h2>Reservation Table</h2>
+              <p class="subtle">
+                Tabular parity for fence state, patient copy posture, and blocking references.
+              </p>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Case</th>
+                    <th>Truth</th>
+                    <th>Fence</th>
+                    <th>Actor</th>
+                  </tr>
+                </thead>
+                <tbody id="reservation-table-body"></tbody>
+              </table>
+            </section>
+
+            <section class="panel table-panel" data-testid="queue-table">
+              <h2>Queue Snapshot Table</h2>
+              <p class="subtle">
+                Tabular parity for committed order, fairness posture, and assignment readiness.
+              </p>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Queue</th>
+                    <th>Overload</th>
+                    <th>Fairness</th>
+                    <th>Advisory</th>
+                  </tr>
+                </thead>
+                <tbody id="queue-table-body"></tbody>
+              </table>
+            </section>
+          </section>
+        </section>
+
+        <aside class="panel inspector" data-testid="inspector">
+          <h2>Inspector</h2>
+          <p class="subtle">
+            Selection synchronizes the fence timeline, fairness surface, advisory strip, and both
+            tables.
+          </p>
+          <div id="inspector-body">Loading selection...</div>
+        </aside>
+      </main>
+    </div>
+
+    <script>
+      const state = {
+        reservationState: "all",
+        queueRef: "all",
+        fairnessMode: "all",
+        actor: "all",
+        selectedKind: "reservation",
+        selectedScenarioId: null,
+        casebook: null,
+        manifest: null,
+        matrix: [],
+      };
+
+      function parseCsv(text) {
+        const rows = [];
+        let row = [];
+        let cell = "";
+        let inQuotes = false;
+        for (let index = 0; index < text.length; index += 1) {
+          const char = text[index];
+          const next = text[index + 1];
+          if (char === '"' && inQuotes && next === '"') {
+            cell += '"';
+            index += 1;
+            continue;
+          }
+          if (char === '"') {
+            inQuotes = !inQuotes;
+            continue;
+          }
+          if (char === "," && !inQuotes) {
+            row.push(cell);
+            cell = "";
+            continue;
+          }
+          if ((char === "\n" || char === "\r") && !inQuotes) {
+            if (char === "\r" && next === "\n") {
+              index += 1;
+            }
+            row.push(cell);
+            if (row.some((value) => value.length > 0)) {
+              rows.push(row);
+            }
+            row = [];
+            cell = "";
+            continue;
+          }
+          cell += char;
+        }
+        if (cell.length || row.length) {
+          row.push(cell);
+          rows.push(row);
+        }
+        const [headers, ...body] = rows;
+        return body.map((values) =>
+          Object.fromEntries(headers.map((header, idx) => [header, values[idx] ?? ""])),
+        );
+      }
+
+      function applyReducedMotion() {
+        const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+        document.body.dataset.reducedMotion = String(media.matches);
+      }
+
+      function reservationCases() {
+        return state.casebook.reservationCases.filter((entry) => {
+          if (
+            state.reservationState !== "all" &&
+            entry.reservationState !== state.reservationState
+          ) {
+            return false;
+          }
+          if (state.actor !== "all" && entry.actor !== state.actor) {
+            return false;
+          }
+          return true;
+        });
+      }
+
+      function queueCases() {
+        return state.casebook.queueCases.filter((entry) => {
+          if (state.queueRef !== "all" && entry.queueRef !== state.queueRef) {
+            return false;
+          }
+          if (state.fairnessMode !== "all" && entry.fairnessMergeState !== state.fairnessMode) {
+            return false;
+          }
+          if (state.actor !== "all" && entry.actor !== state.actor) {
+            return false;
+          }
+          return true;
+        });
+      }
+
+      function selectedEntity() {
+        const reservations = reservationCases();
+        const queues = queueCases();
+        const visibleReservation = reservations.find(
+          (entry) => entry.scenarioId === state.selectedScenarioId,
+        );
+        const visibleQueue = queues.find((entry) => entry.scenarioId === state.selectedScenarioId);
+        if (state.selectedKind === "reservation" && visibleReservation) {
+          return visibleReservation;
+        }
+        if (state.selectedKind === "queue" && visibleQueue) {
+          return visibleQueue;
+        }
+        if (reservations[0]) {
+          state.selectedKind = "reservation";
+          state.selectedScenarioId = reservations[0].scenarioId;
+          return reservations[0];
+        }
+        if (queues[0]) {
+          state.selectedKind = "queue";
+          state.selectedScenarioId = queues[0].scenarioId;
+          return queues[0];
+        }
+        state.selectedScenarioId = null;
+        return null;
+      }
+
+      function setSelected(kind, scenarioId) {
+        state.selectedKind = kind;
+        state.selectedScenarioId = scenarioId;
+        render();
+      }
+
+      function updateMetrics() {
+        const reservations = reservationCases();
+        const queues = queueCases();
+        const metrics = [
+          {
+            label: "Active Holds",
+            value: reservations.filter((entry) => entry.reservationState === "held").length,
+          },
+          {
+            label: "Pending Confirmations",
+            value: reservations.filter((entry) => entry.reservationState === "pending_confirmation")
+              .length,
+          },
+          {
+            label: "Overloaded Queues",
+            value: queues.filter((entry) => entry.overloadState === "overload_critical").length,
+          },
+          {
+            label: "Assignment Ready",
+            value: queues.filter((entry) => entry.advisoryState === "ready").length,
+          },
+        ];
+        document.getElementById("metrics").innerHTML = metrics
+          .map(
+            (metric) => `
+              <div class="metric">
+                <div class="metric-label">${metric.label}</div>
+                <div class="metric-value">${metric.value}</div>
+              </div>
+            `,
+          )
+          .join("");
+      }
+
+      function renderTimeline(selection) {
+        const container = document.getElementById("fence-timeline-list");
+        const reservations = reservationCases();
+        container.innerHTML = reservations
+          .map(
+            (entry) => `
+              <button
+                class="timeline-item row-select"
+                type="button"
+                data-kind="reservation"
+                data-scenario="${entry.scenarioId}"
+                data-testid="fence-timeline-item-${entry.scenarioId}"
+                data-selected="${selection && selection.scenarioId === entry.scenarioId ? "true" : "false"}"
+              >
+                <div><strong>${entry.title}</strong></div>
+                <div class="timeline-meta">${entry.canonicalReservationKey}</div>
+                <div class="chip-row">
+                  <span class="chip reservation">${entry.reservationState}</span>
+                  <span class="chip ${entry.fenceState === "conflict_blocked" ? "blocked" : "reservation"}">${entry.fenceState}</span>
+                </div>
+              </button>
+            `,
+          )
+          .join("");
+        document.querySelector("[data-testid='fence-timeline']").dataset.selectedScenario =
+          selection ? selection.scenarioId : "";
+        document.getElementById("fence-parity").textContent =
+          reservations.length === 0
+            ? "No reservation cases match the current filters."
+            : `${reservations.length} reservation cases remain visible. Conflict-blocked attempts stay visible with their blocking fence reference.`;
+      }
+
+      function renderHeat(selection) {
+        const container = document.getElementById("heat-grid");
+        const queues = queueCases();
+        container.innerHTML = queues
+          .map(
+            (entry) => `
+              <button
+                class="heat-item row-select"
+                type="button"
+                data-kind="queue"
+                data-scenario="${entry.scenarioId}"
+                data-testid="heat-row-${entry.scenarioId}"
+                data-selected="${selection && selection.scenarioId === entry.scenarioId ? "true" : "false"}"
+              >
+                <div><strong>${entry.title}</strong></div>
+                <div class="heat-meta">${entry.queueRef}</div>
+                <div class="chip-row">
+                  <span class="chip fairness">${entry.fairnessMergeState}</span>
+                  <span class="chip ${entry.overloadState === "overload_critical" ? "overload" : "reservation"}">${entry.overloadState}</span>
+                  <span class="chip ${entry.advisoryState === "ready" ? "ready" : entry.advisoryState ? "blocked" : "fairness"}">${entry.advisoryState ?? "snapshot_only"}</span>
+                </div>
+              </button>
+            `,
+          )
+          .join("");
+        document.querySelector("[data-testid='fairness-heat-surface']").dataset.selectedScenario =
+          selection ? selection.scenarioId : "";
+        document.getElementById("heat-parity").textContent =
+          queues.length === 0
+            ? "No queue snapshots match the current filters."
+            : `${queues.length} committed queue snapshots remain visible. Overload and fairness posture are adjacent to tabular queue parity below.`;
+      }
+
+      function renderAdvisory(selection) {
+        const panel = document.querySelector("[data-testid='advisory-strip']");
+        panel.dataset.selectedScenario = selection ? selection.scenarioId : "";
+        const body = document.getElementById("advisory-body");
+        if (!selection) {
+          body.innerHTML =
+            "<strong>No selection</strong><p class='subtle'>Choose a reservation or queue case to inspect control posture.</p>";
+          return;
+        }
+        if (state.selectedKind === "reservation") {
+          body.innerHTML = `
+            <strong>${selection.title}</strong>
+            <p class="subtle">${selection.patientCopyPosture}</p>
+            <div class="chip-row">
+              <span class="chip reservation">${selection.truthState}</span>
+              <span class="chip ${selection.fenceState === "conflict_blocked" ? "blocked" : "reservation"}">${selection.fenceState}</span>
+            </div>
+            <p class="parity">Queue advice is intentionally blank here because reservation truth does not authorize work ordering by itself.</p>
+          `;
+          return;
+        }
+        const matrixRows = state.matrix.filter((row) => row.scenario_id === selection.scenarioId);
+        body.innerHTML = `
+          <strong>${selection.title}</strong>
+          <p class="subtle">${selection.note}</p>
+          <div class="chip-row">
+            <span class="chip fairness">${selection.fairnessMergeState}</span>
+            <span class="chip ${selection.advisoryState === "ready" ? "ready" : selection.advisoryState ? "blocked" : "fairness"}">${selection.advisoryState ?? "snapshot_only"}</span>
+          </div>
+          <p class="parity">
+            ${
+              selection.advisoryState === "ready"
+                ? `Next tasks: ${selection.nextTaskRefs.join(", ")}`
+                : selection.advisoryState
+                  ? "Launch is blocked until stale-owner recovery or snapshot drift clears."
+                  : "This snapshot is committed but has no downstream assignment advice yet."
+            }
+          </p>
+          <p class="parity">Matrix rows in view: ${matrixRows.length}. Reviewer suggestions never rewrite ordinals.</p>
+        `;
+      }
+
+      function renderReservationTable(selection) {
+        const body = document.getElementById("reservation-table-body");
+        body.innerHTML = reservationCases()
+          .map(
+            (entry) => `
+              <tr class="row" data-selected="${selection && selection.scenarioId === entry.scenarioId ? "true" : "false"}" data-testid="reservation-row-${entry.scenarioId}">
+                <td>
+                  <button class="row-select" type="button" data-kind="reservation" data-scenario="${entry.scenarioId}">
+                    <strong>${entry.title}</strong>
+                    <div class="mono">${entry.canonicalReservationKey}</div>
+                  </button>
+                </td>
+                <td>${entry.truthState}</td>
+                <td>${entry.fenceState}</td>
+                <td>${entry.actor}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function renderQueueTable(selection) {
+        const body = document.getElementById("queue-table-body");
+        body.innerHTML = queueCases()
+          .map(
+            (entry) => `
+              <tr class="row" data-selected="${selection && selection.scenarioId === entry.scenarioId ? "true" : "false"}" data-testid="queue-row-${entry.scenarioId}">
+                <td>
+                  <button class="row-select" type="button" data-kind="queue" data-scenario="${entry.scenarioId}">
+                    <strong>${entry.title}</strong>
+                    <div class="mono">${entry.queueRef}</div>
+                  </button>
+                </td>
+                <td>${entry.overloadState}</td>
+                <td>${entry.fairnessMergeState}</td>
+                <td>${entry.advisoryState ?? "snapshot_only"}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function renderInspector(selection) {
+        const panel = document.querySelector("[data-testid='inspector']");
+        panel.dataset.selectedScenario = selection ? selection.scenarioId : "";
+        const body = document.getElementById("inspector-body");
+        if (!selection) {
+          body.innerHTML = "<p class='subtle'>No cases match the active filters.</p>";
+          return;
+        }
+        if (state.selectedKind === "reservation") {
+          body.innerHTML = `
+            <div class="inspector-block">
+              <div class="mono">${selection.scenarioId}</div>
+              <p><strong>${selection.title}</strong></p>
+              <div class="inspector-grid">
+                <div><span class="subtle">Reservation</span><div>${selection.reservationState}</div></div>
+                <div><span class="subtle">Truth</span><div>${selection.truthState}</div></div>
+                <div><span class="subtle">Fence</span><div>${selection.fenceState}</div></div>
+                <div><span class="subtle">Actor</span><div>${selection.actor}</div></div>
+              </div>
+            </div>
+            <div class="inspector-block">
+              <div class="subtle">Canonical key</div>
+              <div class="mono">${selection.canonicalReservationKey}</div>
+              <div class="subtle" style="margin-top:12px;">Blocking fence</div>
+              <div class="mono">${selection.blockingFenceRef ?? "none"}</div>
+            </div>
+          `;
+          return;
+        }
+        const matrixRows = state.matrix.filter((row) => row.scenario_id === selection.scenarioId);
+        body.innerHTML = `
+          <div class="inspector-block">
+            <div class="mono">${selection.scenarioId}</div>
+            <p><strong>${selection.title}</strong></p>
+            <div class="inspector-grid">
+              <div><span class="subtle">Queue</span><div class="mono">${selection.queueRef}</div></div>
+              <div><span class="subtle">Overload</span><div>${selection.overloadState}</div></div>
+              <div><span class="subtle">Fairness</span><div>${selection.fairnessMergeState}</div></div>
+              <div><span class="subtle">Advisory</span><div>${selection.advisoryState ?? "snapshot_only"}</div></div>
+            </div>
+          </div>
+          <div class="inspector-block">
+            <div class="subtle">Eligible task refs</div>
+            <div class="mono">${selection.eligibleTaskRefs.join(", ")}</div>
+            <div class="subtle" style="margin-top:12px;">Matrix parity</div>
+            <div class="mono">${matrixRows.map((row) => `${row.ordinal}:${row.task_ref}`).join(" | ")}</div>
+          </div>
+        `;
+      }
+
+      function render() {
+        const selection = selectedEntity();
+        updateMetrics();
+        renderTimeline(selection);
+        renderHeat(selection);
+        renderAdvisory(selection);
+        renderReservationTable(selection);
+        renderQueueTable(selection);
+        renderInspector(selection);
+        document.getElementById("filter-note").textContent =
+          `${reservationCases().length} reservation cases and ${queueCases().length} queue snapshots remain after filtering.`;
+      }
+
+      function installEventHandlers() {
+        document.addEventListener("change", (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLSelectElement)) {
+            return;
+          }
+          if (target.id === "reservation-state-filter") {
+            state.reservationState = target.value;
+          }
+          if (target.id === "queue-filter") {
+            state.queueRef = target.value;
+          }
+          if (target.id === "fairness-mode-filter") {
+            state.fairnessMode = target.value;
+          }
+          if (target.id === "actor-filter") {
+            state.actor = target.value;
+          }
+          render();
+        });
+
+        document.addEventListener("click", (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLElement)) {
+            return;
+          }
+          const button = target.closest("button.row-select");
+          if (!(button instanceof HTMLButtonElement)) {
+            return;
+          }
+          setSelected(button.dataset.kind, button.dataset.scenario);
+        });
+
+        document.addEventListener("keydown", (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLButtonElement) || !target.classList.contains("row-select")) {
+            return;
+          }
+          const kind = target.dataset.kind;
+          const buttons = [
+            ...document.querySelectorAll(`button.row-select[data-kind="${kind}"]`),
+          ].filter((button) => button.offsetParent !== null);
+          const index = buttons.indexOf(target);
+          if (event.key === "ArrowDown" && buttons.length > 0) {
+            event.preventDefault();
+            const next = buttons[(index + 1) % buttons.length];
+            next.focus();
+            next.click();
+          }
+          if (event.key === "ArrowUp" && buttons.length > 0) {
+            event.preventDefault();
+            const previous = buttons[(index - 1 + buttons.length) % buttons.length];
+            previous.focus();
+            previous.click();
+          }
+          if (event.key === " " || event.key === "Enter") {
+            event.preventDefault();
+            target.click();
+          }
+        });
+      }
+
+      function populateFilters() {
+        const reservationStates = [
+          "all",
+          ...new Set(state.casebook.reservationCases.map((entry) => entry.reservationState)),
+        ];
+        const queues = [
+          "all",
+          ...new Set(state.casebook.queueCases.map((entry) => entry.queueRef)),
+        ];
+        const fairnessModes = [
+          "all",
+          ...new Set(state.casebook.queueCases.map((entry) => entry.fairnessMergeState)),
+        ];
+        const actors = [
+          "all",
+          ...new Set(
+            [...state.casebook.reservationCases, ...state.casebook.queueCases].map(
+              (entry) => entry.actor,
+            ),
+          ),
+        ];
+        for (const [id, values] of [
+          ["reservation-state-filter", reservationStates],
+          ["queue-filter", queues],
+          ["fairness-mode-filter", fairnessModes],
+          ["actor-filter", actors],
+        ]) {
+          document.getElementById(id).innerHTML = values
+            .map((value) => `<option value="${value}">${value}</option>`)
+            .join("");
+        }
+      }
+
+      async function load() {
+        applyReducedMotion();
+        installEventHandlers();
+        const [casebook, manifest, matrixCsv] = await Promise.all([
+          fetch("/data/analysis/reservation_queue_casebook.json").then((response) =>
+            response.json(),
+          ),
+          fetch("/data/analysis/reservation_fence_manifest.json").then((response) =>
+            response.json(),
+          ),
+          fetch("/data/analysis/queue_rank_snapshot_matrix.csv").then((response) =>
+            response.text(),
+          ),
+        ]);
+        state.casebook = casebook;
+        state.manifest = manifest;
+        state.matrix = parseCsv(matrixCsv);
+        state.selectedKind = "reservation";
+        state.selectedScenarioId = casebook.reservationCases[0].scenarioId;
+        populateFilters();
+        render();
+      }
+
+      window.addEventListener("DOMContentLoaded", () => {
+        void load();
+      });
+    </script>
+  </body>
+</html>

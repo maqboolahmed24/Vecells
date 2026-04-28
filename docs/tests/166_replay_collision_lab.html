@@ -1,0 +1,1075 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vecells Replay Collision Lab</title>
+    <style>
+      :root {
+        --canvas: #f7f8fa;
+        --shell: #eef2f6;
+        --panel: #ffffff;
+        --inset: #e8eef3;
+        --text-strong: #0f1720;
+        --text: #24313d;
+        --text-muted: #5e6b78;
+        --accent-replay: #2f6fed;
+        --accent-continuity: #5b61f6;
+        --accent-review: #b7791f;
+        --accent-blocked: #b42318;
+        --accent-safe: #117a55;
+        --line: rgba(15, 23, 32, 0.12);
+        --shadow: 0 24px 70px rgba(15, 23, 32, 0.12);
+        color-scheme: light;
+        font-family: "Aptos", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 8% 12%, rgba(47, 111, 237, 0.16), transparent 28rem),
+          radial-gradient(circle at 88% 18%, rgba(91, 97, 246, 0.14), transparent 26rem),
+          linear-gradient(135deg, var(--canvas), var(--shell));
+        color: var(--text);
+      }
+
+      body {
+        overflow-x: hidden;
+      }
+
+      body.reduced-motion *,
+      body.reduced-motion *::before,
+      body.reduced-motion *::after {
+        animation-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.001ms !important;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .shell {
+        width: min(1580px, 100%);
+        margin: 0 auto;
+        padding: 0 24px 32px;
+      }
+
+      header {
+        display: flex;
+        min-height: 72px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        color: var(--text-strong);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+        font-weight: 760;
+        letter-spacing: 0.03em;
+      }
+
+      .brand svg {
+        width: 42px;
+        height: 42px;
+        flex: 0 0 auto;
+      }
+
+      .mode {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        padding: 8px 12px;
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 720;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 292px minmax(0, 1fr) 400px;
+        gap: 18px;
+        align-items: start;
+      }
+
+      nav,
+      main,
+      aside,
+      section.panel {
+        min-width: 0;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.86);
+        box-shadow: var(--shadow);
+      }
+
+      nav.panel,
+      aside.panel {
+        padding: 16px;
+      }
+
+      .rail-title,
+      .panel-title {
+        margin: 0 0 10px;
+        color: var(--text-strong);
+        font-size: 13px;
+        font-weight: 780;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .case-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .case-button {
+        width: 100%;
+        border: 1px solid transparent;
+        border-radius: 18px;
+        background: transparent;
+        padding: 11px 12px;
+        color: var(--text);
+        text-align: left;
+        cursor: pointer;
+        transition:
+          background 180ms ease,
+          border-color 180ms ease,
+          transform 180ms ease;
+      }
+
+      .case-button:hover,
+      .case-button:focus-visible,
+      .case-button[data-selected="true"] {
+        border-color: rgba(47, 111, 237, 0.36);
+        background: linear-gradient(135deg, rgba(47, 111, 237, 0.1), rgba(91, 97, 246, 0.08));
+        outline: none;
+        transform: translateY(-1px);
+      }
+
+      .case-id {
+        display: block;
+        color: var(--text-strong);
+        font-size: 12px;
+        font-weight: 760;
+        overflow-wrap: anywhere;
+      }
+
+      .case-meta {
+        display: block;
+        margin-top: 4px;
+        color: var(--text-muted);
+        font-size: 12px;
+        overflow-wrap: anywhere;
+      }
+
+      .canvas {
+        display: grid;
+        gap: 18px;
+      }
+
+      .hero {
+        padding: 22px;
+        overflow: hidden;
+      }
+
+      .hero h1 {
+        max-width: 760px;
+        margin: 0;
+        color: var(--text-strong);
+        font-size: clamp(28px, 4vw, 54px);
+        line-height: 0.98;
+        letter-spacing: -0.045em;
+      }
+
+      .hero p {
+        max-width: 760px;
+        margin: 14px 0 0;
+        color: var(--text-muted);
+        font-size: 15px;
+        line-height: 1.6;
+      }
+
+      .diagram-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(260px, 0.62fr);
+        gap: 14px;
+      }
+
+      .diagram,
+      .table-wrap,
+      .counter-panel {
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: auto;
+        border-radius: 24px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        padding: 16px;
+      }
+
+      .braid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        position: relative;
+      }
+
+      .braid::before {
+        content: "";
+        position: absolute;
+        inset: 38px 8% auto;
+        height: 2px;
+        background: linear-gradient(90deg, var(--accent-replay), var(--accent-continuity));
+        opacity: 0.38;
+      }
+
+      .node,
+      .ladder-step {
+        position: relative;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--inset);
+        padding: 14px;
+        min-height: 92px;
+        overflow-wrap: anywhere;
+      }
+
+      .node strong,
+      .ladder-step strong {
+        display: block;
+        color: var(--text-strong);
+        font-size: 13px;
+      }
+
+      .node span,
+      .ladder-step span {
+        display: block;
+        margin-top: 8px;
+        color: var(--text-muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .node[data-state="safe"],
+      .ladder-step[data-state="safe"] {
+        border-color: rgba(17, 122, 85, 0.32);
+      }
+
+      .node[data-state="review"],
+      .ladder-step[data-state="review"] {
+        border-color: rgba(183, 121, 31, 0.42);
+      }
+
+      .node[data-state="blocked"],
+      .ladder-step[data-state="blocked"] {
+        border-color: rgba(180, 35, 24, 0.42);
+      }
+
+      .ladder {
+        display: grid;
+        gap: 10px;
+      }
+
+      .counters {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .counter {
+        border-radius: 20px;
+        background: var(--inset);
+        padding: 14px;
+      }
+
+      .counter b {
+        display: block;
+        color: var(--text-strong);
+        font-size: 24px;
+        line-height: 1;
+      }
+
+      .counter span {
+        display: block;
+        margin-top: 8px;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      aside h2 {
+        margin: 0;
+        color: var(--text-strong);
+        font-size: 24px;
+        letter-spacing: -0.02em;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      .inspector-grid {
+        display: grid;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .fact {
+        border-radius: 18px;
+        background: var(--inset);
+        padding: 12px;
+      }
+
+      .fact span {
+        display: block;
+        color: var(--text-muted);
+        font-size: 11px;
+        font-weight: 760;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .fact b {
+        display: block;
+        margin-top: 5px;
+        color: var(--text-strong);
+        font-size: 13px;
+        overflow-wrap: anywhere;
+      }
+
+      .lower {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      table {
+        width: 100%;
+        min-width: 0;
+        border-collapse: collapse;
+        table-layout: fixed;
+        font-size: 12px;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 9px 7px;
+        text-align: left;
+        vertical-align: top;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      th {
+        color: var(--text-muted);
+        font-size: 11px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      tr[data-selected="true"] td {
+        background: rgba(47, 111, 237, 0.08);
+        color: var(--text-strong);
+      }
+
+      @media (max-width: 1180px) {
+        .grid {
+          grid-template-columns: 260px minmax(0, 1fr);
+        }
+
+        aside.panel {
+          grid-column: 1 / -1;
+        }
+
+        .diagram-grid,
+        .lower {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .shell {
+          padding-inline: 12px;
+        }
+
+        header {
+          flex-wrap: wrap;
+          align-content: center;
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .braid,
+        .counters {
+          grid-template-columns: 1fr;
+        }
+
+        .lower {
+          display: block;
+        }
+
+        .lower .table-wrap + .table-wrap {
+          margin-top: 12px;
+        }
+
+        .hero,
+        nav.panel,
+        aside.panel,
+        .diagram,
+        .table-wrap,
+        .counter-panel {
+          border-radius: 20px;
+          padding: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell" data-testid="replay-collision-lab">
+      <header>
+        <div class="brand" aria-label="Vecells replay collision lab">
+          <svg
+            id="lineage_braid_mark"
+            data-testid="lineage_braid_mark"
+            viewBox="0 0 48 48"
+            role="img"
+            aria-label="Lineage braid mark"
+          >
+            <rect x="3" y="3" width="42" height="42" rx="14" fill="#0F1720"></rect>
+            <path
+              d="M13 16c8 0 8 16 16 16 3.7 0 5.7-2.6 7-5"
+              fill="none"
+              stroke="#2F6FED"
+              stroke-width="3.3"
+              stroke-linecap="round"
+            ></path>
+            <path
+              d="M13 32c8 0 8-16 16-16 3.7 0 5.7 2.6 7 5"
+              fill="none"
+              stroke="#5B61F6"
+              stroke-width="3.3"
+              stroke-linecap="round"
+            ></path>
+          </svg>
+          <span>VECELLS</span>
+        </div>
+        <div class="mode" data-testid="surface-mode">Replay_Collision_Lab</div>
+      </header>
+
+      <div class="grid">
+        <nav class="panel" aria-label="Replay and collision case families">
+          <p class="rail-title">Case Families</p>
+          <div class="case-list" id="case-list"></div>
+        </nav>
+
+        <main class="canvas">
+          <section class="panel hero" aria-labelledby="lab-title">
+            <h1 id="lab-title">One lineage, one settlement, no duplicate calm.</h1>
+            <p>
+              This dossier proves duplicate submits, refreshes, stale tabs, and collision reviews
+              converge on authoritative Phase 1 truth without second requests, second promotions, or
+              second patient-visible success states.
+            </p>
+          </section>
+
+          <section class="diagram-grid" aria-label="Lineage braid and parity table">
+            <div class="diagram">
+              <p class="panel-title">Lineage braid</p>
+              <div class="braid" data-testid="lineage-braid" id="lineage-braid"></div>
+            </div>
+            <div class="table-wrap">
+              <p class="panel-title">Lineage parity</p>
+              <table data-testid="lineage-braid-table">
+                <thead>
+                  <tr>
+                    <th>Step</th>
+                    <th>State</th>
+                  </tr>
+                </thead>
+                <tbody id="lineage-table-body"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="diagram-grid" aria-label="Settlement ladder and parity table">
+            <div class="diagram">
+              <p class="panel-title">Settlement ladder</p>
+              <div class="ladder" data-testid="settlement-ladder" id="settlement-ladder"></div>
+            </div>
+            <div class="table-wrap">
+              <p class="panel-title">Settlement parity</p>
+              <table data-testid="settlement-ladder-table">
+                <thead>
+                  <tr>
+                    <th>Step</th>
+                    <th>Proof</th>
+                  </tr>
+                </thead>
+                <tbody id="settlement-table-body"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="counter-panel" data-testid="side-effect-counters">
+            <p class="panel-title">Side-effect counters</p>
+            <div class="counters" id="counter-grid"></div>
+          </section>
+        </main>
+
+        <aside class="panel" aria-label="Selected case inspector">
+          <h2 data-testid="inspector-case-id">Case</h2>
+          <div class="inspector-grid">
+            <div class="fact">
+              <span>Decision</span>
+              <b data-testid="inspector-decision">-</b>
+            </div>
+            <div class="fact">
+              <span>Settlement</span>
+              <b data-testid="inspector-settlement">-</b>
+            </div>
+            <div class="fact">
+              <span>Patient posture</span>
+              <b data-testid="inspector-posture">-</b>
+            </div>
+            <div class="fact">
+              <span>Shell lineage</span>
+              <b data-testid="inspector-shell-lineage">patient.portal.requests</b>
+            </div>
+            <div class="fact">
+              <span>Bounded explanation</span>
+              <b data-testid="inspector-explanation">-</b>
+            </div>
+            <div class="fact">
+              <span>Calm saved visible</span>
+              <b data-testid="inspector-calm-saved">false</b>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <section class="lower" aria-label="Replay collision event and parity tables">
+        <div class="table-wrap">
+          <p class="panel-title">Replay truth table</p>
+          <table data-testid="replay-truth-table">
+            <thead>
+              <tr>
+                <th>Case</th>
+                <th>Class</th>
+                <th>Request delta</th>
+                <th>Notification delta</th>
+              </tr>
+            </thead>
+            <tbody id="replay-truth-body"></tbody>
+          </table>
+        </div>
+        <div class="table-wrap">
+          <p class="panel-title">Collision truth table</p>
+          <table data-testid="collision-truth-table">
+            <thead>
+              <tr>
+                <th>Case</th>
+                <th>Class</th>
+                <th>Branch</th>
+                <th>Posture</th>
+              </tr>
+            </thead>
+            <tbody id="collision-truth-body"></tbody>
+          </table>
+        </div>
+        <div class="table-wrap">
+          <p class="panel-title">Stale resume table</p>
+          <table data-testid="stale-resume-table">
+            <thead>
+              <tr>
+                <th>Case</th>
+                <th>Authority</th>
+                <th>Intent</th>
+                <th>Saved?</th>
+              </tr>
+            </thead>
+            <tbody id="stale-resume-body"></tbody>
+          </table>
+        </div>
+        <div class="table-wrap">
+          <p class="panel-title">Selected side effects</p>
+          <table data-testid="side-effect-table">
+            <thead>
+              <tr>
+                <th>Effect</th>
+                <th>Delta</th>
+              </tr>
+            </thead>
+            <tbody id="side-effect-body"></tbody>
+          </table>
+        </div>
+        <div class="table-wrap">
+          <p class="panel-title">Event chain</p>
+          <table data-testid="event-chain-table">
+            <thead>
+              <tr>
+                <th>Event</th>
+                <th>Meaning</th>
+              </tr>
+            </thead>
+            <tbody id="event-chain-body"></tbody>
+          </table>
+        </div>
+        <div class="table-wrap">
+          <p class="panel-title">Case parity</p>
+          <table data-testid="case-parity-table">
+            <thead>
+              <tr>
+                <th>Case</th>
+                <th>Family</th>
+                <th>Browser proof</th>
+              </tr>
+            </thead>
+            <tbody id="case-parity-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const cases = [
+        {
+          id: "SUB166_EXACT_REPLAY_SAME_TAB",
+          browserId: "case-exact-replay",
+          family: "exact_replay",
+          decision: "exact_replay",
+          settlement: "request_submitted",
+          posture: "authoritative_request_shell",
+          explanation: "prior_settlement_returned",
+          calmSaved: "false",
+          shell: "patient.portal.requests",
+          branch: "prior_settlement",
+          counters: { request: 0, promotion: 0, safety: 0, triage: 0, notification: 0, visible: 1 },
+          lineage: ["draft lineage", "idempotency record", "prior settlement", "request shell"],
+          ladder: ["submit observed", "exact replay", "prior settlement returned"],
+          events: ["idempotency.exact_replay", "intake.submit.settlement.reused"],
+        },
+        {
+          id: "SUB166_CONCURRENT_DOUBLE_TAP",
+          browserId: "case-concurrent-double-tap",
+          family: "exact_replay",
+          decision: "new_lineage+exact_replay",
+          settlement: "request_submitted",
+          posture: "authoritative_request_shell",
+          explanation: "one_winner_one_replay",
+          calmSaved: "false",
+          shell: "patient.portal.requests",
+          branch: "serialized_submit",
+          counters: { request: 1, promotion: 1, safety: 1, triage: 1, notification: 1, visible: 1 },
+          lineage: ["tap A", "promotion boundary", "tap B replay", "single receipt"],
+          ladder: ["parallel submit", "one commit", "one replay", "one visible outcome"],
+          events: ["request.created", "request.submitted", "communication.queued"],
+        },
+        {
+          id: "SUB166_SEMANTIC_REPLAY_REFRESH",
+          browserId: "case-semantic-refresh",
+          family: "semantic_replay",
+          decision: "semantic_replay",
+          settlement: "request_submitted",
+          posture: "authoritative_request_shell",
+          explanation: "semantic_fingerprint_reused",
+          calmSaved: "false",
+          shell: "patient.portal.requests",
+          branch: "prior_settlement",
+          counters: { request: 0, promotion: 0, safety: 0, triage: 0, notification: 0, visible: 1 },
+          lineage: ["refresh", "raw drift ignored", "semantic replay", "same receipt"],
+          ladder: ["transport variance", "semantic fingerprint match", "prior settlement returned"],
+          events: ["idempotency.semantic_replay", "intake.submit.settlement.reused"],
+        },
+        {
+          id: "SUB166_AUTH_RETURN_REPLAY",
+          browserId: "case-auth-return-replay",
+          family: "semantic_replay",
+          decision: "semantic_replay",
+          settlement: "request_submitted",
+          posture: "authoritative_request_shell",
+          explanation: "auth_return_reuses_prior_truth",
+          calmSaved: "false",
+          shell: "patient.portal.requests",
+          branch: "prior_settlement",
+          counters: { request: 0, promotion: 0, safety: 0, triage: 0, notification: 0, visible: 1 },
+          lineage: ["anonymous draft", "auth return", "semantic replay", "same request"],
+          ladder: ["auth callback", "same semantic submit", "authoritative shell"],
+          events: ["auth_return.replay", "intake.submit.settlement.reused"],
+        },
+        {
+          id: "SUB166_REFRESH_BEFORE_SETTLEMENT",
+          browserId: "case-refresh-before-settlement",
+          family: "refresh_before_settlement",
+          decision: "new_lineage+exact_replay",
+          settlement: "request_submitted",
+          posture: "authoritative_request_shell",
+          explanation: "one_inflight_path_one_visible_outcome",
+          calmSaved: "false",
+          shell: "patient.portal.requests",
+          branch: "serialized_submit",
+          counters: { request: 1, promotion: 1, safety: 1, triage: 1, notification: 1, visible: 1 },
+          lineage: ["tab one", "in-flight submit", "tab two refresh", "single receipt"],
+          ladder: ["first submit wins", "refresh observes settlement", "request redirect"],
+          events: ["request.created", "patient.receipt.issued", "route.request_redirect"],
+        },
+        {
+          id: "SUB166_NOTIFICATION_JOB_REPLAY",
+          browserId: "case-notification-job-replay",
+          family: "notification_replay",
+          decision: "notification_replay",
+          settlement: "request_submitted",
+          posture: "receipt_delivery_pending",
+          explanation: "confirmation_envelope_reused",
+          calmSaved: "false",
+          shell: "patient.portal.requests",
+          branch: "worker_replay",
+          counters: { request: 0, promotion: 0, safety: 0, triage: 0, notification: 0, visible: 1 },
+          lineage: ["receipt", "confirmation envelope", "duplicate worker job", "same bridge"],
+          ladder: ["queue confirmation", "job replay", "existing bridge reused"],
+          events: ["communication.queued", "communication.replay.reused"],
+        },
+        {
+          id: "COL166_SOURCE_COMMAND_CHANGED_ATTACHMENT",
+          browserId: "case-source-command-collision",
+          family: "collision_review",
+          decision: "collision_review",
+          settlement: "collision_review_open",
+          posture: "collision_review",
+          explanation: "manual_review_no_second_success",
+          calmSaved: "false",
+          shell: "patient.portal.requests",
+          branch: "review_required",
+          counters: { request: 0, promotion: 0, safety: 0, triage: 0, notification: 0, visible: 0 },
+          lineage: ["source command", "changed evidence", "collision review", "mutation blocked"],
+          ladder: ["identifier reused", "semantic drift", "review opened"],
+          events: ["intake.normalized", "request.snapshot.created", "collision.review.opened"],
+        },
+        {
+          id: "COL166_TRANSPORT_CHANGED_ATTACHMENT",
+          browserId: "case-transport-collision",
+          family: "collision_review",
+          decision: "collision_review",
+          settlement: "collision_review_open",
+          posture: "collision_review",
+          explanation: "transport_reuse_requires_review",
+          calmSaved: "false",
+          shell: "patient.portal.requests",
+          branch: "review_required",
+          counters: { request: 0, promotion: 0, safety: 0, triage: 0, notification: 0, visible: 0 },
+          lineage: ["transport key", "changed evidence", "collision review", "mutation blocked"],
+          ladder: ["transport reused", "semantic drift", "review opened"],
+          events: ["intake.normalized", "request.snapshot.created", "collision.review.opened"],
+        },
+        {
+          id: "COL166_IDEMPOTENCY_KEY_SCOPE_DRIFT",
+          browserId: "case-idempotency-scope-drift",
+          family: "collision_review",
+          decision: "collision_review",
+          settlement: "collision_review_open",
+          posture: "collision_review",
+          explanation: "idempotency_reuse_blocks_mutation",
+          calmSaved: "false",
+          shell: "patient.portal.requests",
+          branch: "review_required",
+          counters: { request: 0, promotion: 0, safety: 0, triage: 0, notification: 0, visible: 0 },
+          lineage: ["idempotency key", "scope drift", "collision review", "mutation blocked"],
+          ladder: ["key reused", "effect scope drift", "review opened"],
+          events: ["idempotency.collision_review", "collision.review.opened"],
+        },
+        {
+          id: "COL166_SAME_REQUEST_ATTACH_WITH_WITNESS",
+          browserId: "case-same-request-attach",
+          family: "duplicate_branch",
+          decision: "same_request_attach",
+          settlement: "not_applicable",
+          posture: "authoritative_request_shell",
+          explanation: "explicit_witness_required",
+          calmSaved: "false",
+          shell: "patient.portal.requests",
+          branch: "same_request_attach",
+          counters: { request: 0, promotion: 0, safety: 0, triage: 0, notification: 0, visible: 1 },
+          lineage: ["incoming evidence", "workflow witness", "same request attach", "same shell"],
+          ladder: ["duplicate assessed", "witness accepted", "same request attach"],
+          events: ["duplicate.assessed", "duplicate.same_request_attached"],
+        },
+        {
+          id: "COL166_SAME_EPISODE_LINK_HUMAN_REVIEW",
+          browserId: "case-same-episode-link",
+          family: "duplicate_branch",
+          decision: "same_episode_link",
+          settlement: "not_applicable",
+          posture: "same_shell_review",
+          explanation: "manual_review_applied",
+          calmSaved: "false",
+          shell: "patient.portal.requests",
+          branch: "same_episode_link",
+          counters: { request: 0, promotion: 0, safety: 0, triage: 0, notification: 0, visible: 0 },
+          lineage: [
+            "candidate cluster",
+            "human review",
+            "same episode link",
+            "no duplicate request",
+          ],
+          ladder: ["candidate held", "review applied", "episode linked"],
+          events: ["duplicate.review.opened", "duplicate.same_episode_linked"],
+        },
+        {
+          id: "COL166_CONFLICT_REVIEW_REQUIRED",
+          browserId: "case-review-required-conflict",
+          family: "duplicate_branch",
+          decision: "review_required",
+          settlement: "not_applicable",
+          posture: "same_shell_review",
+          explanation: "conflict_stays_human_review",
+          calmSaved: "false",
+          shell: "patient.portal.requests",
+          branch: "review_required",
+          counters: { request: 0, promotion: 0, safety: 0, triage: 0, notification: 0, visible: 0 },
+          lineage: ["conflicting candidates", "low margin", "human review", "mutation blocked"],
+          ladder: ["candidate conflict", "review required", "no auto attach"],
+          events: ["duplicate.review_required", "collision.review.visible"],
+        },
+        {
+          id: "STALE166_BACKGROUND_AUTOSAVE_AFTER_PROMOTION",
+          browserId: "case-background-autosave-after-promotion",
+          family: "stale_tab",
+          decision: "recovery_required",
+          settlement: "recovery_required",
+          posture: "resume_recovery",
+          explanation: "DRAFT_RESUME_TOKEN_FORMAT_INVALID",
+          calmSaved: "false",
+          shell: "patient.portal.requests",
+          branch: "stale_patch_blocked",
+          counters: { request: 0, promotion: 0, safety: 0, triage: 0, notification: 0, visible: 0 },
+          lineage: ["promoted draft", "background patch", "lease not live", "recovery only"],
+          ladder: ["late patch", "blocked mutability", "same shell recovery"],
+          events: ["draft.recovery.opened", "draft.save.recovery_required"],
+        },
+        {
+          id: "STALE166_LATE_PATCH_SUPERSEDED_LEASE",
+          browserId: "case-late-patch-superseded-lease",
+          family: "stale_tab",
+          decision: "recovery_required",
+          settlement: "recovery_required",
+          posture: "resume_recovery",
+          explanation: "DRAFT_RESUME_TOKEN_FORMAT_INVALID",
+          calmSaved: "false",
+          shell: "patient.portal.requests",
+          branch: "stale_patch_blocked",
+          counters: { request: 0, promotion: 0, safety: 0, triage: 0, notification: 0, visible: 0 },
+          lineage: ["old foreground lease", "late patch", "recovery only", "no saved cue"],
+          ladder: ["patch arrives", "lease superseded", "mutation blocked"],
+          events: ["draft.recovery.opened", "draft.save.recovery_required"],
+        },
+        {
+          id: "STALE166_STALE_RESUME_TOKEN_REDIRECT",
+          browserId: "case-stale-resume-token-redirect",
+          family: "stale_token",
+          decision: "request_redirect",
+          settlement: "request_submitted",
+          posture: "open_request_receipt",
+          explanation: "PROMOTED_REQUEST_AVAILABLE",
+          calmSaved: "false",
+          shell: "patient.portal.requests",
+          branch: "request_redirect",
+          counters: { request: 0, promotion: 0, safety: 0, triage: 0, notification: 0, visible: 1 },
+          lineage: ["stale resume token", "promoted envelope", "request redirect", "receipt shell"],
+          ladder: ["route entry", "same lineage proof", "authoritative receipt"],
+          events: ["draft.recovery.opened", "route.request_redirect"],
+        },
+        {
+          id: "STALE166_STALE_SUBMIT_AFTER_PROMOTION",
+          browserId: "case-stale-submit-after-promotion",
+          family: "stale_submit",
+          decision: "exact_replay",
+          settlement: "request_submitted",
+          posture: "authoritative_request_shell",
+          explanation: "prior_settlement_returned",
+          calmSaved: "false",
+          shell: "patient.portal.requests",
+          branch: "prior_settlement",
+          counters: { request: 0, promotion: 0, safety: 0, triage: 0, notification: 0, visible: 1 },
+          lineage: ["stale tab submit", "existing settlement", "exact replay", "same request"],
+          ladder: ["submit replay", "prior settlement", "request shell"],
+          events: ["idempotency.exact_replay", "intake.submit.settlement.reused"],
+        },
+        {
+          id: "STALE166_PRE_PROMOTION_MISSING_LEASE_RECOVERY",
+          browserId: "case-pre-promotion-missing-lease",
+          family: "stale_submit",
+          decision: "stale_recoverable",
+          settlement: "recovery_required",
+          posture: "resume_recovery",
+          explanation: "DRAFT_LEASE_NOT_FOUND",
+          calmSaved: "false",
+          shell: "patient.portal.requests",
+          branch: "stale_submit_blocked",
+          counters: { request: 0, promotion: 0, safety: 0, triage: 0, notification: 0, visible: 0 },
+          lineage: ["pre-promotion submit", "missing lease", "recovery settlement", "no request"],
+          ladder: ["lease missing", "stale recoverable", "same shell recovery"],
+          events: ["patient.receipt.degraded", "patient.receipt.consistency.updated"],
+        },
+      ];
+
+      const stateName = (caseItem) =>
+        caseItem.decision.includes("collision") || caseItem.decision.includes("review")
+          ? "review"
+          : caseItem.decision.includes("stale") || caseItem.posture.includes("recovery")
+            ? "blocked"
+            : "safe";
+
+      let selectedId = cases[0].id;
+
+      function getSelected() {
+        return cases.find((caseItem) => caseItem.id === selectedId) || cases[0];
+      }
+
+      function renderRail() {
+        const list = document.getElementById("case-list");
+        list.innerHTML = cases
+          .map(
+            (caseItem, index) => `
+              <button class="case-button" type="button" data-testid="case-button-${caseItem.id}" data-case-index="${index}" data-selected="${caseItem.id === selectedId}">
+                <span class="case-id">${caseItem.id}</span>
+                <span class="case-meta">${caseItem.family} · ${caseItem.decision}</span>
+              </button>
+            `,
+          )
+          .join("");
+        list.querySelectorAll("button").forEach((button) => {
+          button.addEventListener("click", () =>
+            selectCase(cases[Number(button.dataset.caseIndex)].id, true),
+          );
+          button.addEventListener("keydown", (event) => {
+            const currentIndex = Number(button.dataset.caseIndex);
+            let nextIndex = currentIndex;
+            if (event.key === "ArrowDown") nextIndex = Math.min(cases.length - 1, currentIndex + 1);
+            if (event.key === "ArrowUp") nextIndex = Math.max(0, currentIndex - 1);
+            if (event.key === "End") nextIndex = cases.length - 1;
+            if (event.key === "Home") nextIndex = 0;
+            if (nextIndex !== currentIndex || ["End", "Home"].includes(event.key)) {
+              event.preventDefault();
+              selectCase(cases[nextIndex].id, true);
+            }
+          });
+        });
+      }
+
+      function renderTableRows(targetId, rows, cells) {
+        document.getElementById(targetId).innerHTML = rows
+          .map(
+            (row) =>
+              `<tr data-selected="${row.id === selectedId}">${cells(row)
+                .map((cell) => `<td>${cell}</td>`)
+                .join("")}</tr>`,
+          )
+          .join("");
+      }
+
+      function renderSelected() {
+        const item = getSelected();
+        document.querySelector("[data-testid='inspector-case-id']").textContent = item.id;
+        document.querySelector("[data-testid='inspector-decision']").textContent = item.decision;
+        document.querySelector("[data-testid='inspector-settlement']").textContent =
+          item.settlement;
+        document.querySelector("[data-testid='inspector-posture']").textContent = item.posture;
+        document.querySelector("[data-testid='inspector-shell-lineage']").textContent = item.shell;
+        document.querySelector("[data-testid='inspector-explanation']").textContent =
+          item.explanation;
+        document.querySelector("[data-testid='inspector-calm-saved']").textContent = item.calmSaved;
+
+        document.getElementById("lineage-braid").innerHTML = item.lineage
+          .map(
+            (step, index) =>
+              `<div class="node" data-testid="lineage-node-${index}" data-state="${stateName(item)}"><strong>${index + 1}. ${step}</strong><span>${item.shell}</span></div>`,
+          )
+          .join("");
+        document.getElementById("lineage-table-body").innerHTML = item.lineage
+          .map((step, index) => `<tr><td>${index + 1}. ${step}</td><td>${item.shell}</td></tr>`)
+          .join("");
+
+        document.getElementById("settlement-ladder").innerHTML = item.ladder
+          .map(
+            (step, index) =>
+              `<div class="ladder-step" data-testid="settlement-step-${index}" data-state="${stateName(item)}"><strong>${step}</strong><span>${item.settlement}</span></div>`,
+          )
+          .join("");
+        document.getElementById("settlement-table-body").innerHTML = item.ladder
+          .map(
+            (step, index) => `<tr><td>${index + 1}. ${step}</td><td>${item.settlement}</td></tr>`,
+          )
+          .join("");
+
+        const counters = [
+          ["request", "Request creation"],
+          ["promotion", "Promotion record"],
+          ["safety", "Safety execution"],
+          ["triage", "Triage task"],
+          ["notification", "Notification dispatch"],
+          ["visible", "Visible outcome"],
+        ];
+        document.getElementById("counter-grid").innerHTML = counters
+          .map(
+            ([key, label]) =>
+              `<div class="counter" data-testid="counter-${key}"><b>${item.counters[key]}</b><span>${label}</span></div>`,
+          )
+          .join("");
+        document.getElementById("side-effect-body").innerHTML = counters
+          .map(([key, label]) => `<tr><td>${label}</td><td>${item.counters[key]}</td></tr>`)
+          .join("");
+        document.getElementById("event-chain-body").innerHTML = item.events
+          .map((eventName) => `<tr><td>${eventName}</td><td>${item.explanation}</td></tr>`)
+          .join("");
+
+        renderTableRows(
+          "replay-truth-body",
+          cases.filter((caseItem) => caseItem.id.startsWith("SUB166")),
+          (row) => [row.id, row.decision, row.counters.request, row.counters.notification],
+        );
+        renderTableRows(
+          "collision-truth-body",
+          cases.filter((caseItem) => caseItem.id.startsWith("COL166")),
+          (row) => [row.id, row.decision, row.branch, row.posture],
+        );
+        renderTableRows(
+          "stale-resume-body",
+          cases.filter((caseItem) => caseItem.id.startsWith("STALE166")),
+          (row) => [row.id, row.settlement, row.posture, row.calmSaved],
+        );
+        renderTableRows("case-parity-body", cases, (row) => [row.id, row.family, row.browserId]);
+      }
+
+      function selectCase(caseId, focusButton = false) {
+        selectedId = caseId;
+        renderRail();
+        renderSelected();
+        if (focusButton) {
+          document.querySelector(`[data-testid="case-button-${caseId}"]`)?.focus();
+        }
+      }
+
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        document.body.classList.add("reduced-motion");
+      }
+      renderRail();
+      renderSelected();
+    </script>
+  </body>
+</html>

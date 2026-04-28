@@ -1,0 +1,294 @@
+{
+  "taskId": "par_405",
+  "schemaVersion": "405.regulatory-change-control-rules.v1",
+  "contractFamily": "assistive_release_regulatory_change_control",
+  "sourceReleaseCandidateContractRef": "data/contracts/405_assistive_release_candidate_contracts.json",
+  "sourceGateRef": "data/contracts/403_phase8_track_readiness_registry.json",
+  "launchPacketRef": "data/launchpacks/403_track_launch_packet_405.json",
+  "ownedBy": "assistive_regulatory_trigger_rules",
+  "decisionOutputs": [
+    "im1RfcRequired",
+    "scalUpdateRequired",
+    "dtacDeltaRequired",
+    "dcb0129DeltaRequired",
+    "dcb0160DependencyNoteRequired",
+    "dpiaDeltaRequired",
+    "mhraAssessmentRequired",
+    "medicalDeviceReassessmentRequired"
+  ],
+  "objectContracts": [
+    {
+      "objectName": "RFCBundle",
+      "objectRole": "IM1 request-for-change evidence package for material AI or functional change",
+      "requiredFields": [
+        "rfcBundleId",
+        "im1ProductRef",
+        "changeRequestId",
+        "releaseCandidateRef",
+        "SCALDeltaRef",
+        "safetyCaseDeltaRef",
+        "documentationRefs",
+        "evidenceBaselineRef",
+        "approvalGraphRef",
+        "submissionState",
+        "expiresAt"
+      ],
+      "states": ["not_required", "draft", "ready_for_submission", "submitted", "accepted", "rejected", "expired", "superseded"],
+      "dependencyRules": [
+        "ready_for_submission requires a complete ChangeImpactAssessment and candidateHash",
+        "submitted requires approvalGraphRef with required pre-submission signoffs",
+        "expired blocks promotion until refreshed or explicitly not_required by a new impact assessment"
+      ]
+    },
+    {
+      "objectName": "RegulatoryTriggerRule",
+      "objectRole": "published rule mapping change evidence to regulatory decision outputs",
+      "requiredFields": [
+        "triggerRuleId",
+        "changeType",
+        "boundaryState",
+        "inputSignals",
+        "decisionOutputs",
+        "minimumEvidenceRefs",
+        "approvalProfileRef",
+        "failClosedDefault",
+        "ruleState"
+      ],
+      "states": ["draft", "published", "superseded", "withdrawn"],
+      "dependencyRules": [
+        "published rules are immutable",
+        "withdrawn rules cause ChangeImpactAssessment blocked until a replacement is published",
+        "failClosedDefault must be true for all AI, intended-use, endpoint, and regulatory posture changes"
+      ]
+    },
+    {
+      "objectName": "RegulatoryChangeDecision",
+      "objectRole": "resolved machine-readable regulatory trigger decision for one impact assessment",
+      "requiredFields": [
+        "regulatoryChangeDecisionId",
+        "impactAssessmentRef",
+        "triggerRuleRefs",
+        "im1RfcRequired",
+        "scalUpdateRequired",
+        "dtacDeltaRequired",
+        "dcb0129DeltaRequired",
+        "dcb0160DependencyNoteRequired",
+        "dpiaDeltaRequired",
+        "mhraAssessmentRequired",
+        "medicalDeviceReassessmentRequired",
+        "decisionState",
+        "blockingReasonCodes"
+      ],
+      "states": ["pending", "resolved", "blocked", "superseded"],
+      "dependencyRules": [
+        "blocked must be emitted when any trigger cannot be classified",
+        "resolved true outputs must appear in RFCBundle, SafetyCaseDelta, MedicalDeviceAssessmentRef, or ReleaseApprovalGraph as applicable",
+        "decisionState resolved is required before approval graph can be satisfied"
+      ]
+    },
+    {
+      "objectName": "ProductDocumentationDelta",
+      "objectRole": "versioned documentation delta for SCAL, DTAC, safety, DPIA, medical-device, and product wording packs",
+      "requiredFields": [
+        "productDocumentationDeltaId",
+        "releaseCandidateRef",
+        "changedDocumentRefs",
+        "newDocumentRefs",
+        "obsoleteDocumentRefs",
+        "documentationClass",
+        "reviewOwnerRole",
+        "approvalGraphRef",
+        "documentationState"
+      ],
+      "states": ["draft", "review_ready", "approved", "blocked", "superseded"],
+      "dependencyRules": [
+        "documentationClass must map to at least one decision output",
+        "approved documentation deltas must bind to the candidateHash",
+        "blocked documentation deltas force promotion_blocked"
+      ]
+    }
+  ],
+  "triggerMatrix": [
+    {
+      "changeType": "template_copy_only_no_behavior",
+      "medicalPurposeBoundaryState": "transcription_documentation_assistance",
+      "decisionOutputs": {
+        "im1RfcRequired": false,
+        "scalUpdateRequired": false,
+        "dtacDeltaRequired": "conditional_if_patient_or_staff_facing_wording_changes",
+        "dcb0129DeltaRequired": false,
+        "dcb0160DependencyNoteRequired": false,
+        "dpiaDeltaRequired": "conditional_if_disclosure_or_processing_changes",
+        "mhraAssessmentRequired": false,
+        "medicalDeviceReassessmentRequired": false
+      },
+      "minimumEvidenceRefs": ["candidate_hash_stability_proof", "no_intended_use_delta_attestation"],
+      "approvalProfileRef": "APPROVAL405_DOCUMENTATION_ONLY"
+    },
+    {
+      "changeType": "prompt_template_change",
+      "medicalPurposeBoundaryState": "higher_function_summarisation_structured_inference",
+      "decisionOutputs": {
+        "im1RfcRequired": "conditional_if_material_ai_behavior_or_assured_use_case_changes",
+        "scalUpdateRequired": "conditional_if_product_documentation_changes",
+        "dtacDeltaRequired": "conditional_if_clinical_safety_security_interop_or_usability_changes",
+        "dcb0129DeltaRequired": "conditional_if_hazard_control_or_output_behavior_changes",
+        "dcb0160DependencyNoteRequired": "conditional_if_deployment_monitoring_or_workflow_changes",
+        "dpiaDeltaRequired": "conditional_if_processing_purpose_or_telemetry_changes",
+        "mhraAssessmentRequired": "conditional_if_intended_purpose_changes",
+        "medicalDeviceReassessmentRequired": "conditional_if_intended_purpose_changes"
+      },
+      "minimumEvidenceRefs": ["replay_result_ref", "prompt_diff_ref", "safety_owner_review_ref"],
+      "approvalProfileRef": "APPROVAL405_PROMPT_THRESHOLD"
+    },
+    {
+      "changeType": "threshold_calibration_policy_change",
+      "medicalPurposeBoundaryState": "higher_function_summarisation_structured_inference",
+      "decisionOutputs": {
+        "im1RfcRequired": "conditional_if_rollout_ladder_or_visible_function_changes",
+        "scalUpdateRequired": "conditional_if_assurance_documentation_changes",
+        "dtacDeltaRequired": true,
+        "dcb0129DeltaRequired": true,
+        "dcb0160DependencyNoteRequired": "conditional_if_deployment_monitoring_changes",
+        "dpiaDeltaRequired": false,
+        "mhraAssessmentRequired": "conditional_if_intended_purpose_or_device_performance_claim_changes",
+        "medicalDeviceReassessmentRequired": "conditional_if_intended_purpose_or_device_performance_claim_changes"
+      },
+      "minimumEvidenceRefs": ["calibration_bundle_ref", "threshold_set_ref", "replay_result_ref", "safety_case_delta_ref"],
+      "approvalProfileRef": "APPROVAL405_PROMPT_THRESHOLD"
+    },
+    {
+      "changeType": "model_version_change",
+      "medicalPurposeBoundaryState": "higher_function_summarisation_structured_inference",
+      "decisionOutputs": {
+        "im1RfcRequired": "conditional_if_material_ai_behavior_or_assured_use_case_changes",
+        "scalUpdateRequired": true,
+        "dtacDeltaRequired": true,
+        "dcb0129DeltaRequired": true,
+        "dcb0160DependencyNoteRequired": true,
+        "dpiaDeltaRequired": "conditional_if_processor_or_processing_changes",
+        "mhraAssessmentRequired": "conditional_if_medical_device_or_intended_purpose_changes",
+        "medicalDeviceReassessmentRequired": "conditional_if_medical_device_or_intended_purpose_changes"
+      },
+      "minimumEvidenceRefs": ["model_registry_entry_ref", "replay_result_ref", "supplier_assurance_ref", "rollback_bundle_ref"],
+      "approvalProfileRef": "APPROVAL405_MODEL_SUPPLIER"
+    },
+    {
+      "changeType": "subprocessor_or_inference_host_change",
+      "medicalPurposeBoundaryState": "higher_function_summarisation_structured_inference",
+      "decisionOutputs": {
+        "im1RfcRequired": "conditional_if_assured_product_documentation_or_function_changes",
+        "scalUpdateRequired": true,
+        "dtacDeltaRequired": true,
+        "dcb0129DeltaRequired": "conditional_if_safety_case_or_hazard_controls_change",
+        "dcb0160DependencyNoteRequired": true,
+        "dpiaDeltaRequired": true,
+        "mhraAssessmentRequired": "conditional_if_device_manufacturer_or_technical_file_changes",
+        "medicalDeviceReassessmentRequired": "conditional_if_device_manufacturer_or_technical_file_changes"
+      },
+      "minimumEvidenceRefs": ["subprocessor_assurance_ref", "dpia_delta_ref", "security_review_ref", "runtime_publication_bundle_ref"],
+      "approvalProfileRef": "APPROVAL405_MODEL_SUPPLIER"
+    },
+    {
+      "changeType": "capability_expansion",
+      "medicalPurposeBoundaryState": "higher_function_summarisation_structured_inference",
+      "decisionOutputs": {
+        "im1RfcRequired": true,
+        "scalUpdateRequired": true,
+        "dtacDeltaRequired": true,
+        "dcb0129DeltaRequired": true,
+        "dcb0160DependencyNoteRequired": true,
+        "dpiaDeltaRequired": true,
+        "mhraAssessmentRequired": "conditional_if_medical_purpose_or_device_scope_changes",
+        "medicalDeviceReassessmentRequired": "conditional_if_medical_purpose_or_device_scope_changes"
+      },
+      "minimumEvidenceRefs": ["rfc_bundle_ref", "scal_delta_ref", "safety_case_delta_ref", "dpia_delta_ref", "rollback_bundle_ref"],
+      "approvalProfileRef": "APPROVAL405_CAPABILITY_EXPANSION"
+    },
+    {
+      "changeType": "intended_use_change",
+      "medicalPurposeBoundaryState": "regulatory_posture_change",
+      "decisionOutputs": {
+        "im1RfcRequired": true,
+        "scalUpdateRequired": true,
+        "dtacDeltaRequired": true,
+        "dcb0129DeltaRequired": true,
+        "dcb0160DependencyNoteRequired": true,
+        "dpiaDeltaRequired": true,
+        "mhraAssessmentRequired": true,
+        "medicalDeviceReassessmentRequired": true
+      },
+      "minimumEvidenceRefs": ["medical_device_assessment_ref", "product_wording_delta_ref", "rfc_bundle_ref", "safety_case_delta_ref"],
+      "approvalProfileRef": "APPROVAL405_REGULATORY_POSTURE"
+    },
+    {
+      "changeType": "endpoint_suggestion_or_decision_support",
+      "medicalPurposeBoundaryState": "endpoint_suggestion_clinically_consequential_decision_support",
+      "decisionOutputs": {
+        "im1RfcRequired": true,
+        "scalUpdateRequired": true,
+        "dtacDeltaRequired": true,
+        "dcb0129DeltaRequired": true,
+        "dcb0160DependencyNoteRequired": true,
+        "dpiaDeltaRequired": true,
+        "mhraAssessmentRequired": true,
+        "medicalDeviceReassessmentRequired": true
+      },
+      "minimumEvidenceRefs": ["medical_device_assessment_ref", "independent_clinical_safety_signoff_ref", "rfc_bundle_ref", "rollback_bundle_ref"],
+      "approvalProfileRef": "APPROVAL405_ENDPOINT_DECISION_SUPPORT"
+    },
+    {
+      "changeType": "regulatory_posture_change",
+      "medicalPurposeBoundaryState": "regulatory_posture_change",
+      "decisionOutputs": {
+        "im1RfcRequired": true,
+        "scalUpdateRequired": true,
+        "dtacDeltaRequired": true,
+        "dcb0129DeltaRequired": true,
+        "dcb0160DependencyNoteRequired": true,
+        "dpiaDeltaRequired": true,
+        "mhraAssessmentRequired": true,
+        "medicalDeviceReassessmentRequired": true
+      },
+      "minimumEvidenceRefs": ["updated_regulatory_position_ref", "medical_device_assessment_ref", "rfc_bundle_ref", "approval_graph_ref"],
+      "approvalProfileRef": "APPROVAL405_REGULATORY_POSTURE"
+    },
+    {
+      "changeType": "safety_incident_or_hazard_response",
+      "medicalPurposeBoundaryState": "regulatory_posture_change",
+      "decisionOutputs": {
+        "im1RfcRequired": "conditional_if_function_or_use_case_changes",
+        "scalUpdateRequired": "conditional_if_assurance_documentation_changes",
+        "dtacDeltaRequired": true,
+        "dcb0129DeltaRequired": true,
+        "dcb0160DependencyNoteRequired": true,
+        "dpiaDeltaRequired": "conditional_if_data_or_processor_issue",
+        "mhraAssessmentRequired": "conditional_if_reportable_device_incident_or_corrective_action",
+        "medicalDeviceReassessmentRequired": "conditional_if_device_scope_or_risk_controls_change"
+      },
+      "minimumEvidenceRefs": ["incident_ref", "hazard_trace_ref", "corrective_action_ref", "freeze_state_ref"],
+      "approvalProfileRef": "APPROVAL405_SAFETY_INCIDENT"
+    }
+  ],
+  "failClosedRules": [
+    "unclassified change types route as regulatory_posture_change",
+    "unknown medical-purpose boundary sets mhraAssessmentRequired and medicalDeviceReassessmentRequired true",
+    "unknown IM1 impact sets im1RfcRequired and scalUpdateRequired true",
+    "unknown data processing impact sets dpiaDeltaRequired true",
+    "unknown clinical safety impact sets dcb0129DeltaRequired and dcb0160DependencyNoteRequired true"
+  ],
+  "invariants": [
+    {
+      "invariantId": "INV405_REG_001",
+      "statement": "A material AI or significant functional enhancement must route through the IM1 RFC decision path."
+    },
+    {
+      "invariantId": "INV405_REG_002",
+      "statement": "DTAC delta decisions are alongside, not a replacement for, DCB, DPIA, IM1, or medical-device decisions."
+    },
+    {
+      "invariantId": "INV405_REG_003",
+      "statement": "Regulatory uncertainty blocks promotion until a resolved RegulatoryChangeDecision exists."
+    }
+  ]
+}

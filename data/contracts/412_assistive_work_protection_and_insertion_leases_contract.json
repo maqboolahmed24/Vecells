@@ -1,0 +1,173 @@
+{
+  "taskId": "par_412",
+  "schemaVersion": "412.assistive-work-protection-and-insertion-leases.v1",
+  "contractFamily": "assistive_session_work_protection_and_draft_insertion_leases",
+  "sourceGateRef": "data/contracts/403_phase8_track_readiness_registry.json",
+  "upstreamContractRefs": [
+    "data/contracts/404_assistive_evaluation_contracts.json",
+    "data/contracts/410_capability_control_plane_contract.json",
+    "data/contracts/411_trust_envelope_projection_contract.json"
+  ],
+  "runtimePackage": {
+    "packageName": "@vecells/domain-assistive-work-protection",
+    "sourceRoot": "packages/domains/assistive_work_protection/src",
+    "separationLaw": "The work-protection package validates assistive session fences, insertion slots, and draft patch leases. It cannot render UI, compute feedback eligibility, or let browser-local state widen insert actionability."
+  },
+  "services": [
+    {
+      "serviceName": "AssistiveSessionService",
+      "ownedApis": ["startSession", "getSession"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "AssistiveSessionFenceValidator",
+      "ownedApis": ["validateSessionFence"],
+      "requiresActorContext": false
+    },
+    {
+      "serviceName": "AssistiveDraftInsertionPointService",
+      "ownedApis": [
+        "registerInsertionPoint",
+        "resolveLiveInsertionPoints",
+        "invalidateInsertionPoint"
+      ],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "AssistiveDraftPatchLeaseIssuer",
+      "ownedApis": ["issueDraftPatchLease"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "AssistiveDraftPatchLeaseValidator",
+      "ownedApis": ["validateDraftPatchLease"],
+      "requiresActorContext": false
+    },
+    {
+      "serviceName": "AssistiveWorkProtectionLeaseService",
+      "ownedApis": [
+        "issueWorkProtectionLease",
+        "invalidateWorkProtectionLease",
+        "releaseWorkProtectionLease"
+      ],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "AssistiveDeferredDeltaBuffer",
+      "ownedApis": ["bufferDeferredDelta"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "AssistiveQuietReturnTargetResolver",
+      "ownedApis": ["resolveQuietReturnTarget"],
+      "requiresActorContext": true
+    }
+  ],
+  "persistedObjects": [
+    "AssistiveSession",
+    "AssistiveDraftInsertionPoint",
+    "AssistiveDraftPatchLease",
+    "AssistiveWorkProtectionLease",
+    "AssistiveDeferredDelta",
+    "AssistiveQuietReturnTarget",
+    "AssistiveWorkProtectionAuditRecord"
+  ],
+  "migrationRef": "services/command-api/migrations/412_phase8_work_protection_and_insertion_leases.sql",
+  "sessionFencePolicy": {
+    "serverTruthOnly": true,
+    "requiredRefs": [
+      "taskRef",
+      "contextSnapshotRef",
+      "reviewVersionRef",
+      "decisionEpochRef",
+      "policyBundleRef",
+      "lineageFenceEpoch",
+      "entityContinuityKey",
+      "selectedAnchorRef",
+      "surfaceBindingRef",
+      "surfacePublicationRef",
+      "runtimePublicationBundleRef",
+      "StaffWorkspaceConsistencyProjection",
+      "WorkspaceSliceTrustProjection",
+      "WorkspaceTrustEnvelope",
+      "AssistiveCapabilityTrustEnvelope",
+      "ReviewActionLease"
+    ],
+    "failClosedReasons": [
+      "session_fence_token_required",
+      "review_version_drift_regenerate_required",
+      "selected_anchor_drift_regenerate_required",
+      "publication_drift_regenerate_required",
+      "trust_envelope_actionability_required"
+    ]
+  },
+  "insertionPolicy": {
+    "explicitInsertionPointRequired": true,
+    "slotHashRequired": true,
+    "contentClasses": ["note_section", "message_body", "endpoint_reasoning", "question_set"],
+    "domFocusIsNotAuthority": true,
+    "leaseInvalidatesOn": [
+      "reviewVersionRef",
+      "decisionEpochRef",
+      "selectedAnchorRef",
+      "reviewActionLeaseRef",
+      "slotHash",
+      "expiry"
+    ]
+  },
+  "workProtectionPolicy": {
+    "lockReasons": ["composing", "comparing", "confirming", "reading_delta"],
+    "buffersDisruptiveDeltas": true,
+    "blockingSeverityMayBypass": ["high", "critical"],
+    "quietReturnTargetRequired": true,
+    "preserveCurrentArtifactAsStaleRecoverableProvenance": true
+  },
+  "clientContract": {
+    "browser_local_insert_legality_forbidden": true,
+    "frontendMayNarrowButNotWiden": true,
+    "authoritativeQueries": [
+      "current assistive session state",
+      "live insertion points",
+      "draft patch lease state",
+      "work-protection lease state",
+      "buffered deltas",
+      "quiet-return target",
+      "blocking reason refs"
+    ]
+  },
+  "invariants": [
+    {
+      "invariantId": "INV412_001",
+      "statement": "AssistiveSession is server truth and binds task, review version, decision epoch, policy bundle, selected anchor, publication, trust envelope, workspace trust, review-action lease, and hashed session fence token."
+    },
+    {
+      "invariantId": "INV412_002",
+      "statement": "Session fence validation fails closed on stale review version, decision epoch, policy bundle, publication, selected anchor, trust envelope, review-action lease, or session token."
+    },
+    {
+      "invariantId": "INV412_003",
+      "statement": "AssistiveDraftInsertionPoint is explicit and typed; insertion is never inferred from DOM position or optimistic browser focus."
+    },
+    {
+      "invariantId": "INV412_004",
+      "statement": "AssistiveDraftPatchLease is issued only from a live session and live insertion point with matching content class."
+    },
+    {
+      "invariantId": "INV412_005",
+      "statement": "Patch leases invalidate immediately on review-version, decision-epoch, selected-anchor, review-action-lease, slot-hash, or expiry drift."
+    },
+    {
+      "invariantId": "INV412_006",
+      "statement": "AssistiveWorkProtectionLease buffers disruptive deltas during composing, comparing, confirming, or highlighted-delta review."
+    },
+    {
+      "invariantId": "INV412_007",
+      "statement": "Quiet-return targets preserve selected anchor, protected region, prior quiet region, primary reading target, and route."
+    },
+    {
+      "invariantId": "INV412_008",
+      "statement": "Browser consumers may render from lease truth but may not recompute or widen insert legality client-side."
+    }
+  ],
+  "downstreamConsumers": ["par_413", "par_418", "par_419", "par_423", "par_424"]
+}

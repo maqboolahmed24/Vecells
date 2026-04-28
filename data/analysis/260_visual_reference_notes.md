@@ -1,0 +1,1 @@
+260 uses current official references from Linear, Vercel, IBM Carbon, NHS, and DWP only for craft direction. The local blueprint remains the contract source of truth. See `260_visual_reference_notes.json` for the exact adapted and rejected cues.

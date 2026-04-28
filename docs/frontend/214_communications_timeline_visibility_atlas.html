@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="en" data-ready="false" data-scenario="overview">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Conversation_Braid_Atlas</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f6f8fb;
+        --ink: #17202a;
+        --muted: #5b6675;
+        --panel: #ffffff;
+        --line: #d9e0ea;
+        --blue: #2457c5;
+        --teal: #087a71;
+        --green: #177245;
+        --amber: #9a5b00;
+        --red: #a43125;
+        --violet: #5b4fc4;
+        --shadow: 0 12px 28px rgba(17, 24, 39, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--ink);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        letter-spacing: 0;
+      }
+
+      button,
+      summary {
+        font: inherit;
+      }
+
+      .shell {
+        min-height: 100vh;
+      }
+
+      .hero {
+        background: #182234;
+        color: #fff;
+        padding: 28px clamp(16px, 4vw, 48px) 22px;
+      }
+
+      .hero__inner,
+      .content {
+        width: min(1240px, calc(100vw - 32px));
+        margin: 0 auto;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: clamp(2rem, 4vw, 4rem);
+        line-height: 1.04;
+        letter-spacing: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .hero p {
+        max-width: 880px;
+        margin: 0;
+        color: #dbe6f3;
+        line-height: 1.55;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+        min-width: 0;
+      }
+
+      .chip {
+        display: inline-flex;
+        min-height: 32px;
+        align-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        border-radius: 6px;
+        padding: 6px 10px;
+        background: rgba(255, 255, 255, 0.08);
+        font-size: 0.88rem;
+        max-width: 100%;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .content {
+        padding: 18px 0 44px;
+      }
+
+      .tabs {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 8px;
+        margin: 0 0 18px;
+      }
+
+      .tab {
+        min-width: 0;
+        min-height: 48px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--panel);
+        color: var(--ink);
+        padding: 8px 10px;
+        text-align: left;
+        cursor: pointer;
+        overflow-wrap: anywhere;
+      }
+
+      .tab[aria-selected="true"] {
+        border-color: var(--blue);
+        box-shadow: inset 0 0 0 2px rgba(36, 87, 197, 0.18);
+      }
+
+      .tab span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.74rem;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.78fr);
+        gap: 18px;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+
+      .panel > header {
+        padding: 18px 18px 12px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .kicker {
+        display: block;
+        color: var(--blue);
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      h2,
+      h3 {
+        margin: 4px 0 0;
+        letter-spacing: 0;
+      }
+
+      p {
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .board {
+        padding: 18px;
+      }
+
+      .timeline {
+        display: grid;
+        gap: 12px;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 128px minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: start;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: #fbfcfe;
+      }
+
+      .time {
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .row strong {
+        display: block;
+        margin-bottom: 3px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 6px;
+        padding: 4px 8px;
+        color: #fff;
+        font-size: 0.78rem;
+        font-weight: 800;
+      }
+
+      .badge[data-tone="ok"] {
+        background: var(--green);
+      }
+
+      .badge[data-tone="info"] {
+        background: var(--blue);
+      }
+
+      .badge[data-tone="warn"] {
+        background: var(--amber);
+      }
+
+      .badge[data-tone="risk"] {
+        background: var(--red);
+      }
+
+      .badge[data-tone="tuple"] {
+        background: var(--violet);
+      }
+
+      .tuple-grid,
+      .state-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .tuple-box,
+      .state-box {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfcfe;
+        padding: 12px;
+      }
+
+      .tuple-box code,
+      .state-box code {
+        display: block;
+        margin-top: 6px;
+        overflow-wrap: anywhere;
+        color: #23324a;
+        font-size: 0.82rem;
+      }
+
+      .flow {
+        display: grid;
+        gap: 8px;
+      }
+
+      .flow div {
+        border-left: 4px solid var(--teal);
+        background: #f3fbfa;
+        padding: 10px 12px;
+        border-radius: 6px;
+      }
+
+      dl {
+        display: grid;
+        grid-template-columns: minmax(130px, 0.45fr) minmax(0, 1fr);
+        gap: 8px 12px;
+      }
+
+      dt {
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 10px;
+        text-align: left;
+        vertical-align: top;
+        overflow-wrap: anywhere;
+      }
+
+      th {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      details {
+        border-top: 1px solid var(--line);
+        padding: 12px 18px;
+      }
+
+      summary {
+        cursor: pointer;
+        font-weight: 800;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      a.anchor {
+        color: var(--blue);
+        font-weight: 800;
+      }
+
+      @media (max-width: 900px) {
+        .tabs,
+        .layout,
+        .tuple-grid,
+        .state-grid,
+        .row {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell" data-testid="Conversation_Braid_Atlas">
+      <header class="hero">
+        <div class="hero__inner">
+          <h1>Conversation_Braid_Atlas</h1>
+          <p>
+            Patient message rows, callback cards, reminder notices, receipts, and repair states
+            share one tuple and one governed preview posture.
+          </p>
+          <div class="chips" aria-label="Projection families">
+            <span class="chip">PatientCommunicationsTimelineProjection</span>
+            <span class="chip">PatientConversationPreviewDigest</span>
+            <span class="chip">PatientCallbackStatusProjection</span>
+            <span class="chip">ConversationCommandSettlement</span>
+          </div>
+        </div>
+      </header>
+      <main class="content" aria-label="Communications timeline atlas">
+        <nav class="tabs" aria-label="Conversation braid scenarios" role="tablist">
+          <button class="tab" role="tab" aria-selected="true" data-scenario-button="overview">
+            Overview <span>message rows and anchors</span>
+          </button>
+          <button class="tab" role="tab" aria-selected="false" data-scenario-button="placeholders">
+            Placeholders <span>public, step-up, recovery</span>
+          </button>
+          <button class="tab" role="tab" aria-selected="false" data-scenario-button="tuple">
+            Tuple <span>alignment and drift</span>
+          </button>
+          <button class="tab" role="tab" aria-selected="false" data-scenario-button="callback">
+            Callback <span>212 projection reuse</span>
+          </button>
+          <button class="tab" role="tab" aria-selected="false" data-scenario-button="receipts">
+            Receipts <span>local ack is not final</span>
+          </button>
+          <button class="tab" role="tab" aria-selected="false" data-scenario-button="failures">
+            Failures <span>bounced and disputed</span>
+          </button>
+        </nav>
+
+        <div class="layout">
+          <section class="panel" aria-label="Chronology board" data-testid="ChronologyBoard">
+            <header>
+              <span class="kicker">Timeline</span>
+              <h2 id="scenario-title">MessageListRowStates</h2>
+              <p id="scenario-copy">
+                The list row and thread masthead expose the same cluster, thread, receipt grammar,
+                monotone revision, preview contract, and summary safety tier.
+              </p>
+            </header>
+            <div class="board" id="scenario-board"></div>
+            <details open>
+              <summary>Projection authority details</summary>
+              <dl>
+                <dt>Assembler</dt>
+                <dd>CommunicationsTimelineAssembler</dd>
+                <dt>Visibility resolver</dt>
+                <dd>CommunicationVisibilityResolver</dd>
+                <dt>Callback source</dt>
+                <dd>PatientCallbackStatusProjection</dd>
+                <dt>Receipt source</dt>
+                <dd>PatientReceiptEnvelope + ConversationCommandSettlement</dd>
+              </dl>
+            </details>
+          </section>
+
+          <aside class="panel" aria-label="Projection tuple and controls">
+            <header>
+              <span class="kicker">Tuple</span>
+              <h2>Cluster Shell States</h2>
+            </header>
+            <div class="board" data-testid="ClusterShellStates">
+              <dl>
+                <dt>clusterRef</dt>
+                <dd>cluster_214_message_a</dd>
+                <dt>threadId</dt>
+                <dd>thread_214_a</dd>
+                <dt>threadTupleHash</dt>
+                <dd>hash_cluster_thread_receipt_preview_summary</dd>
+                <dt>receiptGrammarVersionRef</dt>
+                <dd>receipt_grammar_214_v1</dd>
+                <dt>monotoneRevision</dt>
+                <dd>7</dd>
+                <dt>previewVisibilityContractRef</dt>
+                <dd>PreviewVisibilityContract_214_messages</dd>
+                <dt>summarySafetyTier</dt>
+                <dd>patient_safe</dd>
+              </dl>
+            </div>
+          </aside>
+        </div>
+
+        <section
+          class="panel"
+          aria-label="Tuple alignment diagrams"
+          data-testid="TupleAlignmentDiagrams"
+        >
+          <header>
+            <span class="kicker">Alignment</span>
+            <h2>Conversation Tuple Alignment</h2>
+          </header>
+          <div class="board tuple-grid">
+            <div class="tuple-box">
+              <strong>List row</strong>
+              <code>clusterRef + threadId + threadTupleHash</code>
+            </div>
+            <div class="tuple-box">
+              <strong>Thread masthead</strong>
+              <code>receiptGrammarVersionRef + monotoneRevision</code>
+            </div>
+            <div class="tuple-box">
+              <strong>Callback card</strong>
+              <code>PatientCallbackStatusProjection -> ConversationCallbackCardProjection</code>
+            </div>
+            <div class="tuple-box">
+              <strong>Composer lease</strong>
+              <code>drifted tuple -> blocked</code>
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="panel"
+          aria-label="Reminder notice states"
+          data-testid="ReminderNoticeStates"
+        >
+          <header>
+            <span class="kicker">Receipts</span>
+            <h2>Reminder Notices And Reason Codes</h2>
+          </header>
+          <div class="board">
+            <p>
+              Reminder notices share PatientReceiptEnvelope and ConversationCommandSettlement
+              posture with the message thread instead of using a separate local status.
+            </p>
+            <p>
+              PatientConversationCluster, ConversationThreadProjection,
+              ConversationSubthreadProjection, PatientCommunicationVisibilityProjection,
+              ConversationCallbackCardProjection, PatientCallbackStatusProjection,
+              PatientComposerLease, and ConversationTimelineAnchor all carry the shared tuple.
+            </p>
+            <table aria-label="Communications reason code vocabulary">
+              <thead>
+                <tr>
+                  <th>Reason code</th>
+                  <th>Use</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>PORTAL_214_COMMUNICATION_TIMELINE_ASSEMBLED</td>
+                  <td>Timeline family materialized.</td>
+                </tr>
+                <tr>
+                  <td>PORTAL_214_PREVIEW_SUPPRESSED_PLACEHOLDER</td>
+                  <td>Public-safe placeholder.</td>
+                </tr>
+                <tr>
+                  <td>PORTAL_214_STEP_UP_PLACEHOLDER</td>
+                  <td>Step-up placeholder.</td>
+                </tr>
+                <tr>
+                  <td>PORTAL_214_RECOVERY_ONLY_PLACEHOLDER</td>
+                  <td>Same-shell recovery placeholder.</td>
+                </tr>
+                <tr>
+                  <td>PORTAL_214_TUPLE_ALIGNMENT_VERIFIED</td>
+                  <td>Tuple shared across row, thread, callback, receipt, and composer.</td>
+                </tr>
+                <tr>
+                  <td>PORTAL_214_TUPLE_ALIGNMENT_DRIFT</td>
+                  <td>Composer blocked until authority refresh.</td>
+                </tr>
+                <tr>
+                  <td>PORTAL_214_LOCAL_SUCCESS_NOT_FINAL</td>
+                  <td>Local ack is not settled language.</td>
+                </tr>
+                <tr>
+                  <td>PORTAL_214_DELIVERY_FAILURE_VISIBLE</td>
+                  <td>Bounced or failed delivery remains visible.</td>
+                </tr>
+                <tr>
+                  <td>PORTAL_214_DISPUTE_VISIBLE</td>
+                  <td>Provider dispute remains visible.</td>
+                </tr>
+                <tr>
+                  <td>PORTAL_214_BLOCKER_REPAIR_DOMINATES</td>
+                  <td>Repair replaces unsafe composer or callback action.</td>
+                </tr>
+                <tr>
+                  <td>PORTAL_214_CALLBACK_STATUS_COMPATIBILITY</td>
+                  <td>Callback card consumes 212 callback projection.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const scenarios = {
+        overview: {
+          title: "MessageListRowStates",
+          copy: "The row, masthead, callback card, reminder notice, composer, receipt, and timeline use the same tuple.",
+          html: `
+            <section aria-label="Message list row states" data-testid="MessageListRowStates">
+              <p><strong>PatientCommunicationsTimelineProjection</strong> materializes row order with <strong>PatientConversationPreviewDigest</strong> preview posture.</p>
+              <div class="timeline">
+                <article class="row">
+                  <time class="time" datetime="2026-04-16T10:30:00Z">10:30</time>
+                  <div><strong>Clinician reply</strong><p>The clinician asked for a clearer photo.</p><a class="anchor" href="#tuple">Open thread anchor</a></div>
+                  <span class="badge" data-tone="info">awaiting_reply</span>
+                </article>
+                <article class="row">
+                  <time class="time" datetime="2026-04-16T11:00:00Z">11:00</time>
+                  <div><strong>Callback expectation</strong><p>A callback is scheduled this afternoon.</p></div>
+                  <span class="badge" data-tone="ok">scheduled</span>
+                </article>
+                <article class="row">
+                  <time class="time" datetime="2026-04-16T13:45:00Z">13:45</time>
+                  <div><strong>Patient reply</strong><p>Reply accepted locally. Awaiting authoritative review.</p></div>
+                  <span class="badge" data-tone="warn">not final</span>
+                </article>
+              </div>
+            </section>`,
+        },
+        placeholders: {
+          title: "PlaceholderStepUpBoards",
+          copy: "Hidden previews stay present with kind, reason, and next step instead of disappearing from the chronology.",
+          html: `
+            <section aria-label="Placeholder and step-up boards" data-testid="PlaceholderStepUpBoards">
+              <div class="state-grid">
+                <div class="state-box"><span class="badge" data-tone="info">public_safe</span><strong> Public row</strong><p>Sign in for message detail.</p><code>PORTAL_214_PREVIEW_SUPPRESSED_PLACEHOLDER</code></div>
+                <div class="state-box"><span class="badge" data-tone="warn">step_up</span><strong> Authenticated row</strong><p>Complete step-up before body preview.</p><code>PORTAL_214_STEP_UP_PLACEHOLDER</code></div>
+                <div class="state-box"><span class="badge" data-tone="risk">recovery_only</span><strong> Recovery row</strong><p>Recover the same shell before viewing content.</p><code>PORTAL_214_RECOVERY_ONLY_PLACEHOLDER</code></div>
+                <div class="state-box"><span class="badge" data-tone="tuple">tuple_drift</span><strong> Drift row</strong><p>Refresh thread from authority before composing.</p><code>PORTAL_214_TUPLE_ALIGNMENT_DRIFT</code></div>
+              </div>
+            </section>`,
+        },
+        tuple: {
+          title: "TupleAlignmentDiagrams",
+          copy: "Tuple drift freezes the composer while preserving the row, masthead, and recovery route.",
+          html: `
+            <section aria-label="Tuple alignment checks" data-testid="TupleAlignmentDiagrams">
+              <div class="flow">
+                <div>PatientConversationCluster -> ConversationThreadProjection</div>
+                <div>ConversationThreadProjection -> PatientConversationPreviewDigest</div>
+                <div>ConversationThreadProjection -> PatientReceiptEnvelope</div>
+                <div>ConversationThreadProjection -> PatientComposerLease</div>
+              </div>
+              <table aria-label="Tuple fields table">
+                <thead><tr><th>Field</th><th>Aligned value</th><th>Drift action</th></tr></thead>
+                <tbody>
+                  <tr><td>threadTupleHash</td><td>hash_cluster_thread_receipt_preview_summary</td><td>block composer</td></tr>
+                  <tr><td>monotoneRevision</td><td>7</td><td>refresh thread</td></tr>
+                  <tr><td>summarySafetyTier</td><td>patient_safe</td><td>placeholder</td></tr>
+                </tbody>
+              </table>
+            </section>`,
+        },
+        callback: {
+          title: "CallbackCardStates",
+          copy: "Callback cards consume PatientCallbackStatusProjection and add only tuple and surface alignment.",
+          html: `
+            <section aria-label="Callback card states" data-testid="CallbackCardStates">
+              <div class="row">
+                <time class="time" datetime="2026-04-16T15:00:00Z">15:00-17:00</time>
+                <div><strong>PatientCallbackStatusProjection</strong><p>Scheduled callback, on-track window, no route repair.</p><code>PORTAL_214_CALLBACK_STATUS_COMPATIBILITY</code></div>
+                <span class="badge" data-tone="ok">scheduled</span>
+              </div>
+              <div class="row">
+                <time class="time" datetime="2026-04-16T15:05:00Z">15:05</time>
+                <div><strong>Repair dominated callback</strong><p>Reachability is unsafe, so contact repair replaces callback CTA.</p><code>PORTAL_214_BLOCKER_REPAIR_DOMINATES</code></div>
+                <span class="badge" data-tone="risk">repair</span>
+              </div>
+            </section>`,
+        },
+        receipts: {
+          title: "ReceiptSettlementBoard",
+          copy: "Local acknowledgement and transport acceptance are shown as progress, not authoritative settlement.",
+          html: `
+            <section aria-label="Receipt settlement board" data-testid="ReceiptSettlementBoard">
+              <table aria-label="Receipt and settlement table">
+                <thead><tr><th>Signal</th><th>State</th><th>Patient language</th></tr></thead>
+                <tbody>
+                  <tr><td>localAckState</td><td>accepted_locally</td><td>Sent from this device</td></tr>
+                  <tr><td>transportAcceptanceState</td><td>accepted</td><td>Delivery is being checked</td></tr>
+                  <tr><td>authoritativeOutcomeState</td><td>awaiting_review</td><td>Not settled</td></tr>
+                  <tr><td>calmSettledLanguageAllowed</td><td>false</td><td>PORTAL_214_LOCAL_SUCCESS_NOT_FINAL</td></tr>
+                </tbody>
+              </table>
+            </section>`,
+        },
+        failures: {
+          title: "DeliveryFailureDisputeBoards",
+          copy: "Bounced reminders, failed delivery, and provider disputes remain visible as repair-first timeline facts.",
+          html: `
+            <section aria-label="Delivery failure and dispute boards" data-testid="DeliveryFailureDisputeBoards">
+              <div class="timeline">
+                <article class="row">
+                  <time class="time" datetime="2026-04-16T12:05:00Z">12:05</time>
+                  <div><strong>Bounced reminder</strong><p>SMS reminder could not be delivered. Repair contact route.</p><code>PORTAL_214_DELIVERY_FAILURE_VISIBLE</code></div>
+                  <span class="badge" data-tone="risk">likely_failed</span>
+                </article>
+                <article class="row">
+                  <time class="time" datetime="2026-04-16T12:10:00Z">12:10</time>
+                  <div><strong>Provider dispute</strong><p>Delivery evidence is disputed. Keep timeline anchor and route to recovery.</p><code>PORTAL_214_DISPUTE_VISIBLE</code></div>
+                  <span class="badge" data-tone="risk">disputed</span>
+                </article>
+              </div>
+            </section>`,
+        },
+      };
+
+      function activateScenario(id) {
+        const scenario = scenarios[id] || scenarios.overview;
+        document.documentElement.dataset.scenario = id;
+        document.querySelector("#scenario-title").textContent = scenario.title;
+        document.querySelector("#scenario-copy").textContent = scenario.copy;
+        document.querySelector("#scenario-board").innerHTML = scenario.html;
+        document.querySelectorAll("[data-scenario-button]").forEach((button) => {
+          button.setAttribute("aria-selected", String(button.dataset.scenarioButton === id));
+        });
+      }
+
+      document.querySelectorAll("[data-scenario-button]").forEach((button, index, buttons) => {
+        button.addEventListener("click", () => activateScenario(button.dataset.scenarioButton));
+        button.addEventListener("keydown", (event) => {
+          if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+          event.preventDefault();
+          const direction = event.key === "ArrowRight" ? 1 : -1;
+          const next = (index + direction + buttons.length) % buttons.length;
+          buttons[next].focus();
+          activateScenario(buttons[next].dataset.scenarioButton);
+        });
+      });
+
+      activateScenario("overview");
+      document.documentElement.dataset.ready = "true";
+    </script>
+  </body>
+</html>

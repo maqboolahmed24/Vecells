@@ -1,0 +1,1728 @@
+<!doctype html>
+<html lang="en" data-ready="false" data-motion="full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>227 Queue Fairness Duplicate More-Info Atlas</title>
+    <style>
+      :root {
+        --canvas: #f7f8fa;
+        --shell: #eef2f6;
+        --panel: #ffffff;
+        --inset: #e8eef3;
+        --border: #d3dde6;
+        --text-strong: #0f1720;
+        --text: #24313d;
+        --text-muted: #5e6b78;
+        --queue: #3158e0;
+        --fairness: #0f766e;
+        --duplicate: #8a4fff;
+        --reply: #b54708;
+        --danger: #b42318;
+        --shadow: 0 18px 48px rgba(15, 23, 32, 0.08);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--text);
+      }
+
+      body {
+        min-height: 100vh;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .skip-link {
+        position: absolute;
+        top: -48px;
+        left: 16px;
+        z-index: 20;
+        padding: 10px 14px;
+        border-radius: 6px;
+        background: var(--text-strong);
+        color: #fff;
+      }
+
+      .skip-link:focus {
+        top: 16px;
+      }
+
+      .page {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 0 24px 32px;
+      }
+
+      .masthead {
+        min-height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .brand-mark {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(
+          135deg,
+          rgba(49, 88, 224, 0.14),
+          rgba(15, 118, 110, 0.12),
+          rgba(181, 71, 8, 0.12)
+        );
+      }
+
+      .brand-mark svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      .eyebrow {
+        margin: 0 0 6px;
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 20px;
+        font-weight: 780;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        color: var(--text-strong);
+        font-size: 36px;
+        line-height: 44px;
+      }
+
+      h2 {
+        color: var(--text-strong);
+        font-size: 20px;
+        line-height: 28px;
+      }
+
+      h3 {
+        color: var(--text-strong);
+        font-size: 16px;
+        line-height: 24px;
+      }
+
+      p,
+      li,
+      td,
+      th,
+      button,
+      label,
+      .copy {
+        font-size: 15px;
+        line-height: 24px;
+      }
+
+      .helper,
+      .chip,
+      .metric-copy,
+      .mono {
+        font-size: 13px;
+        line-height: 20px;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+
+      .mode-pill,
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 30px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        white-space: nowrap;
+      }
+
+      .top-band {
+        margin: 20px 0 18px;
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) repeat(4, minmax(0, 0.33fr));
+        gap: 12px;
+      }
+
+      .hero-card,
+      .metric-card,
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+      }
+
+      .hero-card {
+        padding: 20px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .hero-copy {
+        max-width: 72ch;
+      }
+
+      .metric-card {
+        padding: 14px;
+        display: grid;
+        gap: 4px;
+      }
+
+      .metric-value {
+        color: var(--text-strong);
+        font-size: 28px;
+        line-height: 30px;
+        font-weight: 820;
+      }
+
+      .metric-copy {
+        color: var(--text-muted);
+      }
+
+      .atlas-grid {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr) 408px;
+        gap: 18px;
+        align-items: start;
+      }
+
+      .panel {
+        padding: 18px;
+      }
+
+      .filter-rail {
+        min-width: 0;
+        display: grid;
+        gap: 14px;
+        position: sticky;
+        top: 16px;
+      }
+
+      .filter-section {
+        display: grid;
+        gap: 10px;
+      }
+
+      .button-stack {
+        display: grid;
+        gap: 8px;
+      }
+
+      .atlas-button,
+      .table-button {
+        width: 100%;
+        min-height: 42px;
+        padding: 10px 12px;
+        text-align: left;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--panel);
+        color: var(--text);
+        cursor: pointer;
+        transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      }
+
+      .atlas-button:hover,
+      .table-button:hover {
+        transform: translateY(-1px);
+      }
+
+      .atlas-button[data-selected="true"],
+      .table-button[data-selected="true"] {
+        border-color: var(--queue);
+        background: rgba(49, 88, 224, 0.08);
+        box-shadow: 0 0 0 2px rgba(49, 88, 224, 0.08);
+      }
+
+      .atlas-button[data-tone="fairness"][data-selected="true"],
+      .table-button[data-tone="fairness"][data-selected="true"] {
+        border-color: var(--fairness);
+        background: rgba(15, 118, 110, 0.08);
+        box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.08);
+      }
+
+      .atlas-button[data-tone="duplicate"][data-selected="true"],
+      .table-button[data-tone="duplicate"][data-selected="true"] {
+        border-color: var(--duplicate);
+        background: rgba(138, 79, 255, 0.08);
+        box-shadow: 0 0 0 2px rgba(138, 79, 255, 0.08);
+      }
+
+      .atlas-button[data-tone="reply"][data-selected="true"],
+      .table-button[data-tone="reply"][data-selected="true"] {
+        border-color: var(--reply);
+        background: rgba(181, 71, 8, 0.08);
+        box-shadow: 0 0 0 2px rgba(181, 71, 8, 0.08);
+      }
+
+      .atlas-button[data-overload="overload_critical"][data-selected="true"] {
+        border-color: var(--danger);
+        background: rgba(180, 35, 24, 0.08);
+        box-shadow: 0 0 0 2px rgba(180, 35, 24, 0.08);
+      }
+
+      .panel-copy {
+        color: var(--text-muted);
+      }
+
+      .canvas-column,
+      .inspector {
+        min-width: 0;
+      }
+
+      .canvas-column {
+        display: grid;
+        gap: 18px;
+      }
+
+      .diagram-frame,
+      .inspector-card {
+        display: grid;
+        gap: 14px;
+      }
+
+      .diagram-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .diagram-body {
+        background: var(--shell);
+        border-radius: 8px;
+        padding: 14px;
+      }
+
+      .ladder-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .ladder-step,
+      .authority-card,
+      .checkpoint-card,
+      .fairness-card {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--panel);
+        padding: 12px 14px;
+        display: grid;
+        gap: 6px;
+      }
+
+      .ladder-step[data-selected="true"] {
+        border-color: var(--queue);
+        box-shadow: 0 0 0 2px rgba(49, 88, 224, 0.08);
+      }
+
+      .fairness-card[data-selected="true"] {
+        border-color: var(--fairness);
+        box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.08);
+      }
+
+      .authority-card[data-selected="true"] {
+        border-color: var(--duplicate);
+        box-shadow: 0 0 0 2px rgba(138, 79, 255, 0.08);
+      }
+
+      .checkpoint-card[data-selected="true"] {
+        border-color: var(--reply);
+        box-shadow: 0 0 0 2px rgba(181, 71, 8, 0.08);
+      }
+
+      .step-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        color: var(--text-strong);
+        font-weight: 760;
+      }
+
+      .step-copy {
+        color: var(--text-muted);
+      }
+
+      .step-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .ladder-connector {
+        width: 2px;
+        min-height: 18px;
+        margin: 0 auto;
+        background: linear-gradient(180deg, rgba(49, 88, 224, 0.35), rgba(15, 118, 110, 0.35));
+      }
+
+      .braid-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .lower-grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .wide-panel {
+        grid-column: 1 / -1;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--text-muted);
+        font-weight: 700;
+      }
+
+      tbody tr:last-child td {
+        border-bottom: none;
+      }
+
+      .table-button {
+        min-height: 0;
+        padding: 0;
+        border: none;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      .table-button:hover {
+        transform: none;
+      }
+
+      .selection-banner {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--panel);
+        padding: 16px;
+        display: grid;
+        gap: 6px;
+      }
+
+      .selection-banner[data-tone="nominal"] {
+        border-color: rgba(49, 88, 224, 0.24);
+        background: rgba(49, 88, 224, 0.06);
+      }
+
+      .selection-banner[data-tone="overload_critical"] {
+        border-color: rgba(180, 35, 24, 0.28);
+        background: rgba(180, 35, 24, 0.07);
+      }
+
+      .selection-banner strong {
+        color: var(--text-strong);
+        font-size: 20px;
+        line-height: 28px;
+      }
+
+      .kv {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+        gap: 10px 14px;
+      }
+
+      .kv dt {
+        color: var(--text-muted);
+      }
+
+      .kv dd {
+        margin: 0;
+        color: var(--text-strong);
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .banner-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .section-divider {
+        height: 1px;
+        background: var(--border);
+      }
+
+      .overload-notice {
+        border-radius: 8px;
+        padding: 12px 14px;
+        border: 1px solid rgba(180, 35, 24, 0.22);
+        background: rgba(180, 35, 24, 0.06);
+        color: var(--text-strong);
+      }
+
+      .quiet-notice {
+        border-radius: 8px;
+        padding: 12px 14px;
+        border: 1px solid rgba(15, 118, 110, 0.18);
+        background: rgba(15, 118, 110, 0.05);
+        color: var(--text-strong);
+      }
+
+      @media (max-width: 1380px) {
+        .atlas-grid {
+          grid-template-columns: 280px minmax(0, 1fr);
+        }
+
+        .inspector {
+          grid-column: 1 / -1;
+          position: static;
+        }
+      }
+
+      @media (max-width: 1100px) {
+        .top-band,
+        .atlas-grid,
+        .lower-grid,
+        .braid-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .kv {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#atlas-main">Skip to atlas</a>
+    <div class="page" data-testid="Queue_Fairness_Duplicate_MoreInfo_Atlas">
+      <header class="masthead">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+              <circle cx="5.5" cy="7" r="2.2"></circle>
+              <circle cx="12.2" cy="4.8" r="1.8"></circle>
+              <circle cx="18.5" cy="8" r="2.4"></circle>
+              <circle cx="8" cy="17.5" r="2.2"></circle>
+              <circle cx="16.5" cy="17" r="2.2"></circle>
+              <path d="M7.4 6.2 10.6 5.3M13.8 5.6 16.2 7M6.5 8.9 7.5 15.2M17.4 10.1 16.8 14.8M9.9 16.9 14.6 16.9"></path>
+            </svg>
+          </span>
+          <div>
+            <p class="eyebrow">Vecells queue_constellation_mark</p>
+            <h1>Phase 3 Queue, Fairness, Duplicate, And More-Info Atlas</h1>
+          </div>
+        </div>
+        <div class="mode-pill mono">Queue_Fairness_Duplicate_MoreInfo_Atlas</div>
+      </header>
+
+      <section class="top-band" aria-label="Atlas summary">
+        <div class="hero-card">
+          <p class="eyebrow">Contract freeze</p>
+          <p class="hero-copy">
+            One governed queue plan. One overload honesty rule. One duplicate authority braid. One active reply-window
+            checkpoint per lineage. No local weighted-sum shortcuts, no queue-proximity duplicate guesses, and no
+            browser countdowns pretending to be clinical truth.
+          </p>
+        </div>
+        <div class="metric-card">
+          <span class="metric-value" data-testid="metric-sort-tier">0</span>
+          <span class="metric-copy">sort tiers</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-value" data-testid="metric-fairness-band">0</span>
+          <span class="metric-copy">fairness bands</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-value" data-testid="metric-duplicate-case">0</span>
+          <span class="metric-copy">duplicate cases</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-value" data-testid="metric-checkpoint-case">0</span>
+          <span class="metric-copy">checkpoint cases</span>
+        </div>
+      </section>
+
+      <div class="atlas-grid">
+        <aside class="filter-rail" aria-label="Atlas filters" data-testid="FilterRail">
+          <section class="panel filter-section">
+            <h2>Overload preview</h2>
+            <p class="panel-copy">Switch the atlas between nominal and overloaded posture to test honesty and fairness copy.</p>
+            <div class="button-stack" id="overload-filter-buttons"></div>
+          </section>
+          <section class="panel filter-section">
+            <h2>Queue scenario</h2>
+            <p class="panel-copy">Select a queue case to sync the order ladder, fairness board, tables, and inspector.</p>
+            <div class="button-stack" id="queue-filter-buttons"></div>
+          </section>
+          <section class="panel filter-section">
+            <h2>Duplicate authority</h2>
+            <p class="panel-copy">Each case lights the dominant authority without collapsing replay, attach, and review into one bucket.</p>
+            <div class="button-stack" id="duplicate-filter-buttons"></div>
+          </section>
+          <section class="panel filter-section">
+            <h2>Reply window</h2>
+            <p class="panel-copy">Checkpoint cases prove that due state and dispositions come from the checkpoint and not the client.</p>
+            <div class="button-stack" id="checkpoint-filter-buttons"></div>
+          </section>
+        </aside>
+
+        <main id="atlas-main" class="canvas-column" data-testid="CanvasColumn">
+          <section class="panel diagram-frame">
+            <div class="banner-row">
+              <div>
+                <p class="eyebrow">Queue order</p>
+                <h2>Queue-order ladder</h2>
+              </div>
+              <div class="chip-row" id="queue-selection-chips"></div>
+            </div>
+            <div class="diagram-body">
+              <div class="ladder-grid" id="queue-order-ladder" data-testid="QueueOrderLadder"></div>
+            </div>
+            <table class="summary-table" data-testid="QueueCaseParityTable">
+              <thead>
+                <tr>
+                  <th>Scenario</th>
+                  <th>Ordinal</th>
+                  <th>Overload</th>
+                  <th>Explanation</th>
+                </tr>
+              </thead>
+              <tbody id="queue-case-table"></tbody>
+            </table>
+          </section>
+
+          <section class="panel diagram-frame">
+            <div class="banner-row">
+              <div>
+                <p class="eyebrow">Fairness merge</p>
+                <h2>Fairness band merge diagram</h2>
+              </div>
+              <div class="chip-row" id="fairness-selection-chips"></div>
+            </div>
+            <div class="diagram-body">
+              <div class="diagram-grid" data-testid="FairnessBandMergeDiagram">
+                <div id="overload-notice"></div>
+                <div class="ladder-grid" id="fairness-band-merge"></div>
+              </div>
+            </div>
+            <table class="summary-table" data-testid="ThresholdRegistryTable">
+              <thead>
+                <tr>
+                  <th>Threshold</th>
+                  <th>Value</th>
+                  <th>Use</th>
+                </tr>
+              </thead>
+              <tbody id="threshold-registry-table"></tbody>
+            </table>
+          </section>
+
+          <section class="panel diagram-frame">
+            <div>
+              <p class="eyebrow">Authority separation</p>
+              <h2>Duplicate-authority braid</h2>
+            </div>
+            <div class="diagram-body">
+              <div class="braid-grid" id="duplicate-authority-braid" data-testid="DuplicateAuthorityBraid"></div>
+            </div>
+            <table class="summary-table" data-testid="DuplicateCaseTable">
+              <thead>
+                <tr>
+                  <th>Case</th>
+                  <th>Authority</th>
+                  <th>Decision</th>
+                  <th>Closure blocker</th>
+                </tr>
+              </thead>
+              <tbody id="duplicate-case-table"></tbody>
+            </table>
+          </section>
+
+          <section class="panel diagram-frame">
+            <div>
+              <p class="eyebrow">Reply checkpoint</p>
+              <h2>More-info checkpoint ladder</h2>
+            </div>
+            <div class="diagram-body">
+              <div class="ladder-grid" id="more-info-checkpoint-ladder" data-testid="MoreInfoCheckpointLadder"></div>
+            </div>
+            <table class="summary-table" data-testid="CheckpointCaseTable">
+              <thead>
+                <tr>
+                  <th>Case</th>
+                  <th>Checkpoint</th>
+                  <th>Disposition</th>
+                  <th>Next action</th>
+                </tr>
+              </thead>
+              <tbody id="checkpoint-case-table"></tbody>
+            </table>
+          </section>
+
+          <section class="lower-grid">
+            <section class="panel">
+              <div>
+                <p class="eyebrow">Formula registry</p>
+                <h2>Formula and law table</h2>
+              </div>
+              <table class="summary-table" data-testid="FormulaRegistryTable">
+                <thead>
+                  <tr>
+                    <th>Formula</th>
+                    <th>Law</th>
+                    <th>Meaning</th>
+                  </tr>
+                </thead>
+                <tbody id="formula-registry-table"></tbody>
+              </table>
+            </section>
+
+            <section class="panel">
+              <div>
+                <p class="eyebrow">Gap closures</p>
+                <h2>Mandatory closure table</h2>
+              </div>
+              <table class="summary-table" data-testid="GapClosureTable">
+                <thead>
+                  <tr>
+                    <th>Gap</th>
+                    <th>Status</th>
+                    <th>Closure rule</th>
+                  </tr>
+                </thead>
+                <tbody id="gap-closure-table"></tbody>
+              </table>
+            </section>
+
+            <section class="panel wide-panel">
+              <div>
+                <p class="eyebrow">Artifact refs</p>
+                <h2>Source registry and schemas</h2>
+              </div>
+              <table class="summary-table" data-testid="ArtifactRegistryTable">
+                <thead>
+                  <tr>
+                    <th>Artifact</th>
+                    <th>Role</th>
+                    <th>Path</th>
+                  </tr>
+                </thead>
+                <tbody id="artifact-registry-table"></tbody>
+              </table>
+            </section>
+          </section>
+        </main>
+
+        <aside class="inspector" data-testid="InspectorPanel">
+          <section class="selection-banner" id="selection-banner" data-tone="nominal">
+            <span class="eyebrow">Current focus</span>
+            <strong id="selection-banner-title">Queue order is governed</strong>
+            <span class="helper" id="selection-banner-copy">Canonical order, fairness, duplicate review, and reply posture remain bounded by the same plan family.</span>
+          </section>
+          <section class="panel inspector-card">
+            <div>
+              <p class="eyebrow">Selection</p>
+              <h2 id="selection-title">Queue scenario</h2>
+            </div>
+            <p class="panel-copy" id="selection-copy"></p>
+            <dl class="kv" id="selection-kv"></dl>
+          </section>
+          <section class="panel inspector-card">
+            <div>
+              <p class="eyebrow">Machine refs</p>
+              <h2>Referenced artifacts</h2>
+            </div>
+            <div id="selection-refs" class="copy"></div>
+          </section>
+          <section class="panel inspector-card">
+            <div>
+              <p class="eyebrow">Live parity</p>
+              <h2>Filtered summary</h2>
+            </div>
+            <div id="selection-summary" class="copy"></div>
+          </section>
+        </aside>
+      </div>
+    </div>
+
+    <script type="module">
+      const PATHS = {
+        queueRankPlanSchema: "../../data/contracts/227_queue_rank_plan.schema.json",
+        queueRankSnapshotSchema: "../../data/contracts/227_queue_rank_snapshot.schema.json",
+        queueRankEntrySchema: "../../data/contracts/227_queue_rank_entry.schema.json",
+        queueAssignmentSuggestionSchema: "../../data/contracts/227_queue_assignment_suggestion_snapshot.schema.json",
+        duplicateReviewSchema: "../../data/contracts/227_duplicate_review_snapshot.schema.json",
+        moreInfoCycleSchema: "../../data/contracts/227_more_info_cycle.schema.json",
+        moreInfoReplyWindowCheckpointSchema: "../../data/contracts/227_more_info_reply_window_checkpoint.schema.json",
+        moreInfoReminderScheduleSchema: "../../data/contracts/227_more_info_reminder_schedule.schema.json",
+        moreInfoResponseDispositionSchema: "../../data/contracts/227_more_info_response_disposition.schema.json",
+        queueConstantsRegistry: "../../data/contracts/227_queue_constants_and_threshold_registry.yaml",
+        queueSortMatrix: "../../data/analysis/227_queue_sort_and_fairness_matrix.csv",
+        moreInfoCases: "../../data/analysis/227_more_info_checkpoint_and_disposition_cases.csv",
+        duplicateCases: "../../data/analysis/227_duplicate_authority_and_relation_cases.json",
+        gapLog: "../../data/analysis/227_phase3_queue_more_info_gap_log.json"
+      };
+
+      const OVERLOAD_PREVIEWS = {
+        nominal: {
+          label: "Nominal",
+          copy: "Critical utilization stays below rho_guard, so fairness merge remains publishable for non-critical work.",
+          tone: "nominal"
+        },
+        overload_critical: {
+          label: "Critical overload",
+          copy: "rho_crit breaches rho_guard. The shell must suppress starvation promises and switch to staffing, diversion, or SLA rebasing posture.",
+          tone: "overload_critical"
+        }
+      };
+
+      const SCENARIO_FOCUS_TIER = {
+        CASE_ESCALATED_ALWAYS_FIRST: 1,
+        CASE_SLA_CLASS_BEATS_ROUTINE: 2,
+        CASE_DUPLICATE_REVIEW_PROMOTED_WITHIN_TIER: 5,
+        CASE_RETURN_LIFT_REQUEUE: 6,
+        CASE_FAIRNESS_FLOOR_SERVICE_COST: 7,
+        CASE_ASSIGNMENT_ISOLATED: 7,
+        CASE_OVERLOAD_SUPPRESSES_PROMISES: 2
+      };
+
+      const state = {
+        overloadState: "nominal",
+        selectedQueueCaseId: null,
+        selectedDuplicateCaseId: null,
+        selectedCheckpointCaseId: null,
+        selectedFormulaKey: "within_tier_urgency",
+        selectedThresholdKey: "theta_sla_critical_minutes",
+        selectionKind: "queue"
+      };
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function parseCsv(text) {
+        const [headerLine, ...lines] = text.trim().split(/\r?\n/);
+        const headers = headerLine.split(",");
+        return lines.map((line) => {
+          const values = [];
+          let current = "";
+          let inQuotes = false;
+          for (let index = 0; index < line.length; index += 1) {
+            const char = line[index];
+            if (char === '"' && line[index + 1] === '"') {
+              current += '"';
+              index += 1;
+            } else if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === "," && !inQuotes) {
+              values.push(current);
+              current = "";
+            } else {
+              current += char;
+            }
+          }
+          values.push(current);
+          return Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""]));
+        });
+      }
+
+      function formatLabel(value) {
+        return String(value)
+          .toLowerCase()
+          .replaceAll("::", " :: ")
+          .replaceAll("/", " / ")
+          .replaceAll("_", " ")
+          .replace(/\b\w/g, (match) => match.toUpperCase());
+      }
+
+      function formatBool(value) {
+        return value === true || value === "true" ? "true" : "false";
+      }
+
+      function formatValue(value) {
+        if (value === null || value === undefined || value === "") {
+          return "none";
+        }
+        if (typeof value === "number") {
+          return Number.isInteger(value) ? String(value) : value.toFixed(2);
+        }
+        return String(value);
+      }
+
+      function joinChips(values) {
+        return values.map((value) => `<span class="chip mono">${escapeHtml(value)}</span>`).join("");
+      }
+
+      async function loadData() {
+        const [
+          queueRankPlanSchema,
+          queueRankSnapshotSchema,
+          queueRankEntrySchema,
+          queueAssignmentSuggestionSchema,
+          duplicateReviewSchema,
+          moreInfoCycleSchema,
+          moreInfoReplyWindowCheckpointSchema,
+          moreInfoReminderScheduleSchema,
+          moreInfoResponseDispositionSchema,
+          queueConstantsRegistryText,
+          queueSortMatrixText,
+          moreInfoCasesText,
+          duplicateCases,
+          gapLog
+        ] = await Promise.all([
+          fetch(PATHS.queueRankPlanSchema).then((response) => response.json()),
+          fetch(PATHS.queueRankSnapshotSchema).then((response) => response.json()),
+          fetch(PATHS.queueRankEntrySchema).then((response) => response.json()),
+          fetch(PATHS.queueAssignmentSuggestionSchema).then((response) => response.json()),
+          fetch(PATHS.duplicateReviewSchema).then((response) => response.json()),
+          fetch(PATHS.moreInfoCycleSchema).then((response) => response.json()),
+          fetch(PATHS.moreInfoReplyWindowCheckpointSchema).then((response) => response.json()),
+          fetch(PATHS.moreInfoReminderScheduleSchema).then((response) => response.json()),
+          fetch(PATHS.moreInfoResponseDispositionSchema).then((response) => response.json()),
+          fetch(PATHS.queueConstantsRegistry).then((response) => response.text()),
+          fetch(PATHS.queueSortMatrix).then((response) => response.text()),
+          fetch(PATHS.moreInfoCases).then((response) => response.text()),
+          fetch(PATHS.duplicateCases).then((response) => response.json()),
+          fetch(PATHS.gapLog).then((response) => response.json())
+        ]);
+
+        return {
+          queueRankPlanSchema,
+          queueRankSnapshotSchema,
+          queueRankEntrySchema,
+          queueAssignmentSuggestionSchema,
+          duplicateReviewSchema,
+          moreInfoCycleSchema,
+          moreInfoReplyWindowCheckpointSchema,
+          moreInfoReminderScheduleSchema,
+          moreInfoResponseDispositionSchema,
+          queueConstantsRegistry: JSON.parse(queueConstantsRegistryText),
+          queueSortMatrix: parseCsv(queueSortMatrixText),
+          moreInfoCases: parseCsv(moreInfoCasesText),
+          duplicateCases,
+          gapLog
+        };
+      }
+
+      function buildFormulaRows(data) {
+        const registry = data.queueConstantsRegistry;
+        return [
+          {
+            key: "within_tier_urgency",
+            title: "Within-tier urgency",
+            formula: registry.queueRankPlan.withinTierFormula,
+            meaning: "This is the only weighted expression and it only breaks ties after the lexicographic tiers."
+          },
+          {
+            key: "service_cost",
+            title: "Fairness service cost",
+            formula: "serviceCost(head_b) = max(1, expectedService_head_b / s_quantum_b)",
+            meaning: "Long-running work cannot consume fairness credit as if it were cheap."
+          },
+          {
+            key: "age_debt",
+            title: "Age debt",
+            formula:
+              "ageDebt_b = min(1, max(0, workingMinutesBetween(queueEnteredAt_head_b, t_rank) - A_b) / H_b)",
+            meaning: "Bands that wait too long earn bounded extra credit."
+          },
+          {
+            key: "credit_update",
+            title: "Credit update",
+            formula: "credit_b <- min(C_max, credit_b + q_b + gamma_age * ageDebt_b)",
+            meaning: "Non-critical fairness remains deterministic, bounded, and replayable."
+          },
+          {
+            key: "assign_score",
+            title: "Reviewer suggestion",
+            formula: registry.queueRankPlan.assignmentSuggestionPolicy.formula,
+            meaning: "Reviewer fit is downstream-only and may not rewrite source ordinals."
+          },
+          {
+            key: "overload_guard",
+            title: "Overload honesty",
+            formula: registry.queueRankPlan.overloadGuardPolicy.formula,
+            meaning: "When rho_crit breaches rho_guard, the atlas must suppress false fairness promises."
+          },
+          {
+            key: "checkpoint_authority",
+            title: "Checkpoint authority",
+            formula:
+              "MoreInfoReplyWindowCheckpoint -> due state, reminder eligibility, late-review grace, expiry, same-shell reply eligibility",
+            meaning: "Reply posture is governed by one checkpoint, not by session or link TTL."
+          },
+          {
+            key: "response_disposition",
+            title: "Response disposition",
+            formula: "reply -> MoreInfoResponseDisposition -> assimilation or recovery",
+            meaning: "Late, superseded, expired, and repair-blocked responses settle before evidence assimilation."
+          }
+        ];
+      }
+
+      function buildThresholdRows(data) {
+        const registry = data.queueConstantsRegistry;
+        const queue = registry.queueRankPlan;
+        const thresholdRows = [
+          {
+            key: "s_min_minutes",
+            label: "Minimum expected service",
+            value: `${queue.thresholds.s_min_minutes} min`,
+            use: "expectedService_i = max(s_min, expectedHandleMinutes_i)"
+          },
+          {
+            key: "theta_sla_critical_minutes",
+            label: "Critical SLA threshold",
+            value: `${queue.thresholds.theta_sla_critical_minutes} min`,
+            use: "Promotes slaClass_i = 3 when laxity collapses."
+          },
+          {
+            key: "theta_sla_warn_minutes",
+            label: "Warn SLA threshold",
+            value: `${queue.thresholds.theta_sla_warn_minutes} min`,
+            use: "Raises warning posture before the critical band."
+          },
+          {
+            key: "tau_age_minutes",
+            label: "Age lift scale",
+            value: `${queue.thresholds.tau_age_minutes} min`,
+            use: "Normalizes ageLift_i into the within-tier urgency formula."
+          },
+          {
+            key: "A_cap_minutes",
+            label: "Age lift cap",
+            value: `${queue.thresholds.A_cap_minutes} min`,
+            use: "Prevents age pressure from running unbounded."
+          },
+          {
+            key: "tau_return_minutes",
+            label: "Return lift scale",
+            value: `${queue.thresholds.tau_return_minutes} min`,
+            use: "Controls how quickly returned evidence regains urgency."
+          },
+          {
+            key: "H_return_minutes",
+            label: "Return lift horizon",
+            value: `${queue.thresholds.H_return_minutes} min`,
+            use: "Caps the waiting component inside returnLift_i."
+          },
+          {
+            key: "rho_guard",
+            label: "Critical overload guard",
+            value: formatValue(queue.overloadGuardPolicy.rho_guard),
+            use: "At or above this value, starvation promises are suppressed."
+          },
+          {
+            key: "epsilon_assign",
+            label: "Auto-claim margin",
+            value: formatValue(queue.assignmentSuggestionPolicy.epsilon_assign),
+            use: "Best reviewer must beat the next feasible reviewer by this margin."
+          }
+        ];
+
+        for (const policy of registry.moreInfoPolicies.replyWindowPolicies) {
+          thresholdRows.push(
+            {
+              key: `${policy.policyId}:dueAfterHours`,
+              label: `${policy.policyId} due`,
+              value: `${policy.dueAfterHours} h`,
+              use: "Current checkpoint computes dueAt from this policy."
+            },
+            {
+              key: `${policy.policyId}:lateReviewGraceHours`,
+              label: `${policy.policyId} late review`,
+              value: `${policy.lateReviewGraceHours} h`,
+              use: "Late-review grace remains governed after the dueAt boundary."
+            }
+          );
+        }
+
+        thresholdRows.push(
+          {
+            key: "N_reopen_max",
+            label: "Re-safety reopen max",
+            value: `${registry.moreInfoPolicies.reopenGuard.N_reopen_max}`,
+            use: "Suppresses endless reopen churn."
+          },
+          {
+            key: "W_reopen_hours",
+            label: "Re-safety reopen window",
+            value: `${registry.moreInfoPolicies.reopenGuard.W_reopen_hours} h`,
+            use: "Applies the churn guard inside one bounded review window."
+          }
+        );
+
+        return thresholdRows;
+      }
+
+      function buildArtifactRows() {
+        return [
+          ["QueueRankPlan schema", "Canonical queue plan shape", PATHS.queueRankPlanSchema],
+          ["QueueRankSnapshot schema", "Fact-cut queue snapshot", PATHS.queueRankSnapshotSchema],
+          ["QueueRankEntry schema", "Row explanation payload", PATHS.queueRankEntrySchema],
+          ["QueueAssignmentSuggestionSnapshot schema", "Downstream reviewer suggestions", PATHS.queueAssignmentSuggestionSchema],
+          ["DuplicateReviewSnapshot schema", "Phase 0 duplicate projection", PATHS.duplicateReviewSchema],
+          ["MoreInfoCycle schema", "Request-for-information workflow shell", PATHS.moreInfoCycleSchema],
+          ["MoreInfoReplyWindowCheckpoint schema", "Reply-window authority", PATHS.moreInfoReplyWindowCheckpointSchema],
+          ["MoreInfoReminderSchedule schema", "Reminder truth", PATHS.moreInfoReminderScheduleSchema],
+          ["MoreInfoResponseDisposition schema", "Reply classification", PATHS.moreInfoResponseDispositionSchema],
+          ["Queue constants registry", "Versioned formulas and thresholds", PATHS.queueConstantsRegistry],
+          ["Queue sort matrix", "Scenario parity set", PATHS.queueSortMatrix],
+          ["More-info case matrix", "Checkpoint and disposition parity", PATHS.moreInfoCases],
+          ["Duplicate authority cases", "Authority braid evidence", PATHS.duplicateCases],
+          ["Gap log", "Mandatory closure proof", PATHS.gapLog]
+        ];
+      }
+
+      function attachArrowNavigation(containerId) {
+        const container = document.getElementById(containerId);
+        container.addEventListener("keydown", (event) => {
+          if (!["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+            return;
+          }
+          const items = Array.from(container.querySelectorAll("button"));
+          const currentIndex = items.indexOf(document.activeElement);
+          if (currentIndex === -1 || items.length < 2) {
+            return;
+          }
+          event.preventDefault();
+          const direction = event.key === "ArrowDown" || event.key === "ArrowRight" ? 1 : -1;
+          const nextIndex = (currentIndex + direction + items.length) % items.length;
+          items[nextIndex].focus();
+          items[nextIndex].click();
+        });
+      }
+
+      function renderButtons(containerId, items, selectedKey, tone, onClick, extra = {}) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = items
+          .map((item) => {
+            const key = item.key;
+            const selected = key === selectedKey ? "true" : "false";
+            const overload = extra.overloadByKey?.[key] ?? "";
+            return `
+              <button
+                type="button"
+                class="atlas-button"
+                data-testid="${escapeHtml(extra.testIdPrefix)}-${escapeHtml(key)}"
+                data-selected="${selected}"
+                data-tone="${escapeHtml(item.tone || tone || "queue")}"
+                data-overload="${escapeHtml(overload)}"
+                data-key="${escapeHtml(key)}"
+              >
+                <strong>${escapeHtml(item.label)}</strong><br />
+                <span class="helper">${escapeHtml(item.copy)}</span>
+              </button>
+            `;
+          })
+          .join("");
+        for (const button of container.querySelectorAll("button")) {
+          button.addEventListener("click", () => onClick(button.dataset.key));
+        }
+      }
+
+      function renderQueueOrderLadder(data, queueCase) {
+        const ladder = document.getElementById("queue-order-ladder");
+        const focusTier = SCENARIO_FOCUS_TIER[queueCase.scenario_id] ?? 7;
+        const sortOrder = data.queueConstantsRegistry.queueRankPlan.sortOrder;
+        ladder.innerHTML = sortOrder
+          .map((tier, index) => {
+            const selected = index + 1 === focusTier ? "true" : "false";
+            return `
+              <div class="ladder-step" data-testid="sort-tier-${index + 1}" data-selected="${selected}">
+                <div class="step-title">
+                  <span>Tier ${index + 1}</span>
+                  <span class="chip mono">${escapeHtml(tier)}</span>
+                </div>
+                <div class="step-copy">${escapeHtml(queueCase.explanation)}</div>
+              </div>
+              ${index < sortOrder.length - 1 ? '<div class="ladder-connector" aria-hidden="true"></div>' : ""}
+            `;
+          })
+          .join("");
+      }
+
+      function renderFairnessMerge(data, queueCase) {
+        const bands = data.queueConstantsRegistry.queueRankPlan.fairnessMergePolicy.bands;
+        const fairnessRoot = document.getElementById("fairness-band-merge");
+        fairnessRoot.innerHTML = bands
+          .map((band) => {
+            const selected = band.fairnessBandRef === queueCase.fairnessBandRef ? "true" : "false";
+            return `
+              <div class="fairness-card" data-testid="fairness-band-${escapeHtml(band.fairnessBandRef)}" data-selected="${selected}">
+                <div class="step-title">
+                  <span>${escapeHtml(formatLabel(band.fairnessBandRef))}</span>
+                  <span class="chip mono">q=${escapeHtml(formatValue(band.q_b))}</span>
+                </div>
+                <div class="step-copy">${escapeHtml(band.eligibilitySummary)}</div>
+                <div class="chip-row">
+                  <span class="chip mono">age gamma ${escapeHtml(formatValue(band.gamma_age))}</span>
+                  <span class="chip mono">A ${escapeHtml(formatValue(band.A_b_minutes))}m</span>
+                  <span class="chip mono">H ${escapeHtml(formatValue(band.H_b_minutes))}m</span>
+                  <span class="chip mono">quantum ${escapeHtml(formatValue(band.s_quantum_minutes))}m</span>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+
+        const notice = document.getElementById("overload-notice");
+        if (state.overloadState === "overload_critical") {
+          notice.innerHTML = `
+            <div class="overload-notice" data-testid="overload-notice">
+              Critical work bypasses fairness merge only while rho_crit < rho_guard. In this preview rho_crit has crossed the guard,
+              so the shell must show staffing, diversion, or SLA rebasing posture and suppress fairness promises.
+            </div>
+          `;
+        } else {
+          notice.innerHTML = `
+            <div class="quiet-notice" data-testid="nominal-notice">
+              Non-critical fairness remains publishable because the critical utilization preview is still below rho_guard.
+            </div>
+          `;
+        }
+
+        document.getElementById("fairness-selection-chips").innerHTML = joinChips([
+          queueCase.fairnessBandRef,
+          `credit ${queueCase.fairnessCreditBefore} -> ${queueCase.fairnessCreditAfter}`,
+          state.overloadState
+        ]);
+      }
+
+      function renderDuplicateBraid(data, duplicateCase) {
+        const authorities = data.duplicateCases.authoritySeparation;
+        const braid = document.getElementById("duplicate-authority-braid");
+        braid.innerHTML = authorities
+          .map((authority) => {
+            const selected = authority.authority === duplicateCase.dominantAuthority ? "true" : "false";
+            return `
+              <div class="authority-card" data-testid="authority-card-${escapeHtml(authority.authority)}" data-selected="${selected}">
+                <div class="step-title">
+                  <span>${escapeHtml(authority.authority)}</span>
+                  <span class="chip mono">${selected === "true" ? "active" : "available"}</span>
+                </div>
+                <div class="step-copy">Owns ${escapeHtml(authority.owns.join(", "))}</div>
+                <div class="helper">Must not own ${escapeHtml(authority.mustNotOwn.join(", "))}</div>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      function renderCheckpointLadder(data, checkpointCase) {
+        const states = data.moreInfoReplyWindowCheckpointSchema.properties.replyWindowState.enum;
+        const ladder = document.getElementById("more-info-checkpoint-ladder");
+        ladder.innerHTML = states
+          .map((checkpointState, index) => {
+            const selected = checkpointState === checkpointCase.reply_window_state ? "true" : "false";
+            return `
+              <div class="checkpoint-card" data-testid="checkpoint-state-${escapeHtml(checkpointState)}" data-selected="${selected}">
+                <div class="step-title">
+                  <span>${escapeHtml(formatLabel(checkpointState))}</span>
+                  <span class="chip mono">${selected === "true" ? "selected" : `step ${index + 1}`}</span>
+                </div>
+                <div class="step-copy">${escapeHtml(checkpointCase.notes)}</div>
+              </div>
+              ${index < states.length - 1 ? '<div class="ladder-connector" aria-hidden="true"></div>' : ""}
+            `;
+          })
+          .join("");
+      }
+
+      function renderFormulaTable(formulas) {
+        const table = document.getElementById("formula-registry-table");
+        table.innerHTML = formulas
+          .map((formula) => {
+            const selected = formula.key === state.selectedFormulaKey ? "true" : "false";
+            return `
+              <tr data-testid="formula-row-${escapeHtml(formula.key)}">
+                <td>
+                  <button type="button" class="table-button" data-tone="queue" data-selected="${selected}" data-formula-key="${escapeHtml(formula.key)}">
+                    <strong>${escapeHtml(formula.title)}</strong>
+                  </button>
+                </td>
+                <td class="mono">${escapeHtml(formula.formula)}</td>
+                <td>${escapeHtml(formula.meaning)}</td>
+              </tr>
+            `;
+          })
+          .join("");
+        for (const button of table.querySelectorAll("button[data-formula-key]")) {
+          button.addEventListener("click", () => {
+            state.selectedFormulaKey = button.dataset.formulaKey;
+            state.selectionKind = "formula";
+            renderApp(window.__ATLAS_DATA__);
+          });
+        }
+      }
+
+      function renderThresholdTable(rows) {
+        const table = document.getElementById("threshold-registry-table");
+        table.innerHTML = rows
+          .map((row) => {
+            const selected = row.key === state.selectedThresholdKey ? "true" : "false";
+            return `
+              <tr data-testid="threshold-row-${escapeHtml(row.key)}">
+                <td>
+                  <button type="button" class="table-button" data-tone="fairness" data-selected="${selected}" data-threshold-key="${escapeHtml(row.key)}">
+                    <strong>${escapeHtml(row.label)}</strong>
+                  </button>
+                </td>
+                <td class="mono">${escapeHtml(row.value)}</td>
+                <td>${escapeHtml(row.use)}</td>
+              </tr>
+            `;
+          })
+          .join("");
+        for (const button of table.querySelectorAll("button[data-threshold-key]")) {
+          button.addEventListener("click", () => {
+            state.selectedThresholdKey = button.dataset.thresholdKey;
+            state.selectionKind = "threshold";
+            renderApp(window.__ATLAS_DATA__);
+          });
+        }
+      }
+
+      function renderQueueTable(queueCases) {
+        const table = document.getElementById("queue-case-table");
+        table.innerHTML = queueCases
+          .map((queueCase) => {
+            const selected = queueCase.scenario_id === state.selectedQueueCaseId ? "true" : "false";
+            return `
+              <tr data-testid="queue-case-row-${escapeHtml(queueCase.scenario_id)}">
+                <td>
+                  <button type="button" class="table-button" data-tone="queue" data-selected="${selected}" data-queue-case="${escapeHtml(queueCase.scenario_id)}">
+                    <strong>${escapeHtml(formatLabel(queueCase.scenario_id))}</strong>
+                  </button>
+                </td>
+                <td class="mono">${escapeHtml(queueCase.expectedOrdinal)}</td>
+                <td class="mono">${escapeHtml(queueCase.overloadState)}</td>
+                <td>${escapeHtml(queueCase.explanation)}</td>
+              </tr>
+            `;
+          })
+          .join("");
+        for (const button of table.querySelectorAll("button[data-queue-case]")) {
+          button.addEventListener("click", () => {
+            state.selectedQueueCaseId = button.dataset.queueCase;
+            state.selectionKind = "queue";
+            const queueCase = window.__ATLAS_DATA__.queueSortMatrix.find((entry) => entry.scenario_id === state.selectedQueueCaseId);
+            if (queueCase) {
+              state.overloadState = queueCase.overloadState;
+            }
+            renderApp(window.__ATLAS_DATA__);
+          });
+        }
+      }
+
+      function renderDuplicateTable(duplicateCases) {
+        const table = document.getElementById("duplicate-case-table");
+        table.innerHTML = duplicateCases
+          .map((duplicateCase) => {
+            const selected = duplicateCase.caseId === state.selectedDuplicateCaseId ? "true" : "false";
+            return `
+              <tr data-testid="duplicate-case-row-${escapeHtml(duplicateCase.caseId)}">
+                <td>
+                  <button type="button" class="table-button" data-tone="duplicate" data-selected="${selected}" data-duplicate-case="${escapeHtml(duplicateCase.caseId)}">
+                    <strong>${escapeHtml(formatLabel(duplicateCase.caseId))}</strong>
+                  </button>
+                </td>
+                <td class="mono">${escapeHtml(duplicateCase.dominantAuthority)}</td>
+                <td class="mono">${escapeHtml(duplicateCase.resolutionDecisionClass)}</td>
+                <td class="mono">${escapeHtml(formatBool(duplicateCase.closureBlockerActive))}</td>
+              </tr>
+            `;
+          })
+          .join("");
+        for (const button of table.querySelectorAll("button[data-duplicate-case]")) {
+          button.addEventListener("click", () => {
+            state.selectedDuplicateCaseId = button.dataset.duplicateCase;
+            state.selectionKind = "duplicate";
+            renderApp(window.__ATLAS_DATA__);
+          });
+        }
+      }
+
+      function renderCheckpointTable(checkpointCases) {
+        const table = document.getElementById("checkpoint-case-table");
+        table.innerHTML = checkpointCases
+          .map((checkpointCase) => {
+            const selected = checkpointCase.case_id === state.selectedCheckpointCaseId ? "true" : "false";
+            return `
+              <tr data-testid="checkpoint-case-row-${escapeHtml(checkpointCase.case_id)}">
+                <td>
+                  <button type="button" class="table-button" data-tone="reply" data-selected="${selected}" data-checkpoint-case="${escapeHtml(checkpointCase.case_id)}">
+                    <strong>${escapeHtml(formatLabel(checkpointCase.case_id))}</strong>
+                  </button>
+                </td>
+                <td class="mono">${escapeHtml(checkpointCase.reply_window_state)}</td>
+                <td class="mono">${escapeHtml(checkpointCase.response_disposition || "none")}</td>
+                <td>${escapeHtml(checkpointCase.next_safe_action)}</td>
+              </tr>
+            `;
+          })
+          .join("");
+        for (const button of table.querySelectorAll("button[data-checkpoint-case]")) {
+          button.addEventListener("click", () => {
+            state.selectedCheckpointCaseId = button.dataset.checkpointCase;
+            state.selectionKind = "checkpoint";
+            renderApp(window.__ATLAS_DATA__);
+          });
+        }
+      }
+
+      function renderGapTable(gapLog) {
+        const table = document.getElementById("gap-closure-table");
+        table.innerHTML = gapLog.gaps
+          .map(
+            (gap) => `
+              <tr data-testid="gap-row-${escapeHtml(gap.gapId)}">
+                <td><strong>${escapeHtml(gap.title)}</strong></td>
+                <td class="mono">${escapeHtml(gap.status)}</td>
+                <td>${escapeHtml(gap.closureRule)}</td>
+              </tr>
+            `
+          )
+          .join("");
+      }
+
+      function renderArtifactTable() {
+        const table = document.getElementById("artifact-registry-table");
+        table.innerHTML = buildArtifactRows()
+          .map(
+            ([artifact, role, path]) => `
+              <tr data-testid="artifact-row-${escapeHtml(artifact.replaceAll(" ", "-").toLowerCase())}">
+                <td><strong>${escapeHtml(artifact)}</strong></td>
+                <td>${escapeHtml(role)}</td>
+                <td class="mono">${escapeHtml(path)}</td>
+              </tr>
+            `
+          )
+          .join("");
+      }
+
+      function renderInspector(data, formulas, thresholds) {
+        const queueCase = data.queueSortMatrix.find((entry) => entry.scenario_id === state.selectedQueueCaseId);
+        const duplicateCase = data.duplicateCases.cases.find((entry) => entry.caseId === state.selectedDuplicateCaseId);
+        const checkpointCase = data.moreInfoCases.find((entry) => entry.case_id === state.selectedCheckpointCaseId);
+        const formula = formulas.find((entry) => entry.key === state.selectedFormulaKey);
+        const threshold = thresholds.find((entry) => entry.key === state.selectedThresholdKey);
+        const selectionBanner = document.getElementById("selection-banner");
+        const selectionBannerTitle = document.getElementById("selection-banner-title");
+        const selectionBannerCopy = document.getElementById("selection-banner-copy");
+        const selectionTitle = document.getElementById("selection-title");
+        const selectionCopy = document.getElementById("selection-copy");
+        const selectionKv = document.getElementById("selection-kv");
+        const selectionRefs = document.getElementById("selection-refs");
+        const selectionSummary = document.getElementById("selection-summary");
+
+        const overloadPreview = OVERLOAD_PREVIEWS[state.overloadState];
+        selectionBanner.dataset.tone = overloadPreview.tone;
+
+        if (state.selectionKind === "duplicate" && duplicateCase) {
+          selectionBannerTitle.textContent = formatLabel(duplicateCase.caseId);
+          selectionBannerCopy.textContent = duplicateCase.notes;
+          selectionTitle.textContent = "Duplicate authority";
+          selectionCopy.textContent = "Replay, attach, and review remain separate authorities even when the queue case looks similar.";
+          selectionKv.innerHTML = `
+            <dt>Authority</dt><dd>${escapeHtml(duplicateCase.dominantAuthority)}</dd>
+            <dt>Decision</dt><dd>${escapeHtml(duplicateCase.resolutionDecisionClass)}</dd>
+            <dt>Witness</dt><dd>${escapeHtml(duplicateCase.continuityWitnessClass)}</dd>
+            <dt>Closure blocker</dt><dd>${escapeHtml(formatBool(duplicateCase.closureBlockerActive))}</dd>
+          `;
+          selectionRefs.innerHTML = joinChips([
+            duplicateCase.phase0ClusterRef || "no_cluster_ref",
+            duplicateCase.pairEvidenceRef || duplicateCase.pairEvidenceRefs?.join(" | ") || "pair_refs_missing",
+            "DuplicateCluster",
+            "DuplicateResolutionDecision"
+          ]);
+        } else if (state.selectionKind === "checkpoint" && checkpointCase) {
+          selectionBannerTitle.textContent = formatLabel(checkpointCase.case_id);
+          selectionBannerCopy.textContent = checkpointCase.notes;
+          selectionTitle.textContent = "Reply window checkpoint";
+          selectionCopy.textContent = "The checkpoint and the disposition settle reply posture before any new evidence enters the live lineage.";
+          selectionKv.innerHTML = `
+            <dt>Checkpoint state</dt><dd>${escapeHtml(checkpointCase.reply_window_state)}</dd>
+            <dt>Disposition</dt><dd>${escapeHtml(checkpointCase.response_disposition || "none")}</dd>
+            <dt>Grant posture</dt><dd>${escapeHtml(checkpointCase.grant_posture)}</dd>
+            <dt>Next safe action</dt><dd>${escapeHtml(checkpointCase.next_safe_action)}</dd>
+          `;
+          selectionRefs.innerHTML = joinChips([
+            "MoreInfoCycle",
+            "MoreInfoReplyWindowCheckpoint",
+            "MoreInfoReminderSchedule",
+            "MoreInfoResponseDisposition"
+          ]);
+        } else if (state.selectionKind === "formula" && formula) {
+          selectionBannerTitle.textContent = formula.title;
+          selectionBannerCopy.textContent = formula.meaning;
+          selectionTitle.textContent = "Formula law";
+          selectionCopy.textContent = "Every highlighted formula is part of the frozen contract family and must be reused rather than reinterpreted later.";
+          selectionKv.innerHTML = `
+            <dt>Formula</dt><dd class="mono">${escapeHtml(formula.formula)}</dd>
+            <dt>Kind</dt><dd>${escapeHtml(formula.title)}</dd>
+            <dt>Overload preview</dt><dd>${escapeHtml(overloadPreview.label)}</dd>
+            <dt>Canonical path</dt><dd class="mono">${escapeHtml(PATHS.queueConstantsRegistry)}</dd>
+          `;
+          selectionRefs.innerHTML = joinChips([PATHS.queueConstantsRegistry, PATHS.queueRankPlanSchema]);
+        } else if (state.selectionKind === "threshold" && threshold) {
+          selectionBannerTitle.textContent = threshold.label;
+          selectionBannerCopy.textContent = threshold.use;
+          selectionTitle.textContent = "Threshold row";
+          selectionCopy.textContent = "Numeric defaults are governed constants. Tuning requires a new versioned plan or policy publication.";
+          selectionKv.innerHTML = `
+            <dt>Value</dt><dd class="mono">${escapeHtml(threshold.value)}</dd>
+            <dt>Applies to</dt><dd>${escapeHtml(threshold.use)}</dd>
+            <dt>Overload preview</dt><dd>${escapeHtml(overloadPreview.label)}</dd>
+            <dt>Registry ref</dt><dd class="mono">${escapeHtml(threshold.key)}</dd>
+          `;
+          selectionRefs.innerHTML = joinChips([PATHS.queueConstantsRegistry]);
+        } else {
+          selectionBannerTitle.textContent = formatLabel(queueCase.scenario_id);
+          selectionBannerCopy.textContent = queueCase.explanation;
+          selectionTitle.textContent = "Queue scenario";
+          selectionCopy.textContent = "Queue order is locked to the lexicographic ladder first. Within-tier urgency, fairness, and reviewer fit act only inside that boundary.";
+          selectionKv.innerHTML = `
+            <dt>Expected ordinal</dt><dd>${escapeHtml(queueCase.expectedOrdinal)}</dd>
+            <dt>Fairness band</dt><dd>${escapeHtml(queueCase.fairnessBandRef)}</dd>
+            <dt>Overload state</dt><dd>${escapeHtml(queueCase.overloadState)}</dd>
+            <dt>Reviewer rewrite allowed</dt><dd>${escapeHtml(queueCase.assignmentSuggestionCanRewriteOrder)}</dd>
+          `;
+          selectionRefs.innerHTML = joinChips([
+            queueCase.rank_snapshot_ref,
+            "QueueRankPlan",
+            "QueueRankSnapshot",
+            "QueueRankEntry",
+            "QueueAssignmentSuggestionSnapshot"
+          ]);
+        }
+
+        const selectedQueueCount = data.queueSortMatrix.filter((entry) => entry.overloadState === state.overloadState).length;
+        selectionSummary.innerHTML = `
+          <p><strong>${escapeHtml(overloadPreview.label)}</strong>: ${escapeHtml(overloadPreview.copy)}</p>
+          <p>${selectedQueueCount} queue scenarios match this overload preview. ${data.duplicateCases.cases.length} duplicate cases and ${data.moreInfoCases.length} checkpoint cases remain available without changing route family semantics.</p>
+        `;
+      }
+
+      function renderApp(data) {
+        window.__ATLAS_DATA__ = data;
+        const queueCases = data.queueSortMatrix;
+        const duplicateCases = data.duplicateCases.cases;
+        const checkpointCases = data.moreInfoCases;
+        const formulas = buildFormulaRows(data);
+        const thresholds = buildThresholdRows(data);
+
+        if (!state.selectedQueueCaseId) {
+          state.selectedQueueCaseId = queueCases[0].scenario_id;
+        }
+        if (!state.selectedDuplicateCaseId) {
+          state.selectedDuplicateCaseId = duplicateCases[0].caseId;
+        }
+        if (!state.selectedCheckpointCaseId) {
+          state.selectedCheckpointCaseId = checkpointCases[0].case_id;
+        }
+
+        const queueCase = queueCases.find((entry) => entry.scenario_id === state.selectedQueueCaseId) || queueCases[0];
+        const duplicateCase = duplicateCases.find((entry) => entry.caseId === state.selectedDuplicateCaseId) || duplicateCases[0];
+        const checkpointCase = checkpointCases.find((entry) => entry.case_id === state.selectedCheckpointCaseId) || checkpointCases[0];
+
+        document.querySelector("[data-testid='metric-sort-tier']").textContent = String(
+          data.queueConstantsRegistry.queueRankPlan.sortOrder.length
+        );
+        document.querySelector("[data-testid='metric-fairness-band']").textContent = String(
+          data.queueConstantsRegistry.queueRankPlan.fairnessMergePolicy.bands.length
+        );
+        document.querySelector("[data-testid='metric-duplicate-case']").textContent = String(duplicateCases.length);
+        document.querySelector("[data-testid='metric-checkpoint-case']").textContent = String(checkpointCases.length);
+
+        renderButtons(
+          "overload-filter-buttons",
+          Object.entries(OVERLOAD_PREVIEWS).map(([key, preview]) => ({
+            key,
+            label: preview.label,
+            copy: preview.copy
+          })),
+          state.overloadState,
+          "queue",
+          (key) => {
+            state.overloadState = key;
+            state.selectionKind = "queue";
+            const firstMatchingCase = queueCases.find((entry) => entry.overloadState === key);
+            if (firstMatchingCase) {
+              state.selectedQueueCaseId = firstMatchingCase.scenario_id;
+            }
+            renderApp(data);
+          },
+          {
+            testIdPrefix: "overload-filter",
+            overloadByKey: {
+              nominal: "nominal",
+              overload_critical: "overload_critical"
+            }
+          }
+        );
+
+        renderButtons(
+          "queue-filter-buttons",
+          queueCases.map((queueCase) => ({
+            key: queueCase.scenario_id,
+            label: formatLabel(queueCase.scenario_id),
+            copy: `${queueCase.fairnessBandRef} | ordinal ${queueCase.expectedOrdinal}`,
+            tone: "queue"
+          })),
+          state.selectedQueueCaseId,
+          "queue",
+          (key) => {
+            state.selectedQueueCaseId = key;
+            state.selectionKind = "queue";
+            const selected = queueCases.find((entry) => entry.scenario_id === key);
+            if (selected) {
+              state.overloadState = selected.overloadState;
+            }
+            renderApp(data);
+          },
+          {
+            testIdPrefix: "queue-filter",
+            overloadByKey: Object.fromEntries(queueCases.map((queueCase) => [queueCase.scenario_id, queueCase.overloadState]))
+          }
+        );
+
+        renderButtons(
+          "duplicate-filter-buttons",
+          duplicateCases.map((duplicateCase) => ({
+            key: duplicateCase.caseId,
+            label: formatLabel(duplicateCase.caseId),
+            copy: `${duplicateCase.dominantAuthority} | ${duplicateCase.resolutionDecisionClass}`,
+            tone: "duplicate"
+          })),
+          state.selectedDuplicateCaseId,
+          "duplicate",
+          (key) => {
+            state.selectedDuplicateCaseId = key;
+            state.selectionKind = "duplicate";
+            renderApp(data);
+          },
+          { testIdPrefix: "duplicate-filter" }
+        );
+
+        renderButtons(
+          "checkpoint-filter-buttons",
+          checkpointCases.map((checkpointCase) => ({
+            key: checkpointCase.case_id,
+            label: formatLabel(checkpointCase.case_id),
+            copy: `${checkpointCase.reply_window_state} | ${checkpointCase.next_safe_action}`,
+            tone: "reply"
+          })),
+          state.selectedCheckpointCaseId,
+          "reply",
+          (key) => {
+            state.selectedCheckpointCaseId = key;
+            state.selectionKind = "checkpoint";
+            renderApp(data);
+          },
+          { testIdPrefix: "checkpoint-filter" }
+        );
+
+        document.getElementById("queue-selection-chips").innerHTML = joinChips([
+          `ordinal ${queueCase.expectedOrdinal}`,
+          queueCase.fairnessBandRef,
+          `u=${queueCase.u_i}`
+        ]);
+
+        renderQueueOrderLadder(data, queueCase);
+        renderFairnessMerge(data, queueCase);
+        renderDuplicateBraid(data, duplicateCase);
+        renderCheckpointLadder(data, checkpointCase);
+        renderFormulaTable(formulas);
+        renderThresholdTable(thresholds);
+        renderQueueTable(queueCases.filter((entry) => entry.overloadState === state.overloadState || entry.scenario_id === state.selectedQueueCaseId));
+        renderDuplicateTable(duplicateCases);
+        renderCheckpointTable(checkpointCases);
+        renderGapTable(data.gapLog);
+        renderArtifactTable();
+        renderInspector(data, formulas, thresholds);
+      }
+
+      async function main() {
+        document.documentElement.dataset.motion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "reduced"
+          : "full";
+
+        const data = await loadData();
+        renderApp(data);
+
+        attachArrowNavigation("queue-filter-buttons");
+        attachArrowNavigation("duplicate-filter-buttons");
+        attachArrowNavigation("checkpoint-filter-buttons");
+        attachArrowNavigation("formula-registry-table");
+        attachArrowNavigation("threshold-registry-table");
+
+        document.documentElement.dataset.ready = "true";
+      }
+
+      main().catch((error) => {
+        console.error(error);
+      });
+    </script>
+  </body>
+</html>

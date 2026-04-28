@@ -1,0 +1,29 @@
+flowchart LR
+  EventSpine["Event spine and audit spine"] --> ProjectionWorker["Projection worker"]
+  ProjectionWorker --> SafeProjectionStore["Safe read projection store"]
+  SafeProjectionStore --> Gateway["LivePhase9ProjectionGateway"]
+
+  RuntimeBundle["RuntimePublicationBundle"] --> Gateway
+  SurfaceBinding["AudienceSurfaceRuntimeBinding"] --> Gateway
+  GraphVerdict["AssuranceGraphCompletenessVerdict"] --> Gateway
+  Settlement["UITransitionSettlementRecord and action settlements"] --> Gateway
+  TelemetryFence["UITelemetryDisclosureFence"] --> Gateway
+
+  Gateway --> OpsShell["Ops shell routes"]
+  Gateway --> GovernanceShell["Governance shell routes"]
+
+  OpsShell --> OperationsOverview["/ops/overview"]
+  OpsShell --> AssuranceCenter["/ops/assurance"]
+  OpsShell --> AuditExplorer["/ops/audit"]
+  OpsShell --> ResilienceBoard["/ops/resilience"]
+  OpsShell --> IncidentDesk["/ops/incidents"]
+  OpsShell --> ConformanceScorecard["/ops/conformance"]
+
+  GovernanceShell --> RecordsGovernance["/ops/governance/records"]
+  GovernanceShell --> TenantGovernance["/ops/governance/tenants"]
+  GovernanceShell --> AccessStudio["/ops/access/roles"]
+  GovernanceShell --> ComplianceLedger["/ops/governance/compliance"]
+
+  Gateway -. "rawEventBrowserJoinAllowed=false" .-> BrowserFence["Browser never joins raw domain events"]
+  Gateway -. "slice_bounded_quarantine" .-> Quarantine["Affected slice downgrade only"]
+  Gateway -. "fail closed" .-> Blocked["Blocked or recovery-only controls"]

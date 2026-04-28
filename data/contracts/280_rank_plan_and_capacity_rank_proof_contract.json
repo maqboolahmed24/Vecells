@@ -1,0 +1,204 @@
+{
+  "taskId": "seq_280",
+  "contractVersion": "280.phase4.booking-flow-freeze.v1",
+  "definitions": {
+    "RankPlan": {
+      "requiredFields": [
+        "rankPlanId",
+        "rankPlanVersion",
+        "preferredWindowMinutes",
+        "acceptableWindowMinutes",
+        "sameBandReorderSlackMinutesByWindow",
+        "weights",
+        "taus",
+        "stableTieBreakRule"
+      ],
+      "constraints": [
+        "sum w_* = 1",
+        "do not include both waitMinutes and waitDays in the same linear score"
+      ]
+    },
+    "CapacityRankProof": {
+      "requiredFields": [
+        "capacityRankProofId",
+        "slotSetSnapshotRef",
+        "rankPlanVersion",
+        "proofChecksum",
+        "orderedCandidateRefs",
+        "generatedAt"
+      ],
+      "stableOrderingRule": [
+        "higher windowClass first",
+        "inside Frontier_b sort by softScore desc, startAtEpoch asc, canonicalTieBreakKey asc",
+        "outside Frontier_b sort by startAtEpoch asc, softScore desc, canonicalTieBreakKey asc"
+      ]
+    },
+    "CapacityRankExplanation": {
+      "requiredFields": [
+        "capacityRankExplanationId",
+        "canonicalSlotIdentityRef",
+        "rankFeatures",
+        "windowClass",
+        "frontierMembership",
+        "patientReasonCueRefs"
+      ]
+    },
+    "CapacityRankDisclosurePolicy": {
+      "requiredFields": [
+        "capacityRankDisclosurePolicyId",
+        "patientSafeFields",
+        "staffReplayFields",
+        "operationsFields"
+      ]
+    }
+  },
+  "formulas": {
+    "windowClass": {
+      "name": "windowClass(s)",
+      "expression": "windowClass(s) = 2 for inside clinically preferred window, 1 for inside clinically acceptable window, 0 for outside window",
+      "machineFields": [
+        "preferredWindowStartAt",
+        "preferredWindowEndAt",
+        "acceptableWindowStartAt",
+        "acceptableWindowEndAt",
+        "slotStartAtEpoch"
+      ],
+      "orderedValues": [
+        {
+          "value": 2,
+          "meaning": "inside clinically preferred window"
+        },
+        {
+          "value": 1,
+          "meaning": "inside clinically acceptable window"
+        },
+        {
+          "value": 0,
+          "meaning": "outside window"
+        }
+      ]
+    },
+    "earliestStart_b": {
+      "name": "earliestStart_b",
+      "expression": "earliestStart_b = min_{u : windowClass(u)=b} startAtEpoch(u)",
+      "machineFields": [
+        "windowClass",
+        "startAtEpoch"
+      ]
+    },
+    "Frontier_b": {
+      "name": "Frontier_b",
+      "expression": "Frontier_b = { s : windowClass(s)=b and startAtEpoch(s) <= earliestStart_b + Delta_reorder_b }",
+      "machineFields": [
+        "windowClass",
+        "startAtEpoch",
+        "earliestStart_b",
+        "Delta_reorder_b"
+      ],
+      "compiledFrom": "SearchPolicy.sameBandReorderSlackMinutesByWindow"
+    },
+    "softScore": {
+      "name": "softScore(s)",
+      "expression": "softScore(s) = w_delay * f_delay(s) + w_continuity * f_continuity(s) + w_site * f_site(s) + w_tod * f_tod(s) + w_travel * f_travel(s) + w_modality * f_modality(s)",
+      "machineFields": [
+        "w_delay",
+        "w_continuity",
+        "w_site",
+        "w_tod",
+        "w_travel",
+        "w_modality",
+        "f_delay",
+        "f_continuity",
+        "f_site",
+        "f_tod",
+        "f_travel",
+        "f_modality"
+      ],
+      "constraints": [
+        "sum w_* = 1",
+        "do not include both waitMinutes and waitDays in the same linear score"
+      ]
+    }
+  },
+  "normalizedFeatureDefinitions": {
+    "f_delay": "exp(-waitMinutes(s) / tau_delay)",
+    "f_continuity": "continuityScore(s)",
+    "f_site": "1 for preferred site, 0.5 for neutral site, 0 otherwise",
+    "f_tod": "exp(-abs(midpointLocalMinutes(s) - preferredMidpointMinutes) / tau_tod)",
+    "f_travel": "exp(-travelMinutes(s) / tau_travel)",
+    "f_modality": "1 for preferred modality, 0 otherwise"
+  },
+  "sampleRankPlan": {
+    "rankPlanId": "RANK_PLAN_280_DEFAULT",
+    "rankPlanVersion": "280.rank-plan.default.v1",
+    "preferredWindowMinutes": 2880,
+    "acceptableWindowMinutes": 10080,
+    "sameBandReorderSlackMinutesByWindow": {
+      "preferred": 180,
+      "acceptable": 240
+    },
+    "weights": {
+      "w_delay": 0.36,
+      "w_continuity": 0.21,
+      "w_site": 0.14,
+      "w_tod": 0.12,
+      "w_travel": 0.1,
+      "w_modality": 0.07
+    },
+    "taus": {
+      "tau_delay": 240,
+      "tau_tod": 120,
+      "tau_travel": 60
+    },
+    "stableTieBreakRule": "canonicalTieBreakKey ascending"
+  },
+  "sampleCapacityRankProof": {
+    "capacityRankProofId": "crp_fe6e2c6f8c306fcf",
+    "slotSetSnapshotRef": "snapshot_280_renderable",
+    "rankPlanVersion": "280.rank-plan.default.v1",
+    "proofChecksum": "fe6e2c6f8c306fcf4c008f8bb02fba9d7f8fdb72701d273697c85c201aa7e507",
+    "orderedCandidateRefs": [
+      "slot_identity_280_001",
+      "slot_identity_280_002",
+      "slot_identity_280_003"
+    ],
+    "generatedAt": "2026-04-18T10:00:00Z",
+    "rankedCandidates": [
+      {
+        "candidateRank": 1,
+        "canonicalSlotIdentityRef": "slot_identity_280_001",
+        "windowClass": 2,
+        "frontierMembership": true,
+        "softScore": 0.887,
+        "patientReasonCueRefs": [
+          "cue_soonest",
+          "cue_best_match"
+        ]
+      },
+      {
+        "candidateRank": 2,
+        "canonicalSlotIdentityRef": "slot_identity_280_002",
+        "windowClass": 2,
+        "frontierMembership": true,
+        "softScore": 0.842,
+        "patientReasonCueRefs": [
+          "cue_same_day"
+        ]
+      },
+      {
+        "candidateRank": 3,
+        "canonicalSlotIdentityRef": "slot_identity_280_003",
+        "windowClass": 1,
+        "frontierMembership": false,
+        "softScore": 0.731,
+        "patientReasonCueRefs": [
+          "cue_good_match"
+        ]
+      }
+    ]
+  },
+  "x-sourceRefs": [
+    "blueprint/phase-4-the-booking-engine.md",
+    "blueprint/patient-portal-experience-architecture-blueprint.md"
+  ]
+}

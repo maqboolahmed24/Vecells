@@ -1,0 +1,1042 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Edge Correlation Spine Explorer</title>
+    <style>
+      :root {
+        --canvas: #f7f9fc;
+        --panel: #ffffff;
+        --rail: #eef2f7;
+        --inset: #f4f7fb;
+        --text-strong: #0f172a;
+        --text-default: #1e293b;
+        --text-muted: #64748b;
+        --border-subtle: #e2e8f0;
+        --trace: #2563eb;
+        --browser: #0ea5a4;
+        --worker: #7c3aed;
+        --redaction: #d97706;
+        --blocked: #c24141;
+        --verified: #059669;
+        --shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 24%),
+          linear-gradient(180deg, #f9fbfd 0%, var(--canvas) 100%);
+        color: var(--text-default);
+      }
+
+      body[data-reduced-motion="true"] * {
+        transition: none !important;
+        animation: none !important;
+        scroll-behavior: auto !important;
+      }
+
+      .masthead {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        height: 76px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 16px 28px;
+        background: rgba(247, 249, 252, 0.92);
+        backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .brand svg {
+        width: 34px;
+        height: 34px;
+      }
+
+      .brand-copy small,
+      .eyebrow,
+      .stat-label {
+        display: block;
+        color: var(--text-muted);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .brand-copy strong {
+        display: block;
+        font-size: 18px;
+        color: var(--text-strong);
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
+        min-width: 640px;
+      }
+
+      .stat {
+        padding: 10px 14px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.76);
+      }
+
+      .stat strong {
+        display: block;
+        font-size: 20px;
+        color: var(--text-strong);
+      }
+
+      .shell {
+        max-width: 1580px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 324px minmax(0, 1fr) 420px;
+        gap: 18px;
+        align-items: start;
+      }
+
+      .rail,
+      .panel,
+      .inspector {
+        background: var(--panel);
+        border: 1px solid var(--border-subtle);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+      }
+
+      .rail {
+        position: sticky;
+        top: 92px;
+        padding: 18px;
+        background: linear-gradient(180deg, var(--rail), #f9fbff);
+      }
+
+      .filter-stack,
+      .panel-stack,
+      .table-stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .field label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+        color: var(--text-muted);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .field select {
+        width: 100%;
+        height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--border-subtle);
+        background: #fff;
+        padding: 0 12px;
+        color: var(--text-default);
+      }
+
+      main {
+        display: grid;
+        gap: 18px;
+        min-width: 0;
+      }
+
+      .panel {
+        padding: 18px;
+        min-height: 320px;
+        transition: transform 180ms ease, border-color 180ms ease;
+      }
+
+      .panel-heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .panel-heading h2,
+      .panel-heading h3,
+      .inspector h2 {
+        margin: 0;
+        color: var(--text-strong);
+      }
+
+      .panel-heading p,
+      .inspector p,
+      .muted {
+        margin: 0;
+        color: var(--text-muted);
+      }
+
+      .trace-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .trace-card,
+      .timeline-step,
+      .row-button,
+      .policy-button {
+        width: 100%;
+        text-align: left;
+        border: 1px solid var(--border-subtle);
+        border-radius: 18px;
+        background: linear-gradient(180deg, #fff, #f8fbff);
+        padding: 14px;
+        color: inherit;
+        cursor: pointer;
+        transition:
+          transform 120ms ease,
+          border-color 120ms ease,
+          box-shadow 120ms ease;
+        scroll-margin-top: 96px;
+      }
+
+      .trace-card:hover,
+      .timeline-step:hover,
+      .row-button:hover,
+      .policy-button:hover,
+      .trace-card:focus-visible,
+      .timeline-step:focus-visible,
+      .row-button:focus-visible,
+      .policy-button:focus-visible {
+        transform: translateY(-1px);
+        border-color: rgba(37, 99, 235, 0.42);
+        box-shadow: 0 10px 24px rgba(37, 99, 235, 0.12);
+        outline: none;
+      }
+
+      .trace-card[data-selected="true"],
+      .timeline-step[data-selected="true"],
+      tr[data-selected="true"] .row-button,
+      tr[data-selected="true"] .policy-button {
+        border-color: rgba(37, 99, 235, 0.6);
+        box-shadow: 0 14px 28px rgba(37, 99, 235, 0.16);
+      }
+
+      .hop-flow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .hop-pill,
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        border: 1px solid transparent;
+      }
+
+      .hop-pill {
+        background: var(--inset);
+      }
+
+      .state-verified {
+        background: rgba(5, 150, 105, 0.12);
+        color: var(--verified);
+      }
+
+      .state-masked {
+        background: rgba(217, 119, 6, 0.14);
+        color: var(--redaction);
+      }
+
+      .state-blocked {
+        background: rgba(194, 65, 65, 0.14);
+        color: var(--blocked);
+      }
+
+      .state-missing {
+        background: rgba(124, 58, 237, 0.14);
+        color: var(--worker);
+      }
+
+      .river-detail {
+        display: grid;
+        gap: 12px;
+      }
+
+      .river-path {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+        gap: 10px;
+      }
+
+      .river-node {
+        border: 1px solid var(--border-subtle);
+        border-radius: 18px;
+        padding: 12px;
+        background: linear-gradient(180deg, #fff, #f7fbff);
+        transition:
+          transform 120ms ease,
+          border-color 120ms ease,
+          box-shadow 120ms ease;
+      }
+
+      .river-node[data-selected="true"],
+      tr[data-selected="true"] {
+        border-color: rgba(37, 99, 235, 0.6);
+        box-shadow: 0 14px 28px rgba(37, 99, 235, 0.16);
+      }
+
+      .matrix,
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-subtle);
+        vertical-align: top;
+        text-align: left;
+      }
+
+      th {
+        color: var(--text-muted);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .timeline {
+        display: grid;
+        gap: 10px;
+      }
+
+      .inspector {
+        position: sticky;
+        top: 92px;
+        padding: 18px;
+        min-height: 320px;
+        transition: transform 220ms ease;
+      }
+
+      .inspector dl {
+        display: grid;
+        grid-template-columns: minmax(0, 148px) 1fr;
+        gap: 10px 12px;
+        margin: 18px 0 0;
+      }
+
+      .inspector dt {
+        color: var(--text-muted);
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .mono {
+        font-family: "SFMono-Regular", "SF Mono", ui-monospace, monospace;
+      }
+
+      @media (max-width: 1200px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .rail,
+        .inspector {
+          position: static;
+        }
+
+        .stats {
+          min-width: 0;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="masthead">
+      <div class="brand">
+        <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+          <rect x="6" y="6" width="52" height="52" rx="16" fill="#0F172A"></rect>
+          <path d="M18 21H45V28H26V32H40V39H26V43H46V50H18V21Z" fill="#F7F9FC"></path>
+          <path d="M26 14H50V21H26V14Z" fill="#2563EB"></path>
+        </svg>
+        <div class="brand-copy">
+          <small>Vecells</small>
+          <strong>Edge Correlation Spine Explorer</strong>
+          <span class="muted mono">Edge_Correlation_Spine_Explorer</span>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-label">Active Traces</span>
+          <strong id="stat-traces">0</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Masked Fences</span>
+          <strong id="stat-masked">0</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Blocked Disclosure</span>
+          <strong id="stat-blocked">0</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Missing Correlation</span>
+          <strong id="stat-missing">0</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Replay Health</span>
+          <strong id="stat-replay">0/0</strong>
+        </div>
+      </div>
+    </header>
+
+    <div class="shell">
+      <div class="layout">
+        <aside class="rail">
+          <div class="eyebrow">Trace Filters</div>
+          <div class="filter-stack">
+            <div class="field">
+              <label for="filter-environment">Environment</label>
+              <select id="filter-environment" data-testid="filter-environment"></select>
+            </div>
+            <div class="field">
+              <label for="filter-hop-type">Hop Type</label>
+              <select id="filter-hop-type" data-testid="filter-hop-type"></select>
+            </div>
+            <div class="field">
+              <label for="filter-event-family">Event Family</label>
+              <select id="filter-event-family" data-testid="filter-event-family"></select>
+            </div>
+            <div class="field">
+              <label for="filter-disclosure-state">Disclosure State</label>
+              <select id="filter-disclosure-state" data-testid="filter-disclosure-state"></select>
+            </div>
+            <div class="field">
+              <label for="filter-replay-state">Replay State</label>
+              <select id="filter-replay-state" data-testid="filter-replay-state"></select>
+            </div>
+          </div>
+        </aside>
+
+        <main>
+          <section class="panel" data-testid="causality-river" aria-labelledby="river-title">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Causality River</p>
+                <h2 id="river-title">End-to-end trace selection</h2>
+              </div>
+              <p class="muted">One immutable edge spine across runtime and UI settlement.</p>
+            </div>
+            <div class="trace-list" id="trace-list"></div>
+            <div class="river-detail" id="river-detail"></div>
+          </section>
+
+          <section class="panel" data-testid="disclosure-matrix" aria-labelledby="matrix-title">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Disclosure Matrix</p>
+                <h2 id="matrix-title">Fence posture by stage</h2>
+              </div>
+              <p class="muted">Policy and observed class parity stay visible beside the trace.</p>
+            </div>
+            <table class="matrix">
+              <thead>
+                <tr>
+                  <th>Stage</th>
+                  <th>State</th>
+                  <th>Permitted</th>
+                  <th>Observed</th>
+                </tr>
+              </thead>
+              <tbody id="matrix-body"></tbody>
+            </table>
+          </section>
+
+          <section class="panel" data-testid="settlement-timeline" aria-labelledby="timeline-title">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Settlement Timeline</p>
+                <h2 id="timeline-title">Restore and settlement strip</h2>
+              </div>
+              <p class="muted">Visibility and authoritative settlement remain separate states.</p>
+            </div>
+            <div class="timeline" id="timeline-body"></div>
+          </section>
+
+          <div class="table-stack">
+            <section class="panel" data-testid="event-table" aria-labelledby="event-title">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Event Table</p>
+                  <h3 id="event-title">Hop-by-hop propagation</h3>
+                </div>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Hop</th>
+                    <th>Event</th>
+                    <th>Correlation</th>
+                    <th>Disclosure</th>
+                    <th>Replay</th>
+                  </tr>
+                </thead>
+                <tbody id="event-body"></tbody>
+              </table>
+            </section>
+
+            <section class="panel" data-testid="policy-table" aria-labelledby="policy-title">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Policy Table</p>
+                  <h3 id="policy-title">Redaction and disclosure rules</h3>
+                </div>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Rule</th>
+                    <th>Class</th>
+                    <th>Handling</th>
+                    <th>Families</th>
+                  </tr>
+                </thead>
+                <tbody id="policy-body"></tbody>
+              </table>
+            </section>
+          </div>
+        </main>
+
+        <aside class="inspector" data-testid="inspector">
+          <p class="eyebrow">Inspector</p>
+          <h2 id="inspector-title">Awaiting trace selection</h2>
+          <p id="inspector-summary" class="muted">
+            Choose a trace or hop to inspect correlation, disclosure, and settlement posture.
+          </p>
+          <dl id="inspector-grid"></dl>
+        </aside>
+      </div>
+    </div>
+
+    <script>
+      const MANIFEST_PATH = "../../data/analysis/observability_event_schema_manifest.json";
+      const POLICY_PATH = "../../data/analysis/telemetry_redaction_policy.json";
+      const MATRIX_PATH = "../../data/analysis/correlation_propagation_matrix.csv";
+
+      const state = {
+        manifest: null,
+        policy: null,
+        rows: [],
+        filters: {
+          environment: "all",
+          hopType: "all",
+          eventFamily: "all",
+          disclosureState: "all",
+          replayState: "all",
+        },
+        selectedTraceRef: null,
+        selectedHopRef: null,
+        selectedPolicyRef: null,
+      };
+
+      function parseCsv(text) {
+        const rows = [];
+        let row = [];
+        let cell = "";
+        let inQuotes = false;
+        for (let index = 0; index < text.length; index += 1) {
+          const char = text[index];
+          const next = text[index + 1];
+          if (char === '"' && inQuotes && next === '"') {
+            cell += '"';
+            index += 1;
+            continue;
+          }
+          if (char === '"') {
+            inQuotes = !inQuotes;
+            continue;
+          }
+          if (char === "," && !inQuotes) {
+            row.push(cell);
+            cell = "";
+            continue;
+          }
+          if ((char === "\n" || char === "\r") && !inQuotes) {
+            if (char === "\r" && next === "\n") {
+              index += 1;
+            }
+            row.push(cell);
+            if (row.some((value) => value.length > 0)) {
+              rows.push(row);
+            }
+            row = [];
+            cell = "";
+            continue;
+          }
+          cell += char;
+        }
+        if (cell.length || row.length) {
+          row.push(cell);
+          rows.push(row);
+        }
+        const [headers, ...body] = rows;
+        return body.map((values) =>
+          Object.fromEntries(headers.map((header, idx) => [header, values[idx] ?? ""])),
+        );
+      }
+
+      function createOption(value, label) {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        return option;
+      }
+
+      function populateSelect(id, values, current) {
+        const select = document.getElementById(id);
+        select.innerHTML = "";
+        select.appendChild(createOption("all", "All"));
+        values.forEach((value) => select.appendChild(createOption(value, value)));
+        select.value = current;
+      }
+
+      function setStats(traces) {
+        const replayCandidates = traces.filter((trace) =>
+          ["restored", "replayed", "stale", "settled"].includes(trace.replayState),
+        );
+        const healthyReplayCount = replayCandidates.filter(
+          (trace) =>
+            trace.correlationState !== "missing" &&
+            trace.disclosureState !== "blocked" &&
+            trace.settlementState === "settled",
+        ).length;
+        document.getElementById("stat-traces").textContent = String(traces.length);
+        document.getElementById("stat-masked").textContent = String(
+          traces.filter((trace) => trace.disclosureState === "masked").length,
+        );
+        document.getElementById("stat-blocked").textContent = String(
+          traces.filter((trace) => trace.disclosureState === "blocked").length,
+        );
+        document.getElementById("stat-missing").textContent = String(
+          traces.filter((trace) => trace.correlationState === "missing").length,
+        );
+        document.getElementById("stat-replay").textContent = `${healthyReplayCount}/${replayCandidates.length}`;
+      }
+
+      function filteredTraces() {
+        return state.manifest.trace_runs.filter((trace) => {
+          if (
+            state.filters.environment !== "all" &&
+            trace.environment !== state.filters.environment
+          ) {
+            return false;
+          }
+          if (
+            state.filters.disclosureState !== "all" &&
+            trace.disclosureState !== state.filters.disclosureState
+          ) {
+            return false;
+          }
+          if (
+            state.filters.replayState !== "all" &&
+            trace.replayState !== state.filters.replayState
+          ) {
+            return false;
+          }
+          if (
+            state.filters.hopType !== "all" &&
+            !trace.hops.some((hop) => hop.hopKind === state.filters.hopType)
+          ) {
+            return false;
+          }
+          if (
+            state.filters.eventFamily !== "all" &&
+            !trace.hops.some((hop) => hop.eventFamily === state.filters.eventFamily)
+          ) {
+            return false;
+          }
+          return true;
+        });
+      }
+
+      function currentTrace() {
+        const traces = filteredTraces();
+        return traces.find((trace) => trace.traceRef === state.selectedTraceRef) ?? traces[0] ?? null;
+      }
+
+      function currentHop(trace) {
+        if (!trace) {
+          return null;
+        }
+        return (
+          trace.hops.find((hop) => hop.hopRef === state.selectedHopRef) ??
+          trace.hops[0] ??
+          null
+        );
+      }
+
+      function renderTraceList(traces) {
+        const container = document.getElementById("trace-list");
+        container.innerHTML = "";
+        traces.forEach((trace, index) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "trace-card";
+          button.dataset.testid = `trace-card-${trace.traceRef}`;
+          button.setAttribute("data-testid", `trace-card-${trace.traceRef}`);
+          button.setAttribute("data-selected", String(trace.traceRef === state.selectedTraceRef));
+          button.innerHTML = `
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
+              <div>
+                <div class="eyebrow">${trace.environment}</div>
+                <strong>${trace.label}</strong>
+                <p class="muted">${trace.summary}</p>
+              </div>
+              <span class="badge state-${trace.correlationState === "missing" ? "missing" : trace.disclosureState}">
+                ${trace.correlationState === "missing" ? "missing correlation" : trace.disclosureState}
+              </span>
+            </div>
+            <div class="hop-flow">
+              ${trace.hops
+                .map(
+                  (hop) =>
+                    `<span class="hop-pill state-${hop.correlationState === "missing" ? "missing" : hop.disclosureState}">${hop.hopKind}</span>`,
+                )
+                .join("")}
+            </div>
+          `;
+          button.addEventListener("click", () => {
+            state.selectedTraceRef = trace.traceRef;
+            state.selectedHopRef = trace.hops[0]?.hopRef ?? null;
+            render();
+          });
+          button.addEventListener("keydown", (event) => {
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+              return;
+            }
+            event.preventDefault();
+            const delta = event.key === "ArrowDown" ? 1 : -1;
+            const next = traces[index + delta];
+            if (!next) {
+              return;
+            }
+            state.selectedTraceRef = next.traceRef;
+            state.selectedHopRef = next.hops[0]?.hopRef ?? null;
+            render();
+            requestAnimationFrame(() => {
+              document
+                .querySelector(`[data-testid="trace-card-${next.traceRef}"]`)
+                ?.focus();
+            });
+          });
+          container.appendChild(button);
+        });
+      }
+
+      function renderRiverDetail(trace, selectedHop) {
+        const container = document.getElementById("river-detail");
+        if (!trace) {
+          container.innerHTML = `<p class="muted">No trace matches the current filter set.</p>`;
+          return;
+        }
+        container.innerHTML = `
+          <div class="panel-heading" style="margin:0;">
+            <div>
+              <p class="eyebrow">Selected Trace</p>
+              <h3>${trace.label}</h3>
+            </div>
+            <span class="badge state-${trace.correlationState === "missing" ? "missing" : trace.disclosureState}">
+              ${trace.correlationState === "missing" ? "missing correlation" : trace.disclosureState}
+            </span>
+          </div>
+          <div class="river-path">
+            ${trace.hops
+              .map(
+                (hop) => `
+                  <div
+                    class="river-node"
+                    data-hop="${hop.hopRef}"
+                    data-selected="${String(selectedHop?.hopRef === hop.hopRef)}"
+                  >
+                    <div class="eyebrow">${hop.hopKind}</div>
+                    <strong>${hop.serviceRef}</strong>
+                    <p class="muted">${hop.eventName}</p>
+                    <span class="badge state-${hop.correlationState === "missing" ? "missing" : hop.disclosureState}">
+                      ${hop.correlationState === "missing" ? "missing" : hop.disclosureState}
+                    </span>
+                  </div>`,
+              )
+              .join("")}
+          </div>
+        `;
+      }
+
+      function renderMatrix(trace, selectedHop) {
+        const tbody = document.getElementById("matrix-body");
+        tbody.innerHTML = "";
+        if (!trace) {
+          return;
+        }
+        trace.disclosureFences.forEach((fence) => {
+          const row = document.createElement("tr");
+          row.setAttribute("data-selected", String(selectedHop?.hopKind === fence.stage));
+          row.innerHTML = `
+            <td>${fence.stage}</td>
+            <td><span class="badge state-${fence.state}">${fence.state}</span></td>
+            <td class="mono">${fence.permittedClasses.join(", ")}</td>
+            <td class="mono">${fence.observedClasses.join(", ")}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      }
+
+      function renderTimeline(trace, selectedHop) {
+        const container = document.getElementById("timeline-body");
+        container.innerHTML = "";
+        if (!trace) {
+          return;
+        }
+        trace.timeline.forEach((step) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "timeline-step";
+          button.setAttribute(
+            "data-selected",
+            String(
+              selectedHop
+                ? step.state === selectedHop.settlementState
+                : step.step === trace.timeline[0].step,
+            ),
+          );
+          button.innerHTML = `
+            <div class="eyebrow">${step.step.replaceAll("_", " ")}</div>
+            <strong>${step.state}</strong>
+          `;
+          container.appendChild(button);
+        });
+      }
+
+      function renderEventTable(trace) {
+        const tbody = document.getElementById("event-body");
+        tbody.innerHTML = "";
+        if (!trace) {
+          return;
+        }
+        trace.hops.forEach((hop) => {
+          const row = document.createElement("tr");
+          row.setAttribute("data-selected", String(hop.hopRef === state.selectedHopRef));
+          row.innerHTML = `
+            <td>
+              <button type="button" class="row-button" data-testid="event-row-${trace.traceRef}-${hop.hopSequence}">
+                <div class="eyebrow">${hop.hopKind}</div>
+                <strong>${hop.serviceRef}</strong>
+              </button>
+            </td>
+            <td>${hop.eventName}</td>
+            <td><span class="badge state-${hop.correlationState === "missing" ? "missing" : "verified"}">${hop.correlationState}</span></td>
+            <td><span class="badge state-${hop.disclosureState}">${hop.disclosureState}</span></td>
+            <td>${hop.replayState}</td>
+          `;
+          row.querySelector("button").addEventListener("click", () => {
+            state.selectedTraceRef = trace.traceRef;
+            state.selectedHopRef = hop.hopRef;
+            render();
+          });
+          tbody.appendChild(row);
+        });
+      }
+
+      function renderPolicyTable() {
+        const tbody = document.getElementById("policy-body");
+        tbody.innerHTML = "";
+        state.policy.rules.forEach((rule) => {
+          const row = document.createElement("tr");
+          row.setAttribute("data-selected", String(rule.ruleRef === state.selectedPolicyRef));
+          row.innerHTML = `
+            <td>
+              <button type="button" class="policy-button" data-testid="policy-row-${rule.ruleRef}">
+                <div class="eyebrow">${rule.ruleRef}</div>
+                <strong>${rule.disclosureClass}</strong>
+              </button>
+            </td>
+            <td>${rule.disclosureClass}</td>
+            <td>${rule.handling}</td>
+            <td class="mono">${rule.allowedEventFamilies.join(", ") || "blocked"}</td>
+          `;
+          row.querySelector("button").addEventListener("click", () => {
+            state.selectedPolicyRef = rule.ruleRef;
+            renderInspector(currentTrace(), currentHop(currentTrace()), rule);
+            Array.from(tbody.children).forEach((child) =>
+              child.setAttribute("data-selected", "false"),
+            );
+            row.setAttribute("data-selected", "true");
+          });
+          tbody.appendChild(row);
+        });
+      }
+
+      function renderInspector(trace, hop, policyRule) {
+        const title = document.getElementById("inspector-title");
+        const summary = document.getElementById("inspector-summary");
+        const grid = document.getElementById("inspector-grid");
+        grid.innerHTML = "";
+
+        if (policyRule) {
+          title.textContent = policyRule.ruleRef;
+          summary.textContent = `${policyRule.disclosureClass} handling: ${policyRule.handling}`;
+          [
+            ["Allowed families", policyRule.allowedEventFamilies.join(", ") || "blocked"],
+            ["Handling", policyRule.handling],
+          ].forEach(([label, value]) => {
+            const dt = document.createElement("dt");
+            dt.textContent = label;
+            const dd = document.createElement("dd");
+            dd.textContent = value;
+            grid.append(dt, dd);
+          });
+          return;
+        }
+
+        if (!trace) {
+          title.textContent = "Awaiting trace selection";
+          summary.textContent =
+            "Choose a trace or hop to inspect correlation, disclosure, and settlement posture.";
+          return;
+        }
+
+        title.textContent = hop ? `${trace.label} / ${hop.hopKind}` : trace.label;
+        summary.textContent = trace.summary;
+
+        const details = [
+          ["Trace", trace.traceRef],
+          ["Environment", trace.environment],
+          ["Route family", trace.routeFamilyRef],
+          ["Correlation", trace.correlationState],
+          ["Disclosure", trace.disclosureState],
+          ["Replay", trace.replayState],
+          ["Settlement", trace.settlementState],
+        ];
+        if (hop) {
+          details.push(["Hop", hop.hopKind], ["Event", hop.eventName], ["Note", hop.note]);
+        }
+        details.forEach(([label, value]) => {
+          const dt = document.createElement("dt");
+          dt.textContent = label;
+          const dd = document.createElement("dd");
+          dd.textContent = value;
+          if (label === "Trace") {
+            dd.className = "mono";
+          }
+          grid.append(dt, dd);
+        });
+      }
+
+      function render() {
+        const traces = filteredTraces();
+        if (!traces.some((trace) => trace.traceRef === state.selectedTraceRef)) {
+          state.selectedTraceRef = traces[0]?.traceRef ?? null;
+          state.selectedHopRef = traces[0]?.hops[0]?.hopRef ?? null;
+        }
+        const trace = currentTrace();
+        const hop = currentHop(trace);
+        setStats(traces);
+        renderTraceList(traces);
+        renderRiverDetail(trace, hop);
+        renderMatrix(trace, hop);
+        renderTimeline(trace, hop);
+        renderEventTable(trace);
+        renderPolicyTable();
+        renderInspector(trace, hop, null);
+      }
+
+      async function loadData() {
+        const [manifestResponse, policyResponse, matrixResponse] = await Promise.all([
+          fetch(MANIFEST_PATH),
+          fetch(POLICY_PATH),
+          fetch(MATRIX_PATH),
+        ]);
+        state.manifest = await manifestResponse.json();
+        state.policy = await policyResponse.json();
+        state.rows = parseCsv(await matrixResponse.text());
+
+        populateSelect(
+          "filter-environment",
+          [...new Set(state.manifest.trace_runs.map((trace) => trace.environment))].sort(),
+          state.filters.environment,
+        );
+        populateSelect(
+          "filter-hop-type",
+          [...new Set(state.rows.map((row) => row.hopKind))].sort(),
+          state.filters.hopType,
+        );
+        populateSelect(
+          "filter-event-family",
+          [...new Set(state.rows.map((row) => row.eventFamily))].sort(),
+          state.filters.eventFamily,
+        );
+        populateSelect(
+          "filter-disclosure-state",
+          [...new Set(state.manifest.trace_runs.map((trace) => trace.disclosureState))].sort(),
+          state.filters.disclosureState,
+        );
+        populateSelect(
+          "filter-replay-state",
+          [...new Set(state.manifest.trace_runs.map((trace) => trace.replayState))].sort(),
+          state.filters.replayState,
+        );
+
+        [
+          ["filter-environment", "environment"],
+          ["filter-hop-type", "hopType"],
+          ["filter-event-family", "eventFamily"],
+          ["filter-disclosure-state", "disclosureState"],
+          ["filter-replay-state", "replayState"],
+        ].forEach(([id, key]) => {
+          document.getElementById(id).addEventListener("change", (event) => {
+            state.filters[key] = event.target.value;
+            render();
+          });
+        });
+
+        render();
+      }
+
+      const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+      document.body.dataset.reducedMotion = String(mediaQuery.matches);
+      mediaQuery.addEventListener("change", (event) => {
+        document.body.dataset.reducedMotion = String(event.matches);
+      });
+
+      loadData().catch((error) => {
+        document.getElementById("trace-list").innerHTML = `<p class="muted">${error.message}</p>`;
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,2760 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Phase 0 Foundation Gate Cockpit</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='6' y='6' width='52' height='52' rx='16' fill='%23335CFF'/%3E%3Cpath d='M18 20 L32 44 L46 20' stroke='white' stroke-width='7' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E"
+    />
+    <style>
+      :root {
+        --canvas: #f5f7fa;
+        --shell: #ffffff;
+        --inset: #eef2f6;
+        --text-strong: #101828;
+        --text-default: #1d2939;
+        --text-muted: #475467;
+        --border-subtle: #e4e7ec;
+        --border-default: #d0d5dd;
+        --ready: #0f9d58;
+        --conditional: #c98900;
+        --blocked: #c24141;
+        --gate: #335cff;
+        --evidence: #6e59d9;
+        --focus: #335cff;
+        --shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
+        --radius: 18px;
+        --row-radius: 14px;
+        --max-width: 1440px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--canvas);
+        color: var(--text-default);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+      body {
+        min-height: 100vh;
+      }
+      a {
+        color: inherit;
+      }
+      button,
+      select {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+        background: transparent;
+        border: 0;
+        color: inherit;
+        text-align: left;
+      }
+      select {
+        min-height: 44px;
+        border-radius: 12px;
+        border: 1px solid var(--border-default);
+        background: var(--shell);
+        padding: 0 12px;
+        color: var(--text-default);
+      }
+      :focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+      }
+      .app {
+        max-width: var(--max-width);
+        margin: 0 auto;
+        padding: 24px;
+        display: grid;
+        gap: 24px;
+      }
+      .banner {
+        background: linear-gradient(
+          140deg,
+          rgba(51, 92, 255, 0.1),
+          rgba(110, 89, 217, 0.08),
+          rgba(255, 255, 255, 0.9)
+        );
+        border: 1px solid var(--border-default);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+        padding: 24px;
+        display: grid;
+        gap: 16px;
+      }
+      .banner-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+      }
+      .wordmark {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-strong);
+      }
+      .wordmark svg {
+        width: 40px;
+        height: 40px;
+      }
+      .banner h1 {
+        margin: 0;
+        font-size: clamp(1.8rem, 3vw, 2.6rem);
+        line-height: 1.05;
+        color: var(--text-strong);
+      }
+      .banner p {
+        margin: 0;
+        max-width: 70ch;
+        color: var(--text-muted);
+        font-size: 0.98rem;
+        line-height: 1.6;
+      }
+      .summary-strip {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .summary-card {
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid var(--border-subtle);
+        border-radius: 16px;
+        padding: 14px 16px;
+        min-height: 94px;
+        display: grid;
+        gap: 4px;
+      }
+      .summary-label {
+        font-size: 0.77rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+      .summary-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-strong);
+      }
+      .status-chip {
+        height: 28px;
+        padding: 0 12px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.82rem;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .status-pass,
+      .verdict-approved {
+        background: rgba(15, 157, 88, 0.14);
+        color: var(--ready);
+      }
+      .status-review_required,
+      .verdict-conditional {
+        background: rgba(201, 137, 0, 0.14);
+        color: var(--conditional);
+      }
+      .status-blocked,
+      .verdict-withheld {
+        background: rgba(194, 65, 65, 0.12);
+        color: var(--blocked);
+      }
+      .shell-grid {
+        display: grid;
+        grid-template-columns: 296px minmax(0, 1fr) minmax(320px, 400px);
+        gap: 24px;
+        align-items: start;
+      }
+      .panel {
+        background: var(--shell);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .panel-header {
+        padding: 18px 18px 12px;
+        border-bottom: 1px solid var(--border-subtle);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        background: linear-gradient(180deg, rgba(245, 247, 250, 0.9), rgba(255, 255, 255, 0.96));
+      }
+      .panel-title {
+        margin: 0;
+        font-size: 0.96rem;
+        font-weight: 700;
+        color: var(--text-strong);
+      }
+      .rail {
+        padding: 12px;
+        display: grid;
+        gap: 12px;
+        max-height: calc(100vh - 220px);
+        overflow: auto;
+      }
+      .rail-group {
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 16px;
+        background: var(--inset);
+      }
+      .rail-group h3 {
+        margin: 0;
+        font-size: 0.84rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+      }
+      .rail-button {
+        padding: 12px;
+        border: 1px solid transparent;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.85);
+        display: grid;
+        gap: 8px;
+        transition:
+          transform 120ms ease,
+          border-color 120ms ease,
+          box-shadow 180ms ease;
+      }
+      .rail-button:hover {
+        transform: translateY(-1px);
+        border-color: var(--border-default);
+      }
+      .rail-button[aria-pressed="true"] {
+        border-color: rgba(51, 92, 255, 0.4);
+        box-shadow: 0 0 0 3px rgba(51, 92, 255, 0.1);
+      }
+      .rail-button strong {
+        color: var(--text-strong);
+        font-size: 0.93rem;
+        line-height: 1.35;
+      }
+      .rail-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+      .main-column {
+        display: grid;
+        gap: 24px;
+      }
+      .toolbar {
+        padding: 18px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        border-bottom: 1px solid var(--border-subtle);
+        background: var(--shell);
+      }
+      .toolbar label {
+        display: grid;
+        gap: 6px;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+      }
+      .table-wrap {
+        padding: 12px 18px 18px;
+        overflow: auto;
+        min-height: 420px;
+      }
+      .table-wrap.blockers {
+        min-height: 320px;
+      }
+      .table-wrap.evidence {
+        min-height: 320px;
+      }
+      table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 10px;
+        min-width: 760px;
+      }
+      th {
+        text-align: left;
+        color: var(--text-muted);
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 0 12px 4px;
+      }
+      td {
+        padding: 14px 12px;
+        background: var(--inset);
+        border-top: 1px solid var(--border-subtle);
+        border-bottom: 1px solid var(--border-subtle);
+        vertical-align: top;
+        line-height: 1.5;
+        font-size: 0.92rem;
+      }
+      td:first-child {
+        border-left: 1px solid var(--border-subtle);
+        border-top-left-radius: var(--row-radius);
+        border-bottom-left-radius: var(--row-radius);
+      }
+      td:last-child {
+        border-right: 1px solid var(--border-subtle);
+        border-top-right-radius: var(--row-radius);
+        border-bottom-right-radius: var(--row-radius);
+      }
+      .row-button {
+        display: grid;
+        gap: 6px;
+        width: 100%;
+        color: var(--text-default);
+      }
+      .row-button strong {
+        color: var(--text-strong);
+        font-size: 0.94rem;
+      }
+      .mono {
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        font-size: 0.82rem;
+      }
+      .subgrid {
+        display: grid;
+        gap: 24px;
+        grid-template-columns: 1fr 1fr;
+      }
+      .inspector {
+        position: sticky;
+        top: 24px;
+        min-height: 760px;
+      }
+      .inspector-body {
+        padding: 18px;
+        display: grid;
+        gap: 16px;
+      }
+      .inspector-card {
+        padding: 14px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 16px;
+        background: var(--inset);
+        display: grid;
+        gap: 10px;
+      }
+      .inspector-card h3 {
+        margin: 0;
+        font-size: 1rem;
+        color: var(--text-strong);
+      }
+      .kv {
+        display: grid;
+        gap: 8px;
+      }
+      .kv div {
+        display: grid;
+        gap: 4px;
+      }
+      .kv span {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+      }
+      .kv strong {
+        color: var(--text-strong);
+        font-weight: 600;
+        line-height: 1.5;
+      }
+      ul.meta-list {
+        margin: 0;
+        padding-left: 18px;
+        color: var(--text-default);
+      }
+      @media (max-width: 1180px) {
+        .shell-grid {
+          grid-template-columns: 260px minmax(0, 1fr);
+        }
+        .inspector {
+          grid-column: 1 / -1;
+          position: static;
+          min-height: 0;
+        }
+      }
+      @media (max-width: 860px) {
+        .app {
+          padding: 16px;
+        }
+        .summary-strip {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .shell-grid {
+          grid-template-columns: 1fr;
+        }
+        .subgrid {
+          grid-template-columns: 1fr;
+        }
+        .rail {
+          max-height: none;
+        }
+        .table-wrap,
+        .table-wrap.blockers,
+        .table-wrap.evidence {
+          min-height: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <section
+        class="banner verdict-withheld"
+        data-testid="gate-verdict-banner"
+        data-verdict="withheld"
+      >
+        <div class="banner-top">
+          <div>
+            <div class="wordmark" aria-label="Vecells">
+              <svg viewBox="0 0 64 64" aria-hidden="true">
+                <rect x="6" y="6" width="52" height="52" rx="16" fill="#335CFF"></rect>
+                <path
+                  d="M18 20 L32 44 L46 20"
+                  stroke="#FFFFFF"
+                  stroke-width="7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  fill="none"
+                ></path>
+              </svg>
+              <span>Vecells Foundation Gate</span>
+            </div>
+            <h1 id="banner-title">Phase 0 Foundation Gate</h1>
+          </div>
+          <div class="status-chip verdict-withheld" id="banner-verdict">Withheld</div>
+        </div>
+        <p id="banner-reason"></p>
+        <div class="summary-strip">
+          <div class="summary-card">
+            <div class="summary-label">Blocking Rows</div>
+            <div class="summary-value" id="summary-blocking">0</div>
+            <div class="summary-label">Exact blockers still preventing entry</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Warning Rows</div>
+            <div class="summary-value" id="summary-warning">0</div>
+            <div class="summary-label">Bounded later obligations already called out</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Evidence Freshness</div>
+            <div class="summary-value" id="summary-evidence">0</div>
+            <div class="summary-label">Current artifacts in the evidence pack</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Planning State</div>
+            <div class="summary-value mono" id="summary-planning"></div>
+            <div class="summary-label">Planning gate foundation is separate from 0A entry</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="shell-grid">
+        <aside class="panel" data-testid="criteria-rail">
+          <div class="panel-header">
+            <h2 class="panel-title">Criteria Rail</h2>
+            <span class="mono" id="criteria-count"></span>
+          </div>
+          <div class="rail" id="criteria-rail-body"></div>
+        </aside>
+
+        <main class="main-column">
+          <section class="panel">
+            <div class="panel-header">
+              <h2 class="panel-title">Readiness Matrix</h2>
+              <div class="status-chip" id="matrix-status-chip">Filtered</div>
+            </div>
+            <div class="toolbar">
+              <label>
+                Criterion Class
+                <select id="class-filter" aria-label="Filter by criterion class"></select>
+              </label>
+              <label>
+                Status
+                <select id="status-filter" aria-label="Filter by criterion status"></select>
+              </label>
+            </div>
+            <div class="table-wrap" data-testid="readiness-matrix">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Criterion</th>
+                    <th>Class</th>
+                    <th>Status</th>
+                    <th>Tasks / Risks</th>
+                    <th>Evidence / Notes</th>
+                  </tr>
+                </thead>
+                <tbody id="criteria-table-body"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <div class="subgrid">
+            <section class="panel">
+              <div class="panel-header">
+                <h2 class="panel-title">Blockers</h2>
+                <span class="mono" id="blocker-count"></span>
+              </div>
+              <div class="table-wrap blockers" data-testid="blocker-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Blocker</th>
+                      <th>State</th>
+                      <th>Severity</th>
+                      <th>Summary</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="blocker-table-body"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <h2 class="panel-title">Evidence Index</h2>
+                <span class="mono" id="evidence-count"></span>
+              </div>
+              <div class="table-wrap evidence" data-testid="evidence-index-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Artifact</th>
+                      <th>Class</th>
+                      <th>Task</th>
+                      <th>Freshness</th>
+                      <th>Path</th>
+                    </tr>
+                  </thead>
+                  <tbody id="evidence-table-body"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2 class="panel-title">Subphase Gate Map</h2>
+              <span class="mono" id="gate-count"></span>
+            </div>
+            <div class="table-wrap evidence" data-testid="subphase-gate-map">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Gate</th>
+                    <th>Scope</th>
+                    <th>Verdict</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Control-Plane Obligations</th>
+                  </tr>
+                </thead>
+                <tbody id="gate-table-body"></tbody>
+              </table>
+            </div>
+          </section>
+        </main>
+
+        <aside class="panel inspector" data-testid="gate-inspector">
+          <div class="panel-header">
+            <h2 class="panel-title">Inspector</h2>
+            <span class="mono" id="inspector-kind">criterion</span>
+          </div>
+          <div class="inspector-body" id="inspector-body"></div>
+        </aside>
+      </div>
+    </div>
+
+    <script id="gate-data" type="application/json">
+      {
+        "visualMode": "Foundation_Gateboard",
+        "generatedAt": "2026-04-09T13:45:52Z",
+        "summary": {
+          "criterion_count": 21,
+          "pass_count": 18,
+          "review_required_count": 2,
+          "blocked_count": 1,
+          "blocking_row_count": 3,
+          "warning_row_count": 2,
+          "phase0_entry_verdict": "withheld",
+          "evidence_current_count": 37,
+          "evidence_missing_count": 0,
+          "evidence_contradiction_count": 0
+        },
+        "planningReadiness": {
+          "state": "ready_for_external_readiness",
+          "notes": "Seq_020 completes the planning-side foundation gate artifact required by GATE_PLAN_EXTERNAL_ENTRY, but it does not by itself open Phase 0 implementation."
+        },
+        "entryGate": {
+          "gate_id": "GATE_P0_FOUNDATION_ENTRY",
+          "gate_title": "Phase 0 foundation entry gate",
+          "scope": "phase0_entry",
+          "evaluated_at": "2026-04-09T13:45:52Z",
+          "evaluated_artifact_refs": [
+            "phase0_entry_criteria_matrix.csv",
+            "phase0_gate_blockers.csv",
+            "phase0_evidence_index.json",
+            "programme_milestones.json",
+            "merge_gate_matrix.csv",
+            "master_risk_register.json",
+            "dependency_watchlist.json"
+          ],
+          "blocking_criterion_refs": ["CRIT_DEP_002"],
+          "warning_criterion_refs": ["CRIT_TOOL_001", "CRIT_TOOL_002"],
+          "verdict": "withheld",
+          "reason": "Planning and architecture foundation are frozen enough to open external-readiness work, but actual Phase 0 entry remains withheld because the current-baseline external-readiness gate is still blocked by onboarding, assurance, and simulator-freeze dependencies.",
+          "next_required_actions": [
+            "Complete seq_021-seq_040 and clear GATE_EXTERNAL_TO_FOUNDATION.",
+            "Publish the integration assumption freeze, partner-path evidence, and simulator/manual-checkpoint pack.",
+            "Re-run build_phase0_gate_cockpit.py and validate_phase0_foundation_gate.py before claiming Phase 0 entry."
+          ],
+          "notes": [
+            "This verdict is intentionally separate from the planning gate foundation. Seq_020 closes implied-readiness and prose-only approval gaps without silently opening 0A.",
+            "Deferred Phase 7 artifacts remain excluded from current-baseline proof."
+          ]
+        },
+        "criteria": [
+          {
+            "criterion_id": "CRIT_SRC_001",
+            "criterion_title": "Source algorithm ingested and summary drift reconciled",
+            "criterion_class": "source_truth",
+            "required_artifact_refs": "[\"requirement_registry.jsonl\", \"source_manifest.json\", \"summary_reconciliation_matrix.csv\", \"cross_phase_conformance_seed.json\"]",
+            "required_requirement_ids": "[\"REQ-SRC-vecells-complete-end-to-end-flow-md\", \"REQ-OBJ-lifecyclecoordinator\", \"REQ-OBJ-runtimepublicationbundle\", \"REQ-OBJ-designcontractpublicationbundle\"]",
+            "required_task_refs": "[\"seq_001\", \"seq_002\"]",
+            "required_dependency_refs": "[]",
+            "required_risk_refs": "[\"RISK_MUTATION_001\", \"RISK_RUNTIME_001\"]",
+            "required_conformance_refs": "[\"PHASE_CONFORMANCE_ROW_PHASE_0\"]",
+            "auto_check_rule": "Requirement registry, source manifest, reconciliation matrix, and conformance seed all exist and remain internally consistent.",
+            "manual_review_rule": "Confirm newly added blueprint sources or late forensic findings have not bypassed the source-precedence policy.",
+            "status": "pass",
+            "blocker_if_failed": "No foundation gate without a reconciled source algorithm.",
+            "notes": "1453 canonical requirements are registered across 32 blueprint sources, with 29 reconciliation rows and 90 canonical aliases.",
+            "gate_impact": "blocking",
+            "source_refs": "[\"prompt/020.md\", \"prompt/shared_operating_contract_016_to_020.md\", \"blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol\", \"blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture\", \"blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine\", \"blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls\", \"blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract\", \"blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract\", \"blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline\", \"blueprint/platform-admin-and-config-blueprint.md#Production promotion gate\", \"blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow\", \"blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard\", \"blueprint/forensic-audit-findings.md#Findings 95, 104-120\"]",
+            "waiver_ref": "",
+            "class_label": "Source Truth"
+          },
+          {
+            "criterion_id": "CRIT_SCOPE_001",
+            "criterion_title": "Current and deferred scope baseline frozen",
+            "criterion_class": "scope",
+            "required_artifact_refs": "[\"product_scope_matrix.json\", \"adr_index.json\", \"programme_milestones.json\"]",
+            "required_requirement_ids": "[]",
+            "required_task_refs": "[\"seq_003\", \"seq_016\", \"seq_017\"]",
+            "required_dependency_refs": "[]",
+            "required_risk_refs": "[]",
+            "required_conformance_refs": "[]",
+            "auto_check_rule": "Phase 7 remains deferred in scope, ADR, and programme artifacts while phases 0-6, 8, and 9 remain current baseline.",
+            "manual_review_rule": "If a new channel is proposed, force a scope decision before any implementation branch reuses Phase 0 authority.",
+            "status": "pass",
+            "blocker_if_failed": "No Phase 0 entry while current and deferred scope are ambiguous.",
+            "notes": "The current delivery baseline is Phases 0 to 6, Phase 8, and Phase 9, with Phase 7 retained as a deferred NHS App embedded-channel expansion.",
+            "gate_impact": "blocking",
+            "source_refs": "[\"prompt/020.md\", \"prompt/shared_operating_contract_016_to_020.md\", \"blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol\", \"blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture\", \"blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine\", \"blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls\", \"blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract\", \"blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract\", \"blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline\", \"blueprint/platform-admin-and-config-blueprint.md#Production promotion gate\", \"blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow\", \"blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard\", \"blueprint/forensic-audit-findings.md#Findings 95, 104-120\"]",
+            "waiver_ref": "",
+            "class_label": "Scope"
+          },
+          {
+            "criterion_id": "CRIT_ARCH_001",
+            "criterion_title": "Persona, channel, audience, and shell inventory frozen",
+            "criterion_class": "architecture",
+            "required_artifact_refs": "[\"audience_surface_inventory.csv\", \"gateway_surface_matrix.csv\", \"frontend_stack_scorecard.csv\"]",
+            "required_requirement_ids": "[\"REQ-OBJ-persistentshell\", \"REQ-OBJ-audiencesurfaceruntimebinding\", \"REQ-INV-044\", \"REQ-INV-062\"]",
+            "required_task_refs": "[\"seq_004\", \"seq_011\", \"seq_014\"]",
+            "required_dependency_refs": "[]",
+            "required_risk_refs": "[\"RISK_UI_001\"]",
+            "required_conformance_refs": "[]",
+            "auto_check_rule": "Persona, channel, shell, and gateway matrices still expose explicit audience and shell ownership counts.",
+            "manual_review_rule": "If a new surface appears, bind it to an existing shell family or freeze it out of baseline scope before implementation.",
+            "status": "pass",
+            "blocker_if_failed": "No Phase 0 entry while shell ownership or audience posture is implicit.",
+            "notes": "13 personas, 8 channels, and 22 persona-surface rows keep shell ownership explicit.",
+            "gate_impact": "blocking",
+            "source_refs": "[\"prompt/020.md\", \"prompt/shared_operating_contract_016_to_020.md\", \"blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol\", \"blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture\", \"blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine\", \"blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls\", \"blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract\", \"blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract\", \"blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline\", \"blueprint/platform-admin-and-config-blueprint.md#Production promotion gate\", \"blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow\", \"blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard\", \"blueprint/forensic-audit-findings.md#Findings 95, 104-120\"]",
+            "waiver_ref": "",
+            "class_label": "Architecture"
+          },
+          {
+            "criterion_id": "CRIT_ARCH_002",
+            "criterion_title": "Request lineage, object, state, and invariant packs are implementation-ready",
+            "criterion_class": "architecture",
+            "required_artifact_refs": "[\"request_lineage_transitions.json\", \"object_catalog.json\", \"state_machines.json\"]",
+            "required_requirement_ids": "[\"REQ-OBJ-lifecyclecoordinator\", \"REQ-INV-012\", \"GAP-FINDING-045\", \"REQ-OBJ-routeintentbinding\", \"REQ-OBJ-commandactionrecord\", \"REQ-OBJ-commandsettlementrecord\", \"REQ-EDGE-ROUTE-INTENT-AND-SETTLEMENT\", \"REQ-INV-025\", \"REQ-INV-035\", \"REQ-INV-036\", \"REQ-INV-037\", \"REQ-INV-053\", \"REQ-TEST-phase-9-the-assurance-ledger-md-132\"]",
+            "required_task_refs": "[\"seq_005\", \"seq_006\", \"seq_007\"]",
+            "required_dependency_refs": "[]",
+            "required_risk_refs": "[\"RISK_STATE_001\", \"RISK_STATE_002\", \"RISK_STATE_003\", \"RISK_STATE_005\"]",
+            "required_conformance_refs": "[\"PHASE_CONFORMANCE_ROW_PHASE_0\"]",
+            "auto_check_rule": "Lineage stages, object catalog, and state-machine atlas all exist with no unresolved catalog gaps.",
+            "manual_review_rule": "Review any new phase-local state proposal against the canonical object and invariant pack before allowing implementation.",
+            "status": "pass",
+            "blocker_if_failed": "No Phase 0 entry while canonical domain truth is still partial or prose-only.",
+            "notes": "14 lineage stages, 950 canonical objects, and 41 state machines are published.",
+            "gate_impact": "blocking",
+            "source_refs": "[\"prompt/020.md\", \"prompt/shared_operating_contract_016_to_020.md\", \"blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol\", \"blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture\", \"blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine\", \"blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls\", \"blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract\", \"blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract\", \"blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline\", \"blueprint/platform-admin-and-config-blueprint.md#Production promotion gate\", \"blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow\", \"blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard\", \"blueprint/forensic-audit-findings.md#Findings 95, 104-120\"]",
+            "waiver_ref": "",
+            "class_label": "Architecture"
+          },
+          {
+            "criterion_id": "CRIT_ARCH_003",
+            "criterion_title": "Lifecycle ownership, route-intent binding, and command settlement are explicit",
+            "criterion_class": "architecture",
+            "required_artifact_refs": "[\"service_runtime_matrix.csv\", \"request_lineage_transitions.json\", \"cross_phase_conformance_seed.json\", \"adr_index.json\"]",
+            "required_requirement_ids": "[\"REQ-OBJ-lifecyclecoordinator\", \"REQ-INV-012\", \"GAP-FINDING-045\", \"REQ-OBJ-routeintentbinding\", \"REQ-OBJ-commandactionrecord\", \"REQ-OBJ-commandsettlementrecord\", \"REQ-EDGE-ROUTE-INTENT-AND-SETTLEMENT\", \"REQ-INV-025\", \"REQ-INV-035\", \"REQ-INV-036\", \"REQ-INV-037\"]",
+            "required_task_refs": "[\"seq_005\", \"seq_013\", \"seq_016\"]",
+            "required_dependency_refs": "[]",
+            "required_risk_refs": "[\"RISK_MUTATION_001\", \"RISK_MUTATION_002\", \"RISK_MUTATION_003\", \"RISK_OWNERSHIP_001\"]",
+            "required_conformance_refs": "[\"PHASE_CONFORMANCE_ROW_PHASE_0\"]",
+            "auto_check_rule": "LifecycleCoordinator appears as sole cross-domain authority and Command API remains the only canonical writer while the Phase 0 conformance seed still names ownership and mutation conflicts.",
+            "manual_review_rule": "Reject any proposed child-domain direct write or route-local authoritative mutation before it lands in a Phase 0 implementation task.",
+            "status": "pass",
+            "blocker_if_failed": "No Phase 0 entry while lifecycle ownership or settlement law is implicit.",
+            "notes": "LifecycleCoordinator, RouteIntentBinding, CommandActionRecord, and CommandSettlementRecord remain first-class foundation contracts.",
+            "gate_impact": "blocking",
+            "source_refs": "[\"prompt/020.md\", \"prompt/shared_operating_contract_016_to_020.md\", \"blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol\", \"blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture\", \"blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine\", \"blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls\", \"blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract\", \"blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract\", \"blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline\", \"blueprint/platform-admin-and-config-blueprint.md#Production promotion gate\", \"blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow\", \"blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard\", \"blueprint/forensic-audit-findings.md#Findings 95, 104-120\"]",
+            "waiver_ref": "",
+            "class_label": "Architecture"
+          },
+          {
+            "criterion_id": "CRIT_ARCH_004",
+            "criterion_title": "Adapter boundaries include inbox, outbox, idempotency, replay, and degradation posture",
+            "criterion_class": "architecture",
+            "required_artifact_refs": "[\"external_dependencies.json\", \"async_effect_proof_matrix.csv\", \"service_runtime_matrix.csv\"]",
+            "required_requirement_ids": "[\"REQ-OBJ-adapterdispatchattempt\", \"REQ-OBJ-adapterreceiptcheckpoint\", \"REQ-INV-028\"]",
+            "required_task_refs": "[\"seq_008\", \"seq_013\"]",
+            "required_dependency_refs": "[\"dep_nhs_login_rail\", \"dep_cross_org_secure_messaging_mesh\", \"dep_pharmacy_referral_transport\"]",
+            "required_risk_refs": "[\"RISK_BOOKING_002\", \"RISK_PHARMACY_001\"]",
+            "required_conformance_refs": "[]",
+            "auto_check_rule": "Async effect matrix rows must continue to expose inbox/outbox, idempotency, replay, and authoritative proof upgrades for integration paths.",
+            "manual_review_rule": "Any new external integration must add a first-class effect row before implementation may rely on it.",
+            "status": "pass",
+            "blocker_if_failed": "No Phase 0 entry while adapters are only named by vendor or transport and not by proof contract.",
+            "notes": "20 async effect lanes preserve outbox, inbox, idempotency, and replay law at the integration boundary.",
+            "gate_impact": "blocking",
+            "source_refs": "[\"prompt/020.md\", \"prompt/shared_operating_contract_016_to_020.md\", \"blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol\", \"blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture\", \"blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine\", \"blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls\", \"blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract\", \"blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract\", \"blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline\", \"blueprint/platform-admin-and-config-blueprint.md#Production promotion gate\", \"blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow\", \"blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard\", \"blueprint/forensic-audit-findings.md#Findings 95, 104-120\"]",
+            "waiver_ref": "",
+            "class_label": "Architecture"
+          },
+          {
+            "criterion_id": "CRIT_ARCH_005",
+            "criterion_title": "Unhappy-path invariants are planned from the start",
+            "criterion_class": "architecture",
+            "required_artifact_refs": "[\"state_machines.json\", \"request_lineage_transitions.json\", \"master_risk_register.json\"]",
+            "required_requirement_ids": "[\"REQ-INV-053\", \"REQ-TEST-phase-9-the-assurance-ledger-md-132\"]",
+            "required_task_refs": "[\"seq_005\", \"seq_007\", \"seq_018\"]",
+            "required_dependency_refs": "[]",
+            "required_risk_refs": "[\"HZ_DUPLICATE_SUPPRESSION_OR_MERGE\", \"HZ_URGENT_DIVERSION_UNDER_OR_OVER_TRIAGE\", \"HZ_WRONG_PATIENT_BINDING\"]",
+            "required_conformance_refs": "[]",
+            "auto_check_rule": "State-machine and lineage packs continue to name duplicate replay, quarantine, fallback review, repair hold, and confirmation-gate blocking paths.",
+            "manual_review_rule": "Treat any proposed 'happy-path only' foundation task as non-compliant until the unhappy-path state and proof obligations are added.",
+            "status": "pass",
+            "blocker_if_failed": "No Phase 0 entry while unhappy-path invariants remain late hardening.",
+            "notes": "State atlas still carries 82 conflict rows and the lineage model keeps 6 bounded gap rows explicit instead of hiding unhappy paths.",
+            "gate_impact": "blocking",
+            "source_refs": "[\"prompt/020.md\", \"prompt/shared_operating_contract_016_to_020.md\", \"blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol\", \"blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture\", \"blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine\", \"blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls\", \"blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract\", \"blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract\", \"blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline\", \"blueprint/platform-admin-and-config-blueprint.md#Production promotion gate\", \"blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow\", \"blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard\", \"blueprint/forensic-audit-findings.md#Findings 95, 104-120\"]",
+            "waiver_ref": "",
+            "class_label": "Architecture"
+          },
+          {
+            "criterion_id": "CRIT_DEP_002",
+            "criterion_title": "Current-baseline external-readiness gate is cleared for Phase 0 entry",
+            "criterion_class": "dependency_readiness",
+            "required_artifact_refs": "[\"external_dependencies.json\", \"external_assurance_obligations.csv\", \"dependency_simulator_strategy.json\", \"programme_milestones.json\", \"merge_gate_matrix.csv\", \"dependency_watchlist.json\", \"master_risk_register.json\"]",
+            "required_requirement_ids": "[]",
+            "required_task_refs": "[\"seq_021\", \"seq_022\", \"seq_023\", \"seq_024\", \"seq_025\", \"seq_026\", \"seq_028\", \"seq_031\", \"seq_032\", \"seq_033\", \"seq_034\", \"seq_035\", \"seq_036\", \"seq_037\", \"seq_038\", \"seq_039\", \"seq_040\"]",
+            "required_dependency_refs": "[\"dep_nhs_login_rail\", \"dep_im1_pairing_programme\", \"dep_cross_org_secure_messaging_mesh\"]",
+            "required_risk_refs": "[\"HZ_WRONG_PATIENT_BINDING\", \"HZ_TELEPHONY_EVIDENCE_INADEQUACY\", \"RISK_EXT_NHS_LOGIN_DELAY\", \"RISK_EXT_COMMS_VENDOR_DELAY\", \"RISK_EXT_IM1_SCAL_DELAY\"]",
+            "required_conformance_refs": "[\"PHASE_CONFORMANCE_ROW_PHASE_0\"]",
+            "auto_check_rule": "GATE_EXTERNAL_TO_FOUNDATION must no longer be blocked and the current-baseline onboarding dependencies named by that gate must not remain blocked or onboarding.",
+            "manual_review_rule": "Re-run the gate after seq_021-seq_040 and require explicit partner-path, simulator-freeze, and manual-checkpoint evidence.",
+            "status": "blocked",
+            "blocker_if_failed": "No Phase 0 entry until current-baseline external readiness and manual checkpoint truth are complete.",
+            "notes": "GATE_EXTERNAL_TO_FOUNDATION is still blocked; 17 current-baseline dependencies are still blocked or onboarding, including dep_nhs_login_rail, dep_im1_pairing_programme, and dep_cross_org_secure_messaging_mesh.",
+            "gate_impact": "blocking",
+            "source_refs": "[\"prompt/020.md\", \"prompt/shared_operating_contract_016_to_020.md\", \"blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol\", \"blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture\", \"blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine\", \"blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls\", \"blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract\", \"blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract\", \"blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline\", \"blueprint/platform-admin-and-config-blueprint.md#Production promotion gate\", \"blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow\", \"blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard\", \"blueprint/forensic-audit-findings.md#Findings 95, 104-120\"]",
+            "waiver_ref": "",
+            "class_label": "Dependency"
+          },
+          {
+            "criterion_id": "CRIT_DEP_001",
+            "criterion_title": "External dependency inventory and simulator strategy are defined",
+            "criterion_class": "dependency_readiness",
+            "required_artifact_refs": "[\"external_dependencies.json\", \"external_assurance_obligations.csv\", \"dependency_simulator_strategy.json\"]",
+            "required_requirement_ids": "[]",
+            "required_task_refs": "[\"seq_008\"]",
+            "required_dependency_refs": "[\"dep_nhs_login_rail\", \"dep_im1_pairing_programme\", \"dep_cross_org_secure_messaging_mesh\"]",
+            "required_risk_refs": "[\"RISK_EXT_NHS_LOGIN_DELAY\", \"RISK_EXT_IM1_SCAL_DELAY\", \"RISK_EXT_COMMS_VENDOR_DELAY\"]",
+            "required_conformance_refs": "[]",
+            "auto_check_rule": "Dependency inventory, assurance obligations, and simulator strategy exist and remain current-baseline aware.",
+            "manual_review_rule": "Keep optional PDS and deferred NHS App evidence inventoried but non-blocking unless scope changes explicitly.",
+            "status": "pass",
+            "blocker_if_failed": "No Phase 0 entry while dependency shape or simulator posture is undefined.",
+            "notes": "20 dependencies, 60 assurance obligations, and 12 future browser-automation rows are published.",
+            "gate_impact": "blocking",
+            "source_refs": "[\"prompt/020.md\", \"prompt/shared_operating_contract_016_to_020.md\", \"blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol\", \"blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture\", \"blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine\", \"blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls\", \"blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract\", \"blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract\", \"blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline\", \"blueprint/platform-admin-and-config-blueprint.md#Production promotion gate\", \"blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow\", \"blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard\", \"blueprint/forensic-audit-findings.md#Findings 95, 104-120\"]",
+            "waiver_ref": "",
+            "class_label": "Dependency"
+          },
+          {
+            "criterion_id": "CRIT_ASSURANCE_001",
+            "criterion_title": "Safety, privacy, regulatory, and change-control workstreams are opened",
+            "criterion_class": "assurance_readiness",
+            "required_artifact_refs": "[\"regulatory_workstreams.json\", \"safety_hazard_register_seed.csv\", \"cross_phase_conformance_seed.json\"]",
+            "required_requirement_ids": "[\"REQ-INV-053\", \"REQ-TEST-phase-9-the-assurance-ledger-md-132\"]",
+            "required_task_refs": "[\"seq_009\"]",
+            "required_dependency_refs": "[\"dep_nhs_assurance_and_standards_sources\"]",
+            "required_risk_refs": "[\"HZ_WRONG_PATIENT_BINDING\", \"HZ_URGENT_DIVERSION_UNDER_OR_OVER_TRIAGE\"]",
+            "required_conformance_refs": "[\"PHASE_CONFORMANCE_ROW_PHASE_0\"]",
+            "auto_check_rule": "Regulatory workstreams, evidence schedule, hazard seed, and change-control triggers must still exist with zero unresolved gaps.",
+            "manual_review_rule": "Treat later supplier onboarding evidence as a continuation of these workstreams, not as a substitute for them.",
+            "status": "pass",
+            "blocker_if_failed": "No Phase 0 entry while assurance workstreams are implicit or unowned.",
+            "notes": "13 workstreams, 24 scheduled evidence artifacts, and 11 seeded hazards are active.",
+            "gate_impact": "blocking",
+            "source_refs": "[\"prompt/020.md\", \"prompt/shared_operating_contract_016_to_020.md\", \"blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol\", \"blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture\", \"blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine\", \"blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls\", \"blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract\", \"blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract\", \"blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline\", \"blueprint/platform-admin-and-config-blueprint.md#Production promotion gate\", \"blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow\", \"blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard\", \"blueprint/forensic-audit-findings.md#Findings 95, 104-120\"]",
+            "waiver_ref": "",
+            "class_label": "Assurance"
+          },
+          {
+            "criterion_id": "CRIT_PRIV_001",
+            "criterion_title": "Data-classification, disclosure, and security posture are frozen enough for implementation",
+            "criterion_class": "privacy_security",
+            "required_artifact_refs": "[\"field_sensitivity_catalog.json\", \"audit_event_disclosure_matrix.csv\", \"security_control_matrix.csv\"]",
+            "required_requirement_ids": "[]",
+            "required_task_refs": "[\"seq_010\", \"seq_015\"]",
+            "required_dependency_refs": "[]",
+            "required_risk_refs": "[\"HZ_WRONG_PATIENT_BINDING\"]",
+            "required_conformance_refs": "[]",
+            "auto_check_rule": "Field sensitivity, disclosure, and baseline security control matrices still exist and have non-empty rows.",
+            "manual_review_rule": "If new PHI or sensitive event families are added in Phase 0, extend disclosure and redaction contracts before implementation ships them.",
+            "status": "pass",
+            "blocker_if_failed": "No Phase 0 entry while privacy and disclosure boundaries are undefined.",
+            "notes": "29 field sensitivity rows, 11 audit disclosure rows, and 14 security controls define minimum-necessary posture.",
+            "gate_impact": "blocking",
+            "source_refs": "[\"prompt/020.md\", \"prompt/shared_operating_contract_016_to_020.md\", \"blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol\", \"blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture\", \"blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine\", \"blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls\", \"blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract\", \"blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract\", \"blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline\", \"blueprint/platform-admin-and-config-blueprint.md#Production promotion gate\", \"blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow\", \"blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard\", \"blueprint/forensic-audit-findings.md#Findings 95, 104-120\"]",
+            "waiver_ref": "",
+            "class_label": "Privacy/Security"
+          },
+          {
+            "criterion_id": "CRIT_RUNTIME_001",
+            "criterion_title": "Cloud, runtime, backend, and gateway baselines are chosen",
+            "criterion_class": "runtime_baseline",
+            "required_artifact_refs": "[\"runtime_workload_families.json\", \"service_runtime_matrix.csv\", \"gateway_surface_matrix.csv\"]",
+            "required_requirement_ids": "[\"REQ-OBJ-lifecyclecoordinator\", \"REQ-INV-012\", \"GAP-FINDING-045\", \"REQ-OBJ-runtimepublicationbundle\", \"REQ-OBJ-designcontractpublicationbundle\", \"REQ-OBJ-designcontractlintverdict\", \"REQ-INV-059\", \"REQ-INV-061\"]",
+            "required_task_refs": "[\"seq_011\", \"seq_013\", \"seq_014\"]",
+            "required_dependency_refs": "[]",
+            "required_risk_refs": "[\"RISK_RUNTIME_001\"]",
+            "required_conformance_refs": "[\"PHASE_CONFORMANCE_ROW_PHASE_0\"]",
+            "auto_check_rule": "Runtime topology, backend runtime matrix, and gateway surface split remain published for the current baseline.",
+            "manual_review_rule": "Do not allow cloud, service, or gateway changes to bypass the published workload-family and tenant-scope model.",
+            "status": "pass",
+            "blocker_if_failed": "No Phase 0 entry while runtime topology or authoritative service split is unresolved.",
+            "notes": "49 workload rows, 21 runtime components, and 22 gateway surfaces are frozen.",
+            "gate_impact": "blocking",
+            "source_refs": "[\"prompt/020.md\", \"prompt/shared_operating_contract_016_to_020.md\", \"blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol\", \"blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture\", \"blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine\", \"blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls\", \"blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract\", \"blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract\", \"blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline\", \"blueprint/platform-admin-and-config-blueprint.md#Production promotion gate\", \"blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow\", \"blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard\", \"blueprint/forensic-audit-findings.md#Findings 95, 104-120\"]",
+            "waiver_ref": "",
+            "class_label": "Runtime"
+          },
+          {
+            "criterion_id": "CRIT_RUNTIME_002",
+            "criterion_title": "Trust slices, watch tuples, recovery posture, and publication parity are foundational",
+            "criterion_class": "runtime_baseline",
+            "required_artifact_refs": "[\"release_gate_matrix.csv\", \"runtime_workload_families.json\", \"master_risk_register.json\", \"cross_phase_conformance_seed.json\"]",
+            "required_requirement_ids": "[\"REQ-OBJ-runtimepublicationbundle\", \"REQ-OBJ-designcontractpublicationbundle\", \"REQ-OBJ-designcontractlintverdict\", \"REQ-INV-059\", \"REQ-INV-061\", \"REQ-INV-053\", \"REQ-TEST-phase-9-the-assurance-ledger-md-132\"]",
+            "required_task_refs": "[\"seq_011\", \"seq_013\", \"seq_015\", \"seq_018\"]",
+            "required_dependency_refs": "[\"dep_release_publication_tuple_pipeline\", \"dep_restore_rehearsal_evidence\"]",
+            "required_risk_refs": "[\"RISK_RUNTIME_001\", \"FINDING_095\", \"FINDING_118\", \"RISK_ASSURANCE_001\"]",
+            "required_conformance_refs": "[\"PHASE_CONFORMANCE_ROW_PHASE_0\"]",
+            "auto_check_rule": "Release gate matrix must still bind runtime publication, parity, continuity, and recovery posture as one tuple.",
+            "manual_review_rule": "If a new surface or route enters scope, extend the tuple and proof chain rather than introducing a local watch surface.",
+            "status": "pass",
+            "blocker_if_failed": "No Phase 0 entry while publication parity, trust, or recovery posture are treated as later hardening.",
+            "notes": "6 release gates keep publication parity, continuity, and recovery posture in one ladder.",
+            "gate_impact": "blocking",
+            "source_refs": "[\"prompt/020.md\", \"prompt/shared_operating_contract_016_to_020.md\", \"blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol\", \"blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture\", \"blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine\", \"blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls\", \"blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract\", \"blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract\", \"blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline\", \"blueprint/platform-admin-and-config-blueprint.md#Production promotion gate\", \"blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow\", \"blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard\", \"blueprint/forensic-audit-findings.md#Findings 95, 104-120\"]",
+            "waiver_ref": "",
+            "class_label": "Runtime"
+          },
+          {
+            "criterion_id": "CRIT_FE_001",
+            "criterion_title": "Shell scaffolding obeys persistent-shell and visibility law",
+            "criterion_class": "frontend_baseline",
+            "required_artifact_refs": "[\"frontend_stack_scorecard.csv\", \"ui_contract_publication_matrix.csv\", \"playwright_coverage_matrix.csv\", \"audience_surface_inventory.csv\"]",
+            "required_requirement_ids": "[\"REQ-OBJ-persistentshell\", \"REQ-OBJ-audiencesurfaceruntimebinding\", \"REQ-INV-044\", \"REQ-INV-062\", \"REQ-OBJ-runtimepublicationbundle\", \"REQ-OBJ-designcontractpublicationbundle\", \"REQ-OBJ-designcontractlintverdict\", \"REQ-INV-059\", \"REQ-INV-061\"]",
+            "required_task_refs": "[\"seq_004\", \"seq_014\"]",
+            "required_dependency_refs": "[]",
+            "required_risk_refs": "[\"RISK_UI_001\", \"RISK_ASSURANCE_001\"]",
+            "required_conformance_refs": "[]",
+            "auto_check_rule": "Chosen frontend stack, publication bundle matrix, coverage matrix, and audience inventory must still expose same-shell and visibility markers.",
+            "manual_review_rule": "Reject any Phase 0 shell task that introduces page silos, detached mini-shells, or route-local truth.",
+            "status": "pass",
+            "blocker_if_failed": "No Phase 0 entry while shell scaffolding is still prototype freedom.",
+            "notes": "React + TypeScript + Vite + typed client router remains chosen with 12 browser coverage rows and published route markers.",
+            "gate_impact": "blocking",
+            "source_refs": "[\"prompt/020.md\", \"prompt/shared_operating_contract_016_to_020.md\", \"blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol\", \"blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture\", \"blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine\", \"blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls\", \"blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract\", \"blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract\", \"blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline\", \"blueprint/platform-admin-and-config-blueprint.md#Production promotion gate\", \"blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow\", \"blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard\", \"blueprint/forensic-audit-findings.md#Findings 95, 104-120\"]",
+            "waiver_ref": "",
+            "class_label": "Frontend"
+          },
+          {
+            "criterion_id": "CRIT_FE_002",
+            "criterion_title": "Design-contract publication is treated as a foundation contract, not a sidecar",
+            "criterion_class": "frontend_baseline",
+            "required_artifact_refs": "[\"ui_contract_publication_matrix.csv\", \"release_gate_matrix.csv\", \"adr_index.json\"]",
+            "required_requirement_ids": "[\"REQ-OBJ-runtimepublicationbundle\", \"REQ-OBJ-designcontractpublicationbundle\", \"REQ-OBJ-designcontractlintverdict\", \"REQ-INV-059\", \"REQ-INV-061\"]",
+            "required_task_refs": "[\"seq_014\", \"seq_015\", \"seq_016\"]",
+            "required_dependency_refs": "[]",
+            "required_risk_refs": "[\"FINDING_118\", \"RISK_RUNTIME_001\"]",
+            "required_conformance_refs": "[\"PHASE_CONFORMANCE_ROW_PHASE_0\"]",
+            "auto_check_rule": "Design-contract publication members, route markers, and release-gate bundle requirements must remain part of the published runtime tuple.",
+            "manual_review_rule": "Any token, marker, or state-semantics drift must fail publication rather than being carried by local snapshots.",
+            "status": "pass",
+            "blocker_if_failed": "No Phase 0 entry while design-contract publication can drift outside runtime publication.",
+            "notes": "8 bundle members keep token export, markers, and lint verdicts inside runtime publication.",
+            "gate_impact": "blocking",
+            "source_refs": "[\"prompt/020.md\", \"prompt/shared_operating_contract_016_to_020.md\", \"blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol\", \"blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture\", \"blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine\", \"blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls\", \"blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract\", \"blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract\", \"blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline\", \"blueprint/platform-admin-and-config-blueprint.md#Production promotion gate\", \"blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow\", \"blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard\", \"blueprint/forensic-audit-findings.md#Findings 95, 104-120\"]",
+            "waiver_ref": "",
+            "class_label": "Frontend"
+          },
+          {
+            "criterion_id": "CRIT_TOOL_001",
+            "criterion_title": "Release freeze, provenance, and verification ladder are foundational",
+            "criterion_class": "tooling_baseline",
+            "required_artifact_refs": "[\"tooling_scorecard.csv\", \"release_gate_matrix.csv\", \"supply_chain_and_provenance_matrix.json\"]",
+            "required_requirement_ids": "[\"REQ-OBJ-runtimepublicationbundle\", \"REQ-OBJ-designcontractpublicationbundle\", \"REQ-OBJ-designcontractlintverdict\", \"REQ-INV-059\", \"REQ-INV-061\"]",
+            "required_task_refs": "[\"seq_015\"]",
+            "required_dependency_refs": "[\"dep_hsm_signing_key_provisioning\"]",
+            "required_risk_refs": "[\"GAP_015_HSM_SIGNING_KEY_PROVISIONING\"]",
+            "required_conformance_refs": "[]",
+            "auto_check_rule": "Tooling baseline and release gate matrix must remain published, with provenance and signing law encoded into the release ladder.",
+            "manual_review_rule": "Before 0G exit or any release candidate freeze, bind the concrete HSM-backed signing-key path and publish the owning runbook.",
+            "status": "review_required",
+            "blocker_if_failed": "No Phase 0 exit or release candidate promotion without signing-key authority bound.",
+            "notes": "Tooling baseline is chosen, but the HSM-backed signing key remains an explicit provisioning seam carried forward from seq_015/seq_016.",
+            "gate_impact": "warning",
+            "source_refs": "[\"prompt/020.md\", \"prompt/shared_operating_contract_016_to_020.md\", \"blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol\", \"blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture\", \"blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine\", \"blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls\", \"blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract\", \"blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract\", \"blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline\", \"blueprint/platform-admin-and-config-blueprint.md#Production promotion gate\", \"blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow\", \"blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard\", \"blueprint/forensic-audit-findings.md#Findings 95, 104-120\"]",
+            "waiver_ref": "",
+            "class_label": "Tooling"
+          },
+          {
+            "criterion_id": "CRIT_TOOL_002",
+            "criterion_title": "Operational evidence routing exists, but concrete alert destinations still need binding",
+            "criterion_class": "tooling_baseline",
+            "required_artifact_refs": "[\"incident_and_alert_routing_matrix.csv\", \"tooling_scorecard.csv\", \"master_risk_register.json\"]",
+            "required_requirement_ids": "[\"REQ-INV-053\", \"REQ-TEST-phase-9-the-assurance-ledger-md-132\"]",
+            "required_task_refs": "[\"seq_015\", \"seq_018\"]",
+            "required_dependency_refs": "[\"dep_alert_destination_binding\"]",
+            "required_risk_refs": "[\"GAP_015_ALERT_DESTINATION_BINDING\"]",
+            "required_conformance_refs": "[]",
+            "auto_check_rule": "Alert-routing matrix and evidence-board tooling baseline exist for essential functions and incident families.",
+            "manual_review_rule": "Before 0G exit or live operational readiness claims, bind concrete tenant and owner destinations for the named alert routes.",
+            "status": "review_required",
+            "blocker_if_failed": "No Phase 0 exit or operational-readiness claim without concrete alert destinations.",
+            "notes": "Alert families and on-call routes are published, but the final tenant and service-owner binding remains intentionally open.",
+            "gate_impact": "warning",
+            "source_refs": "[\"prompt/020.md\", \"prompt/shared_operating_contract_016_to_020.md\", \"blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol\", \"blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture\", \"blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine\", \"blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls\", \"blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract\", \"blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract\", \"blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline\", \"blueprint/platform-admin-and-config-blueprint.md#Production promotion gate\", \"blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow\", \"blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard\", \"blueprint/forensic-audit-findings.md#Findings 95, 104-120\"]",
+            "waiver_ref": "",
+            "class_label": "Tooling"
+          },
+          {
+            "criterion_id": "CRIT_RISK_001",
+            "criterion_title": "Risk register and dependency watchlist are published with exact blocking posture",
+            "criterion_class": "risk_posture",
+            "required_artifact_refs": "[\"master_risk_register.json\", \"dependency_watchlist.json\", \"programme_milestones.json\"]",
+            "required_requirement_ids": "[]",
+            "required_task_refs": "[\"seq_017\", \"seq_018\"]",
+            "required_dependency_refs": "[\"dep_nhs_login_rail\", \"dep_im1_pairing_programme\", \"dep_cross_org_secure_messaging_mesh\"]",
+            "required_risk_refs": "[\"RISK_EXT_NHS_LOGIN_DELAY\", \"RISK_EXT_IM1_SCAL_DELAY\", \"RISK_EXT_COMMS_VENDOR_DELAY\", \"HZ_WRONG_PATIENT_BINDING\", \"HZ_TELEPHONY_EVIDENCE_INADEQUACY\"]",
+            "required_conformance_refs": "[]",
+            "auto_check_rule": "Master risk register and dependency watchlist must still expose current blocking gate-impact rows for Phase 0.",
+            "manual_review_rule": "Do not convert open blocking risks into narrative confidence; either close them or leave the gate withheld.",
+            "status": "pass",
+            "blocker_if_failed": "No Phase 0 entry while the risk posture is implicit or blocker-free by omission.",
+            "notes": "60 risks and 26 dependency watch rows keep 5 external-readiness blocking risks explicit.",
+            "gate_impact": "blocking",
+            "source_refs": "[\"prompt/020.md\", \"prompt/shared_operating_contract_016_to_020.md\", \"blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol\", \"blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture\", \"blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine\", \"blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls\", \"blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract\", \"blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract\", \"blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline\", \"blueprint/platform-admin-and-config-blueprint.md#Production promotion gate\", \"blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow\", \"blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard\", \"blueprint/forensic-audit-findings.md#Findings 95, 104-120\"]",
+            "waiver_ref": "",
+            "class_label": "Risk"
+          },
+          {
+            "criterion_id": "CRIT_TRACE_001",
+            "criterion_title": "Requirement-to-task traceability is established before implementation",
+            "criterion_class": "traceability",
+            "required_artifact_refs": "[\"coverage_summary.json\", \"requirement_task_traceability.csv\"]",
+            "required_requirement_ids": "[]",
+            "required_task_refs": "[\"seq_019\"]",
+            "required_dependency_refs": "[]",
+            "required_risk_refs": "[]",
+            "required_conformance_refs": "[]",
+            "auto_check_rule": "Coverage summary must keep current-baseline requirement gaps at zero and map the full canonical corpus to tasks.",
+            "manual_review_rule": "If new implementation tasks appear without trace rows, regenerate the map before allowing the gate to move.",
+            "status": "pass",
+            "blocker_if_failed": "No Phase 0 entry while traceability is inferred from roadmap titles alone.",
+            "notes": "1453 requirements are grounded across 489 tasks with 0 current-baseline gaps.",
+            "gate_impact": "blocking",
+            "source_refs": "[\"prompt/020.md\", \"prompt/shared_operating_contract_016_to_020.md\", \"blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol\", \"blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture\", \"blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine\", \"blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls\", \"blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract\", \"blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract\", \"blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline\", \"blueprint/platform-admin-and-config-blueprint.md#Production promotion gate\", \"blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow\", \"blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard\", \"blueprint/forensic-audit-findings.md#Findings 95, 104-120\"]",
+            "waiver_ref": "",
+            "class_label": "Traceability"
+          },
+          {
+            "criterion_id": "CRIT_CONF_001",
+            "criterion_title": "Phase 0 conformance seed names the exact control conflicts and required tuples",
+            "criterion_class": "conformance",
+            "required_artifact_refs": "[\"cross_phase_conformance_seed.json\", \"summary_reconciliation_matrix.csv\", \"adr_index.json\"]",
+            "required_requirement_ids": "[\"REQ-OBJ-runtimepublicationbundle\", \"REQ-OBJ-designcontractpublicationbundle\", \"REQ-OBJ-designcontractlintverdict\", \"REQ-INV-059\", \"REQ-INV-061\", \"REQ-OBJ-routeintentbinding\", \"REQ-OBJ-commandactionrecord\", \"REQ-OBJ-commandsettlementrecord\", \"REQ-EDGE-ROUTE-INTENT-AND-SETTLEMENT\", \"REQ-INV-025\", \"REQ-INV-035\", \"REQ-INV-036\", \"REQ-INV-037\"]",
+            "required_task_refs": "[\"seq_002\", \"seq_016\"]",
+            "required_dependency_refs": "[]",
+            "required_risk_refs": "[\"RISK_MUTATION_001\", \"RISK_RUNTIME_001\", \"RISK_STATE_001\", \"RISK_STATE_002\", \"RISK_STATE_003\", \"RISK_STATE_004\", \"RISK_STATE_005\"]",
+            "required_conformance_refs": "[\"PHASE_CONFORMANCE_ROW_PHASE_0\", \"CROSS_PHASE_CONFORMANCE_SCORECARD_CURRENT_BASELINE\"]",
+            "auto_check_rule": "Phase 0 conformance seed still aligns with recorded decisions and enumerates required runtime publication tuples and blocking conflicts.",
+            "manual_review_rule": "Treat the live PhaseConformanceRow as a later exit-proof artifact, but do not let the seed drift before implementation begins.",
+            "status": "pass",
+            "blocker_if_failed": "No Phase 0 entry while conformance posture is narrative-only or missing tuple law.",
+            "notes": "Phase 0 seed row keeps 10 blocking conflicts and 5 required runtime publication tuples explicit.",
+            "gate_impact": "blocking",
+            "source_refs": "[\"prompt/020.md\", \"prompt/shared_operating_contract_016_to_020.md\", \"blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol\", \"blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture\", \"blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine\", \"blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls\", \"blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract\", \"blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract\", \"blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline\", \"blueprint/platform-admin-and-config-blueprint.md#Production promotion gate\", \"blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow\", \"blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard\", \"blueprint/forensic-audit-findings.md#Findings 95, 104-120\"]",
+            "waiver_ref": "",
+            "class_label": "Conformance"
+          },
+          {
+            "criterion_id": "CRIT_CONF_002",
+            "criterion_title": "Programme graph operationalizes internal Phase 0 gates instead of implying them",
+            "criterion_class": "conformance",
+            "required_artifact_refs": "[\"programme_milestones.json\", \"merge_gate_matrix.csv\", \"critical_path_summary.json\"]",
+            "required_requirement_ids": "[]",
+            "required_task_refs": "[\"seq_017\"]",
+            "required_dependency_refs": "[]",
+            "required_risk_refs": "[\"RISK_DEPENDENCY_HYGIENE_WATCHLIST_DRIFT\"]",
+            "required_conformance_refs": "[\"PHASE_CONFORMANCE_ROW_PHASE_0\"]",
+            "auto_check_rule": "Programme graph must continue to expose seven Phase 0 sub-phases, long-lead tracks, and the later parallel-open gate.",
+            "manual_review_rule": "Keep new Phase 0 tasks bound to the named sub-phases; do not add unofficial side paths that bypass the gate map.",
+            "status": "pass",
+            "blocker_if_failed": "No Phase 0 entry while internal gates are still prose-only.",
+            "notes": "7 sub-phases and 38 merge gates already exist; seq_020 turns the entry verdict into an evidence-backed decision.",
+            "gate_impact": "blocking",
+            "source_refs": "[\"prompt/020.md\", \"prompt/shared_operating_contract_016_to_020.md\", \"blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol\", \"blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture\", \"blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine\", \"blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls\", \"blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract\", \"blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract\", \"blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline\", \"blueprint/platform-admin-and-config-blueprint.md#Production promotion gate\", \"blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow\", \"blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard\", \"blueprint/forensic-audit-findings.md#Findings 95, 104-120\"]",
+            "waiver_ref": "",
+            "class_label": "Conformance"
+          }
+        ],
+        "blockers": [
+          {
+            "blocker_id": "BLOCKER_P0_EXT_GATE_BLOCKED",
+            "criterion_id": "CRIT_DEP_002",
+            "criterion_title": "Current-baseline external-readiness gate is cleared for Phase 0 entry",
+            "criterion_class": "dependency_readiness",
+            "blocker_state": "blocked",
+            "severity": "high",
+            "summary": "Current-baseline external-readiness gate is still blocked, so 0A may not start.",
+            "required_action": "Complete seq_021-seq_040, publish the integration assumption freeze, and re-evaluate GATE_EXTERNAL_TO_FOUNDATION.",
+            "linked_artifact_refs": "[\"programme_milestones.json\", \"merge_gate_matrix.csv\", \"external_dependencies.json\"]",
+            "linked_dependency_refs": "[\"dep_nhs_login_rail\", \"dep_im1_pairing_programme\", \"dep_cross_org_secure_messaging_mesh\"]",
+            "linked_risk_refs": "[\"RISK_EXT_NHS_LOGIN_DELAY\", \"RISK_EXT_IM1_SCAL_DELAY\", \"RISK_EXT_COMMS_VENDOR_DELAY\"]",
+            "required_task_refs": "[\"seq_021\", \"seq_022\", \"seq_023\", \"seq_024\", \"seq_025\", \"seq_026\", \"seq_028\", \"seq_031\", \"seq_032\", \"seq_033\", \"seq_034\", \"seq_035\", \"seq_036\", \"seq_037\", \"seq_038\", \"seq_039\", \"seq_040\"]",
+            "due_gate_ref": "GATE_P0_FOUNDATION_ENTRY",
+            "notes": "This is the principal current-state blocker for Phase 0 entry."
+          },
+          {
+            "blocker_id": "BLOCKER_P0_IDENTITY_AND_WRONG_PATIENT_PROOF",
+            "criterion_id": "CRIT_DEP_002",
+            "criterion_title": "Current-baseline external-readiness gate is cleared for Phase 0 entry",
+            "criterion_class": "dependency_readiness",
+            "blocker_state": "blocked",
+            "severity": "high",
+            "summary": "Identity, onboarding, and wrong-patient safeguards still depend on external proof not yet captured.",
+            "required_action": "Publish NHS login onboarding evidence, IM1 prerequisite proof, and explicit wrong-patient mitigation evidence before moving the gate.",
+            "linked_artifact_refs": "[\"external_assurance_obligations.csv\", \"regulatory_workstreams.json\", \"master_risk_register.json\"]",
+            "linked_dependency_refs": "[\"dep_nhs_login_rail\", \"dep_im1_pairing_programme\"]",
+            "linked_risk_refs": "[\"HZ_WRONG_PATIENT_BINDING\", \"RISK_EXT_NHS_LOGIN_DELAY\", \"RISK_EXT_IM1_SCAL_DELAY\"]",
+            "required_task_refs": "[\"seq_021\", \"seq_023\", \"seq_024\", \"seq_025\", \"seq_031\", \"seq_032\", \"seq_033\", \"seq_034\", \"seq_035\", \"seq_039\", \"seq_040\"]",
+            "due_gate_ref": "GATE_P0_FOUNDATION_ENTRY",
+            "notes": "Phase 0 entry may not outrun the explicit identity and assurance onboarding chain."
+          },
+          {
+            "blocker_id": "BLOCKER_P0_TELEPHONY_AND_MESH_READINESS",
+            "criterion_id": "CRIT_DEP_002",
+            "criterion_title": "Current-baseline external-readiness gate is cleared for Phase 0 entry",
+            "criterion_class": "dependency_readiness",
+            "blocker_state": "blocked",
+            "severity": "high",
+            "summary": "Telephony, communications, and secure-messaging partner paths are still onboarding, leaving evidence capture and callback rails incomplete.",
+            "required_action": "Finish vendor scorecards, account strategy, simulator freeze, and secure-messaging readiness evidence before Phase 0 entry.",
+            "linked_artifact_refs": "[\"external_dependencies.json\", \"external_assurance_obligations.csv\", \"dependency_watchlist.json\", \"master_risk_register.json\"]",
+            "linked_dependency_refs": "[\"dep_cross_org_secure_messaging_mesh\", \"dep_telephony_ivr_recording_provider\", \"dep_sms_notification_provider\", \"dep_email_notification_provider\", \"dep_transcription_processing_provider\", \"dep_malware_scanning_provider\"]",
+            "linked_risk_refs": "[\"HZ_TELEPHONY_EVIDENCE_INADEQUACY\", \"RISK_EXT_COMMS_VENDOR_DELAY\"]",
+            "required_task_refs": "[\"seq_021\", \"seq_022\", \"seq_023\", \"seq_031\", \"seq_032\", \"seq_033\", \"seq_034\", \"seq_035\", \"seq_038\", \"seq_039\", \"seq_040\"]",
+            "due_gate_ref": "GATE_P0_FOUNDATION_ENTRY",
+            "notes": "The external-readiness gate remains evidence-driven, not supplier-optimistic."
+          },
+          {
+            "blocker_id": "WARNING_P0_HSM_SIGNING_KEY",
+            "criterion_id": "CRIT_TOOL_001",
+            "criterion_title": "Release freeze, provenance, and verification ladder are foundational",
+            "criterion_class": "tooling_baseline",
+            "blocker_state": "warning",
+            "severity": "medium",
+            "summary": "HSM-backed signing key provisioning is intentionally still open.",
+            "required_action": "Bind the concrete signing-key path before 0G exit and any release-candidate freeze.",
+            "linked_artifact_refs": "[\"tooling_scorecard.csv\", \"release_gate_matrix.csv\", \"supply_chain_and_provenance_matrix.json\"]",
+            "linked_dependency_refs": "[\"dep_hsm_signing_key_provisioning\"]",
+            "linked_risk_refs": "[\"GAP_015_HSM_SIGNING_KEY_PROVISIONING\"]",
+            "required_task_refs": "[\"seq_132\", \"seq_133\", \"seq_134\", \"seq_137\"]",
+            "due_gate_ref": "GATE_P0_EXIT",
+            "notes": "This is a bounded warning for entry, but a hard requirement later in Phase 0."
+          },
+          {
+            "blocker_id": "WARNING_P0_ALERT_DESTINATION_BINDING",
+            "criterion_id": "CRIT_TOOL_002",
+            "criterion_title": "Operational evidence routing exists, but concrete alert destinations still need binding",
+            "criterion_class": "tooling_baseline",
+            "blocker_state": "warning",
+            "severity": "medium",
+            "summary": "Alert destinations and owner bindings are modeled but not yet concretely provisioned.",
+            "required_action": "Bind tenant- and service-owner-specific alert destinations before 0G exit and live operational-readiness claims.",
+            "linked_artifact_refs": "[\"incident_and_alert_routing_matrix.csv\", \"tooling_scorecard.csv\", \"master_risk_register.json\"]",
+            "linked_dependency_refs": "[\"dep_alert_destination_binding\"]",
+            "linked_risk_refs": "[\"GAP_015_ALERT_DESTINATION_BINDING\"]",
+            "required_task_refs": "[\"seq_132\", \"seq_133\", \"seq_137\"]",
+            "due_gate_ref": "GATE_P0_EXIT",
+            "notes": "Bounded entry warning only; not a substitute for later operational proof."
+          }
+        ],
+        "evidence": [
+          {
+            "artifact_ref": "requirement_registry.jsonl",
+            "title": "Canonical requirement registry",
+            "artifact_class": "source_truth",
+            "relative_path": "data/analysis/requirement_registry.jsonl",
+            "upstream_task_ref": "seq_001",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "a8a42526db2c87643d1f96fc7f4093e06595c7e85a727df4b9880854a2d6debf",
+            "last_modified_utc": "2026-04-08T21:02:20Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Requirement corpus frozen."
+          },
+          {
+            "artifact_ref": "source_manifest.json",
+            "title": "Source manifest",
+            "artifact_class": "source_truth",
+            "relative_path": "data/analysis/source_manifest.json",
+            "upstream_task_ref": "seq_001",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "02e883048474381999ca08651ed0e75263b349917d674f4bb813fe6eb806aa30",
+            "last_modified_utc": "2026-04-08T21:02:20Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Blueprint source inventory and precedence."
+          },
+          {
+            "artifact_ref": "summary_reconciliation_matrix.csv",
+            "title": "Summary reconciliation matrix",
+            "artifact_class": "source_truth",
+            "relative_path": "data/analysis/summary_reconciliation_matrix.csv",
+            "upstream_task_ref": "seq_002",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "38d4ea295c273d7b8f3593dbf1ec352459c273092c18b87b11bc89e81e0ea1e7",
+            "last_modified_utc": "2026-04-08T21:13:56Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Recorded terminology and summary-layer alignments."
+          },
+          {
+            "artifact_ref": "cross_phase_conformance_seed.json",
+            "title": "Cross-phase conformance seed",
+            "artifact_class": "conformance",
+            "relative_path": "data/analysis/cross_phase_conformance_seed.json",
+            "upstream_task_ref": "seq_002",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "e1c1edb48a7a7bfd1e8ae362337bfc58ef109d04ba6df0b2da4b867980294ce6",
+            "last_modified_utc": "2026-04-08T21:13:56Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Phase 0 and cross-phase conformance seed rows."
+          },
+          {
+            "artifact_ref": "product_scope_matrix.json",
+            "title": "Current and deferred scope baseline",
+            "artifact_class": "scope",
+            "relative_path": "data/analysis/product_scope_matrix.json",
+            "upstream_task_ref": "seq_003",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "0c2cbf1fe5557741ab6683078be1a9f93b7d4f48e37e0bab71c988c2b7cb9ab7",
+            "last_modified_utc": "2026-04-08T21:28:07Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Phase 7 stays deferred and optional PDS stays conditional."
+          },
+          {
+            "artifact_ref": "audience_surface_inventory.csv",
+            "title": "Audience and shell inventory",
+            "artifact_class": "architecture",
+            "relative_path": "data/analysis/audience_surface_inventory.csv",
+            "upstream_task_ref": "seq_004",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "494f1af66dec95d543fd51808d3e61f6857926be0d42e0500d830ff19bb4863e",
+            "last_modified_utc": "2026-04-08T21:50:57Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Audience, shell, and route-family freeze."
+          },
+          {
+            "artifact_ref": "request_lineage_transitions.json",
+            "title": "Request lineage model",
+            "artifact_class": "architecture",
+            "relative_path": "data/analysis/request_lineage_transitions.json",
+            "upstream_task_ref": "seq_005",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "3e87527335400e12d73b8bcf13c14c4dc8c731643adcef6367324c2320deb904",
+            "last_modified_utc": "2026-04-08T22:25:27Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Canonical lineage, gap register, and endpoint matrix."
+          },
+          {
+            "artifact_ref": "object_catalog.json",
+            "title": "Canonical object catalog",
+            "artifact_class": "architecture",
+            "relative_path": "data/analysis/object_catalog.json",
+            "upstream_task_ref": "seq_006",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "66a8e5581e72a2371d47f5ab9b5d9991a964ad473e11717430a5bb7bb19b145c",
+            "last_modified_utc": "2026-04-08T22:52:30Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Vecells object inventory and alias freeze."
+          },
+          {
+            "artifact_ref": "state_machines.json",
+            "title": "State-machine atlas",
+            "artifact_class": "architecture",
+            "relative_path": "data/analysis/state_machines.json",
+            "upstream_task_ref": "seq_007",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "0f2138ac48a571e2ff37313c870224aa6ca773e3ffc4124dff2b48122f51f054",
+            "last_modified_utc": "2026-04-09T00:27:14Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "State, transition, invariant, and conflict atlas."
+          },
+          {
+            "artifact_ref": "external_dependencies.json",
+            "title": "External dependency inventory",
+            "artifact_class": "dependency_readiness",
+            "relative_path": "data/analysis/external_dependencies.json",
+            "upstream_task_ref": "seq_008",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "01fbdfbdbcb857bde9593b7d9a488951b3cb0d021580747e67eeb3494965a7a9",
+            "last_modified_utc": "2026-04-09T00:55:33Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Dependencies, truth ladders, and scope posture."
+          },
+          {
+            "artifact_ref": "external_assurance_obligations.csv",
+            "title": "External assurance obligations",
+            "artifact_class": "dependency_readiness",
+            "relative_path": "data/analysis/external_assurance_obligations.csv",
+            "upstream_task_ref": "seq_008",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "157933cac4c8e23475756c2b5b15b79fbc0bd01f2d0b385044f7796972e39ce7",
+            "last_modified_utc": "2026-04-09T00:55:33Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Manual blockers and future onboarding proof."
+          },
+          {
+            "artifact_ref": "dependency_simulator_strategy.json",
+            "title": "Simulator strategy",
+            "artifact_class": "dependency_readiness",
+            "relative_path": "data/analysis/dependency_simulator_strategy.json",
+            "upstream_task_ref": "seq_008",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "feccf0fb2e24ee0561021b8f8cbc64444783657e91cc950795206c243b2b0be6",
+            "last_modified_utc": "2026-04-09T00:55:33Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Replaceable-by-simulator posture and local stubs."
+          },
+          {
+            "artifact_ref": "regulatory_workstreams.json",
+            "title": "Regulatory workstreams",
+            "artifact_class": "assurance_readiness",
+            "relative_path": "data/analysis/regulatory_workstreams.json",
+            "upstream_task_ref": "seq_009",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "031a5bf97c5962112b7d10bbb3b7f9f91024e78c9f9879a05d9aaed31259240d",
+            "last_modified_utc": "2026-04-09T01:25:53Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Workstreams, artifact schedule, and trigger matrix."
+          },
+          {
+            "artifact_ref": "safety_hazard_register_seed.csv",
+            "title": "Safety hazard seed",
+            "artifact_class": "assurance_readiness",
+            "relative_path": "data/analysis/safety_hazard_register_seed.csv",
+            "upstream_task_ref": "seq_009",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "0226e8dafa37f39cb90ddf22013ac291990b290ae9cb9ab3112bbea72e876ead",
+            "last_modified_utc": "2026-04-09T01:25:53Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Hazard seed rows and safety gates."
+          },
+          {
+            "artifact_ref": "field_sensitivity_catalog.json",
+            "title": "Field sensitivity catalog",
+            "artifact_class": "privacy_security",
+            "relative_path": "data/analysis/field_sensitivity_catalog.json",
+            "upstream_task_ref": "seq_010",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "cbf7145b8d790bb86b6c6dfec7388802a6915adee58d6a548503097c4cc4b510",
+            "last_modified_utc": "2026-04-09T02:08:34Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Data classes, break-glass, and redaction posture."
+          },
+          {
+            "artifact_ref": "audit_event_disclosure_matrix.csv",
+            "title": "Audit disclosure matrix",
+            "artifact_class": "privacy_security",
+            "relative_path": "data/analysis/audit_event_disclosure_matrix.csv",
+            "upstream_task_ref": "seq_010",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "c76c4b8d2fab6aed20fc92119ca7e46e2fc5d7091d04ed87ed9f83bd2c7f9379",
+            "last_modified_utc": "2026-04-09T02:08:34Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Audit disclosure and minimum-necessary boundaries."
+          },
+          {
+            "artifact_ref": "runtime_workload_families.json",
+            "title": "Runtime topology baseline",
+            "artifact_class": "runtime_baseline",
+            "relative_path": "data/analysis/runtime_workload_families.json",
+            "upstream_task_ref": "seq_011",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "182028d56dbb68ac5ff50c43be9b0a9af89cbfb3f30a0b6e810ce469d70d4548",
+            "last_modified_utc": "2026-04-09T02:48:53Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Trust zones, tenant model, and workload families."
+          },
+          {
+            "artifact_ref": "service_runtime_matrix.csv",
+            "title": "Backend runtime service matrix",
+            "artifact_class": "runtime_baseline",
+            "relative_path": "data/analysis/service_runtime_matrix.csv",
+            "upstream_task_ref": "seq_013",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "afaeea276176e0d742b0cd84cda81f55c31aec7f3df908ae110ba0f81c444876",
+            "last_modified_utc": "2026-04-09T03:54:33Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Runtime component and authoritative writer split."
+          },
+          {
+            "artifact_ref": "gateway_surface_matrix.csv",
+            "title": "Gateway surface split",
+            "artifact_class": "runtime_baseline",
+            "relative_path": "data/analysis/gateway_surface_matrix.csv",
+            "upstream_task_ref": "seq_014",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "66777a1e323ee0152061767f746108dbab790f82c09fea33e37bb82eb57f7c31",
+            "last_modified_utc": "2026-04-09T02:48:53Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Route-family and surface gateway contracts."
+          },
+          {
+            "artifact_ref": "async_effect_proof_matrix.csv",
+            "title": "Async effect proof matrix",
+            "artifact_class": "architecture",
+            "relative_path": "data/analysis/async_effect_proof_matrix.csv",
+            "upstream_task_ref": "seq_013",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "5e7f00f0c4551011e8e8916c09672f3c8871ec5c798d223a9df7a520851ef357",
+            "last_modified_utc": "2026-04-09T03:54:33Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Inbox/outbox, idempotency, and replay substrate."
+          },
+          {
+            "artifact_ref": "frontend_stack_scorecard.csv",
+            "title": "Frontend stack decision",
+            "artifact_class": "frontend_baseline",
+            "relative_path": "data/analysis/frontend_stack_scorecard.csv",
+            "upstream_task_ref": "seq_014",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "6d1b42f4836b8b65c29e24bc1ffc42c37886e09ad1d9d1ea20b0221adafeb210",
+            "last_modified_utc": "2026-04-09T04:20:20Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Chosen client-first React runtime."
+          },
+          {
+            "artifact_ref": "ui_contract_publication_matrix.csv",
+            "title": "UI contract publication bundle",
+            "artifact_class": "frontend_baseline",
+            "relative_path": "data/analysis/ui_contract_publication_matrix.csv",
+            "upstream_task_ref": "seq_014",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "afbabf73da2cc524ca82e02c09e42754ec9e1e2b25aa61d19746fbb21e1abfd2",
+            "last_modified_utc": "2026-04-09T04:20:20Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Design-contract publication members and route markers."
+          },
+          {
+            "artifact_ref": "playwright_coverage_matrix.csv",
+            "title": "Frontend browser coverage matrix",
+            "artifact_class": "frontend_baseline",
+            "relative_path": "data/analysis/playwright_coverage_matrix.csv",
+            "upstream_task_ref": "seq_014",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "6ac784219ea9215a202a9172701d6ebb66296379578abed12ec03cd93c029574",
+            "last_modified_utc": "2026-04-09T04:20:20Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Shell and route automation commitments."
+          },
+          {
+            "artifact_ref": "tooling_scorecard.csv",
+            "title": "Tooling family scorecard",
+            "artifact_class": "tooling_baseline",
+            "relative_path": "data/analysis/tooling_scorecard.csv",
+            "upstream_task_ref": "seq_015",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "92419b973dd9592b72e7092bc41fa2f334658b3aa6c5a86d103ee4d04b691da1",
+            "last_modified_utc": "2026-04-09T04:49:49Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Observability, security, and release tooling choices."
+          },
+          {
+            "artifact_ref": "release_gate_matrix.csv",
+            "title": "Release gate matrix",
+            "artifact_class": "tooling_baseline",
+            "relative_path": "data/analysis/release_gate_matrix.csv",
+            "upstream_task_ref": "seq_015",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "0bf53693e2f6856112c68b6afe75fe4777c52a0c067d0a6a9d7419d2577891f2",
+            "last_modified_utc": "2026-04-09T04:49:49Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Verification ladder and release parity laws."
+          },
+          {
+            "artifact_ref": "security_control_matrix.csv",
+            "title": "Security control matrix",
+            "artifact_class": "privacy_security",
+            "relative_path": "data/analysis/security_control_matrix.csv",
+            "upstream_task_ref": "seq_015",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "0fc6a7eccc55be83d6f523ceb115374de6404fc8f5c851786c44778f920bd6dd",
+            "last_modified_utc": "2026-04-09T04:49:49Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Ingress, session, and policy controls."
+          },
+          {
+            "artifact_ref": "incident_and_alert_routing_matrix.csv",
+            "title": "Incident and alert routing matrix",
+            "artifact_class": "tooling_baseline",
+            "relative_path": "data/analysis/incident_and_alert_routing_matrix.csv",
+            "upstream_task_ref": "seq_015",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "62a2b78a206323c33e423bb12da0fc12f54077b19ba5b647de1799225ed82d42",
+            "last_modified_utc": "2026-04-09T04:49:49Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Alert routing and incident families."
+          },
+          {
+            "artifact_ref": "supply_chain_and_provenance_matrix.json",
+            "title": "Supply-chain and provenance matrix",
+            "artifact_class": "tooling_baseline",
+            "relative_path": "data/analysis/supply_chain_and_provenance_matrix.json",
+            "upstream_task_ref": "seq_015",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "200ee3c76d3faa42beb96d9115dff525869606ab7305a97a184be4ebbbd8efe8",
+            "last_modified_utc": "2026-04-09T04:49:49Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Provenance, SBOM, and exception law."
+          },
+          {
+            "artifact_ref": "adr_index.json",
+            "title": "Architecture ADR freeze",
+            "artifact_class": "architecture",
+            "relative_path": "data/analysis/adr_index.json",
+            "upstream_task_ref": "seq_016",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "582525f2158f68bc7b5d9b4417669d3c1c75e7ddff22a5c7c588974c36d92390",
+            "last_modified_utc": "2026-04-09T05:17:59Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Accepted ADR set and contract bindings."
+          },
+          {
+            "artifact_ref": "architecture_gap_register.json",
+            "title": "Architecture gap register",
+            "artifact_class": "architecture",
+            "relative_path": "data/analysis/architecture_gap_register.json",
+            "upstream_task_ref": "seq_016",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "8efc9c832ca3b7598c9cb017cb825d06c2f2cb6471ebed043d22b17adae59573",
+            "last_modified_utc": "2026-04-09T05:17:59Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Resolved and inherited architecture gaps."
+          },
+          {
+            "artifact_ref": "programme_milestones.json",
+            "title": "Programme milestone graph",
+            "artifact_class": "conformance",
+            "relative_path": "data/analysis/programme_milestones.json",
+            "upstream_task_ref": "seq_017",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "3d99d5a789f321d1ffc1303134083a8cc89aae1fee326166bdd8122d3bffb03c",
+            "last_modified_utc": "2026-04-09T12:13:35Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Serialized milestone and subphase graph."
+          },
+          {
+            "artifact_ref": "merge_gate_matrix.csv",
+            "title": "Merge gate matrix",
+            "artifact_class": "conformance",
+            "relative_path": "data/analysis/merge_gate_matrix.csv",
+            "upstream_task_ref": "seq_017",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "dfec9821f3449f0dd23793096f315b7deb4f6a2446378584096c368d7a86e3f3",
+            "last_modified_utc": "2026-04-09T12:13:35Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Merge gate rules and task spans."
+          },
+          {
+            "artifact_ref": "critical_path_summary.json",
+            "title": "Critical-path summary",
+            "artifact_class": "conformance",
+            "relative_path": "data/analysis/critical_path_summary.json",
+            "upstream_task_ref": "seq_017",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "34fffa64b9532951aa389c579a9b1743ac6217b40139ad50f3e03420eb0f0cbf",
+            "last_modified_utc": "2026-04-09T12:13:35Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Current-baseline critical path and long leads."
+          },
+          {
+            "artifact_ref": "master_risk_register.json",
+            "title": "Master risk register",
+            "artifact_class": "risk_posture",
+            "relative_path": "data/analysis/master_risk_register.json",
+            "upstream_task_ref": "seq_018",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "eb8676621a8017574e82b574a380224747a8af13352d896ce3c678209b27c554",
+            "last_modified_utc": "2026-04-09T12:44:53Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Blocking gate-impact risks and mitigations."
+          },
+          {
+            "artifact_ref": "dependency_watchlist.json",
+            "title": "Dependency watchlist",
+            "artifact_class": "risk_posture",
+            "relative_path": "data/analysis/dependency_watchlist.json",
+            "upstream_task_ref": "seq_018",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "c5123f1862ae9e42ee1d5722425fe665f5441da13740c95430638020ab41992a",
+            "last_modified_utc": "2026-04-09T12:44:53Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Lifecycle states for partner and internal seams."
+          },
+          {
+            "artifact_ref": "coverage_summary.json",
+            "title": "Traceability coverage summary",
+            "artifact_class": "traceability",
+            "relative_path": "data/analysis/coverage_summary.json",
+            "upstream_task_ref": "seq_019",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "0adc7e2c224fa01e84428d7e9390f35e011a8cc28bc118b978cf74afb6a155e5",
+            "last_modified_utc": "2026-04-09T13:19:36Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Requirement and task coverage counts."
+          },
+          {
+            "artifact_ref": "requirement_task_traceability.csv",
+            "title": "Requirement-to-task traceability map",
+            "artifact_class": "traceability",
+            "relative_path": "data/analysis/requirement_task_traceability.csv",
+            "upstream_task_ref": "seq_019",
+            "baseline_scope": "current",
+            "freshness_state": "current",
+            "contradiction_state": "clear",
+            "sha256": "00622f8e9020c1cc76d764ed097a263a10976fb22066c17e858f60720fc654f5",
+            "last_modified_utc": "2026-04-09T13:19:36Z",
+            "source_refs": [
+              "prompt/020.md",
+              "prompt/shared_operating_contract_016_to_020.md",
+              "blueprint/phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
+              "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+              "blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
+              "blueprint/phase-0-the-foundation-protocol.md#0G. Observability, security plumbing, and operational controls",
+              "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+              "blueprint/platform-runtime-and-release-blueprint.md#Operational readiness contract",
+              "blueprint/platform-admin-and-config-blueprint.md#Config compilation pipeline",
+              "blueprint/platform-admin-and-config-blueprint.md#Production promotion gate",
+              "blueprint/phase-9-the-assurance-ledger.md#PhaseConformanceRow",
+              "blueprint/phase-9-the-assurance-ledger.md#CrossPhaseConformanceScorecard",
+              "blueprint/forensic-audit-findings.md#Findings 95, 104-120"
+            ],
+            "notes": "Full requirement-to-task grounding."
+          }
+        ],
+        "gateMap": [
+          {
+            "gate_id": "GATE_P0_ENTRY_0A",
+            "gate_title": "Phase 0 entry into 0A delivery skeleton",
+            "scope": "phase0_entry",
+            "predecessor_ref": "GATE_EXTERNAL_TO_FOUNDATION",
+            "successor_ref": "0A",
+            "required_criterion_refs": "[\"CRIT_SRC_001\", \"CRIT_SCOPE_001\", \"CRIT_ARCH_001\", \"CRIT_ARCH_002\", \"CRIT_DEP_001\", \"CRIT_DEP_002\", \"CRIT_ASSURANCE_001\", \"CRIT_RUNTIME_001\", \"CRIT_FE_001\", \"CRIT_TOOL_001\", \"CRIT_RISK_001\", \"CRIT_TRACE_001\", \"CRIT_CONF_001\", \"CRIT_CONF_002\"]",
+            "required_artifact_refs": "[\"phase0_gate_verdict.json\", \"programme_milestones.json\", \"merge_gate_matrix.csv\"]",
+            "required_control_plane_obligations": "[\"LifecycleCoordinator\", \"RouteIntentBinding\", \"CommandSettlementRecord\", \"AudienceSurfaceRuntimeBinding\"]",
+            "required_task_refs": "[\"seq_001\", \"seq_002\", \"seq_003\", \"seq_004\", \"seq_005\", \"seq_006\", \"seq_007\", \"seq_008\", \"seq_009\", \"seq_010\", \"seq_011\", \"seq_012\", \"seq_013\", \"seq_014\", \"seq_015\", \"seq_016\", \"seq_017\", \"seq_018\", \"seq_019\", \"seq_020\", \"seq_021\", \"seq_022\", \"seq_023\", \"seq_024\", \"seq_025\", \"seq_026\", \"seq_028\", \"seq_031\", \"seq_032\", \"seq_033\", \"seq_034\", \"seq_035\", \"seq_036\", \"seq_037\", \"seq_038\", \"seq_039\", \"seq_040\"]",
+            "gate_owner_role": "ROLE_FOUNDATION_PROGRAMME_OWNER",
+            "current_verdict": "withheld",
+            "blocking_rule": "No Phase 0 implementation starts while GATE_EXTERNAL_TO_FOUNDATION remains blocked.",
+            "notes": "Entry gate bridges planning freeze into executable Phase 0 work."
+          },
+          {
+            "gate_id": "GATE_P0_0A_TO_0B",
+            "gate_title": "0A exit into 0B canonical domain kernel",
+            "scope": "phase0_internal_subphase",
+            "predecessor_ref": "0A",
+            "successor_ref": "0B",
+            "required_criterion_refs": "[\"CRIT_ARCH_001\", \"CRIT_ARCH_003\", \"CRIT_RUNTIME_001\", \"CRIT_FE_001\", \"CRIT_CONF_002\"]",
+            "required_artifact_refs": "[\"programme_milestones.json\", \"adr_index.json\", \"workspace_package_graph.json\", \"phase0_gate_verdict.json\"]",
+            "required_control_plane_obligations": "[\"LifecycleCoordinator\", \"RouteIntentBinding\", \"AudienceSurfaceRuntimeBinding\"]",
+            "required_task_refs": "[\"seq_041\", \"seq_042\", \"seq_043\", \"seq_044\", \"seq_045\"]",
+            "gate_owner_role": "ROLE_FOUNDATION_DOMAIN_OWNER",
+            "current_verdict": "withheld",
+            "blocking_rule": "0A must freeze repo, boundary, and shell scaffolding law before canonical kernel work begins.",
+            "notes": "Delivery skeleton may not grow into page silos or hidden data seams."
+          },
+          {
+            "gate_id": "GATE_P0_0B_TO_0C",
+            "gate_title": "0B exit into 0C runtime publication substrate",
+            "scope": "phase0_internal_subphase",
+            "predecessor_ref": "0B",
+            "successor_ref": "0C",
+            "required_criterion_refs": "[\"CRIT_ARCH_002\", \"CRIT_ARCH_003\", \"CRIT_ARCH_004\", \"CRIT_ARCH_005\", \"CRIT_CONF_001\"]",
+            "required_artifact_refs": "[\"state_machines.json\", \"object_catalog.json\", \"request_lineage_transitions.json\"]",
+            "required_control_plane_obligations": "[\"LifecycleCoordinator\", \"RouteIntentBinding\", \"CommandSettlementRecord\", \"ExperienceContinuityControlEvidence\"]",
+            "required_task_refs": "[\"seq_046\", \"seq_047\", \"seq_048\", \"seq_049\", \"par_062\", \"par_063\", \"par_064\", \"par_065\", \"par_066\", \"par_067\", \"par_068\", \"par_069\", \"par_070\", \"par_071\", \"par_072\", \"par_073\", \"par_074\", \"par_075\", \"par_076\", \"par_077\", \"par_078\", \"par_079\", \"par_080\", \"par_081\", \"par_082\"]",
+            "gate_owner_role": "ROLE_FOUNDATION_DOMAIN_OWNER",
+            "current_verdict": "withheld",
+            "blocking_rule": "0B must freeze canonical ownership, mutation, and unhappy-path law before runtime publication claims are meaningful.",
+            "notes": "This is where canonical governors stop being prose and become implementation obligations."
+          },
+          {
+            "gate_id": "GATE_P0_0C_TO_0D",
+            "gate_title": "0C exit into 0D control governors and mutation law",
+            "scope": "phase0_internal_subphase",
+            "predecessor_ref": "0C",
+            "successor_ref": "0D",
+            "required_criterion_refs": "[\"CRIT_RUNTIME_001\", \"CRIT_RUNTIME_002\", \"CRIT_FE_002\", \"CRIT_TOOL_001\"]",
+            "required_artifact_refs": "[\"service_runtime_matrix.csv\", \"release_gate_matrix.csv\", \"ui_contract_publication_matrix.csv\"]",
+            "required_control_plane_obligations": "[\"RuntimePublicationBundle\", \"DesignContractPublicationBundle\", \"ReleasePublicationParityRecord\", \"AudienceSurfaceRuntimeBinding\"]",
+            "required_task_refs": "[\"seq_050\", \"seq_051\", \"seq_052\", \"par_083\", \"par_084\", \"par_085\", \"par_086\", \"par_087\", \"par_088\", \"par_089\", \"par_090\", \"par_091\", \"par_092\", \"par_093\", \"par_094\"]",
+            "gate_owner_role": "ROLE_RUNTIME_RELEASE_OWNER",
+            "current_verdict": "withheld",
+            "blocking_rule": "Runtime publication, design-contract publication, and parity law must be explicit before control-plane governor work proceeds.",
+            "notes": "0C turns runtime publication and parity into foundation concerns rather than late hardening."
+          },
+          {
+            "gate_id": "GATE_P0_0D_TO_0E",
+            "gate_title": "0D exit into 0E verification ladder and simulator kernel",
+            "scope": "phase0_internal_subphase",
+            "predecessor_ref": "0D",
+            "successor_ref": "0E",
+            "required_criterion_refs": "[\"CRIT_ARCH_003\", \"CRIT_ARCH_004\", \"CRIT_RUNTIME_002\", \"CRIT_DEP_001\"]",
+            "required_artifact_refs": "[\"async_effect_proof_matrix.csv\", \"release_gate_matrix.csv\", \"dependency_simulator_strategy.json\"]",
+            "required_control_plane_obligations": "[\"RouteIntentBinding\", \"CommandSettlementRecord\", \"RuntimePublicationBundle\", \"ReleaseWatchTuple\"]",
+            "required_task_refs": "[\"seq_053\", \"seq_054\", \"seq_055\", \"seq_056\", \"seq_057\", \"par_095\", \"par_096\", \"par_097\", \"par_098\", \"par_099\", \"par_100\", \"par_101\", \"par_102\"]",
+            "gate_owner_role": "ROLE_FOUNDATION_CONTROL_OWNER",
+            "current_verdict": "withheld",
+            "blocking_rule": "0D must freeze mutation law, capability boundaries, and release/watch posture before verification and simulator parallelism opens.",
+            "notes": "The control plane must exist before tests and simulators can claim parity."
+          },
+          {
+            "gate_id": "GATE_P0_PARALLEL_FOUNDATION_OPEN",
+            "gate_title": "0E exit and parallel foundation open gate",
+            "scope": "phase0_parallel_open",
+            "predecessor_ref": "0E",
+            "successor_ref": "0F",
+            "required_criterion_refs": "[\"CRIT_DEP_001\", \"CRIT_RUNTIME_002\", \"CRIT_FE_001\", \"CRIT_FE_002\", \"CRIT_TOOL_001\", \"CRIT_CONF_001\"]",
+            "required_artifact_refs": "[\"playwright_coverage_matrix.csv\", \"ui_contract_publication_matrix.csv\", \"release_gate_matrix.csv\", \"dependency_simulator_strategy.json\"]",
+            "required_control_plane_obligations": "[\"LifecycleCoordinator\", \"RouteIntentBinding\", \"CommandSettlementRecord\", \"RuntimePublicationBundle\", \"DesignContractPublicationBundle\", \"ReleasePublicationParityRecord\", \"AudienceSurfaceRuntimeBinding\", \"ReleaseWatchTuple\", \"AssuranceSliceTrustRecord\", \"ExperienceContinuityControlEvidence\"]",
+            "required_task_refs": "[\"seq_058\", \"seq_059\", \"seq_060\", \"seq_061\", \"par_103\", \"par_104\", \"par_105\", \"par_106\", \"par_107\", \"par_108\", \"par_109\", \"par_110\", \"par_111\", \"par_112\", \"par_113\", \"par_114\"]",
+            "gate_owner_role": "ROLE_FOUNDATION_PROGRAMME_OWNER",
+            "current_verdict": "withheld",
+            "blocking_rule": "No parallel foundation tracks open until verification, simulator posture, publication parity, trust slices, watch tuples, and continuity proof all bind to one current tuple.",
+            "notes": "This is the explicit source-required gate that opens later parallel foundation work."
+          },
+          {
+            "gate_id": "GATE_P0_0F_TO_0G",
+            "gate_title": "0F exit into 0G assurance closeout",
+            "scope": "phase0_internal_subphase",
+            "predecessor_ref": "0F",
+            "successor_ref": "0G",
+            "required_criterion_refs": "[\"CRIT_FE_001\", \"CRIT_FE_002\", \"CRIT_RUNTIME_002\", \"CRIT_ASSURANCE_001\", \"CRIT_RISK_001\"]",
+            "required_artifact_refs": "[\"gateway_surface_matrix.csv\", \"playwright_coverage_matrix.csv\", \"master_risk_register.json\"]",
+            "required_control_plane_obligations": "[\"AudienceSurfaceRuntimeBinding\", \"DesignContractPublicationBundle\", \"ReleasePublicationParityRecord\", \"ExperienceContinuityControlEvidence\"]",
+            "required_task_refs": "[\"par_115\", \"par_116\", \"par_117\", \"par_118\", \"par_119\", \"par_120\", \"seq_127\", \"seq_128\", \"seq_129\", \"seq_130\", \"seq_131\"]",
+            "gate_owner_role": "ROLE_FOUNDATION_EXPERIENCE_OWNER",
+            "current_verdict": "withheld",
+            "blocking_rule": "Same-shell continuity, route publication, and trust posture must be proven before assurance closeout begins.",
+            "notes": "0F is where shell reality meets the tuple and proof model."
+          },
+          {
+            "gate_id": "GATE_P0_EXIT",
+            "gate_title": "Phase 0 exit gate",
+            "scope": "phase0_internal_subphase",
+            "predecessor_ref": "0G",
+            "successor_ref": "phase_1+",
+            "required_criterion_refs": "[\"CRIT_ASSURANCE_001\", \"CRIT_TOOL_001\", \"CRIT_TOOL_002\", \"CRIT_RISK_001\", \"CRIT_CONF_001\"]",
+            "required_artifact_refs": "[\"release_gate_matrix.csv\", \"master_risk_register.json\", \"cross_phase_conformance_seed.json\", \"phase0_gate_verdict.json\"]",
+            "required_control_plane_obligations": "[\"ReleaseWatchTuple\", \"AssuranceSliceTrustRecord\", \"ExperienceContinuityControlEvidence\", \"RuntimePublicationBundle\", \"ReleasePublicationParityRecord\"]",
+            "required_task_refs": "[\"par_121\", \"par_122\", \"par_123\", \"par_124\", \"par_125\", \"par_126\", \"seq_132\", \"seq_133\", \"seq_134\", \"seq_135\", \"seq_136\", \"seq_137\", \"seq_138\"]",
+            "gate_owner_role": "ROLE_FOUNDATION_PROGRAMME_OWNER",
+            "current_verdict": "withheld",
+            "blocking_rule": "No Phase 0 exit while long-lead assurance, provenance, alert routing, or live conformance proof remain incomplete.",
+            "notes": "Entry warnings become hard exit obligations here."
+          }
+        ],
+        "classOrder": [
+          "source_truth",
+          "scope",
+          "architecture",
+          "dependency_readiness",
+          "assurance_readiness",
+          "privacy_security",
+          "runtime_baseline",
+          "frontend_baseline",
+          "tooling_baseline",
+          "risk_posture",
+          "traceability",
+          "conformance"
+        ],
+        "classLabels": {
+          "source_truth": "Source Truth",
+          "scope": "Scope",
+          "architecture": "Architecture",
+          "dependency_readiness": "Dependency",
+          "assurance_readiness": "Assurance",
+          "privacy_security": "Privacy/Security",
+          "runtime_baseline": "Runtime",
+          "frontend_baseline": "Frontend",
+          "tooling_baseline": "Tooling",
+          "risk_posture": "Risk",
+          "traceability": "Traceability",
+          "conformance": "Conformance"
+        }
+      }
+    </script>
+    <script>
+      const data = JSON.parse(document.getElementById("gate-data").textContent);
+      const state = {
+        classFilter: "all",
+        statusFilter: "all",
+        selectedKind: "criterion",
+        selectedId: null,
+      };
+
+      const ids = {
+        classFilter: document.getElementById("class-filter"),
+        statusFilter: document.getElementById("status-filter"),
+        criteriaRailBody: document.getElementById("criteria-rail-body"),
+        criteriaTableBody: document.getElementById("criteria-table-body"),
+        blockerTableBody: document.getElementById("blocker-table-body"),
+        evidenceTableBody: document.getElementById("evidence-table-body"),
+        gateTableBody: document.getElementById("gate-table-body"),
+        inspectorBody: document.getElementById("inspector-body"),
+        inspectorKind: document.getElementById("inspector-kind"),
+        bannerVerdict: document.getElementById("banner-verdict"),
+        bannerReason: document.getElementById("banner-reason"),
+        summaryBlocking: document.getElementById("summary-blocking"),
+        summaryWarning: document.getElementById("summary-warning"),
+        summaryEvidence: document.getElementById("summary-evidence"),
+        summaryPlanning: document.getElementById("summary-planning"),
+        criteriaCount: document.getElementById("criteria-count"),
+        blockerCount: document.getElementById("blocker-count"),
+        evidenceCount: document.getElementById("evidence-count"),
+        gateCount: document.getElementById("gate-count"),
+        matrixStatusChip: document.getElementById("matrix-status-chip"),
+      };
+
+      function statusLabel(status) {
+        if (status === "review_required") return "Review Required";
+        if (status === "pass") return "Pass";
+        if (status === "blocked") return "Blocked";
+        return status;
+      }
+
+      function verdictLabel(verdict) {
+        if (verdict === "approved") return "Approved";
+        if (verdict === "conditional") return "Conditional";
+        if (verdict === "withheld") return "Withheld";
+        return verdict;
+      }
+
+      function option(label, value) {
+        const el = document.createElement("option");
+        el.value = value;
+        el.textContent = label;
+        return el;
+      }
+
+      function parseList(value) {
+        try {
+          return JSON.parse(value || "[]");
+        } catch (error) {
+          return [];
+        }
+      }
+
+      function filterCriteria() {
+        return data.criteria.filter((row) => {
+          const classMatch =
+            state.classFilter === "all" || row.criterion_class === state.classFilter;
+          const statusMatch = state.statusFilter === "all" || row.status === state.statusFilter;
+          return classMatch && statusMatch;
+        });
+      }
+
+      function relatedArtifactRefs(criteriaRows) {
+        const refs = new Set();
+        criteriaRows.forEach((row) =>
+          parseList(row.required_artifact_refs).forEach((ref) => refs.add(ref)),
+        );
+        return refs;
+      }
+
+      function setSelection(kind, id) {
+        state.selectedKind = kind;
+        state.selectedId = id;
+        render();
+      }
+
+      function fillFilters() {
+        ids.classFilter.append(option("All classes", "all"));
+        data.classOrder.forEach((key) =>
+          ids.classFilter.append(option(data.classLabels[key], key)),
+        );
+        ids.statusFilter.append(option("All statuses", "all"));
+        ["blocked", "review_required", "pass"].forEach((key) =>
+          ids.statusFilter.append(option(statusLabel(key), key)),
+        );
+        ids.classFilter.addEventListener("change", (event) => {
+          state.classFilter = event.target.value;
+          ensureSelection();
+          render();
+        });
+        ids.statusFilter.addEventListener("change", (event) => {
+          state.statusFilter = event.target.value;
+          ensureSelection();
+          render();
+        });
+      }
+
+      function ensureSelection() {
+        const visible = filterCriteria();
+        const validCriterion =
+          state.selectedKind === "criterion" &&
+          visible.some((row) => row.criterion_id === state.selectedId);
+        const validBlocker =
+          state.selectedKind === "blocker" &&
+          data.blockers.some((row) => row.blocker_id === state.selectedId);
+        const validEvidence =
+          state.selectedKind === "evidence" &&
+          data.evidence.some((row) => row.artifact_ref === state.selectedId);
+        const validGate =
+          state.selectedKind === "gate" &&
+          data.gateMap.some((row) => row.gate_id === state.selectedId);
+        if (!(validCriterion || validBlocker || validEvidence || validGate)) {
+          state.selectedKind = "criterion";
+          state.selectedId = visible[0] ? visible[0].criterion_id : data.criteria[0].criterion_id;
+        }
+      }
+
+      function renderBanner() {
+        ids.bannerVerdict.textContent = verdictLabel(data.entryGate.verdict);
+        ids.bannerVerdict.className = "status-chip verdict-" + data.entryGate.verdict;
+        document.querySelector('[data-testid="gate-verdict-banner"]').dataset.verdict =
+          data.entryGate.verdict;
+        document.querySelector('[data-testid="gate-verdict-banner"]').className =
+          "banner verdict-" + data.entryGate.verdict;
+        ids.bannerReason.textContent = data.entryGate.reason;
+        ids.summaryBlocking.textContent = String(data.summary.blocking_row_count);
+        ids.summaryWarning.textContent = String(data.summary.warning_row_count);
+        ids.summaryEvidence.textContent = String(data.summary.evidence_current_count);
+        ids.summaryPlanning.textContent = data.planningReadiness.state;
+      }
+
+      function renderRail() {
+        const visible = filterCriteria();
+        ids.criteriaRailBody.innerHTML = "";
+        ids.criteriaCount.textContent = visible.length + " visible";
+        data.classOrder.forEach((groupKey) => {
+          const groupRows = visible.filter((row) => row.criterion_class === groupKey);
+          if (!groupRows.length) return;
+          const group = document.createElement("section");
+          group.className = "rail-group";
+          const title = document.createElement("h3");
+          title.textContent = data.classLabels[groupKey];
+          group.appendChild(title);
+          groupRows.forEach((row) => {
+            const button = document.createElement("button");
+            button.className = "rail-button";
+            button.dataset.criterionId = row.criterion_id;
+            button.setAttribute("data-criterion-id", row.criterion_id);
+            button.setAttribute(
+              "aria-pressed",
+              String(state.selectedKind === "criterion" && state.selectedId === row.criterion_id),
+            );
+            button.addEventListener("click", () => setSelection("criterion", row.criterion_id));
+            const heading = document.createElement("strong");
+            heading.textContent = row.criterion_title;
+            const meta = document.createElement("div");
+            meta.className = "rail-meta";
+            const code = document.createElement("span");
+            code.className = "mono";
+            code.textContent = row.criterion_id;
+            const chip = document.createElement("span");
+            chip.className = "status-chip status-" + row.status;
+            chip.textContent = statusLabel(row.status);
+            meta.append(code, chip);
+            button.append(heading, meta);
+            group.appendChild(button);
+          });
+          ids.criteriaRailBody.appendChild(group);
+        });
+      }
+
+      function renderCriteriaTable() {
+        const visible = filterCriteria();
+        ids.matrixStatusChip.textContent = statusLabel(
+          state.statusFilter === "all" ? "pass" : state.statusFilter,
+        );
+        ids.criteriaTableBody.innerHTML = "";
+        visible.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.dataset.criterionId = row.criterion_id;
+          tr.setAttribute("data-criterion-id", row.criterion_id);
+          const tasks = parseList(row.required_task_refs);
+          const risks = parseList(row.required_risk_refs);
+          const artifacts = parseList(row.required_artifact_refs);
+          tr.innerHTML = `
+          <td>
+            <button class="row-button" data-criterion-id="${row.criterion_id}">
+              <strong>${row.criterion_title}</strong>
+              <span class="mono">${row.criterion_id}</span>
+            </button>
+          </td>
+          <td>${row.class_label}</td>
+          <td><span class="status-chip status-${row.status}">${statusLabel(row.status)}</span></td>
+          <td><span class="mono">${tasks.slice(0, 5).join(", ")}</span><br>${risks.slice(0, 3).join(", ")}</td>
+          <td>${artifacts.join(", ")}<br>${row.notes}</td>
+        `;
+          tr.querySelector("button").addEventListener("click", () =>
+            setSelection("criterion", row.criterion_id),
+          );
+          ids.criteriaTableBody.appendChild(tr);
+        });
+      }
+
+      function renderBlockerTable() {
+        const visibleCriteria = filterCriteria();
+        const visibleCriterionIds = new Set(visibleCriteria.map((row) => row.criterion_id));
+        const rows = data.blockers.filter((row) => visibleCriterionIds.has(row.criterion_id));
+        ids.blockerTableBody.innerHTML = "";
+        ids.blockerCount.textContent = rows.length + " rows";
+        rows.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.dataset.blockerState = row.blocker_state;
+          tr.setAttribute("data-blocker-state", row.blocker_state);
+          tr.innerHTML = `
+          <td>
+            <button class="row-button">
+              <strong>${row.summary}</strong>
+              <span class="mono">${row.blocker_id}</span>
+            </button>
+          </td>
+          <td><span class="status-chip status-${row.blocker_state === "warning" ? "review_required" : "blocked"}">${row.blocker_state}</span></td>
+          <td>${row.severity}</td>
+          <td>${row.summary}</td>
+          <td>${row.required_action}</td>
+        `;
+          tr.querySelector("button").addEventListener("click", () =>
+            setSelection("blocker", row.blocker_id),
+          );
+          ids.blockerTableBody.appendChild(tr);
+        });
+      }
+
+      function renderEvidenceTable() {
+        const refs = relatedArtifactRefs(filterCriteria());
+        const rows = data.evidence.filter((row) => refs.has(row.artifact_ref));
+        ids.evidenceTableBody.innerHTML = "";
+        ids.evidenceCount.textContent = rows.length + " rows";
+        rows.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.dataset.evidenceRef = row.artifact_ref;
+          tr.setAttribute("data-evidence-ref", row.artifact_ref);
+          tr.innerHTML = `
+          <td>
+            <button class="row-button" data-evidence-ref="${row.artifact_ref}">
+              <strong>${row.title}</strong>
+              <span class="mono">${row.artifact_ref}</span>
+            </button>
+          </td>
+          <td>${row.artifact_class}</td>
+          <td>${row.upstream_task_ref}</td>
+          <td><span class="status-chip status-${row.freshness_state === "current" ? "pass" : "blocked"}">${row.freshness_state}</span></td>
+          <td class="mono">${row.relative_path}</td>
+        `;
+          tr.querySelector("button").addEventListener("click", () =>
+            setSelection("evidence", row.artifact_ref),
+          );
+          ids.evidenceTableBody.appendChild(tr);
+        });
+      }
+
+      function renderGateTable() {
+        ids.gateTableBody.innerHTML = "";
+        ids.gateCount.textContent = data.gateMap.length + " gates";
+        data.gateMap.forEach((row) => {
+          const obligations = parseList(row.required_control_plane_obligations);
+          const tr = document.createElement("tr");
+          tr.dataset.verdict = row.current_verdict;
+          tr.setAttribute("data-verdict", row.current_verdict);
+          tr.innerHTML = `
+          <td>
+            <button class="row-button">
+              <strong>${row.gate_title}</strong>
+              <span class="mono">${row.gate_id}</span>
+            </button>
+          </td>
+          <td>${row.scope}</td>
+          <td><span class="status-chip verdict-${row.current_verdict}">${verdictLabel(row.current_verdict)}</span></td>
+          <td class="mono">${row.predecessor_ref}</td>
+          <td class="mono">${row.successor_ref}</td>
+          <td>${obligations.join(", ")}</td>
+        `;
+          tr.querySelector("button").addEventListener("click", () =>
+            setSelection("gate", row.gate_id),
+          );
+          ids.gateTableBody.appendChild(tr);
+        });
+      }
+
+      function inspectorSection(label, value, mono = false) {
+        const wrapper = document.createElement("div");
+        const key = document.createElement("span");
+        key.textContent = label;
+        const val = document.createElement("strong");
+        if (mono) val.className = "mono";
+        val.textContent = value || "None";
+        wrapper.append(key, val);
+        return wrapper;
+      }
+
+      function renderInspector() {
+        ids.inspectorBody.innerHTML = "";
+        ids.inspectorKind.textContent = state.selectedKind;
+        let payload = null;
+        if (state.selectedKind === "criterion") {
+          payload = data.criteria.find((row) => row.criterion_id === state.selectedId);
+        } else if (state.selectedKind === "blocker") {
+          payload = data.blockers.find((row) => row.blocker_id === state.selectedId);
+        } else if (state.selectedKind === "evidence") {
+          payload = data.evidence.find((row) => row.artifact_ref === state.selectedId);
+        } else if (state.selectedKind === "gate") {
+          payload = data.gateMap.find((row) => row.gate_id === state.selectedId);
+        }
+        if (!payload) return;
+
+        const card = document.createElement("section");
+        card.className = "inspector-card";
+        const title = document.createElement("h3");
+        title.textContent =
+          payload.criterion_title ||
+          payload.summary ||
+          payload.title ||
+          payload.gate_title ||
+          payload.artifact_ref ||
+          state.selectedId;
+        card.appendChild(title);
+
+        const meta = document.createElement("div");
+        meta.className = "kv";
+        if (state.selectedKind === "criterion") {
+          meta.append(
+            inspectorSection("Criterion ID", payload.criterion_id, true),
+            inspectorSection("Class", payload.class_label),
+            inspectorSection("Status", statusLabel(payload.status)),
+            inspectorSection("Auto Check", payload.auto_check_rule),
+            inspectorSection("Manual Review", payload.manual_review_rule),
+            inspectorSection("Blocker If Failed", payload.blocker_if_failed),
+          );
+          const list = document.createElement("ul");
+          list.className = "meta-list";
+          parseList(payload.required_artifact_refs).forEach((item) => {
+            const li = document.createElement("li");
+            li.textContent = item;
+            list.appendChild(li);
+          });
+          card.appendChild(meta);
+          card.appendChild(list);
+        } else if (state.selectedKind === "blocker") {
+          meta.append(
+            inspectorSection("Blocker ID", payload.blocker_id, true),
+            inspectorSection("State", payload.blocker_state),
+            inspectorSection("Severity", payload.severity),
+            inspectorSection("Action", payload.required_action),
+            inspectorSection("Due Gate", payload.due_gate_ref, true),
+            inspectorSection("Notes", payload.notes),
+          );
+          card.appendChild(meta);
+        } else if (state.selectedKind === "evidence") {
+          meta.append(
+            inspectorSection("Artifact Ref", payload.artifact_ref, true),
+            inspectorSection("Class", payload.artifact_class),
+            inspectorSection("Task", payload.upstream_task_ref),
+            inspectorSection("Freshness", payload.freshness_state),
+            inspectorSection("Path", payload.relative_path, true),
+            inspectorSection("Digest", payload.sha256, true),
+          );
+          card.appendChild(meta);
+        } else if (state.selectedKind === "gate") {
+          meta.append(
+            inspectorSection("Gate ID", payload.gate_id, true),
+            inspectorSection("Scope", payload.scope),
+            inspectorSection("Verdict", verdictLabel(payload.current_verdict)),
+            inspectorSection("Blocking Rule", payload.blocking_rule),
+            inspectorSection("Owner", payload.gate_owner_role),
+            inspectorSection("Notes", payload.notes),
+          );
+          const list = document.createElement("ul");
+          list.className = "meta-list";
+          parseList(payload.required_control_plane_obligations).forEach((item) => {
+            const li = document.createElement("li");
+            li.textContent = item;
+            list.appendChild(li);
+          });
+          card.appendChild(meta);
+          card.appendChild(list);
+        }
+        ids.inspectorBody.appendChild(card);
+      }
+
+      function render() {
+        renderBanner();
+        renderRail();
+        renderCriteriaTable();
+        renderBlockerTable();
+        renderEvidenceTable();
+        renderGateTable();
+        renderInspector();
+      }
+
+      fillFilters();
+      ensureSelection();
+      render();
+    </script>
+  </body>
+</html>

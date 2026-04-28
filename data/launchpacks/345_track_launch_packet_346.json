@@ -1,0 +1,71 @@
+{
+  "taskId": "seq_345_phase6_open_parallel_pharmacy_tracks_gate",
+  "contractVersion": "345.phase6.parallel-gate.v1",
+  "readinessVerdict": "wave_1_open_with_constraints",
+  "trackId": "par_346",
+  "objective": "Build the canonical Phase 6 pharmacy case kernel, lineage-case-link materialization, transition guard, fencing, and stale-owner recovery in production-shaped backend code.",
+  "authoritativeSourceSections": [
+    "blueprint/phase-6-the-pharmacy-loop.md#6A. Pharmacy contract, case model, and state machine",
+    "blueprint/phase-0-the-foundation-protocol.md#RequestLineage",
+    "blueprint/phase-0-the-foundation-protocol.md#RequestLifecycleLease",
+    "blueprint/phase-0-the-foundation-protocol.md#ScopedMutationGate",
+    "docs/architecture/342_phase6_pharmacy_case_model_and_policy_contracts.md",
+    "data/contracts/342_phase6_pharmacy_case_schema.json",
+    "data/contracts/342_phase6_case_state_machine.yaml",
+    "data/contracts/342_phase6_api_surface.yaml"
+  ],
+  "objectOwnershipList": [
+    "PharmacyCase",
+    "LineageCaseLink(caseFamily = pharmacy)"
+  ],
+  "inputContracts": [
+    "data/contracts/341_phase5_to_phase6_handoff_contract.json",
+    "data/contracts/342_phase6_pharmacy_case_schema.json",
+    "data/contracts/342_phase6_case_state_machine.yaml",
+    "data/contracts/342_phase6_api_surface.yaml",
+    "data/contracts/345_phase6_track_readiness_registry.json"
+  ],
+  "forbiddenShortcuts": [
+    "Do not create a detached pharmacy referral identifier outside canonical RequestLineage.",
+    "Do not allow controller-local transition legality or stale-write checks.",
+    "Do not bypass LifecycleCoordinator as the only request-closure authority."
+  ],
+  "expectedFileOrModuleGlobs": [
+    "packages/domains/pharmacy/src/phase6-pharmacy-case-kernel.ts",
+    "packages/domains/pharmacy/src/index.ts",
+    "packages/domains/pharmacy/tests/phase6-pharmacy-case-kernel.test.ts",
+    "services/command-api/migrations/*pharmacy_case*.sql",
+    "tests/integration/346_*",
+    "tests/property/346_*",
+    "tools/analysis/validate_346_pharmacy_case_kernel.ts"
+  ],
+  "mandatoryTests": [
+    "Typecheck the pharmacy domain package with no emit.",
+    "Unit tests for state-transition legality, fence checks, and stale-owner recovery.",
+    "Integration tests for create, evaluate entry, reopen, close-blocker enforcement, and migration replay.",
+    "Property or replay tests for idempotency and stale-write rejection."
+  ],
+  "expectedDownstreamDependents": [
+    "par_348",
+    "par_349",
+    "par_350",
+    "par_352",
+    "seq_368"
+  ],
+  "failClosedConditions": [
+    "If the active ownership epoch or lineage fence is stale, reject mutation and preserve recovery posture.",
+    "If closure blockers remain, close must fail even when case-local status appears resolved.",
+    "If the pharmacy child link cannot be materialized canonically, case creation must fail rather than inventing an external identity."
+  ],
+  "currentGapsAndTemporarySeams": [
+    "Consume the invalidation-chain seam from data/contracts/PHASE6_PARALLEL_INTERFACE_GAP_INVALIDATION_CHAIN_AUTHORITY.json.",
+    "Keep dispatch, outcome, and bounce-back detail as typed refs only until 350, 352, and 353 land."
+  ],
+  "hardMergeCriteria": [
+    "Schema compatibility: preserve every frozen PharmacyCase field and state value from 342.",
+    "Migration safety: migration must be additive and replay-safe for stale-owner and transition history rows.",
+    "Event and audit: append CommandActionRecord, IdempotencyRecord, and frozen event vocabulary without renaming.",
+    "Stale-write and replay: prove idempotent create/evaluate/reopen/close handling under repeated commands.",
+    "Redaction and telemetry: redact patient-sensitive payloads in audit or logs while preserving ref ids and state movement."
+  ]
+}

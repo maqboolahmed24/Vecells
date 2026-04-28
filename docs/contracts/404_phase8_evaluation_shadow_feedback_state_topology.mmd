@@ -1,0 +1,45 @@
+stateDiagram-v2
+  [*] --> PartitionDraft
+  PartitionDraft --> GoldPublished: publish_gold_manifest
+  GoldPublished --> GoldSuperseded: correction_or_schema_update
+  GoldPublished --> GoldRevoked: integrity_or_policy_failure
+  GoldSuperseded --> [*]
+  GoldRevoked --> [*]
+
+  [*] --> ShadowMissing
+  ShadowMissing --> ShadowComplete: metrics_and_publication_tuple_current
+  ShadowComplete --> ShadowStale: freshness_window_expired
+  ShadowComplete --> ShadowBlocked: publication_runtime_or_disclosure_blocked
+  ShadowStale --> ShadowComplete: refreshed_shadow_cut
+  ShadowBlocked --> ShadowComplete: blocker_cleared_and_revalidated
+
+  [*] --> LabelDraft
+  LabelDraft --> LabelSubmitted: annotator_submits
+  LabelSubmitted --> AdjudicationNotRequired: routine_clean
+  LabelSubmitted --> AdjudicationPending: conflict_high_risk_or_policy_exception
+  AdjudicationPending --> Adjudicated: adjudicator_settles
+  LabelSubmitted --> LabelSuperseded: newer_label_version
+  Adjudicated --> LabelSuperseded: superseding_truth
+  LabelSubmitted --> LabelRevoked: incident_or_integrity_failure
+  Adjudicated --> LabelRevoked: incident_or_integrity_failure
+
+  [*] --> FeedbackPendingSettlement
+  FeedbackPendingSettlement --> FeedbackRequiresAdjudication: high_risk_dual_review_policy_exception_or_incomplete_counterfactual
+  FeedbackPendingSettlement --> FeedbackEligible: final_human_artifact_and_workflow_settled
+  FeedbackPendingSettlement --> FeedbackExcluded: exclusion_reason_found
+  FeedbackRequiresAdjudication --> FeedbackEligible: adjudicated_clean
+  FeedbackRequiresAdjudication --> FeedbackExcluded: adjudication_rejects
+  FeedbackEligible --> FeedbackRevoked: incident_supersession_or_exclusion_after_eligibility
+  FeedbackExcluded --> [*]
+  FeedbackRevoked --> [*]
+
+  [*] --> ExportRequested
+  ExportRequested --> ExportPolicyChecked: presentation_and_disclosure_policy_resolved
+  ExportPolicyChecked --> ExportSummaryOnly: default_safe_path
+  ExportPolicyChecked --> ExportExternalHandoffReady: outbound_navigation_grant_resolved
+  ExportPolicyChecked --> ExportRecoveryOnly: publication_or_runtime_degraded
+  ExportPolicyChecked --> ExportBlocked: phi_dump_or_policy_missing
+  ExportSummaryOnly --> [*]
+  ExportExternalHandoffReady --> [*]
+  ExportRecoveryOnly --> [*]
+  ExportBlocked --> [*]

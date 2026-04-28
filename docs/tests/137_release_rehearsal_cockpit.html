@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>137 Release Rehearsal Cockpit</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #F7F8FA;
+        --shell: #EEF2F6;
+        --panel: #FFFFFF;
+        --inset: #E8EEF3;
+        --text-strong: #0F1720;
+        --text-default: #24313D;
+        --text-muted: #5E6B78;
+        --border: #D8E0E8;
+        --accent-canary: #2F6FED;
+        --accent-observation: #5B61F6;
+        --accent-restore: #117A55;
+        --accent-constrained: #B7791F;
+        --accent-blocked: #B42318;
+        --shadow: 0 18px 40px rgba(15, 23, 32, 0.08);
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: var(--canvas); color: var(--text-default); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      body { min-height: 100vh; }
+      button, select { font: inherit; }
+      button { cursor: pointer; }
+      .page-shell { max-width: 1620px; margin: 0 auto; padding: 0 20px 28px; }
+      .masthead {
+        position: sticky; top: 0; z-index: 10; height: 72px; display: flex; align-items: center; justify-content: space-between;
+        gap: 16px; padding: 14px 20px; margin: 0 -20px 18px; background: rgba(247, 248, 250, 0.94); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(216, 224, 232, 0.8);
+      }
+      .brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+      .brand-mark { width: 34px; height: 34px; border-radius: 12px; background: linear-gradient(135deg, rgba(47,111,237,0.18), rgba(91,97,246,0.12)); display: grid; place-items: center; }
+      .brand-label { display: grid; gap: 2px; }
+      .brand-label strong { color: var(--text-strong); font-size: 15px; letter-spacing: 0.01em; }
+      .brand-label span { color: var(--text-muted); font-size: 12px; }
+      .masthead-summary { display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+      .summary-pill {
+        min-width: 156px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow);
+      }
+      .summary-pill small { display: block; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+      .summary-pill strong { color: var(--text-strong); font-size: 14px; word-break: break-all; }
+      .layout { display: grid; grid-template-columns: 300px minmax(0, 1fr) 416px; gap: 18px; align-items: start; }
+      .layout > * { min-width: 0; }
+      .rail, .canvas, .inspector, .panel { min-width: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 24px; box-shadow: var(--shadow); }
+      .rail, .inspector { position: sticky; top: 92px; }
+      .rail { padding: 18px; display: grid; gap: 16px; }
+      .rail h2, .canvas h2, .inspector h2, .panel h2 { margin: 0; color: var(--text-strong); font-size: 15px; }
+      .filter-group { display: grid; gap: 8px; min-width: 0; }
+      .filter-group label { color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+      .filter-group select {
+        width: 100%; max-width: 100%; border: 1px solid var(--border); background: var(--shell); color: var(--text-default); border-radius: 14px; padding: 10px 12px;
+      }
+      .case-rail { display: grid; gap: 8px; max-height: calc(100vh - 240px); overflow: auto; padding-right: 4px; }
+      .case-button {
+        width: 100%; text-align: left; border: 1px solid var(--border); background: var(--panel); border-radius: 18px; padding: 12px 14px; display: grid; gap: 6px;
+        transition: border-color 120ms ease, transform 120ms ease, background 120ms ease;
+      }
+      .case-button:hover, .case-button:focus-visible { border-color: rgba(47,111,237,0.42); outline: none; transform: translateY(-1px); }
+      .case-button[data-selected="true"] { border-color: rgba(47,111,237,0.5); background: linear-gradient(180deg, rgba(47,111,237,0.09), rgba(255,255,255,0.98)); }
+      .case-meta { display: flex; gap: 8px; flex-wrap: wrap; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+      .case-button strong { color: var(--text-strong); font-size: 13px; line-height: 1.35; }
+      .case-button span { color: var(--text-default); font-size: 12px; }
+      .canvas { padding: 18px; display: grid; gap: 18px; }
+      .ribbon {
+        display: grid; gap: 12px; padding: 16px; border-radius: 22px; background: linear-gradient(135deg, rgba(238,242,246,0.8), rgba(255,255,255,0.98)); border: 1px solid var(--border);
+      }
+      .badge-row { display: flex; gap: 8px; flex-wrap: wrap; }
+      .badge {
+        display: inline-flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 999px; background: var(--inset); color: var(--text-strong); font-size: 12px; font-weight: 600;
+      }
+      .badge[data-tone="canary"] { background: rgba(47,111,237,0.12); color: var(--accent-canary); }
+      .badge[data-tone="observation"] { background: rgba(91,97,246,0.12); color: var(--accent-observation); }
+      .badge[data-tone="restore"] { background: rgba(17,122,85,0.12); color: var(--accent-restore); }
+      .badge[data-tone="blocked"] { background: rgba(180,35,24,0.12); color: var(--accent-blocked); }
+      .badge[data-tone="constrained"] { background: rgba(183,121,31,0.12); color: var(--accent-constrained); }
+      .diagram-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+      .diagram { border: 1px solid var(--border); border-radius: 22px; padding: 16px; background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,248,250,0.98)); display: grid; gap: 14px; min-width: 0; }
+      .diagram p { margin: 0; color: var(--text-muted); font-size: 12px; line-height: 1.45; }
+      .ladder { display: grid; gap: 10px; }
+      .ladder-step {
+        border: 1px solid var(--border); border-radius: 18px; padding: 12px; background: var(--panel); display: grid; gap: 4px;
+      }
+      .ladder-step[data-active="true"] { border-color: rgba(47,111,237,0.45); box-shadow: inset 0 0 0 1px rgba(47,111,237,0.12); }
+      .ladder-step small { color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; }
+      .ladder-step strong { color: var(--text-strong); font-size: 13px; }
+      .observation-bars, .restore-bars { display: grid; gap: 10px; }
+      .bar-row { display: grid; gap: 6px; }
+      .bar-row header { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; }
+      .bar-track { height: 10px; border-radius: 999px; background: var(--shell); overflow: hidden; }
+      .bar-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent-canary), var(--accent-observation)); }
+      .bar-fill[data-tone="restore"] { background: linear-gradient(90deg, var(--accent-restore), #53b08a); }
+      .bar-fill[data-tone="blocked"] { background: linear-gradient(90deg, var(--accent-blocked), #de665d); }
+      .table-shell { overflow: auto; border: 1px solid var(--border); border-radius: 18px; background: var(--panel); }
+      table { width: 100%; border-collapse: collapse; min-width: 100%; }
+      th, td { padding: 11px 12px; border-bottom: 1px solid rgba(216,224,232,0.82); text-align: left; vertical-align: top; font-size: 12px; }
+      th { color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; background: rgba(238,242,246,0.74); position: sticky; top: 0; }
+      tbody tr[data-selected="true"] { background: rgba(47,111,237,0.08); }
+      tbody tr:hover { background: rgba(238,242,246,0.78); }
+      tbody tr button { all: unset; display: block; width: 100%; cursor: pointer; }
+      .lower-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; }
+      .inspector { padding: 18px; display: grid; gap: 14px; }
+      .inspector-block { border: 1px solid var(--border); border-radius: 18px; padding: 14px; background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,248,250,0.98)); display: grid; gap: 8px; }
+      .inspector-block small { color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; }
+      .inspector-block strong { color: var(--text-strong); font-size: 13px; }
+      .inspector-list { display: grid; gap: 6px; font-size: 12px; }
+      .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; word-break: break-all; }
+      @media (max-width: 1380px) {
+        .layout { grid-template-columns: 280px minmax(0, 1fr); }
+        .inspector { position: static; grid-column: 1 / -1; }
+      }
+      @media (max-width: 1100px) {
+        .page-shell { padding-inline: 16px; }
+        .masthead { margin-inline: -16px; height: auto; min-height: 72px; align-items: start; flex-direction: column; }
+        .layout { grid-template-columns: 1fr; }
+        .rail { position: static; }
+        .diagram-grid, .lower-grid { grid-template-columns: 1fr; }
+        .summary-pill { min-width: 0; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+      }
+    </style>
+  </head>
+  <body data-testid="release-rehearsal-cockpit">
+    <div class="page-shell">
+      <header class="masthead" data-testid="cockpit-masthead">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg data-testid="watch-tuple-mark" width="22" height="22" viewBox="0 0 22 22" fill="none">
+              <circle cx="11" cy="11" r="9" stroke="#2F6FED" stroke-width="1.5"></circle>
+              <path d="M6 11h4l2-4 4 8h-4" stroke="#5B61F6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+          </div>
+          <div class="brand-label">
+            <strong>Vecells Release Rehearsal</strong>
+            <span>Release_Rehearsal_Cockpit</span>
+          </div>
+        </div>
+        <div class="masthead-summary">
+          <div class="summary-pill">
+            <small>Verdict</small>
+            <strong data-testid="masthead-verdict"></strong>
+          </div>
+          <div class="summary-pill">
+            <small>Active Tuple Hash</small>
+            <strong class="mono" data-testid="tuple-hash-badge"></strong>
+          </div>
+          <div class="summary-pill">
+            <small>Blocked Actions</small>
+            <strong data-testid="blocked-action-count"></strong>
+          </div>
+        </div>
+      </header>
+
+      <div class="layout">
+        <nav class="rail" aria-label="Rehearsal filters" data-testid="control-rail">
+          <div class="filter-group">
+            <label for="filter-environment">Environment</label>
+            <select id="filter-environment" data-testid="filter-environment"></select>
+          </div>
+          <div class="filter-group">
+            <label for="filter-tuple-state">Tuple State</label>
+            <select id="filter-tuple-state" data-testid="filter-tuple-state"></select>
+          </div>
+          <div class="filter-group">
+            <label for="filter-action-class">Action Class</label>
+            <select id="filter-action-class" data-testid="filter-action-class"></select>
+          </div>
+          <div class="filter-group">
+            <label for="filter-outcome-state">Outcome State</label>
+            <select id="filter-outcome-state" data-testid="filter-outcome-state"></select>
+          </div>
+          <section>
+            <h2>Cases</h2>
+            <div class="case-rail" data-testid="case-rail"></div>
+          </section>
+        </nav>
+
+        <main class="canvas" data-testid="cockpit-canvas">
+          <section class="ribbon" data-testid="freeze-trust-ribbon">
+            <div class="badge-row" data-testid="tuple-badge-row"></div>
+            <div class="table-shell" data-testid="freeze-trust-table-shell">
+              <table data-testid="freeze-trust-table">
+                <thead><tr><th>Tuple</th><th>Freeze</th><th>Trust</th><th>Control</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+
+          <div class="diagram-grid">
+            <section class="diagram" data-testid="wave-ladder">
+              <div>
+                <h2>Wave Ladder</h2>
+                <p>Action lineage is rendered from the machine-generated case matrix and keeps applied success separate from accepted or satisfied settlements.</p>
+              </div>
+              <div class="ladder" data-testid="wave-ladder-steps"></div>
+              <div class="table-shell">
+                <table data-testid="wave-ladder-table">
+                  <thead><tr><th>Step</th><th>Status</th><th>Evidence</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="diagram" data-testid="observation-window-chart">
+              <div>
+                <h2>Observation Window</h2>
+                <p>Observation remains a first-class release duty. The chart and table below stay synchronized with the selected action case and the active environment filter.</p>
+              </div>
+              <div class="observation-bars" data-testid="observation-bars"></div>
+              <div class="table-shell">
+                <table data-testid="observation-window-table">
+                  <thead><tr><th>Observation Case</th><th>State</th><th>Applied Allowed</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="diagram" data-testid="restore-timeline">
+              <div>
+                <h2>Restore Timeline</h2>
+                <p>Restore stays incomplete until journey validation, runbook freshness, publication parity, and recovery posture all remain exact enough for the ring.</p>
+              </div>
+              <div class="restore-bars" data-testid="restore-bars"></div>
+              <div class="table-shell">
+                <table data-testid="restore-timeline-table">
+                  <thead><tr><th>Restore Case</th><th>Readiness</th><th>Live Authority Restored</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+
+          <div class="lower-grid">
+            <section class="panel" style="padding:16px;" data-testid="action-results-panel">
+              <h2>Action Results</h2>
+              <div class="table-shell" style="margin-top:12px;">
+                <table data-testid="action-results-table">
+                  <thead><tr><th>Case</th><th>Ring</th><th>Action</th><th>Outcome</th><th>Shell After</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="panel" style="padding:16px;" data-testid="restore-readiness-panel">
+              <h2>Restore Readiness</h2>
+              <div class="table-shell" style="margin-top:12px;">
+                <table data-testid="restore-readiness-table">
+                  <thead><tr><th>Restore Case</th><th>Readiness</th><th>Recovery Posture</th><th>Live Authority</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </main>
+
+        <aside class="inspector" aria-label="Selected rehearsal case" data-testid="inspector">
+          <div class="inspector-block" data-testid="inspector-action-preview">
+            <small>Selected Case</small>
+            <strong id="inspector-title"></strong>
+            <div class="inspector-list" id="inspector-summary"></div>
+          </div>
+          <div class="inspector-block" data-testid="inspector-tuple-refs">
+            <small>Tuple Refs</small>
+            <div class="inspector-list mono" id="inspector-tuples"></div>
+          </div>
+          <div class="inspector-block" data-testid="inspector-readiness">
+            <small>Readiness Evidence</small>
+            <div class="inspector-list" id="inspector-readiness-list"></div>
+          </div>
+          <div class="inspector-block" data-testid="inspector-settlement-chain">
+            <small>Settlement Chain</small>
+            <div class="inspector-list" id="inspector-settlement"></div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <script id="release-rehearsal-results" type="application/json">{"task_id": "seq_137", "visual_mode": "Release_Rehearsal_Cockpit", "generated_at": "2026-04-14T10:22:13Z", "captured_on": "2026-04-14", "suiteVerdict": "rehearsal_exact_live_withheld", "source_precedence": ["prompt/137.md", "prompt/138.md", "prompt/shared_operating_contract_136_to_145.md", "prompt/AGENT.md", "prompt/checklist.md", "blueprint/phase-cards.md#card-1-mandatory-phase-0-tests", "blueprint/platform-runtime-and-release-blueprint.md#RuntimePublicationBundle", "blueprint/platform-runtime-and-release-blueprint.md#ReleasePublicationParityRecord", "blueprint/platform-runtime-and-release-blueprint.md#ReleaseWatchTuple", "blueprint/platform-runtime-and-release-blueprint.md#WaveObservationPolicy", "blueprint/platform-runtime-and-release-blueprint.md#WaveActionSettlement", "blueprint/platform-runtime-and-release-blueprint.md#ReleaseWatchEvidenceCockpit", "blueprint/phase-0-the-foundation-protocol.md#ReleaseApprovalFreeze", "blueprint/phase-0-the-foundation-protocol.md#RecoveryControlPosture", "blueprint/forensic-audit-findings.md", "data/release/release_candidate_tuple.json", "data/release/freeze_blockers.json", "data/analysis/release_watch_pipeline_catalog.json", "data/analysis/release_watch_required_evidence.csv", "data/analysis/canary_scenario_catalog.json", "data/analysis/resilience_baseline_catalog.json", "data/analysis/readiness_coverage_matrix.csv", "data/analysis/preview_environment_manifest.json", "data/analysis/runtime_topology_publication_matrix.csv", "data/test/136_preview_environment_suite_results.json"], "summary": {"rehearsal_case_count": 11, "wave_observation_case_count": 6, "restore_readiness_case_count": 6, "blocked_action_count": 4, "accepted_pending_observation_count": 1, "satisfied_but_live_withheld_count": 1, "rollback_required_count": 1, "kill_switch_count": 1, "restore_blocked_count": 2, "applied_allowed_case_count": 0, "live_control_reopened_count": 0, "preview_live_advertisement_count": 0}, "releaseContext": {"releaseRef": "RC_LOCAL_V1", "releaseApprovalFreezeRef": "RAF_LOCAL_V1", "compilationTupleHash": "0bab371bd97f01a1", "freezeVerdict": "exact", "selectedWatchScenarioId": "LOCAL_SATISFIED", "selectedResilienceScenarioId": "LOCAL_EXACT_READY", "selectedMigrationScenarioId": "LOCAL_READY", "localSurfaceSummary": {"row_count": 23, "inventoried_surface_count": 22, "route_family_count": 20, "publishable_live_count": 0, "recovery_only_count": 7, "partial_count": 13, "blocked_count": 3, "drifted_count": 0, "calm_allowed_count": 0, "calm_suppressed_count": 21, "diagnostic_only_count": 2, "writable_allowed_count": 0, "writable_blocked_count": 16, "writable_recovery_only_count": 7}}, "prerequisite_gaps": [], "orchestratedSpecRefs": ["preview-environment-control-room.spec.js", "release-candidate-freeze-board.spec.js", "release-watch-pipeline-cockpit.spec.js", "resilience-baseline-cockpit.spec.js", "canary-and-rollback-cockpit.spec.js"], "cases": [{"caseId": "PREVIEW_CI_PREVIEW_PATIENT_BINDING_PRESENT", "phase": "preview", "actionClass": "preview_route_truth", "environmentRing": "ci-preview", "title": "CI preview tuple is present before any patient shell truth is advertised.", "requiredPublicationTuple": "rpb::ci-preview::authoritative; rpp::ci-preview::authoritative; pev_branch_patient_care; CI_PREVIEW_AUTHORITATIVE_ALIGNMENT", "requiredFreezeTuple": "preview_banner_only::no_release_reopen", "requiredReadinessEvidence": "publicationBindingState=verified_for_preview; seq_136::patient_shell_smoke_withheld; seq_136::publishable_live_count_zero", "requiredObservationDuty": "none", "allowedShellPostureBefore": "preview_banner_only", "allowedShellPostureAfter": "preview_banner_only", "tupleState": "blocked", "freezeState": "preview_only", "trustState": "verified_for_preview", "outcomeState": "withheld", "interactiveControlState": "preview_only", "rollbackTrigger": "preview publication drift or runtime binding mismatch withdraws shell proof immediately.", "machineEvidenceRefs": "data/analysis/preview_environment_manifest.json; data/analysis/runtime_topology_publication_matrix.csv; data/test/136_preview_environment_suite_results.json", "sourceScenarioRefs": "pev_branch_patient_care; CI_PREVIEW_AUTHORITATIVE_ALIGNMENT; patient", "notes": "Preview posture is verified for preview, but the patient shell remains withheld because no publishable live shell tuple exists in the Phase 0 local surface summary."}, {"caseId": "LOCAL_RELEASE_FREEZE_PARTIAL_GATEWAY_SURFACES", "phase": "freeze", "actionClass": "freeze_control", "environmentRing": "local", "title": "The local release candidate stays frozen and non-writable while gateway surface compatibility remains partial.", "requiredPublicationTuple": "rpb::local::authoritative; rpp::local::authoritative; RC_LOCAL_V1", "requiredFreezeTuple": "RAF_LOCAL_V1", "requiredReadinessEvidence": "ORS_101_LOCAL_EXACT_AND_READY; RAF_LOCAL_V1; RPB_LOCAL_V1; RPP_LOCAL_V1; WGS_LOCAL_V1", "requiredObservationDuty": "satisfied", "allowedShellPostureBefore": "diagnostic_only_nonprod", "allowedShellPostureAfter": "diagnostic_only_nonprod", "tupleState": "partial", "freezeState": "exact", "trustState": "aligned", "outcomeState": "blocked", "interactiveControlState": "suppressed", "rollbackTrigger": "The local ring keeps one exact tuple but current gateway-backed surfaces remain bounded by design lint, accessibility, and browser posture ceilings.", "machineEvidenceRefs": "data/release/release_candidate_tuple.json; data/release/freeze_blockers.json; data/analysis/release_watch_required_evidence.csv", "sourceScenarioRefs": "RC_LOCAL_V1; LOCAL_SATISFIED; LOCAL_EXACT_READY", "notes": "Local publication and restore tuples are exact, but gateway surfaces stay partial and the local surface summary still reports writable_allowed_count=0."}, {"caseId": "PREPROD_CHANNEL_FREEZE_BLOCKS_PROMOTION", "phase": "freeze", "actionClass": "freeze_control", "environmentRing": "preprod", "title": "Preprod channel-freeze and assurance drift suppress promotional actions even when restore artifacts exist.", "requiredPublicationTuple": "rpb::preprod::authoritative; rpp::preprod::authoritative; ECE_131_PREPROD", "requiredFreezeTuple": "assurance::restore_block; freeze::wave_pause", "requiredReadinessEvidence": "ORS_101_PREPROD_ASSURANCE_OR_FREEZE_BLOCKED; ASSURANCE_OR_FREEZE_BLOCKED", "requiredObservationDuty": "resume and promotion stay blocked until freeze and assurance blockers clear.", "allowedShellPostureBefore": "read_only_revalidation", "allowedShellPostureAfter": "read_only_revalidation", "tupleState": "blocked", "freezeState": "frozen", "trustState": "assurance_or_freeze_blocked", "outcomeState": "blocked", "interactiveControlState": "suppressed", "rollbackTrigger": "freeze::wave_pause or assurance::restore_block keeps all mutating controls suppressed.", "machineEvidenceRefs": "data/release/release_candidate_tuple.json; data/analysis/resilience_baseline_catalog.json", "sourceScenarioRefs": "ECE_131_PREPROD; PREPROD_ASSURANCE_OR_FREEZE_BLOCKED", "notes": "This closes the gap where freeze is treated as operator convention; active freeze refs and readiness blockers directly drive read-only posture."}, {"caseId": "LOCAL_CANARY_START_ACCEPTED_PENDING_OBSERVATION", "phase": "canary", "actionClass": "canary_start", "environmentRing": "local", "title": "Canary start creates a fresh watch tuple and observation policy but does not report applied success.", "requiredPublicationTuple": "RWT_LOCAL_V1::local_accepted; WOP_LOCAL_V1::local_accepted; rpb::local::authoritative", "requiredFreezeTuple": "CHFR_LOCAL_BROWSER_V1; CHFR_LOCAL_PARTNER_CALLBACK_V1", "requiredReadinessEvidence": "ORS_101_LOCAL_EXACT_AND_READY; bpr::run_release_controls_local_verified; REP_101_EF_BOOKING_CAPACITY_COMMIT_LOCAL; REP_101_EF_PATIENT_ENTRY_RECOVERY_LOCAL", "requiredObservationDuty": "Observation window must stay open until probe minimums, parity, continuity, and provenance remain exact.", "allowedShellPostureBefore": "diagnostic_only_nonprod", "allowedShellPostureAfter": "diagnostic_only_nonprod", "tupleState": "partial", "freezeState": "accepted_pending_observation", "trustState": "live", "outcomeState": "accepted_pending_observation", "interactiveControlState": "diagnostic_only", "rollbackTrigger": "rollback.local.continuity-regression; rollback.local.synthetic-journey; rollback.local.manual-operator", "machineEvidenceRefs": "data/analysis/canary_scenario_catalog.json; data/analysis/release_watch_pipeline_catalog.json", "sourceScenarioRefs": "LOCAL_CANARY_START_HAPPY_PATH; LOCAL_ACCEPTED", "notes": "Accepted is not applied. The start action is machine-bound to a fresh tuple and policy, but live shell reopening is still withheld."}, {"caseId": "LOCAL_WIDEN_RESUME_ONLY_AFTER_SATISFIED_OBSERVATION", "phase": "canary", "actionClass": "widen_resume", "environmentRing": "local", "title": "Widen and resume remain gated on satisfied observation, exact parity, and non-reopened shell truth.", "requiredPublicationTuple": "RWT_LOCAL_V1::local_satisfied; WOP_LOCAL_V1::local_satisfied; rpb::local::authoritative", "requiredFreezeTuple": "RAF_LOCAL_V1", "requiredReadinessEvidence": "ORS_101_LOCAL_EXACT_AND_READY; bpr::run_release_controls_local_verified; WOP_LOCAL_V1::local_satisfied", "requiredObservationDuty": "satisfied observation is mandatory, but applied success still stays impossible while the local ring remains partial.", "allowedShellPostureBefore": "diagnostic_only_nonprod", "allowedShellPostureAfter": "diagnostic_only_nonprod", "tupleState": "partial", "freezeState": "observation_satisfied", "trustState": "live", "outcomeState": "satisfied_but_live_withheld", "interactiveControlState": "diagnostic_only", "rollbackTrigger": "Any gateway-surface drift, continuity regression, or provenance change forces rollback or read-only recovery instead of applied success.", "machineEvidenceRefs": "data/release/release_candidate_tuple.json; data/analysis/canary_scenario_catalog.json; data/analysis/release_watch_pipeline_catalog.json", "sourceScenarioRefs": "LOCAL_WIDEN_AFTER_SATISFIED_OBSERVATION; LOCAL_SATISFIED", "notes": "Observation is satisfied here, yet the action still does not become applied because the selected local compatibility summary remains partial and shell publication is withheld."}, {"caseId": "CI_PREVIEW_PAUSE_ON_CONSTRAINED_GUARDRAIL", "phase": "canary", "actionClass": "pause", "environmentRing": "ci-preview", "title": "Stale preview tuple or constrained guardrail pauses rollout and suppresses writable controls immediately.", "requiredPublicationTuple": "RWT_CI_PREVIEW_V1::ci_preview_stale; WOP_CI_PREVIEW_V1::ci_preview_stale; rpb::ci-preview::authoritative", "requiredFreezeTuple": "CHFR_CI_PREVIEW_BROWSER_V1; CHFR_CI_PREVIEW_PARTNER_CALLBACK_V1", "requiredReadinessEvidence": "ORS_101_LOCAL_STALE_REHEARSAL_EVIDENCE; stale_rehearsal_evidence", "requiredObservationDuty": "open", "allowedShellPostureBefore": "read_only_revalidation", "allowedShellPostureAfter": "read_only_revalidation", "tupleState": "blocked", "freezeState": "constrained", "trustState": "degraded", "outcomeState": "constrained", "interactiveControlState": "suppressed", "rollbackTrigger": "Stale rehearsal evidence or constrained continuity downgrades preview posture to read-only revalidation.", "machineEvidenceRefs": "data/analysis/canary_scenario_catalog.json; data/analysis/release_watch_pipeline_catalog.json; data/analysis/preview_environment_manifest.json", "sourceScenarioRefs": "CI_PREVIEW_PAUSE_CONSTRAINED_GUARDRAIL; CI_PREVIEW_STALE", "notes": "This closes the gap where preview environments are treated as inherently safe. Preview posture uses the same tuple discipline as later canary decisions."}, {"caseId": "INTEGRATION_ROLLBACK_ON_GUARDRAIL_PARITY_PROVENANCE_BREACH", "phase": "rollback", "actionClass": "rollback", "environmentRing": "integration", "title": "Rollback becomes authoritative when guardrails, parity, provenance, and restore readiness drift together.", "requiredPublicationTuple": "RWT_INTEGRATION_V1::integration_stale; WOP_INTEGRATION_V1::integration_stale; rpb::integration::authoritative", "requiredFreezeTuple": "CHFR_INTEGRATION_BROWSER_V1; CHFR_INTEGRATION_PARTNER_CALLBACK_V1", "requiredReadinessEvidence": "ORS_101_INTEGRATION_BLOCKED_RESTORE_PROOF; bpr::run_gateway_integration_quarantined_dependency; RBR_101_EF_BOOKING_CAPACITY_COMMIT; RBR_101_EF_PATIENT_ENTRY_RECOVERY", "requiredObservationDuty": "Expired observation, parity conflict, and quarantined provenance force rollback-required settlement.", "allowedShellPostureBefore": "recovery_only", "allowedShellPostureAfter": "recovery_only", "tupleState": "blocked", "freezeState": "frozen", "trustState": "degraded", "outcomeState": "rollback_required", "interactiveControlState": "suppressed", "rollbackTrigger": "Publication conflict, parity conflict, blocked restore proof, and quarantined provenance generate rollback-required lineage.", "machineEvidenceRefs": "data/analysis/canary_scenario_catalog.json; data/analysis/rollback_trigger_matrix.csv; data/analysis/resilience_baseline_catalog.json", "sourceScenarioRefs": "INTEGRATION_ROLLBACK_ON_TRIGGER_BREACH", "notes": "Rollback truth is no longer shell-side affordance only; the settlement chain is explicit and machine-readable."}, {"caseId": "PREPROD_KILL_SWITCH_ON_TRUST_OR_PARITY_FAILURE", "phase": "rollback", "actionClass": "kill_switch", "environmentRing": "preprod", "title": "Kill-switch posture freezes the ring when trust, parity, or provenance are withdrawn.", "requiredPublicationTuple": "RWT_PREPROD_V1::preprod_rollback_required; WOP_PREPROD_V1::preprod_rollback_required; rpb::preprod::authoritative", "requiredFreezeTuple": "CHFR_PREPROD_BROWSER_V1; CHFR_PREPROD_PARTNER_CALLBACK_V1", "requiredReadinessEvidence": "ORS_101_PREPROD_ASSURANCE_OR_FREEZE_BLOCKED; bpr::run_command_preprod_revoked; assurance::restore_block; freeze::wave_pause", "requiredObservationDuty": "None. The ring is frozen and quarantined until a fresh tuple is promoted and verified.", "allowedShellPostureBefore": "kill_switch_only", "allowedShellPostureAfter": "kill_switch_only", "tupleState": "blocked", "freezeState": "frozen", "trustState": "quarantined", "outcomeState": "kill_switch_active", "interactiveControlState": "suppressed", "rollbackTrigger": "Revoked provenance, withdrawn parity, and kill-switch recovery disposition freeze the entire ring.", "machineEvidenceRefs": "data/analysis/canary_scenario_catalog.json; data/analysis/resilience_baseline_catalog.json; data/release/release_candidate_tuple.json", "sourceScenarioRefs": "PREPROD_KILL_SWITCH_ON_TRUST_OR_PARITY_FAILURE; PREPROD_ASSURANCE_OR_FREEZE_BLOCKED", "notes": "This closes the gap where rollback appears only as an operator affordance; kill-switch lineage is an authoritative release-control outcome."}, {"caseId": "LOCAL_RESTORE_REQUIRES_JOURNEY_VALIDATION_AND_FRESH_RUNBOOK", "phase": "restore", "actionClass": "restore_validation", "environmentRing": "local", "title": "Restore is not done when data loads; journey validation, runbook freshness, and parity still have to hold.", "requiredPublicationTuple": "rpb::local::authoritative; rpp::local::authoritative; RWT_LOCAL_V1::local_satisfied", "requiredFreezeTuple": "RAF_LOCAL_V1", "requiredReadinessEvidence": "ORS_101_LOCAL_EXACT_AND_READY; RBR_101_EF_PATIENT_ENTRY_RECOVERY; RST_101_EF_PATIENT_ENTRY_RECOVERY_LOCAL", "requiredObservationDuty": "Journey validation and readiness compilation must remain fresh before any shell claims calm recovery.", "allowedShellPostureBefore": "diagnostic_only_nonprod", "allowedShellPostureAfter": "diagnostic_only_nonprod", "tupleState": "partial", "freezeState": "exact", "trustState": "verified", "outcomeState": "restore_verified_live_withheld", "interactiveControlState": "diagnostic_only", "rollbackTrigger": "Any runbook freshness, gateway compatibility, or parity drift keeps restore in bounded non-production rehearsal only.", "machineEvidenceRefs": "data/analysis/resilience_baseline_catalog.json; data/release/release_candidate_tuple.json", "sourceScenarioRefs": "LOCAL_EXACT_READY", "notes": "Even the exact ready restore case does not reopen live control because the selected local ring remains partial and Phase 0 shell exposure is still withheld."}, {"caseId": "INTEGRATION_RESTORE_BLOCKED_PROOF_PREVENTS_CONTROL", "phase": "restore", "actionClass": "restore_blocked", "environmentRing": "integration", "title": "Blocked restore proof prevents calm recovery claims even when some backup manifests are current.", "requiredPublicationTuple": "rpb::integration::authoritative; rpp::integration::authoritative; RWT_INTEGRATION_V1::integration_stale", "requiredFreezeTuple": "restore_proof_must_be_unblocked_before_control_reopens", "requiredReadinessEvidence": "ORS_101_INTEGRATION_BLOCKED_RESTORE_PROOF; BLOCKED_RESTORE_PROOF; RST_101_EF_PATIENT_ENTRY_RECOVERY_INTEGRATION", "requiredObservationDuty": "Restore verification stays blocked until journey proof and evidence packs are both current.", "allowedShellPostureBefore": "recovery_only", "allowedShellPostureAfter": "recovery_only", "tupleState": "blocked", "freezeState": "restore_blocked", "trustState": "degraded", "outcomeState": "restore_blocked", "interactiveControlState": "suppressed", "rollbackTrigger": "Blocked restore proof keeps recovery posture bounded and prevents any calm or writable reopening.", "machineEvidenceRefs": "data/analysis/resilience_baseline_catalog.json; data/analysis/readiness_coverage_matrix.csv", "sourceScenarioRefs": "INTEGRATION_BLOCKED_RESTORE_PROOF", "notes": "This closes the gap where restore was treated as complete once data rehydrated. Journey-level proof remains mandatory."}, {"caseId": "PREPROD_TUPLE_DRIFT_KEEPS_RECOVERY_WITHHELD", "phase": "restore", "actionClass": "restore_drift", "environmentRing": "preprod", "title": "Tuple drift downgrades recovery posture and keeps calm recovery claims withheld.", "requiredPublicationTuple": "rpb::preprod::authoritative; rpp::preprod::authoritative; RWT_PREPROD_V1::preprod_rollback_required", "requiredFreezeTuple": "assurance::restore_block; freeze::wave_pause", "requiredReadinessEvidence": "ORS_101_PREPROD_TUPLE_DRIFT; RESILIENCE_TUPLE_DRIFT; RST_101_EF_PATIENT_ENTRY_RECOVERY_PREPROD", "requiredObservationDuty": "Fresh tuple issuance, parity revalidation, and restore evidence regeneration are required before any recovery claim can relax.", "allowedShellPostureBefore": "recovery_only", "allowedShellPostureAfter": "recovery_only", "tupleState": "blocked", "freezeState": "tuple_drift", "trustState": "drifted", "outcomeState": "tuple_drift_blocked", "interactiveControlState": "recovery_only", "rollbackTrigger": "Tuple drift downgrades RecoveryControlPosture and keeps shell authority withheld until a governed rebind succeeds.", "machineEvidenceRefs": "data/analysis/resilience_baseline_catalog.json; data/analysis/readiness_coverage_matrix.csv; data/release/release_candidate_tuple.json", "sourceScenarioRefs": "PREPROD_TUPLE_DRIFT; ECE_131_PREPROD", "notes": "This explicitly closes the restore-succeeded-because-data-loaded gap by keeping calm recovery false until tuple drift is resolved."}], "waveObservationCases": [{"observationCaseId": "LOCAL_CANARY_START_HAPPY_PATH", "environmentRing": "local", "actionType": "canary_start", "watchState": "accepted", "observationState": "open", "guardrailState": "green", "tupleState": "partial", "requiredObservationDuty": "Open observation and collect dwell proof before any widen, resume, or applied claim.", "appliedAllowed": "no", "appliedBlocker": "current ring compatibility and Phase 0 shell exposure still withhold applied success", "settlementState": "accepted_pending_observation", "proofRefs": "data/analysis/canary_scenario_catalog.json; data/analysis/release_watch_pipeline_catalog.json"}, {"observationCaseId": "LOCAL_WIDEN_AFTER_SATISFIED_OBSERVATION", "environmentRing": "local", "actionType": "widen", "watchState": "satisfied", "observationState": "satisfied", "guardrailState": "green", "tupleState": "partial", "requiredObservationDuty": "Observation must be satisfied and parity or provenance must stay exact.", "appliedAllowed": "no", "appliedBlocker": "current ring compatibility and Phase 0 shell exposure still withhold applied success", "settlementState": "satisfied", "proofRefs": "data/analysis/canary_scenario_catalog.json; data/analysis/release_watch_pipeline_catalog.json"}, {"observationCaseId": "CI_PREVIEW_PAUSE_CONSTRAINED_GUARDRAIL", "environmentRing": "ci-preview", "actionType": "pause", "watchState": "stale", "observationState": "open", "guardrailState": "constrained", "tupleState": "blocked", "requiredObservationDuty": "Pause until constrained guardrail blockers clear.", "appliedAllowed": "no", "appliedBlocker": "current ring compatibility and Phase 0 shell exposure still withhold applied success", "settlementState": "constrained", "proofRefs": "data/analysis/canary_scenario_catalog.json; data/analysis/release_watch_pipeline_catalog.json"}, {"observationCaseId": "INTEGRATION_ROLLBACK_ON_TRIGGER_BREACH", "environmentRing": "integration", "actionType": "rollback", "watchState": "rollback_required", "observationState": "expired", "guardrailState": "frozen", "tupleState": "blocked", "requiredObservationDuty": "Emit rollback evidence and preserve lineage to the rollback target tuple.", "appliedAllowed": "no", "appliedBlocker": "current ring compatibility and Phase 0 shell exposure still withhold applied success", "settlementState": "rollback_required", "proofRefs": "data/analysis/canary_scenario_catalog.json; data/analysis/release_watch_pipeline_catalog.json"}, {"observationCaseId": "PREPROD_KILL_SWITCH_ON_TRUST_OR_PARITY_FAILURE", "environmentRing": "preprod", "actionType": "kill_switch", "watchState": "rollback_required", "observationState": "expired", "guardrailState": "frozen", "tupleState": "blocked", "requiredObservationDuty": "Freeze the ring and block all re-entry until a new governed tuple is promoted.", "appliedAllowed": "no", "appliedBlocker": "current ring compatibility and Phase 0 shell exposure still withhold applied success", "settlementState": "constrained", "proofRefs": "data/analysis/canary_scenario_catalog.json; data/analysis/release_watch_pipeline_catalog.json"}, {"observationCaseId": "LOCAL_ROLLFORWARD_AFTER_SUPERSEDED_TUPLE", "environmentRing": "local", "actionType": "rollforward", "watchState": "satisfied", "observationState": "satisfied", "guardrailState": "green", "tupleState": "partial", "requiredObservationDuty": "Supersede the prior tuple before satisfied settlement is accepted.", "appliedAllowed": "no", "appliedBlocker": "current ring compatibility and Phase 0 shell exposure still withhold applied success", "settlementState": "satisfied", "proofRefs": "data/analysis/canary_scenario_catalog.json; data/analysis/release_watch_pipeline_catalog.json"}], "restoreReadinessCases": [{"restoreCaseId": "LOCAL_EXACT_READY", "environmentRing": "local", "readinessState": "exact_and_ready", "publicationTupleState": "partial", "journeyValidationState": "journey_validated", "runbookBindingState": "current", "recoveryControlPosture": "rehearsed_nonprod_only", "liveAuthorityRestored": "no", "shellPostureAfter": "diagnostic_only_nonprod", "blockerRefs": "", "proofRefs": "data/analysis/resilience_baseline_catalog.json; data/analysis/readiness_coverage_matrix.csv; data/release/release_candidate_tuple.json"}, {"restoreCaseId": "LOCAL_STALE_REHEARSAL", "environmentRing": "local", "readinessState": "stale_rehearsal_evidence", "publicationTupleState": "partial", "journeyValidationState": "journey_validated", "runbookBindingState": "stale", "recoveryControlPosture": "revalidation_required", "liveAuthorityRestored": "no", "shellPostureAfter": "read_only_revalidation", "blockerRefs": "STALE_REHEARSAL_EVIDENCE", "proofRefs": "data/analysis/resilience_baseline_catalog.json; data/analysis/readiness_coverage_matrix.csv; data/release/release_candidate_tuple.json"}, {"restoreCaseId": "CI_PREVIEW_MISSING_BACKUP_MANIFEST", "environmentRing": "ci-preview", "readinessState": "missing_backup_manifest", "publicationTupleState": "blocked", "journeyValidationState": "journey_validated", "runbookBindingState": "current", "recoveryControlPosture": "restore_blocked_missing_manifest", "liveAuthorityRestored": "no", "shellPostureAfter": "recovery_only", "blockerRefs": "MISSING_BACKUP_MANIFEST; STALE_REHEARSAL_EVIDENCE", "proofRefs": "data/analysis/resilience_baseline_catalog.json; data/analysis/readiness_coverage_matrix.csv; data/release/release_candidate_tuple.json"}, {"restoreCaseId": "INTEGRATION_BLOCKED_RESTORE_PROOF", "environmentRing": "integration", "readinessState": "blocked_restore_proof", "publicationTupleState": "blocked", "journeyValidationState": "blocked", "runbookBindingState": "current", "recoveryControlPosture": "restore_blocked", "liveAuthorityRestored": "no", "shellPostureAfter": "recovery_only", "blockerRefs": "BLOCKED_RESTORE_PROOF", "proofRefs": "data/analysis/resilience_baseline_catalog.json; data/analysis/readiness_coverage_matrix.csv; data/release/release_candidate_tuple.json"}, {"restoreCaseId": "PREPROD_TUPLE_DRIFT", "environmentRing": "preprod", "readinessState": "tuple_drift", "publicationTupleState": "blocked", "journeyValidationState": "journey_validated", "runbookBindingState": "current", "recoveryControlPosture": "tuple_drift_recovery_only", "liveAuthorityRestored": "no", "shellPostureAfter": "recovery_only", "blockerRefs": "BLOCKED_RESTORE_PROOF; RESILIENCE_TUPLE_DRIFT", "proofRefs": "data/analysis/resilience_baseline_catalog.json; data/analysis/readiness_coverage_matrix.csv; data/release/release_candidate_tuple.json"}, {"restoreCaseId": "PREPROD_ASSURANCE_OR_FREEZE_BLOCKED", "environmentRing": "preprod", "readinessState": "assurance_or_freeze_blocked", "publicationTupleState": "blocked", "journeyValidationState": "journey_validated", "runbookBindingState": "current", "recoveryControlPosture": "freeze_or_assurance_read_only", "liveAuthorityRestored": "no", "shellPostureAfter": "read_only_revalidation", "blockerRefs": "ASSURANCE_OR_FREEZE_BLOCKED", "proofRefs": "data/analysis/resilience_baseline_catalog.json; data/analysis/readiness_coverage_matrix.csv; data/release/release_candidate_tuple.json"}]}</script>
+    <script id="release-rehearsal-expectations" type="application/json">{"task_id": "seq_137", "visual_mode": "Release_Rehearsal_Cockpit", "suite_verdict": "rehearsal_exact_live_withheld", "required_case_ids": ["PREVIEW_CI_PREVIEW_PATIENT_BINDING_PRESENT", "LOCAL_RELEASE_FREEZE_PARTIAL_GATEWAY_SURFACES", "PREPROD_CHANNEL_FREEZE_BLOCKS_PROMOTION", "LOCAL_CANARY_START_ACCEPTED_PENDING_OBSERVATION", "LOCAL_WIDEN_RESUME_ONLY_AFTER_SATISFIED_OBSERVATION", "CI_PREVIEW_PAUSE_ON_CONSTRAINED_GUARDRAIL", "INTEGRATION_ROLLBACK_ON_GUARDRAIL_PARITY_PROVENANCE_BREACH", "PREPROD_KILL_SWITCH_ON_TRUST_OR_PARITY_FAILURE", "LOCAL_RESTORE_REQUIRES_JOURNEY_VALIDATION_AND_FRESH_RUNBOOK", "INTEGRATION_RESTORE_BLOCKED_PROOF_PREVENTS_CONTROL", "PREPROD_TUPLE_DRIFT_KEEPS_RECOVERY_WITHHELD"], "required_wave_observation_case_ids": ["LOCAL_CANARY_START_HAPPY_PATH", "LOCAL_WIDEN_AFTER_SATISFIED_OBSERVATION", "CI_PREVIEW_PAUSE_CONSTRAINED_GUARDRAIL", "INTEGRATION_ROLLBACK_ON_TRIGGER_BREACH", "PREPROD_KILL_SWITCH_ON_TRUST_OR_PARITY_FAILURE", "LOCAL_ROLLFORWARD_AFTER_SUPERSEDED_TUPLE"], "required_restore_case_ids": ["LOCAL_EXACT_READY", "LOCAL_STALE_REHEARSAL", "CI_PREVIEW_MISSING_BACKUP_MANIFEST", "INTEGRATION_BLOCKED_RESTORE_PROOF", "PREPROD_TUPLE_DRIFT", "PREPROD_ASSURANCE_OR_FREEZE_BLOCKED"], "required_filters": {"environment": ["all", "local", "ci-preview", "integration", "preprod"], "tupleState": ["all", "partial", "blocked"], "actionClass": ["all", "preview_route_truth", "freeze_control", "canary_start", "widen_resume", "pause", "rollback", "kill_switch", "restore_validation", "restore_blocked", "restore_drift"], "outcomeState": ["all", "withheld", "blocked", "accepted_pending_observation", "satisfied_but_live_withheld", "constrained", "rollback_required", "kill_switch_active", "restore_verified_live_withheld", "restore_blocked", "tuple_drift_blocked"]}, "orchestrated_spec_refs": ["preview-environment-control-room.spec.js", "release-candidate-freeze-board.spec.js", "release-watch-pipeline-cockpit.spec.js", "resilience-baseline-cockpit.spec.js", "canary-and-rollback-cockpit.spec.js"], "active_release_ref": "RC_LOCAL_V1", "active_tuple_hash": "0bab371bd97f01a1", "blocked_action_count": 4, "live_control_reopened_count": 0}</script>
+    <script>
+      const results = JSON.parse(document.getElementById("release-rehearsal-results").textContent);
+      const expectations = JSON.parse(document.getElementById("release-rehearsal-expectations").textContent);
+      const state = {
+        environment: "all",
+        tupleState: "all",
+        actionClass: "all",
+        outcomeState: "all",
+        selectedCaseId: results.cases[0]?.caseId ?? null,
+      };
+      const body = document.body;
+      body.dataset.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "true" : "false";
+
+      function optionize(select, values) {
+        select.innerHTML = "";
+        for (const value of values) {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = value;
+          select.append(option);
+        }
+      }
+
+      optionize(document.querySelector("[data-testid='filter-environment']"), expectations.required_filters.environment);
+      optionize(document.querySelector("[data-testid='filter-tuple-state']"), expectations.required_filters.tupleState);
+      optionize(document.querySelector("[data-testid='filter-action-class']"), expectations.required_filters.actionClass);
+      optionize(document.querySelector("[data-testid='filter-outcome-state']"), expectations.required_filters.outcomeState);
+
+      document.querySelector("[data-testid='masthead-verdict']").textContent = results.suiteVerdict;
+      document.querySelector("[data-testid='tuple-hash-badge']").textContent = expectations.active_tuple_hash;
+      document.querySelector("[data-testid='blocked-action-count']").textContent = String(results.summary.blocked_action_count);
+
+      for (const [name, key] of [
+        ["environment", "filter-environment"],
+        ["tupleState", "filter-tuple-state"],
+        ["actionClass", "filter-action-class"],
+        ["outcomeState", "filter-outcome-state"],
+      ]) {
+        document.querySelector(`[data-testid='${key}']`).addEventListener("change", (event) => {
+          state[name] = event.target.value;
+          render();
+        });
+      }
+
+      function getVisibleCases() {
+        return results.cases.filter((row) => {
+          return (
+            (state.environment === "all" || row.environmentRing === state.environment) &&
+            (state.tupleState === "all" || row.tupleState === state.tupleState) &&
+            (state.actionClass === "all" || row.actionClass === state.actionClass) &&
+            (state.outcomeState === "all" || row.outcomeState === state.outcomeState)
+          );
+        });
+      }
+
+      function getSelectedCase() {
+        const visible = getVisibleCases();
+        if (!visible.some((row) => row.caseId === state.selectedCaseId)) {
+          state.selectedCaseId = visible[0]?.caseId ?? null;
+        }
+        return results.cases.find((row) => row.caseId === state.selectedCaseId) ?? visible[0] ?? null;
+      }
+
+      function selectCase(caseId) {
+        state.selectedCaseId = caseId;
+        render();
+      }
+
+      function renderCaseRail() {
+        const rail = document.querySelector("[data-testid='case-rail']");
+        const visible = getVisibleCases();
+        rail.innerHTML = "";
+        visible.forEach((row, index) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "case-button";
+          button.dataset.selected = String(row.caseId === state.selectedCaseId);
+          button.dataset.testid = `case-button-${row.caseId}`;
+          button.setAttribute("data-testid", `case-button-${row.caseId}`);
+          button.innerHTML = `
+            <div class="case-meta"><span>${row.environmentRing}</span><span>${row.actionClass}</span><span>${row.outcomeState}</span></div>
+            <strong>${row.title}</strong>
+            <span>${row.allowedShellPostureAfter}</span>
+          `;
+          button.addEventListener("click", () => selectCase(row.caseId));
+          button.addEventListener("keydown", (event) => {
+            const buttons = [...rail.querySelectorAll(".case-button")];
+            const currentIndex = buttons.indexOf(button);
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              buttons[Math.min(currentIndex + 1, buttons.length - 1)]?.focus();
+              buttons[Math.min(currentIndex + 1, buttons.length - 1)]?.click();
+            } else if (event.key === "ArrowUp") {
+              event.preventDefault();
+              buttons[Math.max(currentIndex - 1, 0)]?.focus();
+              buttons[Math.max(currentIndex - 1, 0)]?.click();
+            } else if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              button.click();
+            }
+          });
+          rail.append(button);
+          if (index === 0 && !state.selectedCaseId) {
+            state.selectedCaseId = row.caseId;
+          }
+        });
+      }
+
+      function renderRibbon(selected) {
+        const row = document.querySelector("[data-testid='tuple-badge-row']");
+        row.innerHTML = "";
+        const badges = [
+          ["Tuple", selected.tupleState, selected.tupleState === "blocked" ? "blocked" : selected.tupleState === "partial" ? "constrained" : "canary"],
+          ["Freeze", selected.freezeState, selected.freezeState === "frozen" || selected.freezeState === "blocked" ? "blocked" : selected.freezeState.includes("satisfied") ? "observation" : "constrained"],
+          ["Trust", selected.trustState, selected.trustState.includes("degraded") || selected.trustState.includes("drift") ? "constrained" : selected.trustState.includes("quarantined") ? "blocked" : "restore"],
+          ["Control", selected.interactiveControlState, selected.interactiveControlState === "suppressed" ? "blocked" : selected.interactiveControlState === "preview_only" ? "observation" : "restore"],
+        ];
+        badges.forEach(([label, value, tone]) => {
+          const span = document.createElement("span");
+          span.className = "badge";
+          span.dataset.tone = tone;
+          span.textContent = `${label}: ${value}`;
+          row.append(span);
+        });
+        const tbody = document.querySelector("[data-testid='freeze-trust-table'] tbody");
+        tbody.innerHTML = `<tr><td>${selected.requiredPublicationTuple}</td><td>${selected.requiredFreezeTuple}</td><td>${selected.trustState}</td><td>${selected.interactiveControlState}</td></tr>`;
+      }
+
+      function renderWave(selected) {
+        const steps = [
+          { label: "Preview tuple", state: selected.phase === "preview" ? selected.outcomeState : selected.tupleState, evidence: selected.requiredPublicationTuple },
+          { label: "Freeze gate", state: selected.freezeState, evidence: selected.requiredFreezeTuple },
+          { label: "Action issue", state: selected.actionClass, evidence: selected.requiredReadinessEvidence },
+          { label: "Observe", state: selected.requiredObservationDuty, evidence: selected.rollbackTrigger },
+          { label: "Settle", state: selected.outcomeState, evidence: selected.machineEvidenceRefs },
+        ];
+        const ladder = document.querySelector("[data-testid='wave-ladder-steps']");
+        ladder.innerHTML = "";
+        const tbody = document.querySelector("[data-testid='wave-ladder-table'] tbody");
+        tbody.innerHTML = "";
+        steps.forEach((step, index) => {
+          const article = document.createElement("article");
+          article.className = "ladder-step";
+          article.dataset.active = String(index === 4 || index === 2);
+          article.innerHTML = `<small>Step ${index + 1}</small><strong>${step.label}</strong><div>${step.state}</div>`;
+          ladder.append(article);
+          tbody.insertAdjacentHTML("beforeend", `<tr><td>${step.label}</td><td>${step.state}</td><td>${step.evidence}</td></tr>`);
+        });
+      }
+
+      function renderObservation(selected) {
+        const rows = results.waveObservationCases.filter((row) => state.environment === "all" || row.environmentRing === state.environment);
+        const bars = document.querySelector("[data-testid='observation-bars']");
+        const tbody = document.querySelector("[data-testid='observation-window-table'] tbody");
+        bars.innerHTML = "";
+        tbody.innerHTML = "";
+        rows.forEach((row) => {
+          const intensity = row.observationState === "satisfied" ? 100 : row.observationState === "open" ? 64 : 26;
+          const item = document.createElement("div");
+          item.className = "bar-row";
+          item.innerHTML = `
+            <header><strong>${row.observationCaseId}</strong><span>${row.observationState}</span></header>
+            <div class="bar-track"><div class="bar-fill" style="width:${intensity}%"></div></div>
+          `;
+          bars.append(item);
+          const selectedAttr = String(selected.sourceScenarioRefs.includes(row.observationCaseId));
+          tbody.insertAdjacentHTML(
+            "beforeend",
+            `<tr data-selected="${selectedAttr}"><td>${row.observationCaseId}</td><td>${row.observationState}</td><td>${row.appliedAllowed}</td></tr>`,
+          );
+        });
+      }
+
+      function renderRestore(selected) {
+        const rows = results.restoreReadinessCases.filter((row) => state.environment === "all" || row.environmentRing === state.environment);
+        const bars = document.querySelector("[data-testid='restore-bars']");
+        const tbody = document.querySelector("[data-testid='restore-timeline-table'] tbody");
+        bars.innerHTML = "";
+        tbody.innerHTML = "";
+        rows.forEach((row) => {
+          const tone = row.liveAuthorityRestored === "yes" ? "restore" : row.readinessState.includes("blocked") || row.readinessState.includes("drift") || row.readinessState.includes("missing") ? "blocked" : "restore";
+          const width = row.liveAuthorityRestored === "yes" ? 100 : row.readinessState === "exact_and_ready" ? 74 : row.readinessState === "stale_rehearsal_evidence" ? 54 : 26;
+          const item = document.createElement("div");
+          item.className = "bar-row";
+          item.innerHTML = `
+            <header><strong>${row.restoreCaseId}</strong><span>${row.recoveryControlPosture}</span></header>
+            <div class="bar-track"><div class="bar-fill" data-tone="${tone}" style="width:${width}%"></div></div>
+          `;
+          bars.append(item);
+          const selectedAttr = String(selected.sourceScenarioRefs.includes(row.restoreCaseId));
+          tbody.insertAdjacentHTML(
+            "beforeend",
+            `<tr data-selected="${selectedAttr}"><td>${row.restoreCaseId}</td><td>${row.readinessState}</td><td>${row.liveAuthorityRestored}</td></tr>`,
+          );
+        });
+      }
+
+      function renderTables(selected) {
+        const visible = getVisibleCases();
+        const actionBody = document.querySelector("[data-testid='action-results-table'] tbody");
+        actionBody.innerHTML = "";
+        visible.forEach((row) => {
+          actionBody.insertAdjacentHTML(
+            "beforeend",
+            `<tr data-selected="${String(row.caseId === selected.caseId)}"><td><button type="button" data-testid="action-row-${row.caseId}">${row.caseId}</button></td><td>${row.environmentRing}</td><td>${row.actionClass}</td><td>${row.outcomeState}</td><td>${row.allowedShellPostureAfter}</td></tr>`,
+          );
+        });
+        actionBody.querySelectorAll("button").forEach((button) => {
+          button.addEventListener("click", () => selectCase(button.textContent));
+        });
+
+        const restoreBody = document.querySelector("[data-testid='restore-readiness-table'] tbody");
+        restoreBody.innerHTML = "";
+        results.restoreReadinessCases
+          .filter((row) => state.environment === "all" || row.environmentRing === state.environment)
+          .forEach((row) => {
+            restoreBody.insertAdjacentHTML(
+              "beforeend",
+              `<tr data-selected="${String(selected.sourceScenarioRefs.includes(row.restoreCaseId))}"><td>${row.restoreCaseId}</td><td>${row.readinessState}</td><td>${row.recoveryControlPosture}</td><td>${row.liveAuthorityRestored}</td></tr>`,
+            );
+          });
+      }
+
+      function renderInspector(selected) {
+        document.getElementById("inspector-title").textContent = selected.title;
+        document.getElementById("inspector-summary").innerHTML = `
+          <div data-testid="inspector-case-summary"><strong>${selected.caseId}</strong></div>
+          <div>Environment: ${selected.environmentRing}</div>
+          <div>Action: ${selected.actionClass}</div>
+          <div>Outcome: ${selected.outcomeState}</div>
+          <div>Interactive controls: ${selected.interactiveControlState}</div>
+        `;
+        document.getElementById("inspector-tuples").innerHTML = `
+          <div>${selected.requiredPublicationTuple}</div>
+          <div>${selected.requiredFreezeTuple}</div>
+        `;
+        document.getElementById("inspector-readiness-list").innerHTML = `
+          <div>${selected.requiredReadinessEvidence}</div>
+          <div>${selected.allowedShellPostureBefore} -> ${selected.allowedShellPostureAfter}</div>
+        `;
+        document.getElementById("inspector-settlement").innerHTML = `
+          <div>${selected.requiredObservationDuty}</div>
+          <div>${selected.rollbackTrigger}</div>
+          <div class="mono">${selected.machineEvidenceRefs}</div>
+        `;
+      }
+
+      function render() {
+        const visible = getVisibleCases();
+        if (!visible.length) {
+          state.selectedCaseId = results.cases[0]?.caseId ?? null;
+        }
+        renderCaseRail();
+        const selected = getSelectedCase();
+        if (!selected) return;
+        renderRibbon(selected);
+        renderWave(selected);
+        renderObservation(selected);
+        renderRestore(selected);
+        renderTables(selected);
+        renderInspector(selected);
+      }
+
+      render();
+    </script>
+  </body>
+</html>

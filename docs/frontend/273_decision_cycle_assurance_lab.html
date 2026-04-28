@@ -1,0 +1,920 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Decision Cycle Assurance Lab</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #eef2f8;
+        --panel: #ffffff;
+        --panel-2: #f8fbff;
+        --ink: #132235;
+        --muted: #5d6f84;
+        --line: #d5deea;
+        --accent: #1b6fd8;
+        --accent-2: #2d9c6a;
+        --warn: #c17a15;
+        --critical: #b93a44;
+        --shadow: 0 18px 40px rgba(24, 39, 75, 0.08);
+        --radius: 8px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Inter, Arial, sans-serif;
+        background: linear-gradient(180deg, #f6f9fd 0%, var(--bg) 100%);
+        color: var(--ink);
+      }
+
+      .lab {
+        width: min(1500px, calc(100vw - 32px));
+        margin: 24px auto 40px;
+        display: grid;
+        gap: 18px;
+      }
+
+      .hero,
+      .rail,
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+
+      .hero {
+        padding: 20px 22px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .hero h1 {
+        margin: 0;
+        font-size: 28px;
+      }
+
+      .hero p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .hero-stat {
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 12px;
+      }
+
+      .hero-stat strong,
+      .hero-stat span {
+        display: block;
+      }
+
+      .hero-stat span {
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 6px;
+      }
+
+      .hero-stat strong {
+        font-size: 15px;
+      }
+
+      .rail {
+        padding: 16px;
+      }
+
+      .rail h2,
+      .panel h2,
+      .panel h3 {
+        margin: 0;
+      }
+
+      .rail p,
+      .panel p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      .scenario-list {
+        margin-top: 14px;
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .scenario-button {
+        width: 100%;
+        min-height: 92px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: var(--panel-2);
+        color: var(--ink);
+        text-align: left;
+        padding: 12px;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .scenario-button[data-active="true"] {
+        border-color: var(--accent);
+        background: #edf4ff;
+        box-shadow: inset 0 0 0 1px rgba(27, 111, 216, 0.12);
+      }
+
+      .scenario-button strong,
+      .scenario-button span {
+        display: block;
+      }
+
+      .scenario-button span {
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 6px;
+      }
+
+      .content {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+        gap: 18px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 18px;
+      }
+
+      .panel {
+        padding: 18px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .eyebrow {
+        color: var(--muted);
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.04em;
+      }
+
+      .timeline,
+      .ladder,
+      .facts,
+      .ledger-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .timeline-item,
+      .ladder-item,
+      .fact-row,
+      .ledger-item {
+        display: grid;
+        gap: 4px;
+        padding: 12px;
+        border-radius: 6px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+      }
+
+      .fact-row {
+        grid-template-columns: 140px minmax(0, 1fr);
+        align-items: center;
+      }
+
+      .fact-row span:first-child {
+        color: var(--muted);
+      }
+
+      .tone-critical {
+        border-color: rgba(185, 58, 68, 0.3);
+        background: #fff4f5;
+      }
+
+      .tone-warn {
+        border-color: rgba(193, 122, 21, 0.35);
+        background: #fff9ef;
+      }
+
+      .tone-accent {
+        border-color: rgba(27, 111, 216, 0.28);
+        background: #f0f6ff;
+      }
+
+      .tone-calm {
+        border-color: rgba(45, 156, 106, 0.28);
+        background: #f1fbf6;
+      }
+
+      .badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: var(--panel-2);
+        font-size: 12px;
+      }
+
+      .badge[data-tone="critical"] {
+        border-color: rgba(185, 58, 68, 0.35);
+        background: #fff4f5;
+      }
+
+      .badge[data-tone="warn"] {
+        border-color: rgba(193, 122, 21, 0.35);
+        background: #fff8ee;
+      }
+
+      .badge[data-tone="accent"] {
+        border-color: rgba(27, 111, 216, 0.3);
+        background: #edf4ff;
+      }
+
+      .badge[data-tone="calm"] {
+        border-color: rgba(45, 156, 106, 0.3);
+        background: #effaf4;
+      }
+
+      .remediation {
+        border-top: 1px solid var(--line);
+        padding-top: 14px;
+        display: grid;
+        gap: 10px;
+      }
+
+      @media (max-width: 1200px) {
+        .scenario-list,
+        .hero-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .content {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .lab {
+          width: min(100vw - 20px, 100%);
+          margin-top: 12px;
+        }
+
+        .scenario-list,
+        .hero-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .fact-row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main
+      class="lab"
+      data-testid="DecisionCycleAssuranceLab"
+      data-visual-mode="Decision_Cycle_Assurance_Lab"
+      data-selected-scenario-id=""
+    >
+      <section class="hero">
+        <span class="eyebrow">Decision_Cycle_Assurance_Lab</span>
+        <h1>Phase 3 Decision-Cycle Assurance</h1>
+        <p>
+          A premium review board for the more-info window, re-safety ladder, endpoint authority chain,
+          approval fence, urgent escalation path, and the one repository defect closed by `seq_273`.
+        </p>
+        <div class="hero-grid">
+          <div class="hero-stat">
+            <span>Case count</span>
+            <strong>15 explicit cases</strong>
+          </div>
+          <div class="hero-stat">
+            <span>Repository fixes</span>
+            <strong>1 fixed defect</strong>
+          </div>
+          <div class="hero-stat">
+            <span>Authority rule</span>
+            <strong>Preview and submit stay pinned to current DecisionEpoch</strong>
+          </div>
+          <div class="hero-stat">
+            <span>Recovery law</span>
+            <strong>Expired, superseded, blocked, and urgent states stay same-shell</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="rail" data-testid="ScenarioFamilyRail">
+        <span class="eyebrow">ScenarioFamilyRail</span>
+        <h2>Scenario families</h2>
+        <p>
+          Each scenario publishes the machine-readable posture for the live reply window, delta and re-safety,
+          endpoint authority, approval fence, and escalation ledger.
+        </p>
+        <div class="scenario-list" id="scenario-list"></div>
+      </section>
+
+      <section class="content">
+        <div class="stack">
+          <section class="panel" data-testid="PatientReplyWindowBoard">
+            <span class="eyebrow">PatientReplyWindowBoard</span>
+            <h2 id="reply-title"></h2>
+            <p id="reply-summary"></p>
+            <div class="badge-row">
+              <span class="badge" id="reply-state-badge"></span>
+              <span class="badge" id="reply-disposition-badge"></span>
+              <span class="badge" id="reply-recovery-badge"></span>
+            </div>
+            <div class="timeline" id="reply-timeline"></div>
+          </section>
+
+          <section class="panel" data-testid="DeltaAndResafetyInspector">
+            <span class="eyebrow">DeltaAndResafetyInspector</span>
+            <h2 id="delta-title"></h2>
+            <p id="delta-summary"></p>
+            <div class="ladder" id="delta-ladder"></div>
+          </section>
+
+          <section class="panel" data-testid="DefectAndRemediationPanel">
+            <span class="eyebrow">DefectAndRemediationPanel</span>
+            <h2>Repository remediation ledger</h2>
+            <p>
+              The suite closes one repository-owned approval invalidation defect and keeps the fix visible beside the
+              authority chain instead of hiding it in terminal output.
+            </p>
+            <div class="ledger-list" id="defect-list"></div>
+          </section>
+        </div>
+
+        <div class="stack">
+          <section class="panel" data-testid="EndpointAuthorityRail">
+            <span class="eyebrow">EndpointAuthorityRail</span>
+            <h2 id="authority-title"></h2>
+            <p id="authority-summary"></p>
+            <div class="facts" id="authority-facts"></div>
+          </section>
+
+          <section class="panel" data-testid="ApprovalAndEscalationLedger">
+            <span class="eyebrow">ApprovalAndEscalationLedger</span>
+            <h2 id="approval-title"></h2>
+            <p id="approval-summary"></p>
+            <div class="ledger-list" id="approval-ledger"></div>
+            <div class="remediation">
+              <div class="badge-row" id="case-badges"></div>
+              <p id="approval-note"></p>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const scenarios = {
+        active_checkpoint: {
+          label: "Active",
+          family: "Checkpoint",
+          tone: "calm",
+          caseIds: ["DCA273_001", "DCA273_006"],
+          reply: {
+            state: "open",
+            disposition: "accepted_in_window",
+            recovery: "none",
+            title: "Active checkpoint accepts the live reply window",
+            summary:
+              "The reply window is still writable, reminder cadence is deduplicated, and materially new evidence can still promote canonical urgent return.",
+            timeline: [
+              ["Checkpoint", "reply_window_checkpoint::task-311::open", "Live checkpoint remains writable until the authoritative due boundary moves."],
+              ["Reminder cadence", "single reminder_send", "The worker emits one reminder and replay keeps the same outbox footprint."],
+              ["Cycle ref", "more_info_cycle::task-311::current", "All patient and staff routes point to the same cycle and reply checkpoint."]
+            ]
+          },
+          delta: {
+            title: "Material delta ladder",
+            summary:
+              "A materially worse symptom change re-enters canonical re-safety and promotes urgent return rather than a vague warning badge.",
+            steps: [
+              ["Evidence delta", "symptom_worsened + urgent_red_flag", "tone-critical"],
+              ["Re-safety", "re_safety_required", "tone-critical"],
+              ["Outcome", "urgent_return", "tone-critical"]
+            ]
+          },
+          authority: {
+            title: "Live endpoint authority",
+            summary:
+              "Preview and submit stay tied to the current DecisionEpoch and EndpointDecisionBinding even while the more-info loop is still active.",
+            facts: [
+              ["Decision epoch", "decision_epoch::live"],
+              ["Binding", "endpoint_binding::live"],
+              ["Preview posture", "summary_first"],
+              ["Artifact contract", "ArtifactPresentationContract"]
+            ]
+          },
+          approval: {
+            title: "Approval not yet required",
+            summary:
+              "The decision cycle stays mutable because no approval fence has been raised for the current bounded path.",
+            items: [
+              ["Approval state", "not_required", "tone-calm"],
+              ["Urgent stage", "hidden", "tone-calm"],
+              ["Settlement", "review_resumed_then_queued", "tone-accent"]
+            ],
+            note: "No checkpoint exists yet, so the live authority chain stays reviewer-owned."
+          }
+        },
+        late_review: {
+          label: "Late Review",
+          family: "Checkpoint",
+          tone: "warn",
+          caseIds: ["DCA273_002", "DCA273_007"],
+          reply: {
+            state: "late_review",
+            disposition: "accepted_late_review",
+            recovery: "review_in_place",
+            title: "Late review keeps the reply writable without extending TTL",
+            summary:
+              "The authoritative due window passed, but the secure link did not extend the reply window beyond the recorded checkpoint law.",
+            timeline: [
+              ["Checkpoint", "reply_window_checkpoint::late_review", "Late review stays explicit and does not pretend the original window is still open."],
+              ["Reminder posture", "no extra reminder extension", "No reminder or TTL rewrite is allowed once the checkpoint has moved forward."],
+              ["Disposition", "accepted_late_review", "The reply is assimilated as late review, not on-time."]
+            ]
+          },
+          delta: {
+            title: "Bounded re-safety path",
+            summary:
+              "A non-urgent but clinically relevant update stays inside the intended rule set and returns to review instead of silently skipping re-safety.",
+            steps: [
+              ["Evidence delta", "new_clinical_detail", "tone-accent"],
+              ["Re-safety", "bounded_review", "tone-accent"],
+              ["Outcome", "review_resumed_then_queued", "tone-accent"]
+            ]
+          },
+          authority: {
+            title: "Preview still bound to live epoch",
+            summary:
+              "Late review does not create a second authority chain. The existing DecisionEpoch and binding remain the sole preview owners.",
+            facts: [
+              ["Decision epoch", "decision_epoch::late_review_live"],
+              ["Binding", "endpoint_binding::live"],
+              ["Write posture", "live"],
+              ["Preview state", "previewing"]
+            ]
+          },
+          approval: {
+            title: "No approval bypass from late review",
+            summary:
+              "A late-review reply does not create a side-channel commit path. Approval state remains governed by the live endpoint rule set.",
+            items: [
+              ["Approval state", "not_required", "tone-calm"],
+              ["Urgent stage", "hidden", "tone-calm"],
+              ["Recovery", "same_shell_review_context", "tone-accent"]
+            ],
+            note: "The late-review marker is visible, but commit authority does not widen."
+          }
+        },
+        expired_window: {
+          label: "Expired",
+          family: "Recovery",
+          tone: "warn",
+          caseIds: ["DCA273_003"],
+          reply: {
+            state: "expired",
+            disposition: "expired_rejected",
+            recovery: "expired_reply_window",
+            title: "Expired reply windows keep safe summary and freeze mutation",
+            summary:
+              "The patient can still see why the question mattered, but the route remains read-only and the authoritative window is not extended by session or link TTL.",
+            timeline: [
+              ["Checkpoint", "reply_window_checkpoint::expired", "The checkpoint explicitly records expiry rather than disappearing from the shell."],
+              ["Mutation", "frozen", "Superseded or expired windows stay visible but cannot accept mutation."],
+              ["Recovery", "return_to_request", "The page keeps same-shell return context instead of redirecting away."]
+            ]
+          },
+          delta: {
+            title: "No assimilation after expiry",
+            summary:
+              "Expiry blocks assimilation entirely. No new evidence packet or resafety path is minted against the expired cycle.",
+            steps: [
+              ["Disposition", "expired_rejected", "tone-warn"],
+              ["Assimilation", "not_created", "tone-warn"],
+              ["Outcome", "safe summary only", "tone-accent"]
+            ]
+          },
+          authority: {
+            title: "Frozen endpoint authority",
+            summary:
+              "The lab keeps the authority rail visible, but the review surface is explicitly frozen because the reply window has expired.",
+            facts: [
+              ["Decision epoch", "decision_epoch::frozen_reference"],
+              ["Binding", "endpoint_binding::read_only"],
+              ["Preview posture", "recovery_only"],
+              ["Shell posture", "same_shell_visible"]
+            ]
+          },
+          approval: {
+            title: "Approval and escalation stay absent",
+            summary:
+              "Expired patient reply state does not invent approval or urgent escalation. It preserves the safe shell and recorded authority only.",
+            items: [
+              ["Approval state", "not_applicable", "tone-calm"],
+              ["Urgent stage", "hidden", "tone-calm"],
+              ["Recovery", "expired_reply_window", "tone-warn"]
+            ],
+            note: "Expired routes keep the last safe request context rather than a live-looking send path."
+          }
+        },
+        superseded_cycle: {
+          label: "Superseded",
+          family: "Checkpoint",
+          tone: "accent",
+          caseIds: ["DCA273_004", "DCA273_011"],
+          reply: {
+            state: "superseded",
+            disposition: "superseded_duplicate",
+            recovery: "superseded_recovery_only",
+            title: "Superseded cycles revoke the older link and reminder chain",
+            summary:
+              "A replacement cycle carries question-set continuity forward while older links collapse to superseded_duplicate and their reminders are cancelled.",
+            timeline: [
+              ["Old cycle", "question_set_273_checkpoint.v1", "The original question-set stays visible as provenance only."],
+              ["Replacement", "question_set_273_checkpoint.v2", "The live cycle owns the new prompt set, due window, and reminder schedule."],
+              ["Preview", "recovery_only", "Older preview artifacts degrade to recovery_only when the authority chain moves."]
+            ]
+          },
+          delta: {
+            title: "Supersession as recovery ladder",
+            summary:
+              "Supersession keeps the earlier context readable while forcing all new action back onto the replacement cycle and current endpoint binding.",
+            steps: [
+              ["Cycle state", "superseded", "tone-accent"],
+              ["Preview state", "recovery_only", "tone-accent"],
+              ["Outcome", "replacement_authority_visible", "tone-accent"]
+            ]
+          },
+          authority: {
+            title: "Decision supersession freezes preview immediately",
+            summary:
+              "The old preview is still summary-first, but it no longer presents a writable submit path once the DecisionEpoch changes.",
+            facts: [
+              ["Decision epoch", "decision_epoch::replacement_current"],
+              ["Supersession", "decision_supersession_record::current",],
+              ["Binding", "endpoint_binding::replacement_live"],
+              ["Preview artifact", "recovery_only"]
+            ]
+          },
+          approval: {
+            title: "Approval replacement authority remains visible",
+            summary:
+              "Any checkpoint or preview attached to the superseded epoch is frozen and replaced by the live authority reference.",
+            items: [
+              ["Approval state", "superseded", "tone-accent"],
+              ["Urgent stage", "hidden", "tone-calm"],
+              ["Replacement ref", "approval_checkpoint::task-208::replacement", "tone-accent"]
+            ],
+            note: "Superseded rows must remain visible enough to explain why commit moved."
+          }
+        },
+        blocked_repair: {
+          label: "Blocked Repair",
+          family: "Recovery",
+          tone: "warn",
+          caseIds: ["DCA273_005"],
+          reply: {
+            state: "blocked_repair",
+            disposition: "blocked_repair",
+            recovery: "contact_route_repair_required",
+            title: "Repair-blocked replies stay explicit and non-assimilated",
+            summary:
+              "The question and return context stay visible, but the action remains paused until the route repair completes and the page says it is safe to continue.",
+            timeline: [
+              ["Checkpoint", "reply_window_checkpoint::blocked_repair", "The checkpoint itself carries the repair posture."],
+              ["Disposition", "blocked_repair", "No evidence packet or safety settlement is minted."],
+              ["Recovery", "/workspace/tasks/task_311/recover", "Recovery route stays same-shell and explicit."]
+            ]
+          },
+          delta: {
+            title: "No evidence minting under route repair",
+            summary:
+              "Repair blocking is not treated as clinical calmness. The decision-cycle family records the block without manufacturing a false safety outcome.",
+            steps: [
+              ["Assimilation", "not_created", "tone-warn"],
+              ["Re-safety", "not_run", "tone-warn"],
+              ["Outcome", "repair_required", "tone-warn"]
+            ]
+          },
+          authority: {
+            title: "Authority stays visible while mutation freezes",
+            summary:
+              "The same shell remains visible so the reviewer and patient can see the blocked reason, but authority stays read-only until repair truth resolves.",
+            facts: [
+              ["Decision epoch", "decision_epoch::repair_visible"],
+              ["Binding", "endpoint_binding::preview_only"],
+              ["Write posture", "blocked_repair"],
+              ["Shell posture", "same_shell_visible"]
+            ]
+          },
+          approval: {
+            title: "Approval not widened by repair posture",
+            summary:
+              "Repair truth does not silently collapse into generic warnings or hidden gates. The block itself stays the visible authority reason.",
+            items: [
+              ["Approval state", "not_applicable", "tone-calm"],
+              ["Urgent stage", "hidden", "tone-calm"],
+              ["Recovery", "contact_route_repair_required", "tone-warn"]
+            ],
+            note: "This family fails closed if wrong-task or wrong-subject pairing is attempted."
+          }
+        },
+        approval_required: {
+          label: "Approval",
+          family: "Approval",
+          tone: "accent",
+          caseIds: ["DCA273_012", "DCA273_013", "DCA273_014"],
+          reply: {
+            state: "summary_first",
+            disposition: "approval_required",
+            recovery: "replacement_authority_visible",
+            title: "Approval-required consequences stay summary-first",
+            summary:
+              "Preview stays visible and explicit, but submit is blocked behind the governed checkpoint and stale authority cannot be replayed.",
+            timeline: [
+              ["Checkpoint", "approval_checkpoint::task-208::current", "Approval stays first-class rather than hidden in button copy."],
+              ["Submit result", "blocked_approval_gate", "Endpoint settlement fails closed until approval resolves."],
+              ["Supersession", "checkpoint -> superseded", "A changed DecisionEpoch freezes the old checkpoint immediately."]
+            ]
+          },
+          delta: {
+            title: "Endpoint authority remains fenced",
+            summary:
+              "The current endpoint preview stays pinned to the live binding. A changed DecisionEpoch invalidates stale preview and stale approval together.",
+            steps: [
+              ["Decision epoch", "live -> superseded", "tone-accent"],
+              ["Checkpoint", "pending -> superseded", "tone-accent"],
+              ["Outcome", "replacement_authority_visible", "tone-accent"]
+            ]
+          },
+          authority: {
+            title: "DecisionEpoch and EndpointDecisionBinding fence submit",
+            summary:
+              "Approval-required actions cannot outrun payload minimums, the current binding, or the current approval rule set.",
+            facts: [
+              ["Decision epoch", "decision_epoch::approval_current"],
+              ["Binding", "endpoint_binding::approval_live"],
+              ["Preview posture", "summary_first"],
+              ["Submit posture", "blocked_approval_gate"]
+            ]
+          },
+          approval: {
+            title: "Approval and stale checkpoint ledger",
+            summary:
+              "Self-approval stays blocked, wrong roles stay blocked, and stale checkpoints are explicitly superseded against the same DecisionSupersessionRecord.",
+            items: [
+              ["Approval state", "superseded", "tone-accent"],
+              ["Gate errors", "SELF_APPROVAL_BLOCKED / APPROVER_ROLE_REQUIRED", "tone-warn"],
+              ["Remediation", "DCA273_DEF_001 fixed", "tone-calm"]
+            ],
+            note: "The repository fix wrapped endpoint invalidation so the bound approval checkpoint is now invalidated on the same authority transition."
+          }
+        },
+        urgent_escalation: {
+          label: "Urgent",
+          family: "Escalation",
+          tone: "critical",
+          caseIds: ["DCA273_006", "DCA273_015"],
+          reply: {
+            state: "urgent_return",
+            disposition: "accepted_in_window",
+            recovery: "urgent_recovery_only",
+            title: "Urgent escalation remains impossible to miss",
+            summary:
+              "A material delta can promote urgent return, but stale escalation attempts cannot continue once the underlying DecisionEpoch is replaced.",
+            timeline: [
+              ["Trigger", "residual_high_risk", "Urgent escalation begins from explicit risk evidence, not a generic warning."],
+              ["Replay", "same urgent attempt reused", "Duplicate attempt replay collapses onto one urgent contact record."],
+              ["Stale epoch", "STALE_ESCALATION_EPOCH", "A changed DecisionEpoch cancels the stale urgent path and blocks the next attempt."]
+            ]
+          },
+          delta: {
+            title: "Urgent ladder stays lineage-visible",
+            summary:
+              "The urgent path records the contact ladder, the escalation state, and the stale-epoch cancellation instead of smoothing the path into generic warnings.",
+            steps: [
+              ["Material delta", "urgent_diversion_required", "tone-critical"],
+              ["Urgent stage", "active", "tone-critical"],
+              ["Stale epoch guard", "cancelled + recovery_only", "tone-warn"]
+            ]
+          },
+          authority: {
+            title: "Urgent path still obeys the live decision chain",
+            summary:
+              "Urgent escalation is prominent, but the decision chain still governs whether the next attempt is allowed to land.",
+            facts: [
+              ["Decision epoch", "decision_epoch::urgent_live"],
+              ["Binding", "endpoint_binding::urgent_live"],
+              ["Escalation state", "cancelled_on_epoch_drift"],
+              ["Proof", "DecisionSupersessionRecord required"]
+            ]
+          },
+          approval: {
+            title: "Urgent escalation ledger",
+            summary:
+              "The approval and escalation ledger keeps attempt replay, cancellation, and replacement authority in one visible chain.",
+            items: [
+              ["Approval state", "not_required", "tone-calm"],
+              ["Urgent stage", "active_then_cancelled", "tone-critical"],
+              ["Recovery", "urgent_recovery_only", "tone-warn"]
+            ],
+            note: "Urgent paths cannot be bypassed, hidden, or collapsed into a generic banner once the epoch drifts."
+          }
+        }
+      };
+
+      const defectLedger = [
+        {
+          defectId: "DCA273_DEF_001",
+          title: "Stale approval checkpoint invalidation",
+          summary:
+            "A superseded DecisionEpoch used to leave the bound approval checkpoint looking live. The repository now invalidates that checkpoint against the same supersession record.",
+          tone: "calm",
+          files: ["/Users/test/Code/V/services/command-api/src/phase3-approval-escalation.ts"],
+          verification: [
+            "273_phase3_decision_cycle_assurance.integration.test.js",
+            "validate_273_phase3_decision_cycle_suite.py"
+          ]
+        }
+      ];
+
+      const order = [
+        "active_checkpoint",
+        "late_review",
+        "expired_window",
+        "superseded_cycle",
+        "blocked_repair",
+        "approval_required",
+        "urgent_escalation"
+      ];
+
+      const root = document.querySelector("[data-testid='DecisionCycleAssuranceLab']");
+      const scenarioList = document.getElementById("scenario-list");
+      const replyTimeline = document.getElementById("reply-timeline");
+      const deltaLadder = document.getElementById("delta-ladder");
+      const authorityFacts = document.getElementById("authority-facts");
+      const approvalLedger = document.getElementById("approval-ledger");
+      const defectList = document.getElementById("defect-list");
+      const caseBadges = document.getElementById("case-badges");
+
+      function renderScenarioButtons(selectedId) {
+        scenarioList.innerHTML = "";
+        for (const scenarioId of order) {
+          const scenario = scenarios[scenarioId];
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "scenario-button";
+          button.dataset.scenarioId = scenarioId;
+          button.dataset.active = scenarioId === selectedId ? "true" : "false";
+          button.innerHTML = `<span>${scenario.family}</span><strong>${scenario.label}</strong><small>${scenario.caseIds.join(", ")}</small>`;
+          button.addEventListener("click", () => {
+            const nextUrl = new URL(window.location.href);
+            nextUrl.searchParams.set("scenario", scenarioId);
+            window.history.replaceState(null, "", nextUrl);
+            render(scenarioId);
+          });
+          scenarioList.appendChild(button);
+        }
+      }
+
+      function renderTimeline(container, items) {
+        container.innerHTML = "";
+        items.forEach(([label, value, detail]) => {
+          const article = document.createElement("article");
+          article.className = "timeline-item";
+          article.innerHTML = `<strong>${label}</strong><span>${value}</span><p>${detail}</p>`;
+          container.appendChild(article);
+        });
+      }
+
+      function renderLadder(container, items) {
+        container.innerHTML = "";
+        items.forEach(([label, value, tone]) => {
+          const article = document.createElement("article");
+          article.className = `ladder-item ${tone}`;
+          article.innerHTML = `<strong>${label}</strong><span>${value}</span>`;
+          container.appendChild(article);
+        });
+      }
+
+      function renderFacts(container, items) {
+        container.innerHTML = "";
+        items.forEach(([label, value]) => {
+          const row = document.createElement("article");
+          row.className = "fact-row";
+          row.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
+          container.appendChild(row);
+        });
+      }
+
+      function renderApprovalLedger(container, items) {
+        container.innerHTML = "";
+        items.forEach(([label, value, tone]) => {
+          const row = document.createElement("article");
+          row.className = `ledger-item ${tone}`;
+          row.innerHTML = `<strong>${label}</strong><span>${value}</span>`;
+          container.appendChild(row);
+        });
+      }
+
+      function renderDefects(container) {
+        container.innerHTML = "";
+        defectLedger.forEach((defect) => {
+          const card = document.createElement("article");
+          card.className = `ledger-item tone-${defect.tone}`;
+          card.innerHTML = `
+            <strong>${defect.defectId} · ${defect.title}</strong>
+            <p>${defect.summary}</p>
+            <span>${defect.files[0]}</span>
+            <span>${defect.verification.join(" · ")}</span>
+          `;
+          container.appendChild(card);
+        });
+      }
+
+      function renderCaseBadges(container, caseIds, tone) {
+        container.innerHTML = "";
+        caseIds.forEach((caseId) => {
+          const badge = document.createElement("span");
+          badge.className = "badge";
+          badge.dataset.tone = tone;
+          badge.textContent = caseId;
+          container.appendChild(badge);
+        });
+      }
+
+      function render(selectedId) {
+        const scenario = scenarios[selectedId] || scenarios.active_checkpoint;
+        root.dataset.selectedScenarioId = selectedId;
+
+        document.getElementById("reply-title").textContent = scenario.reply.title;
+        document.getElementById("reply-summary").textContent = scenario.reply.summary;
+        document.getElementById("reply-state-badge").textContent = `window ${scenario.reply.state}`;
+        document.getElementById("reply-state-badge").dataset.tone = scenario.tone;
+        document.getElementById("reply-disposition-badge").textContent = scenario.reply.disposition;
+        document.getElementById("reply-disposition-badge").dataset.tone = scenario.tone;
+        document.getElementById("reply-recovery-badge").textContent = scenario.reply.recovery;
+        document.getElementById("reply-recovery-badge").dataset.tone = scenario.tone;
+        document.querySelector("[data-testid='PatientReplyWindowBoard']").dataset.windowState = scenario.reply.state;
+        document.querySelector("[data-testid='PatientReplyWindowBoard']").dataset.disposition = scenario.reply.disposition;
+        document.querySelector("[data-testid='PatientReplyWindowBoard']").dataset.recovery = scenario.reply.recovery;
+        renderTimeline(replyTimeline, scenario.reply.timeline);
+
+        document.getElementById("delta-title").textContent = scenario.delta.title;
+        document.getElementById("delta-summary").textContent = scenario.delta.summary;
+        document.querySelector("[data-testid='DeltaAndResafetyInspector']").dataset.resafetyState = scenario.delta.steps[1][1];
+        document.querySelector("[data-testid='DeltaAndResafetyInspector']").dataset.routingOutcome = scenario.delta.steps[2][1];
+        renderLadder(deltaLadder, scenario.delta.steps);
+
+        document.getElementById("authority-title").textContent = scenario.authority.title;
+        document.getElementById("authority-summary").textContent = scenario.authority.summary;
+        document.querySelector("[data-testid='EndpointAuthorityRail']").dataset.decisionState = scenario.authority.facts[0][1];
+        document.querySelector("[data-testid='EndpointAuthorityRail']").dataset.bindingState = scenario.authority.facts[1][1];
+        renderFacts(authorityFacts, scenario.authority.facts);
+
+        document.getElementById("approval-title").textContent = scenario.approval.title;
+        document.getElementById("approval-summary").textContent = scenario.approval.summary;
+        document.getElementById("approval-note").textContent = scenario.approval.note;
+        document.querySelector("[data-testid='ApprovalAndEscalationLedger']").dataset.approvalState = scenario.approval.items[0][1];
+        document.querySelector("[data-testid='ApprovalAndEscalationLedger']").dataset.urgentStage = scenario.approval.items[1][1];
+        renderApprovalLedger(approvalLedger, scenario.approval.items);
+        renderCaseBadges(caseBadges, scenario.caseIds, scenario.tone);
+
+        document.querySelector("[data-testid='DefectAndRemediationPanel']").dataset.defectCount = String(defectLedger.length);
+        renderDefects(defectList);
+        renderScenarioButtons(selectedId);
+      }
+
+      const selected = new URLSearchParams(window.location.search).get("scenario");
+      render(order.includes(selected) ? selected : "active_checkpoint");
+    </script>
+  </body>
+</html>

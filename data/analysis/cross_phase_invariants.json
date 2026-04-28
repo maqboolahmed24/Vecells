@@ -1,0 +1,869 @@
+{
+  "library_id": "vecells_cross_phase_invariants_v1",
+  "summary": {
+    "invariant_count": 21,
+    "phase_scope_count": 12
+  },
+  "invariants": [
+    {
+      "invariant_id": "INV_REQ_WORKFLOW_MILESTONES_ONLY",
+      "canonical_wording": "Request.workflowState contains milestones only; review, repair, confirmation, and reconciliation stay off the canonical workflow axis.",
+      "scope": "Canonical request lifecycle",
+      "affected_machine_ids": [
+        "SM_REQUEST_WORKFLOW_STATE",
+        "SM_BOOKING_CASE_STATUS",
+        "SM_HUB_COORDINATION_CASE_STATUS",
+        "SM_PHARMACY_CASE_STATUS",
+        "SM_COMMAND_SETTLEMENT"
+      ],
+      "affected_objects": [
+        "Request",
+        "BookingCase",
+        "HubCoordinationCase",
+        "PharmacyCase",
+        "CommandSettlementRecord"
+      ],
+      "related_guards": [
+        "LifecycleCoordinator is the only milestone derivation authority"
+      ],
+      "related_proofs": [
+        "RequestClosureRecord",
+        "BookingOutcomeMilestone | HubCoordinationMilestone | PharmacyOutcomeMilestone"
+      ],
+      "violating_transition_refs": [
+        "ISSUE_SM_REQUEST_WORKFLOW_STATE_TRIAGE_ACTIVE_CONFIRMATION_PENDING"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.3 Request",
+        "forensic-audit-findings.md#Finding 48 - Canonical state contract diverged between the kernel summary and the concrete Request schema",
+        "forensic-audit-findings.md#Finding 54 - Request.workflowState incorrectly mixed workflow milestones with reconciliation states"
+      ],
+      "test_hint": "Reject any attempt to write booking, pharmacy, repair, or confirmation labels into Request.workflowState.",
+      "phase_scope": [
+        "phase_0_foundation",
+        "phase_3_human_checkpoint",
+        "phase_4_booking_engine",
+        "phase_5_network_horizon",
+        "phase_6_pharmacy_loop"
+      ],
+      "notes": ""
+    },
+    {
+      "invariant_id": "INV_BLOCKERS_ORTHOGONAL",
+      "canonical_wording": "Blockers remain orthogonal to workflow milestones and episode lifecycle.",
+      "scope": "Cross-domain blocker handling",
+      "affected_machine_ids": [
+        "SM_REQUEST_WORKFLOW_STATE",
+        "SM_EPISODE_STATE",
+        "SM_REQUEST_CLOSURE_DECISION",
+        "SM_DUPLICATE_CLUSTER_STATUS",
+        "SM_FALLBACK_REVIEW_CASE",
+        "SM_EXTERNAL_CONFIRMATION_GATE"
+      ],
+      "affected_objects": [
+        "Request",
+        "Episode",
+        "RequestClosureRecord",
+        "DuplicateCluster",
+        "FallbackReviewCase",
+        "ExternalConfirmationGate"
+      ],
+      "related_guards": [
+        "Episode and Request blocker refs must remain empty before closure"
+      ],
+      "related_proofs": [
+        "RequestClosureRecord",
+        "request.closure_blockers.changed"
+      ],
+      "violating_transition_refs": [
+        "ISSUE_SM_EPISODE_STATE_OPEN_IDENTITY_HOLD",
+        "ISSUE_SM_REQUEST_WORKFLOW_STATE_TRIAGE_ACTIVE_CLOSED"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.2 Episode",
+        "phase-0-the-foundation-protocol.md#1.12 RequestClosureRecord",
+        "forensic-audit-findings.md#Finding 56 - The blueprint lacked an explicit rule that blockers must remain orthogonal to workflow milestones"
+      ],
+      "test_hint": "Assert that duplicate review, fallback review, identity repair, and confirmation ambiguity never appear as Request.workflowState or Episode.state values.",
+      "phase_scope": [
+        "phase_0_foundation"
+      ],
+      "notes": ""
+    },
+    {
+      "invariant_id": "INV_PATIENTREF_DERIVES_FROM_BINDING",
+      "canonical_wording": "patientRef is nullable until verified and is derived only from the latest settled IdentityBinding.",
+      "scope": "Identity and claim posture",
+      "affected_machine_ids": [
+        "SM_REQUEST_IDENTITY_STATE",
+        "SM_IDENTITY_BINDING_STATE",
+        "SM_EPISODE_STATE"
+      ],
+      "affected_objects": [
+        "Request",
+        "IdentityBinding",
+        "Episode"
+      ],
+      "related_guards": [
+        "No auth, telephony, support, or import path writes patientRef directly"
+      ],
+      "related_proofs": [
+        "IdentityBinding(bindingState = verified_patient | corrected)",
+        "IdentityRepairReleaseSettlement"
+      ],
+      "violating_transition_refs": [
+        "ISSUE_SM_REQUEST_IDENTITY_STATE_ANONYMOUS_CLAIMED"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.2 Episode",
+        "phase-0-the-foundation-protocol.md#1.3 Request",
+        "phase-0-the-foundation-protocol.md#1.4 IdentityBinding",
+        "forensic-audit-findings.md#Finding 50 - The concrete Request schema dropped identity-binding references and treated patientRef as unconditional"
+      ],
+      "test_hint": "Force patientRef to stay null while IdentityBinding remains candidate, provisional_verified, or ambiguous.",
+      "phase_scope": [
+        "phase_0_foundation",
+        "phase_2_identity_and_echoes"
+      ],
+      "notes": ""
+    },
+    {
+      "invariant_id": "INV_COORDINATOR_OWNS_CANONICAL_MILESTONES",
+      "canonical_wording": "Only LifecycleCoordinator derives canonical request milestone and closure changes.",
+      "scope": "Cross-domain write ownership",
+      "affected_machine_ids": [
+        "SM_REQUEST_WORKFLOW_STATE",
+        "SM_REQUEST_CLOSURE_DECISION",
+        "SM_BOOKING_CASE_STATUS",
+        "SM_HUB_COORDINATION_CASE_STATUS",
+        "SM_PHARMACY_CASE_STATUS",
+        "SM_TRIAGE_TASK_STATUS"
+      ],
+      "affected_objects": [
+        "Request",
+        "RequestClosureRecord",
+        "BookingCase",
+        "HubCoordinationCase",
+        "PharmacyCase",
+        "TriageTask"
+      ],
+      "related_guards": [
+        "Child domains emit milestone evidence only"
+      ],
+      "related_proofs": [
+        "BookingOutcomeMilestone | HubCoordinationMilestone | PharmacyOutcomeMilestone",
+        "RequestClosureRecord"
+      ],
+      "violating_transition_refs": [
+        "ISSUE_SM_BOOKING_CASE_STATUS_BOOKED_HANDOFF_ACTIVE",
+        "ISSUE_SM_HUB_COORDINATION_CASE_STATUS_BOOKED_HANDOFF_ACTIVE",
+        "ISSUE_SM_TRIAGE_TASK_STATUS_ENDPOINT_SELECTED_CLOSED"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#Canonical request model",
+        "forensic-audit-findings.md#Finding 74 - Phase 4 let booking-domain logic write canonical request state directly on success",
+        "forensic-audit-findings.md#Finding 75 - Phase 3 let triage-domain logic write canonical request state directly",
+        "forensic-audit-findings.md#Finding 76 - Phase 5 let hub-domain logic write canonical request state directly on booked and return paths",
+        "forensic-audit-findings.md#Finding 77 - Phase 6 let pharmacy-domain logic write canonical request state directly on resolve and reopen paths"
+      ],
+      "test_hint": "Prohibit direct writes from triage, booking, hub, pharmacy, callback, message, or admin-resolution services into Request.workflowState and RequestClosureRecord.",
+      "phase_scope": [
+        "phase_0_foundation",
+        "phase_3_human_checkpoint",
+        "phase_4_booking_engine",
+        "phase_5_network_horizon",
+        "phase_6_pharmacy_loop"
+      ],
+      "notes": ""
+    },
+    {
+      "invariant_id": "INV_CHILD_DOMAINS_EMIT_SIGNALS_ONLY",
+      "canonical_wording": "Child domains may not directly write canonical Request.workflowState, Episode.state, or closure truth; they emit case-local truth plus milestone or blocker evidence.",
+      "scope": "Domain boundaries",
+      "affected_machine_ids": [
+        "SM_BOOKING_CASE_STATUS",
+        "SM_HUB_COORDINATION_CASE_STATUS",
+        "SM_PHARMACY_CASE_STATUS",
+        "SM_TRIAGE_TASK_STATUS",
+        "SM_ADMIN_RESOLUTION_CASE"
+      ],
+      "affected_objects": [
+        "BookingCase",
+        "HubCoordinationCase",
+        "PharmacyCase",
+        "TriageTask",
+        "AdminResolutionCase"
+      ],
+      "related_guards": [
+        "LineageCaseLink and DecisionEpoch remain the cross-domain join"
+      ],
+      "related_proofs": [
+        "Milestone signals",
+        "LineageCaseLink",
+        "CommandSettlementRecord"
+      ],
+      "violating_transition_refs": [
+        "ISSUE_SM_BOOKING_CASE_STATUS_BOOKED_HANDOFF_ACTIVE",
+        "ISSUE_SM_HUB_COORDINATION_CASE_STATUS_BOOKED_HANDOFF_ACTIVE",
+        "ISSUE_SM_PHARMACY_CASE_STATUS_OUTCOME_RECONCILIATION_PENDING_OUTCOME_RECORDED"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.1B RequestLineage",
+        "phase-0-the-foundation-protocol.md#Canonical request model",
+        "forensic-audit-findings.md#Finding 74",
+        "forensic-audit-findings.md#Finding 75",
+        "forensic-audit-findings.md#Finding 76",
+        "forensic-audit-findings.md#Finding 77"
+      ],
+      "test_hint": "Integration tests should allow branch-local state changes while asserting canonical workflow only changes after coordinator consumption.",
+      "phase_scope": [
+        "phase_3_human_checkpoint",
+        "phase_4_booking_engine",
+        "phase_5_network_horizon",
+        "phase_6_pharmacy_loop",
+        "self_care_admin_resolution"
+      ],
+      "notes": ""
+    },
+    {
+      "invariant_id": "INV_NO_BUSINESS_SUCCESS_FROM_TRANSPORT",
+      "canonical_wording": "No business success state may be inferred from transport acceptance, local acknowledgement, or provider acceptance alone.",
+      "scope": "Settlement truth",
+      "affected_machine_ids": [
+        "SM_COMMAND_SETTLEMENT",
+        "SM_EXTERNAL_CONFIRMATION_GATE",
+        "SM_BOOKING_CASE_STATUS",
+        "SM_PHARMACY_DISPATCH_STATUS",
+        "SM_CALLBACK_CASE_STATE",
+        "SM_CLINICIAN_MESSAGE_THREAD"
+      ],
+      "affected_objects": [
+        "CommandSettlementRecord",
+        "ExternalConfirmationGate",
+        "BookingCase",
+        "PharmacyDispatchAttempt",
+        "CallbackCase",
+        "ClinicianMessageThread"
+      ],
+      "related_guards": [
+        "Strong or policy-approved proof class remains mandatory before calm success"
+      ],
+      "related_proofs": [
+        "CommandSettlementRecord(authoritativeOutcomeState = settled)",
+        "ExternalConfirmationGate(state = confirmed)",
+        "CallbackOutcomeEvidenceBundle",
+        "MessageDeliveryEvidenceBundle"
+      ],
+      "violating_transition_refs": [
+        "ISSUE_SM_COMMAND_SETTLEMENT_PENDING_SETTLED",
+        "ISSUE_SM_EXTERNAL_CONFIRMATION_GATE_PENDING_CONFIRMED",
+        "ISSUE_SM_PHARMACY_DISPATCH_STATUS_TRANSPORT_ACCEPTED_PROOF_SATISFIED"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.23 CommandSettlementRecord",
+        "phase-0-the-foundation-protocol.md#1.15 ExternalConfirmationGate",
+        "phase-0-the-foundation-protocol.md#Pharmacy dispatch truth"
+      ],
+      "test_hint": "Simulate accepted-for-processing, provider-accepted, or transport-accepted states and assert the UI stays pending or review-aware until authoritative proof lands.",
+      "phase_scope": [
+        "phase_0_foundation",
+        "phase_4_booking_engine",
+        "phase_6_pharmacy_loop",
+        "callback_and_messaging"
+      ],
+      "notes": ""
+    },
+    {
+      "invariant_id": "INV_MUTATION_REQUIRES_CURRENT_ROUTE_TUPLE",
+      "canonical_wording": "No post-submit mutation may remain writable after route-intent, session, binding, release, publication, or trust fences drift.",
+      "scope": "Writability and drift recovery",
+      "affected_machine_ids": [
+        "SM_ROUTE_INTENT_BINDING",
+        "SM_AUDIENCE_SURFACE_RUNTIME_BINDING",
+        "SM_SESSION_ROUTE_AUTHORITY",
+        "SM_COMMAND_SETTLEMENT",
+        "SM_ASSISTIVE_TRUST_ENVELOPE",
+        "SM_RESILIENCE_SURFACE_BINDING"
+      ],
+      "affected_objects": [
+        "RouteIntentBinding",
+        "AudienceSurfaceRuntimeBinding",
+        "Session",
+        "CommandSettlementRecord",
+        "AssistiveCapabilityTrustEnvelope",
+        "ResilienceSurfaceRuntimeBinding"
+      ],
+      "related_guards": [
+        "surfaceTupleHash and routeIntentTupleHash must both remain current"
+      ],
+      "related_proofs": [
+        "RouteIntentBinding(bindingState = live)",
+        "AudienceSurfaceRuntimeBinding(bindingState = publishable_live)",
+        "ReleasePublicationParityRecord"
+      ],
+      "violating_transition_refs": [
+        "ISSUE_SM_ROUTE_INTENT_BINDING_STALE_LIVE",
+        "ISSUE_SM_AUDIENCE_SURFACE_RUNTIME_BINDING_RECOVERY_ONLY_PUBLISHABLE_LIVE"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.21 RouteIntentBinding",
+        "phase-0-the-foundation-protocol.md#1.38A AudienceSurfaceRuntimeBinding",
+        "forensic-audit-findings.md#Finding 91 - The audit still treated route, settlement, release, and trust controls as phase-local conventions"
+      ],
+      "test_hint": "Whenever the route tuple, publication tuple, or trust slice drifts, assert same-shell recovery or read-only posture rather than hidden mutation affordances.",
+      "phase_scope": [
+        "phase_0_foundation",
+        "phase_8_assistive_layer",
+        "phase_9_assurance_ledger"
+      ],
+      "notes": ""
+    },
+    {
+      "invariant_id": "INV_CLOSURE_REQUIRES_EMPTY_BLOCKERS",
+      "canonical_wording": "No closure may occur while coordinator-materialized blocker sets remain non-empty.",
+      "scope": "Closure and calmness",
+      "affected_machine_ids": [
+        "SM_REQUEST_CLOSURE_DECISION",
+        "SM_REQUEST_WORKFLOW_STATE",
+        "SM_DUPLICATE_CLUSTER_STATUS",
+        "SM_FALLBACK_REVIEW_CASE",
+        "SM_REQUEST_LIFECYCLE_LEASE",
+        "SM_EXTERNAL_CONFIRMATION_GATE"
+      ],
+      "affected_objects": [
+        "RequestClosureRecord",
+        "Request",
+        "DuplicateCluster",
+        "FallbackReviewCase",
+        "RequestLifecycleLease",
+        "ExternalConfirmationGate"
+      ],
+      "related_guards": [
+        "Every blocking* ref set in RequestClosureRecord must be empty"
+      ],
+      "related_proofs": [
+        "RequestClosureRecord(decision = close)",
+        "request.closure_blockers.changed -> empty"
+      ],
+      "violating_transition_refs": [
+        "ISSUE_SM_REQUEST_WORKFLOW_STATE_TRIAGE_ACTIVE_CLOSED",
+        "ISSUE_SM_FALLBACK_REVIEW_CASE_SUBMITTED_DEGRADED_CLOSED",
+        "ISSUE_SM_DUPLICATE_CLUSTER_STATUS_OPEN_RESOLVED_CONFIRMED"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.12 RequestClosureRecord",
+        "forensic-audit-findings.md#Finding 57 - RequestClosureRecord omitted duplicate-cluster blockers",
+        "forensic-audit-findings.md#Finding 58 - RequestClosureRecord omitted fallback-review blockers",
+        "forensic-audit-findings.md#Finding 59 - RequestClosureRecord omitted identity-repair blockers",
+        "forensic-audit-findings.md#Finding 60 - RequestClosureRecord omitted PHI-grant and reachability blockers"
+      ],
+      "test_hint": "Assert close is impossible while any blocker ref list remains populated, including duplicate review, fallback review, identity repair, grants, reachability, and confirmation gates.",
+      "phase_scope": [
+        "phase_0_foundation"
+      ],
+      "notes": ""
+    },
+    {
+      "invariant_id": "INV_SAME_REQUEST_CONTINUATION_REUSES_LINEAGE",
+      "canonical_wording": "Same-request continuation reuses the existing RequestLineage; same-episode or related-episode branching is explicit.",
+      "scope": "Lineage continuity",
+      "affected_machine_ids": [
+        "SM_DUPLICATE_CLUSTER_STATUS",
+        "SM_TRIAGE_TASK_STATUS",
+        "SM_BOOKING_CASE_STATUS",
+        "SM_CALLBACK_CASE_STATE"
+      ],
+      "affected_objects": [
+        "RequestLineage",
+        "DuplicateCluster",
+        "TriageTask",
+        "BookingCase",
+        "CallbackCase"
+      ],
+      "related_guards": [
+        "same_request_attach requires an explicit continuity witness"
+      ],
+      "related_proofs": [
+        "DuplicateResolutionDecision",
+        "LineageCaseLink"
+      ],
+      "violating_transition_refs": [
+        "ISSUE_SM_DUPLICATE_CLUSTER_STATUS_OPEN_RESOLVED_CONFIRMED"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.1B RequestLineage",
+        "phase-0-the-foundation-protocol.md#1.7B DuplicateResolutionDecision",
+        "forensic-audit-findings.md#Finding 19 - Reopen and bounce-back flows lost same-request continuity"
+      ],
+      "test_hint": "Retry, same-request attach, same-episode link, and related-episode branch must remain distinguishable from each other in persisted lineage history.",
+      "phase_scope": [
+        "phase_0_foundation",
+        "phase_3_human_checkpoint",
+        "phase_4_booking_engine",
+        "callback_and_messaging"
+      ],
+      "notes": ""
+    },
+    {
+      "invariant_id": "INV_WRONG_PATIENT_IS_REPAIR_PATH",
+      "canonical_wording": "Wrong-patient correction is a repair/hold path, not a workflow milestone or episode lifecycle value.",
+      "scope": "Identity repair",
+      "affected_machine_ids": [
+        "SM_REQUEST_IDENTITY_STATE",
+        "SM_IDENTITY_BINDING_STATE",
+        "SM_EPISODE_STATE"
+      ],
+      "affected_objects": [
+        "Request",
+        "IdentityBinding",
+        "Episode"
+      ],
+      "related_guards": [
+        "IdentityRepairCase and downstream branch disposition remain mandatory before release"
+      ],
+      "related_proofs": [
+        "IdentityRepairCase",
+        "IdentityRepairReleaseSettlement"
+      ],
+      "violating_transition_refs": [
+        "ISSUE_SM_EPISODE_STATE_OPEN_IDENTITY_HOLD",
+        "ISSUE_SM_IDENTITY_BINDING_STATE_VERIFIED_PATIENT_REVOKED"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.5 IdentityRepairCase",
+        "phase-0-the-foundation-protocol.md#1.5B IdentityRepairBranchDisposition",
+        "forensic-audit-findings.md#Finding 69 - Wrong-patient correction rewrote canonical workflow state instead of attaching repair metadata"
+      ],
+      "test_hint": "Repair opens explicit branch dispositions and freezes communication, visibility, and downstream work until authoritative release.",
+      "phase_scope": [
+        "phase_0_foundation",
+        "phase_2_identity_and_echoes"
+      ],
+      "notes": ""
+    },
+    {
+      "invariant_id": "INV_EVIDENCE_ASSIMILATION_AND_RESAFETY",
+      "canonical_wording": "Evidence assimilation and re-safety are explicit whenever material new evidence arrives.",
+      "scope": "Material delta handling",
+      "affected_machine_ids": [
+        "SM_REQUEST_SAFETY_STATE",
+        "SM_MORE_INFO_REPLY_WINDOW",
+        "SM_CALLBACK_CASE_STATE",
+        "SM_CLINICIAN_MESSAGE_THREAD"
+      ],
+      "affected_objects": [
+        "Request",
+        "MoreInfoReplyWindowCheckpoint",
+        "CallbackCase",
+        "ClinicianMessageThread"
+      ],
+      "related_guards": [
+        "MaterialDeltaAssessment and SafetyPreemptionRecord gate routine continuation"
+      ],
+      "related_proofs": [
+        "EvidenceAssimilationRecord",
+        "MaterialDeltaAssessment",
+        "SafetyDecisionRecord"
+      ],
+      "violating_transition_refs": [
+        "ISSUE_SM_REQUEST_SAFETY_STATE_URGENT_DIVERSION_REQUIRED_SCREEN_CLEAR",
+        "ISSUE_SM_MORE_INFO_REPLY_WINDOW_EXPIRED_SETTLED"
+      ],
+      "source_refs": [
+        "phase-3-the-human-checkpoint.md#3D More-info loop, patient response threading, and re-safety",
+        "callback-and-clinician-messaging-loop.md#Purpose",
+        "forensic-audit-findings.md#Finding 13 - Materially new evidence bypassed canonical re-safety"
+      ],
+      "test_hint": "Patient replies, callback outcomes, and message replies must create new immutable evidence plus re-safety before routine work resumes.",
+      "phase_scope": [
+        "phase_3_human_checkpoint",
+        "callback_and_messaging"
+      ],
+      "notes": ""
+    },
+    {
+      "invariant_id": "INV_CONFIRMATION_AMBIGUITY_STAYS_EXPLICIT",
+      "canonical_wording": "Confirmation ambiguity remains explicit through gate and case-local objects; it does not collapse into generic success or generic error.",
+      "scope": "External truth ambiguity",
+      "affected_machine_ids": [
+        "SM_EXTERNAL_CONFIRMATION_GATE",
+        "SM_BOOKING_CASE_STATUS",
+        "SM_HUB_CONFIRMATION_TRUTH",
+        "SM_PHARMACY_DISPATCH_STATUS"
+      ],
+      "affected_objects": [
+        "ExternalConfirmationGate",
+        "BookingCase",
+        "HubOfferToConfirmationTruthProjection",
+        "PharmacyDispatchAttempt"
+      ],
+      "related_guards": [
+        "Competing-gate ambiguity and hard-match failure keep review posture explicit"
+      ],
+      "related_proofs": [
+        "ExternalConfirmationGate",
+        "BookingConfirmationTruthProjection",
+        "HubOfferToConfirmationTruthProjection"
+      ],
+      "violating_transition_refs": [
+        "ISSUE_SM_BOOKING_CASE_STATUS_COMMIT_PENDING_BOOKED",
+        "ISSUE_SM_HUB_CONFIRMATION_TRUTH_NATIVE_BOOKING_PENDING_CONFIRMED",
+        "ISSUE_SM_EXTERNAL_CONFIRMATION_GATE_PENDING_CONFIRMED"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.15 ExternalConfirmationGate",
+        "phase-4-the-booking-engine.md#4A Booking contract, case model, and state machine",
+        "phase-5-the-network-horizon.md#5F Native hub booking commit, practice continuity, and cross-org messaging",
+        "phase-6-the-pharmacy-loop.md#6D Referral pack composer, dispatch adapters, and transport contract"
+      ],
+      "test_hint": "Booking, hub, and pharmacy calmness stays blocked until the current gate or projection is genuinely resolved on the active tuple.",
+      "phase_scope": [
+        "phase_0_foundation",
+        "phase_4_booking_engine",
+        "phase_5_network_horizon",
+        "phase_6_pharmacy_loop"
+      ],
+      "notes": ""
+    },
+    {
+      "invariant_id": "INV_PROJECTION_FRESHNESS_GATES_ACTIONABILITY",
+      "canonical_wording": "Projection freshness, visibility, publication, and continuity evidence are part of actionability, not decoration.",
+      "scope": "User-visible runtime posture",
+      "affected_machine_ids": [
+        "SM_AUDIENCE_SURFACE_RUNTIME_BINDING",
+        "SM_COMMAND_SETTLEMENT",
+        "SM_ASSISTIVE_TRUST_ENVELOPE",
+        "SM_RESILIENCE_SURFACE_BINDING",
+        "SM_CROSS_PHASE_SCORECARD"
+      ],
+      "affected_objects": [
+        "AudienceSurfaceRuntimeBinding",
+        "CommandSettlementRecord",
+        "AssistiveCapabilityTrustEnvelope",
+        "ResilienceSurfaceRuntimeBinding",
+        "CrossPhaseConformanceScorecard"
+      ],
+      "related_guards": [
+        "Live controls require current parity, continuity evidence, and runtime tuple alignment"
+      ],
+      "related_proofs": [
+        "AudienceSurfaceRuntimeBinding",
+        "ExperienceContinuityControlEvidence",
+        "GovernanceContinuityEvidenceBundle"
+      ],
+      "violating_transition_refs": [
+        "ISSUE_SM_AUDIENCE_SURFACE_RUNTIME_BINDING_RECOVERY_ONLY_PUBLISHABLE_LIVE",
+        "ISSUE_SM_RESILIENCE_SURFACE_BINDING_DIAGNOSTIC_ONLY_LIVE"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.38A AudienceSurfaceRuntimeBinding",
+        "forensic-audit-findings.md#Finding 102 - Operations diagnosis still lacked first-class continuity evidence",
+        "forensic-audit-findings.md#Finding 103 - Governance compliance review still omitted continuity-evidence bundles"
+      ],
+      "test_hint": "Any stale publication, continuity, or trust tuple must degrade controls in place rather than leaving calm or writable posture live.",
+      "phase_scope": [
+        "phase_0_foundation",
+        "phase_8_assistive_layer",
+        "phase_9_assurance_ledger"
+      ],
+      "notes": ""
+    },
+    {
+      "invariant_id": "INV_URGENT_REQUIRED_NOT_DIVERTED",
+      "canonical_wording": "urgent_diversion_required and urgent_diverted are distinct durable safety states.",
+      "scope": "Urgent safety issuance",
+      "affected_machine_ids": [
+        "SM_REQUEST_SAFETY_STATE"
+      ],
+      "affected_objects": [
+        "Request",
+        "UrgentDiversionSettlement"
+      ],
+      "related_guards": [
+        "Urgent issuance proof remains mandatory"
+      ],
+      "related_proofs": [
+        "UrgentDiversionSettlement"
+      ],
+      "violating_transition_refs": [
+        "ISSUE_SM_REQUEST_SAFETY_STATE_URGENT_DIVERSION_REQUIRED_SCREEN_CLEAR"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#1.3 Request",
+        "forensic-audit-findings.md#Finding 11 - Urgent diversion required and completed were collapsed"
+      ],
+      "test_hint": "An urgent-required case cannot return to routine screen_clear or calm UI copy until UrgentDiversionSettlement is recorded.",
+      "phase_scope": [
+        "phase_0_foundation",
+        "phase_1_red_flag_gate"
+      ],
+      "notes": ""
+    },
+    {
+      "invariant_id": "INV_MORE_INFO_TTL_AND_SUPERSESSION",
+      "canonical_wording": "More-info TTL, reminder cadence, supersession, late reply, and re-entry are explicit and fence-scoped.",
+      "scope": "Patient reply loop",
+      "affected_machine_ids": [
+        "SM_MORE_INFO_REPLY_WINDOW",
+        "SM_TRIAGE_TASK_STATUS",
+        "SM_DECISION_EPOCH"
+      ],
+      "affected_objects": [
+        "MoreInfoReplyWindowCheckpoint",
+        "TriageTask",
+        "DecisionEpoch"
+      ],
+      "related_guards": [
+        "Exactly one checkpoint governs patient actionability at a time"
+      ],
+      "related_proofs": [
+        "MoreInfoReplyWindowCheckpoint",
+        "MoreInfoResponseDisposition"
+      ],
+      "violating_transition_refs": [
+        "ISSUE_SM_MORE_INFO_REPLY_WINDOW_EXPIRED_SETTLED",
+        "ISSUE_SM_DECISION_EPOCH_SUPERSEDED_LIVE"
+      ],
+      "source_refs": [
+        "phase-3-the-human-checkpoint.md#3D More-info loop, patient response threading, and re-safety",
+        "forensic-audit-findings.md#Finding 18 - More-info loop had no TTL, expiry, or escalation rule"
+      ],
+      "test_hint": "Late replies remain deliberate review posture; superseded or expired loops never silently reopen routine flow.",
+      "phase_scope": [
+        "phase_3_human_checkpoint"
+      ],
+      "notes": ""
+    },
+    {
+      "invariant_id": "INV_CALLBACK_AND_MESSAGE_EVIDENCE_BOUND",
+      "canonical_wording": "Callback and clinician messaging require evidence-bound attempt or delivery truth plus a resolution gate before completion or closure.",
+      "scope": "Communications endpoints",
+      "affected_machine_ids": [
+        "SM_CALLBACK_CASE_STATE",
+        "SM_CLINICIAN_MESSAGE_THREAD",
+        "SM_COMMAND_SETTLEMENT"
+      ],
+      "affected_objects": [
+        "CallbackCase",
+        "ClinicianMessageThread",
+        "CommandSettlementRecord"
+      ],
+      "related_guards": [
+        "Outcome bundles and resolution gates remain mandatory"
+      ],
+      "related_proofs": [
+        "CallbackOutcomeEvidenceBundle",
+        "CallbackResolutionGate",
+        "MessageDeliveryEvidenceBundle",
+        "ThreadResolutionGate"
+      ],
+      "violating_transition_refs": [
+        "ISSUE_SM_CALLBACK_CASE_STATE_ATTEMPT_IN_PROGRESS_COMPLETED",
+        "ISSUE_SM_CLINICIAN_MESSAGE_THREAD_SENT_CLOSED"
+      ],
+      "source_refs": [
+        "callback-and-clinician-messaging-loop.md#Callback domain",
+        "callback-and-clinician-messaging-loop.md#Clinician message domain",
+        "forensic-audit-findings.md#Finding 23 - Clinician messaging had contradictory loop-and-close semantics",
+        "forensic-audit-findings.md#Finding 24 - Callback handling had contradictory loop-and-close semantics"
+      ],
+      "test_hint": "Dial actions, send actions, delivery receipts, and local toasts may widen pending guidance but never settle completion or closure without the governing evidence bundle and resolution gate.",
+      "phase_scope": [
+        "callback_and_messaging"
+      ],
+      "notes": ""
+    },
+    {
+      "invariant_id": "INV_WAITLIST_AND_HUB_TRANSFER_EXPLICIT",
+      "canonical_wording": "Waitlist deadlines, callback fallback, hub transfer, and hub callback linkage remain explicit through durable fallback obligations and truth projections.",
+      "scope": "Booking and hub continuation debt",
+      "affected_machine_ids": [
+        "SM_WAITLIST_FALLBACK_TRANSFER",
+        "SM_BOOKING_CASE_STATUS",
+        "SM_HUB_COORDINATION_CASE_STATUS"
+      ],
+      "affected_objects": [
+        "WaitlistFallbackObligation",
+        "BookingCase",
+        "HubCoordinationCase"
+      ],
+      "related_guards": [
+        "Fallback route and transfer linkage must both be current"
+      ],
+      "related_proofs": [
+        "WaitlistFallbackObligation",
+        "CallbackCase",
+        "HubCoordinationCase",
+        "HubFallbackRecord"
+      ],
+      "violating_transition_refs": [
+        "ISSUE_SM_WAITLIST_FALLBACK_TRANSFER_ARMED_SATISFIED",
+        "ISSUE_SM_HUB_COORDINATION_CASE_STATUS_CONFIRMATION_PENDING_BOOKED"
+      ],
+      "source_refs": [
+        "phase-4-the-booking-engine.md#4G Smart Waitlist and local auto-fill",
+        "phase-5-the-network-horizon.md#5G No-slot handling, urgent bounce-back, callback fallback, and reopen mechanics"
+      ],
+      "test_hint": "Do not let local waitlist, hub callback fallback, or return-to-practice debt disappear until the new branch is durably linked and visible on the same lineage.",
+      "phase_scope": [
+        "phase_4_booking_engine",
+        "phase_5_network_horizon"
+      ],
+      "notes": ""
+    },
+    {
+      "invariant_id": "INV_PHARMACY_CONSENT_DISPATCH_RECONCILIATION",
+      "canonical_wording": "Pharmacy consent, dispatch proof, weak-match review, urgent return, and bounce-back remain explicit and case-local until authoritative settlement.",
+      "scope": "Pharmacy loop",
+      "affected_machine_ids": [
+        "SM_PHARMACY_CASE_STATUS",
+        "SM_PHARMACY_CONSENT_CHECKPOINT",
+        "SM_PHARMACY_DISPATCH_STATUS"
+      ],
+      "affected_objects": [
+        "PharmacyCase",
+        "PharmacyConsentCheckpoint",
+        "PharmacyDispatchAttempt"
+      ],
+      "related_guards": [
+        "Current consent checkpoint and dispatch tuple remain current"
+      ],
+      "related_proofs": [
+        "PharmacyConsentCheckpoint",
+        "PharmacyDispatchAttempt",
+        "PharmacyOutcomeReconciliationGate",
+        "PharmacyBounceBackRecord"
+      ],
+      "violating_transition_refs": [
+        "ISSUE_SM_PHARMACY_DISPATCH_STATUS_TRANSPORT_ACCEPTED_PROOF_SATISFIED",
+        "ISSUE_SM_PHARMACY_CASE_STATUS_OUTCOME_RECONCILIATION_PENDING_OUTCOME_RECORDED"
+      ],
+      "source_refs": [
+        "phase-6-the-pharmacy-loop.md#6A Pharmacy contract, case model, and state machine",
+        "phase-6-the-pharmacy-loop.md#6D Referral pack composer, dispatch adapters, and transport contract",
+        "phase-6-the-pharmacy-loop.md#6F Outcome ingest, Update Record observation, and reconciliation",
+        "phase-6-the-pharmacy-loop.md#6G Bounce-back, urgent return, and reopen mechanics"
+      ],
+      "test_hint": "Dispatch, weak outcome matching, bounce-back, and no-contact return all remain explicit. None may collapse into generic request success or closure.",
+      "phase_scope": [
+        "phase_6_pharmacy_loop"
+      ],
+      "notes": ""
+    },
+    {
+      "invariant_id": "INV_ASSISTIVE_FREEZE_IN_PLACE",
+      "canonical_wording": "Assistive freeze, quarantine, downgrade, and rollout ceiling are explicit and remain in the same shell when live posture drifts.",
+      "scope": "Assistive capability visibility",
+      "affected_machine_ids": [
+        "SM_ASSISTIVE_TRUST_ENVELOPE",
+        "SM_ASSISTIVE_ROLLOUT_VERDICT",
+        "SM_AUDIENCE_SURFACE_RUNTIME_BINDING"
+      ],
+      "affected_objects": [
+        "AssistiveCapabilityTrustEnvelope",
+        "AssistiveCapabilityRolloutVerdict",
+        "AudienceSurfaceRuntimeBinding"
+      ],
+      "related_guards": [
+        "Current watch tuple, rollout verdict, trust envelope, and runtime tuple must all agree before visible assistive controls stay live"
+      ],
+      "related_proofs": [
+        "AssistiveFreezeFrame",
+        "AssistiveCapabilityRolloutVerdict",
+        "AssistiveCapabilityTrustEnvelope"
+      ],
+      "violating_transition_refs": [
+        "ISSUE_SM_ASSISTIVE_TRUST_ENVELOPE_DEGRADED_TRUSTED",
+        "ISSUE_SM_ASSISTIVE_ROLLOUT_VERDICT_SHADOW_ONLY_VISIBLE_INSERT"
+      ],
+      "source_refs": [
+        "phase-8-the-assistive-layer.md#8A Assistive capability contract, intended-use boundaries, and policy envelope",
+        "phase-8-the-assistive-layer.md#8G Monitoring, drift, fairness, and live safety controls",
+        "forensic-audit-findings.md#Finding 94 - The audit still treated assistive output as a generic sidecar instead of a trust-bound same-shell capability"
+      ],
+      "test_hint": "When trust, publication, selected-anchor, or continuity drifts, keep provenance visible where allowed but freeze accept/insert/export/close-task affordances immediately in the same shell.",
+      "phase_scope": [
+        "phase_8_assistive_layer"
+      ],
+      "notes": ""
+    },
+    {
+      "invariant_id": "INV_RETENTION_AND_RESILIENCE_GATE_EXPORTS",
+      "canonical_wording": "Retention, legal hold, recovery evidence admissibility, and resilience binding posture gate archive, delete, export, and live operator controls.",
+      "scope": "Phase 9 export and control posture",
+      "affected_machine_ids": [
+        "SM_DISPOSITION_ELIGIBILITY",
+        "SM_LEGAL_HOLD_STATE",
+        "SM_RESILIENCE_SURFACE_BINDING",
+        "SM_RECOVERY_CONTROL_POSTURE"
+      ],
+      "affected_objects": [
+        "DispositionEligibilityAssessment",
+        "LegalHoldRecord",
+        "ResilienceSurfaceRuntimeBinding",
+        "RecoveryControlPosture"
+      ],
+      "related_guards": [
+        "Current graph completeness, hold scope, and resilience tuple remain mandatory"
+      ],
+      "related_proofs": [
+        "DispositionEligibilityAssessment",
+        "LegalHoldRecord",
+        "RecoveryEvidencePack",
+        "ResilienceSurfaceRuntimeBinding"
+      ],
+      "violating_transition_refs": [
+        "ISSUE_SM_DISPOSITION_ELIGIBILITY_BLOCKED_DELETE_ALLOWED",
+        "ISSUE_SM_RESILIENCE_SURFACE_BINDING_DIAGNOSTIC_ONLY_LIVE",
+        "ISSUE_SM_RECOVERY_CONTROL_POSTURE_DIAGNOSTIC_ONLY_LIVE_CONTROL"
+      ],
+      "source_refs": [
+        "phase-9-the-assurance-ledger.md#Records lifecycle, retention, legal hold, and deletion engine",
+        "phase-9-the-assurance-ledger.md#9F Resilience architecture, restore orchestration, and chaos programme"
+      ],
+      "test_hint": "Delete, export, restore, failover, and chaos controls must all fail closed when holds, graph dependencies, stale evidence packs, or tuple drift remain unresolved.",
+      "phase_scope": [
+        "phase_9_assurance_ledger"
+      ],
+      "notes": ""
+    },
+    {
+      "invariant_id": "INV_CONTINUITY_PROOF_REQUIRED_FOR_SIGNOFF",
+      "canonical_wording": "Continuity evidence is promotion-critical and BAU sign-off cannot become exact without fresh continuity bundles in the same scorecard tuple.",
+      "scope": "Cross-phase programme truth",
+      "affected_machine_ids": [
+        "SM_CROSS_PHASE_SCORECARD",
+        "SM_AUDIENCE_SURFACE_RUNTIME_BINDING",
+        "SM_RECOVERY_CONTROL_POSTURE"
+      ],
+      "affected_objects": [
+        "CrossPhaseConformanceScorecard",
+        "GovernanceContinuityEvidenceBundle",
+        "ExperienceContinuityControlEvidence"
+      ],
+      "related_guards": [
+        "Current planning summary, runtime publication tuple, verification tuple, and continuity proof set must all still hash together"
+      ],
+      "related_proofs": [
+        "CrossPhaseConformanceScorecard",
+        "GovernanceContinuityEvidenceBundle",
+        "ExperienceContinuityControlEvidence"
+      ],
+      "violating_transition_refs": [
+        "ISSUE_SM_CROSS_PHASE_SCORECARD_BLOCKED_EXACT"
+      ],
+      "source_refs": [
+        "phase-9-the-assurance-ledger.md#9I Full-program exercises, BAU transfer, and formal exit gate",
+        "forensic-audit-findings.md#Finding 103 - Governance compliance review still omitted continuity-evidence bundles",
+        "forensic-audit-findings.md#Finding 104 - The admin control plane still treated continuity proof as optional release commentary",
+        "forensic-audit-findings.md#Finding 105 - The audited top-level flow still had no explicit continuity-evidence spine"
+      ],
+      "test_hint": "Block BAUReadinessPack signoff and release stabilization whenever continuity evidence for affected shells is stale, missing, or not exact on the current scorecard hash.",
+      "phase_scope": [
+        "phase_9_assurance_ledger",
+        "cross_phase"
+      ],
+      "notes": ""
+    }
+  ]
+}

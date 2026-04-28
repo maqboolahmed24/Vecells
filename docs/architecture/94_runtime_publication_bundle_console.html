@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Runtime Publication Bundle Console</title>
+    <style>
+      :root {
+        --canvas: #F7F9FC;
+        --panel: #FFFFFF;
+        --rail: #EEF2F7;
+        --inset: #F4F7FB;
+        --text-strong: #0F172A;
+        --text: #1E293B;
+        --muted: #64748B;
+        --border: #E2E8F0;
+        --bundle: #2563EB;
+        --parity: #0EA5A4;
+        --drift: #D97706;
+        --blocked: #C24141;
+        --verified: #059669;
+        --quarantine: #7C3AED;
+        --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: linear-gradient(180deg, var(--canvas), #eef4fb);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      body[data-reduced-motion="true"] * {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+      }
+      .page { max-width: 1580px; margin: 0 auto; padding: 24px; }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: grid;
+        grid-template-columns: 1.5fr repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        min-height: 76px;
+        padding: 16px 20px;
+        background: rgba(255,255,255,0.94);
+        border-bottom: 1px solid var(--border);
+        backdrop-filter: blur(14px);
+      }
+      .wordmark {
+        display: flex; align-items: center; gap: 12px; color: var(--text-strong); font-weight: 700;
+      }
+      .monogram {
+        width: 40px; height: 40px; border-radius: 12px;
+        display: inline-flex; align-items: center; justify-content: center;
+        color: white; background: linear-gradient(135deg, var(--bundle), var(--parity));
+        font-size: 14px; letter-spacing: 0.08em;
+      }
+      .stat, nav, .panel, aside {
+        background: var(--panel); border: 1px solid var(--border); border-radius: 20px; box-shadow: var(--shadow);
+      }
+      .stat { padding: 12px 14px; }
+      .stat-label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+      .stat-value { display: block; margin-top: 6px; font-size: 24px; font-weight: 700; color: var(--text-strong); }
+      .layout {
+        display: grid; grid-template-columns: 324px minmax(0, 1fr) 420px; gap: 20px; margin-top: 20px; align-items: start;
+      }
+      nav { position: sticky; top: 92px; padding: 18px; }
+      .filter-group { display: grid; gap: 10px; margin-bottom: 14px; }
+      .filter-group label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+      select {
+        height: 44px; border: 1px solid var(--border); border-radius: 12px; background: var(--inset);
+        color: var(--text); padding: 0 12px;
+      }
+      main { display: grid; gap: 20px; }
+      .panel { padding: 18px; min-height: 320px; transition: transform 180ms ease, opacity 180ms ease; }
+      .panel-title { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 14px; }
+      .panel-title h2 { margin: 0; font-size: 18px; color: var(--text-strong); }
+      .panel-title span { color: var(--muted); font-size: 12px; }
+      .tuple-diagram { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+      .tuple-card, .timeline-button, .surface-button {
+        border: 1px solid var(--border); background: linear-gradient(180deg, #fff, var(--inset));
+        border-radius: 16px; width: 100%; text-align: left; cursor: pointer; color: inherit;
+        transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+      }
+      .tuple-card:hover, .timeline-button:hover, .surface-button:hover,
+      .tuple-card:focus-visible, .timeline-button:focus-visible, .surface-button:focus-visible {
+        outline: none; transform: translateY(-1px); border-color: var(--bundle); box-shadow: 0 12px 24px rgba(37,99,235,0.14);
+      }
+      .tuple-card[data-selected="true"], .timeline-button[data-selected="true"], tr[data-selected="true"] .surface-button {
+        border-color: var(--bundle); box-shadow: 0 0 0 2px rgba(37,99,235,0.12);
+      }
+      .tuple-card { padding: 14px; display: grid; gap: 8px; min-height: 138px; }
+      .timeline { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+      .timeline-button { padding: 14px; }
+      .badge {
+        display: inline-flex; align-items: center; justify-content: center; min-width: 84px;
+        padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; color: white;
+      }
+      .badge-published, .badge-exact, .badge-verified, .badge-publishable { background: var(--verified); }
+      .badge-constrained { background: var(--parity); }
+      .badge-stale, .badge-frozen { background: var(--drift); }
+      .badge-conflict { background: var(--blocked); }
+      .badge-withdrawn { background: var(--quarantine); }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); word-break: break-all; }
+      .matrix-table, .data-table { width: 100%; border-collapse: collapse; }
+      .matrix-table th, .matrix-table td, .data-table th, .data-table td {
+        padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top;
+      }
+      .matrix-table th, .data-table th { text-align: left; color: var(--muted); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+      .surface-button { padding: 12px; }
+      aside { position: sticky; top: 92px; padding: 18px; min-height: 320px; transition: opacity 220ms ease, transform 220ms ease; }
+      .inspector-grid { display: grid; gap: 12px; }
+      .inspector-block { background: var(--inset); border: 1px solid var(--border); border-radius: 16px; padding: 14px; }
+      .lower-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); gap: 20px; }
+      .summary-copy { color: var(--muted); line-height: 1.5; }
+      @media (max-width: 1180px) {
+        .layout { grid-template-columns: 1fr; }
+        nav, aside { position: static; }
+        .lower-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <div class="stat">
+          <div class="wordmark">
+            <span class="monogram" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="1" y="1" width="20" height="20" rx="7" stroke="white" stroke-width="1.5"/>
+                <path d="M6 16V6H11.6C13.5 6 14.8 7.1 14.8 8.8C14.8 10 14.1 11 13 11.4C14.5 11.7 15.4 12.8 15.4 14.1C15.4 16 13.9 17 11.8 17H6Z" fill="white"/>
+                <path d="M11.5 11.3L15.9 16H13.4L9.5 11.7" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <div>
+              <div>Vecells</div>
+              <div class="stat-label">Runtime Publication Bundle Console</div>
+            </div>
+          </div>
+        </div>
+        <div class="stat"><span class="stat-label">Active Bundle</span><span class="stat-value" id="active-bundle">0</span></div>
+        <div class="stat"><span class="stat-label">Blocked Surfaces</span><span class="stat-value" id="blocked-surfaces">0</span></div>
+        <div class="stat"><span class="stat-label">Drift Alerts</span><span class="stat-value" id="drift-alerts">0</span></div>
+        <div class="stat"><span class="stat-label">Provenance Warnings</span><span class="stat-value" id="provenance-warnings">0</span></div>
+      </header>
+      <div class="layout">
+        <nav aria-label="Publication filters">
+          <div class="filter-group">
+            <label for="filter-audience">Audience</label>
+            <select id="filter-audience" data-testid="filter-audience"></select>
+          </div>
+          <div class="filter-group">
+            <label for="filter-route-family">Route family</label>
+            <select id="filter-route-family" data-testid="filter-route-family"></select>
+          </div>
+          <div class="filter-group">
+            <label for="filter-publication-state">Publication state</label>
+            <select id="filter-publication-state" data-testid="filter-publication-state"></select>
+          </div>
+          <div class="filter-group">
+            <label for="filter-drift-state">Drift state</label>
+            <select id="filter-drift-state" data-testid="filter-drift-state"></select>
+          </div>
+          <div class="filter-group">
+            <label for="filter-provenance-state">Provenance state</label>
+            <select id="filter-provenance-state" data-testid="filter-provenance-state"></select>
+          </div>
+          <p class="summary-copy" id="filter-summary"></p>
+        </nav>
+        <main>
+          <section class="panel" data-testid="tuple-diagram">
+            <div class="panel-title">
+              <h2>Publication Tuple Diagram</h2>
+              <span>Topology, gateway, manifests, design, runtime, provenance</span>
+            </div>
+            <div class="tuple-diagram" id="tuple-diagram-grid"></div>
+            <p class="summary-copy" id="tuple-diagram-text"></p>
+          </section>
+          <section class="panel" data-testid="parity-matrix">
+            <div class="panel-title">
+              <h2>Parity Status Matrix</h2>
+              <span>Exactness per release and matrix group</span>
+            </div>
+            <div style="overflow:auto">
+              <table class="matrix-table" aria-label="Parity status matrix">
+                <thead id="parity-matrix-head"></thead>
+                <tbody id="parity-matrix-body"></tbody>
+              </table>
+            </div>
+            <p class="summary-copy" id="parity-matrix-text"></p>
+          </section>
+          <section class="panel" data-testid="refusal-timeline">
+            <div class="panel-title">
+              <h2>Drift and Refusal Timeline</h2>
+              <span>Release-scoped refusal posture</span>
+            </div>
+            <div class="timeline" id="refusal-timeline-grid"></div>
+            <p class="summary-copy" id="refusal-timeline-text"></p>
+          </section>
+          <div class="lower-grid">
+            <section class="panel" data-testid="member-table">
+              <div class="panel-title">
+                <h2>Bundle Member Table</h2>
+                <span>Audience-surface authority rows</span>
+              </div>
+              <div style="overflow:auto">
+                <table class="data-table" aria-label="Bundle member table">
+                  <thead>
+                    <tr>
+                      <th>Release</th>
+                      <th>Audience</th>
+                      <th>Route families</th>
+                      <th>Publication</th>
+                      <th>Parity</th>
+                      <th>Route exposure</th>
+                    </tr>
+                  </thead>
+                  <tbody id="member-table-body"></tbody>
+                </table>
+              </div>
+            </section>
+            <section class="panel" data-testid="refusal-table">
+              <div class="panel-title">
+                <h2>Parity and Refusal Table</h2>
+                <span>Refusal and ceiling reasons for the selected surface</span>
+              </div>
+              <div style="overflow:auto">
+                <table class="data-table" aria-label="Parity refusal table">
+                  <thead>
+                    <tr>
+                      <th>Kind</th>
+                      <th>Reason</th>
+                      <th>Detail</th>
+                    </tr>
+                  </thead>
+                  <tbody id="refusal-table-body"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </main>
+        <aside data-testid="inspector" aria-label="Publication inspector">
+          <div class="panel-title">
+            <h2>Inspector</h2>
+            <span id="inspector-subtitle">Selected release and surface</span>
+          </div>
+          <div class="inspector-grid" id="inspector-grid"></div>
+        </aside>
+      </div>
+    </div>
+    <script>
+      const bundleUrl = "../../data/analysis/runtime_publication_bundles.json";
+      const parityUrl = "../../data/analysis/release_publication_parity_records.json";
+      const state = {
+        bundles: [],
+        parities: [],
+        surfaceRows: [],
+        refusalRows: [],
+        selectedRowId: null,
+        filters: {
+          audience: "all",
+          routeFamily: "all",
+          publicationState: "all",
+          driftState: "all",
+          provenanceState: "all",
+        },
+      };
+
+      const labelize = (value) => value.replaceAll("_", " ");
+      const badgeClass = (value) => `badge badge-${value}`;
+
+      function uniqueValues(values) {
+        return Array.from(new Set(values)).sort((left, right) => left.localeCompare(right));
+      }
+
+      function setOptions(select, values) {
+        select.innerHTML = "";
+        const allOption = document.createElement("option");
+        allOption.value = "all";
+        allOption.textContent = "All";
+        select.appendChild(allOption);
+        values.forEach((value) => {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = labelize(value);
+          select.appendChild(option);
+        });
+      }
+
+      function matchesFilters(row) {
+        return (
+          (state.filters.audience === "all" || row.audienceSurface === state.filters.audience) &&
+          (state.filters.routeFamily === "all" || row.routeFamilyRefs.includes(state.filters.routeFamily)) &&
+          (state.filters.publicationState === "all" || row.publicationState === state.filters.publicationState) &&
+          (state.filters.driftState === "all" || row.driftState === state.filters.driftState) &&
+          (state.filters.provenanceState === "all" || row.provenanceVerificationState === state.filters.provenanceState)
+        );
+      }
+
+      function filteredRows() {
+        return state.surfaceRows.filter(matchesFilters);
+      }
+
+      function selectedRow() {
+        const rows = filteredRows();
+        if (!rows.length) return null;
+        return rows.find((row) => row.rowId === state.selectedRowId) ?? rows[0];
+      }
+
+      function selectedBundle() {
+        const row = selectedRow();
+        return row ? state.bundles.find((bundle) => bundle.runtimePublicationBundleId === row.runtimePublicationBundleRef) : null;
+      }
+
+      function selectedParity() {
+        const row = selectedRow();
+        return row ? state.parities.find((parity) => parity.publicationParityRecordId === row.publicationParityRecordRef) : null;
+      }
+
+      function renderStats(rows) {
+        const activeBundle = selectedBundle();
+        const blockedSurfaces = rows.filter((row) => row.publicationState !== "published").length;
+        const driftAlerts = rows.filter((row) => row.driftState !== "none").length;
+        const provenanceWarnings = rows.filter((row) => row.provenanceVerificationState !== "verified").length;
+        document.getElementById("active-bundle").textContent = activeBundle ? activeBundle.runtimePublicationBundleId.split("::")[1] : "none";
+        document.getElementById("blocked-surfaces").textContent = String(blockedSurfaces);
+        document.getElementById("drift-alerts").textContent = String(driftAlerts);
+        document.getElementById("provenance-warnings").textContent = String(provenanceWarnings);
+        document.getElementById("filter-summary").textContent =
+          `${rows.length} audience-surface rows after filtering.`;
+      }
+
+      function renderTupleDiagram() {
+        const container = document.getElementById("tuple-diagram-grid");
+        const bundle = selectedBundle();
+        container.innerHTML = "";
+        if (!bundle) {
+          container.textContent = "No bundle matches the active filters.";
+          return;
+        }
+        bundle.memberRows.forEach((row) => {
+          const card = document.createElement("div");
+          card.className = "tuple-card";
+          card.dataset.selected = "true";
+          card.innerHTML = `
+            <div class="panel-title" style="margin:0">
+              <strong>${row.label}</strong>
+              <span class="${badgeClass(row.state)}">${row.state}</span>
+            </div>
+            <div class="summary-copy">${row.memberCount} members</div>
+            <div class="mono">${row.memberRefs.slice(0, 4).join("<br />")}</div>
+          `;
+          container.appendChild(card);
+        });
+        document.getElementById("tuple-diagram-text").textContent =
+          `${bundle.runtimePublicationBundleId} binds ${bundle.routeFamilyRefs.length} route families and ${bundle.audienceSurfaceRefs.length} audience surfaces into one publishability tuple.`;
+      }
+
+      function renderParityMatrix() {
+        const head = document.getElementById("parity-matrix-head");
+        const body = document.getElementById("parity-matrix-body");
+        const parities = state.parities;
+        const groupIds = uniqueValues(parities.flatMap((row) => Object.keys(row.matrixGroupStates)));
+        head.innerHTML = `<tr><th>Release</th>${groupIds.map((groupId) => `<th>${labelize(groupId)}</th>`).join("")}</tr>`;
+        body.innerHTML = "";
+        parities.forEach((row) => {
+          const selected = selectedRow()?.releaseRef === row.releaseRef;
+          const tr = document.createElement("tr");
+          tr.dataset.selected = selected ? "true" : "false";
+          tr.innerHTML = `
+            <td><strong>${row.environmentRing}</strong><div class="mono">${row.publicationParityRecordId}</div></td>
+            ${groupIds.map((groupId) => `<td><span class="${badgeClass(row.matrixGroupStates[groupId])}">${row.matrixGroupStates[groupId]}</span></td>`).join("")}
+          `;
+          body.appendChild(tr);
+        });
+        document.getElementById("parity-matrix-text").textContent =
+          `${parities.length} release-scoped parity rows show which tuple groups are exact versus frozen or withdrawn.`;
+      }
+
+      function renderTimeline() {
+        const container = document.getElementById("refusal-timeline-grid");
+        container.innerHTML = "";
+        state.parities.forEach((row) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "timeline-button";
+          button.dataset.testid = `timeline-${row.releaseRef}`;
+          button.dataset.selected = selectedRow()?.releaseRef === row.releaseRef ? "true" : "false";
+          button.innerHTML = `
+            <div class="panel-title" style="margin:0 0 8px 0">
+              <strong>${row.environmentRing}</strong>
+              <span class="${badgeClass(row.parityState)}">${row.parityState}</span>
+            </div>
+            <div class="summary-copy">${row.driftReasonIds.length || row.bindingCeilingReasons.length} timeline items</div>
+            <div class="mono">${row.releaseRef}</div>
+          `;
+          button.addEventListener("click", () => {
+            const matching = filteredRows().find((entry) => entry.releaseRef === row.releaseRef) ?? state.surfaceRows.find((entry) => entry.releaseRef === row.releaseRef);
+            if (matching) {
+              state.selectedRowId = matching.rowId;
+              render();
+            }
+          });
+          container.appendChild(button);
+        });
+        const selectedParity = selectedParityRecord();
+        document.getElementById("refusal-timeline-text").textContent =
+          selectedParity
+            ? `${selectedParity.publicationParityRecordId} carries ${selectedParity.driftReasonIds.length} refusal reasons and ${selectedParity.bindingCeilingReasons.length} binding ceilings.`
+            : "No parity row matches the current filter.";
+      }
+
+      function selectedParityRecord() {
+        return selectedParity();
+      }
+
+      function renderMemberTable(rows) {
+        const body = document.getElementById("member-table-body");
+        body.innerHTML = "";
+        rows.forEach((row, index) => {
+          const tr = document.createElement("tr");
+          tr.dataset.selected = row.rowId === selectedRow()?.rowId ? "true" : "false";
+          tr.innerHTML = `
+            <td>
+              <button class="surface-button" type="button" data-testid="surface-row-${row.rowId}" data-row-id="${row.rowId}" data-index="${index}">
+                <strong>${row.environmentRing}</strong>
+                <div class="mono">${row.runtimePublicationBundleRef}</div>
+              </button>
+            </td>
+            <td>${row.audienceSurfaceLabel}</td>
+            <td>${row.routeFamilyRefs.join(", ")}</td>
+            <td><span class="${badgeClass(row.publicationState)}">${row.publicationState}</span></td>
+            <td><span class="${badgeClass(row.parityState)}">${row.parityState}</span></td>
+            <td><span class="${badgeClass(row.routeExposureState)}">${row.routeExposureState}</span></td>
+          `;
+          body.appendChild(tr);
+        });
+        body.querySelectorAll(".surface-button").forEach((button) => {
+          button.addEventListener("click", () => {
+            state.selectedRowId = button.dataset.rowId;
+            render();
+          });
+        });
+      }
+
+      function renderRefusalTable() {
+        const row = selectedRow();
+        const body = document.getElementById("refusal-table-body");
+        body.innerHTML = "";
+        if (!row) return;
+        const reasons = state.refusalRows.filter((entry) => entry.rowId === row.rowId);
+        reasons.forEach((entry) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${entry.kind}</td>
+            <td><strong>${entry.reasonId}</strong></td>
+            <td>${entry.detail}</td>
+          `;
+          body.appendChild(tr);
+        });
+      }
+
+      function renderInspector() {
+        const row = selectedRow();
+        const bundle = selectedBundle();
+        const parity = selectedParity();
+        const grid = document.getElementById("inspector-grid");
+        grid.innerHTML = "";
+        if (!row || !bundle || !parity) {
+          grid.innerHTML = `<div class="inspector-block">No publication tuple matches the active filter set.</div>`;
+          return;
+        }
+        document.getElementById("inspector-subtitle").textContent = `${row.environmentRing} / ${row.audienceSurfaceLabel}`;
+        const cards = [
+          ["Bundle", bundle.runtimePublicationBundleId, bundle.publicationState],
+          ["Parity", parity.publicationParityRecordId, parity.parityState],
+          ["Audience", row.audienceSurfaceLabel, row.routeExposureState],
+          ["Provenance", bundle.buildProvenanceRef, bundle.provenanceVerificationState],
+        ];
+        cards.forEach(([label, value, stateValue]) => {
+          const block = document.createElement("div");
+          block.className = "inspector-block";
+          block.innerHTML = `
+            <div class="panel-title" style="margin:0 0 8px 0">
+              <strong>${label}</strong>
+              <span class="${badgeClass(stateValue)}">${stateValue}</span>
+            </div>
+            <div class="mono">${value}</div>
+          `;
+          grid.appendChild(block);
+        });
+      }
+
+      function render() {
+        const rows = filteredRows();
+        if (rows.length && !rows.some((row) => row.rowId === state.selectedRowId)) {
+          state.selectedRowId = rows[0].rowId;
+        }
+        renderStats(rows);
+        renderTupleDiagram();
+        renderParityMatrix();
+        renderTimeline();
+        renderMemberTable(rows);
+        renderRefusalTable();
+        renderInspector();
+      }
+
+      async function start() {
+        const [bundleCatalog, parityCatalog] = await Promise.all([
+          fetch(bundleUrl).then((response) => response.json()),
+          fetch(parityUrl).then((response) => response.json()),
+        ]);
+        state.bundles = bundleCatalog.runtimePublicationBundles;
+        state.parities = parityCatalog.releasePublicationParityRecords;
+        state.surfaceRows = parityCatalog.surfaceAuthorityRows;
+        state.refusalRows = parityCatalog.refusalRows;
+        const audienceValues = uniqueValues(state.surfaceRows.map((row) => row.audienceSurface));
+        const routeValues = uniqueValues(state.surfaceRows.flatMap((row) => row.routeFamilyRefs));
+        const publicationValues = uniqueValues(state.surfaceRows.map((row) => row.publicationState));
+        const driftValues = uniqueValues(state.surfaceRows.map((row) => row.driftState));
+        const provenanceValues = uniqueValues(state.surfaceRows.map((row) => row.provenanceVerificationState));
+        setOptions(document.getElementById("filter-audience"), audienceValues);
+        setOptions(document.getElementById("filter-route-family"), routeValues);
+        setOptions(document.getElementById("filter-publication-state"), publicationValues);
+        setOptions(document.getElementById("filter-drift-state"), driftValues);
+        setOptions(document.getElementById("filter-provenance-state"), provenanceValues);
+        ["audience","routeFamily","publicationState","driftState","provenanceState"].forEach((key) => {
+          const element = document.getElementById(`filter-${key.replace(/([A-Z])/g, "-$1").toLowerCase()}`);
+          element.addEventListener("change", (event) => {
+            state.filters[key] = event.target.value;
+            render();
+          });
+        });
+        document.addEventListener("keydown", (event) => {
+          if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+          const active = document.activeElement;
+          if (!(active instanceof HTMLButtonElement) || !active.classList.contains("surface-button")) {
+            return;
+          }
+          event.preventDefault();
+          const visible = Array.from(document.querySelectorAll(".surface-button"));
+          const currentIndex = visible.findIndex((entry) => entry === active);
+          const nextIndex = event.key === "ArrowDown"
+            ? Math.min(currentIndex + 1, visible.length - 1)
+            : Math.max(currentIndex - 1, 0);
+          const next = visible[nextIndex];
+          if (next) {
+            state.selectedRowId = next.dataset.rowId;
+            render();
+            requestAnimationFrame(() => {
+              const refreshed = document.querySelector(`[data-testid="surface-row-${state.selectedRowId}"]`);
+              if (refreshed instanceof HTMLButtonElement) {
+                refreshed.focus();
+              }
+            });
+          }
+        });
+        const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+        document.body.dataset.reducedMotion = motion.matches ? "true" : "false";
+        state.selectedRowId = state.surfaceRows[0]?.rowId ?? null;
+        render();
+      }
+
+      start();
+    </script>
+  </body>
+</html>

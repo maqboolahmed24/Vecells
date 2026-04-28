@@ -1,0 +1,116 @@
+{
+  "taskId": "seq_227",
+  "phase0AuthorityReuse": {
+    "duplicateClusterContract": "DuplicateCluster",
+    "pairEvidenceContract": "DuplicatePairEvidence",
+    "resolutionDecisionContract": "DuplicateResolutionDecision",
+    "replayCollisionContract": "ReplayCollisionReview",
+    "idempotencyAuthority": "IdempotencyRecord"
+  },
+  "authoritySeparation": [
+    {
+      "boundaryId": "AUTH_227_REPLAY",
+      "authority": "IdempotencyRecord",
+      "owns": [
+        "exact_replay",
+        "semantic_replay"
+      ],
+      "mustNotOwn": [
+        "same_request_attach",
+        "duplicate_review_resolution"
+      ]
+    },
+    {
+      "boundaryId": "AUTH_227_DUPLICATE_REVIEW",
+      "authority": "DuplicateCluster",
+      "owns": [
+        "review_required_ambiguity",
+        "closure_blocking_duplicate_review"
+      ],
+      "mustNotOwn": [
+        "same_request_attach_finality",
+        "replay_collapse"
+      ]
+    },
+    {
+      "boundaryId": "AUTH_227_ATTACH",
+      "authority": "DuplicateResolutionDecision",
+      "owns": [
+        "same_request_attach",
+        "same_episode_link",
+        "related_episode_link",
+        "separate_request"
+      ],
+      "mustNotOwn": [
+        "exact_replay"
+      ]
+    },
+    {
+      "boundaryId": "AUTH_227_COLLISION",
+      "authority": "ReplayCollisionReview",
+      "owns": [
+        "divergent_same_fence_replay"
+      ],
+      "mustNotOwn": [
+        "duplicate_cluster_resolution"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "caseId": "exact_retry_collapse",
+      "pairEvidenceRef": "DPE_070_RETRY",
+      "phase0ClusterRef": "DCL_070_RETRY",
+      "dominantAuthority": "IdempotencyRecord",
+      "resolutionDecisionClass": "exact_retry_collapse",
+      "continuityWitnessClass": "deterministic_replay",
+      "closureBlockerActive": false,
+      "notes": "Exact replay reuses the prior authoritative settlement instead of opening duplicate review."
+    },
+    {
+      "caseId": "same_request_continuation_with_witness",
+      "pairEvidenceRef": "DPE_070_ATTACH",
+      "phase0ClusterRef": "DCL_070_ATTACH",
+      "dominantAuthority": "DuplicateResolutionDecision",
+      "resolutionDecisionClass": "same_request_attach",
+      "continuityWitnessClass": "workflow_return",
+      "closureBlockerActive": false,
+      "notes": "Same-request attach requires an explicit continuity witness; pairwise score alone is not enough."
+    },
+    {
+      "caseId": "same_episode_candidate_high_similarity",
+      "pairEvidenceRefs": [
+        "DPE_070_SAME_EPISODE_A",
+        "DPE_070_SAME_EPISODE_B"
+      ],
+      "phase0ClusterRef": "DCL_070_SAME_EPISODE",
+      "dominantAuthority": "DuplicateCluster",
+      "resolutionDecisionClass": "review_required",
+      "continuityWitnessClass": "human_review",
+      "closureBlockerActive": true,
+      "notes": "High similarity with low candidate margin stays closure-blocking review work instead of auto-attach."
+    },
+    {
+      "caseId": "related_episode_link",
+      "pairEvidenceRef": "DPE_070_RELATED",
+      "phase0ClusterRef": "DCL_070_RELATED",
+      "dominantAuthority": "DuplicateResolutionDecision",
+      "resolutionDecisionClass": "related_episode_link",
+      "continuityWitnessClass": "none",
+      "closureBlockerActive": false,
+      "notes": "Relationship may be recorded without collapsing the incoming work into the same request."
+    },
+    {
+      "caseId": "conflicting_candidates_low_margin",
+      "pairEvidenceRefs": [
+        "DPE_070_CONFLICT_A",
+        "DPE_070_CONFLICT_B"
+      ],
+      "dominantAuthority": "DuplicateCluster",
+      "resolutionDecisionClass": "review_required",
+      "continuityWitnessClass": "human_review",
+      "closureBlockerActive": true,
+      "notes": "Conflicting candidates with low margin stay inside DuplicateCluster review rather than routing on queue proximity."
+    }
+  ]
+}

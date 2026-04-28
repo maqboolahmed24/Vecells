@@ -1,0 +1,22 @@
+previous_status,next_status,action_scope,reason_code,requires_active_ownership,requires_downstream_ref,command_mode,notes
+triage_ready,queued,move_to_queue,task_returned_to_queue,false,false,synthetic,initial enqueue before first lease acquisition
+queued,claimed,task_claim,task_claimed,false,false,settled,claim acquires a new lifecycle lease and advances ownership plus lineage
+claimed,queued,move_to_queue,task_returned_to_queue,true,false,settled,release plus queue return keeps launch context durable
+claimed,in_review,start_review,review_started,true,false,settled,review session opens against the current live lease
+in_review,queued,move_to_queue,task_returned_to_queue,true,false,settled,return to queue after active review
+in_review,awaiting_patient_info,request_more_info,more_info_requested,true,true,settled,requires more-info contract ref or placeholder
+in_review,endpoint_selected,select_endpoint,endpoint_selected_under_current_epoch,true,true,settled,requires current endpoint and decision epoch refs
+in_review,escalated,escalate,escalation_selected_under_current_epoch,true,true,settled,requires escalation contract and current decision epoch
+awaiting_patient_info,review_resumed,resume_review,review_resumed_after_patient_reply,false,false,synthetic,patient response assimilation restores reviewable state without a live owner lease
+review_resumed,queued,move_to_queue,task_returned_to_queue,false,false,synthetic,requeue after patient reply without reacquire
+review_resumed,claimed,task_claim,task_claimed,false,false,settled,reacquire path creates a fresh lease and fence tuple
+endpoint_selected,resolved_without_appointment,resolved_without_appointment,resolved_without_appointment_settled,true,true,settled,requires consequence settlement hook
+endpoint_selected,handoff_pending,handoff_pending,handoff_pending_settled,true,true,settled,requires downstream handoff hook
+endpoint_selected,escalated,escalate,escalation_selected_under_current_epoch,true,true,settled,escalation can supersede endpoint preview before final consequence
+escalated,resolved_without_appointment,resolved_without_appointment,resolved_without_appointment_settled,false,true,synthetic_or_settled,downstream escalation resolution may happen without a currently active lease
+escalated,handoff_pending,handoff_pending,handoff_pending_settled,false,true,synthetic_or_settled,downstream consequence remains fail-closed on missing hook
+escalated,reopened,reopen,task_reopened,false,true,synthetic,reopen requires explicit reopen contract ref
+resolved_without_appointment,closed,close,task_closed_after_lifecycle_signal,false,true,synthetic,closure is coordinator-driven not triage-owned
+handoff_pending,closed,close,task_closed_after_lifecycle_signal,false,true,synthetic,closure requires lifecycle coordinator signal ref
+closed,reopened,reopen,task_reopened,false,true,synthetic,reopen remains append-only and recovery capable
+reopened,queued,move_to_queue,task_returned_to_queue,false,false,synthetic,post-reopen queue return remains durable through TaskLaunchContext

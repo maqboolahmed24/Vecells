@@ -1,0 +1,11 @@
+variable "environment" { type = string }
+variable "namespace_id" { type = string }
+variable "bucket_name" { type = string }
+variable "storage_class_ref" { type = string }
+variable "retention_policy_ref" { type = string }
+variable "default_retention_days" { type = number }
+variable "legal_hold_ready" { type = bool }
+variable "browser_delivery_posture" { type = string }
+variable "manifest_rule_ref" { type = string }
+variable "private_endpoint_ref" { type = string }
+variable "service_identity_refs" { type = list(string) }

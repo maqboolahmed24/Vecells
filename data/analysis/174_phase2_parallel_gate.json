@@ -1,0 +1,240 @@
+{
+  "taskId": "seq_174",
+  "generatedAt": "2026-04-15T00:00:00Z",
+  "capturedOn": "2026-04-15",
+  "visualMode": "Phase2_DualTrack_Gate_Board",
+  "gatePackRef": "P2PG_174_PARALLEL_IDENTITY_TELEPHONY_GATE_V1",
+  "gateVerdict": "parallel_block_open",
+  "openTrackCount": 20,
+  "blockedTrackCount": 0,
+  "contractBundleHash": "1e5713c9cc0ad2a57cca1bbf957b4cfd0ca9aa9059d2a71dd25d8784c58b4a67",
+  "hardPrerequisiteTasks": ["seq_170", "seq_171", "seq_172", "seq_173"],
+  "hardPrerequisiteProof": [
+    {
+      "taskId": "seq_170",
+      "label": "Phase 2 trust contract, capability gates, and identity authority rules",
+      "state": "complete",
+      "validationCommand": "pnpm validate:phase2-trust-contracts",
+      "evidenceRefs": [
+        "data/contracts/170_route_capability_profiles.yaml",
+        "data/contracts/170_identity_authority_rules.json",
+        "data/contracts/170_identity_context.schema.json",
+        "data/contracts/170_identity_evidence_envelope.schema.json",
+        "data/analysis/170_capability_matrix.csv"
+      ]
+    },
+    {
+      "taskId": "seq_171",
+      "label": "NHS login auth transaction and local session contracts",
+      "state": "complete",
+      "validationCommand": "pnpm validate:phase2-auth-session-contracts",
+      "evidenceRefs": [
+        "data/contracts/171_auth_transaction.schema.json",
+        "data/contracts/171_auth_scope_bundle.schema.json",
+        "data/contracts/171_post_auth_return_intent.schema.json",
+        "data/contracts/171_session_establishment_decision.schema.json",
+        "data/contracts/171_session_projection_contract.json"
+      ]
+    },
+    {
+      "taskId": "seq_172",
+      "label": "Patient linkage, calibrated match model, and optional PDS seam",
+      "state": "complete",
+      "validationCommand": "pnpm validate:phase2-patient-link-contracts",
+      "evidenceRefs": [
+        "data/contracts/172_patient_link_decision.schema.json",
+        "data/contracts/172_link_calibration_profile.schema.json",
+        "data/contracts/172_pds_enrichment_seam.yaml",
+        "data/analysis/172_link_threshold_matrix.csv"
+      ]
+    },
+    {
+      "taskId": "seq_173",
+      "label": "Telephony call-session and evidence-readiness contracts",
+      "state": "complete",
+      "validationCommand": "pnpm validate:phase2-telephony-contracts",
+      "evidenceRefs": [
+        "data/contracts/173_call_session.schema.json",
+        "data/contracts/173_telephony_provider_event.schema.json",
+        "data/contracts/173_evidence_readiness_assessment.schema.json",
+        "data/contracts/173_continuation_eligibility.schema.json",
+        "data/analysis/173_call_state_transition_matrix.csv",
+        "data/analysis/173_readiness_truth_table.csv"
+      ]
+    }
+  ],
+  "contractBundle": {
+    "bundleSourceRefs": [
+      "data/contracts/170_route_capability_profiles.yaml",
+      "data/contracts/170_identity_authority_rules.json",
+      "data/contracts/170_identity_context.schema.json",
+      "data/contracts/170_identity_evidence_envelope.schema.json",
+      "data/contracts/171_auth_transaction.schema.json",
+      "data/contracts/171_auth_scope_bundle.schema.json",
+      "data/contracts/171_post_auth_return_intent.schema.json",
+      "data/contracts/171_session_establishment_decision.schema.json",
+      "data/contracts/171_session_projection_contract.json",
+      "data/contracts/172_patient_link_decision.schema.json",
+      "data/contracts/172_link_calibration_profile.schema.json",
+      "data/contracts/172_pds_enrichment_seam.yaml",
+      "data/contracts/173_call_session.schema.json",
+      "data/contracts/173_telephony_provider_event.schema.json",
+      "data/contracts/173_evidence_readiness_assessment.schema.json",
+      "data/contracts/173_continuation_eligibility.schema.json"
+    ],
+    "reservedSharedTypes": [
+      "AuthTransaction",
+      "AuthScopeBundle",
+      "PostAuthReturnIntent",
+      "RouteIntentBinding",
+      "Session",
+      "SessionEstablishmentDecision",
+      "PatientLink",
+      "PatientLinkDecision",
+      "IdentityEvidenceEnvelope",
+      "IdentityBinding",
+      "CapabilityDecision",
+      "AccessGrant",
+      "AccessGrantScopeEnvelope",
+      "TelephonyProviderEvent",
+      "CallSession",
+      "TelephonyTranscriptReadinessRecord",
+      "TelephonyEvidenceReadinessAssessment",
+      "TelephonyContinuationEligibility",
+      "TelephonyContinuationContext"
+    ]
+  },
+  "summary": {
+    "trackFamilyCounts": {
+      "identity": 12,
+      "telephony": 8
+    },
+    "mergeGateCount": 5,
+    "seamCount": 16,
+    "parallelInterfaceGapCount": 5,
+    "mockLiveProviderRows": 6
+  },
+  "mergeGates": [
+    {
+      "mergeGateId": "MG_174_SHARED_CONTRACT",
+      "label": "Shared-contract merge gate",
+      "type": "contract",
+      "accent": "#5B61F6",
+      "summary": "Prevents parallel tracks from redefining protected identity, session, grant, or telephony readiness contracts.",
+      "exitRules": [
+        "No duplicate owner for AuthTransaction, Session, PatientLink, IdentityBinding, AccessGrant, or TelephonyEvidenceReadinessAssessment.",
+        "Every sibling consumer imports the shared seam instead of copying schema locally.",
+        "All new PARALLEL_INTERFACE_GAP_PHASE2_* entries are either resolved or explicitly owned."
+      ]
+    },
+    {
+      "mergeGateId": "MG_174_SECURITY_MASKING",
+      "label": "Security and masking merge gate",
+      "type": "security",
+      "accent": "#B42318",
+      "summary": "Keeps raw auth claims, phone identifiers, audio refs, and evidence out of logs, URLs, DOM attributes, and operational rows.",
+      "exitRules": [
+        "Raw identity evidence and telephony identifiers write only through evidence-vault ports.",
+        "Audit and telemetry fields use the seq174 masking allow-list.",
+        "Provider raw payloads remain quarantined at adapter boundaries."
+      ]
+    },
+    {
+      "mergeGateId": "MG_174_RUNTIME_PUBLICATION",
+      "label": "Runtime/publication merge gate",
+      "type": "runtime",
+      "accent": "#2F6FED",
+      "summary": "Separates simulator-first delivery from later live provider onboarding while preserving production-shaped contracts.",
+      "exitRules": [
+        "Mock-now providers remain contract-faithful and may not add shortcut semantics.",
+        "Live provider assumptions are captured in the mock/live provider matrix.",
+        "Publication and route tuples remain fail-closed when stale or missing."
+      ]
+    },
+    {
+      "mergeGateId": "MG_174_REQUEST_CONVERGENCE",
+      "label": "Request-convergence merge gate",
+      "type": "convergence",
+      "accent": "#0E7490",
+      "summary": "Forces auth, grant, ownership, telephony readiness, and phone ingress to converge through canonical intake and authority-settled binding.",
+      "exitRules": [
+        "Telephony can promote only from safety_usable and ready_to_promote readiness.",
+        "Request.patientRef and Episode.patientRef derive only from current IdentityBinding.",
+        "Continuation and claim redemption use canonical AccessGrant service semantics."
+      ]
+    },
+    {
+      "mergeGateId": "MG_174_BROWSER_ACCESSIBILITY",
+      "label": "Browser-surface and accessibility merge gate",
+      "type": "browser",
+      "accent": "#117A55",
+      "summary": "Protects later patient portal, continuation, repair, and status surfaces from diagram-only or inaccessible contract drift.",
+      "exitRules": [
+        "Every board/diagram has adjacent table or list parity.",
+        "Keyboard traversal, reduced motion, responsive layout, and landmark coverage are verified.",
+        "Patient-facing copy never promises authority beyond current session/grant/readiness posture."
+      ]
+    }
+  ],
+  "parallelInterfaceGaps": [
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_PREREQ_FREEZE_GATE_V1",
+      "state": "closed",
+      "closure": "Tasks 170-173 are hard prerequisites with checklist status and validator commands recorded."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_SHARED_SEAM_REGISTRY_V1",
+      "state": "closed",
+      "closure": "Shared interface seams are registered before any task 175-194 can claim an authority boundary."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_MOCK_LIVE_BOUNDARY_V1",
+      "state": "closed",
+      "closure": "Mock-now providers and live-provider onboarding assumptions are split in a machine-readable matrix."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_TASK_OWNERSHIP_MATRIX_V1",
+      "state": "closed",
+      "closure": "Every track row states capability ownership, shared packages, authority boundary, merge gates, and allowed parallel neighbors."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_TELEPHONY_TOUCHPOINTS_V1",
+      "state": "closed",
+      "closure": "Telephony caller verification, evidence-vault writes, readiness, continuation, and request convergence are explicit cross-track touchpoints."
+    }
+  ],
+  "forbiddenParallelActions": [
+    "No duplicate redefinitions of IdentityBinding, PatientLink, AuthTransaction, Session, AccessGrant, or telephony readiness schemas.",
+    "No sibling task may write another authority-owned persistence table or command handler.",
+    "No raw identity evidence, raw auth claims, phone numbers, caller identifiers, handset proofs, recordings, or transcript payloads outside the evidence vault or audio quarantine boundary.",
+    "No private redirect, grant, or continuation-token model may bypass PostAuthReturnIntent, RouteIntentBinding, AccessGrant, AccessGrantScopeEnvelope, or TelephonyContinuationEligibility.",
+    "No telephony routine promotion before TelephonyEvidenceReadinessAssessment(usabilityState=safety_usable, promotionReadiness=ready_to_promote)."
+  ],
+  "integrationTouchpoints": [
+    "Auth callback writes raw claims through evidence-vault ports before binding/session decisions.",
+    "PatientLinkDecision feeds IdentityBindingAuthority but never writes binding truth.",
+    "SessionGovernor consumes settled binding, capability, and return-intent posture before issuing a local session.",
+    "Telephony caller verification writes captured identifiers through the evidence vault and submits only binding intents.",
+    "TelephonyContinuationEligibility feeds canonical AccessGrant issuance for seeded/challenge SMS continuation.",
+    "Telephony convergence enters canonical intake only through request-convergence gates and current readiness verdict."
+  ],
+  "matrixRefs": {
+    "trackMatrix": "data/analysis/174_phase2_track_matrix.csv",
+    "sharedInterfaceSeams": "data/analysis/174_phase2_shared_interface_seams.json",
+    "mockLiveProviderMatrix": "data/analysis/174_phase2_mock_now_vs_live_provider_matrix.csv"
+  },
+  "board": {
+    "path": "docs/programme/174_phase2_parallel_gate_board.html",
+    "requiredMode": "Phase2_DualTrack_Gate_Board",
+    "diagramParityRequired": true,
+    "selectors": [
+      "dual_track_gate_mark",
+      "dual-lane-dependency-lattice",
+      "shared-seam-ribbon",
+      "merge-gate-strip",
+      "track-matrix-table",
+      "shared-interface-seams-table",
+      "mock-live-provider-table"
+    ]
+  }
+}

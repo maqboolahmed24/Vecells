@@ -1,0 +1,124 @@
+{
+  "taskId": "par_176",
+  "artifact": "176_timeout_reauth_and_logout_cases",
+  "policyVersion": "phase2-auth-session-v1",
+  "schemaVersion": "171.phase2.auth-session.v1",
+  "timeoutPolicy": {
+    "idleTimeoutSeconds": 1800,
+    "absoluteTimeoutSeconds": 43200,
+    "reauthDueSeconds": 43200,
+    "source": "Phase 2 frozen auth-session posture with NHS-login-aligned web baseline"
+  },
+  "serviceRefs": [
+    "services/command-api/src/session-governor.ts",
+    "services/command-api/tests/session-governor.integration.test.js",
+    "services/command-api/migrations/091_phase2_session_governor.sql"
+  ],
+  "parallelInterfaceGaps": [
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_SESSION_ESTABLISHMENT_DECISION_V1",
+      "closure": "SessionEstablishmentDecision explicitly separates auth success from create_fresh, rotate_existing, reuse_existing, deny, and bounded_recovery decisions."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_SESSION_COOKIE_CSRF_ROTATION_V1",
+      "closure": "Session cookie, CSRF secret, and sessionEpochRef rotate on binding, privilege, capability, or writable-authority posture changes."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_SESSION_TIMEOUT_SETTLEMENT_V1",
+      "closure": "Idle timeout, absolute timeout, logout, revocation, downgrade, and subject switch emit SessionTerminationSettlement records."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_SESSION_AUTH_BRIDGE_PORT_V1",
+      "closure": "Auth bridge calls settleSessionEstablishment and receives a bounded decision ref without owning session state."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_SESSION_PROJECTION_POSTURE_V1",
+      "closure": "SessionProjectionMaterialization maps server authority to active, step_up_required, restricted, recovery_only, expired_idle, expired_absolute, revoked, and terminated posture."
+    }
+  ],
+  "cases": [
+    {
+      "caseId": "SESSION176_CREATE_FRESH_APPROVED",
+      "input": "fresh auth transaction plus settled identity binding, patient link, and capability decision",
+      "expectedDecision": "create_fresh",
+      "expectedPosture": "active",
+      "cookieAction": "set_secure_http_only",
+      "csrfAction": "issue",
+      "terminationSettlement": null
+    },
+    {
+      "caseId": "SESSION176_AUTH_SUCCESS_NOT_SESSION",
+      "input": "auth bridge success with evidence ref, binding intent, and capability intent only",
+      "expectedDecision": "bounded_recovery",
+      "expectedPosture": "recovery_only",
+      "cookieAction": "none",
+      "csrfAction": "none",
+      "terminationSettlement": null
+    },
+    {
+      "caseId": "SESSION176_ROTATE_ON_BINDING_VERSION",
+      "input": "same subject returns with changed bindingVersionRef",
+      "expectedDecision": "rotate_existing",
+      "expectedPosture": "active",
+      "cookieAction": "rotate_secure_http_only",
+      "csrfAction": "rotate",
+      "terminationSettlement": null
+    },
+    {
+      "caseId": "SESSION176_SUBJECT_SWITCH_TEARDOWN",
+      "input": "existing cookie belongs to a different subject",
+      "expectedDecision": "bounded_recovery",
+      "expectedPosture": "recovery_only",
+      "cookieAction": "clear",
+      "csrfAction": "clear",
+      "terminationSettlement": "subject_conflict"
+    },
+    {
+      "caseId": "SESSION176_IDLE_TIMEOUT_SETTLEMENT",
+      "input": "guard request after 30 minutes of inactivity",
+      "expectedDecision": "bounded_recovery",
+      "expectedPosture": "expired_idle",
+      "cookieAction": "clear",
+      "csrfAction": "clear",
+      "terminationSettlement": "idle_timeout"
+    },
+    {
+      "caseId": "SESSION176_ABSOLUTE_TIMEOUT_REAUTH",
+      "input": "guard request after 12 hours continuous usage",
+      "expectedDecision": "bounded_recovery",
+      "expectedPosture": "expired_absolute",
+      "cookieAction": "clear",
+      "csrfAction": "clear",
+      "terminationSettlement": "absolute_timeout"
+    },
+    {
+      "caseId": "SESSION176_LOGOUT_EXACT_ONCE",
+      "input": "same logout idempotency key submitted twice",
+      "expectedDecision": "bounded_recovery",
+      "expectedPosture": "terminated",
+      "cookieAction": "clear",
+      "csrfAction": "clear",
+      "terminationSettlement": "logout",
+      "exactOnce": true
+    },
+    {
+      "caseId": "SESSION176_CSRF_DOWNGRADE",
+      "input": "mutating request with mismatched CSRF token",
+      "expectedDecision": "bounded_recovery",
+      "expectedPosture": "restricted",
+      "cookieAction": "preserve_read_only",
+      "csrfAction": "preserve_read_only",
+      "terminationSettlement": "downgrade"
+    },
+    {
+      "caseId": "SESSION176_MISSING_COOKIE_NOT_AUTHORITY",
+      "input": "guard request has no cookie",
+      "expectedDecision": "bounded_recovery",
+      "expectedPosture": "recovery_only",
+      "cookieAction": "none",
+      "csrfAction": "none",
+      "terminationSettlement": null,
+      "reason": "missing cookie is not complete session truth"
+    }
+  ]
+}

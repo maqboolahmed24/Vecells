@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>340 Phase 5 Browser Evidence Board</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #F6F8FB;
+        --shell: #EDF2F7;
+        --panel: #FFFFFF;
+        --panel-border: #D9E2EC;
+        --text-strong: #0F172A;
+        --text-default: #334155;
+        --text-muted: #64748B;
+        --accent-pass: #0F766E;
+        --accent-fail: #B42318;
+        --accent-warn: #B7791F;
+        --accent-info: #3158E0;
+        --accent-trace: #5B61F6;
+        --radius-lg: 22px;
+        --radius-md: 16px;
+        --radius-sm: 12px;
+        --shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+        --font-stack: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--canvas);
+        color: var(--text-default);
+        font-family: var(--font-stack);
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      body {
+        padding: 24px;
+      }
+
+      a {
+        color: var(--accent-info);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      .board {
+        max-width: 1720px;
+        margin: 0 auto;
+        display: grid;
+        gap: 18px;
+      }
+
+      .masthead {
+        min-height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 24px;
+        border: 1px solid var(--panel-border);
+        border-radius: var(--radius-lg);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.98));
+        box-shadow: var(--shadow);
+      }
+
+      .masthead h1 {
+        margin: 0;
+        font-size: 28px;
+        line-height: 1.1;
+        color: var(--text-strong);
+      }
+
+      .masthead p {
+        margin: 6px 0 0;
+        color: var(--text-muted);
+      }
+
+      .run-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        border-radius: 999px;
+        background: rgba(15, 118, 110, 0.1);
+        color: var(--accent-pass);
+        font-weight: 700;
+      }
+
+      .summary-strip {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .summary-card {
+        min-height: 112px;
+        padding: 16px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--panel-border);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+
+      .summary-card .label {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+      }
+
+      .summary-card .value {
+        margin-top: 10px;
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-strong);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr) 400px;
+        gap: 18px;
+      }
+
+      .panel {
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--panel-border);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+
+      .rail,
+      .canvas,
+      .inspector {
+        min-height: 680px;
+      }
+
+      .rail {
+        padding: 18px;
+        background: var(--shell);
+      }
+
+      .canvas,
+      .inspector,
+      .timeline {
+        padding: 20px;
+      }
+
+      .timeline {
+        min-height: 240px;
+      }
+
+      .panel-title {
+        margin: 0 0 14px;
+        font-size: 18px;
+        color: var(--text-strong);
+      }
+
+      .tablist,
+      .filters {
+        display: grid;
+        gap: 10px;
+      }
+
+      .filters {
+        margin-top: 18px;
+      }
+
+      .filter-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .tab-button,
+      .filter-chip {
+        appearance: none;
+        border: 1px solid var(--panel-border);
+        background: var(--panel);
+        color: var(--text-default);
+        padding: 10px 12px;
+        border-radius: 14px;
+        font: inherit;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .tab-button[aria-selected="true"],
+      .filter-chip[aria-pressed="true"] {
+        border-color: var(--accent-info);
+        color: var(--accent-info);
+        background: rgba(49, 88, 224, 0.08);
+      }
+
+      .tab-button:focus-visible,
+      .filter-chip:focus-visible,
+      .artifact-link:focus-visible {
+        outline: 3px solid rgba(49, 88, 224, 0.35);
+        outline-offset: 2px;
+      }
+
+      .family-meta,
+      .inspector-meta {
+        display: grid;
+        gap: 12px;
+      }
+
+      .meta-card {
+        padding: 14px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--panel-border);
+        background: rgba(237, 242, 247, 0.55);
+      }
+
+      .meta-card strong {
+        color: var(--text-strong);
+      }
+
+      .badge-row,
+      .link-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .badge.pass {
+        background: rgba(15, 118, 110, 0.12);
+        color: var(--accent-pass);
+      }
+
+      .badge.info {
+        background: rgba(49, 88, 224, 0.12);
+        color: var(--accent-info);
+      }
+
+      .badge.trace {
+        background: rgba(91, 97, 246, 0.12);
+        color: var(--accent-trace);
+      }
+
+      .badge.warn {
+        background: rgba(183, 121, 31, 0.12);
+        color: var(--accent-warn);
+      }
+
+      .case-grid,
+      .artifact-grid {
+        display: grid;
+        gap: 14px;
+      }
+
+      .case-card,
+      .artifact-card {
+        padding: 16px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--panel-border);
+        background: var(--panel);
+      }
+
+      .case-card h3,
+      .artifact-card h3 {
+        margin: 0 0 8px;
+        font-size: 16px;
+        color: var(--text-strong);
+      }
+
+      .case-card p,
+      .artifact-card p,
+      .inspector p,
+      .timeline p {
+        margin: 0;
+      }
+
+      .case-card dl {
+        margin: 12px 0 0;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px 14px;
+      }
+
+      .case-card dt {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      .case-card dd {
+        margin: 0;
+        color: var(--text-strong);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .baseline-frame {
+        margin-top: 12px;
+        padding: 10px;
+        border-radius: 14px;
+        border: 1px solid var(--panel-border);
+        background: var(--shell);
+      }
+
+      .baseline-frame img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 10px;
+        border: 1px solid var(--panel-border);
+      }
+
+      .table-wrap {
+        margin-top: 14px;
+        overflow: auto;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--panel-border);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-variant-numeric: tabular-nums;
+      }
+
+      th,
+      td {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--panel-border);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: rgba(237, 242, 247, 0.65);
+        color: var(--text-strong);
+      }
+
+      tr:last-child td {
+        border-bottom: none;
+      }
+
+      .timeline-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .artifact-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 12px;
+        border: 1px solid var(--panel-border);
+        background: rgba(255, 255, 255, 0.9);
+      }
+
+      .muted {
+        color: var(--text-muted);
+      }
+
+      @media (max-width: 1500px) {
+        .summary-strip {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .layout {
+          grid-template-columns: 280px minmax(0, 1fr);
+        }
+
+        .inspector {
+          grid-column: 1 / -1;
+          min-height: 0;
+        }
+      }
+
+      @media (max-width: 980px) {
+        body {
+          padding: 16px;
+        }
+
+        .summary-strip,
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .rail,
+        .canvas,
+        .inspector {
+          min-height: 0;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="board" data-testid="Phase5BrowserEvidenceBoard">
+      <header class="masthead panel" data-testid="Phase5BrowserEvidenceMasthead">
+        <div>
+          <h1>Phase 5 Browser Evidence Board</h1>
+          <p>Final browser-proof battery for patient choice, cross-org visibility, responsive continuity, and accessibility/content quality.</p>
+        </div>
+        <div class="run-badge" data-testid="Phase5BrowserEvidenceRunBadge">Passed for 341 review</div>
+      </header>
+
+      <section class="summary-strip" data-testid="Phase5BrowserEvidenceSummaryStrip">
+        <article class="summary-card">
+          <div class="label">Overall status</div>
+          <div class="value" id="summary-status">Passed</div>
+        </article>
+        <article class="summary-card">
+          <div class="label">Run id</div>
+          <div class="value" id="summary-run-id">-</div>
+        </article>
+        <article class="summary-card">
+          <div class="label">Commit</div>
+          <div class="value" id="summary-commit">-</div>
+        </article>
+        <article class="summary-card">
+          <div class="label">Environment</div>
+          <div class="value" id="summary-environment">-</div>
+        </article>
+        <article class="summary-card">
+          <div class="label">Flake count</div>
+          <div class="value" id="summary-flakes">0</div>
+        </article>
+      </section>
+
+      <section class="layout">
+        <nav class="rail panel" data-testid="Phase5BrowserEvidenceNav">
+          <h2 class="panel-title">Scenario Families</h2>
+          <div class="tablist" id="family-tabs" role="tablist" aria-label="Scenario families"></div>
+
+          <div class="filters" data-testid="Phase5BrowserEvidenceFilters">
+            <div>
+              <div class="muted">Browser</div>
+              <div class="filter-row" id="browser-filters"></div>
+            </div>
+            <div>
+              <div class="muted">Viewport</div>
+              <div class="filter-row" id="viewport-filters"></div>
+            </div>
+            <div>
+              <div class="muted">Audience</div>
+              <div class="filter-row" id="audience-filters"></div>
+            </div>
+          </div>
+
+          <div class="meta-card" style="margin-top: 18px;">
+            <strong>Resolved release blockers</strong>
+            <div class="badge-row" id="resolved-risks" style="margin-top: 12px;"></div>
+          </div>
+
+          <div class="meta-card" style="margin-top: 12px;">
+            <strong>Bundle links</strong>
+            <div class="link-row" id="bundle-links" style="margin-top: 12px;"></div>
+          </div>
+        </nav>
+
+        <main class="canvas panel" data-testid="Phase5BrowserEvidenceCanvas">
+          <section class="family-meta" id="family-summary-card"></section>
+          <section style="margin-top: 20px;">
+            <h2 class="panel-title">Case Evidence</h2>
+            <div class="case-grid" id="case-grid"></div>
+          </section>
+          <section style="margin-top: 20px;">
+            <h2 class="panel-title">Failing Tests Table</h2>
+            <div class="table-wrap" data-testid="Phase5BrowserEvidenceFailures">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Case</th>
+                    <th>Project</th>
+                    <th>Status</th>
+                    <th>Explanation</th>
+                  </tr>
+                </thead>
+                <tbody id="failure-body"></tbody>
+              </table>
+            </div>
+          </section>
+          <section style="margin-top: 20px;">
+            <h2 class="panel-title">Baseline And Visual Evidence</h2>
+            <div class="artifact-grid" id="visual-grid"></div>
+          </section>
+        </main>
+
+        <aside class="inspector panel" data-testid="Phase5BrowserEvidenceInspector">
+          <h2 class="panel-title">Inspector</h2>
+          <div class="inspector-meta" id="inspector-content"></div>
+        </aside>
+      </section>
+
+      <section class="timeline panel" data-testid="Phase5BrowserEvidenceTimeline">
+        <h2 class="panel-title">Trace, Screenshot, And ARIA Timeline</h2>
+        <div class="timeline-grid" id="timeline-grid"></div>
+      </section>
+    </div>
+
+    <script>
+      const boardData = {"summary":{"taskId":"seq_340_phase5_browser_suite","schemaVersion":"340.phase5.browser-suite.v1","overallStatus":"passed","statusVocabulary":["passed","failed","flaky","skipped","unsupported"],"runId":"340-20260423145252-f488ecd","runStartedAt":"2026-04-23T14:51:28.750Z","runFinishedAt":"2026-04-23T14:52:52.760Z","commitRef":"f488ecdf7c0bbee6d8e7c54c9198f862458c500f","shortCommitRef":"f488ecd","branchRef":"dev","environmentRef":"local_nonprod_browser_matrix:dev","environment":{"cwd":"/Users/test/Code/V","executionMode":"local_desktop_thread","timezone":"Europe/London","nodeVersion":"v24.10.0","pnpmVersion":"10.23.0"},"totalSpecs":4,"passedSpecs":4,"failedSpecs":0,"flakySpecs":0,"skippedSpecs":0,"totalCases":24,"passedCases":24,"failedCases":0,"flakeCount":0,"criticalFailures":[],"openRiskRefs":[],"resolvedRiskRefs":["patient_mission_stack_sticky_primary_visibility_webkit","hub_minimum_necessary_internal_field_token_leak","hub_break_glass_focus_trap_and_drawer_focus_return"],"unsupportedGapRefs":[],"scenarioFamilySummaries":[{"familyId":"patient_choice_truth","suiteId":"patient_choice_truth_and_continuity_browser","label":"Patient Choice Truth","status":"passed","caseCount":7,"passedCaseCount":7,"projectCount":5,"browserNames":["chromium","firefox","webkit"],"riskClasses":["patient choice truth","wording overclaim","evidence continuity failure"],"coverage":["the patient-visible choice set stays full-set, advisory, and callback-separated across Chromium, Firefox, and WebKit","selected anchors survive refresh and explicit accept remains pending rather than overstating confirmation","drift, expiry, and supersession keep provenance visible while fencing stale writable posture","the merged appointment family continues to resolve pending network truth honestly","hub-assisted alternatives keep warned or diagnostic options visible and keep callback outside the ranked stack"],"specPath":"tests/playwright/340_patient_choice_truth_and_continuity.spec.ts","projectIds":["hub_operator_wide_chromium","patient_authenticated_chromium_wide","patient_high_zoom_reflow_chromium","patient_mobile_portrait_webkit","patient_wide_desktop_firefox"],"caseIds":["CHOICE340_001","CHOICE340_002","CHOICE340_003","CHOICE340_004","CHOICE340_005","CHOICE340_006","CHOICE340_007"],"artifactCounts":{"traces":5,"visuals":5,"ariaSnapshots":2}},{"familyId":"cross_org_visibility","suiteId":"cross_org_visibility_and_scope_drift_browser","label":"Cross-Organisation Visibility","status":"passed","caseCount":5,"passedCaseCount":5,"projectCount":3,"browserNames":["chromium"],"riskClasses":["cross-org leakage","stale-scope mutation","evidence continuity failure"],"coverage":["hub origin-practice, servicing-site, and denied postures preserve the active case while tightening the visible payload","scope drift and break-glass movement freeze writable posture before unsafe mutation","patient-safe confirmation and manage surfaces do not leak hub-only or cross-site detail in DOM or accessibility snapshots"],"specPath":"tests/playwright/340_cross_org_visibility_and_scope_drift.spec.ts","projectIds":["cross_org_scope_variation_chromium","hub_operator_wide_chromium","patient_authenticated_chromium_wide"],"caseIds":["VIS340_001","VIS340_002","VIS340_003","VIS340_004","VIS340_005"],"artifactCounts":{"traces":3,"visuals":3,"ariaSnapshots":2}},{"familyId":"responsive_continuity","suiteId":"responsive_same_shell_continuity_browser","label":"Responsive Continuity","status":"passed","caseCount":7,"passedCaseCount":7,"projectCount":7,"browserNames":["chromium"],"riskClasses":["responsive anchor loss","reduced-motion regression","evidence continuity failure"],"coverage":["wide, narrow, tablet portrait, and tablet landscape hub layouts keep the same current case and dominant decision meaning","patient mobile choice keeps sticky actions reachable without horizontal overflow","320px / 400% zoom proxy stays readable on appointment family follow-on surfaces","reduced-motion mode keeps state changes visible while collapsing motion"],"specPath":"tests/playwright/340_responsive_same_shell_continuity.spec.ts","projectIds":["hub_operator_narrow_chromium","hub_operator_reduced_motion_chromium","hub_operator_tablet_landscape_chromium","hub_operator_tablet_portrait_chromium","hub_operator_wide_chromium","patient_high_zoom_reflow_chromium","patient_mobile_portrait_chromium"],"caseIds":["RESP340_001","RESP340_002","RESP340_003","RESP340_004","RESP340_005","RESP340_006","RESP340_007"],"artifactCounts":{"traces":7,"visuals":7,"ariaSnapshots":0}},{"familyId":"accessibility_content","suiteId":"accessibility_content_and_regression_browser","label":"Accessibility And Content","status":"passed","caseCount":5,"passedCaseCount":5,"projectCount":3,"browserNames":["chromium","webkit"],"riskClasses":["accessibility regression","wording overclaim","focus-order drift"],"coverage":["patient choice, confirmation, manage, and appointment family surfaces keep durable landmarks and status semantics","pending patient-facing copy never overclaims booked or guaranteed calmness","hub scope drawer and break-glass modal keep dialog semantics and return focus to the invoking control","timeline disclosures and artifact frames retain durable accessible names and aria-expanded state"],"specPath":"tests/playwright/340_accessibility_content_and_regression.spec.ts","projectIds":["hub_operator_wide_chromium","patient_authenticated_chromium_wide","patient_mobile_portrait_webkit"],"caseIds":["A11Y340_001","A11Y340_002","A11Y340_003","A11Y340_004","A11Y340_005"],"artifactCounts":{"traces":3,"visuals":3,"ariaSnapshots":3}}],"browserProjectSummaries":[{"projectId":"hub_operator_wide_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","audience":"Hub operator","breakpointRef":"wide","orientation":"landscape","reducedMotion":false,"highZoomProxy":false,"scopeVariation":false,"hostMode":"browser","status":"passed","suiteIds":["accessibility_content_and_regression_browser","cross_org_visibility_and_scope_drift_browser","patient_choice_truth_and_continuity_browser","responsive_same_shell_continuity_browser"],"caseIds":["A11Y340_004","CHOICE340_007","RESP340_001","VIS340_001","VIS340_002","VIS340_003"],"traceCount":4,"visualCount":4,"ariaCount":2,"description":"Wide desktop Chromium for the default hub operator shell."},{"projectId":"hub_operator_narrow_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","audience":"Hub operator","breakpointRef":"narrow_desktop","orientation":"landscape","reducedMotion":false,"highZoomProxy":false,"scopeVariation":false,"hostMode":"browser","status":"passed","suiteIds":["responsive_same_shell_continuity_browser"],"caseIds":["RESP340_002"],"traceCount":1,"visualCount":1,"ariaCount":0,"description":"Narrow desktop Chromium for folded shell degradation."},{"projectId":"hub_operator_tablet_portrait_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","audience":"Hub operator","breakpointRef":"tablet_portrait","orientation":"portrait","reducedMotion":false,"highZoomProxy":false,"scopeVariation":false,"hostMode":"browser","status":"passed","suiteIds":["responsive_same_shell_continuity_browser"],"caseIds":["RESP340_003"],"traceCount":1,"visualCount":1,"ariaCount":0,"description":"Tablet portrait Chromium for hub mission-stack continuity."},{"projectId":"hub_operator_tablet_landscape_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","audience":"Hub operator","breakpointRef":"tablet_landscape","orientation":"landscape","reducedMotion":false,"highZoomProxy":false,"scopeVariation":false,"hostMode":"browser","status":"passed","suiteIds":["responsive_same_shell_continuity_browser"],"caseIds":["RESP340_004"],"traceCount":1,"visualCount":1,"ariaCount":0,"description":"Tablet landscape Chromium for hub mission-stack continuity."},{"projectId":"patient_authenticated_chromium_wide","browserName":"chromium","authProfile":"patient_authenticated","audience":"Patient","breakpointRef":"wide","orientation":"landscape","reducedMotion":false,"highZoomProxy":false,"scopeVariation":false,"hostMode":"browser","status":"passed","suiteIds":["accessibility_content_and_regression_browser","cross_org_visibility_and_scope_drift_browser","patient_choice_truth_and_continuity_browser"],"caseIds":["A11Y340_001","A11Y340_002","A11Y340_003","CHOICE340_001","CHOICE340_004","CHOICE340_006","VIS340_005"],"traceCount":3,"visualCount":3,"ariaCount":3,"description":"Wide desktop Chromium for patient-authenticated routes."},{"projectId":"patient_wide_desktop_firefox","browserName":"firefox","authProfile":"patient_authenticated","audience":"Patient","breakpointRef":"wide","orientation":"landscape","reducedMotion":false,"highZoomProxy":false,"scopeVariation":false,"hostMode":"browser","status":"passed","suiteIds":["patient_choice_truth_and_continuity_browser"],"caseIds":["CHOICE340_002"],"traceCount":1,"visualCount":1,"ariaCount":0,"description":"Wide desktop Firefox parity proof for patient choice surfaces."},{"projectId":"patient_mobile_portrait_chromium","browserName":"chromium","authProfile":"patient_authenticated","audience":"Patient","breakpointRef":"mobile_portrait","orientation":"portrait","reducedMotion":false,"highZoomProxy":false,"scopeVariation":false,"hostMode":"browser","status":"passed","suiteIds":["responsive_same_shell_continuity_browser"],"caseIds":["RESP340_005"],"traceCount":1,"visualCount":1,"ariaCount":0,"description":"Mobile portrait Chromium for patient same-shell continuity."},{"projectId":"patient_mobile_portrait_webkit","browserName":"webkit","authProfile":"patient_authenticated","audience":"Patient","breakpointRef":"mobile_portrait","orientation":"portrait","reducedMotion":false,"highZoomProxy":false,"scopeVariation":false,"hostMode":"nhs_app","status":"passed","suiteIds":["accessibility_content_and_regression_browser","patient_choice_truth_and_continuity_browser"],"caseIds":["A11Y340_005","CHOICE340_003"],"traceCount":2,"visualCount":2,"ariaCount":1,"description":"Mobile portrait WebKit for Safari-equivalent patient proof."},{"projectId":"hub_operator_reduced_motion_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","audience":"Hub operator","breakpointRef":"wide","orientation":"landscape","reducedMotion":true,"highZoomProxy":false,"scopeVariation":false,"hostMode":"browser","status":"passed","suiteIds":["responsive_same_shell_continuity_browser"],"caseIds":["RESP340_007"],"traceCount":1,"visualCount":1,"ariaCount":0,"description":"Reduced-motion Chromium for hub shell transition proof."},{"projectId":"patient_high_zoom_reflow_chromium","browserName":"chromium","authProfile":"patient_authenticated","audience":"Patient","breakpointRef":"high_zoom_reflow","orientation":"portrait","reducedMotion":false,"highZoomProxy":true,"scopeVariation":false,"hostMode":"browser","status":"passed","suiteIds":["patient_choice_truth_and_continuity_browser","responsive_same_shell_continuity_browser"],"caseIds":["CHOICE340_005","RESP340_006"],"traceCount":2,"visualCount":2,"ariaCount":1,"description":"320 CSS px / 400% zoom proxy for patient reflow and sticky focus proof."},{"projectId":"cross_org_scope_variation_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","audience":"Hub operator","breakpointRef":"wide","orientation":"landscape","reducedMotion":false,"highZoomProxy":false,"scopeVariation":true,"hostMode":"browser","status":"passed","suiteIds":["cross_org_visibility_and_scope_drift_browser"],"caseIds":["VIS340_004"],"traceCount":1,"visualCount":1,"ariaCount":0,"description":"Cross-organisation tuple drift, break-glass, and denial proof project."}],"audienceSummaries":[{"authProfile":"hub_operator_authenticated","audience":"Hub operator","status":"passed","caseCount":11,"suiteCount":4,"browserNames":["chromium"],"breakpointRefs":["narrow_desktop","tablet_landscape","tablet_portrait","wide"]},{"authProfile":"patient_authenticated","audience":"Patient","status":"passed","caseCount":13,"suiteCount":4,"browserNames":["chromium","firefox","webkit"],"breakpointRefs":["high_zoom_reflow","mobile_portrait","wide"]}],"suiteResults":[{"suiteId":"patient_choice_truth_and_continuity_browser","scenarioFamilyId":"patient_choice_truth","label":"Patient Choice Truth","status":"passed","caseIds":["CHOICE340_001","CHOICE340_002","CHOICE340_003","CHOICE340_004","CHOICE340_005","CHOICE340_006","CHOICE340_007"],"artifactRefs":["output/playwright/340-patient-choice-truth-and-continuity-hub_operator_wide_chromium-baseline.png","output/playwright/340-patient-choice-truth-and-continuity-hub_operator_wide_chromium-trace.zip","output/playwright/340-patient-choice-truth-and-continuity-matrix.json","output/playwright/340-patient-choice-truth-and-continuity-patient_authenticated_chromium_wide-aria.json","output/playwright/340-patient-choice-truth-and-continuity-patient_authenticated_chromium_wide-baseline.png","output/playwright/340-patient-choice-truth-and-continuity-patient_authenticated_chromium_wide-trace.zip","output/playwright/340-patient-choice-truth-and-continuity-patient_high_zoom_reflow_chromium-aria.json","output/playwright/340-patient-choice-truth-and-continuity-patient_high_zoom_reflow_chromium-baseline.png","output/playwright/340-patient-choice-truth-and-continuity-patient_high_zoom_reflow_chromium-trace.zip","output/playwright/340-patient-choice-truth-and-continuity-patient_mobile_portrait_webkit-baseline.png","output/playwright/340-patient-choice-truth-and-continuity-patient_mobile_portrait_webkit-trace.zip","output/playwright/340-patient-choice-truth-and-continuity-patient_wide_desktop_firefox-baseline.png","output/playwright/340-patient-choice-truth-and-continuity-patient_wide_desktop_firefox-trace.zip"],"coverage":["the patient-visible choice set stays full-set, advisory, and callback-separated across Chromium, Firefox, and WebKit","selected anchors survive refresh and explicit accept remains pending rather than overstating confirmation","drift, expiry, and supersession keep provenance visible while fencing stale writable posture","the merged appointment family continues to resolve pending network truth honestly","hub-assisted alternatives keep warned or diagnostic options visible and keep callback outside the ranked stack"],"specPath":"tests/playwright/340_patient_choice_truth_and_continuity.spec.ts","riskClasses":["patient choice truth","wording overclaim","evidence continuity failure"]},{"suiteId":"cross_org_visibility_and_scope_drift_browser","scenarioFamilyId":"cross_org_visibility","label":"Cross-Organisation Visibility","status":"passed","caseIds":["VIS340_001","VIS340_002","VIS340_003","VIS340_004","VIS340_005"],"artifactRefs":["output/playwright/340-cross-org-visibility-and-scope-drift-cross_org_scope_variation_chromium-baseline.png","output/playwright/340-cross-org-visibility-and-scope-drift-cross_org_scope_variation_chromium-trace.zip","output/playwright/340-cross-org-visibility-and-scope-drift-hub_operator_wide_chromium-aria.json","output/playwright/340-cross-org-visibility-and-scope-drift-hub_operator_wide_chromium-baseline.png","output/playwright/340-cross-org-visibility-and-scope-drift-hub_operator_wide_chromium-trace.zip","output/playwright/340-cross-org-visibility-and-scope-drift-matrix.json","output/playwright/340-cross-org-visibility-and-scope-drift-patient_authenticated_chromium_wide-aria.json","output/playwright/340-cross-org-visibility-and-scope-drift-patient_authenticated_chromium_wide-baseline.png","output/playwright/340-cross-org-visibility-and-scope-drift-patient_authenticated_chromium_wide-trace.zip"],"coverage":["hub origin-practice, servicing-site, and denied postures preserve the active case while tightening the visible payload","scope drift and break-glass movement freeze writable posture before unsafe mutation","patient-safe confirmation and manage surfaces do not leak hub-only or cross-site detail in DOM or accessibility snapshots"],"specPath":"tests/playwright/340_cross_org_visibility_and_scope_drift.spec.ts","riskClasses":["cross-org leakage","stale-scope mutation","evidence continuity failure"]},{"suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","label":"Responsive Continuity","status":"passed","caseIds":["RESP340_001","RESP340_002","RESP340_003","RESP340_004","RESP340_005","RESP340_006","RESP340_007"],"artifactRefs":["output/playwright/340-responsive-same-shell-continuity-hub_operator_narrow_chromium-baseline.png","output/playwright/340-responsive-same-shell-continuity-hub_operator_narrow_chromium-trace.zip","output/playwright/340-responsive-same-shell-continuity-hub_operator_reduced_motion_chromium-baseline.png","output/playwright/340-responsive-same-shell-continuity-hub_operator_reduced_motion_chromium-trace.zip","output/playwright/340-responsive-same-shell-continuity-hub_operator_tablet_landscape_chromium-baseline.png","output/playwright/340-responsive-same-shell-continuity-hub_operator_tablet_landscape_chromium-trace.zip","output/playwright/340-responsive-same-shell-continuity-hub_operator_tablet_portrait_chromium-baseline.png","output/playwright/340-responsive-same-shell-continuity-hub_operator_tablet_portrait_chromium-trace.zip","output/playwright/340-responsive-same-shell-continuity-hub_operator_wide_chromium-baseline.png","output/playwright/340-responsive-same-shell-continuity-hub_operator_wide_chromium-trace.zip","output/playwright/340-responsive-same-shell-continuity-matrix.json","output/playwright/340-responsive-same-shell-continuity-patient_high_zoom_reflow_chromium-baseline.png","output/playwright/340-responsive-same-shell-continuity-patient_high_zoom_reflow_chromium-trace.zip","output/playwright/340-responsive-same-shell-continuity-patient_mobile_portrait_chromium-baseline.png","output/playwright/340-responsive-same-shell-continuity-patient_mobile_portrait_chromium-trace.zip"],"coverage":["wide, narrow, tablet portrait, and tablet landscape hub layouts keep the same current case and dominant decision meaning","patient mobile choice keeps sticky actions reachable without horizontal overflow","320px / 400% zoom proxy stays readable on appointment family follow-on surfaces","reduced-motion mode keeps state changes visible while collapsing motion"],"specPath":"tests/playwright/340_responsive_same_shell_continuity.spec.ts","riskClasses":["responsive anchor loss","reduced-motion regression","evidence continuity failure"]},{"suiteId":"accessibility_content_and_regression_browser","scenarioFamilyId":"accessibility_content","label":"Accessibility And Content","status":"passed","caseIds":["A11Y340_001","A11Y340_002","A11Y340_003","A11Y340_004","A11Y340_005"],"artifactRefs":["output/playwright/340-accessibility-content-and-regression-hub_operator_wide_chromium-baseline.png","output/playwright/340-accessibility-content-and-regression-hub_operator_wide_chromium-hub-aria.json","output/playwright/340-accessibility-content-and-regression-hub_operator_wide_chromium-trace.zip","output/playwright/340-accessibility-content-and-regression-matrix.json","output/playwright/340-accessibility-content-and-regression-patient_authenticated_chromium_wide-appointment-family-aria.json","output/playwright/340-accessibility-content-and-regression-patient_authenticated_chromium_wide-baseline.png","output/playwright/340-accessibility-content-and-regression-patient_authenticated_chromium_wide-trace.zip","output/playwright/340-accessibility-content-and-regression-patient_mobile_portrait_webkit-baseline.png","output/playwright/340-accessibility-content-and-regression-patient_mobile_portrait_webkit-trace.zip","output/playwright/340-accessibility-content-and-regression-patient_mobile_portrait_webkit-webkit-aria.json"],"coverage":["patient choice, confirmation, manage, and appointment family surfaces keep durable landmarks and status semantics","pending patient-facing copy never overclaims booked or guaranteed calmness","hub scope drawer and break-glass modal keep dialog semantics and return focus to the invoking control","timeline disclosures and artifact frames retain durable accessible names and aria-expanded state"],"specPath":"tests/playwright/340_accessibility_content_and_regression.spec.ts","riskClasses":["accessibility regression","wording overclaim","focus-order drift"]}],"caseResults":[{"caseId":"CHOICE340_001","suiteId":"patient_choice_truth_and_continuity_browser","scenarioFamilyId":"patient_choice_truth","scenarioFamilyLabel":"Patient Choice Truth","status":"passed","projectId":"patient_authenticated_chromium_wide","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"wide","environmentId":"patient_authenticated:wide:chromium","seed":"scenarioId=offer_session_328_live|visibleOfferCount=4|recommendedVisibleCount=1|advisoryOnlyChipCount=9|callbackInsideRadiogroup=false|openChoiceState=full_set_visible","notes":["visible frontier remains full-set and advisory"],"metrics":{"scenarioId":"offer_session_328_live","visibleOfferCount":4,"recommendedVisibleCount":1,"advisoryOnlyChipCount":9,"callbackInsideRadiogroup":false,"openChoiceState":"full_set_visible"},"artifactRefs":[]},{"caseId":"CHOICE340_004","suiteId":"patient_choice_truth_and_continuity_browser","scenarioFamilyId":"patient_choice_truth","scenarioFamilyLabel":"Patient Choice Truth","status":"passed","projectId":"patient_authenticated_chromium_wide","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"wide","environmentId":"patient_authenticated:wide:chromium","seed":"selectedOfferEntry=offer_entry_328_wharf_1910|selectedAnchorRef=offer_entry_328_riverside_1830|postAcceptConfirmationTruth=confirmation_pending|postAcceptPatientVisibility=provisional_receipt","notes":["selected anchor survives refresh and explicit accept remains pending"],"metrics":{"selectedOfferEntry":"offer_entry_328_wharf_1910","selectedAnchorRef":"offer_entry_328_riverside_1830","postAcceptConfirmationTruth":"confirmation_pending","postAcceptPatientVisibility":"provisional_receipt"},"artifactRefs":[]},{"caseId":"CHOICE340_006","suiteId":"patient_choice_truth_and_continuity_browser","scenarioFamilyId":"patient_choice_truth","scenarioFamilyLabel":"Patient Choice Truth","status":"passed","projectId":"patient_authenticated_chromium_wide","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"wide","environmentId":"patient_authenticated:wide:chromium","seed":"familyRef=family_network_live|entrySource=appointments_list|resolutionKind=read_only|staleCtaSuppressed=true","notes":["merged appointment family keeps pending hub truth honest"],"metrics":{"familyRef":"family_network_live","entrySource":"appointments_list","resolutionKind":"read_only","staleCtaSuppressed":"true"},"artifactRefs":[]},{"caseId":"CHOICE340_002","suiteId":"patient_choice_truth_and_continuity_browser","scenarioFamilyId":"patient_choice_truth","scenarioFamilyLabel":"Patient Choice Truth","status":"passed","projectId":"patient_wide_desktop_firefox","browserName":"firefox","authProfile":"patient_authenticated","breakpointRef":"wide","environmentId":"patient_authenticated:wide:firefox","seed":"visibleOfferCount=4|callbackFallbackSeparate=true|browserName=firefox","notes":["Firefox parity kept the same visible frontier and callback separation"],"metrics":{"visibleOfferCount":4,"callbackFallbackSeparate":true,"browserName":"firefox"},"artifactRefs":[]},{"caseId":"CHOICE340_003","suiteId":"patient_choice_truth_and_continuity_browser","scenarioFamilyId":"patient_choice_truth","scenarioFamilyLabel":"Patient Choice Truth","status":"passed","projectId":"patient_mobile_portrait_webkit","browserName":"webkit","authProfile":"patient_authenticated","breakpointRef":"mobile_portrait","environmentId":"patient_authenticated:mobile_portrait:webkit","seed":"embeddedMode=nhs_app|safeAreaClass=bottom|selectedOfferEntry=offer_entry_328_riverside_1830","notes":["WebKit mobile project kept patient choice first-class in the NHS App host posture"],"metrics":{"embeddedMode":"nhs_app","safeAreaClass":"bottom","selectedOfferEntry":"offer_entry_328_riverside_1830"},"artifactRefs":[]},{"caseId":"CHOICE340_005","suiteId":"patient_choice_truth_and_continuity_browser","scenarioFamilyId":"patient_choice_truth","scenarioFamilyLabel":"Patient Choice Truth","status":"passed","projectId":"patient_high_zoom_reflow_chromium","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"high_zoom_reflow","environmentId":"patient_authenticated:high_zoom_reflow:chromium","seed":"choiceActionability=blocked|breakpointClass=compact|missionStackState=folded|acceptActionVisible=false","notes":["high-zoom publication drift preserved read-only provenance without stale controls"],"metrics":{"choiceActionability":"blocked","breakpointClass":"compact","missionStackState":"folded","acceptActionVisible":false},"artifactRefs":[]},{"caseId":"CHOICE340_007","suiteId":"patient_choice_truth_and_continuity_browser","scenarioFamilyId":"patient_choice_truth","scenarioFamilyLabel":"Patient Choice Truth","status":"passed","projectId":"hub_operator_wide_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","environmentId":"hub_operator_authenticated:wide:chromium","seed":"route=/hub/queue|visibleOptionCount=4|diagnosticOnlyCount=1|patientOfferableCount=1|callbackFallbackSeparate=true|callbackRecoveryOptionCount=3|callbackRecoveryDiagnosticOnlyCount=2","notes":["hub-assisted alternatives kept diagnostic-only options visible and callback separate"],"metrics":{"route":"/hub/queue","visibleOptionCount":4,"diagnosticOnlyCount":1,"patientOfferableCount":1,"callbackFallbackSeparate":true,"callbackRecoveryOptionCount":3,"callbackRecoveryDiagnosticOnlyCount":2},"artifactRefs":[]},{"caseId":"VIS340_001","suiteId":"cross_org_visibility_and_scope_drift_browser","scenarioFamilyId":"cross_org_visibility","scenarioFamilyLabel":"Cross-Organisation Visibility","status":"passed","projectId":"hub_operator_wide_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","environmentId":"hub_operator_authenticated:wide:chromium","seed":"audienceTier=origin_practice_visibility|accessPosture=read_only|placeholderCount=3|preservedCaseId=hub-case-104","notes":["origin-practice payload stayed minimum-necessary without DOM leakage"],"metrics":{"audienceTier":"origin_practice_visibility","accessPosture":"read_only","placeholderCount":3,"preservedCaseId":"hub-case-104"},"artifactRefs":[]},{"caseId":"VIS340_002","suiteId":"cross_org_visibility_and_scope_drift_browser","scenarioFamilyId":"cross_org_visibility","scenarioFamilyLabel":"Cross-Organisation Visibility","status":"passed","projectId":"hub_operator_wide_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","environmentId":"hub_operator_authenticated:wide:chromium","seed":"audienceTier=servicing_site_visibility|accessPosture=read_only|placeholderCount=2|preservedCaseId=hub-case-104","notes":["servicing-site payload removed origin-only and other-site content without reinterpreting the case"],"metrics":{"audienceTier":"servicing_site_visibility","accessPosture":"read_only","placeholderCount":2,"preservedCaseId":"hub-case-104"},"artifactRefs":[]},{"caseId":"VIS340_003","suiteId":"cross_org_visibility_and_scope_drift_browser","scenarioFamilyId":"cross_org_visibility","scenarioFamilyLabel":"Cross-Organisation Visibility","status":"passed","projectId":"hub_operator_wide_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","environmentId":"hub_operator_authenticated:wide:chromium","seed":"audienceTier=no_visibility|accessPosture=denied|preservedCaseId=hub-case-104|preservedPath=/hub/case/hub-case-104","notes":["denied posture remained explicit and same-shell"],"metrics":{"audienceTier":"no_visibility","accessPosture":"denied","preservedCaseId":"hub-case-104","preservedPath":"/hub/case/hub-case-104"},"artifactRefs":[]},{"caseId":"VIS340_004","suiteId":"cross_org_visibility_and_scope_drift_browser","scenarioFamilyId":"cross_org_visibility","scenarioFamilyLabel":"Cross-Organisation Visibility","status":"passed","projectId":"cross_org_scope_variation_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","environmentId":"hub_operator_authenticated:wide:chromium","seed":"activatedBreakGlass=active|expiringAfterSiteChange=expiring|frozenAfterPurposeDrift=frozen|mutationEnabled=disabled|preservedPath=/hub/case/hub-case-031","notes":["break-glass movement and purpose drift froze writable posture before mutation"],"metrics":{"activatedBreakGlass":"active","expiringAfterSiteChange":"expiring","frozenAfterPurposeDrift":"frozen","mutationEnabled":"disabled","preservedPath":"/hub/case/hub-case-031"},"artifactRefs":[]},{"caseId":"VIS340_005","suiteId":"cross_org_visibility_and_scope_drift_browser","scenarioFamilyId":"cross_org_visibility","scenarioFamilyLabel":"Cross-Organisation Visibility","status":"passed","projectId":"patient_authenticated_chromium_wide","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"wide","environmentId":"patient_authenticated:wide:chromium","seed":"patientSurfaceRefs=network_confirmation_329_practice_acknowledged,network_manage_330_live|leakedFieldCount=0","notes":["patient-safe confirmation and manage surfaces kept hub-only fields out of DOM and accessibility output"],"metrics":{"patientSurfaceRefs":["network_confirmation_329_practice_acknowledged","network_manage_330_live"],"leakedFieldCount":0},"artifactRefs":[]},{"caseId":"RESP340_001","suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","scenarioFamilyLabel":"Responsive Continuity","status":"passed","projectId":"hub_operator_wide_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","environmentId":"hub_operator_authenticated:wide:chromium","seed":"layoutMode=two_plane|selectedCaseId=hub-case-052|selectedOptionCardId=opt-052-variance","notes":["hub same-shell continuity stayed bound to the same case and dominant action"],"metrics":{"layoutMode":"two_plane","selectedCaseId":"hub-case-052","selectedOptionCardId":"opt-052-variance"},"artifactRefs":[]},{"caseId":"RESP340_002","suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","scenarioFamilyLabel":"Responsive Continuity","status":"passed","projectId":"hub_operator_narrow_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"narrow_desktop","environmentId":"hub_operator_authenticated:narrow_desktop:chromium","seed":"layoutMode=two_plane|selectedCaseId=hub-case-052|selectedOptionCardId=opt-052-variance","notes":["hub same-shell continuity stayed bound to the same case and dominant action"],"metrics":{"layoutMode":"two_plane","selectedCaseId":"hub-case-052","selectedOptionCardId":"opt-052-variance"},"artifactRefs":[]},{"caseId":"RESP340_003","suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","scenarioFamilyLabel":"Responsive Continuity","status":"passed","projectId":"hub_operator_tablet_portrait_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"tablet_portrait","environmentId":"hub_operator_authenticated:tablet_portrait:chromium","seed":"layoutMode=mission_stack|selectedCaseId=hub-case-052|selectedOptionCardId=opt-052-variance","notes":["hub same-shell continuity stayed bound to the same case and dominant action"],"metrics":{"layoutMode":"mission_stack","selectedCaseId":"hub-case-052","selectedOptionCardId":"opt-052-variance"},"artifactRefs":[]},{"caseId":"RESP340_004","suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","scenarioFamilyLabel":"Responsive Continuity","status":"passed","projectId":"hub_operator_tablet_landscape_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"tablet_landscape","environmentId":"hub_operator_authenticated:tablet_landscape:chromium","seed":"layoutMode=two_plane|selectedCaseId=hub-case-052|selectedOptionCardId=opt-052-variance","notes":["hub same-shell continuity stayed bound to the same case and dominant action"],"metrics":{"layoutMode":"two_plane","selectedCaseId":"hub-case-052","selectedOptionCardId":"opt-052-variance"},"artifactRefs":[]},{"caseId":"RESP340_005","suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","scenarioFamilyLabel":"Responsive Continuity","status":"passed","projectId":"patient_mobile_portrait_chromium","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"mobile_portrait","environmentId":"patient_authenticated:mobile_portrait:chromium","seed":"breakpointClass=compact|missionStackState=folded|selectedOfferEntry=offer_entry_328_riverside_1830","notes":["patient mobile choice kept sticky action reachability and focus visibility"],"metrics":{"breakpointClass":"compact","missionStackState":"folded","selectedOfferEntry":"offer_entry_328_riverside_1830"},"artifactRefs":[]},{"caseId":"RESP340_006","suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","scenarioFamilyLabel":"Responsive Continuity","status":"passed","projectId":"patient_high_zoom_reflow_chromium","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"high_zoom_reflow","environmentId":"patient_authenticated:high_zoom_reflow:chromium","seed":"selectedFamilyRef=family_waitlist_fallback_due|returnAnchorState=steady|highZoomProxy=true","notes":["320px proxy kept appointment family detail readable and actionable"],"metrics":{"selectedFamilyRef":"family_waitlist_fallback_due","returnAnchorState":"steady","highZoomProxy":true},"artifactRefs":[]},{"caseId":"RESP340_007","suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","scenarioFamilyLabel":"Responsive Continuity","status":"passed","projectId":"hub_operator_reduced_motion_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","environmentId":"hub_operator_authenticated:wide:chromium","seed":"reducedMotion=true|transitionDuration=1e-05s, 1e-05s, 1e-05s, 1e-05s","notes":["reduced-motion project kept the shell truthful without motion-heavy transitions"],"metrics":{"reducedMotion":true,"transitionDuration":"1e-05s, 1e-05s, 1e-05s, 1e-05s"},"artifactRefs":[]},{"caseId":"A11Y340_001","suiteId":"accessibility_content_and_regression_browser","scenarioFamilyId":"accessibility_content","scenarioFamilyLabel":"Accessibility And Content","status":"passed","projectId":"patient_authenticated_chromium_wide","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"wide","environmentId":"patient_authenticated:wide:chromium","seed":"landmarks=[object Object]|liveRegionRole=status","notes":["patient choice retained landmarks and status semantics"],"metrics":{"landmarks":{"main":1,"nav":1},"liveRegionRole":"status"},"artifactRefs":[]},{"caseId":"A11Y340_002","suiteId":"accessibility_content_and_regression_browser","scenarioFamilyId":"accessibility_content","scenarioFamilyLabel":"Accessibility And Content","status":"passed","projectId":"patient_authenticated_chromium_wide","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"wide","environmentId":"patient_authenticated:wide:chromium","seed":"scenarioId=network_confirmation_329_pending|pendingCopyGuard=true","notes":["pending patient-facing copy stayed plain-language and monotone"],"metrics":{"scenarioId":"network_confirmation_329_pending","pendingCopyGuard":true},"artifactRefs":[]},{"caseId":"A11Y340_003","suiteId":"accessibility_content_and_regression_browser","scenarioFamilyId":"accessibility_content","scenarioFamilyLabel":"Accessibility And Content","status":"passed","projectId":"patient_authenticated_chromium_wide","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"wide","environmentId":"patient_authenticated:wide:chromium","seed":"familyRef=family_network_live|variant=pending","notes":["appointment family kept the honest pending wording and durable structure"],"metrics":{"familyRef":"family_network_live","variant":"pending"},"artifactRefs":["output/playwright/340-accessibility-content-and-regression-patient_authenticated_chromium_wide-appointment-family-aria.json"]},{"caseId":"A11Y340_004","suiteId":"accessibility_content_and_regression_browser","scenarioFamilyId":"accessibility_content","scenarioFamilyLabel":"Accessibility And Content","status":"passed","projectId":"hub_operator_wide_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","environmentId":"hub_operator_authenticated:wide:chromium","seed":"scopeDrawerFocusTrap=true|breakGlassFocusTrap=true|focusReturn=HubActingContextChip","notes":["hub drawer and modal trapped focus and returned it to the invoking control"],"metrics":{"scopeDrawerFocusTrap":true,"breakGlassFocusTrap":true,"focusReturn":"HubActingContextChip"},"artifactRefs":[]},{"caseId":"A11Y340_005","suiteId":"accessibility_content_and_regression_browser","scenarioFamilyId":"accessibility_content","scenarioFamilyLabel":"Accessibility And Content","status":"passed","projectId":"patient_mobile_portrait_webkit","browserName":"webkit","authProfile":"patient_authenticated","breakpointRef":"mobile_portrait","environmentId":"patient_authenticated:mobile_portrait:webkit","seed":"browserName=webkit|disclosureExpanded=true","notes":["WebKit mobile kept artifact and timeline semantics stable"],"metrics":{"browserName":"webkit","disclosureExpanded":true},"artifactRefs":["output/playwright/340-accessibility-content-and-regression-patient_mobile_portrait_webkit-webkit-aria.json"]}],"traceRefs":["output/playwright/340-accessibility-content-and-regression-hub_operator_wide_chromium-trace.zip","output/playwright/340-accessibility-content-and-regression-patient_authenticated_chromium_wide-trace.zip","output/playwright/340-accessibility-content-and-regression-patient_mobile_portrait_webkit-trace.zip","output/playwright/340-cross-org-visibility-and-scope-drift-cross_org_scope_variation_chromium-trace.zip","output/playwright/340-cross-org-visibility-and-scope-drift-hub_operator_wide_chromium-trace.zip","output/playwright/340-cross-org-visibility-and-scope-drift-patient_authenticated_chromium_wide-trace.zip","output/playwright/340-patient-choice-truth-and-continuity-hub_operator_wide_chromium-trace.zip","output/playwright/340-patient-choice-truth-and-continuity-patient_authenticated_chromium_wide-trace.zip","output/playwright/340-patient-choice-truth-and-continuity-patient_high_zoom_reflow_chromium-trace.zip","output/playwright/340-patient-choice-truth-and-continuity-patient_mobile_portrait_webkit-trace.zip","output/playwright/340-patient-choice-truth-and-continuity-patient_wide_desktop_firefox-trace.zip","output/playwright/340-responsive-same-shell-continuity-hub_operator_narrow_chromium-trace.zip","output/playwright/340-responsive-same-shell-continuity-hub_operator_reduced_motion_chromium-trace.zip","output/playwright/340-responsive-same-shell-continuity-hub_operator_tablet_landscape_chromium-trace.zip","output/playwright/340-responsive-same-shell-continuity-hub_operator_tablet_portrait_chromium-trace.zip","output/playwright/340-responsive-same-shell-continuity-hub_operator_wide_chromium-trace.zip","output/playwright/340-responsive-same-shell-continuity-patient_high_zoom_reflow_chromium-trace.zip","output/playwright/340-responsive-same-shell-continuity-patient_mobile_portrait_chromium-trace.zip"],"ariaSnapshotRefs":["output/playwright/340-accessibility-content-and-regression-hub_operator_wide_chromium-hub-aria.json","output/playwright/340-accessibility-content-and-regression-patient_authenticated_chromium_wide-appointment-family-aria.json","output/playwright/340-accessibility-content-and-regression-patient_mobile_portrait_webkit-webkit-aria.json","output/playwright/340-cross-org-visibility-and-scope-drift-hub_operator_wide_chromium-aria.json","output/playwright/340-cross-org-visibility-and-scope-drift-patient_authenticated_chromium_wide-aria.json","output/playwright/340-patient-choice-truth-and-continuity-patient_authenticated_chromium_wide-aria.json","output/playwright/340-patient-choice-truth-and-continuity-patient_high_zoom_reflow_chromium-aria.json"],"visualBaselineRefs":["output/playwright/340-accessibility-content-and-regression-hub_operator_wide_chromium-baseline.png","output/playwright/340-accessibility-content-and-regression-patient_authenticated_chromium_wide-baseline.png","output/playwright/340-accessibility-content-and-regression-patient_mobile_portrait_webkit-baseline.png","output/playwright/340-cross-org-visibility-and-scope-drift-cross_org_scope_variation_chromium-baseline.png","output/playwright/340-cross-org-visibility-and-scope-drift-hub_operator_wide_chromium-baseline.png","output/playwright/340-cross-org-visibility-and-scope-drift-patient_authenticated_chromium_wide-baseline.png","output/playwright/340-patient-choice-truth-and-continuity-hub_operator_wide_chromium-baseline.png","output/playwright/340-patient-choice-truth-and-continuity-patient_authenticated_chromium_wide-baseline.png","output/playwright/340-patient-choice-truth-and-continuity-patient_high_zoom_reflow_chromium-baseline.png","output/playwright/340-patient-choice-truth-and-continuity-patient_mobile_portrait_webkit-baseline.png","output/playwright/340-patient-choice-truth-and-continuity-patient_wide_desktop_firefox-baseline.png","output/playwright/340-responsive-same-shell-continuity-hub_operator_narrow_chromium-baseline.png","output/playwright/340-responsive-same-shell-continuity-hub_operator_reduced_motion_chromium-baseline.png","output/playwright/340-responsive-same-shell-continuity-hub_operator_tablet_landscape_chromium-baseline.png","output/playwright/340-responsive-same-shell-continuity-hub_operator_tablet_portrait_chromium-baseline.png","output/playwright/340-responsive-same-shell-continuity-hub_operator_wide_chromium-baseline.png","output/playwright/340-responsive-same-shell-continuity-patient_high_zoom_reflow_chromium-baseline.png","output/playwright/340-responsive-same-shell-continuity-patient_mobile_portrait_chromium-baseline.png"],"evidenceBoardRef":"docs/testing/340_phase5_browser_evidence_board.html","registryRefs":{"traceRegistry":"data/test-results/340_phase5_trace_registry.json","visualRegistry":"data/test-results/340_phase5_visual_baseline_registry.json","ariaRegistry":"data/test-results/340_phase5_aria_snapshot_registry.json"},"matrixRefs":{"accessibility":"data/analysis/340_accessibility_matrix.csv","responsive":"data/analysis/340_responsive_project_matrix.csv","crossOrg":"data/analysis/340_cross_org_visibility_matrix.csv","patientChoice":"data/analysis/340_patient_choice_truth_matrix.csv"},"gateRecommendation":"ready_for_seq_341_exit_gate_review","verificationRuns":[{"command":"pnpm --dir /Users/test/Code/V/apps/hub-desk build","status":"passed","artifactRefs":["apps/hub-desk/src/hub-desk-shell.tsx","apps/hub-desk/src/hub-desk-shell.css"]},{"command":"pnpm --dir /Users/test/Code/V/apps/hub-desk test","status":"passed","artifactRefs":["apps/hub-desk/src/hub-desk-shell.model.ts","apps/hub-desk/src/hub-desk-shell.tsx"]},{"command":"pnpm --dir /Users/test/Code/V/apps/patient-web build","status":"passed","artifactRefs":["apps/patient-web/src/patient-booking-responsive.css","apps/patient-web/src/patient-network-alternative-choice.tsx"]},{"command":"pnpm --dir /Users/test/Code/V/apps/patient-web test","status":"passed","artifactRefs":["apps/patient-web/src/patient-network-confirmation.tsx","apps/patient-web/src/patient-appointment-family-workspace.tsx"]},{"command":"pnpm exec tsx /Users/test/Code/V/tests/playwright/340_patient_choice_truth_and_continuity.spec.ts --run","status":"passed","artifactRefs":["tests/playwright/340_patient_choice_truth_and_continuity.spec.ts","output/playwright/340-patient-choice-truth-and-continuity-matrix.json"]},{"command":"pnpm exec tsx /Users/test/Code/V/tests/playwright/340_cross_org_visibility_and_scope_drift.spec.ts --run","status":"passed","artifactRefs":["tests/playwright/340_cross_org_visibility_and_scope_drift.spec.ts","output/playwright/340-cross-org-visibility-and-scope-drift-matrix.json"]},{"command":"pnpm exec tsx /Users/test/Code/V/tests/playwright/340_responsive_same_shell_continuity.spec.ts --run","status":"passed","artifactRefs":["tests/playwright/340_responsive_same_shell_continuity.spec.ts","output/playwright/340-responsive-same-shell-continuity-matrix.json"]},{"command":"pnpm exec tsx /Users/test/Code/V/tests/playwright/340_accessibility_content_and_regression.spec.ts --run","status":"passed","artifactRefs":["tests/playwright/340_accessibility_content_and_regression.spec.ts","output/playwright/340-accessibility-content-and-regression-matrix.json"]},{"command":"pnpm exec tsx /Users/test/Code/V/tools/testing/aggregate_340_phase5_browser_results.ts","status":"passed","artifactRefs":["data/test-results/340_phase5_browser_suite_summary.json","docs/testing/340_phase5_browser_evidence_board.html","data/test-results/340_phase5_trace_registry.json","data/test-results/340_phase5_visual_baseline_registry.json","data/test-results/340_phase5_aria_snapshot_registry.json"]},{"command":"pnpm validate:340-phase5-browser-suite","status":"passed","artifactRefs":["tools/analysis/validate_340_phase5_browser_suite.ts","data/test-results/340_phase5_browser_suite_summary.json","docs/testing/340_phase5_browser_evidence_board.html"]}]},"traces":[{"artifactRef":"output/playwright/340-accessibility-content-and-regression-hub_operator_wide_chromium-trace.zip","suiteId":"accessibility_content_and_regression_browser","scenarioFamilyId":"accessibility_content","scenarioFamilyLabel":"Accessibility And Content","projectId":"hub_operator_wide_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","caseIds":["A11Y340_004"],"explanation":"Accessibility And Content: hub dialog and focus-return proof","notes":["hub dialog and focus-return proof"]},{"artifactRef":"output/playwright/340-accessibility-content-and-regression-patient_authenticated_chromium_wide-trace.zip","suiteId":"accessibility_content_and_regression_browser","scenarioFamilyId":"accessibility_content","scenarioFamilyLabel":"Accessibility And Content","projectId":"patient_authenticated_chromium_wide","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"wide","caseIds":["A11Y340_001","A11Y340_002","A11Y340_003"],"explanation":"Accessibility And Content: patient accessibility and content regression proof","notes":["patient accessibility and content regression proof"]},{"artifactRef":"output/playwright/340-accessibility-content-and-regression-patient_mobile_portrait_webkit-trace.zip","suiteId":"accessibility_content_and_regression_browser","scenarioFamilyId":"accessibility_content","scenarioFamilyLabel":"Accessibility And Content","projectId":"patient_mobile_portrait_webkit","browserName":"webkit","authProfile":"patient_authenticated","breakpointRef":"mobile_portrait","caseIds":["A11Y340_005"],"explanation":"Accessibility And Content: WebKit mobile a11y parity proof","notes":["WebKit mobile a11y parity proof"]},{"artifactRef":"output/playwright/340-cross-org-visibility-and-scope-drift-cross_org_scope_variation_chromium-trace.zip","suiteId":"cross_org_visibility_and_scope_drift_browser","scenarioFamilyId":"cross_org_visibility","scenarioFamilyLabel":"Cross-Organisation Visibility","projectId":"cross_org_scope_variation_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","caseIds":["VIS340_004"],"explanation":"Cross-Organisation Visibility: scope variation project proved break-glass activation, expiry, and purpose drift freeze","notes":["scope variation project proved break-glass activation, expiry, and purpose drift freeze"]},{"artifactRef":"output/playwright/340-cross-org-visibility-and-scope-drift-hub_operator_wide_chromium-trace.zip","suiteId":"cross_org_visibility_and_scope_drift_browser","scenarioFamilyId":"cross_org_visibility","scenarioFamilyLabel":"Cross-Organisation Visibility","projectId":"hub_operator_wide_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","caseIds":["VIS340_001","VIS340_002","VIS340_003"],"explanation":"Cross-Organisation Visibility: wide hub operator project covered minimum-necessary switches and denied posture","notes":["wide hub operator project covered minimum-necessary switches and denied posture"]},{"artifactRef":"output/playwright/340-cross-org-visibility-and-scope-drift-patient_authenticated_chromium_wide-trace.zip","suiteId":"cross_org_visibility_and_scope_drift_browser","scenarioFamilyId":"cross_org_visibility","scenarioFamilyLabel":"Cross-Organisation Visibility","projectId":"patient_authenticated_chromium_wide","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"wide","caseIds":["VIS340_005"],"explanation":"Cross-Organisation Visibility: patient-safe surfaces showed only patient-safe cross-org truth","notes":["patient-safe surfaces showed only patient-safe cross-org truth"]},{"artifactRef":"output/playwright/340-patient-choice-truth-and-continuity-hub_operator_wide_chromium-trace.zip","suiteId":"patient_choice_truth_and_continuity_browser","scenarioFamilyId":"patient_choice_truth","scenarioFamilyLabel":"Patient Choice Truth","projectId":"hub_operator_wide_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","caseIds":["CHOICE340_007"],"explanation":"Patient Choice Truth: hub-assisted alternatives route stayed aligned with the choice law","notes":["hub-assisted alternatives route stayed aligned with the choice law"]},{"artifactRef":"output/playwright/340-patient-choice-truth-and-continuity-patient_authenticated_chromium_wide-trace.zip","suiteId":"patient_choice_truth_and_continuity_browser","scenarioFamilyId":"patient_choice_truth","scenarioFamilyLabel":"Patient Choice Truth","projectId":"patient_authenticated_chromium_wide","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"wide","caseIds":["CHOICE340_001","CHOICE340_004","CHOICE340_006"],"explanation":"Patient Choice Truth: wide Chromium patient route exercised live choice and merged appointment family","notes":["wide Chromium patient route exercised live choice and merged appointment family"]},{"artifactRef":"output/playwright/340-patient-choice-truth-and-continuity-patient_high_zoom_reflow_chromium-trace.zip","suiteId":"patient_choice_truth_and_continuity_browser","scenarioFamilyId":"patient_choice_truth","scenarioFamilyLabel":"Patient Choice Truth","projectId":"patient_high_zoom_reflow_chromium","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"high_zoom_reflow","caseIds":["CHOICE340_005"],"explanation":"Patient Choice Truth: high-zoom reflow project kept blocked publication drift readable and fenced","notes":["high-zoom reflow project kept blocked publication drift readable and fenced"]},{"artifactRef":"output/playwright/340-patient-choice-truth-and-continuity-patient_mobile_portrait_webkit-trace.zip","suiteId":"patient_choice_truth_and_continuity_browser","scenarioFamilyId":"patient_choice_truth","scenarioFamilyLabel":"Patient Choice Truth","projectId":"patient_mobile_portrait_webkit","browserName":"webkit","authProfile":"patient_authenticated","breakpointRef":"mobile_portrait","caseIds":["CHOICE340_003"],"explanation":"Patient Choice Truth: Safari-equivalent patient project preserved sticky action reachability","notes":["Safari-equivalent patient project preserved sticky action reachability"]},{"artifactRef":"output/playwright/340-patient-choice-truth-and-continuity-patient_wide_desktop_firefox-trace.zip","suiteId":"patient_choice_truth_and_continuity_browser","scenarioFamilyId":"patient_choice_truth","scenarioFamilyLabel":"Patient Choice Truth","projectId":"patient_wide_desktop_firefox","browserName":"firefox","authProfile":"patient_authenticated","breakpointRef":"wide","caseIds":["CHOICE340_002"],"explanation":"Patient Choice Truth: Firefox parity project stayed aligned with the Chromium patient choice contract","notes":["Firefox parity project stayed aligned with the Chromium patient choice contract"]},{"artifactRef":"output/playwright/340-responsive-same-shell-continuity-hub_operator_narrow_chromium-trace.zip","suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","scenarioFamilyLabel":"Responsive Continuity","projectId":"hub_operator_narrow_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"narrow_desktop","caseIds":["RESP340_002"],"explanation":"Responsive Continuity: hub queue continuity proof","notes":["hub queue continuity proof"]},{"artifactRef":"output/playwright/340-responsive-same-shell-continuity-hub_operator_reduced_motion_chromium-trace.zip","suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","scenarioFamilyLabel":"Responsive Continuity","projectId":"hub_operator_reduced_motion_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","caseIds":["RESP340_007"],"explanation":"Responsive Continuity: reduced-motion project","notes":["reduced-motion project"]},{"artifactRef":"output/playwright/340-responsive-same-shell-continuity-hub_operator_tablet_landscape_chromium-trace.zip","suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","scenarioFamilyLabel":"Responsive Continuity","projectId":"hub_operator_tablet_landscape_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"tablet_landscape","caseIds":["RESP340_004"],"explanation":"Responsive Continuity: hub queue continuity proof","notes":["hub queue continuity proof"]},{"artifactRef":"output/playwright/340-responsive-same-shell-continuity-hub_operator_tablet_portrait_chromium-trace.zip","suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","scenarioFamilyLabel":"Responsive Continuity","projectId":"hub_operator_tablet_portrait_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"tablet_portrait","caseIds":["RESP340_003"],"explanation":"Responsive Continuity: hub queue continuity proof","notes":["hub queue continuity proof"]},{"artifactRef":"output/playwright/340-responsive-same-shell-continuity-hub_operator_wide_chromium-trace.zip","suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","scenarioFamilyLabel":"Responsive Continuity","projectId":"hub_operator_wide_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","caseIds":["RESP340_001"],"explanation":"Responsive Continuity: hub queue continuity proof","notes":["hub queue continuity proof"]},{"artifactRef":"output/playwright/340-responsive-same-shell-continuity-patient_high_zoom_reflow_chromium-trace.zip","suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","scenarioFamilyLabel":"Responsive Continuity","projectId":"patient_high_zoom_reflow_chromium","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"high_zoom_reflow","caseIds":["RESP340_006"],"explanation":"Responsive Continuity: patient high-zoom appointment family proof","notes":["patient high-zoom appointment family proof"]},{"artifactRef":"output/playwright/340-responsive-same-shell-continuity-patient_mobile_portrait_chromium-trace.zip","suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","scenarioFamilyLabel":"Responsive Continuity","projectId":"patient_mobile_portrait_chromium","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"mobile_portrait","caseIds":["RESP340_005"],"explanation":"Responsive Continuity: patient mobile choice continuity proof","notes":["patient mobile choice continuity proof"]}],"visuals":[{"artifactRef":"output/playwright/340-accessibility-content-and-regression-hub_operator_wide_chromium-baseline.png","suiteId":"accessibility_content_and_regression_browser","scenarioFamilyId":"accessibility_content","scenarioFamilyLabel":"Accessibility And Content","projectId":"hub_operator_wide_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","caseIds":["A11Y340_004"],"explanation":"Accessibility And Content: hub dialog and focus-return proof","notes":["hub dialog and focus-return proof"]},{"artifactRef":"output/playwright/340-accessibility-content-and-regression-patient_authenticated_chromium_wide-baseline.png","suiteId":"accessibility_content_and_regression_browser","scenarioFamilyId":"accessibility_content","scenarioFamilyLabel":"Accessibility And Content","projectId":"patient_authenticated_chromium_wide","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"wide","caseIds":["A11Y340_001","A11Y340_002","A11Y340_003"],"explanation":"Accessibility And Content: patient accessibility and content regression proof","notes":["patient accessibility and content regression proof"]},{"artifactRef":"output/playwright/340-accessibility-content-and-regression-patient_mobile_portrait_webkit-baseline.png","suiteId":"accessibility_content_and_regression_browser","scenarioFamilyId":"accessibility_content","scenarioFamilyLabel":"Accessibility And Content","projectId":"patient_mobile_portrait_webkit","browserName":"webkit","authProfile":"patient_authenticated","breakpointRef":"mobile_portrait","caseIds":["A11Y340_005"],"explanation":"Accessibility And Content: WebKit mobile a11y parity proof","notes":["WebKit mobile a11y parity proof"]},{"artifactRef":"output/playwright/340-cross-org-visibility-and-scope-drift-cross_org_scope_variation_chromium-baseline.png","suiteId":"cross_org_visibility_and_scope_drift_browser","scenarioFamilyId":"cross_org_visibility","scenarioFamilyLabel":"Cross-Organisation Visibility","projectId":"cross_org_scope_variation_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","caseIds":["VIS340_004"],"explanation":"Cross-Organisation Visibility: scope variation project proved break-glass activation, expiry, and purpose drift freeze","notes":["scope variation project proved break-glass activation, expiry, and purpose drift freeze"]},{"artifactRef":"output/playwright/340-cross-org-visibility-and-scope-drift-hub_operator_wide_chromium-baseline.png","suiteId":"cross_org_visibility_and_scope_drift_browser","scenarioFamilyId":"cross_org_visibility","scenarioFamilyLabel":"Cross-Organisation Visibility","projectId":"hub_operator_wide_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","caseIds":["VIS340_001","VIS340_002","VIS340_003"],"explanation":"Cross-Organisation Visibility: wide hub operator project covered minimum-necessary switches and denied posture","notes":["wide hub operator project covered minimum-necessary switches and denied posture"]},{"artifactRef":"output/playwright/340-cross-org-visibility-and-scope-drift-patient_authenticated_chromium_wide-baseline.png","suiteId":"cross_org_visibility_and_scope_drift_browser","scenarioFamilyId":"cross_org_visibility","scenarioFamilyLabel":"Cross-Organisation Visibility","projectId":"patient_authenticated_chromium_wide","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"wide","caseIds":["VIS340_005"],"explanation":"Cross-Organisation Visibility: patient-safe surfaces showed only patient-safe cross-org truth","notes":["patient-safe surfaces showed only patient-safe cross-org truth"]},{"artifactRef":"output/playwright/340-patient-choice-truth-and-continuity-hub_operator_wide_chromium-baseline.png","suiteId":"patient_choice_truth_and_continuity_browser","scenarioFamilyId":"patient_choice_truth","scenarioFamilyLabel":"Patient Choice Truth","projectId":"hub_operator_wide_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","caseIds":["CHOICE340_007"],"explanation":"Patient Choice Truth: hub-assisted alternatives route stayed aligned with the choice law","notes":["hub-assisted alternatives route stayed aligned with the choice law"]},{"artifactRef":"output/playwright/340-patient-choice-truth-and-continuity-patient_authenticated_chromium_wide-baseline.png","suiteId":"patient_choice_truth_and_continuity_browser","scenarioFamilyId":"patient_choice_truth","scenarioFamilyLabel":"Patient Choice Truth","projectId":"patient_authenticated_chromium_wide","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"wide","caseIds":["CHOICE340_001","CHOICE340_004","CHOICE340_006"],"explanation":"Patient Choice Truth: wide Chromium patient route exercised live choice and merged appointment family","notes":["wide Chromium patient route exercised live choice and merged appointment family"]},{"artifactRef":"output/playwright/340-patient-choice-truth-and-continuity-patient_high_zoom_reflow_chromium-baseline.png","suiteId":"patient_choice_truth_and_continuity_browser","scenarioFamilyId":"patient_choice_truth","scenarioFamilyLabel":"Patient Choice Truth","projectId":"patient_high_zoom_reflow_chromium","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"high_zoom_reflow","caseIds":["CHOICE340_005"],"explanation":"Patient Choice Truth: high-zoom reflow project kept blocked publication drift readable and fenced","notes":["high-zoom reflow project kept blocked publication drift readable and fenced"]},{"artifactRef":"output/playwright/340-patient-choice-truth-and-continuity-patient_mobile_portrait_webkit-baseline.png","suiteId":"patient_choice_truth_and_continuity_browser","scenarioFamilyId":"patient_choice_truth","scenarioFamilyLabel":"Patient Choice Truth","projectId":"patient_mobile_portrait_webkit","browserName":"webkit","authProfile":"patient_authenticated","breakpointRef":"mobile_portrait","caseIds":["CHOICE340_003"],"explanation":"Patient Choice Truth: Safari-equivalent patient project preserved sticky action reachability","notes":["Safari-equivalent patient project preserved sticky action reachability"]},{"artifactRef":"output/playwright/340-patient-choice-truth-and-continuity-patient_wide_desktop_firefox-baseline.png","suiteId":"patient_choice_truth_and_continuity_browser","scenarioFamilyId":"patient_choice_truth","scenarioFamilyLabel":"Patient Choice Truth","projectId":"patient_wide_desktop_firefox","browserName":"firefox","authProfile":"patient_authenticated","breakpointRef":"wide","caseIds":["CHOICE340_002"],"explanation":"Patient Choice Truth: Firefox parity project stayed aligned with the Chromium patient choice contract","notes":["Firefox parity project stayed aligned with the Chromium patient choice contract"]},{"artifactRef":"output/playwright/340-responsive-same-shell-continuity-hub_operator_narrow_chromium-baseline.png","suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","scenarioFamilyLabel":"Responsive Continuity","projectId":"hub_operator_narrow_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"narrow_desktop","caseIds":["RESP340_002"],"explanation":"Responsive Continuity: hub queue continuity proof","notes":["hub queue continuity proof"]},{"artifactRef":"output/playwright/340-responsive-same-shell-continuity-hub_operator_reduced_motion_chromium-baseline.png","suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","scenarioFamilyLabel":"Responsive Continuity","projectId":"hub_operator_reduced_motion_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","caseIds":["RESP340_007"],"explanation":"Responsive Continuity: reduced-motion project","notes":["reduced-motion project"]},{"artifactRef":"output/playwright/340-responsive-same-shell-continuity-hub_operator_tablet_landscape_chromium-baseline.png","suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","scenarioFamilyLabel":"Responsive Continuity","projectId":"hub_operator_tablet_landscape_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"tablet_landscape","caseIds":["RESP340_004"],"explanation":"Responsive Continuity: hub queue continuity proof","notes":["hub queue continuity proof"]},{"artifactRef":"output/playwright/340-responsive-same-shell-continuity-hub_operator_tablet_portrait_chromium-baseline.png","suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","scenarioFamilyLabel":"Responsive Continuity","projectId":"hub_operator_tablet_portrait_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"tablet_portrait","caseIds":["RESP340_003"],"explanation":"Responsive Continuity: hub queue continuity proof","notes":["hub queue continuity proof"]},{"artifactRef":"output/playwright/340-responsive-same-shell-continuity-hub_operator_wide_chromium-baseline.png","suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","scenarioFamilyLabel":"Responsive Continuity","projectId":"hub_operator_wide_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","caseIds":["RESP340_001"],"explanation":"Responsive Continuity: hub queue continuity proof","notes":["hub queue continuity proof"]},{"artifactRef":"output/playwright/340-responsive-same-shell-continuity-patient_high_zoom_reflow_chromium-baseline.png","suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","scenarioFamilyLabel":"Responsive Continuity","projectId":"patient_high_zoom_reflow_chromium","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"high_zoom_reflow","caseIds":["RESP340_006"],"explanation":"Responsive Continuity: patient high-zoom appointment family proof","notes":["patient high-zoom appointment family proof"]},{"artifactRef":"output/playwright/340-responsive-same-shell-continuity-patient_mobile_portrait_chromium-baseline.png","suiteId":"responsive_same_shell_continuity_browser","scenarioFamilyId":"responsive_continuity","scenarioFamilyLabel":"Responsive Continuity","projectId":"patient_mobile_portrait_chromium","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"mobile_portrait","caseIds":["RESP340_005"],"explanation":"Responsive Continuity: patient mobile choice continuity proof","notes":["patient mobile choice continuity proof"]}],"ariaSnapshots":[{"artifactRef":"output/playwright/340-accessibility-content-and-regression-hub_operator_wide_chromium-hub-aria.json","suiteId":"accessibility_content_and_regression_browser","scenarioFamilyId":"accessibility_content","scenarioFamilyLabel":"Accessibility And Content","projectId":"hub_operator_wide_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","caseIds":["A11Y340_004"],"explanation":"Accessibility And Content: hub dialog and focus-return proof","notes":["hub dialog and focus-return proof"]},{"artifactRef":"output/playwright/340-accessibility-content-and-regression-patient_authenticated_chromium_wide-appointment-family-aria.json","suiteId":"accessibility_content_and_regression_browser","scenarioFamilyId":"accessibility_content","scenarioFamilyLabel":"Accessibility And Content","projectId":"patient_authenticated_chromium_wide","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"wide","caseIds":["A11Y340_001","A11Y340_002","A11Y340_003"],"explanation":"Accessibility And Content: patient accessibility and content regression proof","notes":["patient accessibility and content regression proof","appointment family kept the honest pending wording and durable structure"]},{"artifactRef":"output/playwright/340-accessibility-content-and-regression-patient_mobile_portrait_webkit-webkit-aria.json","suiteId":"accessibility_content_and_regression_browser","scenarioFamilyId":"accessibility_content","scenarioFamilyLabel":"Accessibility And Content","projectId":"patient_mobile_portrait_webkit","browserName":"webkit","authProfile":"patient_authenticated","breakpointRef":"mobile_portrait","caseIds":["A11Y340_005"],"explanation":"Accessibility And Content: WebKit mobile a11y parity proof","notes":["WebKit mobile a11y parity proof","WebKit mobile kept artifact and timeline semantics stable"]},{"artifactRef":"output/playwright/340-cross-org-visibility-and-scope-drift-hub_operator_wide_chromium-aria.json","suiteId":"cross_org_visibility_and_scope_drift_browser","scenarioFamilyId":"cross_org_visibility","scenarioFamilyLabel":"Cross-Organisation Visibility","projectId":"hub_operator_wide_chromium","browserName":"chromium","authProfile":"hub_operator_authenticated","breakpointRef":"wide","caseIds":["VIS340_001","VIS340_002","VIS340_003"],"explanation":"Cross-Organisation Visibility: wide hub operator project covered minimum-necessary switches and denied posture","notes":["wide hub operator project covered minimum-necessary switches and denied posture"]},{"artifactRef":"output/playwright/340-cross-org-visibility-and-scope-drift-patient_authenticated_chromium_wide-aria.json","suiteId":"cross_org_visibility_and_scope_drift_browser","scenarioFamilyId":"cross_org_visibility","scenarioFamilyLabel":"Cross-Organisation Visibility","projectId":"patient_authenticated_chromium_wide","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"wide","caseIds":["VIS340_005"],"explanation":"Cross-Organisation Visibility: patient-safe surfaces showed only patient-safe cross-org truth","notes":["patient-safe surfaces showed only patient-safe cross-org truth"]},{"artifactRef":"output/playwright/340-patient-choice-truth-and-continuity-patient_authenticated_chromium_wide-aria.json","suiteId":"patient_choice_truth_and_continuity_browser","scenarioFamilyId":"patient_choice_truth","scenarioFamilyLabel":"Patient Choice Truth","projectId":"patient_authenticated_chromium_wide","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"wide","caseIds":["CHOICE340_001","CHOICE340_004","CHOICE340_006"],"explanation":"Patient Choice Truth: wide Chromium patient route exercised live choice and merged appointment family","notes":["wide Chromium patient route exercised live choice and merged appointment family"]},{"artifactRef":"output/playwright/340-patient-choice-truth-and-continuity-patient_high_zoom_reflow_chromium-aria.json","suiteId":"patient_choice_truth_and_continuity_browser","scenarioFamilyId":"patient_choice_truth","scenarioFamilyLabel":"Patient Choice Truth","projectId":"patient_high_zoom_reflow_chromium","browserName":"chromium","authProfile":"patient_authenticated","breakpointRef":"high_zoom_reflow","caseIds":["CHOICE340_005"],"explanation":"Patient Choice Truth: high-zoom reflow project kept blocked publication drift readable and fenced","notes":["high-zoom reflow project kept blocked publication drift readable and fenced"]}],"boardLinks":{"summary":"../../data/test-results/340_phase5_browser_suite_summary.json","traceRegistry":"../../data/test-results/340_phase5_trace_registry.json","visualRegistry":"../../data/test-results/340_phase5_visual_baseline_registry.json","ariaRegistry":"../../data/test-results/340_phase5_aria_snapshot_registry.json","patientChoiceMatrix":"../../data/analysis/340_patient_choice_truth_matrix.csv","crossOrgMatrix":"../../data/analysis/340_cross_org_visibility_matrix.csv","responsiveMatrix":"../../data/analysis/340_responsive_project_matrix.csv","accessibilityMatrix":"../../data/analysis/340_accessibility_matrix.csv","plan":"../../docs/test-plans/340_phase5_patient_choice_cross_org_responsive_regression_plan.md","notes":"../../data/analysis/340_external_reference_notes.json"}};
+      const state = {
+        familyId: boardData.summary.scenarioFamilySummaries[0]?.familyId ?? "",
+        browser: "all",
+        viewport: "all",
+        audience: "all",
+      };
+
+      const audienceLabel = (value) => value === "hub_operator_authenticated" ? "Hub operator" : value === "patient_authenticated" ? "Patient" : value;
+      const projectById = Object.fromEntries((boardData.summary.browserProjectSummaries ?? []).map((project) => [project.projectId, project]));
+
+      function buttonMarkup({ id, label, pressed, role, ariaSelected, dataset }) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = label;
+        button.className = role === "tab" ? "tab-button" : "filter-chip";
+        if (role === "tab") {
+          button.setAttribute("role", "tab");
+          button.setAttribute("aria-selected", ariaSelected ? "true" : "false");
+        } else {
+          button.setAttribute("aria-pressed", pressed ? "true" : "false");
+        }
+        for (const [key, value] of Object.entries(dataset ?? {})) {
+          button.dataset[key] = value;
+        }
+        return button;
+      }
+
+      function matchesProject(projectId) {
+        const project = projectById[projectId];
+        if (!project) return false;
+        if (state.browser !== "all" && project.browserName !== state.browser) return false;
+        if (state.viewport !== "all" && project.breakpointRef !== state.viewport) return false;
+        if (state.audience !== "all" && project.authProfile !== state.audience) return false;
+        return true;
+      }
+
+      function filteredCases() {
+        return (boardData.summary.caseResults ?? []).filter((caseResult) => {
+          return caseResult.scenarioFamilyId === state.familyId && matchesProject(caseResult.projectId);
+        });
+      }
+
+      function filteredArtifacts(collection) {
+        return collection.filter((entry) => entry.scenarioFamilyId === state.familyId && matchesProject(entry.projectId));
+      }
+
+      function renderSummaryStrip() {
+        document.getElementById("summary-status").textContent = String(boardData.summary.overallStatus ?? "-");
+        document.getElementById("summary-run-id").textContent = String(boardData.summary.runId ?? "-");
+        document.getElementById("summary-commit").textContent = String(boardData.summary.shortCommitRef ?? "-");
+        document.getElementById("summary-environment").textContent = String(boardData.summary.environmentRef ?? "-");
+        document.getElementById("summary-flakes").textContent = String(boardData.summary.flakeCount ?? 0);
+      }
+
+      function renderFamilyTabs() {
+        const host = document.getElementById("family-tabs");
+        host.innerHTML = "";
+        for (const family of boardData.summary.scenarioFamilySummaries ?? []) {
+          const button = buttonMarkup({
+            label: family.label,
+            role: "tab",
+            ariaSelected: family.familyId === state.familyId,
+            dataset: { familyId: family.familyId },
+          });
+          button.addEventListener("click", () => {
+            state.familyId = family.familyId;
+            renderBoard();
+          });
+          host.appendChild(button);
+        }
+      }
+
+      function renderFilterGroup(hostId, options, stateKey) {
+        const host = document.getElementById(hostId);
+        host.innerHTML = "";
+        for (const option of options) {
+          const button = buttonMarkup({
+            label: option.label,
+            pressed: state[stateKey] === option.value,
+            dataset: { value: option.value },
+          });
+          button.addEventListener("click", () => {
+            state[stateKey] = option.value;
+            renderBoard();
+          });
+          host.appendChild(button);
+        }
+      }
+
+      function renderResolvedRisks() {
+        const host = document.getElementById("resolved-risks");
+        host.innerHTML = "";
+        for (const riskRef of boardData.summary.resolvedRiskRefs ?? []) {
+          const badge = document.createElement("span");
+          badge.className = "badge warn";
+          badge.textContent = riskRef;
+          host.appendChild(badge);
+        }
+      }
+
+      function renderBundleLinks() {
+        const host = document.getElementById("bundle-links");
+        host.innerHTML = "";
+        const labels = {
+          summary: "Summary JSON",
+          traceRegistry: "Trace registry",
+          visualRegistry: "Visual registry",
+          ariaRegistry: "ARIA registry",
+          patientChoiceMatrix: "Patient choice CSV",
+          crossOrgMatrix: "Cross-org CSV",
+          responsiveMatrix: "Responsive CSV",
+          accessibilityMatrix: "Accessibility CSV",
+          plan: "Plan",
+          notes: "Reference notes",
+        };
+        for (const [key, href] of Object.entries(boardData.boardLinks)) {
+          const anchor = document.createElement("a");
+          anchor.href = href;
+          anchor.className = "artifact-link";
+          anchor.textContent = labels[key] ?? key;
+          host.appendChild(anchor);
+        }
+      }
+
+      function renderFamilySummary() {
+        const host = document.getElementById("family-summary-card");
+        const family = (boardData.summary.scenarioFamilySummaries ?? []).find((entry) => entry.familyId === state.familyId);
+        if (!family) {
+          host.innerHTML = "";
+          return;
+        }
+
+        const filtered = filteredCases();
+        const coverageItems = (family.coverage ?? []).map((item) => "<li>" + item + "</li>").join("");
+        const riskBadges = (family.riskClasses ?? []).map((risk) => '<span class="badge info">' + risk + "</span>").join("");
+        const specHref = "../../" + family.specPath;
+        host.innerHTML = [
+          '<article class="meta-card">',
+          '<div class="badge-row"><span class="badge pass">' + family.status + "</span>" + riskBadges + "</div>",
+          '<h2 class="panel-title" style="margin-top: 14px;">' + family.label + "</h2>",
+          '<p>' + filtered.length + " filtered case(s) across " + family.projectCount + " project(s).</p>",
+          '<div class="link-row" style="margin-top: 12px;"><a class="artifact-link" href="' + specHref + '">Open spec</a></div>',
+          '<ul style="margin: 14px 0 0; padding-left: 18px;">' + coverageItems + "</ul>",
+          "</article>",
+        ].join("");
+      }
+
+      function renderCases() {
+        const host = document.getElementById("case-grid");
+        const cases = filteredCases();
+        if (cases.length === 0) {
+          host.innerHTML = '<article class="case-card"><h3>No matching cases</h3><p class="muted">Adjust the browser, viewport, or audience filters to inspect a different slice of the evidence.</p></article>';
+          return;
+        }
+
+        host.innerHTML = cases.map((caseResult) => {
+          const project = projectById[caseResult.projectId];
+          const metricEntries = Object.entries(caseResult.metrics ?? {})
+            .map(([key, value]) => "<div><dt>" + key + "</dt><dd>" + value + "</dd></div>")
+            .join("");
+          const notes = (caseResult.notes ?? []).join(" ");
+          return [
+            '<article class="case-card">',
+            "<h3>" + caseResult.caseId + "</h3>",
+            '<div class="badge-row"><span class="badge pass">' + caseResult.status + "</span><span class="badge info">' + project.browserName + "</span><span class="badge trace">' + project.breakpointRef + "</span></div>",
+            "<p style="margin-top: 12px;">" + notes + "</p>",
+            "<dl>" + metricEntries + "</dl>",
+            "</article>",
+          ].join("");
+        }).join("");
+      }
+
+      function renderFailures() {
+        const host = document.getElementById("failure-body");
+        const failures = filteredCases().filter((caseResult) => caseResult.status !== "passed");
+        if (failures.length === 0) {
+          host.innerHTML = '<tr><td colspan="4">No critical failures recorded.</td></tr>';
+          return;
+        }
+        host.innerHTML = failures.map((caseResult) => {
+          const project = projectById[caseResult.projectId];
+          return "<tr><td>" + caseResult.caseId + "</td><td>" + project.projectId + "</td><td>" + caseResult.status + "</td><td>" + (caseResult.notes ?? []).join(" ") + "</td></tr>";
+        }).join("");
+      }
+
+      function renderVisuals() {
+        const host = document.getElementById("visual-grid");
+        const visuals = filteredArtifacts(boardData.visuals);
+        if (visuals.length === 0) {
+          host.innerHTML = '<article class="artifact-card"><h3>No visual baselines in this filtered slice</h3><p class="muted">The selected filter combination removes visual artifacts from the current view.</p></article>';
+          return;
+        }
+        host.innerHTML = visuals.map((entry) => {
+          const href = "../../" + entry.artifactRef;
+          return [
+            '<article class="artifact-card">',
+            "<h3>" + entry.projectId + "</h3>",
+            "<p>" + entry.explanation + "</p>",
+            '<div class="badge-row" style="margin-top: 12px;"><span class="badge trace">' + entry.browserName + "</span><span class="badge info">' + entry.breakpointRef + "</span></div>",
+            '<div class="baseline-frame"><img src="' + href + '" alt="Visual baseline for ' + entry.projectId + '" /></div>',
+            '<div class="link-row" style="margin-top: 12px;"><a class="artifact-link" href="' + href + '">Open screenshot</a></div>',
+            "</article>",
+          ].join("");
+        }).join("");
+      }
+
+      function renderInspector() {
+        const host = document.getElementById("inspector-content");
+        const family = (boardData.summary.scenarioFamilySummaries ?? []).find((entry) => entry.familyId === state.familyId);
+        const cases = filteredCases();
+        const traces = filteredArtifacts(boardData.traces);
+        const ariaSnapshots = filteredArtifacts(boardData.ariaSnapshots);
+        if (!family) {
+          host.innerHTML = "";
+          return;
+        }
+        host.innerHTML = [
+          '<section class="meta-card">',
+          "<strong>Current family</strong>",
+          "<p style="margin-top: 10px;">" + family.label + "</p>",
+          '<div class="badge-row" style="margin-top: 12px;"><span class="badge pass">' + family.status + "</span><span class="badge info">" + cases.length + " case(s)</span></div>",
+          "</section>",
+          '<section class="meta-card">',
+          "<strong>Filters</strong>",
+          '<p style="margin-top: 10px;">Browser: ' + state.browser + "</p>",
+          "<p>Viewport: " + state.viewport + "</p>",
+          "<p>Audience: " + state.audience + "</p>",
+          "</section>",
+          '<section class="meta-card">',
+          "<strong>Artifacts in scope</strong>",
+          '<p style="margin-top: 10px;">Trace files: ' + traces.length + "</p>",
+          "<p>Visual baselines: " + filteredArtifacts(boardData.visuals).length + "</p>",
+          "<p>ARIA snapshots: " + ariaSnapshots.length + "</p>",
+          "</section>",
+          '<section class="meta-card">',
+          "<strong>Gate recommendation</strong>",
+          '<p style="margin-top: 10px;">' + boardData.summary.gateRecommendation + "</p>",
+          "</section>",
+        ].join("");
+      }
+
+      function renderTimeline() {
+        const host = document.getElementById("timeline-grid");
+        const timelineEntries = [
+          ...filteredArtifacts(boardData.traces).map((entry) => ({ ...entry, kind: "Trace" })),
+          ...filteredArtifacts(boardData.visuals).map((entry) => ({ ...entry, kind: "Baseline" })),
+          ...filteredArtifacts(boardData.ariaSnapshots).map((entry) => ({ ...entry, kind: "ARIA" })),
+        ];
+        if (timelineEntries.length === 0) {
+          host.innerHTML = '<article class="artifact-card"><h3>No artifacts in scope</h3><p class="muted">The selected filters remove trace, screenshot, and ARIA artifacts from the current slice.</p></article>';
+          return;
+        }
+        host.innerHTML = timelineEntries.map((entry) => {
+          const href = "../../" + entry.artifactRef;
+          return [
+            '<article class="artifact-card">',
+            "<h3>" + entry.kind + ": " + entry.projectId + "</h3>",
+            "<p>" + entry.explanation + "</p>",
+            '<div class="badge-row" style="margin-top: 12px;"><span class="badge trace">' + entry.browserName + "</span><span class="badge info">' + entry.breakpointRef + "</span><span class="badge warn">' + audienceLabel(entry.authProfile) + "</span></div>",
+            '<div class="link-row" style="margin-top: 12px;"><a class="artifact-link" href="' + href + '">Open artifact</a></div>',
+            "</article>",
+          ].join("");
+        }).join("");
+      }
+
+      function renderBoard() {
+        renderSummaryStrip();
+        renderFamilyTabs();
+        renderFilterGroup("browser-filters", [
+          { label: "All", value: "all" },
+          { label: "Chromium", value: "chromium" },
+          { label: "Firefox", value: "firefox" },
+          { label: "WebKit", value: "webkit" },
+        ], "browser");
+        renderFilterGroup("viewport-filters", [
+          { label: "All", value: "all" },
+          { label: "Wide", value: "wide" },
+          { label: "Narrow", value: "narrow_desktop" },
+          { label: "Tablet portrait", value: "tablet_portrait" },
+          { label: "Tablet landscape", value: "tablet_landscape" },
+          { label: "Mobile", value: "mobile_portrait" },
+          { label: "High zoom", value: "high_zoom_reflow" },
+        ], "viewport");
+        renderFilterGroup("audience-filters", [
+          { label: "All", value: "all" },
+          { label: "Patient", value: "patient_authenticated" },
+          { label: "Hub operator", value: "hub_operator_authenticated" },
+        ], "audience");
+        renderResolvedRisks();
+        renderBundleLinks();
+        renderFamilySummary();
+        renderCases();
+        renderFailures();
+        renderVisuals();
+        renderInspector();
+        renderTimeline();
+      }
+
+      renderBoard();
+    </script>
+  </body>
+</html>

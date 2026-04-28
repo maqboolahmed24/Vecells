@@ -1,0 +1,857 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>85 Data Storage Topology Atlas</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f7f9fc;
+        --panel: #ffffff;
+        --rail: #eef2f7;
+        --inset: #f4f7fb;
+        --text-strong: #0f172a;
+        --text-default: #1e293b;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+        --domain: #2563eb;
+        --fhir: #0ea5a4;
+        --manifest: #7c3aed;
+        --warning: #d97706;
+        --blocked: #c24141;
+        --ready: #059669;
+        --shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+        --radius: 22px;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 24rem),
+          radial-gradient(circle at top right, rgba(14, 165, 164, 0.08), transparent 20rem),
+          var(--canvas);
+        color: var(--text-default);
+      }
+      body[data-reduced-motion="true"] * {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+      .page {
+        max-width: 1580px;
+        margin: 0 auto;
+        padding: 20px 24px 48px;
+      }
+      .masthead {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: center;
+        min-height: 76px;
+        padding: 18px 22px;
+        margin-bottom: 18px;
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        border-radius: var(--radius);
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .monogram {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.16), rgba(124, 58, 237, 0.16));
+        color: var(--text-strong);
+        font-weight: 700;
+        letter-spacing: 0.08em;
+      }
+      .brand-copy h1 {
+        margin: 0;
+        font-size: 1.1rem;
+        color: var(--text-strong);
+      }
+      .brand-copy p {
+        margin: 4px 0 0;
+        color: var(--text-muted);
+        font-size: 0.92rem;
+      }
+      .masthead-metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .metric {
+        min-width: 132px;
+        padding: 10px 12px;
+        border-radius: 16px;
+        background: var(--inset);
+        border: 1px solid var(--border);
+      }
+      .metric strong {
+        display: block;
+        font-size: 1rem;
+        color: var(--text-strong);
+      }
+      .metric span {
+        color: var(--text-muted);
+        font-size: 0.78rem;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 324px minmax(0, 1fr) 420px;
+        gap: 18px;
+        align-items: start;
+      }
+      .panel {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+      .rail,
+      .inspector {
+        position: sticky;
+        top: 92px;
+      }
+      .rail {
+        padding: 18px;
+        background: var(--rail);
+      }
+      .rail h2,
+      .canvas h2,
+      .inspector h2,
+      .tables h2 {
+        margin: 0;
+        font-size: 0.96rem;
+        color: var(--text-strong);
+      }
+      .filter-group {
+        margin-top: 16px;
+        display: grid;
+        gap: 12px;
+      }
+      label {
+        display: grid;
+        gap: 6px;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+      }
+      select {
+        height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text-default);
+        padding: 0 12px;
+        transition: border-color 180ms ease, box-shadow 180ms ease;
+      }
+      select:focus-visible,
+      button:focus-visible,
+      .interactive:focus-visible {
+        outline: none;
+        border-color: var(--domain);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+      }
+      .canvas {
+        display: grid;
+        gap: 18px;
+      }
+      .visual {
+        min-height: 320px;
+        padding: 20px;
+      }
+      .visual-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 14px;
+      }
+      .visual-header p {
+        margin: 6px 0 0;
+        color: var(--text-muted);
+        font-size: 0.84rem;
+      }
+      .badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .badge {
+        border-radius: 999px;
+        padding: 6px 10px;
+        border: 1px solid var(--border);
+        background: var(--inset);
+        font-size: 0.76rem;
+        color: var(--text-default);
+      }
+      .topology-grid,
+      .binding-grid,
+      .flow-grid {
+        display: grid;
+        gap: 12px;
+      }
+      .topology-grid {
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      }
+      .binding-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+      .flow-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+      }
+      .node,
+      .binding-card,
+      .flow-step {
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: var(--inset);
+        padding: 16px;
+        transition: transform 120ms ease, border-color 180ms ease, box-shadow 180ms ease;
+      }
+      .interactive {
+        cursor: pointer;
+      }
+      .interactive:hover {
+        transform: translateY(-1px);
+      }
+      .node[data-family="domain"],
+      .flow-step[data-family="domain"] {
+        box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.12);
+      }
+      .node[data-family="fhir"],
+      .flow-step[data-family="fhir"] {
+        box-shadow: inset 0 0 0 1px rgba(14, 165, 164, 0.14);
+      }
+      .binding-card[data-family="fhir"] {
+        box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.14);
+      }
+      .node[data-selected="true"],
+      .binding-card[data-selected="true"],
+      .flow-step[data-selected="true"] {
+        border-color: var(--domain);
+        box-shadow: 0 12px 28px rgba(37, 99, 235, 0.16);
+      }
+      .node h3,
+      .binding-card h3,
+      .flow-step h3 {
+        margin: 0 0 8px;
+        font-size: 0.94rem;
+        color: var(--text-strong);
+      }
+      .node dl,
+      .binding-card dl {
+        margin: 0;
+        display: grid;
+        gap: 6px;
+      }
+      .node dt,
+      .binding-card dt {
+        color: var(--text-muted);
+        font-size: 0.74rem;
+      }
+      .node dd,
+      .binding-card dd {
+        margin: 0;
+        font-size: 0.84rem;
+      }
+      .flow-step p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 0.82rem;
+      }
+      .inspector {
+        padding: 18px;
+      }
+      .inspector pre {
+        margin: 0;
+        padding: 14px;
+        border-radius: 16px;
+        background: var(--inset);
+        border: 1px solid var(--border);
+        font-size: 0.76rem;
+        line-height: 1.55;
+        white-space: pre-wrap;
+        color: var(--text-default);
+      }
+      .tables {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 18px;
+      }
+      .table-panel {
+        padding: 18px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.83rem;
+      }
+      th,
+      td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+        text-align: left;
+      }
+      th {
+        color: var(--text-muted);
+        font-weight: 600;
+      }
+      tbody tr[data-selected="true"] {
+        background: rgba(37, 99, 235, 0.08);
+      }
+      .row-select {
+        width: 100%;
+        text-align: left;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        padding: 0;
+        font: inherit;
+        cursor: pointer;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.78rem;
+      }
+      .state-pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 4px 8px;
+        font-size: 0.72rem;
+        border: 1px solid var(--border);
+        background: var(--panel);
+      }
+      .state-pill.domain { color: var(--domain); }
+      .state-pill.fhir { color: var(--fhir); }
+      .state-pill.standby { color: var(--warning); }
+      @media (max-width: 1280px) {
+        .layout {
+          grid-template-columns: 300px minmax(0, 1fr);
+        }
+        .inspector {
+          grid-column: 1 / -1;
+          position: static;
+        }
+        .tables {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 980px) {
+        .page { padding: 12px; }
+        .masthead {
+          position: static;
+          grid-template-columns: 1fr;
+        }
+        .masthead-metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        .rail {
+          position: static;
+        }
+        .flow-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="masthead panel">
+        <div class="brand">
+          <div class="monogram" aria-hidden="true">DS</div>
+          <div class="brand-copy">
+            <h1>Vecells Data Storage Topology Atlas</h1>
+            <p>Transactional domain authority and derived FHIR representation truth remain separate, private, and contract-bound.</p>
+          </div>
+        </div>
+        <div class="masthead-metrics">
+          <div class="metric"><strong data-testid="metric-store-count">0</strong><span>Store realizations</span></div>
+          <div class="metric"><strong data-testid="metric-binding-count">0</strong><span>Binding rules</span></div>
+          <div class="metric"><strong data-testid="metric-domain-count">0</strong><span>Domain placements</span></div>
+          <div class="metric"><strong data-testid="metric-fhir-count">0</strong><span>FHIR placements</span></div>
+        </div>
+      </header>
+
+      <div class="layout">
+        <aside class="rail panel">
+          <h2>Filters</h2>
+          <div class="filter-group">
+            <label>Environment
+              <select data-testid="filter-environment" id="filter-environment"></select>
+            </label>
+            <label>Store family
+              <select data-testid="filter-store-family" id="filter-store-family"></select>
+            </label>
+            <label>Binding state
+              <select data-testid="filter-binding-state" id="filter-binding-state"></select>
+            </label>
+            <label>Access posture
+              <select data-testid="filter-access-posture" id="filter-access-posture"></select>
+            </label>
+          </div>
+        </aside>
+
+        <main class="canvas">
+          <section class="visual panel">
+            <div class="visual-header">
+              <div>
+                <h2>Truth-layer topology</h2>
+                <p>Each node is one environment and region realization of either the domain authority or the FHIR representation store.</p>
+              </div>
+              <div class="badge-row">
+                <span class="badge">No browser reachability</span>
+                <span class="badge">Private identity-ready TLS</span>
+                <span class="badge">Tenant tuple partitioning</span>
+              </div>
+            </div>
+            <div class="topology-grid" data-testid="topology-diagram" id="topology-diagram"></div>
+          </section>
+
+          <section class="visual panel">
+            <div class="visual-header">
+              <div>
+                <h2>Store-binding matrix</h2>
+                <p>These bindings freeze which layer owns lifecycle truth, who may write it, and where identifiers must stay separate.</p>
+              </div>
+            </div>
+            <div class="binding-grid" data-testid="binding-matrix" id="binding-matrix"></div>
+          </section>
+
+          <section class="visual panel">
+            <div class="visual-header">
+              <div>
+                <h2>Representation flow strip</h2>
+                <p>FHIR output remains one-way derived from canonical settlements and published mapping contracts.</p>
+              </div>
+            </div>
+            <div class="flow-grid" data-testid="representation-strip" id="representation-strip"></div>
+          </section>
+        </main>
+
+        <aside class="inspector panel" data-testid="inspector" id="inspector">
+          <h2>Inspector</h2>
+          <pre id="inspector-body">No selection.</pre>
+        </aside>
+      </div>
+
+      <section class="tables">
+        <div class="table-panel panel">
+          <div class="visual-header">
+            <div>
+              <h2>Store manifest table</h2>
+              <p>Tabular fallback for the topology diagram.</p>
+            </div>
+          </div>
+          <table data-testid="store-table">
+            <thead>
+              <tr>
+                <th>Store</th>
+                <th>Environment</th>
+                <th>Binding</th>
+                <th>Access</th>
+              </tr>
+            </thead>
+            <tbody id="store-table-body"></tbody>
+          </table>
+        </div>
+
+        <div class="table-panel panel">
+          <div class="visual-header">
+            <div>
+              <h2>Binding table</h2>
+              <p>Tabular fallback for the separation matrix.</p>
+            </div>
+          </div>
+          <table data-testid="binding-table">
+            <thead>
+              <tr>
+                <th>Binding</th>
+                <th>Family</th>
+                <th>Focus</th>
+                <th>Access</th>
+              </tr>
+            </thead>
+            <tbody id="binding-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <script id="atlas-data" type="application/json">{"task_id":"par_085","visual_mode":"Data_Storage_Topology_Atlas","summary":{"store_realization_count":14,"binding_row_count":10,"domain_store_realization_count":7,"fhir_store_realization_count":7},"filters":{"environments":["all","local","ci-preview","integration","preprod","production"],"storeFamilies":["all","domain","fhir"],"bindingStates":["all","writable_authority","derived_materialization","warm_standby"],"accessPostures":["all","command_write","mapping_only","assurance_read","internal_only"]},"stores":[{"store_realization_id":"domain-local-nonprod_local","store_family":"domain","environment_ring":"local","environment_label":"Local","region_ref":"local_nonprod","uk_region_role":"nonprod_local","runtime_workload_family_id":"rwf_local_nonprod_local_data_stateful_plane","runtime_workload_family_ref":"wf_data_stateful_plane","trust_zone_ref":"tz_stateful_data","network_ref":"net_local_local_nonprod","segment_ref":"seg_local_local_nonprod_data_stateful_plane","subnet_cidr":"10.240.80.0/24","network_policy_ref":"np_data_stateful_plane","route_domain_ref":"rd_stateful_data","service_identity_ref":"sid_data_plane","egress_allowlist_ref":"eal_data_internal_only","binding_state":"writable_authority","access_posture":"command_write","display_name":"Local nonprod_local domain authority","endpoint_ref":"domain-local-nonprod_local.internal.vecells","bootstrap_sql_refs":["infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"],"allowed_policy_refs":["ap_domain_command_writer","ap_domain_assurance_reader"],"blocked_service_identity_refs":["sid_public_edge_proxy","sid_published_gateway","sid_projection_worker","sid_integration_dispatch","browser"],"tenant_isolation_mode":"tenant_tuple_enforced_storage_partition","encryption_profile_ref":"enc_postgresql_kms_ready_at_rest","connectivity_mode":"private_identity_ready_tls","continuity_posture":"canonical_write_authority","bootstrap_health":"bootstrap_ready","source_refs":["docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings","blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract","docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families","blueprint/blueprint-init.md#12. Practical engineering shape"]},{"store_realization_id":"domain-ci-preview-primary","store_family":"domain","environment_ring":"ci-preview","environment_label":"CI preview","region_ref":"uk_primary_region","uk_region_role":"primary","runtime_workload_family_id":"rwf_ci_preview_primary_data_stateful_plane","runtime_workload_family_ref":"wf_data_stateful_plane","trust_zone_ref":"tz_stateful_data","network_ref":"net_ci-preview_uk_primary_region","segment_ref":"seg_ci-preview_uk_primary_region_data_stateful_plane","subnet_cidr":"10.24.80.0/24","network_policy_ref":"np_data_stateful_plane","route_domain_ref":"rd_stateful_data","service_identity_ref":"sid_data_plane","egress_allowlist_ref":"eal_data_internal_only","binding_state":"writable_authority","access_posture":"command_write","display_name":"CI preview primary domain authority","endpoint_ref":"domain-ci-preview-primary.internal.vecells","bootstrap_sql_refs":["infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"],"allowed_policy_refs":["ap_domain_command_writer","ap_domain_assurance_reader"],"blocked_service_identity_refs":["sid_public_edge_proxy","sid_published_gateway","sid_projection_worker","sid_integration_dispatch","browser"],"tenant_isolation_mode":"tenant_tuple_enforced_storage_partition","encryption_profile_ref":"enc_postgresql_kms_ready_at_rest","connectivity_mode":"private_identity_ready_tls","continuity_posture":"canonical_write_authority","bootstrap_health":"bootstrap_ready","source_refs":["docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings","blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract","docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families","docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Pipeline Stage Chain"]},{"store_realization_id":"domain-integration-primary","store_family":"domain","environment_ring":"integration","environment_label":"Integration","region_ref":"uk_primary_region","uk_region_role":"primary","runtime_workload_family_id":"rwf_integration_primary_data_stateful_plane","runtime_workload_family_ref":"wf_data_stateful_plane","trust_zone_ref":"tz_stateful_data","network_ref":"net_integration_uk_primary_region","segment_ref":"seg_integration_uk_primary_region_data_stateful_plane","subnet_cidr":"10.25.80.0/24","network_policy_ref":"np_data_stateful_plane","route_domain_ref":"rd_stateful_data","service_identity_ref":"sid_data_plane","egress_allowlist_ref":"eal_data_internal_only","binding_state":"writable_authority","access_posture":"command_write","display_name":"Integration primary domain authority","endpoint_ref":"domain-integration-primary.internal.vecells","bootstrap_sql_refs":["infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"],"allowed_policy_refs":["ap_domain_command_writer","ap_domain_assurance_reader"],"blocked_service_identity_refs":["sid_public_edge_proxy","sid_published_gateway","sid_projection_worker","sid_integration_dispatch","browser"],"tenant_isolation_mode":"tenant_tuple_enforced_storage_partition","encryption_profile_ref":"enc_postgresql_kms_ready_at_rest","connectivity_mode":"private_identity_ready_tls","continuity_posture":"canonical_write_authority","bootstrap_health":"bootstrap_ready","source_refs":["docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings","blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract","docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families","docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Pipeline Stage Chain"]},{"store_realization_id":"domain-preprod-primary","store_family":"domain","environment_ring":"preprod","environment_label":"Preprod","region_ref":"uk_primary_region","uk_region_role":"primary","runtime_workload_family_id":"rwf_preprod_primary_data_stateful_plane","runtime_workload_family_ref":"wf_data_stateful_plane","trust_zone_ref":"tz_stateful_data","network_ref":"net_preprod_uk_primary_region","segment_ref":"seg_preprod_uk_primary_region_data_stateful_plane","subnet_cidr":"10.26.80.0/24","network_policy_ref":"np_data_stateful_plane","route_domain_ref":"rd_stateful_data","service_identity_ref":"sid_data_plane","egress_allowlist_ref":"eal_data_internal_only","binding_state":"writable_authority","access_posture":"command_write","display_name":"Preprod primary domain authority","endpoint_ref":"domain-preprod-primary.internal.vecells","bootstrap_sql_refs":["infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"],"allowed_policy_refs":["ap_domain_command_writer","ap_domain_assurance_reader"],"blocked_service_identity_refs":["sid_public_edge_proxy","sid_published_gateway","sid_projection_worker","sid_integration_dispatch","browser"],"tenant_isolation_mode":"tenant_tuple_enforced_storage_partition","encryption_profile_ref":"enc_postgresql_kms_ready_at_rest","connectivity_mode":"private_identity_ready_tls","continuity_posture":"canonical_write_authority","bootstrap_health":"bootstrap_ready","source_refs":["docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings","blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract","docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families","docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings"]},{"store_realization_id":"domain-preprod-secondary","store_family":"domain","environment_ring":"preprod","environment_label":"Preprod","region_ref":"uk_secondary_region","uk_region_role":"secondary","runtime_workload_family_id":"rwf_preprod_secondary_data_stateful_plane","runtime_workload_family_ref":"wf_data_stateful_plane","trust_zone_ref":"tz_stateful_data","network_ref":"net_preprod_uk_secondary_region","segment_ref":"seg_preprod_uk_secondary_region_data_stateful_plane","subnet_cidr":"10.27.80.0/24","network_policy_ref":"np_data_stateful_plane","route_domain_ref":"rd_stateful_data","service_identity_ref":"sid_data_plane","egress_allowlist_ref":"eal_data_internal_only","binding_state":"warm_standby","access_posture":"internal_only","display_name":"Preprod secondary domain authority","endpoint_ref":"domain-preprod-secondary.internal.vecells","bootstrap_sql_refs":["infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"],"allowed_policy_refs":["ap_domain_command_writer","ap_domain_assurance_reader"],"blocked_service_identity_refs":["sid_public_edge_proxy","sid_published_gateway","sid_projection_worker","sid_integration_dispatch","browser"],"tenant_isolation_mode":"tenant_tuple_enforced_storage_partition","encryption_profile_ref":"enc_postgresql_kms_ready_at_rest","connectivity_mode":"private_identity_ready_tls","continuity_posture":"warm_replica_read_only_until_restore_tuple_exact","bootstrap_health":"bootstrap_ready","source_refs":["docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings","blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract","docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families","docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings"]},{"store_realization_id":"domain-production-primary","store_family":"domain","environment_ring":"production","environment_label":"Production","region_ref":"uk_primary_region","uk_region_role":"primary","runtime_workload_family_id":"rwf_production_primary_data_stateful_plane","runtime_workload_family_ref":"wf_data_stateful_plane","trust_zone_ref":"tz_stateful_data","network_ref":"net_production_uk_primary_region","segment_ref":"seg_production_uk_primary_region_data_stateful_plane","subnet_cidr":"10.28.80.0/24","network_policy_ref":"np_data_stateful_plane","route_domain_ref":"rd_stateful_data","service_identity_ref":"sid_data_plane","egress_allowlist_ref":"eal_data_internal_only","binding_state":"writable_authority","access_posture":"command_write","display_name":"Production primary domain authority","endpoint_ref":"domain-production-primary.internal.vecells","bootstrap_sql_refs":["infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"],"allowed_policy_refs":["ap_domain_command_writer","ap_domain_assurance_reader"],"blocked_service_identity_refs":["sid_public_edge_proxy","sid_published_gateway","sid_projection_worker","sid_integration_dispatch","browser"],"tenant_isolation_mode":"tenant_tuple_enforced_storage_partition","encryption_profile_ref":"enc_postgresql_kms_ready_at_rest","connectivity_mode":"private_identity_ready_tls","continuity_posture":"canonical_write_authority","bootstrap_health":"bootstrap_ready","source_refs":["docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings","blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract","docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families","docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Supply Chain Law"]},{"store_realization_id":"domain-production-secondary","store_family":"domain","environment_ring":"production","environment_label":"Production","region_ref":"uk_secondary_region","uk_region_role":"secondary","runtime_workload_family_id":"rwf_production_secondary_data_stateful_plane","runtime_workload_family_ref":"wf_data_stateful_plane","trust_zone_ref":"tz_stateful_data","network_ref":"net_production_uk_secondary_region","segment_ref":"seg_production_uk_secondary_region_data_stateful_plane","subnet_cidr":"10.29.80.0/24","network_policy_ref":"np_data_stateful_plane","route_domain_ref":"rd_stateful_data","service_identity_ref":"sid_data_plane","egress_allowlist_ref":"eal_data_internal_only","binding_state":"warm_standby","access_posture":"internal_only","display_name":"Production secondary domain authority","endpoint_ref":"domain-production-secondary.internal.vecells","bootstrap_sql_refs":["infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"],"allowed_policy_refs":["ap_domain_command_writer","ap_domain_assurance_reader"],"blocked_service_identity_refs":["sid_public_edge_proxy","sid_published_gateway","sid_projection_worker","sid_integration_dispatch","browser"],"tenant_isolation_mode":"tenant_tuple_enforced_storage_partition","encryption_profile_ref":"enc_postgresql_kms_ready_at_rest","connectivity_mode":"private_identity_ready_tls","continuity_posture":"warm_replica_read_only_until_restore_tuple_exact","bootstrap_health":"bootstrap_ready","source_refs":["docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings","blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract","docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families","docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Supply Chain Law"]},{"store_realization_id":"fhir-local-nonprod_local","store_family":"fhir","environment_ring":"local","environment_label":"Local","region_ref":"local_nonprod","uk_region_role":"nonprod_local","runtime_workload_family_id":"rwf_local_nonprod_local_data_stateful_plane","runtime_workload_family_ref":"wf_data_stateful_plane","trust_zone_ref":"tz_stateful_data","network_ref":"net_local_local_nonprod","segment_ref":"seg_local_local_nonprod_data_stateful_plane","subnet_cidr":"10.240.80.0/24","network_policy_ref":"np_data_stateful_plane","route_domain_ref":"rd_stateful_data","service_identity_ref":"sid_data_plane","egress_allowlist_ref":"eal_data_internal_only","binding_state":"derived_materialization","access_posture":"mapping_only","display_name":"Local nonprod_local FHIR representation","endpoint_ref":"fhir-local-nonprod_local.internal.vecells","bootstrap_sql_refs":["infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"],"allowed_policy_refs":["ap_fhir_command_materializer","ap_fhir_integration_bundle_reader","ap_fhir_assurance_reader"],"blocked_service_identity_refs":["sid_public_edge_proxy","sid_published_gateway","sid_projection_worker","browser"],"tenant_isolation_mode":"tenant_tuple_enforced_storage_partition","encryption_profile_ref":"enc_postgresql_kms_ready_at_rest","connectivity_mode":"private_identity_ready_tls","continuity_posture":"derived_materialization_ready","bootstrap_health":"mapping_bootstrap_ready","source_refs":["docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings","blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract","docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families","blueprint/blueprint-init.md#12. Practical engineering shape"]},{"store_realization_id":"fhir-ci-preview-primary","store_family":"fhir","environment_ring":"ci-preview","environment_label":"CI preview","region_ref":"uk_primary_region","uk_region_role":"primary","runtime_workload_family_id":"rwf_ci_preview_primary_data_stateful_plane","runtime_workload_family_ref":"wf_data_stateful_plane","trust_zone_ref":"tz_stateful_data","network_ref":"net_ci-preview_uk_primary_region","segment_ref":"seg_ci-preview_uk_primary_region_data_stateful_plane","subnet_cidr":"10.24.80.0/24","network_policy_ref":"np_data_stateful_plane","route_domain_ref":"rd_stateful_data","service_identity_ref":"sid_data_plane","egress_allowlist_ref":"eal_data_internal_only","binding_state":"derived_materialization","access_posture":"mapping_only","display_name":"CI preview primary FHIR representation","endpoint_ref":"fhir-ci-preview-primary.internal.vecells","bootstrap_sql_refs":["infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"],"allowed_policy_refs":["ap_fhir_command_materializer","ap_fhir_integration_bundle_reader","ap_fhir_assurance_reader"],"blocked_service_identity_refs":["sid_public_edge_proxy","sid_published_gateway","sid_projection_worker","browser"],"tenant_isolation_mode":"tenant_tuple_enforced_storage_partition","encryption_profile_ref":"enc_postgresql_kms_ready_at_rest","connectivity_mode":"private_identity_ready_tls","continuity_posture":"derived_materialization_ready","bootstrap_health":"mapping_bootstrap_ready","source_refs":["docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings","blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract","docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families","docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Pipeline Stage Chain"]},{"store_realization_id":"fhir-integration-primary","store_family":"fhir","environment_ring":"integration","environment_label":"Integration","region_ref":"uk_primary_region","uk_region_role":"primary","runtime_workload_family_id":"rwf_integration_primary_data_stateful_plane","runtime_workload_family_ref":"wf_data_stateful_plane","trust_zone_ref":"tz_stateful_data","network_ref":"net_integration_uk_primary_region","segment_ref":"seg_integration_uk_primary_region_data_stateful_plane","subnet_cidr":"10.25.80.0/24","network_policy_ref":"np_data_stateful_plane","route_domain_ref":"rd_stateful_data","service_identity_ref":"sid_data_plane","egress_allowlist_ref":"eal_data_internal_only","binding_state":"derived_materialization","access_posture":"mapping_only","display_name":"Integration primary FHIR representation","endpoint_ref":"fhir-integration-primary.internal.vecells","bootstrap_sql_refs":["infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"],"allowed_policy_refs":["ap_fhir_command_materializer","ap_fhir_integration_bundle_reader","ap_fhir_assurance_reader"],"blocked_service_identity_refs":["sid_public_edge_proxy","sid_published_gateway","sid_projection_worker","browser"],"tenant_isolation_mode":"tenant_tuple_enforced_storage_partition","encryption_profile_ref":"enc_postgresql_kms_ready_at_rest","connectivity_mode":"private_identity_ready_tls","continuity_posture":"derived_materialization_ready","bootstrap_health":"mapping_bootstrap_ready","source_refs":["docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings","blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract","docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families","docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Pipeline Stage Chain"]},{"store_realization_id":"fhir-preprod-primary","store_family":"fhir","environment_ring":"preprod","environment_label":"Preprod","region_ref":"uk_primary_region","uk_region_role":"primary","runtime_workload_family_id":"rwf_preprod_primary_data_stateful_plane","runtime_workload_family_ref":"wf_data_stateful_plane","trust_zone_ref":"tz_stateful_data","network_ref":"net_preprod_uk_primary_region","segment_ref":"seg_preprod_uk_primary_region_data_stateful_plane","subnet_cidr":"10.26.80.0/24","network_policy_ref":"np_data_stateful_plane","route_domain_ref":"rd_stateful_data","service_identity_ref":"sid_data_plane","egress_allowlist_ref":"eal_data_internal_only","binding_state":"derived_materialization","access_posture":"mapping_only","display_name":"Preprod primary FHIR representation","endpoint_ref":"fhir-preprod-primary.internal.vecells","bootstrap_sql_refs":["infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"],"allowed_policy_refs":["ap_fhir_command_materializer","ap_fhir_integration_bundle_reader","ap_fhir_assurance_reader"],"blocked_service_identity_refs":["sid_public_edge_proxy","sid_published_gateway","sid_projection_worker","browser"],"tenant_isolation_mode":"tenant_tuple_enforced_storage_partition","encryption_profile_ref":"enc_postgresql_kms_ready_at_rest","connectivity_mode":"private_identity_ready_tls","continuity_posture":"derived_materialization_ready","bootstrap_health":"mapping_bootstrap_ready","source_refs":["docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings","blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract","docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families","docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings"]},{"store_realization_id":"fhir-preprod-secondary","store_family":"fhir","environment_ring":"preprod","environment_label":"Preprod","region_ref":"uk_secondary_region","uk_region_role":"secondary","runtime_workload_family_id":"rwf_preprod_secondary_data_stateful_plane","runtime_workload_family_ref":"wf_data_stateful_plane","trust_zone_ref":"tz_stateful_data","network_ref":"net_preprod_uk_secondary_region","segment_ref":"seg_preprod_uk_secondary_region_data_stateful_plane","subnet_cidr":"10.27.80.0/24","network_policy_ref":"np_data_stateful_plane","route_domain_ref":"rd_stateful_data","service_identity_ref":"sid_data_plane","egress_allowlist_ref":"eal_data_internal_only","binding_state":"warm_standby","access_posture":"internal_only","display_name":"Preprod secondary FHIR representation","endpoint_ref":"fhir-preprod-secondary.internal.vecells","bootstrap_sql_refs":["infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"],"allowed_policy_refs":["ap_fhir_command_materializer","ap_fhir_integration_bundle_reader","ap_fhir_assurance_reader"],"blocked_service_identity_refs":["sid_public_edge_proxy","sid_published_gateway","sid_projection_worker","browser"],"tenant_isolation_mode":"tenant_tuple_enforced_storage_partition","encryption_profile_ref":"enc_postgresql_kms_ready_at_rest","connectivity_mode":"private_identity_ready_tls","continuity_posture":"warm_replica_for_bundle_rebuild_only","bootstrap_health":"mapping_bootstrap_ready","source_refs":["docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings","blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract","docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families","docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings"]},{"store_realization_id":"fhir-production-primary","store_family":"fhir","environment_ring":"production","environment_label":"Production","region_ref":"uk_primary_region","uk_region_role":"primary","runtime_workload_family_id":"rwf_production_primary_data_stateful_plane","runtime_workload_family_ref":"wf_data_stateful_plane","trust_zone_ref":"tz_stateful_data","network_ref":"net_production_uk_primary_region","segment_ref":"seg_production_uk_primary_region_data_stateful_plane","subnet_cidr":"10.28.80.0/24","network_policy_ref":"np_data_stateful_plane","route_domain_ref":"rd_stateful_data","service_identity_ref":"sid_data_plane","egress_allowlist_ref":"eal_data_internal_only","binding_state":"derived_materialization","access_posture":"mapping_only","display_name":"Production primary FHIR representation","endpoint_ref":"fhir-production-primary.internal.vecells","bootstrap_sql_refs":["infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"],"allowed_policy_refs":["ap_fhir_command_materializer","ap_fhir_integration_bundle_reader","ap_fhir_assurance_reader"],"blocked_service_identity_refs":["sid_public_edge_proxy","sid_published_gateway","sid_projection_worker","browser"],"tenant_isolation_mode":"tenant_tuple_enforced_storage_partition","encryption_profile_ref":"enc_postgresql_kms_ready_at_rest","connectivity_mode":"private_identity_ready_tls","continuity_posture":"derived_materialization_ready","bootstrap_health":"mapping_bootstrap_ready","source_refs":["docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings","blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract","docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families","docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Supply Chain Law"]},{"store_realization_id":"fhir-production-secondary","store_family":"fhir","environment_ring":"production","environment_label":"Production","region_ref":"uk_secondary_region","uk_region_role":"secondary","runtime_workload_family_id":"rwf_production_secondary_data_stateful_plane","runtime_workload_family_ref":"wf_data_stateful_plane","trust_zone_ref":"tz_stateful_data","network_ref":"net_production_uk_secondary_region","segment_ref":"seg_production_uk_secondary_region_data_stateful_plane","subnet_cidr":"10.29.80.0/24","network_policy_ref":"np_data_stateful_plane","route_domain_ref":"rd_stateful_data","service_identity_ref":"sid_data_plane","egress_allowlist_ref":"eal_data_internal_only","binding_state":"warm_standby","access_posture":"internal_only","display_name":"Production secondary FHIR representation","endpoint_ref":"fhir-production-secondary.internal.vecells","bootstrap_sql_refs":["infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"],"allowed_policy_refs":["ap_fhir_command_materializer","ap_fhir_integration_bundle_reader","ap_fhir_assurance_reader"],"blocked_service_identity_refs":["sid_public_edge_proxy","sid_published_gateway","sid_projection_worker","browser"],"tenant_isolation_mode":"tenant_tuple_enforced_storage_partition","encryption_profile_ref":"enc_postgresql_kms_ready_at_rest","connectivity_mode":"private_identity_ready_tls","continuity_posture":"warm_replica_for_bundle_rebuild_only","bootstrap_health":"mapping_bootstrap_ready","source_refs":["docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings","blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract","docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families","docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Supply Chain Law"]}],"bindings":[{"binding_ref":"sep_domain_request_lifecycle_authority","store_family":"domain","focus_area":"request_lifecycle","binding_state":"writable_authority","access_posture":"command_write","domain_truth_rule":"Request, Episode, RequestLineage, blocker, lease, and closure truth persist only in the transactional domain store.","fhir_truth_rule":"FHIR companions may reflect lifecycle milestones but may never drive lifecycle ownership back into domain truth.","identifier_namespace_rule":"aggregate_id and tenant tuple remain distinct from FHIR logicalId/versionId.","browser_reachability_rule":"never_browser_addressable","allowed_writer_policy_refs":"ap_domain_command_writer","blocked_writer_refs":"sid_published_gateway; sid_projection_worker; sid_integration_dispatch","source_refs":"docs/architecture/13_storage_and_persistence_baseline.md#Storage Law; docs/architecture/13_fhir_representation_and_projection_boundary.md#Rules"},{"binding_ref":"sep_domain_identity_and_grant_authority","store_family":"domain","focus_area":"identity_access","binding_state":"writable_authority","access_posture":"command_write","domain_truth_rule":"IdentityBinding, PatientLink, and AccessGrant state live in transactional schemas under exact-once redemption and supersession law.","fhir_truth_rule":"FHIR identifiers may reference patient-facing identity evidence only through published mapping or export companions.","identifier_namespace_rule":"access_grant_token_material and patient identity evidence do not become FHIR identifiers.","browser_reachability_rule":"never_browser_addressable","allowed_writer_policy_refs":"ap_domain_command_writer","blocked_writer_refs":"sid_published_gateway; sid_integration_dispatch","source_refs":"prompt/078.md; prompt/068.md; docs/architecture/13_fhir_representation_and_projection_boundary.md#One-Way Boundary"},{"binding_ref":"sep_domain_settlement_and_reservation_authority","store_family":"domain","focus_area":"settlement_and_reservation","binding_state":"writable_authority","access_posture":"command_write","domain_truth_rule":"CommandSettlementRecord, ReservationFenceRecord, and ExternalConfirmationGate stay in the canonical transactional store.","fhir_truth_rule":"FHIR bundles may expose booking-facing outputs but never become the source of reservation finality or external confirmation truth.","identifier_namespace_rule":"reservation keys remain Vecells internal consistency keys, never public resource identifiers.","browser_reachability_rule":"never_browser_addressable","allowed_writer_policy_refs":"ap_domain_command_writer","blocked_writer_refs":"sid_published_gateway; sid_projection_worker; sid_integration_dispatch","source_refs":"prompt/072.md; prompt/074.md; prompt/081.md"},{"binding_ref":"sep_domain_assurance_read_only","store_family":"domain","focus_area":"restore_and_diagnostics","binding_state":"warm_standby","access_posture":"assurance_read","domain_truth_rule":"Assurance read paths may inspect transactional truth for restore proof, replay review, and governance evidence only.","fhir_truth_rule":"Assurance may compare FHIR parity without widening FHIR into an operational write owner.","identifier_namespace_rule":"diagnostic snapshots preserve original identifiers and tuple hashes without rewriting them.","browser_reachability_rule":"never_browser_addressable","allowed_writer_policy_refs":"ap_domain_assurance_reader","blocked_writer_refs":"browser; sid_public_edge_proxy; sid_published_gateway","source_refs":"docs/architecture/11_region_resilience_and_failover_posture.md#Failover Authority; prompt/063.md"},{"binding_ref":"sep_domain_projection_not_source","store_family":"domain","focus_area":"projection_boundary","binding_state":"warm_standby","access_posture":"internal_only","domain_truth_rule":"Projection worker rebuilds from immutable events and published projection contracts, not direct transactional joins.","fhir_truth_rule":"Raw FHIR rows are equally non-authoritative for browser projections and staff query read models.","identifier_namespace_rule":"projection keys and cache tuples remain derived, not authoritative.","browser_reachability_rule":"never_browser_addressable","allowed_writer_policy_refs":"","blocked_writer_refs":"sid_projection_worker; browser","source_refs":"docs/architecture/13_fhir_representation_and_projection_boundary.md#Rules; prompt/082.md"},{"binding_ref":"sep_fhir_mapping_contract_gate","store_family":"fhir","focus_area":"mapping_contracts","binding_state":"derived_materialization","access_posture":"mapping_only","domain_truth_rule":"Settled aggregate truth is the only admissible input to FHIR materialization.","fhir_truth_rule":"FhirRepresentationSet, FhirResourceRecord, and FhirExchangeBundle rows are written only through published mapping contracts and compiler-owned seams.","identifier_namespace_rule":"FHIR logicalId and versionId remain representation identifiers, never aggregate primary keys.","browser_reachability_rule":"never_browser_addressable","allowed_writer_policy_refs":"ap_fhir_command_materializer","blocked_writer_refs":"sid_projection_worker; browser","source_refs":"data/analysis/fhir_representation_contract_manifest.json; prompt/064.md"},{"binding_ref":"sep_fhir_resource_version_supersession","store_family":"fhir","focus_area":"resource_versioning","binding_state":"derived_materialization","access_posture":"mapping_only","domain_truth_rule":"Aggregate version advancement determines when representation supersession is allowed.","fhir_truth_rule":"FHIR rows remain append-safe and superseded by new representation-set versions rather than in-place mutation.","identifier_namespace_rule":"contract version refs and resource version ids stay separate from aggregate version ids.","browser_reachability_rule":"never_browser_addressable","allowed_writer_policy_refs":"ap_fhir_command_materializer","blocked_writer_refs":"sid_integration_dispatch","source_refs":"prompt/064.md; data/analysis/fhir_representation_contract_manifest.json"},{"binding_ref":"sep_fhir_exchange_bundle_read_only_to_integrations","store_family":"fhir","focus_area":"bundle_exports","binding_state":"derived_materialization","access_posture":"mapping_only","domain_truth_rule":"Domain truth does not wait on partner bundle acceptance to become authoritative.","fhir_truth_rule":"Integration workers may read staged bundles and receipts but may not persist raw FHIR rows or bypass compiler-owned staging.","identifier_namespace_rule":"bundle ids are export artefacts, not request or appointment identifiers.","browser_reachability_rule":"never_browser_addressable","allowed_writer_policy_refs":"ap_fhir_integration_bundle_reader","blocked_writer_refs":"sid_integration_dispatch(write); browser","source_refs":"data/analysis/fhir_representation_contract_manifest.json; prompt/085.md#Non-negotiable rules"},{"binding_ref":"sep_fhir_assurance_parity_review","store_family":"fhir","focus_area":"assurance_review","binding_state":"warm_standby","access_posture":"assurance_read","domain_truth_rule":"Restore, replay, and parity decisions still anchor on canonical transactional truth plus immutable evidence.","fhir_truth_rule":"Assurance may read representation rows for parity proof and export admissibility without gaining write authority.","identifier_namespace_rule":"parity witness ids join domain and FHIR tuples without collapsing their namespaces.","browser_reachability_rule":"never_browser_addressable","allowed_writer_policy_refs":"ap_fhir_assurance_reader","blocked_writer_refs":"browser; sid_published_gateway","source_refs":"prompt/053.md; prompt/064.md; prompt/075.md"},{"binding_ref":"sep_fhir_not_projection_query_source","store_family":"fhir","focus_area":"projection_boundary","binding_state":"warm_standby","access_posture":"internal_only","domain_truth_rule":"Published browser and staff projections rebuild from event and projection contracts only.","fhir_truth_rule":"FHIR tables remain interoperability and governed back-office material, never a shortcut query source for shells.","identifier_namespace_rule":"projection cache keys remain distinct from FHIR identifiers and bundle refs.","browser_reachability_rule":"never_browser_addressable","allowed_writer_policy_refs":"","blocked_writer_refs":"sid_projection_worker; browser","source_refs":"docs/architecture/13_fhir_representation_and_projection_boundary.md#Rules; blueprint/platform-runtime-and-release-blueprint.md#Runtime rules"}],"policy_directory":{"ap_domain_command_writer":{"policy_ref":"ap_domain_command_writer","access_posture":"command_write","service_identity_ref":"sid_command_api","access_mode":"read_write","allowed_operations":["aggregate_write","settlement_persist","blocker_freeze","schema_bootstrap_read"],"notes":"Command API remains the only direct writer of canonical lifecycle truth."},"ap_domain_assurance_reader":{"policy_ref":"ap_domain_assurance_reader","access_posture":"assurance_read","service_identity_ref":"sid_assurance_control","access_mode":"read_only","allowed_operations":["restore_evidence_read","closure_diagnostic_read","lease_drift_review"],"notes":"Assurance surfaces may inspect truth for restore and governance evidence only."},"ap_domain_projection_blocked":{"policy_ref":"ap_domain_projection_blocked","access_posture":"internal_only","service_identity_ref":"sid_projection_worker","access_mode":"blocked","allowed_operations":[],"notes":"Projection worker rebuilds from canonical events and published contracts, not direct domain-row joins."},"ap_domain_integration_blocked":{"policy_ref":"ap_domain_integration_blocked","access_posture":"internal_only","service_identity_ref":"sid_integration_dispatch","access_mode":"blocked","allowed_operations":[],"notes":"Integration dispatch may not persist or read raw transactional truth outside the command seam."},"ap_fhir_command_materializer":{"policy_ref":"ap_fhir_command_materializer","access_posture":"mapping_only","service_identity_ref":"sid_command_api","access_mode":"read_write","allowed_operations":["representation_set_materialize","resource_record_supersede","exchange_bundle_stage"],"notes":"Command-side mapping/compiler flows materialize FHIR only from published contracts and settled domain truth."},"ap_fhir_integration_bundle_reader":{"policy_ref":"ap_fhir_integration_bundle_reader","access_posture":"mapping_only","service_identity_ref":"sid_integration_dispatch","access_mode":"read_only","allowed_operations":["exchange_bundle_read","representation_receipt_review"],"notes":"Integration workers may read bundle/export artefacts but may not mutate representation rows directly."},"ap_fhir_assurance_reader":{"policy_ref":"ap_fhir_assurance_reader","access_posture":"assurance_read","service_identity_ref":"sid_assurance_control","access_mode":"read_only","allowed_operations":["representation_parity_review","bundle_audit_read"],"notes":"Assurance reads representation rows for parity proof and restore evidence only."},"ap_fhir_projection_blocked":{"policy_ref":"ap_fhir_projection_blocked","access_posture":"internal_only","service_identity_ref":"sid_projection_worker","access_mode":"blocked","allowed_operations":[],"notes":"Projection reads remain derived from events and projection contracts, never from raw FHIR tables."}},"representation_flow":[{"flow_step_ref":"flow_domain_aggregate_settlement","label":"Canonical aggregate settlement","store_family":"domain","tone":"domain"},{"flow_step_ref":"flow_mapping_contract_gate","label":"Published FHIR mapping contract","store_family":"fhir","tone":"manifest"},{"flow_step_ref":"flow_representation_set_materialization","label":"FhirRepresentationSet materialization","store_family":"fhir","tone":"fhir"},{"flow_step_ref":"flow_resource_record_versions","label":"FhirResourceRecord versions","store_family":"fhir","tone":"fhir"},{"flow_step_ref":"flow_exchange_bundle_stage","label":"FhirExchangeBundle staging and export","store_family":"fhir","tone":"warning"}]}</script>
+    <script>
+      const DATA = JSON.parse(document.getElementById("atlas-data").textContent);
+      const state = {
+        environment: "local",
+        storeFamily: "all",
+        bindingState: "all",
+        accessPosture: "all",
+        selectedStoreId: null,
+        selectedBindingId: null,
+      };
+
+      const filterEnvironment = document.getElementById("filter-environment");
+      const filterStoreFamily = document.getElementById("filter-store-family");
+      const filterBindingState = document.getElementById("filter-binding-state");
+      const filterAccessPosture = document.getElementById("filter-access-posture");
+      const topologyDiagram = document.getElementById("topology-diagram");
+      const bindingMatrix = document.getElementById("binding-matrix");
+      const representationStrip = document.getElementById("representation-strip");
+      const storeTableBody = document.getElementById("store-table-body");
+      const bindingTableBody = document.getElementById("binding-table-body");
+      const inspector = document.getElementById("inspector");
+      const inspectorBody = document.getElementById("inspector-body");
+
+      document.body.dataset.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "true"
+        : "false";
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function setMetric(testId, value) {
+        document.querySelector(`[data-testid="${testId}"]`).textContent = String(value);
+      }
+
+      function populateSelect(select, values) {
+        select.innerHTML = values
+          .map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)
+          .join("");
+      }
+
+      function filteredStores() {
+        return DATA.stores.filter((row) => {
+          if (state.environment !== "all" && row.environment_ring !== state.environment) return false;
+          if (state.storeFamily !== "all" && row.store_family !== state.storeFamily) return false;
+          if (state.bindingState !== "all" && row.binding_state !== state.bindingState) return false;
+          if (state.accessPosture !== "all" && row.access_posture !== state.accessPosture) return false;
+          return true;
+        });
+      }
+
+      function filteredBindings() {
+        return DATA.bindings.filter((row) => {
+          if (state.storeFamily !== "all" && row.store_family !== state.storeFamily) return false;
+          if (state.accessPosture !== "all" && row.access_posture !== state.accessPosture) return false;
+          return true;
+        });
+      }
+
+      function currentSelectionFamily() {
+        const selectedStore = DATA.stores.find((row) => row.store_realization_id === state.selectedStoreId);
+        if (selectedStore) return selectedStore.store_family;
+        const selectedBinding = DATA.bindings.find((row) => row.binding_ref === state.selectedBindingId);
+        return selectedBinding ? selectedBinding.store_family : "all";
+      }
+
+      function ensureSelection(stores, bindings) {
+        const storeVisible = stores.some((row) => row.store_realization_id === state.selectedStoreId);
+        const bindingVisible = bindings.some((row) => row.binding_ref === state.selectedBindingId);
+        if (!storeVisible) state.selectedStoreId = stores[0]?.store_realization_id ?? null;
+        if (!bindingVisible) state.selectedBindingId = bindings[0]?.binding_ref ?? null;
+      }
+
+      function storeInspectorText(store) {
+        const allowedPolicyDetails = store.allowed_policy_refs
+          .map((policyRef) => DATA.policy_directory[policyRef])
+          .filter(Boolean);
+        return [
+          `Store: ${store.display_name}`,
+          `Store family: ${store.store_family}`,
+          `Binding state: ${store.binding_state}`,
+          `Access posture: ${store.access_posture}`,
+          `Environment: ${store.environment_label}`,
+          `Region: ${store.region_ref} (${store.uk_region_role})`,
+          `Endpoint: ${store.endpoint_ref}`,
+          `Service identity: ${store.service_identity_ref}`,
+          `Network: ${store.network_ref}`,
+          `Subnet: ${store.subnet_cidr}`,
+          `Network policy: ${store.network_policy_ref}`,
+          `Bootstrap SQL: ${store.bootstrap_sql_refs.join(", ")}`,
+          `Allowed policy refs: ${store.allowed_policy_refs.join(", ")}`,
+          `Allowed policy identities: ${allowedPolicyDetails.map((row) => row.service_identity_ref + "(" + row.access_mode + ")").join(", ") || "none"}`,
+          `Tenant isolation: ${store.tenant_isolation_mode}`,
+          `Continuity posture: ${store.continuity_posture}`,
+          `Blocked identities: ${store.blocked_service_identity_refs.join(", ")}`,
+        ].join("\n");
+      }
+
+      function bindingInspectorText(binding) {
+        return [
+          `Binding: ${binding.binding_ref}`,
+          `Store family: ${binding.store_family}`,
+          `Focus area: ${binding.focus_area}`,
+          `Binding state: ${binding.binding_state}`,
+          `Access posture: ${binding.access_posture}`,
+          `Domain rule: ${binding.domain_truth_rule}`,
+          `FHIR rule: ${binding.fhir_truth_rule}`,
+          `Identifier namespace rule: ${binding.identifier_namespace_rule}`,
+          `Allowed policy refs: ${binding.allowed_writer_policy_refs || "none"}`,
+          `Blocked writers: ${binding.blocked_writer_refs}`,
+        ].join("\n");
+      }
+
+      function moveSelection(kind, direction) {
+        if (kind === "store") {
+          const rows = Array.from(storeTableBody.querySelectorAll("tr"));
+          const ids = rows.map((row) => row.dataset.storeId);
+          const currentIndex = Math.max(ids.indexOf(state.selectedStoreId), 0);
+          const nextIndex = Math.min(Math.max(currentIndex + direction, 0), ids.length - 1);
+          state.selectedStoreId = ids[nextIndex] ?? state.selectedStoreId;
+        } else {
+          const rows = Array.from(bindingTableBody.querySelectorAll("tr"));
+          const ids = rows.map((row) => row.dataset.bindingId);
+          const currentIndex = Math.max(ids.indexOf(state.selectedBindingId), 0);
+          const nextIndex = Math.min(Math.max(currentIndex + direction, 0), ids.length - 1);
+          state.selectedBindingId = ids[nextIndex] ?? state.selectedBindingId;
+        }
+        render();
+      }
+
+      function render() {
+        const stores = filteredStores();
+        const bindings = filteredBindings();
+        ensureSelection(stores, bindings);
+        const selectedFamily = currentSelectionFamily();
+
+        setMetric("metric-store-count", stores.length);
+        setMetric("metric-binding-count", bindings.length);
+        setMetric(
+          "metric-domain-count",
+          stores.filter((row) => row.store_family === "domain").length,
+        );
+        setMetric(
+          "metric-fhir-count",
+          stores.filter((row) => row.store_family === "fhir").length,
+        );
+
+        topologyDiagram.dataset.selectedFamily = selectedFamily;
+        bindingMatrix.dataset.selectedBinding = state.selectedBindingId ?? "";
+        representationStrip.dataset.selectedBinding = state.selectedBindingId ?? "";
+        representationStrip.dataset.selectedFamily = selectedFamily;
+        inspector.dataset.selectedStore = state.selectedStoreId ?? "";
+        inspector.dataset.selectedBinding = state.selectedBindingId ?? "";
+
+        topologyDiagram.innerHTML = stores
+          .map((row) => {
+            const selected = row.store_realization_id === state.selectedStoreId ? "true" : "false";
+            return `
+              <article
+                class="node interactive"
+                tabindex="0"
+                data-testid="topology-node-${escapeHtml(row.store_realization_id)}"
+                data-selected="${selected}"
+                data-family="${escapeHtml(row.store_family)}"
+              >
+                <h3>${escapeHtml(row.display_name)}</h3>
+                <div class="badge-row">
+                  <span class="state-pill ${row.store_family === "domain" ? "domain" : "fhir"}">${escapeHtml(row.binding_state)}</span>
+                </div>
+                <dl>
+                  <div><dt>Access</dt><dd>${escapeHtml(row.access_posture)}</dd></div>
+                  <div><dt>Identity</dt><dd><code>${escapeHtml(row.service_identity_ref)}</code></dd></div>
+                  <div><dt>Subnet</dt><dd><code>${escapeHtml(row.subnet_cidr)}</code></dd></div>
+                </dl>
+              </article>
+            `;
+          })
+          .join("");
+
+        bindingMatrix.innerHTML = bindings
+          .map((row) => {
+            const selected = row.binding_ref === state.selectedBindingId ? "true" : "false";
+            return `
+              <article
+                class="binding-card interactive"
+                tabindex="0"
+                data-testid="binding-card-${escapeHtml(row.binding_ref)}"
+                data-selected="${selected}"
+                data-family="${escapeHtml(row.store_family)}"
+              >
+                <h3>${escapeHtml(row.focus_area.replaceAll("_", " "))}</h3>
+                <dl>
+                  <div><dt>Binding</dt><dd><code>${escapeHtml(row.binding_ref)}</code></dd></div>
+                  <div><dt>Access</dt><dd>${escapeHtml(row.access_posture)}</dd></div>
+                  <div><dt>State</dt><dd>${escapeHtml(row.binding_state)}</dd></div>
+                </dl>
+              </article>
+            `;
+          })
+          .join("");
+
+        representationStrip.innerHTML = DATA.representation_flow
+          .map((step) => {
+            const selected = step.store_family === selectedFamily ? "true" : "false";
+            return `
+              <article
+                class="flow-step"
+                data-testid="representation-step-${escapeHtml(step.flow_step_ref)}"
+                data-selected="${selected}"
+                data-family="${escapeHtml(step.store_family)}"
+              >
+                <h3>${escapeHtml(step.label)}</h3>
+                <p>${step.store_family === "domain" ? "Vecells-first authority" : "Derived interoperability layer"}</p>
+              </article>
+            `;
+          })
+          .join("");
+
+        storeTableBody.innerHTML = stores
+          .map((row) => {
+            const selected = row.store_realization_id === state.selectedStoreId ? "true" : "false";
+            return `
+              <tr
+                data-testid="store-row-${escapeHtml(row.store_realization_id)}"
+                data-store-id="${escapeHtml(row.store_realization_id)}"
+                data-selected="${selected}"
+              >
+                <td>
+                  <button class="row-select interactive" type="button">${escapeHtml(row.display_name)}</button>
+                </td>
+                <td>${escapeHtml(row.environment_label)}<br /><code>${escapeHtml(row.region_ref)}</code></td>
+                <td>${escapeHtml(row.binding_state)}</td>
+                <td>${escapeHtml(row.access_posture)}</td>
+              </tr>
+            `;
+          })
+          .join("");
+
+        bindingTableBody.innerHTML = bindings
+          .map((row) => {
+            const selected = row.binding_ref === state.selectedBindingId ? "true" : "false";
+            return `
+              <tr
+                data-testid="binding-row-${escapeHtml(row.binding_ref)}"
+                data-binding-id="${escapeHtml(row.binding_ref)}"
+                data-selected="${selected}"
+              >
+                <td><button class="row-select interactive" type="button">${escapeHtml(row.binding_ref)}</button></td>
+                <td>${escapeHtml(row.store_family)}</td>
+                <td>${escapeHtml(row.focus_area.replaceAll("_", " "))}</td>
+                <td>${escapeHtml(row.access_posture)}</td>
+              </tr>
+            `;
+          })
+          .join("");
+
+        const selectedStore = stores.find((row) => row.store_realization_id === state.selectedStoreId);
+        const selectedBinding = bindings.find((row) => row.binding_ref === state.selectedBindingId);
+        inspectorBody.textContent = selectedStore
+          ? storeInspectorText(selectedStore)
+          : selectedBinding
+            ? bindingInspectorText(selectedBinding)
+            : "No visible selection.";
+
+        topologyDiagram.querySelectorAll(".node").forEach((node) => {
+          node.addEventListener("click", () => {
+            state.selectedStoreId = node.dataset.testid?.replace("topology-node-", "") || node.getAttribute("data-testid").replace("topology-node-", "");
+            render();
+          });
+          node.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              state.selectedStoreId = node.getAttribute("data-testid").replace("topology-node-", "");
+              render();
+            }
+          });
+        });
+
+        storeTableBody.querySelectorAll("tr").forEach((row) => {
+          row.addEventListener("click", () => {
+            state.selectedStoreId = row.dataset.storeId;
+            render();
+          });
+          row.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              moveSelection("store", 1);
+            }
+            if (event.key === "ArrowUp") {
+              event.preventDefault();
+              moveSelection("store", -1);
+            }
+          });
+          row.tabIndex = 0;
+        });
+
+        bindingMatrix.querySelectorAll(".binding-card").forEach((card) => {
+          card.addEventListener("click", () => {
+            state.selectedBindingId = card.getAttribute("data-testid").replace("binding-card-", "");
+            render();
+          });
+          card.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              state.selectedBindingId = card.getAttribute("data-testid").replace("binding-card-", "");
+              render();
+            }
+          });
+        });
+
+        bindingTableBody.querySelectorAll("tr").forEach((row) => {
+          row.addEventListener("click", () => {
+            state.selectedBindingId = row.dataset.bindingId;
+            render();
+          });
+          row.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              moveSelection("binding", 1);
+            }
+            if (event.key === "ArrowUp") {
+              event.preventDefault();
+              moveSelection("binding", -1);
+            }
+          });
+          row.tabIndex = 0;
+        });
+      }
+
+      populateSelect(filterEnvironment, DATA.filters.environments);
+      populateSelect(filterStoreFamily, DATA.filters.storeFamilies);
+      populateSelect(filterBindingState, DATA.filters.bindingStates);
+      populateSelect(filterAccessPosture, DATA.filters.accessPostures);
+
+      filterEnvironment.value = state.environment;
+      filterStoreFamily.value = state.storeFamily;
+      filterBindingState.value = state.bindingState;
+      filterAccessPosture.value = state.accessPosture;
+
+      [filterEnvironment, filterStoreFamily, filterBindingState, filterAccessPosture].forEach((select) => {
+        select.addEventListener("change", () => {
+          state.environment = filterEnvironment.value;
+          state.storeFamily = filterStoreFamily.value;
+          state.bindingState = filterBindingState.value;
+          state.accessPosture = filterAccessPosture.value;
+          render();
+        });
+      });
+
+      render();
+    </script>
+  </body>
+</html>

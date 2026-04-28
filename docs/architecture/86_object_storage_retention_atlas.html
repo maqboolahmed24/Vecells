@@ -1,0 +1,1012 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>86 Object Storage Retention Atlas</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #F7F9FC;
+        --panel: #FFFFFF;
+        --rail: #EEF2F7;
+        --inset: #F4F7FB;
+        --text-strong: #0F172A;
+        --text-default: #1E293B;
+        --text-muted: #64748B;
+        --border: #E2E8F0;
+        --quarantine: #C24141;
+        --trusted: #2563EB;
+        --derived: #0EA5A4;
+        --redacted: #7C3AED;
+        --ephemeral: #D97706;
+        --hold: #059669;
+        --radius: 22px;
+        --shadow: 0 24px 72px rgba(15, 23, 42, 0.08);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text-default);
+        background:
+          radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 26rem),
+          radial-gradient(circle at top right, rgba(124, 58, 237, 0.08), transparent 24rem),
+          var(--canvas);
+      }
+      body[data-reduced-motion="true"] * {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+      .page {
+        max-width: 1580px;
+        margin: 0 auto;
+        padding: 20px 24px 48px;
+      }
+      .masthead {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        min-height: 76px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: center;
+        padding: 18px 22px;
+        margin-bottom: 18px;
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: blur(14px);
+        border: 1px solid rgba(226, 232, 240, 0.92);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .monogram {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.16), rgba(14, 165, 164, 0.18));
+        color: var(--text-strong);
+      }
+      .monogram svg {
+        width: 26px;
+        height: 26px;
+      }
+      .brand-copy h1 {
+        margin: 0;
+        font-size: 1.08rem;
+        color: var(--text-strong);
+      }
+      .brand-copy p {
+        margin: 4px 0 0;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .metric {
+        min-width: 132px;
+        padding: 10px 12px;
+        background: var(--inset);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+      }
+      .metric strong {
+        display: block;
+        font-size: 1rem;
+        color: var(--text-strong);
+      }
+      .metric span {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 324px minmax(0, 1fr) 420px;
+        gap: 18px;
+        align-items: start;
+      }
+      .panel {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+      .rail,
+      .inspector {
+        position: sticky;
+        top: 92px;
+      }
+      .rail {
+        padding: 18px;
+        background: var(--rail);
+      }
+      .rail h2,
+      .canvas h2,
+      .inspector h2 {
+        margin: 0;
+        font-size: 0.96rem;
+        color: var(--text-strong);
+      }
+      .filter-group {
+        display: grid;
+        gap: 12px;
+        margin-top: 16px;
+      }
+      label {
+        display: grid;
+        gap: 6px;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+      }
+      select {
+        height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text-default);
+        padding: 0 12px;
+        transition: border-color 180ms ease, box-shadow 180ms ease;
+      }
+      select:focus-visible,
+      button:focus-visible {
+        outline: none;
+        border-color: var(--trusted);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+      }
+      .canvas {
+        display: grid;
+        gap: 18px;
+      }
+      .visual,
+      .tables {
+        padding: 20px;
+      }
+      .visual {
+        min-height: 320px;
+      }
+      .visual-header,
+      .tables-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: flex-start;
+        margin-bottom: 14px;
+      }
+      .visual-header p,
+      .tables-header p,
+      .inspector p {
+        margin: 6px 0 0;
+        font-size: 0.84rem;
+        color: var(--text-muted);
+      }
+      .flow-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .flow-node {
+        position: relative;
+        padding: 16px;
+        background: var(--inset);
+        border: 1px solid var(--border);
+        border-left: 6px solid var(--accent);
+        border-radius: 18px;
+        transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+      }
+      .flow-node[data-selected="true"] {
+        transform: translateY(-2px);
+        border-color: var(--accent);
+        box-shadow: 0 14px 36px rgba(15, 23, 42, 0.1);
+      }
+      .flow-node h3 {
+        margin: 0 0 8px;
+        font-size: 0.96rem;
+        color: var(--text-strong);
+      }
+      .flow-node p {
+        margin: 0;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+      }
+      .flow-node .mono {
+        display: inline-block;
+        margin-top: 10px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.75rem;
+      }
+      .ribbon {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .ribbon-step {
+        padding: 12px;
+        border-radius: 16px;
+        background: var(--inset);
+        border: 1px solid var(--border);
+        border-top: 4px solid var(--accent);
+      }
+      .ribbon-step[data-selected="true"] {
+        border-color: var(--accent);
+        background: rgba(255, 255, 255, 0.92);
+      }
+      .matrix {
+        display: grid;
+        gap: 10px;
+      }
+      .matrix-head,
+      .matrix-row {
+        display: grid;
+        grid-template-columns: 180px repeat(5, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .matrix-head span,
+      .matrix-row span {
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: var(--inset);
+        border: 1px solid var(--border);
+        font-size: 0.8rem;
+      }
+      .matrix-row[data-selected="true"] span:first-child {
+        border-color: var(--accent);
+      }
+      .matrix-cell[data-allowed="true"] {
+        background: rgba(5, 150, 105, 0.08);
+        color: var(--text-strong);
+      }
+      .matrix-cell[data-allowed="false"] {
+        background: rgba(226, 232, 240, 0.55);
+        color: var(--text-muted);
+      }
+      .tables {
+        display: grid;
+        gap: 18px;
+      }
+      .table-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      caption {
+        text-align: left;
+        margin-bottom: 10px;
+        font-weight: 600;
+        color: var(--text-strong);
+      }
+      th,
+      td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+        vertical-align: top;
+        font-size: 0.8rem;
+      }
+      th {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
+      }
+      .row-select {
+        width: 100%;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        text-align: left;
+        padding: 0;
+        font: inherit;
+        cursor: pointer;
+      }
+      .row-selected td {
+        background: rgba(15, 23, 42, 0.03);
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .inspector {
+        padding: 20px;
+      }
+      .inspector-tabs {
+        display: flex;
+        gap: 8px;
+        margin: 16px 0 18px;
+      }
+      .inspector-tab {
+        height: 40px;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--inset);
+        color: var(--text-default);
+        cursor: pointer;
+        transition: transform 120ms ease, border-color 120ms ease;
+      }
+      .inspector-tab[data-active="true"] {
+        border-color: var(--text-strong);
+        background: var(--panel);
+        transform: translateY(-1px);
+      }
+      .inspector-card {
+        padding: 16px;
+        border-radius: 18px;
+        background: var(--inset);
+        border: 1px solid var(--border);
+      }
+      .inspector-card dl {
+        margin: 0;
+        display: grid;
+        gap: 10px;
+      }
+      .inspector-card dt {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
+      }
+      .inspector-card dd {
+        margin: 4px 0 0;
+        color: var(--text-strong);
+      }
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+      }
+      @media (max-width: 1280px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        .rail,
+        .inspector {
+          position: static;
+        }
+        .metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 980px) {
+        .flow-grid,
+        .ribbon,
+        .table-grid,
+        .matrix-head,
+        .matrix-row {
+          grid-template-columns: 1fr;
+        }
+        .masthead {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="masthead" aria-label="Atlas masthead">
+        <div class="brand">
+          <div class="monogram" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="2" width="28" height="28" rx="10" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M11.3 12.2c.9-1 2.1-1.5 3.7-1.5 2.5 0 4.1 1.1 4.8 3.4h-2.6c-.4-.9-1.2-1.3-2.3-1.3-.8 0-1.5.2-2 .7-.5.5-.7 1.1-.7 1.8 0 1.8 1.4 2.8 4.1 3.2 2.8.4 4.2 1.8 4.2 4.1 0 1.3-.5 2.4-1.5 3.2-1 .8-2.3 1.2-4 1.2-2.8 0-4.6-1.1-5.6-3.4h2.8c.5.9 1.5 1.3 2.8 1.3.9 0 1.6-.2 2.1-.6.5-.4.8-.9.8-1.5 0-1-.8-1.7-2.5-2.1l-1.7-.3c-2.7-.5-4.1-1.9-4.1-4.3 0-1.2.4-2.3 1.3-3.2Z" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="brand-copy">
+            <h1>Vecells Object_Storage_Retention_Atlas</h1>
+            <p>Premium evidence-governance atlas for storage classes, retention law, and manifest-bound delivery.</p>
+          </div>
+        </div>
+        <div class="metrics" aria-label="Atlas metrics">
+          <div class="metric"><strong id="metric-environments">0</strong><span>Active environments</span></div>
+          <div class="metric"><strong id="metric-quarantine">0</strong><span>Quarantined-object count</span></div>
+          <div class="metric"><strong id="metric-hold">0</strong><span>Hold-enabled classes</span></div>
+          <div class="metric"><strong id="metric-alerts">0</strong><span>Stale-policy alerts</span></div>
+        </div>
+      </header>
+      <div class="layout">
+        <nav class="panel rail" aria-label="Atlas filters">
+          <h2>Filters</h2>
+          <div class="filter-group">
+            <label>Environment
+              <select id="filter-environment" data-testid="filter-environment"></select>
+            </label>
+            <label>Storage class
+              <select id="filter-class" data-testid="filter-class"></select>
+            </label>
+            <label>Retention state
+              <select id="filter-retention" data-testid="filter-retention"></select>
+            </label>
+            <label>Hold readiness
+              <select id="filter-hold" data-testid="filter-hold">
+                <option value="all">All</option>
+                <option value="ready">Hold-ready only</option>
+                <option value="not-ready">Not ready</option>
+              </select>
+            </label>
+            <label>Workload-family access
+              <select id="filter-workload" data-testid="filter-workload"></select>
+            </label>
+          </div>
+        </nav>
+        <main class="canvas" aria-label="Atlas canvas">
+          <section class="panel visual">
+            <div class="visual-header">
+              <div>
+                <h2>Artifact flow diagram</h2>
+                <p>Ingress, quarantine, trusted source, derived, redacted, outbound, and recovery paths stay separate and non-browser-addressable by default.</p>
+              </div>
+            </div>
+            <div class="flow-grid" data-testid="flow-diagram" id="flow-diagram"></div>
+            <p id="flow-parity">No selection.</p>
+          </section>
+          <section class="panel visual">
+            <div class="visual-header">
+              <div>
+                <h2>Retention lifecycle ribbon</h2>
+                <p>Each class carries a version-controlled retention state and hold-ready posture that survive provider cutover.</p>
+              </div>
+            </div>
+            <div class="ribbon" data-testid="lifecycle-ribbon" id="lifecycle-ribbon"></div>
+            <p id="ribbon-parity">No lifecycle selected.</p>
+          </section>
+          <section class="panel visual">
+            <div class="visual-header">
+              <div>
+                <h2>Access policy matrix</h2>
+                <p>Only published workload identities may touch storage classes, and browser surfaces can deliver only through governed contracts.</p>
+              </div>
+            </div>
+            <div class="matrix" data-testid="access-matrix" id="access-matrix"></div>
+            <p id="matrix-parity">Matrix parity pending.</p>
+          </section>
+          <section class="panel tables">
+            <div class="tables-header">
+              <div>
+                <h2>Manifest and retention tables</h2>
+                <p>Every visual has an adjacent textual fallback with deterministic row anchors.</p>
+              </div>
+            </div>
+            <div class="table-grid">
+              <div>
+                <table data-testid="manifest-table">
+                  <caption>Storage class manifest</caption>
+                  <thead>
+                    <tr>
+                      <th>Class</th>
+                      <th>Immutability</th>
+                      <th>Browser posture</th>
+                    </tr>
+                  </thead>
+                  <tbody id="manifest-body"></tbody>
+                </table>
+              </div>
+              <div>
+                <table data-testid="retention-table">
+                  <caption>Retention and access policy table</caption>
+                  <thead>
+                    <tr>
+                      <th>Class</th>
+                      <th>Environment</th>
+                      <th>Retention</th>
+                      <th>Hold</th>
+                    </tr>
+                  </thead>
+                  <tbody id="retention-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </main>
+        <aside class="panel inspector" aria-label="Inspector" data-testid="inspector">
+          <h2>Inspector</h2>
+          <p>Selected storage class, retention law, manifest rule, and delivery posture.</p>
+          <div class="inspector-tabs" role="tablist" aria-label="Inspector tabs">
+            <button class="inspector-tab" data-tab="summary" data-active="true" role="tab" aria-selected="true">Summary</button>
+            <button class="inspector-tab" data-tab="policy" data-active="false" role="tab" aria-selected="false">Policy</button>
+            <button class="inspector-tab" data-tab="keys" data-active="false" role="tab" aria-selected="false">Keys</button>
+          </div>
+          <div class="inspector-card" id="inspector-card"></div>
+        </aside>
+      </div>
+    </div>
+    <script>
+      const payload = {"meta":{"taskId":"par_086","visualMode":"Object_Storage_Retention_Atlas","generatedAt":"2026-04-13T14:51:07+00:00","activeEnvironmentCount":5,"quarantinedFixtureCount":2,"holdEnabledClassCount":6,"stalePolicyAlerts":0},"storageClasses":[{"storage_class_ref":"quarantine_raw","display_name":"Quarantine raw","accent_ref":"quarantine","purpose":"Unsafe uploads and telephony recordings remain unreadable until scan and manifest review settle.","encryption_posture":"at_rest_tls_private","immutability_mode":"write_once_pending_scan","retention_state":"scan_hold","retention_policy_ref":"ret_086_quarantine_raw","hold_ref":"hold_086_quarantine_raw","legal_hold_ready":true,"browser_delivery_posture":"forbidden","signed_access_ttl_seconds":0,"workload_family_refs":["wf_command_orchestration","wf_integration_dispatch","wf_assurance_security_control","wf_integration_simulation_lab"],"service_identity_refs":["sid_command_api","sid_integration_dispatch","sid_assurance_control","sid_adapter_simulators"],"manifest_rule_ref":"okr_086_scan_pending","purge_mode":"blocked_until_scan_and_manifest_settle","governing_object_refs":["OBJ_063_CAPTURE_BUNDLE"],"artifact_kind_refs":["upload_attachment","telephony_recording"],"visibility_authority":"never_browser_visible","seed_fixture_refs":["fixture_086_upload_photo_pending_scan","fixture_086_call_recording_pending_scan"],"source_refs":["blueprint/phase-0-the-foundation-protocol.md#CaptureBundle","blueprint/phase-0-the-foundation-protocol.md#4.3A Artifact quarantine and fallback review"]},{"storage_class_ref":"evidence_source_immutable","display_name":"Evidence source immutable","accent_ref":"trusted","purpose":"Cleared source evidence stays immutable and content-traceable for parity and review.","encryption_posture":"at_rest_tls_private","immutability_mode":"worm_ready_write_once","retention_state":"immutable_source_retention","retention_policy_ref":"ret_086_evidence_source","hold_ref":"hold_086_source_evidence","legal_hold_ready":true,"browser_delivery_posture":"forbidden","signed_access_ttl_seconds":0,"workload_family_refs":["wf_command_orchestration","wf_assurance_security_control","wf_data_stateful_plane"],"service_identity_refs":["sid_command_api","sid_assurance_control","sid_data_plane"],"manifest_rule_ref":"okr_086_source_immutable","purge_mode":"governed_purge_only","governing_object_refs":["OBJ_063_CAPTURE_BUNDLE","OBJ_063_EVIDENCE_SNAPSHOT"],"artifact_kind_refs":["source_bundle","capture_archive"],"visibility_authority":"evidence_manifest_and_presentation_contract","seed_fixture_refs":["fixture_086_clean_source_bundle"],"source_refs":["blueprint/phase-0-the-foundation-protocol.md#EvidenceCaptureBundle","blueprint/phase-0-the-foundation-protocol.md#EvidenceSnapshot","data/analysis/worm_retention_classes.json"]},{"storage_class_ref":"derived_internal","display_name":"Derived internal","accent_ref":"derived","purpose":"Transcripts, extracted fact packs, and normalized packages stay internal and supersession-aware.","encryption_posture":"at_rest_tls_private","immutability_mode":"append_only_superseded_versions","retention_state":"derived_internal_retention","retention_policy_ref":"ret_086_derived_internal","hold_ref":"hold_086_derived_internal","legal_hold_ready":true,"browser_delivery_posture":"forbidden","signed_access_ttl_seconds":0,"workload_family_refs":["wf_command_orchestration","wf_projection_read_models","wf_assurance_security_control"],"service_identity_refs":["sid_command_api","sid_projection_worker","sid_assurance_control"],"manifest_rule_ref":"okr_086_derived_internal","purge_mode":"purge_after_supersession_window","governing_object_refs":["OBJ_063_DERIVATION_PACKAGE"],"artifact_kind_refs":["transcript","fact_pack","normalized_attachment"],"visibility_authority":"derivation_manifest_only","seed_fixture_refs":["fixture_086_transcript_package","fixture_086_fact_pack"],"source_refs":["blueprint/phase-0-the-foundation-protocol.md#EvidenceDerivationPackage","data/analysis/evidence_object_manifest.json"]},{"storage_class_ref":"redacted_presentation","display_name":"Redacted presentation","accent_ref":"redacted","purpose":"Presentation-safe artifacts stay separate from source bytes and are released only through governed preview and download seams.","encryption_posture":"at_rest_tls_private","immutability_mode":"append_only_policy_versioned","retention_state":"governed_presentation_retention","retention_policy_ref":"ret_086_redacted_presentation","hold_ref":"hold_086_redacted_presentation","legal_hold_ready":true,"browser_delivery_posture":"governed_presentation_only","signed_access_ttl_seconds":180,"workload_family_refs":["wf_command_orchestration","wf_projection_read_models","wf_shell_delivery_published_gateway","wf_assurance_security_control"],"service_identity_refs":["sid_command_api","sid_projection_worker","sid_published_gateway","sid_assurance_control"],"manifest_rule_ref":"okr_086_redacted_presentation","purge_mode":"purge_after_presentation_window","governing_object_refs":["OBJ_063_REDACTION_TRANSFORM","OBJ_063_EVIDENCE_SNAPSHOT"],"artifact_kind_refs":["redacted_pdf","presentation_safe_attachment"],"visibility_authority":"artifact_presentation_contract_only","seed_fixture_refs":["fixture_086_redacted_pdf"],"source_refs":["blueprint/phase-0-the-foundation-protocol.md#EvidenceRedactionTransform","blueprint/phase-0-the-foundation-protocol.md#ArtifactSurfaceFrame"]},{"storage_class_ref":"outbound_ephemeral","display_name":"Outbound ephemeral","accent_ref":"ephemeral","purpose":"Governed handoff bundles and export artifacts remain short-lived, signed, and purge-first.","encryption_posture":"at_rest_tls_private","immutability_mode":"expiring_ticket_bound_copy","retention_state":"ephemeral_purge_window","retention_policy_ref":"ret_086_outbound_ephemeral","hold_ref":"hold_086_outbound_ephemeral","legal_hold_ready":true,"browser_delivery_posture":"governed_download_handoff_only","signed_access_ttl_seconds":120,"workload_family_refs":["wf_command_orchestration","wf_integration_dispatch","wf_shell_delivery_published_gateway","wf_assurance_security_control"],"service_identity_refs":["sid_command_api","sid_integration_dispatch","sid_published_gateway","sid_assurance_control"],"manifest_rule_ref":"okr_086_outbound_ephemeral","purge_mode":"purge_on_expiry_or_settlement","governing_object_refs":["OBJ_063_EVIDENCE_SNAPSHOT"],"artifact_kind_refs":["download_bundle","outbound_handoff_package"],"visibility_authority":"outbound_navigation_grant_only","seed_fixture_refs":["fixture_086_outbound_bundle"],"source_refs":["blueprint/phase-0-the-foundation-protocol.md#OutboundNavigationGrant","blueprint/platform-runtime-and-release-blueprint.md#Security baseline contract"]},{"storage_class_ref":"ops_recovery_staging","display_name":"Ops recovery staging","accent_ref":"hold","purpose":"Restore rehearsals, rollback evidence, and sealed recovery staging objects remain private to data-plane and assurance operators.","encryption_posture":"at_rest_tls_private","immutability_mode":"restore_window_controlled","retention_state":"recovery_staging_window","retention_policy_ref":"ret_086_ops_recovery","hold_ref":"hold_086_ops_recovery","legal_hold_ready":true,"browser_delivery_posture":"forbidden","signed_access_ttl_seconds":0,"workload_family_refs":["wf_assurance_security_control","wf_data_stateful_plane"],"service_identity_refs":["sid_assurance_control","sid_data_plane"],"manifest_rule_ref":"okr_086_ops_recovery","purge_mode":"purge_after_restore_evidence_window","governing_object_refs":["RCP_060_OBJECT_STORAGE_STAGING"],"artifact_kind_refs":["restore_staging_package","rollback_bundle"],"visibility_authority":"recovery_control_posture_only","seed_fixture_refs":["fixture_086_restore_staging"],"source_refs":["data/analysis/recovery_control_posture_rules.json","docs/architecture/60_restore_and_recovery_control_matrix.md"]}],"classRealizations":[{"class_realization_ref":"local_quarantine_raw","environment_ring":"local","storage_class_ref":"quarantine_raw","bucket_name":"vecells-local-artifacts-quarantine-raw","namespace_id":"vecells-local-artifacts","private_endpoint_ref":"ope_086_local_artifact_plane","replication_mode":"single_region_or_local","retention_policy_ref":"ret_086_quarantine_raw","default_retention_days":14,"browser_delivery_posture":"forbidden","legal_hold_ready":true,"signed_access_ttl_seconds":300,"allowed_workload_family_refs":["wf_command_orchestration","wf_integration_dispatch","wf_assurance_security_control","wf_integration_simulation_lab"],"service_identity_refs":["sid_command_api","sid_integration_dispatch","sid_assurance_control","sid_adapter_simulators"],"manifest_rule_ref":"okr_086_scan_pending","sample_object_count":2},{"class_realization_ref":"local_evidence_source_immutable","environment_ring":"local","storage_class_ref":"evidence_source_immutable","bucket_name":"vecells-local-artifacts-evidence-source-immutable","namespace_id":"vecells-local-artifacts","private_endpoint_ref":"ope_086_local_artifact_plane","replication_mode":"single_region_or_local","retention_policy_ref":"ret_086_evidence_source","default_retention_days":30,"browser_delivery_posture":"forbidden","legal_hold_ready":true,"signed_access_ttl_seconds":300,"allowed_workload_family_refs":["wf_command_orchestration","wf_assurance_security_control","wf_data_stateful_plane"],"service_identity_refs":["sid_command_api","sid_assurance_control","sid_data_plane"],"manifest_rule_ref":"okr_086_source_immutable","sample_object_count":1},{"class_realization_ref":"local_derived_internal","environment_ring":"local","storage_class_ref":"derived_internal","bucket_name":"vecells-local-artifacts-derived-internal","namespace_id":"vecells-local-artifacts","private_endpoint_ref":"ope_086_local_artifact_plane","replication_mode":"single_region_or_local","retention_policy_ref":"ret_086_derived_internal","default_retention_days":14,"browser_delivery_posture":"forbidden","legal_hold_ready":true,"signed_access_ttl_seconds":300,"allowed_workload_family_refs":["wf_command_orchestration","wf_projection_read_models","wf_assurance_security_control"],"service_identity_refs":["sid_command_api","sid_projection_worker","sid_assurance_control"],"manifest_rule_ref":"okr_086_derived_internal","sample_object_count":2},{"class_realization_ref":"local_redacted_presentation","environment_ring":"local","storage_class_ref":"redacted_presentation","bucket_name":"vecells-local-artifacts-redacted-presentation","namespace_id":"vecells-local-artifacts","private_endpoint_ref":"ope_086_local_artifact_plane","replication_mode":"single_region_or_local","retention_policy_ref":"ret_086_redacted_presentation","default_retention_days":14,"browser_delivery_posture":"governed_presentation_only","legal_hold_ready":true,"signed_access_ttl_seconds":180,"allowed_workload_family_refs":["wf_command_orchestration","wf_projection_read_models","wf_shell_delivery_published_gateway","wf_assurance_security_control"],"service_identity_refs":["sid_command_api","sid_projection_worker","sid_published_gateway","sid_assurance_control"],"manifest_rule_ref":"okr_086_redacted_presentation","sample_object_count":1},{"class_realization_ref":"local_outbound_ephemeral","environment_ring":"local","storage_class_ref":"outbound_ephemeral","bucket_name":"vecells-local-artifacts-outbound-ephemeral","namespace_id":"vecells-local-artifacts","private_endpoint_ref":"ope_086_local_artifact_plane","replication_mode":"single_region_or_local","retention_policy_ref":"ret_086_outbound_ephemeral","default_retention_days":2,"browser_delivery_posture":"governed_download_handoff_only","legal_hold_ready":true,"signed_access_ttl_seconds":120,"allowed_workload_family_refs":["wf_command_orchestration","wf_integration_dispatch","wf_shell_delivery_published_gateway","wf_assurance_security_control"],"service_identity_refs":["sid_command_api","sid_integration_dispatch","sid_published_gateway","sid_assurance_control"],"manifest_rule_ref":"okr_086_outbound_ephemeral","sample_object_count":1},{"class_realization_ref":"local_ops_recovery_staging","environment_ring":"local","storage_class_ref":"ops_recovery_staging","bucket_name":"vecells-local-artifacts-ops-recovery-staging","namespace_id":"vecells-local-artifacts","private_endpoint_ref":"ope_086_local_artifact_plane","replication_mode":"single_region_or_local","retention_policy_ref":"ret_086_ops_recovery","default_retention_days":7,"browser_delivery_posture":"forbidden","legal_hold_ready":true,"signed_access_ttl_seconds":300,"allowed_workload_family_refs":["wf_assurance_security_control","wf_data_stateful_plane"],"service_identity_refs":["sid_assurance_control","sid_data_plane"],"manifest_rule_ref":"okr_086_ops_recovery","sample_object_count":1},{"class_realization_ref":"ci-preview_quarantine_raw","environment_ring":"ci-preview","storage_class_ref":"quarantine_raw","bucket_name":"vecells-ci-artifacts-quarantine-raw","namespace_id":"vecells-ci-artifacts","private_endpoint_ref":"ope_086_ci_artifact_plane","replication_mode":"single_region_or_local","retention_policy_ref":"ret_086_quarantine_raw","default_retention_days":7,"browser_delivery_posture":"forbidden","legal_hold_ready":true,"signed_access_ttl_seconds":300,"allowed_workload_family_refs":["wf_command_orchestration","wf_integration_dispatch","wf_assurance_security_control","wf_integration_simulation_lab"],"service_identity_refs":["sid_command_api","sid_integration_dispatch","sid_assurance_control","sid_adapter_simulators"],"manifest_rule_ref":"okr_086_scan_pending","sample_object_count":2},{"class_realization_ref":"ci-preview_evidence_source_immutable","environment_ring":"ci-preview","storage_class_ref":"evidence_source_immutable","bucket_name":"vecells-ci-artifacts-evidence-source-immutable","namespace_id":"vecells-ci-artifacts","private_endpoint_ref":"ope_086_ci_artifact_plane","replication_mode":"single_region_or_local","retention_policy_ref":"ret_086_evidence_source","default_retention_days":30,"browser_delivery_posture":"forbidden","legal_hold_ready":true,"signed_access_ttl_seconds":300,"allowed_workload_family_refs":["wf_command_orchestration","wf_assurance_security_control","wf_data_stateful_plane"],"service_identity_refs":["sid_command_api","sid_assurance_control","sid_data_plane"],"manifest_rule_ref":"okr_086_source_immutable","sample_object_count":1},{"class_realization_ref":"ci-preview_derived_internal","environment_ring":"ci-preview","storage_class_ref":"derived_internal","bucket_name":"vecells-ci-artifacts-derived-internal","namespace_id":"vecells-ci-artifacts","private_endpoint_ref":"ope_086_ci_artifact_plane","replication_mode":"single_region_or_local","retention_policy_ref":"ret_086_derived_internal","default_retention_days":7,"browser_delivery_posture":"forbidden","legal_hold_ready":true,"signed_access_ttl_seconds":300,"allowed_workload_family_refs":["wf_command_orchestration","wf_projection_read_models","wf_assurance_security_control"],"service_identity_refs":["sid_command_api","sid_projection_worker","sid_assurance_control"],"manifest_rule_ref":"okr_086_derived_internal","sample_object_count":2},{"class_realization_ref":"ci-preview_redacted_presentation","environment_ring":"ci-preview","storage_class_ref":"redacted_presentation","bucket_name":"vecells-ci-artifacts-redacted-presentation","namespace_id":"vecells-ci-artifacts","private_endpoint_ref":"ope_086_ci_artifact_plane","replication_mode":"single_region_or_local","retention_policy_ref":"ret_086_redacted_presentation","default_retention_days":7,"browser_delivery_posture":"governed_presentation_only","legal_hold_ready":true,"signed_access_ttl_seconds":180,"allowed_workload_family_refs":["wf_command_orchestration","wf_projection_read_models","wf_shell_delivery_published_gateway","wf_assurance_security_control"],"service_identity_refs":["sid_command_api","sid_projection_worker","sid_published_gateway","sid_assurance_control"],"manifest_rule_ref":"okr_086_redacted_presentation","sample_object_count":1},{"class_realization_ref":"ci-preview_outbound_ephemeral","environment_ring":"ci-preview","storage_class_ref":"outbound_ephemeral","bucket_name":"vecells-ci-artifacts-outbound-ephemeral","namespace_id":"vecells-ci-artifacts","private_endpoint_ref":"ope_086_ci_artifact_plane","replication_mode":"single_region_or_local","retention_policy_ref":"ret_086_outbound_ephemeral","default_retention_days":1,"browser_delivery_posture":"governed_download_handoff_only","legal_hold_ready":true,"signed_access_ttl_seconds":120,"allowed_workload_family_refs":["wf_command_orchestration","wf_integration_dispatch","wf_shell_delivery_published_gateway","wf_assurance_security_control"],"service_identity_refs":["sid_command_api","sid_integration_dispatch","sid_published_gateway","sid_assurance_control"],"manifest_rule_ref":"okr_086_outbound_ephemeral","sample_object_count":1},{"class_realization_ref":"ci-preview_ops_recovery_staging","environment_ring":"ci-preview","storage_class_ref":"ops_recovery_staging","bucket_name":"vecells-ci-artifacts-ops-recovery-staging","namespace_id":"vecells-ci-artifacts","private_endpoint_ref":"ope_086_ci_artifact_plane","replication_mode":"single_region_or_local","retention_policy_ref":"ret_086_ops_recovery","default_retention_days":3,"browser_delivery_posture":"forbidden","legal_hold_ready":true,"signed_access_ttl_seconds":300,"allowed_workload_family_refs":["wf_assurance_security_control","wf_data_stateful_plane"],"service_identity_refs":["sid_assurance_control","sid_data_plane"],"manifest_rule_ref":"okr_086_ops_recovery","sample_object_count":1},{"class_realization_ref":"integration_quarantine_raw","environment_ring":"integration","storage_class_ref":"quarantine_raw","bucket_name":"vecells-integration-artifacts-quarantine-raw","namespace_id":"vecells-integration-artifacts","private_endpoint_ref":"ope_086_integration_artifact_plane","replication_mode":"single_region_or_local","retention_policy_ref":"ret_086_quarantine_raw","default_retention_days":21,"browser_delivery_posture":"forbidden","legal_hold_ready":true,"signed_access_ttl_seconds":240,"allowed_workload_family_refs":["wf_command_orchestration","wf_integration_dispatch","wf_assurance_security_control","wf_integration_simulation_lab"],"service_identity_refs":["sid_command_api","sid_integration_dispatch","sid_assurance_control","sid_adapter_simulators"],"manifest_rule_ref":"okr_086_scan_pending","sample_object_count":2},{"class_realization_ref":"integration_evidence_source_immutable","environment_ring":"integration","storage_class_ref":"evidence_source_immutable","bucket_name":"vecells-integration-artifacts-evidence-source-immutable","namespace_id":"vecells-integration-artifacts","private_endpoint_ref":"ope_086_integration_artifact_plane","replication_mode":"single_region_or_local","retention_policy_ref":"ret_086_evidence_source","default_retention_days":180,"browser_delivery_posture":"forbidden","legal_hold_ready":true,"signed_access_ttl_seconds":240,"allowed_workload_family_refs":["wf_command_orchestration","wf_assurance_security_control","wf_data_stateful_plane"],"service_identity_refs":["sid_command_api","sid_assurance_control","sid_data_plane"],"manifest_rule_ref":"okr_086_source_immutable","sample_object_count":1},{"class_realization_ref":"integration_derived_internal","environment_ring":"integration","storage_class_ref":"derived_internal","bucket_name":"vecells-integration-artifacts-derived-internal","namespace_id":"vecells-integration-artifacts","private_endpoint_ref":"ope_086_integration_artifact_plane","replication_mode":"single_region_or_local","retention_policy_ref":"ret_086_derived_internal","default_retention_days":60,"browser_delivery_posture":"forbidden","legal_hold_ready":true,"signed_access_ttl_seconds":240,"allowed_workload_family_refs":["wf_command_orchestration","wf_projection_read_models","wf_assurance_security_control"],"service_identity_refs":["sid_command_api","sid_projection_worker","sid_assurance_control"],"manifest_rule_ref":"okr_086_derived_internal","sample_object_count":2},{"class_realization_ref":"integration_redacted_presentation","environment_ring":"integration","storage_class_ref":"redacted_presentation","bucket_name":"vecells-integration-artifacts-redacted-presentation","namespace_id":"vecells-integration-artifacts","private_endpoint_ref":"ope_086_integration_artifact_plane","replication_mode":"single_region_or_local","retention_policy_ref":"ret_086_redacted_presentation","default_retention_days":60,"browser_delivery_posture":"governed_presentation_only","legal_hold_ready":true,"signed_access_ttl_seconds":180,"allowed_workload_family_refs":["wf_command_orchestration","wf_projection_read_models","wf_shell_delivery_published_gateway","wf_assurance_security_control"],"service_identity_refs":["sid_command_api","sid_projection_worker","sid_published_gateway","sid_assurance_control"],"manifest_rule_ref":"okr_086_redacted_presentation","sample_object_count":1},{"class_realization_ref":"integration_outbound_ephemeral","environment_ring":"integration","storage_class_ref":"outbound_ephemeral","bucket_name":"vecells-integration-artifacts-outbound-ephemeral","namespace_id":"vecells-integration-artifacts","private_endpoint_ref":"ope_086_integration_artifact_plane","replication_mode":"single_region_or_local","retention_policy_ref":"ret_086_outbound_ephemeral","default_retention_days":7,"browser_delivery_posture":"governed_download_handoff_only","legal_hold_ready":true,"signed_access_ttl_seconds":120,"allowed_workload_family_refs":["wf_command_orchestration","wf_integration_dispatch","wf_shell_delivery_published_gateway","wf_assurance_security_control"],"service_identity_refs":["sid_command_api","sid_integration_dispatch","sid_published_gateway","sid_assurance_control"],"manifest_rule_ref":"okr_086_outbound_ephemeral","sample_object_count":1},{"class_realization_ref":"integration_ops_recovery_staging","environment_ring":"integration","storage_class_ref":"ops_recovery_staging","bucket_name":"vecells-integration-artifacts-ops-recovery-staging","namespace_id":"vecells-integration-artifacts","private_endpoint_ref":"ope_086_integration_artifact_plane","replication_mode":"single_region_or_local","retention_policy_ref":"ret_086_ops_recovery","default_retention_days":14,"browser_delivery_posture":"forbidden","legal_hold_ready":true,"signed_access_ttl_seconds":240,"allowed_workload_family_refs":["wf_assurance_security_control","wf_data_stateful_plane"],"service_identity_refs":["sid_assurance_control","sid_data_plane"],"manifest_rule_ref":"okr_086_ops_recovery","sample_object_count":1},{"class_realization_ref":"preprod_quarantine_raw","environment_ring":"preprod","storage_class_ref":"quarantine_raw","bucket_name":"vecells-preprod-artifacts-quarantine-raw","namespace_id":"vecells-preprod-artifacts","private_endpoint_ref":"ope_086_preprod_artifact_plane","replication_mode":"dual_region_ready","retention_policy_ref":"ret_086_quarantine_raw","default_retention_days":30,"browser_delivery_posture":"forbidden","legal_hold_ready":true,"signed_access_ttl_seconds":180,"allowed_workload_family_refs":["wf_command_orchestration","wf_integration_dispatch","wf_assurance_security_control","wf_integration_simulation_lab"],"service_identity_refs":["sid_command_api","sid_integration_dispatch","sid_assurance_control","sid_adapter_simulators"],"manifest_rule_ref":"okr_086_scan_pending","sample_object_count":2},{"class_realization_ref":"preprod_evidence_source_immutable","environment_ring":"preprod","storage_class_ref":"evidence_source_immutable","bucket_name":"vecells-preprod-artifacts-evidence-source-immutable","namespace_id":"vecells-preprod-artifacts","private_endpoint_ref":"ope_086_preprod_artifact_plane","replication_mode":"dual_region_ready","retention_policy_ref":"ret_086_evidence_source","default_retention_days":730,"browser_delivery_posture":"forbidden","legal_hold_ready":true,"signed_access_ttl_seconds":180,"allowed_workload_family_refs":["wf_command_orchestration","wf_assurance_security_control","wf_data_stateful_plane"],"service_identity_refs":["sid_command_api","sid_assurance_control","sid_data_plane"],"manifest_rule_ref":"okr_086_source_immutable","sample_object_count":1},{"class_realization_ref":"preprod_derived_internal","environment_ring":"preprod","storage_class_ref":"derived_internal","bucket_name":"vecells-preprod-artifacts-derived-internal","namespace_id":"vecells-preprod-artifacts","private_endpoint_ref":"ope_086_preprod_artifact_plane","replication_mode":"dual_region_ready","retention_policy_ref":"ret_086_derived_internal","default_retention_days":180,"browser_delivery_posture":"forbidden","legal_hold_ready":true,"signed_access_ttl_seconds":180,"allowed_workload_family_refs":["wf_command_orchestration","wf_projection_read_models","wf_assurance_security_control"],"service_identity_refs":["sid_command_api","sid_projection_worker","sid_assurance_control"],"manifest_rule_ref":"okr_086_derived_internal","sample_object_count":2},{"class_realization_ref":"preprod_redacted_presentation","environment_ring":"preprod","storage_class_ref":"redacted_presentation","bucket_name":"vecells-preprod-artifacts-redacted-presentation","namespace_id":"vecells-preprod-artifacts","private_endpoint_ref":"ope_086_preprod_artifact_plane","replication_mode":"dual_region_ready","retention_policy_ref":"ret_086_redacted_presentation","default_retention_days":180,"browser_delivery_posture":"governed_presentation_only","legal_hold_ready":true,"signed_access_ttl_seconds":180,"allowed_workload_family_refs":["wf_command_orchestration","wf_projection_read_models","wf_shell_delivery_published_gateway","wf_assurance_security_control"],"service_identity_refs":["sid_command_api","sid_projection_worker","sid_published_gateway","sid_assurance_control"],"manifest_rule_ref":"okr_086_redacted_presentation","sample_object_count":1},{"class_realization_ref":"preprod_outbound_ephemeral","environment_ring":"preprod","storage_class_ref":"outbound_ephemeral","bucket_name":"vecells-preprod-artifacts-outbound-ephemeral","namespace_id":"vecells-preprod-artifacts","private_endpoint_ref":"ope_086_preprod_artifact_plane","replication_mode":"dual_region_ready","retention_policy_ref":"ret_086_outbound_ephemeral","default_retention_days":14,"browser_delivery_posture":"governed_download_handoff_only","legal_hold_ready":true,"signed_access_ttl_seconds":120,"allowed_workload_family_refs":["wf_command_orchestration","wf_integration_dispatch","wf_shell_delivery_published_gateway","wf_assurance_security_control"],"service_identity_refs":["sid_command_api","sid_integration_dispatch","sid_published_gateway","sid_assurance_control"],"manifest_rule_ref":"okr_086_outbound_ephemeral","sample_object_count":1},{"class_realization_ref":"preprod_ops_recovery_staging","environment_ring":"preprod","storage_class_ref":"ops_recovery_staging","bucket_name":"vecells-preprod-artifacts-ops-recovery-staging","namespace_id":"vecells-preprod-artifacts","private_endpoint_ref":"ope_086_preprod_artifact_plane","replication_mode":"dual_region_ready","retention_policy_ref":"ret_086_ops_recovery","default_retention_days":30,"browser_delivery_posture":"forbidden","legal_hold_ready":true,"signed_access_ttl_seconds":180,"allowed_workload_family_refs":["wf_assurance_security_control","wf_data_stateful_plane"],"service_identity_refs":["sid_assurance_control","sid_data_plane"],"manifest_rule_ref":"okr_086_ops_recovery","sample_object_count":1},{"class_realization_ref":"production_quarantine_raw","environment_ring":"production","storage_class_ref":"quarantine_raw","bucket_name":"vecells-production-artifacts-quarantine-raw","namespace_id":"vecells-production-artifacts","private_endpoint_ref":"ope_086_production_artifact_plane","replication_mode":"dual_region_ready","retention_policy_ref":"ret_086_quarantine_raw","default_retention_days":30,"browser_delivery_posture":"forbidden","legal_hold_ready":true,"signed_access_ttl_seconds":120,"allowed_workload_family_refs":["wf_command_orchestration","wf_integration_dispatch","wf_assurance_security_control","wf_integration_simulation_lab"],"service_identity_refs":["sid_command_api","sid_integration_dispatch","sid_assurance_control","sid_adapter_simulators"],"manifest_rule_ref":"okr_086_scan_pending","sample_object_count":2},{"class_realization_ref":"production_evidence_source_immutable","environment_ring":"production","storage_class_ref":"evidence_source_immutable","bucket_name":"vecells-production-artifacts-evidence-source-immutable","namespace_id":"vecells-production-artifacts","private_endpoint_ref":"ope_086_production_artifact_plane","replication_mode":"dual_region_ready","retention_policy_ref":"ret_086_evidence_source","default_retention_days":2555,"browser_delivery_posture":"forbidden","legal_hold_ready":true,"signed_access_ttl_seconds":120,"allowed_workload_family_refs":["wf_command_orchestration","wf_assurance_security_control","wf_data_stateful_plane"],"service_identity_refs":["sid_command_api","sid_assurance_control","sid_data_plane"],"manifest_rule_ref":"okr_086_source_immutable","sample_object_count":1},{"class_realization_ref":"production_derived_internal","environment_ring":"production","storage_class_ref":"derived_internal","bucket_name":"vecells-production-artifacts-derived-internal","namespace_id":"vecells-production-artifacts","private_endpoint_ref":"ope_086_production_artifact_plane","replication_mode":"dual_region_ready","retention_policy_ref":"ret_086_derived_internal","default_retention_days":365,"browser_delivery_posture":"forbidden","legal_hold_ready":true,"signed_access_ttl_seconds":120,"allowed_workload_family_refs":["wf_command_orchestration","wf_projection_read_models","wf_assurance_security_control"],"service_identity_refs":["sid_command_api","sid_projection_worker","sid_assurance_control"],"manifest_rule_ref":"okr_086_derived_internal","sample_object_count":2},{"class_realization_ref":"production_redacted_presentation","environment_ring":"production","storage_class_ref":"redacted_presentation","bucket_name":"vecells-production-artifacts-redacted-presentation","namespace_id":"vecells-production-artifacts","private_endpoint_ref":"ope_086_production_artifact_plane","replication_mode":"dual_region_ready","retention_policy_ref":"ret_086_redacted_presentation","default_retention_days":365,"browser_delivery_posture":"governed_presentation_only","legal_hold_ready":true,"signed_access_ttl_seconds":180,"allowed_workload_family_refs":["wf_command_orchestration","wf_projection_read_models","wf_shell_delivery_published_gateway","wf_assurance_security_control"],"service_identity_refs":["sid_command_api","sid_projection_worker","sid_published_gateway","sid_assurance_control"],"manifest_rule_ref":"okr_086_redacted_presentation","sample_object_count":1},{"class_realization_ref":"production_outbound_ephemeral","environment_ring":"production","storage_class_ref":"outbound_ephemeral","bucket_name":"vecells-production-artifacts-outbound-ephemeral","namespace_id":"vecells-production-artifacts","private_endpoint_ref":"ope_086_production_artifact_plane","replication_mode":"dual_region_ready","retention_policy_ref":"ret_086_outbound_ephemeral","default_retention_days":14,"browser_delivery_posture":"governed_download_handoff_only","legal_hold_ready":true,"signed_access_ttl_seconds":120,"allowed_workload_family_refs":["wf_command_orchestration","wf_integration_dispatch","wf_shell_delivery_published_gateway","wf_assurance_security_control"],"service_identity_refs":["sid_command_api","sid_integration_dispatch","sid_published_gateway","sid_assurance_control"],"manifest_rule_ref":"okr_086_outbound_ephemeral","sample_object_count":1},{"class_realization_ref":"production_ops_recovery_staging","environment_ring":"production","storage_class_ref":"ops_recovery_staging","bucket_name":"vecells-production-artifacts-ops-recovery-staging","namespace_id":"vecells-production-artifacts","private_endpoint_ref":"ope_086_production_artifact_plane","replication_mode":"dual_region_ready","retention_policy_ref":"ret_086_ops_recovery","default_retention_days":45,"browser_delivery_posture":"forbidden","legal_hold_ready":true,"signed_access_ttl_seconds":120,"allowed_workload_family_refs":["wf_assurance_security_control","wf_data_stateful_plane"],"service_identity_refs":["sid_assurance_control","sid_data_plane"],"manifest_rule_ref":"okr_086_ops_recovery","sample_object_count":1}],"accessPolicies":[{"policy_ref":"pol_086_quarantine_ingest","storage_class_ref":"quarantine_raw","service_identity_ref":"sid_command_api","workload_family_ref":"wf_command_orchestration","access_mode":"manifest_bound_write","allowed_operations":["put_object","write_manifest","transition_scan_state"]},{"policy_ref":"pol_086_quarantine_scan","storage_class_ref":"quarantine_raw","service_identity_ref":"sid_integration_dispatch","workload_family_ref":"wf_integration_dispatch","access_mode":"scan_and_release","allowed_operations":["get_object","write_scan_verdict","promote_clean_copy"]},{"policy_ref":"pol_086_source_evidence_authority","storage_class_ref":"evidence_source_immutable","service_identity_ref":"sid_command_api","workload_family_ref":"wf_command_orchestration","access_mode":"write_once_authority","allowed_operations":["put_object","read_manifest","set_chain_parent"]},{"policy_ref":"pol_086_source_hold_review","storage_class_ref":"evidence_source_immutable","service_identity_ref":"sid_assurance_control","workload_family_ref":"wf_assurance_security_control","access_mode":"hold_and_review","allowed_operations":["read_manifest","assert_hold","release_hold"]},{"policy_ref":"pol_086_derived_compile","storage_class_ref":"derived_internal","service_identity_ref":"sid_projection_worker","workload_family_ref":"wf_projection_read_models","access_mode":"append_only_derivation","allowed_operations":["get_object","put_object","write_supersession_manifest"]},{"policy_ref":"pol_086_derived_review","storage_class_ref":"derived_internal","service_identity_ref":"sid_assurance_control","workload_family_ref":"wf_assurance_security_control","access_mode":"review_only","allowed_operations":["read_manifest","assert_hold"]},{"policy_ref":"pol_086_redacted_publish","storage_class_ref":"redacted_presentation","service_identity_ref":"sid_projection_worker","workload_family_ref":"wf_projection_read_models","access_mode":"presentation_publish","allowed_operations":["put_object","read_manifest","bind_presentation_contract"]},{"policy_ref":"pol_086_redacted_gateway_delivery","storage_class_ref":"redacted_presentation","service_identity_ref":"sid_published_gateway","workload_family_ref":"wf_shell_delivery_published_gateway","access_mode":"ticket_bound_read","allowed_operations":["read_manifest","mint_download_ticket","stream_object"]},{"policy_ref":"pol_086_outbound_dispatch","storage_class_ref":"outbound_ephemeral","service_identity_ref":"sid_integration_dispatch","workload_family_ref":"wf_integration_dispatch","access_mode":"external_handoff","allowed_operations":["put_object","read_manifest","expire_ticket"]},{"policy_ref":"pol_086_outbound_gateway_delivery","storage_class_ref":"outbound_ephemeral","service_identity_ref":"sid_published_gateway","workload_family_ref":"wf_shell_delivery_published_gateway","access_mode":"download_ticket_only","allowed_operations":["read_manifest","mint_download_ticket","stream_object"]},{"policy_ref":"pol_086_recovery_stage","storage_class_ref":"ops_recovery_staging","service_identity_ref":"sid_data_plane","workload_family_ref":"wf_data_stateful_plane","access_mode":"restore_window_control","allowed_operations":["put_object","get_object","set_restore_window"]},{"policy_ref":"pol_086_recovery_hold_review","storage_class_ref":"ops_recovery_staging","service_identity_ref":"sid_assurance_control","workload_family_ref":"wf_assurance_security_control","access_mode":"hold_and_restore_review","allowed_operations":["read_manifest","assert_hold","release_hold"]}],"retentionRows":[{"environment_ring":"local","storage_class_ref":"quarantine_raw","display_name":"Quarantine raw","bucket_name":"vecells-local-artifacts-quarantine-raw","retention_policy_ref":"ret_086_quarantine_raw","retention_state":"scan_hold","default_retention_days":14,"immutability_mode":"write_once_pending_scan","legal_hold_ready":"true","purge_mode":"blocked_until_scan_and_manifest_settle","browser_delivery_posture":"forbidden","signed_access_ttl_seconds":300,"private_endpoint_ref":"ope_086_local_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_integration_dispatch|wf_assurance_security_control|wf_integration_simulation_lab","source_refs":"blueprint/phase-0-the-foundation-protocol.md#CaptureBundle|blueprint/phase-0-the-foundation-protocol.md#4.3A Artifact quarantine and fallback review"},{"environment_ring":"local","storage_class_ref":"evidence_source_immutable","display_name":"Evidence source immutable","bucket_name":"vecells-local-artifacts-evidence-source-immutable","retention_policy_ref":"ret_086_evidence_source","retention_state":"immutable_source_retention","default_retention_days":30,"immutability_mode":"worm_ready_write_once","legal_hold_ready":"true","purge_mode":"governed_purge_only","browser_delivery_posture":"forbidden","signed_access_ttl_seconds":300,"private_endpoint_ref":"ope_086_local_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_assurance_security_control|wf_data_stateful_plane","source_refs":"blueprint/phase-0-the-foundation-protocol.md#EvidenceCaptureBundle|blueprint/phase-0-the-foundation-protocol.md#EvidenceSnapshot|data/analysis/worm_retention_classes.json"},{"environment_ring":"local","storage_class_ref":"derived_internal","display_name":"Derived internal","bucket_name":"vecells-local-artifacts-derived-internal","retention_policy_ref":"ret_086_derived_internal","retention_state":"derived_internal_retention","default_retention_days":14,"immutability_mode":"append_only_superseded_versions","legal_hold_ready":"true","purge_mode":"purge_after_supersession_window","browser_delivery_posture":"forbidden","signed_access_ttl_seconds":300,"private_endpoint_ref":"ope_086_local_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_projection_read_models|wf_assurance_security_control","source_refs":"blueprint/phase-0-the-foundation-protocol.md#EvidenceDerivationPackage|data/analysis/evidence_object_manifest.json"},{"environment_ring":"local","storage_class_ref":"redacted_presentation","display_name":"Redacted presentation","bucket_name":"vecells-local-artifacts-redacted-presentation","retention_policy_ref":"ret_086_redacted_presentation","retention_state":"governed_presentation_retention","default_retention_days":14,"immutability_mode":"append_only_policy_versioned","legal_hold_ready":"true","purge_mode":"purge_after_presentation_window","browser_delivery_posture":"governed_presentation_only","signed_access_ttl_seconds":180,"private_endpoint_ref":"ope_086_local_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_projection_read_models|wf_shell_delivery_published_gateway|wf_assurance_security_control","source_refs":"blueprint/phase-0-the-foundation-protocol.md#EvidenceRedactionTransform|blueprint/phase-0-the-foundation-protocol.md#ArtifactSurfaceFrame"},{"environment_ring":"local","storage_class_ref":"outbound_ephemeral","display_name":"Outbound ephemeral","bucket_name":"vecells-local-artifacts-outbound-ephemeral","retention_policy_ref":"ret_086_outbound_ephemeral","retention_state":"ephemeral_purge_window","default_retention_days":2,"immutability_mode":"expiring_ticket_bound_copy","legal_hold_ready":"true","purge_mode":"purge_on_expiry_or_settlement","browser_delivery_posture":"governed_download_handoff_only","signed_access_ttl_seconds":120,"private_endpoint_ref":"ope_086_local_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_integration_dispatch|wf_shell_delivery_published_gateway|wf_assurance_security_control","source_refs":"blueprint/phase-0-the-foundation-protocol.md#OutboundNavigationGrant|blueprint/platform-runtime-and-release-blueprint.md#Security baseline contract"},{"environment_ring":"local","storage_class_ref":"ops_recovery_staging","display_name":"Ops recovery staging","bucket_name":"vecells-local-artifacts-ops-recovery-staging","retention_policy_ref":"ret_086_ops_recovery","retention_state":"recovery_staging_window","default_retention_days":7,"immutability_mode":"restore_window_controlled","legal_hold_ready":"true","purge_mode":"purge_after_restore_evidence_window","browser_delivery_posture":"forbidden","signed_access_ttl_seconds":300,"private_endpoint_ref":"ope_086_local_artifact_plane","allowed_workload_family_refs":"wf_assurance_security_control|wf_data_stateful_plane","source_refs":"data/analysis/recovery_control_posture_rules.json|docs/architecture/60_restore_and_recovery_control_matrix.md"},{"environment_ring":"ci-preview","storage_class_ref":"quarantine_raw","display_name":"Quarantine raw","bucket_name":"vecells-ci-artifacts-quarantine-raw","retention_policy_ref":"ret_086_quarantine_raw","retention_state":"scan_hold","default_retention_days":7,"immutability_mode":"write_once_pending_scan","legal_hold_ready":"true","purge_mode":"blocked_until_scan_and_manifest_settle","browser_delivery_posture":"forbidden","signed_access_ttl_seconds":300,"private_endpoint_ref":"ope_086_ci_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_integration_dispatch|wf_assurance_security_control|wf_integration_simulation_lab","source_refs":"blueprint/phase-0-the-foundation-protocol.md#CaptureBundle|blueprint/phase-0-the-foundation-protocol.md#4.3A Artifact quarantine and fallback review"},{"environment_ring":"ci-preview","storage_class_ref":"evidence_source_immutable","display_name":"Evidence source immutable","bucket_name":"vecells-ci-artifacts-evidence-source-immutable","retention_policy_ref":"ret_086_evidence_source","retention_state":"immutable_source_retention","default_retention_days":30,"immutability_mode":"worm_ready_write_once","legal_hold_ready":"true","purge_mode":"governed_purge_only","browser_delivery_posture":"forbidden","signed_access_ttl_seconds":300,"private_endpoint_ref":"ope_086_ci_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_assurance_security_control|wf_data_stateful_plane","source_refs":"blueprint/phase-0-the-foundation-protocol.md#EvidenceCaptureBundle|blueprint/phase-0-the-foundation-protocol.md#EvidenceSnapshot|data/analysis/worm_retention_classes.json"},{"environment_ring":"ci-preview","storage_class_ref":"derived_internal","display_name":"Derived internal","bucket_name":"vecells-ci-artifacts-derived-internal","retention_policy_ref":"ret_086_derived_internal","retention_state":"derived_internal_retention","default_retention_days":7,"immutability_mode":"append_only_superseded_versions","legal_hold_ready":"true","purge_mode":"purge_after_supersession_window","browser_delivery_posture":"forbidden","signed_access_ttl_seconds":300,"private_endpoint_ref":"ope_086_ci_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_projection_read_models|wf_assurance_security_control","source_refs":"blueprint/phase-0-the-foundation-protocol.md#EvidenceDerivationPackage|data/analysis/evidence_object_manifest.json"},{"environment_ring":"ci-preview","storage_class_ref":"redacted_presentation","display_name":"Redacted presentation","bucket_name":"vecells-ci-artifacts-redacted-presentation","retention_policy_ref":"ret_086_redacted_presentation","retention_state":"governed_presentation_retention","default_retention_days":7,"immutability_mode":"append_only_policy_versioned","legal_hold_ready":"true","purge_mode":"purge_after_presentation_window","browser_delivery_posture":"governed_presentation_only","signed_access_ttl_seconds":180,"private_endpoint_ref":"ope_086_ci_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_projection_read_models|wf_shell_delivery_published_gateway|wf_assurance_security_control","source_refs":"blueprint/phase-0-the-foundation-protocol.md#EvidenceRedactionTransform|blueprint/phase-0-the-foundation-protocol.md#ArtifactSurfaceFrame"},{"environment_ring":"ci-preview","storage_class_ref":"outbound_ephemeral","display_name":"Outbound ephemeral","bucket_name":"vecells-ci-artifacts-outbound-ephemeral","retention_policy_ref":"ret_086_outbound_ephemeral","retention_state":"ephemeral_purge_window","default_retention_days":1,"immutability_mode":"expiring_ticket_bound_copy","legal_hold_ready":"true","purge_mode":"purge_on_expiry_or_settlement","browser_delivery_posture":"governed_download_handoff_only","signed_access_ttl_seconds":120,"private_endpoint_ref":"ope_086_ci_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_integration_dispatch|wf_shell_delivery_published_gateway|wf_assurance_security_control","source_refs":"blueprint/phase-0-the-foundation-protocol.md#OutboundNavigationGrant|blueprint/platform-runtime-and-release-blueprint.md#Security baseline contract"},{"environment_ring":"ci-preview","storage_class_ref":"ops_recovery_staging","display_name":"Ops recovery staging","bucket_name":"vecells-ci-artifacts-ops-recovery-staging","retention_policy_ref":"ret_086_ops_recovery","retention_state":"recovery_staging_window","default_retention_days":3,"immutability_mode":"restore_window_controlled","legal_hold_ready":"true","purge_mode":"purge_after_restore_evidence_window","browser_delivery_posture":"forbidden","signed_access_ttl_seconds":300,"private_endpoint_ref":"ope_086_ci_artifact_plane","allowed_workload_family_refs":"wf_assurance_security_control|wf_data_stateful_plane","source_refs":"data/analysis/recovery_control_posture_rules.json|docs/architecture/60_restore_and_recovery_control_matrix.md"},{"environment_ring":"integration","storage_class_ref":"quarantine_raw","display_name":"Quarantine raw","bucket_name":"vecells-integration-artifacts-quarantine-raw","retention_policy_ref":"ret_086_quarantine_raw","retention_state":"scan_hold","default_retention_days":21,"immutability_mode":"write_once_pending_scan","legal_hold_ready":"true","purge_mode":"blocked_until_scan_and_manifest_settle","browser_delivery_posture":"forbidden","signed_access_ttl_seconds":240,"private_endpoint_ref":"ope_086_integration_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_integration_dispatch|wf_assurance_security_control|wf_integration_simulation_lab","source_refs":"blueprint/phase-0-the-foundation-protocol.md#CaptureBundle|blueprint/phase-0-the-foundation-protocol.md#4.3A Artifact quarantine and fallback review"},{"environment_ring":"integration","storage_class_ref":"evidence_source_immutable","display_name":"Evidence source immutable","bucket_name":"vecells-integration-artifacts-evidence-source-immutable","retention_policy_ref":"ret_086_evidence_source","retention_state":"immutable_source_retention","default_retention_days":180,"immutability_mode":"worm_ready_write_once","legal_hold_ready":"true","purge_mode":"governed_purge_only","browser_delivery_posture":"forbidden","signed_access_ttl_seconds":240,"private_endpoint_ref":"ope_086_integration_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_assurance_security_control|wf_data_stateful_plane","source_refs":"blueprint/phase-0-the-foundation-protocol.md#EvidenceCaptureBundle|blueprint/phase-0-the-foundation-protocol.md#EvidenceSnapshot|data/analysis/worm_retention_classes.json"},{"environment_ring":"integration","storage_class_ref":"derived_internal","display_name":"Derived internal","bucket_name":"vecells-integration-artifacts-derived-internal","retention_policy_ref":"ret_086_derived_internal","retention_state":"derived_internal_retention","default_retention_days":60,"immutability_mode":"append_only_superseded_versions","legal_hold_ready":"true","purge_mode":"purge_after_supersession_window","browser_delivery_posture":"forbidden","signed_access_ttl_seconds":240,"private_endpoint_ref":"ope_086_integration_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_projection_read_models|wf_assurance_security_control","source_refs":"blueprint/phase-0-the-foundation-protocol.md#EvidenceDerivationPackage|data/analysis/evidence_object_manifest.json"},{"environment_ring":"integration","storage_class_ref":"redacted_presentation","display_name":"Redacted presentation","bucket_name":"vecells-integration-artifacts-redacted-presentation","retention_policy_ref":"ret_086_redacted_presentation","retention_state":"governed_presentation_retention","default_retention_days":60,"immutability_mode":"append_only_policy_versioned","legal_hold_ready":"true","purge_mode":"purge_after_presentation_window","browser_delivery_posture":"governed_presentation_only","signed_access_ttl_seconds":180,"private_endpoint_ref":"ope_086_integration_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_projection_read_models|wf_shell_delivery_published_gateway|wf_assurance_security_control","source_refs":"blueprint/phase-0-the-foundation-protocol.md#EvidenceRedactionTransform|blueprint/phase-0-the-foundation-protocol.md#ArtifactSurfaceFrame"},{"environment_ring":"integration","storage_class_ref":"outbound_ephemeral","display_name":"Outbound ephemeral","bucket_name":"vecells-integration-artifacts-outbound-ephemeral","retention_policy_ref":"ret_086_outbound_ephemeral","retention_state":"ephemeral_purge_window","default_retention_days":7,"immutability_mode":"expiring_ticket_bound_copy","legal_hold_ready":"true","purge_mode":"purge_on_expiry_or_settlement","browser_delivery_posture":"governed_download_handoff_only","signed_access_ttl_seconds":120,"private_endpoint_ref":"ope_086_integration_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_integration_dispatch|wf_shell_delivery_published_gateway|wf_assurance_security_control","source_refs":"blueprint/phase-0-the-foundation-protocol.md#OutboundNavigationGrant|blueprint/platform-runtime-and-release-blueprint.md#Security baseline contract"},{"environment_ring":"integration","storage_class_ref":"ops_recovery_staging","display_name":"Ops recovery staging","bucket_name":"vecells-integration-artifacts-ops-recovery-staging","retention_policy_ref":"ret_086_ops_recovery","retention_state":"recovery_staging_window","default_retention_days":14,"immutability_mode":"restore_window_controlled","legal_hold_ready":"true","purge_mode":"purge_after_restore_evidence_window","browser_delivery_posture":"forbidden","signed_access_ttl_seconds":240,"private_endpoint_ref":"ope_086_integration_artifact_plane","allowed_workload_family_refs":"wf_assurance_security_control|wf_data_stateful_plane","source_refs":"data/analysis/recovery_control_posture_rules.json|docs/architecture/60_restore_and_recovery_control_matrix.md"},{"environment_ring":"preprod","storage_class_ref":"quarantine_raw","display_name":"Quarantine raw","bucket_name":"vecells-preprod-artifacts-quarantine-raw","retention_policy_ref":"ret_086_quarantine_raw","retention_state":"scan_hold","default_retention_days":30,"immutability_mode":"write_once_pending_scan","legal_hold_ready":"true","purge_mode":"blocked_until_scan_and_manifest_settle","browser_delivery_posture":"forbidden","signed_access_ttl_seconds":180,"private_endpoint_ref":"ope_086_preprod_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_integration_dispatch|wf_assurance_security_control|wf_integration_simulation_lab","source_refs":"blueprint/phase-0-the-foundation-protocol.md#CaptureBundle|blueprint/phase-0-the-foundation-protocol.md#4.3A Artifact quarantine and fallback review"},{"environment_ring":"preprod","storage_class_ref":"evidence_source_immutable","display_name":"Evidence source immutable","bucket_name":"vecells-preprod-artifacts-evidence-source-immutable","retention_policy_ref":"ret_086_evidence_source","retention_state":"immutable_source_retention","default_retention_days":730,"immutability_mode":"worm_ready_write_once","legal_hold_ready":"true","purge_mode":"governed_purge_only","browser_delivery_posture":"forbidden","signed_access_ttl_seconds":180,"private_endpoint_ref":"ope_086_preprod_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_assurance_security_control|wf_data_stateful_plane","source_refs":"blueprint/phase-0-the-foundation-protocol.md#EvidenceCaptureBundle|blueprint/phase-0-the-foundation-protocol.md#EvidenceSnapshot|data/analysis/worm_retention_classes.json"},{"environment_ring":"preprod","storage_class_ref":"derived_internal","display_name":"Derived internal","bucket_name":"vecells-preprod-artifacts-derived-internal","retention_policy_ref":"ret_086_derived_internal","retention_state":"derived_internal_retention","default_retention_days":180,"immutability_mode":"append_only_superseded_versions","legal_hold_ready":"true","purge_mode":"purge_after_supersession_window","browser_delivery_posture":"forbidden","signed_access_ttl_seconds":180,"private_endpoint_ref":"ope_086_preprod_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_projection_read_models|wf_assurance_security_control","source_refs":"blueprint/phase-0-the-foundation-protocol.md#EvidenceDerivationPackage|data/analysis/evidence_object_manifest.json"},{"environment_ring":"preprod","storage_class_ref":"redacted_presentation","display_name":"Redacted presentation","bucket_name":"vecells-preprod-artifacts-redacted-presentation","retention_policy_ref":"ret_086_redacted_presentation","retention_state":"governed_presentation_retention","default_retention_days":180,"immutability_mode":"append_only_policy_versioned","legal_hold_ready":"true","purge_mode":"purge_after_presentation_window","browser_delivery_posture":"governed_presentation_only","signed_access_ttl_seconds":180,"private_endpoint_ref":"ope_086_preprod_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_projection_read_models|wf_shell_delivery_published_gateway|wf_assurance_security_control","source_refs":"blueprint/phase-0-the-foundation-protocol.md#EvidenceRedactionTransform|blueprint/phase-0-the-foundation-protocol.md#ArtifactSurfaceFrame"},{"environment_ring":"preprod","storage_class_ref":"outbound_ephemeral","display_name":"Outbound ephemeral","bucket_name":"vecells-preprod-artifacts-outbound-ephemeral","retention_policy_ref":"ret_086_outbound_ephemeral","retention_state":"ephemeral_purge_window","default_retention_days":14,"immutability_mode":"expiring_ticket_bound_copy","legal_hold_ready":"true","purge_mode":"purge_on_expiry_or_settlement","browser_delivery_posture":"governed_download_handoff_only","signed_access_ttl_seconds":120,"private_endpoint_ref":"ope_086_preprod_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_integration_dispatch|wf_shell_delivery_published_gateway|wf_assurance_security_control","source_refs":"blueprint/phase-0-the-foundation-protocol.md#OutboundNavigationGrant|blueprint/platform-runtime-and-release-blueprint.md#Security baseline contract"},{"environment_ring":"preprod","storage_class_ref":"ops_recovery_staging","display_name":"Ops recovery staging","bucket_name":"vecells-preprod-artifacts-ops-recovery-staging","retention_policy_ref":"ret_086_ops_recovery","retention_state":"recovery_staging_window","default_retention_days":30,"immutability_mode":"restore_window_controlled","legal_hold_ready":"true","purge_mode":"purge_after_restore_evidence_window","browser_delivery_posture":"forbidden","signed_access_ttl_seconds":180,"private_endpoint_ref":"ope_086_preprod_artifact_plane","allowed_workload_family_refs":"wf_assurance_security_control|wf_data_stateful_plane","source_refs":"data/analysis/recovery_control_posture_rules.json|docs/architecture/60_restore_and_recovery_control_matrix.md"},{"environment_ring":"production","storage_class_ref":"quarantine_raw","display_name":"Quarantine raw","bucket_name":"vecells-production-artifacts-quarantine-raw","retention_policy_ref":"ret_086_quarantine_raw","retention_state":"scan_hold","default_retention_days":30,"immutability_mode":"write_once_pending_scan","legal_hold_ready":"true","purge_mode":"blocked_until_scan_and_manifest_settle","browser_delivery_posture":"forbidden","signed_access_ttl_seconds":120,"private_endpoint_ref":"ope_086_production_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_integration_dispatch|wf_assurance_security_control|wf_integration_simulation_lab","source_refs":"blueprint/phase-0-the-foundation-protocol.md#CaptureBundle|blueprint/phase-0-the-foundation-protocol.md#4.3A Artifact quarantine and fallback review"},{"environment_ring":"production","storage_class_ref":"evidence_source_immutable","display_name":"Evidence source immutable","bucket_name":"vecells-production-artifacts-evidence-source-immutable","retention_policy_ref":"ret_086_evidence_source","retention_state":"immutable_source_retention","default_retention_days":2555,"immutability_mode":"worm_ready_write_once","legal_hold_ready":"true","purge_mode":"governed_purge_only","browser_delivery_posture":"forbidden","signed_access_ttl_seconds":120,"private_endpoint_ref":"ope_086_production_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_assurance_security_control|wf_data_stateful_plane","source_refs":"blueprint/phase-0-the-foundation-protocol.md#EvidenceCaptureBundle|blueprint/phase-0-the-foundation-protocol.md#EvidenceSnapshot|data/analysis/worm_retention_classes.json"},{"environment_ring":"production","storage_class_ref":"derived_internal","display_name":"Derived internal","bucket_name":"vecells-production-artifacts-derived-internal","retention_policy_ref":"ret_086_derived_internal","retention_state":"derived_internal_retention","default_retention_days":365,"immutability_mode":"append_only_superseded_versions","legal_hold_ready":"true","purge_mode":"purge_after_supersession_window","browser_delivery_posture":"forbidden","signed_access_ttl_seconds":120,"private_endpoint_ref":"ope_086_production_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_projection_read_models|wf_assurance_security_control","source_refs":"blueprint/phase-0-the-foundation-protocol.md#EvidenceDerivationPackage|data/analysis/evidence_object_manifest.json"},{"environment_ring":"production","storage_class_ref":"redacted_presentation","display_name":"Redacted presentation","bucket_name":"vecells-production-artifacts-redacted-presentation","retention_policy_ref":"ret_086_redacted_presentation","retention_state":"governed_presentation_retention","default_retention_days":365,"immutability_mode":"append_only_policy_versioned","legal_hold_ready":"true","purge_mode":"purge_after_presentation_window","browser_delivery_posture":"governed_presentation_only","signed_access_ttl_seconds":180,"private_endpoint_ref":"ope_086_production_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_projection_read_models|wf_shell_delivery_published_gateway|wf_assurance_security_control","source_refs":"blueprint/phase-0-the-foundation-protocol.md#EvidenceRedactionTransform|blueprint/phase-0-the-foundation-protocol.md#ArtifactSurfaceFrame"},{"environment_ring":"production","storage_class_ref":"outbound_ephemeral","display_name":"Outbound ephemeral","bucket_name":"vecells-production-artifacts-outbound-ephemeral","retention_policy_ref":"ret_086_outbound_ephemeral","retention_state":"ephemeral_purge_window","default_retention_days":14,"immutability_mode":"expiring_ticket_bound_copy","legal_hold_ready":"true","purge_mode":"purge_on_expiry_or_settlement","browser_delivery_posture":"governed_download_handoff_only","signed_access_ttl_seconds":120,"private_endpoint_ref":"ope_086_production_artifact_plane","allowed_workload_family_refs":"wf_command_orchestration|wf_integration_dispatch|wf_shell_delivery_published_gateway|wf_assurance_security_control","source_refs":"blueprint/phase-0-the-foundation-protocol.md#OutboundNavigationGrant|blueprint/platform-runtime-and-release-blueprint.md#Security baseline contract"},{"environment_ring":"production","storage_class_ref":"ops_recovery_staging","display_name":"Ops recovery staging","bucket_name":"vecells-production-artifacts-ops-recovery-staging","retention_policy_ref":"ret_086_ops_recovery","retention_state":"recovery_staging_window","default_retention_days":45,"immutability_mode":"restore_window_controlled","legal_hold_ready":"true","purge_mode":"purge_after_restore_evidence_window","browser_delivery_posture":"forbidden","signed_access_ttl_seconds":120,"private_endpoint_ref":"ope_086_production_artifact_plane","allowed_workload_family_refs":"wf_assurance_security_control|wf_data_stateful_plane","source_refs":"data/analysis/recovery_control_posture_rules.json|docs/architecture/60_restore_and_recovery_control_matrix.md"}],"keyRules":[{"storage_class_ref":"quarantine_raw","manifest_rule_ref":"okr_086_scan_pending","sample_key":"tenant/976edb0a051e0f81/lineage/2ba33ad6b15206e6/artifact/5be036c97f948b3e/sha/c94732c4b2f14474701f/recording.bin","bucket_authority_rule":"bucket_name_not_visibility_authority","browser_delivery_rule":"forbidden","signed_access_pattern":"short_lived_manifest_bound_download_ticket"},{"storage_class_ref":"evidence_source_immutable","manifest_rule_ref":"okr_086_source_immutable","sample_key":"tenant/976edb0a051e0f81/lineage/683e08a94049bca7/artifact/fca3fdfd6a6655d8/sha/4db33dabe0201fb185df/source.bin","bucket_authority_rule":"bucket_name_not_visibility_authority","browser_delivery_rule":"forbidden","signed_access_pattern":"short_lived_manifest_bound_download_ticket"},{"storage_class_ref":"derived_internal","manifest_rule_ref":"okr_086_derived_internal","sample_key":"tenant/976edb0a051e0f81/lineage/539b33d5232feb13/artifact/319d1d93924c4c31/sha/3b07a7318c571ab5848f/fact-pack.json","bucket_authority_rule":"bucket_name_not_visibility_authority","browser_delivery_rule":"forbidden","signed_access_pattern":"short_lived_manifest_bound_download_ticket"},{"storage_class_ref":"redacted_presentation","manifest_rule_ref":"okr_086_redacted_presentation","sample_key":"tenant/976edb0a051e0f81/lineage/bfcf293744b1cc2b/artifact/c738bee7ec057b89/sha/0d2fb91e77cc670e4022/preview.pdf","bucket_authority_rule":"bucket_name_not_visibility_authority","browser_delivery_rule":"governed_presentation_only","signed_access_pattern":"short_lived_manifest_bound_download_ticket"},{"storage_class_ref":"outbound_ephemeral","manifest_rule_ref":"okr_086_outbound_ephemeral","sample_key":"tenant/976edb0a051e0f81/lineage/f0a92a4367e07ffa/artifact/5b8c97c1934e0d71/sha/e23e6f0419ad570554a5/handoff.zip","bucket_authority_rule":"bucket_name_not_visibility_authority","browser_delivery_rule":"governed_download_handoff_only","signed_access_pattern":"short_lived_manifest_bound_download_ticket"},{"storage_class_ref":"ops_recovery_staging","manifest_rule_ref":"okr_086_ops_recovery","sample_key":"tenant/976edb0a051e0f81/lineage/38b04559ceccb5ae/artifact/9cccd9f1fe87478b/sha/8aba5dcbd40e72451ecd/recovery-stage.bin","bucket_authority_rule":"bucket_name_not_visibility_authority","browser_delivery_rule":"forbidden","signed_access_pattern":"short_lived_manifest_bound_download_ticket"}],"pathSegmentRules":[{"segment_ref":"seg_086_tenant_scope_digest","position":1,"render_template":"tenant/{tenant_scope_digest}","derivation":"sha256(tenant_scope)[:16]"},{"segment_ref":"seg_086_lineage_scope_digest","position":2,"render_template":"lineage/{lineage_scope_digest}","derivation":"sha256(lineage_scope)[:16]"},{"segment_ref":"seg_086_artifact_ref_digest","position":3,"render_template":"artifact/{artifact_ref_digest}","derivation":"sha256(artifact_ref)[:16]"},{"segment_ref":"seg_086_payload_hash","position":4,"render_template":"sha/{payload_sha256[:20]}","derivation":"sha256(payload_bytes)[:20]"}],"localPolicy":{"task_id":"par_086","store_ref":"store_object_artifact_plane","browser_addressable_services":[],"blocked_browser_targets":["ds_object_artifact_store","quarantine_raw","evidence_source_immutable","derived_internal","redacted_presentation","outbound_ephemeral","ops_recovery_staging"],"governed_delivery_classes":["redacted_presentation","outbound_ephemeral"],"signed_access_pattern":"short_lived_manifest_bound_download_ticket","public_url_policy":"forbidden","quarantine_release_requires":["scan_clean","manifest_attached","artifact_contract_bound","visibility_authority_asserted"]},"handoff":{"task_id":"par_086","handoff_ref":"msh_086_quarantine_release_gate","source_storage_class_ref":"quarantine_raw","clean_target_storage_class_ref":"evidence_source_immutable","failed_target_storage_class_ref":"quarantine_raw","event_refs":["intake.attachment.quarantined","intake.attachment.scan-cleared","intake.attachment.scan-failed"],"blocked_browser_paths":true,"required_verdicts":["scan_clean","hash_recorded","manifest_attached","lineage_bound"],"notes":"Uploads and recordings must remain in quarantine until the scan seam and manifest gate both settle."},"workloadLabels":{"wf_command_orchestration":"Command orchestration","wf_projection_read_models":"Projection and derivation","wf_integration_dispatch":"Integration dispatch","wf_shell_delivery_published_gateway":"Published gateway","wf_assurance_security_control":"Assurance and security","wf_data_stateful_plane":"Stateful data plane","wf_integration_simulation_lab":"Simulator backplane"},"environmentLabels":{"local":"Local","ci-preview":"CI preview","integration":"Integration","preprod":"Preprod","production":"Production"},"accentColor":{"quarantine":"#C24141","trusted":"#2563EB","derived":"#0EA5A4","redacted":"#7C3AED","ephemeral":"#D97706","hold":"#059669"},"flowOrder":["quarantine_raw","evidence_source_immutable","derived_internal","redacted_presentation","outbound_ephemeral","ops_recovery_staging"]};
+      const workloadColumns = [
+        "wf_command_orchestration",
+        "wf_projection_read_models",
+        "wf_integration_dispatch",
+        "wf_shell_delivery_published_gateway",
+        "wf_assurance_security_control",
+      ];
+      const state = {
+        environment: "local",
+        storageClass: "all",
+        retentionState: "all",
+        hold: "all",
+        workload: "all",
+        selectedClassRef: "quarantine_raw",
+        selectedPolicyRef: "local_quarantine_raw",
+        inspectorTab: "summary",
+      };
+
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+      document.body.dataset.reducedMotion = String(prefersReducedMotion.matches);
+      prefersReducedMotion.addEventListener("change", (event) => {
+        document.body.dataset.reducedMotion = String(event.matches);
+      });
+
+      const metricEnvironments = document.getElementById("metric-environments");
+      const metricQuarantine = document.getElementById("metric-quarantine");
+      const metricHold = document.getElementById("metric-hold");
+      const metricAlerts = document.getElementById("metric-alerts");
+      const flowDiagram = document.getElementById("flow-diagram");
+      const lifecycleRibbon = document.getElementById("lifecycle-ribbon");
+      const accessMatrix = document.getElementById("access-matrix");
+      const manifestBody = document.getElementById("manifest-body");
+      const retentionBody = document.getElementById("retention-body");
+      const inspectorCard = document.getElementById("inspector-card");
+      const flowParity = document.getElementById("flow-parity");
+      const ribbonParity = document.getElementById("ribbon-parity");
+      const matrixParity = document.getElementById("matrix-parity");
+
+      const filterEnvironment = document.getElementById("filter-environment");
+      const filterClass = document.getElementById("filter-class");
+      const filterRetention = document.getElementById("filter-retention");
+      const filterHold = document.getElementById("filter-hold");
+      const filterWorkload = document.getElementById("filter-workload");
+
+      function setOptions(select, options, current) {
+        select.innerHTML = options
+          .map((option) => `<option value="${option.value}" ${option.value === current ? "selected" : ""}>${option.label}</option>`)
+          .join("");
+      }
+
+      function getClassByRef(storageClassRef) {
+        return payload.storageClasses.find((row) => row.storage_class_ref === storageClassRef);
+      }
+
+      function getSelectedRetentionRow() {
+        const match = filteredRetentionRows().find(
+          (row) =>
+            `${row.environment_ring}_${row.storage_class_ref}` === state.selectedPolicyRef,
+        );
+        return match ?? filteredRetentionRows()[0] ?? null;
+      }
+
+      function filteredClasses() {
+        return payload.storageClasses.filter((row) => {
+          if (state.storageClass !== "all" && row.storage_class_ref !== state.storageClass) {
+            return false;
+          }
+          if (state.retentionState !== "all" && row.retention_state !== state.retentionState) {
+            return false;
+          }
+          if (state.hold === "ready" && !row.legal_hold_ready) {
+            return false;
+          }
+          if (state.hold === "not-ready" && row.legal_hold_ready) {
+            return false;
+          }
+          if (
+            state.workload !== "all" &&
+            !row.workload_family_refs.includes(state.workload)
+          ) {
+            return false;
+          }
+          return true;
+        });
+      }
+
+      function filteredRetentionRows() {
+        return payload.retentionRows.filter((row) => {
+          if (row.environment_ring !== state.environment) {
+            return false;
+          }
+          if (state.storageClass !== "all" && row.storage_class_ref !== state.storageClass) {
+            return false;
+          }
+          if (state.retentionState !== "all" && row.retention_state !== state.retentionState) {
+            return false;
+          }
+          const classRecord = getClassByRef(row.storage_class_ref);
+          if (state.hold === "ready" && !classRecord.legal_hold_ready) {
+            return false;
+          }
+          if (state.hold === "not-ready" && classRecord.legal_hold_ready) {
+            return false;
+          }
+          if (
+            state.workload !== "all" &&
+            !classRecord.workload_family_refs.includes(state.workload)
+          ) {
+            return false;
+          }
+          return true;
+        });
+      }
+
+      function ensureSelection() {
+        const classes = filteredClasses();
+        if (!classes.some((row) => row.storage_class_ref === state.selectedClassRef)) {
+          state.selectedClassRef = classes[0]?.storage_class_ref ?? null;
+        }
+        const rows = filteredRetentionRows();
+        if (
+          !rows.some(
+            (row) =>
+              `${row.environment_ring}_${row.storage_class_ref}` === state.selectedPolicyRef,
+          )
+        ) {
+          state.selectedPolicyRef = rows[0]
+            ? `${rows[0].environment_ring}_${rows[0].storage_class_ref}`
+            : null;
+        }
+      }
+
+      function onRowKeydown(event, rows, currentRef, toRef) {
+        if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+          return;
+        }
+        event.preventDefault();
+        const index = rows.findIndex((row) => toRef(row) === currentRef);
+        const nextIndex =
+          event.key === "ArrowDown"
+            ? Math.min(index + 1, rows.length - 1)
+            : Math.max(index - 1, 0);
+        const next = rows[nextIndex];
+        if (!next) {
+          return;
+        }
+        state.selectedClassRef = next.storage_class_ref;
+        state.selectedPolicyRef = `${state.environment}_${next.storage_class_ref}`;
+        render();
+        const button = document.querySelector(
+          `[data-focus-ref="${next.storage_class_ref}"]`,
+        );
+        button?.focus();
+      }
+
+      function renderFlow() {
+        flowDiagram.innerHTML = payload.storageClasses
+          .filter((row) => filteredClasses().some((item) => item.storage_class_ref === row.storage_class_ref))
+          .map((row) => {
+            const accent = payload.accentColor[row.accent_ref];
+            return `
+              <div
+                class="flow-node"
+                data-testid="flow-node-${row.storage_class_ref}"
+                data-selected="${String(row.storage_class_ref === state.selectedClassRef)}"
+                data-accent="${row.accent_ref}"
+                style="--accent:${accent}"
+              >
+                <h3>${row.display_name}</h3>
+                <p>${row.purpose}</p>
+                <span class="mono">${row.retention_policy_ref}</span>
+              </div>
+            `;
+          })
+          .join("");
+        const selected = getClassByRef(state.selectedClassRef);
+        flowParity.textContent = selected
+          ? `${selected.display_name} routes through ${selected.browser_delivery_posture} and ${selected.visibility_authority}.`
+          : "No selection.";
+      }
+
+      function renderRibbon() {
+        lifecycleRibbon.innerHTML = payload.flowOrder.filter((storageClassRef) =>
+          filteredClasses().some((row) => row.storage_class_ref === storageClassRef),
+        )
+          .map((storageClassRef) => {
+            const row = getClassByRef(storageClassRef);
+            const accent = payload.accentColor[row.accent_ref];
+            return `
+              <div
+                class="ribbon-step"
+                data-testid="lifecycle-step-${row.storage_class_ref}"
+                data-selected="${String(row.storage_class_ref === state.selectedClassRef)}"
+                style="--accent:${accent}"
+              >
+                <strong>${row.display_name}</strong>
+                <div class="mono">${row.retention_state}</div>
+              </div>
+            `;
+          })
+          .join("");
+        const selectedRow = getSelectedRetentionRow();
+        ribbonParity.textContent = selectedRow
+          ? `${payload.environmentLabels[selectedRow.environment_ring]} keeps ${selectedRow.storage_class_ref} for ${selectedRow.default_retention_days} days with ${selectedRow.purge_mode}.`
+          : "No lifecycle selected.";
+      }
+
+      function renderMatrix() {
+        const header = `
+          <div class="matrix-head">
+            <span>Storage class</span>
+            ${workloadColumns.map((column) => `<span>${payload.workloadLabels[column]}</span>`).join("")}
+          </div>
+        `;
+        const rows = filteredClasses()
+          .map((row) => {
+            const accent = payload.accentColor[row.accent_ref];
+            const cells = workloadColumns
+              .map((column) => {
+                const allowed = row.workload_family_refs.includes(column);
+                return `<span class="matrix-cell" data-allowed="${String(allowed)}">${allowed ? "Allowed" : "Blocked"}</span>`;
+              })
+              .join("");
+            return `
+              <div
+                class="matrix-row"
+                data-testid="matrix-row-${row.storage_class_ref}"
+                data-selected="${String(row.storage_class_ref === state.selectedClassRef)}"
+                style="--accent:${accent}"
+              >
+                <span>${row.display_name}</span>
+                ${cells}
+              </div>
+            `;
+          })
+          .join("");
+        accessMatrix.innerHTML = header + rows;
+        const selected = getClassByRef(state.selectedClassRef);
+        matrixParity.textContent = selected
+          ? `${selected.display_name} allows ${selected.workload_family_refs.length} workload families and forbids direct browser paths.`
+          : "Matrix parity pending.";
+      }
+
+      function renderManifestTable() {
+        const classes = filteredClasses();
+        manifestBody.innerHTML = classes
+          .map((row) => {
+            const selected = row.storage_class_ref === state.selectedClassRef;
+            return `
+              <tr
+                class="${selected ? "row-selected" : ""}"
+                data-testid="manifest-row-${row.storage_class_ref}"
+              >
+                <td>
+                  <button
+                    class="row-select"
+                    data-focus-ref="${row.storage_class_ref}"
+                    aria-label="Select ${row.display_name}"
+                    onkeydown="void(0)"
+                  >${row.display_name}</button>
+                </td>
+                <td class="mono">${row.immutability_mode}</td>
+                <td>${row.browser_delivery_posture}</td>
+              </tr>
+            `;
+          })
+          .join("");
+        Array.from(manifestBody.querySelectorAll(".row-select")).forEach((button, index) => {
+          const row = classes[index];
+          button.addEventListener("click", () => {
+            state.selectedClassRef = row.storage_class_ref;
+            state.selectedPolicyRef = `${state.environment}_${row.storage_class_ref}`;
+            state.inspectorTab = "summary";
+            render();
+          });
+          button.addEventListener("keydown", (event) =>
+            onRowKeydown(
+              event,
+              classes,
+              row.storage_class_ref,
+              (item) => item.storage_class_ref,
+            ),
+          );
+        });
+      }
+
+      function renderRetentionTable() {
+        const rows = filteredRetentionRows();
+        retentionBody.innerHTML = rows
+          .map((row) => {
+            const key = `${row.environment_ring}_${row.storage_class_ref}`;
+            const selected = key === state.selectedPolicyRef;
+            return `
+              <tr
+                class="${selected ? "row-selected" : ""}"
+                data-testid="policy-row-${row.environment_ring}-${row.storage_class_ref}"
+              >
+                <td>
+                  <button class="row-select" data-policy-ref="${key}">
+                    ${getClassByRef(row.storage_class_ref).display_name}
+                  </button>
+                </td>
+                <td>${payload.environmentLabels[row.environment_ring]}</td>
+                <td class="mono">${row.default_retention_days}d</td>
+                <td>${row.legal_hold_ready}</td>
+              </tr>
+            `;
+          })
+          .join("");
+        Array.from(retentionBody.querySelectorAll(".row-select")).forEach((button, index) => {
+          const row = rows[index];
+          const key = `${row.environment_ring}_${row.storage_class_ref}`;
+          button.addEventListener("click", () => {
+            state.selectedPolicyRef = key;
+            state.selectedClassRef = row.storage_class_ref;
+            state.inspectorTab = "policy";
+            render();
+          });
+          button.addEventListener("keydown", (event) =>
+            onRowKeydown(event, rows, key, (item) => `${item.environment_ring}_${item.storage_class_ref}`),
+          );
+        });
+      }
+
+      function renderInspector() {
+        const selected = getClassByRef(state.selectedClassRef);
+        const selectedPolicy = getSelectedRetentionRow();
+        const keyRule = payload.keyRules.find(
+          (row) => row.storage_class_ref === state.selectedClassRef,
+        );
+        const tabs = Array.from(document.querySelectorAll(".inspector-tab"));
+        tabs.forEach((button) => {
+          const active = button.dataset.tab === state.inspectorTab;
+          button.dataset.active = String(active);
+          button.setAttribute("aria-selected", String(active));
+        });
+        if (!selected || !selectedPolicy) {
+          inspectorCard.innerHTML = "<p>No filtered storage class is available.</p>";
+          return;
+        }
+        if (state.inspectorTab === "summary") {
+          inspectorCard.innerHTML = `
+            <dl>
+              <div><dt>Storage class</dt><dd>${selected.display_name}</dd></div>
+              <div><dt>Purpose</dt><dd>${selected.purpose}</dd></div>
+              <div><dt>Browser posture</dt><dd>${selected.browser_delivery_posture}</dd></div>
+              <div><dt>Allowed identities</dt><dd class="mono">${selected.service_identity_refs.join(", ")}</dd></div>
+            </dl>
+          `;
+        } else if (state.inspectorTab === "policy") {
+          inspectorCard.innerHTML = `
+            <dl>
+              <div><dt>Retention policy</dt><dd class="mono">${selectedPolicy.retention_policy_ref}</dd></div>
+              <div><dt>Retention days</dt><dd>${selectedPolicy.default_retention_days}</dd></div>
+              <div><dt>Hold-ready</dt><dd>${selectedPolicy.legal_hold_ready}</dd></div>
+              <div><dt>Purge mode</dt><dd>${selectedPolicy.purge_mode}</dd></div>
+            </dl>
+          `;
+        } else {
+          inspectorCard.innerHTML = `
+            <dl>
+              <div><dt>Manifest rule</dt><dd class="mono">${selected.manifest_rule_ref}</dd></div>
+              <div><dt>Sample key</dt><dd class="mono">${keyRule?.sample_key ?? "n/a"}</dd></div>
+              <div><dt>Signed access</dt><dd>${keyRule?.signed_access_pattern ?? "n/a"}</dd></div>
+              <div><dt>Visibility authority</dt><dd>${selected.visibility_authority}</dd></div>
+            </dl>
+          `;
+        }
+      }
+
+      function renderMetrics() {
+        metricEnvironments.textContent = String(payload.meta.activeEnvironmentCount);
+        metricQuarantine.textContent = String(payload.meta.quarantinedFixtureCount);
+        metricHold.textContent = String(payload.meta.holdEnabledClassCount);
+        const currentEnv = payload.classRealizations.filter(
+          (row) => row.environment_ring === state.environment,
+        );
+        metricAlerts.textContent = String(
+          payload.meta.stalePolicyAlerts +
+            currentEnv.filter((row) => row.browser_delivery_posture === "forbidden").length * 0,
+        );
+      }
+
+      function render() {
+        ensureSelection();
+        renderMetrics();
+        renderFlow();
+        renderRibbon();
+        renderMatrix();
+        renderManifestTable();
+        renderRetentionTable();
+        renderInspector();
+      }
+
+      function installInspectorTabs() {
+        Array.from(document.querySelectorAll(".inspector-tab")).forEach((button) => {
+          button.addEventListener("click", () => {
+            state.inspectorTab = button.dataset.tab;
+            render();
+          });
+          button.addEventListener("keydown", (event) => {
+            if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") {
+              return;
+            }
+            event.preventDefault();
+            const tabs = ["summary", "policy", "keys"];
+            const index = tabs.indexOf(state.inspectorTab);
+            const nextIndex =
+              event.key === "ArrowRight"
+                ? Math.min(index + 1, tabs.length - 1)
+                : Math.max(index - 1, 0);
+            state.inspectorTab = tabs[nextIndex];
+            render();
+            document.querySelector(`[data-tab="${state.inspectorTab}"]`)?.focus();
+          });
+        });
+      }
+
+      function installFilters() {
+        setOptions(
+          filterEnvironment,
+          ENVIRONMENT_OPTIONS,
+          state.environment,
+        );
+        setOptions(filterClass, CLASS_OPTIONS, state.storageClass);
+        setOptions(filterRetention, RETENTION_OPTIONS, state.retentionState);
+        setOptions(filterWorkload, WORKLOAD_OPTIONS, state.workload);
+        filterEnvironment.addEventListener("change", (event) => {
+          state.environment = event.target.value;
+          state.selectedPolicyRef = `${state.environment}_${state.selectedClassRef}`;
+          render();
+        });
+        filterClass.addEventListener("change", (event) => {
+          state.storageClass = event.target.value;
+          render();
+        });
+        filterRetention.addEventListener("change", (event) => {
+          state.retentionState = event.target.value;
+          render();
+        });
+        filterHold.addEventListener("change", (event) => {
+          state.hold = event.target.value;
+          render();
+        });
+        filterWorkload.addEventListener("change", (event) => {
+          state.workload = event.target.value;
+          render();
+        });
+      }
+
+      const ENVIRONMENT_OPTIONS = [
+        { value: "local", label: "Local" },
+        { value: "ci-preview", label: "CI preview" },
+        { value: "integration", label: "Integration" },
+        { value: "preprod", label: "Preprod" },
+        { value: "production", label: "Production" },
+      ];
+      const CLASS_OPTIONS = [
+        { value: "all", label: "All classes" },
+        ...payload.storageClasses.map((row) => ({
+          value: row.storage_class_ref,
+          label: row.display_name,
+        })),
+      ];
+      const RETENTION_OPTIONS = [
+        { value: "all", label: "All retention states" },
+        ...Array.from(new Set(payload.storageClasses.map((row) => row.retention_state))).map(
+          (value) => ({ value, label: value }),
+        ),
+      ];
+      const WORKLOAD_OPTIONS = [
+        { value: "all", label: "All workload families" },
+        ...Object.entries(payload.workloadLabels).map(([value, label]) => ({ value, label })),
+      ];
+
+      installInspectorTabs();
+      installFilters();
+      render();
+    </script>
+  </body>
+</html>

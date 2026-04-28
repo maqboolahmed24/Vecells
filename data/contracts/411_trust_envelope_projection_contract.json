@@ -1,0 +1,184 @@
+{
+  "taskId": "par_411",
+  "schemaVersion": "411.trust-envelope-projection-contract.v1",
+  "contractFamily": "assistive_surface_binding_and_trust_envelope_projection",
+  "sourceGateRef": "data/contracts/403_phase8_track_readiness_registry.json",
+  "upstreamContractRefs": [
+    "data/contracts/405_assistive_release_candidate_contracts.json",
+    "data/contracts/407_transcript_runtime_contract.json",
+    "data/contracts/408_documentation_composer_contract.json",
+    "data/contracts/409_recommendation_orchestrator_contract.json",
+    "data/contracts/410_capability_control_plane_contract.json"
+  ],
+  "runtimePackage": {
+    "packageName": "@vecells/domain-assistive-trust-envelope",
+    "sourceRoot": "packages/domains/assistive_trust_envelope/src",
+    "separationLaw": "The trust envelope projects renderability, actionability, confidence posture, and completion adjacency. It cannot invoke models, write workflow state, or allow browser code to recompute actionability."
+  },
+  "services": [
+    {
+      "serviceName": "AssistiveSurfaceBindingResolver",
+      "ownedApis": ["resolveSurfaceBinding", "getSurfaceBinding"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "AssistivePresentationContractResolver",
+      "ownedApis": ["registerPresentationContract"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "AssistiveProvenanceEnvelopeService",
+      "ownedApis": ["createProvenanceEnvelope"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "AssistiveConfidenceDigestService",
+      "ownedApis": ["createConfidenceDigest"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "AssistiveFreezeFrameService",
+      "ownedApis": ["materializeFreezeFrame"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "AssistiveTrustEnvelopeProjector",
+      "ownedApis": ["projectTrustEnvelope"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "AssistiveSurfacePostureResolver",
+      "ownedApis": ["resolvePosture"],
+      "requiresActorContext": false
+    }
+  ],
+  "persistedObjects": [
+    "AssistiveSurfaceBinding",
+    "AssistivePresentationContract",
+    "AssistiveProvenanceEnvelope",
+    "AssistiveConfidenceDigest",
+    "AssistiveFreezeFrame",
+    "AssistiveCapabilityTrustEnvelope",
+    "AssistiveTrustEnvelopeAuditRecord"
+  ],
+  "migrationRef": "services/command-api/migrations/411_phase8_trust_envelope_projection.sql",
+  "surfaceBindingPolicy": {
+    "staffOnlyVisibleSurface": true,
+    "sameShellRefsRequired": [
+      "StaffWorkspaceConsistencyProjection",
+      "WorkspaceSliceTrustProjection",
+      "WorkspaceTrustEnvelope",
+      "selectedAnchorRequirement",
+      "entityContinuityKey",
+      "surfacePublicationRef",
+      "runtimePublicationBundleRef"
+    ],
+    "driftDisposition": "freeze in place and apply ReleaseRecoveryDisposition"
+  },
+  "posturePolicy": {
+    "separateStates": [
+      "surfacePostureState",
+      "actionabilityState",
+      "confidencePostureState",
+      "completionAdjacencyState"
+    ],
+    "failClosedWhenMissing": [
+      "watch tuple",
+      "trust projection",
+      "rollout verdict",
+      "required freeze record",
+      "invocation grant",
+      "run settlement",
+      "kill-switch state"
+    ],
+    "allowedSurfacePostures": [
+      "interactive",
+      "observe_only",
+      "provenance_only",
+      "placeholder_only",
+      "hidden"
+    ],
+    "allowedActionabilityStates": [
+      "enabled",
+      "regenerate_only",
+      "observe_only",
+      "blocked_by_policy",
+      "blocked"
+    ]
+  },
+  "confidencePolicy": {
+    "primaryToken": "AssistiveConfidenceDigest.displayBand",
+    "rawScoreAsPrimaryTokenForbidden": true,
+    "suppressedWhen": [
+      "calibration missing",
+      "trust not trusted",
+      "publication not published",
+      "runtime publication not current",
+      "continuity not current"
+    ]
+  },
+  "sameShellRecoveryPolicy": {
+    "freezeFrameRequiredFor": [
+      "publication drift",
+      "runtime publication drift",
+      "selected anchor drift",
+      "route family drift",
+      "entity continuity drift",
+      "kill switch active",
+      "release freeze"
+    ],
+    "retains": [
+      "routeFamily",
+      "selectedAnchorRef",
+      "entityContinuityKey",
+      "provenanceEnvelopeRefs"
+    ],
+    "suppresses": ["accept", "insert", "regenerate", "export", "browser_handoff", "completion"]
+  },
+  "clientContract": {
+    "browser_client_actionability_recompute_forbidden": true,
+    "frontendMayNarrowButNotWiden": true,
+    "authoritativeFields": [
+      "surfacePostureState",
+      "actionabilityState",
+      "confidencePostureState",
+      "completionAdjacencyState",
+      "blockingReasonRefs"
+    ]
+  },
+  "invariants": [
+    {
+      "invariantId": "INV411_001",
+      "statement": "AssistiveSurfaceBinding is staff-only for visible Phase 8 surfaces and binds route family, entity continuity, selected anchor, publication, runtime bundle, and workspace trust refs."
+    },
+    {
+      "invariantId": "INV411_002",
+      "statement": "AssistivePresentationContract is explicit, summary-first, companion-only, reduced-motion aware, and limited to one dominant safe action."
+    },
+    {
+      "invariantId": "INV411_003",
+      "statement": "AssistiveProvenanceEnvelope stores evidence hashes and immutable refs, not raw evidence text."
+    },
+    {
+      "invariantId": "INV411_004",
+      "statement": "AssistiveConfidenceDigest exposes conservative bands and suppresses confidence when calibration, trust, publication, runtime publication, or continuity posture is weak."
+    },
+    {
+      "invariantId": "INV411_005",
+      "statement": "AssistiveFreezeFrame freezes in place, retains governed provenance, and suppresses write, export, browser handoff, and completion affordances."
+    },
+    {
+      "invariantId": "INV411_006",
+      "statement": "AssistiveCapabilityTrustEnvelope is the sole authority for live renderability, confidence posture, visible actionability, and completion-adjacent posture."
+    },
+    {
+      "invariantId": "INV411_007",
+      "statement": "Missing watch tuple, trust projection, rollout verdict, or required freeze record fails closed rather than assuming green state."
+    },
+    {
+      "invariantId": "INV411_008",
+      "statement": "Later browser consumers may render from the envelope but may not recompute or widen actionability client-side."
+    }
+  ],
+  "downstreamConsumers": ["par_412", "par_413", "par_414", "par_415", "par_418", "par_419"]
+}

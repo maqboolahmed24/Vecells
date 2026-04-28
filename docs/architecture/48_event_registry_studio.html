@@ -1,0 +1,1070 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vecells Event Registry Studio</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f7f9fc;
+        --rail: #eef2f8;
+        --panel: #ffffff;
+        --inset: #f4f6fb;
+        --text-strong: #0f172a;
+        --text-default: #1e293b;
+        --text-muted: #667085;
+        --border-subtle: #e2e8f0;
+        --border-default: #cbd5e1;
+        --namespace: #3559e6;
+        --normalization: #0ea5a4;
+        --compatibility: #6e59d9;
+        --warning: #c98900;
+        --blocked: #c24141;
+        --shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family:
+          ui-sans-serif,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        background: linear-gradient(180deg, rgba(53, 89, 230, 0.06), transparent 160px),
+          var(--canvas);
+        color: var(--text-default);
+      }
+
+      body[data-reduced-motion="true"] * {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+      }
+
+      .shell {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 20px 20px 28px;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        box-shadow: var(--shadow);
+      }
+
+      .masthead {
+        position: sticky;
+        top: 0;
+        z-index: 12;
+        min-height: 72px;
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 16px;
+        align-items: center;
+        padding: 16px 18px;
+        margin-bottom: 16px;
+        backdrop-filter: blur(14px);
+        background: rgba(255, 255, 255, 0.92);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .brand-mark {
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(53, 89, 230, 0.16), rgba(14, 165, 164, 0.18));
+        border: 1px solid rgba(53, 89, 230, 0.18);
+      }
+
+      .brand h1,
+      .brand p {
+        margin: 0;
+      }
+
+      .brand h1 {
+        font-size: 18px;
+        color: var(--text-strong);
+      }
+
+      .spine {
+        height: 10px;
+        margin-top: 8px;
+        border-radius: 999px;
+        background:
+          linear-gradient(
+            90deg,
+            rgba(53, 89, 230, 0.18) 0,
+            rgba(53, 89, 230, 0.18) 22%,
+            rgba(14, 165, 164, 0.24) 22%,
+            rgba(14, 165, 164, 0.24) 48%,
+            rgba(110, 89, 217, 0.22) 48%,
+            rgba(110, 89, 217, 0.22) 70%,
+            rgba(201, 137, 0, 0.22) 70%,
+            rgba(201, 137, 0, 0.22) 100%
+          );
+      }
+
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .metric-card {
+        background: var(--inset);
+        border: 1px solid var(--border-subtle);
+        border-radius: 16px;
+        padding: 10px 12px;
+      }
+
+      .metric-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+      }
+
+      .metric-value {
+        margin-top: 4px;
+        font-size: 20px;
+        color: var(--text-strong);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr) 388px;
+        gap: 16px;
+        align-items: start;
+      }
+
+      .rail {
+        position: sticky;
+        top: 96px;
+        padding: 18px;
+        background: var(--rail);
+      }
+
+      .section-title {
+        margin: 0 0 12px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+      }
+
+      .chip-group,
+      .namespace-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip,
+      .namespace-button,
+      .contract-row,
+      .diff-row,
+      .rule-row {
+        transition:
+          background-color 120ms ease,
+          border-color 120ms ease,
+          transform 120ms ease;
+      }
+
+      .chip {
+        border: 1px solid var(--border-default);
+        border-radius: 999px;
+        padding: 5px 10px;
+        background: rgba(255, 255, 255, 0.8);
+        color: var(--text-default);
+        cursor: pointer;
+        font-size: 12px;
+      }
+
+      .chip[data-selected="true"],
+      .namespace-button[data-selected="true"] {
+        border-color: rgba(53, 89, 230, 0.32);
+        background: rgba(53, 89, 230, 0.12);
+        color: var(--text-strong);
+      }
+
+      .namespace-list {
+        margin-top: 16px;
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .namespace-button {
+        width: 100%;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255, 255, 255, 0.86);
+        border-radius: 14px;
+        padding: 10px 12px;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .namespace-button strong,
+      .namespace-button span {
+        display: block;
+      }
+
+      .namespace-button strong {
+        color: var(--text-strong);
+        font-size: 13px;
+      }
+
+      .namespace-button span {
+        margin-top: 4px;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      .center {
+        display: grid;
+        gap: 16px;
+      }
+
+      .filters {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
+        padding: 16px;
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      select {
+        min-height: 44px;
+        padding: 0 12px;
+        border-radius: 14px;
+        border: 1px solid var(--border-default);
+        background: var(--panel);
+        color: var(--text-strong);
+      }
+
+      .table-panel {
+        padding: 16px;
+      }
+
+      .table-scroll {
+        min-height: 520px;
+        overflow: auto;
+        border: 1px solid var(--border-subtle);
+        border-radius: 18px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border-subtle);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        background: #fbfcff;
+        z-index: 1;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+      }
+
+      .mono {
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          Monaco,
+          Consolas,
+          monospace;
+      }
+
+      .contract-row {
+        cursor: pointer;
+        background: transparent;
+      }
+
+      .contract-row[data-selected="true"] {
+        background: rgba(53, 89, 230, 0.06);
+      }
+
+      .expand-panel {
+        background: #fafbff;
+      }
+
+      .expand-shell {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        padding: 12px 0 4px;
+      }
+
+      .expand-card {
+        border: 1px solid var(--border-subtle);
+        background: var(--panel);
+        border-radius: 14px;
+        padding: 12px;
+      }
+
+      .inspector {
+        position: sticky;
+        top: 96px;
+        padding: 18px;
+        min-height: 640px;
+      }
+
+      .inspector h2,
+      .inspector h3,
+      .inspector p {
+        margin: 0;
+      }
+
+      .inspector h2 {
+        font-size: 20px;
+        color: var(--text-strong);
+      }
+
+      .inspector-grid {
+        display: grid;
+        gap: 14px;
+        margin-top: 14px;
+      }
+
+      .inspector-card {
+        border: 1px solid var(--border-subtle);
+        border-radius: 16px;
+        padding: 14px;
+        background: var(--inset);
+      }
+
+      .inspector-card ul {
+        margin: 10px 0 0;
+        padding-left: 18px;
+      }
+
+      .lower-grid {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr;
+        gap: 16px;
+        margin-top: 16px;
+      }
+
+      .diff-filters {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .mini-diagram {
+        display: grid;
+        gap: 10px;
+        margin-top: 16px;
+        padding: 16px;
+      }
+
+      .diagram-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+      }
+
+      .diagram-box {
+        border-radius: 14px;
+        border: 1px solid var(--border-subtle);
+        padding: 10px 12px;
+        background: rgba(255, 255, 255, 0.86);
+      }
+
+      .arrow {
+        text-align: center;
+        color: var(--normalization);
+        font-weight: 700;
+      }
+
+      .defect-strip {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .defect-card {
+        border-radius: 16px;
+        border: 1px solid var(--border-subtle);
+        padding: 14px;
+        background: var(--panel);
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 4px 8px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .badge-purpose {
+        background: rgba(53, 89, 230, 0.1);
+        color: var(--namespace);
+      }
+
+      .badge-watch {
+        background: rgba(201, 137, 0, 0.14);
+        color: var(--warning);
+      }
+
+      .badge-blocked {
+        background: rgba(194, 65, 65, 0.12);
+        color: var(--blocked);
+      }
+
+      .badge-resolved {
+        background: rgba(14, 165, 164, 0.12);
+        color: var(--normalization);
+      }
+
+      @media (max-width: 1180px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .rail,
+        .inspector {
+          position: static;
+        }
+
+        .lower-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 840px) {
+        .masthead,
+        .filters,
+        .metric-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .expand-shell {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="masthead panel" data-testid="registry-masthead">
+        <div>
+          <div class="brand">
+            <div class="brand-mark" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M4 6h16M4 12h16M4 18h10" stroke="#3559E6" stroke-width="2" stroke-linecap="round"/>
+                <path d="M15 16l3 2 3-6" stroke="#0EA5A4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div>
+              <h1>Vecells EVENT Registry</h1>
+              <p>Event_Registry_Studio</p>
+            </div>
+          </div>
+          <div class="spine" aria-hidden="true"></div>
+        </div>
+        <div class="metric-grid">
+          <div class="metric-card">
+            <div class="metric-label">Namespaces</div>
+            <div class="metric-value" id="metric-namespaces">0</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Active Contracts</div>
+            <div class="metric-value" id="metric-contracts">0</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Missing Contracts</div>
+            <div class="metric-value" id="metric-missing">0</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Blocked Schemas</div>
+            <div class="metric-value" id="metric-blocked">0</div>
+          </div>
+        </div>
+      </header>
+
+      <main class="layout">
+        <aside class="panel rail" data-testid="namespace-rail">
+          <h2 class="section-title">Purpose Class</h2>
+          <div class="chip-group" id="purpose-chips"></div>
+          <h2 class="section-title" style="margin-top: 18px;">Namespaces</h2>
+          <div class="namespace-list" id="namespace-list"></div>
+        </aside>
+
+        <section class="center">
+          <section class="panel filters">
+            <label>
+              Namespace
+              <select id="filter-namespace">
+                <option value="all">All namespaces</option>
+              </select>
+            </label>
+            <label>
+              Owning Context
+              <select id="filter-context" data-testid="filter-context">
+                <option value="all">All contexts</option>
+              </select>
+            </label>
+            <label>
+              Compatibility
+              <select id="filter-compatibility" data-testid="filter-compatibility">
+                <option value="all">All modes</option>
+              </select>
+            </label>
+            <label>
+              Replay Semantics
+              <select id="filter-replay" data-testid="filter-replay">
+                <option value="all">All replay modes</option>
+              </select>
+            </label>
+            <label>
+              Defect State
+              <select id="filter-defect" data-testid="filter-defect">
+                <option value="all">All defect states</option>
+              </select>
+            </label>
+          </section>
+
+          <section class="panel table-panel">
+            <div class="table-scroll" data-testid="contract-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Event</th>
+                    <th>Owner</th>
+                    <th>Purpose</th>
+                    <th>Compatibility</th>
+                    <th>Replay</th>
+                    <th>Schema</th>
+                  </tr>
+                </thead>
+                <tbody id="contract-body"></tbody>
+              </table>
+            </div>
+            <section class="panel mini-diagram" aria-label="Canonicalization diagram">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                <h2 class="section-title" style="margin:0;">Canonicalization Diagram</h2>
+                <span class="badge badge-purpose">Alias to canonical</span>
+              </div>
+              <div id="diagram-body"></div>
+            </section>
+          </section>
+
+          <section class="lower-grid">
+            <section class="panel table-panel">
+              <div class="diff-filters">
+                <h2 class="section-title" style="margin:0;">Schema Diff Ledger</h2>
+                <label style="min-width:180px;">
+                  Diff Filter
+                  <select id="filter-diff" data-testid="filter-diff">
+                    <option value="all">All diffs</option>
+                    <option value="blocked">Blocked only</option>
+                    <option value="new_version_required">New version required</option>
+                    <option value="namespace_break">Namespace break</option>
+                  </select>
+                </label>
+              </div>
+              <div class="table-scroll" data-testid="diff-ledger" style="min-height: 320px;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Diff</th>
+                      <th>Event</th>
+                      <th>Mode</th>
+                      <th>Outcome</th>
+                    </tr>
+                  </thead>
+                  <tbody id="diff-body"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="panel table-panel">
+              <h2 class="section-title">Normalization Rules</h2>
+              <div class="table-scroll" style="min-height: 320px;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Producer Alias</th>
+                      <th>Canonical Event</th>
+                      <th>Payload Policy</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rule-body"></tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+
+          <section class="defect-strip" data-testid="defect-strip" id="defect-strip"></section>
+        </section>
+
+        <aside class="panel inspector" data-testid="inspector" id="inspector" aria-live="polite"></aside>
+      </main>
+    </div>
+
+    <script>
+      const state = {
+        namespace: "all",
+        purpose: "all",
+        context: "all",
+        compatibility: "all",
+        replay: "all",
+        defect: "all",
+        diff: "all",
+        selectedEvent: null,
+        expandedEvent: null,
+      };
+
+      const ids = {
+        namespace: document.getElementById("filter-namespace"),
+        context: document.getElementById("filter-context"),
+        compatibility: document.getElementById("filter-compatibility"),
+        replay: document.getElementById("filter-replay"),
+        defect: document.getElementById("filter-defect"),
+        diff: document.getElementById("filter-diff"),
+        purposeChips: document.getElementById("purpose-chips"),
+        namespaceList: document.getElementById("namespace-list"),
+        contractBody: document.getElementById("contract-body"),
+        diagramBody: document.getElementById("diagram-body"),
+        diffBody: document.getElementById("diff-body"),
+        ruleBody: document.getElementById("rule-body"),
+        defectStrip: document.getElementById("defect-strip"),
+        inspector: document.getElementById("inspector"),
+      };
+
+      const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+      function applyMotionPreference() {
+        document.body.dataset.reducedMotion = motionQuery.matches ? "true" : "false";
+      }
+      applyMotionPreference();
+      motionQuery.addEventListener?.("change", applyMotionPreference);
+
+      function sortByKey(rows, key) {
+        return [...rows].sort((left, right) => String(left[key]).localeCompare(String(right[key])));
+      }
+
+      function uniqueValues(rows, key) {
+        return [...new Set(rows.map((row) => row[key]))].sort();
+      }
+
+      function populateSelect(select, values) {
+        for (const value of values) {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = value;
+          select.appendChild(option);
+        }
+      }
+
+      function filteredContracts(payload) {
+        return payload.contracts.filter((row) => state.namespace === "all" || row.namespaceCode === state.namespace)
+          .filter((row) => state.purpose === "all" || row.eventPurpose === state.purpose)
+          .filter((row) => state.context === "all" || row.owningBoundedContextRef === state.context)
+          .filter((row) => state.compatibility === "all" || row.compatibilityMode === state.compatibility)
+          .filter((row) => state.replay === "all" || row.replaySemantics === state.replay)
+          .filter((row) => state.defect === "all" || row.defectState === state.defect);
+      }
+
+      function filteredRules(payload, contracts) {
+        const activeContractRefs = new Set(contracts.map((row) => row.canonicalEventContractId));
+        return payload.normalizationRules.filter((row) => activeContractRefs.has(row.targetCanonicalEventContractRef));
+      }
+
+      function filteredDiffs(payload, contracts) {
+        const eventNames = new Set(contracts.map((row) => row.eventName));
+        return payload.schemaDiffLedger
+          .filter((row) => eventNames.has(row.eventName))
+          .filter((row) => state.diff === "all" || row.reviewOutcome === state.diff || row.compatibilityMode === state.diff);
+      }
+
+      function ensureSelection(contracts) {
+        if (!contracts.length) {
+          state.selectedEvent = null;
+          state.expandedEvent = null;
+          return;
+        }
+        if (!contracts.some((row) => row.eventName === state.selectedEvent)) {
+          state.selectedEvent = contracts[0].eventName;
+        }
+        if (!contracts.some((row) => row.eventName === state.expandedEvent)) {
+          state.expandedEvent = contracts[0].eventName;
+        }
+      }
+
+      function badgeClass(stateValue) {
+        if (stateValue === "watch") return "badge badge-watch";
+        if (stateValue === "blocked") return "badge badge-blocked";
+        if (stateValue === "resolved") return "badge badge-resolved";
+        return "badge badge-purpose";
+      }
+
+      function renderNamespaceRail(namespacePayload, contracts) {
+        ids.namespaceList.innerHTML = "";
+        for (const namespaceRow of namespacePayload.namespaces) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "namespace-button";
+          button.dataset.namespace = namespaceRow.namespaceCode;
+          button.dataset.selected = state.namespace === namespaceRow.namespaceCode ? "true" : "false";
+          button.dataset.testid = `namespace-button-${namespaceRow.namespaceCode}`;
+          button.setAttribute("data-testid", `namespace-button-${namespaceRow.namespaceCode}`);
+          button.innerHTML = `
+            <strong class="mono">${namespaceRow.namespaceCode}.*</strong>
+            <span>${contracts.filter((row) => row.namespaceCode === namespaceRow.namespaceCode).length} contracts · ${namespaceRow.owningBoundedContextRef}</span>
+          `;
+          button.addEventListener("click", () => {
+            state.namespace = namespaceRow.namespaceCode;
+            ids.namespace.value = namespaceRow.namespaceCode;
+            renderAll(window.__registryData);
+          });
+          button.addEventListener("keydown", (event) => {
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+            event.preventDefault();
+            const nodes = [...ids.namespaceList.querySelectorAll(".namespace-button")];
+            const index = nodes.indexOf(button);
+            const nextIndex = event.key === "ArrowDown"
+              ? Math.min(nodes.length - 1, index + 1)
+              : Math.max(0, index - 1);
+            nodes[nextIndex]?.focus();
+            nodes[nextIndex]?.click();
+          });
+          ids.namespaceList.appendChild(button);
+        }
+      }
+
+      function renderPurposeChips(contracts) {
+        const purposes = uniqueValues(contracts, "eventPurpose");
+        ids.purposeChips.innerHTML = "";
+        const items = ["all", ...purposes];
+        for (const value of items) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "chip";
+          button.textContent = value === "all" ? "All purposes" : value;
+          button.dataset.selected = state.purpose === value ? "true" : "false";
+          button.addEventListener("click", () => {
+            state.purpose = value;
+            renderAll(window.__registryData);
+          });
+          ids.purposeChips.appendChild(button);
+        }
+      }
+
+      function renderContractTable(data, contracts) {
+        ids.contractBody.innerHTML = "";
+        for (const contract of contracts) {
+          const selected = contract.eventName === state.selectedEvent;
+          const expanded = contract.eventName === state.expandedEvent;
+          const row = document.createElement("tr");
+          row.className = "contract-row";
+          row.tabIndex = 0;
+          row.dataset.selected = selected ? "true" : "false";
+          row.setAttribute("data-testid", `contract-row-${contract.canonicalEventContractId}`);
+          row.innerHTML = `
+            <td class="mono">${contract.eventName}</td>
+            <td>${contract.owningBoundedContextRef}</td>
+            <td><span class="badge badge-purpose">${contract.eventPurpose}</span></td>
+            <td class="mono">${contract.compatibilityMode}</td>
+            <td class="mono">${contract.replaySemantics}</td>
+            <td class="mono">${contract.schemaVersionRef}</td>
+          `;
+          row.addEventListener("click", () => {
+            state.selectedEvent = contract.eventName;
+            state.expandedEvent = contract.eventName;
+            renderAll(data);
+          });
+          row.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              state.selectedEvent = contract.eventName;
+              state.expandedEvent = contract.eventName;
+              renderAll(data);
+              return;
+            }
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+            event.preventDefault();
+            const rows = [...ids.contractBody.querySelectorAll(".contract-row")];
+            const index = rows.indexOf(row);
+            const nextIndex = event.key === "ArrowDown"
+              ? Math.min(rows.length - 1, index + 1)
+              : Math.max(0, index - 1);
+            const nextRow = rows[nextIndex];
+            nextRow?.focus();
+            const nextTestId = nextRow?.getAttribute("data-testid");
+            if (!nextTestId) return;
+            const match = contracts.find((item) => `contract-row-${item.canonicalEventContractId}` === nextTestId);
+            if (match) {
+              state.selectedEvent = match.eventName;
+              renderAll(data);
+            }
+          });
+          ids.contractBody.appendChild(row);
+
+          if (expanded) {
+            const expandedRow = document.createElement("tr");
+            expandedRow.className = "expand-panel";
+            expandedRow.setAttribute("data-testid", `contract-expand-${contract.canonicalEventContractId}`);
+            const schemaVersion = data.schema.schemaVersions.find((row) => row.eventName === contract.eventName && row.lifecycleState === "active");
+            expandedRow.innerHTML = `
+              <td colspan="6">
+                <div class="expand-shell">
+                  <div class="expand-card">
+                    <div class="section-title">Identifiers</div>
+                    <div class="mono">${contract.requiredIdentifierRefs.join("<br />")}</div>
+                  </div>
+                  <div class="expand-card">
+                    <div class="section-title">Payload Refs</div>
+                    <div class="mono">${contract.requiredPayloadRefs.join("<br />")}</div>
+                  </div>
+                  <div class="expand-card">
+                    <div class="section-title">Schema Artifact</div>
+                    <div class="mono">${schemaVersion?.artifactPath ?? "blocked proposal"}</div>
+                  </div>
+                </div>
+              </td>
+            `;
+            ids.contractBody.appendChild(expandedRow);
+          }
+        }
+      }
+
+      function renderDiagram(rules, contractLookup) {
+        ids.diagramBody.innerHTML = "";
+        for (const rule of rules.slice(0, 8)) {
+          const target = contractLookup.get(rule.targetCanonicalEventContractRef);
+          const row = document.createElement("div");
+          row.className = "diagram-row";
+          row.innerHTML = `
+            <div class="diagram-box mono">${rule.sourceNamespacePattern}.${rule.sourceEventPattern}</div>
+            <div class="arrow">→</div>
+            <div class="diagram-box mono">${target?.eventName ?? "missing"}</div>
+          `;
+          ids.diagramBody.appendChild(row);
+        }
+      }
+
+      function renderDiffs(diffs) {
+        ids.diffBody.innerHTML = "";
+        for (const diff of diffs) {
+          const row = document.createElement("tr");
+          row.className = "diff-row";
+          row.tabIndex = 0;
+          row.setAttribute("data-testid", `diff-row-${diff.schemaDiffId}`);
+          row.innerHTML = `
+            <td class="mono">${diff.schemaDiffId}</td>
+            <td class="mono">${diff.eventName}</td>
+            <td class="mono">${diff.compatibilityMode}</td>
+            <td><span class="${badgeClass(diff.reviewOutcome)}">${diff.reviewOutcome}</span></td>
+          `;
+          row.addEventListener("keydown", (event) => {
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+            event.preventDefault();
+            const rows = [...ids.diffBody.querySelectorAll(".diff-row")];
+            const index = rows.indexOf(row);
+            const nextIndex = event.key === "ArrowDown"
+              ? Math.min(rows.length - 1, index + 1)
+              : Math.max(0, index - 1);
+            rows[nextIndex]?.focus();
+          });
+          ids.diffBody.appendChild(row);
+        }
+      }
+
+      function renderRules(rules, contractLookup) {
+        ids.ruleBody.innerHTML = "";
+        for (const rule of rules) {
+          const target = contractLookup.get(rule.targetCanonicalEventContractRef);
+          const row = document.createElement("tr");
+          row.className = "rule-row";
+          row.tabIndex = 0;
+          row.setAttribute("data-testid", `rule-row-${rule.canonicalEventNormalizationRuleId}`);
+          row.innerHTML = `
+            <td class="mono">${rule.sourceNamespacePattern}.${rule.sourceEventPattern}</td>
+            <td class="mono">${target?.eventName ?? "missing"}</td>
+            <td class="mono">${rule.payloadRewritePolicyRef}</td>
+          `;
+          row.addEventListener("keydown", (event) => {
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+            event.preventDefault();
+            const rows = [...ids.ruleBody.querySelectorAll(".rule-row")];
+            const index = rows.indexOf(row);
+            const nextIndex = event.key === "ArrowDown"
+              ? Math.min(rows.length - 1, index + 1)
+              : Math.max(0, index - 1);
+            rows[nextIndex]?.focus();
+          });
+          ids.ruleBody.appendChild(row);
+        }
+      }
+
+      function renderInspector(data, contractLookup) {
+        const contract = data.contracts.contracts.find((row) => row.eventName === state.selectedEvent);
+        if (!contract) {
+          ids.inspector.innerHTML = "<h2>No event selected</h2>";
+          return;
+        }
+        const versions = data.schema.schemaVersions.filter((row) => row.eventName === contract.eventName);
+        ids.inspector.innerHTML = `
+          <h2 class="mono">${contract.eventName}</h2>
+          <p style="margin-top:6px; color: var(--text-muted);">${contract.rationale}</p>
+          <div class="inspector-grid">
+            <section class="inspector-card">
+              <h3 class="section-title">Metadata</h3>
+              <p><strong>Owner:</strong> <span class="mono">${contract.owningBoundedContextRef}</span></p>
+              <p><strong>Governing object:</strong> <span class="mono">${contract.governingObjectType}</span></p>
+              <p><strong>Purpose:</strong> <span class="mono">${contract.eventPurpose}</span></p>
+              <p><strong>Compatibility:</strong> <span class="mono">${contract.compatibilityMode}</span></p>
+              <p><strong>Replay:</strong> <span class="mono">${contract.replaySemantics}</span></p>
+            </section>
+            <section class="inspector-card">
+              <h3 class="section-title">Identifiers</h3>
+              <ul>${contract.requiredIdentifierRefs.map((row) => `<li class="mono">${row}</li>`).join("")}</ul>
+            </section>
+            <section class="inspector-card">
+              <h3 class="section-title">Causality + Privacy</h3>
+              <ul>${contract.requiredCausalityRefs.concat(contract.requiredPrivacyRefs).map((row) => `<li class="mono">${row}</li>`).join("")}</ul>
+            </section>
+            <section class="inspector-card">
+              <h3 class="section-title">Legacy Aliases</h3>
+              <ul>${(contract.legacyAliasRefs.length ? contract.legacyAliasRefs : ["none"]).map((row) => `<li class="mono">${row}</li>`).join("")}</ul>
+            </section>
+            <section class="inspector-card">
+              <h3 class="section-title">Schema Version History</h3>
+              <ul>${versions.map((row) => `<li class="mono">${row.schemaVersionRef} · ${row.lifecycleState} · ${row.compatibilityMode}</li>`).join("")}</ul>
+            </section>
+          </div>
+        `;
+      }
+
+      function renderDefects(defects) {
+        ids.defectStrip.innerHTML = "";
+        for (const defect of defects) {
+          const card = document.createElement("article");
+          card.className = "defect-card";
+          card.innerHTML = `
+            <span class="${badgeClass(defect.state)}">${defect.state}</span>
+            <h2 style="font-size: 15px; margin-top: 10px;">${defect.title}</h2>
+            <p style="margin-top: 8px; color: var(--text-muted);">${defect.summary}</p>
+            <p class="mono" style="margin-top: 10px; color: var(--text-muted);">${defect.affected_namespaces.join(", ")}</p>
+          `;
+          ids.defectStrip.appendChild(card);
+        }
+      }
+
+      function renderMetrics(data) {
+        document.getElementById("metric-namespaces").textContent = data.namespaces.summary.namespace_count;
+        document.getElementById("metric-contracts").textContent = data.contracts.summary.active_contract_count;
+        document.getElementById("metric-missing").textContent = data.contracts.summary.missing_contract_count;
+        document.getElementById("metric-blocked").textContent = data.schema.summary.blocked_schema_count;
+      }
+
+      function renderAll(data) {
+        const contracts = filteredContracts(data.contracts);
+        ensureSelection(contracts);
+        const contractLookup = new Map(data.contracts.contracts.map((row) => [row.canonicalEventContractId, row]));
+        const rules = filteredRules(data.normalization, contracts);
+        const diffs = filteredDiffs(data.schema, contracts);
+
+        renderMetrics(data);
+        renderPurposeChips(data.contracts.contracts);
+        renderNamespaceRail(data.namespaces, data.contracts.contracts);
+        renderContractTable(data, contracts);
+        renderDiagram(rules, contractLookup);
+        renderDiffs(diffs);
+        renderRules(rules, contractLookup);
+        renderInspector(data, contractLookup);
+        renderDefects(data.contracts.registryDefects.filter((row) => state.defect === "all" || row.state === state.defect));
+      }
+
+      async function main() {
+        const [namespaces, contracts, normalization, schema] = await Promise.all([
+          fetch("../../data/analysis/canonical_event_namespaces.json").then((res) => res.json()),
+          fetch("../../data/analysis/canonical_event_contracts.json").then((res) => res.json()),
+          fetch("../../data/analysis/canonical_event_normalization_rules.json").then((res) => res.json()),
+          fetch("../../data/analysis/canonical_event_schema_versions.json").then((res) => res.json()),
+        ]);
+        window.__registryData = { namespaces, contracts, normalization, schema };
+
+        populateSelect(ids.namespace, namespaces.namespaces.map((row) => row.namespaceCode));
+        populateSelect(ids.context, uniqueValues(contracts.contracts, "owningBoundedContextRef"));
+        populateSelect(ids.compatibility, uniqueValues(contracts.contracts, "compatibilityMode"));
+        populateSelect(ids.replay, uniqueValues(contracts.contracts, "replaySemantics"));
+        populateSelect(ids.defect, uniqueValues(contracts.contracts, "defectState"));
+
+        ids.namespace.addEventListener("change", (event) => {
+          state.namespace = event.target.value;
+          renderAll(window.__registryData);
+        });
+        ids.context.addEventListener("change", (event) => {
+          state.context = event.target.value;
+          renderAll(window.__registryData);
+        });
+        ids.compatibility.addEventListener("change", (event) => {
+          state.compatibility = event.target.value;
+          renderAll(window.__registryData);
+        });
+        ids.replay.addEventListener("change", (event) => {
+          state.replay = event.target.value;
+          renderAll(window.__registryData);
+        });
+        ids.defect.addEventListener("change", (event) => {
+          state.defect = event.target.value;
+          renderAll(window.__registryData);
+        });
+        ids.diff.addEventListener("change", (event) => {
+          state.diff = event.target.value;
+          renderAll(window.__registryData);
+        });
+
+        renderAll(window.__registryData);
+      }
+
+      main().catch((error) => {
+        document.body.innerHTML = `<pre>${error.stack}</pre>`;
+        console.error(error);
+      });
+    </script>
+  </body>
+</html>

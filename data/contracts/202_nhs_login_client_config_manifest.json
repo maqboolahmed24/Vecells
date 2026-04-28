@@ -1,0 +1,387 @@
+{
+  "taskId": "seq_202",
+  "schemaVersion": "202.phase2.nhs-login-config.v1",
+  "visualMode": "Identity_Config_Control_Board",
+  "manifestVersion": "nhs-login-client-config-2026-04-15.v1",
+  "generatedAt": "2026-04-15T00:00:00Z",
+  "officialGuidanceRefs": [
+    {
+      "sourceId": "official_how_nhs_login_works",
+      "url": "https://digital.nhs.uk/services/nhs-login/nhs-login-for-partners-and-developers/nhs-login-integration-toolkit/how-nhs-login-works",
+      "appliedRules": [
+        "standard_nhs_login_button_visible_and_unmodified",
+        "request_only_needed_user_data",
+        "partner_service_owns_session_management_and_logout",
+        "consent_denial_returns_to_partner_for_bounded_handling"
+      ]
+    },
+    {
+      "sourceId": "official_multiple_redirect_uris",
+      "url": "https://nhsconnect.github.io/nhslogin/multiple-redirect-uris/",
+      "appliedRules": [
+        "max_10_provider_redirect_uris",
+        "opaque_state_fanout_when_inventory_would_sprawl"
+      ]
+    },
+    {
+      "sourceId": "official_compare_environments",
+      "url": "https://nhsconnect.github.io/nhslogin/compare-environments/",
+      "appliedRules": [
+        "sandpit_integration_and_live_are_not_interchangeable",
+        "integration_requires_conformance_evidence"
+      ]
+    },
+    {
+      "sourceId": "official_test_data",
+      "url": "https://nhsconnect.github.io/nhslogin/test-data/",
+      "appliedRules": [
+        "sandpit_uses_dummy_accounts",
+        "integration_uses_pds_backed_test_pack_when_available"
+      ]
+    },
+    {
+      "sourceId": "official_button_guidance",
+      "url": "https://nhsconnect.github.io/nhslogin/button-guidance/",
+      "appliedRules": ["nhs_login_button_not_customisable"]
+    }
+  ],
+  "localBlueprintRefs": [
+    "data/contracts/171_auth_transaction.schema.json",
+    "data/contracts/171_auth_scope_bundle.schema.json",
+    "data/contracts/171_post_auth_return_intent.schema.json",
+    "data/contracts/171_session_establishment_decision.schema.json",
+    "docs/architecture/171_nhs_login_auth_bridge_and_local_session_contract.md",
+    "docs/security/176_cookie_rotation_timeout_and_logout_controls.md",
+    "docs/frontend/195_auth_callback_and_signed_out_recovery_spec.md"
+  ],
+  "environmentSet": [
+    {
+      "environmentId": "local",
+      "label": "Local configuration twin",
+      "lane": "Mock_now_execution",
+      "providerMutationAllowed": false,
+      "baseUrl": "http://127.0.0.1:4174",
+      "issuerPosture": "local_oidc_simulator",
+      "testUserPosture": "synthetic_persona_only",
+      "evidenceExpectation": "local screenshots, selector map, manifest validation, no provider credentials"
+    },
+    {
+      "environmentId": "sandbox_twin",
+      "label": "Sandpit-like twin",
+      "lane": "Mock_now_execution",
+      "providerMutationAllowed": false,
+      "baseUrl": "https://sandpit-like.vecells.local",
+      "issuerPosture": "sandpit_semantics_without_credentials",
+      "testUserPosture": "dummy_account_shape_static_otp_not_stored",
+      "evidenceExpectation": "dry-run field entry, redacted screenshots, request-form checklist"
+    },
+    {
+      "environmentId": "sandpit_candidate",
+      "label": "NHS login sandpit candidate",
+      "lane": "Actual_provider_strategy_later",
+      "providerMutationAllowed": false,
+      "baseUrl": "https://sandpit.patient.vecells.example",
+      "issuerPosture": "provider_sandpit_after_request_approval",
+      "testUserPosture": "provider_supplied_dummy_accounts_only",
+      "evidenceExpectation": "friendly name, redirect URI, public key reference, scope list, redacted console screenshots"
+    },
+    {
+      "environmentId": "integration_candidate",
+      "label": "NHS login integration candidate",
+      "lane": "Actual_provider_strategy_later",
+      "providerMutationAllowed": false,
+      "baseUrl": "https://integration.patient.vecells.example",
+      "issuerPosture": "provider_integration_after_product_demo_and_environment_approval",
+      "testUserPosture": "pds_backed_integration_test_pack_when_issued",
+      "evidenceExpectation": "SCAL evidence, conformance screenshots, test-data pack reference, rollback snapshot"
+    }
+  ],
+  "clientApplications": [
+    {
+      "clientConfigId": "nhs_client_patient_portal",
+      "friendlyServiceName": "Vecells Patient Portal",
+      "clientIdentifierRef": "secret://nhs-login/patient-portal/client-id",
+      "publicKeyRef": "secret://nhs-login/patient-portal/jwks-public-key",
+      "privateKeyRef": "secret://nhs-login/patient-portal/private-key",
+      "rawSecretStorageAllowed": false,
+      "standardButtonPolicy": "visible_up_front_not_customisable",
+      "allowedRedirectRef": "redirect_patient_portal_callback",
+      "allowedScopeBundleRefs": ["scope_auth_contact_minimum", "scope_patient_profile"],
+      "allowedTestPersonaRefs": [
+        "persona_auth_read_only",
+        "persona_claim_pending",
+        "persona_recover_only",
+        "persona_high_assurance"
+      ]
+    },
+    {
+      "clientConfigId": "nhs_client_recovery_bridge",
+      "friendlyServiceName": "Vecells Recovery Bridge",
+      "clientIdentifierRef": "secret://nhs-login/recovery-bridge/client-id",
+      "publicKeyRef": "secret://nhs-login/recovery-bridge/jwks-public-key",
+      "privateKeyRef": "secret://nhs-login/recovery-bridge/private-key",
+      "rawSecretStorageAllowed": false,
+      "standardButtonPolicy": "visible_up_front_not_customisable",
+      "allowedRedirectRef": "redirect_recovery_bridge_callback",
+      "allowedScopeBundleRefs": ["scope_auth_contact_minimum"],
+      "allowedTestPersonaRefs": ["persona_recover_only", "persona_consent_denied"]
+    }
+  ],
+  "redirectUris": [
+    {
+      "redirectUriId": "redirect_patient_portal_callback",
+      "owningClientConfigId": "nhs_client_patient_portal",
+      "environmentIds": ["local", "sandbox_twin", "sandpit_candidate", "integration_candidate"],
+      "callbackPath": "/auth/nhs-login/callback",
+      "providerRegisteredPathCountPerEnvironment": 1,
+      "approvedUriTemplates": {
+        "local": "http://127.0.0.1:4174/auth/nhs-login/callback",
+        "sandbox_twin": "https://sandpit-like.vecells.local/auth/nhs-login/callback",
+        "sandpit_candidate": "https://sandpit.patient.vecells.example/auth/nhs-login/callback",
+        "integration_candidate": "https://integration.patient.vecells.example/auth/nhs-login/callback"
+      },
+      "routeFamilyOwnership": [
+        {
+          "routeFamilyId": "rf_patient_home",
+          "postAuthReturnIntentPattern": "pai_patient_home_entry",
+          "statePrefix": "st.home",
+          "allowedNextSurface": "patient_home"
+        },
+        {
+          "routeFamilyId": "rf_patient_requests",
+          "postAuthReturnIntentPattern": "pai_patient_request_detail",
+          "statePrefix": "st.req",
+          "allowedNextSurface": "request_status"
+        },
+        {
+          "routeFamilyId": "rf_intake_self_service",
+          "postAuthReturnIntentPattern": "pai_intake_upgrade",
+          "statePrefix": "st.intake",
+          "allowedNextSurface": "claim_draft"
+        },
+        {
+          "routeFamilyId": "rf_patient_secure_link_recovery",
+          "postAuthReturnIntentPattern": "pai_secure_link_recovery",
+          "statePrefix": "st.recover",
+          "allowedNextSurface": "bounded_recovery"
+        }
+      ],
+      "stateRoutingRequired": true,
+      "stateRoutingReason": "one callback per environment keeps provider redirect inventory below the NHS login ten URI ceiling while preserving governed PostAuthReturnIntent fan-out",
+      "arbitraryReturnUrlAllowed": false
+    },
+    {
+      "redirectUriId": "redirect_recovery_bridge_callback",
+      "owningClientConfigId": "nhs_client_recovery_bridge",
+      "environmentIds": ["local", "sandbox_twin", "sandpit_candidate", "integration_candidate"],
+      "callbackPath": "/auth/nhs-login/recovery-callback",
+      "providerRegisteredPathCountPerEnvironment": 1,
+      "approvedUriTemplates": {
+        "local": "http://127.0.0.1:4174/auth/nhs-login/recovery-callback",
+        "sandbox_twin": "https://sandpit-like.vecells.local/auth/nhs-login/recovery-callback",
+        "sandpit_candidate": "https://sandpit.patient.vecells.example/auth/nhs-login/recovery-callback",
+        "integration_candidate": "https://integration.patient.vecells.example/auth/nhs-login/recovery-callback"
+      },
+      "routeFamilyOwnership": [
+        {
+          "routeFamilyId": "rf_patient_secure_link_recovery",
+          "postAuthReturnIntentPattern": "pai_secure_link_recovery",
+          "statePrefix": "st.rec",
+          "allowedNextSurface": "bounded_recovery"
+        },
+        {
+          "routeFamilyId": "rf_contact_repair",
+          "postAuthReturnIntentPattern": "pai_contact_repair_return",
+          "statePrefix": "st.contact",
+          "allowedNextSurface": "re_auth"
+        }
+      ],
+      "stateRoutingRequired": true,
+      "stateRoutingReason": "recovery flows are lineage-bound and must not register one provider callback per transient repair target",
+      "arbitraryReturnUrlAllowed": false
+    }
+  ],
+  "scopeBundles": [
+    {
+      "scopeBundleId": "scope_auth_contact_minimum",
+      "displayName": "Auth contact minimum",
+      "requestedScopes": ["openid", "email"],
+      "requestedClaims": ["sub", "email", "email_verified"],
+      "minimumAssuranceBand": "nhs_low",
+      "capabilityCeiling": "auth_read_only",
+      "minimumNecessaryJustification": "used for safe sign-in uplift, contact confirmation, and recovery where profile data is not needed",
+      "forbiddenScopes": ["offline_access", "gp_integration_credentials", "profile_extended"],
+      "localSessionOwnedByVecells": true
+    },
+    {
+      "scopeBundleId": "scope_patient_profile",
+      "displayName": "Patient profile",
+      "requestedScopes": ["openid", "profile", "email"],
+      "requestedClaims": [
+        "sub",
+        "nhs_number",
+        "family_name",
+        "birthdate",
+        "identity_proofing_level",
+        "email"
+      ],
+      "minimumAssuranceBand": "nhs_p5_plus",
+      "capabilityCeiling": "claim_pending_or_read_only_until_local_capability_allows",
+      "minimumNecessaryJustification": "used when request claim, request list, or portal detail needs a verified patient identity candidate",
+      "forbiddenScopes": ["offline_access", "gp_integration_credentials", "profile_extended"],
+      "localSessionOwnedByVecells": true
+    },
+    {
+      "scopeBundleId": "scope_im1_pairing_disabled",
+      "displayName": "IM1 GP pairing disabled",
+      "requestedScopes": ["openid"],
+      "requestedClaims": ["sub"],
+      "minimumAssuranceBand": "nhs_p9_when_future_enabled",
+      "capabilityCeiling": "blocked_until_im1_live_approval",
+      "minimumNecessaryJustification": "placeholder proves gp_integration_credentials is not requested in this task",
+      "forbiddenScopes": ["offline_access", "gp_integration_credentials"],
+      "localSessionOwnedByVecells": true
+    }
+  ],
+  "postAuthReturnIntentCompatibility": [
+    {
+      "pattern": "pai_patient_home_entry",
+      "routeFamilyRef": "rf_patient_home",
+      "redirectMode": "route_intent_binding_only",
+      "fallbackRouteRef": "signed_out_safe_entry",
+      "staleDisposition": "bounded_recovery"
+    },
+    {
+      "pattern": "pai_patient_request_detail",
+      "routeFamilyRef": "rf_patient_requests",
+      "redirectMode": "route_intent_binding_only",
+      "fallbackRouteRef": "request_status",
+      "staleDisposition": "read_only"
+    },
+    {
+      "pattern": "pai_intake_upgrade",
+      "routeFamilyRef": "rf_intake_self_service",
+      "redirectMode": "route_intent_binding_only",
+      "fallbackRouteRef": "claim_draft",
+      "staleDisposition": "bounded_recovery"
+    },
+    {
+      "pattern": "pai_secure_link_recovery",
+      "routeFamilyRef": "rf_patient_secure_link_recovery",
+      "redirectMode": "route_intent_binding_only",
+      "fallbackRouteRef": "bounded_recovery",
+      "staleDisposition": "bounded_recovery"
+    },
+    {
+      "pattern": "pai_contact_repair_return",
+      "routeFamilyRef": "rf_contact_repair",
+      "redirectMode": "route_intent_binding_only",
+      "fallbackRouteRef": "re_auth",
+      "staleDisposition": "re_auth_required"
+    }
+  ],
+  "testUserPersonas": [
+    {
+      "personaId": "persona_auth_read_only",
+      "label": "Auth read-only",
+      "environmentIds": ["local", "sandbox_twin", "sandpit_candidate"],
+      "credentialStorage": "external_provider_or_secret_manager_only",
+      "fixtureRef": "secret://nhs-login/test-users/auth-read-only",
+      "rawPasswordStoredInRepo": false,
+      "coverage": ["read_only", "repeat_sign_in", "consent_allow"]
+    },
+    {
+      "personaId": "persona_claim_pending",
+      "label": "Claim pending",
+      "environmentIds": ["local", "sandbox_twin", "integration_candidate"],
+      "credentialStorage": "external_provider_or_secret_manager_only",
+      "fixtureRef": "secret://nhs-login/test-users/claim-pending",
+      "rawPasswordStoredInRepo": false,
+      "coverage": ["claim", "patient_link_candidate", "bounded_recovery"]
+    },
+    {
+      "personaId": "persona_recover_only",
+      "label": "Recover only",
+      "environmentIds": ["local", "sandbox_twin", "sandpit_candidate", "integration_candidate"],
+      "credentialStorage": "external_provider_or_secret_manager_only",
+      "fixtureRef": "secret://nhs-login/test-users/recover-only",
+      "rawPasswordStoredInRepo": false,
+      "coverage": ["recover_only", "stale_state", "expired_transaction"]
+    },
+    {
+      "personaId": "persona_high_assurance",
+      "label": "Higher assurance",
+      "environmentIds": ["local", "integration_candidate"],
+      "credentialStorage": "external_provider_or_secret_manager_only",
+      "fixtureRef": "secret://nhs-login/test-users/high-assurance",
+      "rawPasswordStoredInRepo": false,
+      "coverage": ["higher_assurance", "request_detail", "identity_repair_hold"]
+    },
+    {
+      "personaId": "persona_consent_denied",
+      "label": "Consent denied",
+      "environmentIds": ["local", "sandbox_twin", "sandpit_candidate"],
+      "credentialStorage": "external_provider_or_secret_manager_only",
+      "fixtureRef": "secret://nhs-login/test-users/consent-denied",
+      "rawPasswordStoredInRepo": false,
+      "coverage": ["recover_only", "consent_denied", "no_local_session_created"]
+    }
+  ],
+  "sessionAndLogoutOwnership": {
+    "nhsLoginOwnsLocalSession": false,
+    "vecellsOwnsLocalSession": true,
+    "cookiePolicyRef": "docs/security/176_cookie_rotation_timeout_and_logout_controls.md",
+    "logoutEndpoint": "POST /v1/session/logout",
+    "logoutSettlement": "SessionTerminationSettlement",
+    "callbackCreatesSessionDirectly": false,
+    "sessionDecisionRef": "SessionEstablishmentDecision"
+  },
+  "liveMutationGate": {
+    "defaultMode": "dry_run",
+    "allowLiveMutationFlag": "ALLOW_REAL_PROVIDER_MUTATION",
+    "liveMutationAllowedByDefault": false,
+    "requiredPreconditions": [
+      "explicit_live_mutation_flag_true",
+      "target_environment_declared",
+      "credential_refs_resolve_from_approved_secret_manager",
+      "named_approver_recorded",
+      "selector_snapshot_current",
+      "redaction_rules_enabled",
+      "rollback_snapshot_captured",
+      "evidence_checklist_passed"
+    ],
+    "blockedEnvironments": ["production"],
+    "providerConsoleMutationOutOfScopeForTask202": true
+  },
+  "redactionRules": [
+    {
+      "fieldClass": "clientIdentifier",
+      "replacement": "client_[REDACTED]"
+    },
+    {
+      "fieldClass": "redirectUriHost",
+      "replacement": "https://[REDACTED-HOST]/auth/nhs-login/callback"
+    },
+    {
+      "fieldClass": "secretRef",
+      "replacement": "secret://[REDACTED]"
+    },
+    {
+      "fieldClass": "testUserCredential",
+      "replacement": "[TEST-USER-CREDENTIAL-REDACTED]"
+    }
+  ],
+  "browserAutomation": {
+    "localTwinUrl": "docs/frontend/202_nhs_login_config_control_board.html",
+    "selectorManifest": "data/contracts/202_nhs_login_console_selector_manifest.json",
+    "harness": "tools/playwright/202_nhs_login_console_harness.ts",
+    "playwrightSpec": "tests/playwright/202_nhs_login_config_control_board.spec.ts",
+    "redactedEvidenceDir": "output/playwright"
+  },
+  "rollbackStrategy": {
+    "snapshotRequiredBeforeMutation": true,
+    "snapshotArtifactPattern": "output/playwright/202-nhs-login-config-snapshot-*.json",
+    "reapplyPreviousManifestAllowedInDryRun": true,
+    "realProviderRollbackRequiresApproval": true
+  }
+}

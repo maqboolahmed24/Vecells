@@ -1,0 +1,41 @@
+stateDiagram-v2
+  [*] --> ChangeDraft
+  ChangeDraft --> ImpactAssessmentPending: submit_ModelChangeRequest
+  ImpactAssessmentPending --> ImpactAssessmentComplete: regulatory_routing_resolved
+  ImpactAssessmentPending --> ImpactAssessmentBlocked: missing_or_unclear_boundary
+  ImpactAssessmentBlocked --> ChangeDraft: revise_scope
+
+  ImpactAssessmentComplete --> CandidateFrozen: materialize_candidate_hash
+  CandidateFrozen --> AssuranceBaselinePinned: pin_baseline_and_supplier_refs
+  AssuranceBaselinePinned --> RegulatoryBundleReady: RFC_SCAL_DTAC_DCB_DPIA_MHRA_rules_resolved
+  RegulatoryBundleReady --> RollbackReady: rollback_bundle_verified
+  RollbackReady --> ApprovalGraphOpen: open_independent_approval
+
+  ApprovalGraphOpen --> ApprovalBlocked: no_self_approval_or_role_gap
+  ApprovalGraphOpen --> Approved: all_required_signoffs_current
+  ApprovalBlocked --> ApprovalGraphOpen: regenerate_graph_or_reassign_reviewers
+
+  Approved --> PromotionReady: publication_runtime_disclosure_and_recovery_current
+  PromotionReady --> PromotedShadow: promote_shadow_slice
+  PromotionReady --> PromotedVisible: promote_visible_slice
+
+  CandidateFrozen --> AssuranceFrozen: baseline_supplier_publication_or_rollback_drift
+  AssuranceBaselinePinned --> AssuranceFrozen: supplier_or_baseline_stale
+  RegulatoryBundleReady --> AssuranceFrozen: regulatory_blocker
+  RollbackReady --> AssuranceFrozen: rollback_invalidated
+  ApprovalGraphOpen --> AssuranceFrozen: approval_invalidated
+  PromotionReady --> AssuranceFrozen: rollout_or_publication_drift
+  PromotedShadow --> AssuranceFrozen: threshold_or_incident_trigger
+  PromotedVisible --> AssuranceFrozen: threshold_or_incident_trigger
+
+  AssuranceFrozen --> FreezeSettled: action_settlement_frozen
+  FreezeSettled --> ApprovalGraphOpen: lift_criteria_met_before_promotion
+  FreezeSettled --> PromotionReady: revalidated_after_approval
+  FreezeSettled --> RollbackStarted: rollback_action_settled
+  RollbackStarted --> RolledBack: rollback_verification_settled
+
+  Approved --> Withdrawn: candidate_superseded_or_revoked
+  PromotedShadow --> Withdrawn: candidate_superseded_or_revoked
+  PromotedVisible --> Withdrawn: candidate_superseded_or_revoked
+  RolledBack --> [*]
+  Withdrawn --> [*]

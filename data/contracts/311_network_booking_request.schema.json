@@ -1,0 +1,273 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vecells.local/contracts/311_network_booking_request.schema.json",
+  "title": "311 NetworkBookingRequest",
+  "description": "Executable booking-to-hub handoff contract. This preserves booking lineage and origin-practice identity while moving responsibility into the Phase 5 hub branch.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "networkBookingRequestId",
+    "episodeRef",
+    "requestLineageRef",
+    "originLineageCaseLinkRef",
+    "originBookingCaseId",
+    "originRequestId",
+    "originPracticeOds",
+    "patientRef",
+    "priorityBand",
+    "clinicalTimeframe",
+    "modalityPreference",
+    "clinicianType",
+    "continuityPreference",
+    "accessNeeds",
+    "travelConstraints",
+    "reasonForHubRouting",
+    "requestedAt"
+  ],
+  "properties": {
+    "networkBookingRequestId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable NetworkBookingRequest identifier."
+    },
+    "episodeRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Episode reference preserved from the originating booking lineage."
+    },
+    "requestLineageRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Canonical RequestLineage identifier shared with the origin booking branch."
+    },
+    "originLineageCaseLinkRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The current booking LineageCaseLink that remains the parent of the new hub branch."
+    },
+    "originBookingCaseId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Current BookingCase identifier for the branch that routed to hub."
+    },
+    "originRequestId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Canonical request identifier that the hub branch continues."
+    },
+    "originPracticeOds": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Origin-practice ODS code or equivalent organisation identifier."
+    },
+    "patientRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Bound patient identifier or canonical subject ref."
+    },
+    "priorityBand": {
+      "type": "string",
+      "enum": [
+        "routine",
+        "priority",
+        "urgent",
+        "same_day",
+        "safety_escalation"
+      ],
+      "description": "Operational priority band carried into the hub queue."
+    },
+    "clinicalTimeframe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "windowClass",
+        "dueAt",
+        "urgencyCarryFloor"
+      ],
+      "properties": {
+        "windowClass": {
+          "type": "string",
+          "enum": [
+            "within_required_window",
+            "approved_variance_allowed",
+            "outside_window_with_warning"
+          ],
+          "description": "Clinical or contractual time-window class for hub routing."
+        },
+        "dueAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Latest clinically safe completion point for hub coordination."
+        },
+        "latestSafeOfferAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "Optional latest time at which an open choice offer is still lawful."
+        },
+        "urgencyCarryFloor": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Normalized urgency carry floor preserved if the case must return to practice."
+        }
+      }
+    },
+    "modalityPreference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "preferredModes",
+        "allowsInPerson",
+        "allowsRemote"
+      ],
+      "properties": {
+        "preferredModes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "in_person",
+              "telephone",
+              "video",
+              "asynchronous"
+            ],
+            "description": "Preferred modality."
+          },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Ordered allowed modality set for hub coordination."
+        },
+        "allowsInPerson": {
+          "type": "boolean",
+          "description": "Whether in-person care remains lawful for this request."
+        },
+        "allowsRemote": {
+          "type": "boolean",
+          "description": "Whether remote modalities remain lawful for this request."
+        }
+      }
+    },
+    "clinicianType": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Clinician or clinician-type requirement carried from the governing triage or booking decision."
+    },
+    "continuityPreference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "continuityMode"
+      ],
+      "properties": {
+        "continuityMode": {
+          "type": "string",
+          "enum": [
+            "same_clinician_preferred",
+            "same_site_preferred",
+            "network_any",
+            "first_safe_available"
+          ],
+          "description": "Continuity preference for network coordination."
+        },
+        "preferredSiteRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "description": "Optional ordered list of preferred sites or organisations."
+        }
+      }
+    },
+    "accessNeeds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "needsSummary"
+      ],
+      "properties": {
+        "needsSummary": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Short minimum-necessary summary of access or communication needs."
+        },
+        "accessibilityRequirementRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "description": "Typed accessibility or accommodation references."
+        },
+        "communicationSupportRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "description": "Typed communication-support references."
+        }
+      }
+    },
+    "travelConstraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "travelMode"
+      ],
+      "properties": {
+        "travelMode": {
+          "type": "string",
+          "enum": [
+            "any",
+            "public_transport",
+            "car_required",
+            "walking_only",
+            "assisted_travel"
+          ],
+          "description": "Declared travel mode constraint for network offers."
+        },
+        "maxTravelMinutes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Optional travel-time ceiling for candidate generation."
+        },
+        "locationConstraintRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "description": "Typed geographic or site-eligibility constraints."
+        }
+      }
+    },
+    "reasonForHubRouting": {
+      "type": "string",
+      "enum": [
+        "policy_required",
+        "no_local_capacity",
+        "waitlist_breach_risk",
+        "patient_requested_network",
+        "supervisor_return",
+        "callback_reentry"
+      ],
+      "description": "Durable reason why the booking branch routed to the hub."
+    },
+    "requestedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp at which the network handoff was created."
+    }
+  }
+}

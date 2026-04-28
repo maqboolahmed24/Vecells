@@ -1,0 +1,1157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gateway Surface Authority Atlas</title>
+    <style>
+      :root {
+        --canvas: #f7f9fc;
+        --panel: #ffffff;
+        --rail: #eef2f7;
+        --inset: #f4f7fb;
+        --text-strong: #0f172a;
+        --text-default: #1e293b;
+        --text-muted: #64748b;
+        --border-subtle: #e2e8f0;
+        --patient: #2563eb;
+        --staff: #0ea5a4;
+        --support: #7c3aed;
+        --ops: #d97706;
+        --governance: #c24141;
+        --verified: #059669;
+        --shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 24%),
+          linear-gradient(180deg, #f9fbfd 0%, var(--canvas) 100%);
+        color: var(--text-default);
+      }
+
+      body[data-reduced-motion="true"] * {
+        transition: none !important;
+        animation: none !important;
+        scroll-behavior: auto !important;
+      }
+
+      .masthead {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        height: 76px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 16px 28px;
+        background: rgba(247, 249, 252, 0.92);
+        backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .brand svg {
+        width: 34px;
+        height: 34px;
+      }
+
+      .brand-copy small,
+      .stat-label,
+      .eyebrow {
+        display: block;
+        color: var(--text-muted);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .brand-copy strong {
+        display: block;
+        font-size: 18px;
+        color: var(--text-strong);
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        min-width: 520px;
+      }
+
+      .stat {
+        padding: 10px 14px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.76);
+      }
+
+      .stat strong {
+        display: block;
+        font-size: 20px;
+        color: var(--text-strong);
+      }
+
+      .shell {
+        max-width: 1580px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 324px minmax(0, 1fr) 420px;
+        gap: 18px;
+        align-items: start;
+      }
+
+      .rail,
+      .panel,
+      .inspector {
+        background: var(--panel);
+        border: 1px solid var(--border-subtle);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+      }
+
+      .rail {
+        position: sticky;
+        top: 92px;
+        padding: 18px;
+        background: linear-gradient(180deg, var(--rail), #f9fbff);
+      }
+
+      .filter-stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .field label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+        color: var(--text-muted);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .field select {
+        width: 100%;
+        height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--border-subtle);
+        background: #fff;
+        padding: 0 12px;
+        color: var(--text-default);
+      }
+
+      main {
+        display: grid;
+        gap: 18px;
+        min-width: 0;
+      }
+
+      .canvas-grid {
+        display: grid;
+        gap: 18px;
+      }
+
+      .panel {
+        padding: 18px;
+        min-height: 320px;
+        min-width: 0;
+        transition: transform 180ms ease, border-color 180ms ease;
+      }
+
+      .panel-heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .panel-heading h2,
+      .panel-heading h3,
+      .inspector h2 {
+        margin: 0;
+        color: var(--text-strong);
+      }
+
+      .panel-heading p,
+      .inspector p,
+      .muted {
+        margin: 0;
+        color: var(--text-muted);
+      }
+
+      .topology-grid,
+      .route-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .topology-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+
+      .route-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+
+      .node {
+        width: 100%;
+        text-align: left;
+        border: 1px solid var(--border-subtle);
+        border-radius: 18px;
+        background: linear-gradient(180deg, #fff, #f8fbff);
+        padding: 14px;
+        color: inherit;
+        cursor: pointer;
+        transition:
+          transform 120ms ease,
+          border-color 120ms ease,
+          box-shadow 120ms ease;
+        scroll-margin-top: 96px;
+      }
+
+      .node:hover,
+      .node:focus-visible,
+      .table-button:hover,
+      .table-button:focus-visible {
+        transform: translateY(-1px);
+        border-color: rgba(37, 99, 235, 0.45);
+        box-shadow: 0 12px 24px rgba(37, 99, 235, 0.12);
+        outline: none;
+      }
+
+      .node[data-selected="true"],
+      .table-button[data-selected="true"] {
+        border-color: rgba(37, 99, 235, 0.58);
+        box-shadow: 0 14px 26px rgba(37, 99, 235, 0.15);
+        background: linear-gradient(180deg, #ffffff, #eef5ff);
+      }
+
+      .node-header,
+      .node-meta,
+      .chip-row,
+      .inspector-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .node-header {
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .mono,
+      code {
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 12px;
+        border: 1px solid var(--border-subtle);
+        background: var(--inset);
+      }
+
+      .state-published {
+        background: rgba(5, 150, 105, 0.1);
+        color: var(--verified);
+        border-color: rgba(5, 150, 105, 0.24);
+      }
+
+      .state-degraded {
+        background: rgba(217, 119, 6, 0.11);
+        color: var(--ops);
+        border-color: rgba(217, 119, 6, 0.24);
+      }
+
+      .state-blocked {
+        background: rgba(194, 65, 65, 0.11);
+        color: var(--governance);
+        border-color: rgba(194, 65, 65, 0.24);
+      }
+
+      .audience-patient {
+        color: var(--patient);
+      }
+
+      .audience-staff,
+      .audience-hub,
+      .audience-pharmacy {
+        color: var(--staff);
+      }
+
+      .audience-support {
+        color: var(--support);
+      }
+
+      .audience-operations {
+        color: var(--ops);
+      }
+
+      .audience-governance {
+        color: var(--governance);
+      }
+
+      .matrix-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .matrix-table th {
+        text-align: left;
+        font-size: 12px;
+        color: var(--text-muted);
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .matrix-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-subtle);
+        vertical-align: top;
+      }
+
+      .table-button {
+        width: 100%;
+        text-align: left;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 14px;
+        padding: 0;
+        cursor: pointer;
+        color: inherit;
+        transition:
+          transform 120ms ease,
+          border-color 120ms ease,
+          box-shadow 120ms ease;
+        scroll-margin-top: 96px;
+      }
+
+      .lower-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .inspector {
+        position: sticky;
+        top: 92px;
+        padding: 20px;
+        min-height: 420px;
+      }
+
+      .inspector-block {
+        display: grid;
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .key-value {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 6px;
+        padding: 12px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 16px;
+        background: var(--inset);
+      }
+
+      .key-value strong {
+        color: var(--text-strong);
+      }
+
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      @media (max-width: 1260px) {
+        .layout {
+          grid-template-columns: 300px minmax(0, 1fr);
+        }
+
+        .inspector {
+          grid-column: 1 / -1;
+          position: static;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .stats {
+          min-width: 0;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .layout,
+        .lower-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .rail {
+          position: static;
+        }
+      }
+    </style>
+  </head>
+  <body data-reduced-motion="false">
+    <header class="masthead">
+      <div class="brand">
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <rect x="2" y="2" width="44" height="44" rx="14" fill="#0F172A"></rect>
+          <path d="M13 15h7l4 11 4-11h7v18h-4.5V22.8L27 33h-4.1l-3.5-10.2V33H13V15Z" fill="#F7F9FC"></path>
+          <path d="M36.5 15H31l-2.2 6 2.4 6.2 2.1-5.6h3.2V15Z" fill="#2563EB"></path>
+        </svg>
+        <div class="brand-copy">
+          <small>Vecells</small>
+          <strong>Gateway Surface Authority Atlas</strong>
+          <span class="muted mono">Gateway_Surface_Authority_Atlas</span>
+        </div>
+      </div>
+      <div class="stats" data-testid="masthead-stats">
+        <div class="stat">
+          <span class="stat-label">Active Services</span>
+          <strong id="stat-services">0</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Degraded Routes</span>
+          <strong id="stat-degraded">0</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Blocked Routes</span>
+          <strong id="stat-blocked">0</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Undeclared Warnings</span>
+          <strong id="stat-gaps">0</strong>
+        </div>
+      </div>
+    </header>
+    <div class="shell">
+      <div class="layout">
+        <aside class="rail" aria-label="Filters">
+          <div class="filter-stack">
+            <div class="field">
+              <label for="filter-audience">Audience</label>
+              <select id="filter-audience" data-testid="filter-audience"></select>
+            </div>
+            <div class="field">
+              <label for="filter-channel">Channel</label>
+              <select id="filter-channel" data-testid="filter-channel"></select>
+            </div>
+            <div class="field">
+              <label for="filter-boundary-state">Boundary State</label>
+              <select id="filter-boundary-state" data-testid="filter-boundary-state"></select>
+            </div>
+            <div class="field">
+              <label for="filter-route-family">Route Family</label>
+              <select id="filter-route-family" data-testid="filter-route-family"></select>
+            </div>
+            <div class="field">
+              <label for="filter-publication-state">Publication State</label>
+              <select id="filter-publication-state" data-testid="filter-publication-state"></select>
+            </div>
+          </div>
+          <div class="inspector-block">
+            <div class="key-value">
+              <span class="eyebrow">Boundary Law</span>
+              <strong>One audience gateway service, one published authority tuple</strong>
+            </div>
+            <div class="key-value">
+              <span class="eyebrow">Fail-Closed</span>
+              <span>Undeclared routes, downstream families, streams, and cache semantics are refused.</span>
+            </div>
+          </div>
+        </aside>
+
+        <main>
+          <section class="panel" data-testid="topology-diagram" aria-labelledby="topology-title">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Audience To Gateway Topology</p>
+                <h2 id="topology-title">Gateway Service Topology</h2>
+              </div>
+              <p id="topology-summary" class="muted"></p>
+            </div>
+            <div id="topology-grid" class="topology-grid"></div>
+          </section>
+
+          <section class="panel" data-testid="authority-map" aria-labelledby="authority-title">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Route Family Authority Map</p>
+                <h2 id="authority-title">Route Publications</h2>
+              </div>
+              <p id="authority-summary" class="muted"></p>
+            </div>
+            <div id="route-grid" class="route-grid"></div>
+          </section>
+
+          <section class="panel" data-testid="downstream-matrix" aria-labelledby="downstream-title">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Downstream Boundary Matrix</p>
+                <h2 id="downstream-title">Boundary Rows</h2>
+              </div>
+              <p id="boundary-summary" class="muted"></p>
+            </div>
+            <table class="matrix-table" aria-describedby="downstream-title">
+              <thead>
+                <tr>
+                  <th>Gateway Surface</th>
+                  <th>Boundary</th>
+                  <th>Downstream</th>
+                  <th>State</th>
+                </tr>
+              </thead>
+              <tbody id="boundary-body"></tbody>
+            </table>
+          </section>
+
+          <div class="lower-grid">
+            <section class="panel" data-testid="manifest-table" aria-labelledby="manifest-title">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Manifest Table</p>
+                  <h3 id="manifest-title">Gateway Services</h3>
+                </div>
+              </div>
+              <table class="matrix-table">
+                <thead>
+                  <tr>
+                    <th>Service</th>
+                    <th>Audience</th>
+                    <th>Routes</th>
+                    <th>State</th>
+                  </tr>
+                </thead>
+                <tbody id="manifest-body"></tbody>
+              </table>
+            </section>
+
+            <section class="panel" data-testid="policy-table" aria-labelledby="policy-title">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Boundary / Refusal Policy Table</p>
+                  <h3 id="policy-title">Refusal Policies</h3>
+                </div>
+              </div>
+              <table class="matrix-table">
+                <thead>
+                  <tr>
+                    <th>Policy</th>
+                    <th>HTTP</th>
+                    <th>Rule</th>
+                  </tr>
+                </thead>
+                <tbody id="policy-body"></tbody>
+              </table>
+            </section>
+          </div>
+        </main>
+
+        <aside class="inspector" data-testid="inspector" aria-live="polite">
+          <p class="eyebrow">Selection Inspector</p>
+          <h2 id="inspector-title">Choose a gateway service, route, or boundary</h2>
+          <p id="inspector-subtitle">Selection synchronizes the topology diagram, authority map, downstream matrix, and tables.</p>
+          <div id="inspector-content" class="inspector-block"></div>
+        </aside>
+      </div>
+    </div>
+
+    <script>
+      const DATA_URL = "../../data/analysis/gateway_surface_manifest.json";
+      const state = {
+        manifest: null,
+        filters: {
+          audienceFamily: "all",
+          channelProfile: "all",
+          boundaryState: "all",
+          routeFamilyRef: "all",
+          publicationState: "all",
+        },
+        selection: {
+          kind: "service",
+          id: null,
+        },
+      };
+
+      const audienceAccent = {
+        patient: "audience-patient",
+        staff: "audience-staff",
+        support: "audience-support",
+        operations: "audience-operations",
+        governance: "audience-governance",
+        hub: "audience-staff",
+        pharmacy: "audience-staff",
+      };
+
+      function byId(id) {
+        return document.getElementById(id);
+      }
+
+      function normalizeFilterValue(value) {
+        return value === "all" ? null : value;
+      }
+
+      function pillClass(stateValue) {
+        if (stateValue === "published" || stateValue === "mock_published") return "state-published";
+        if (stateValue === "degraded" || stateValue === "mock_published_with_downgrade") return "state-degraded";
+        return "state-blocked";
+      }
+
+      function unique(values) {
+        return [...new Set(values.filter(Boolean))];
+      }
+
+      function optionMarkup(value, label) {
+        return `<option value="${value}">${label}</option>`;
+      }
+
+      function filteredServices() {
+        return state.manifest.gateway_services.filter((service) => {
+          const audience = normalizeFilterValue(state.filters.audienceFamily);
+          const channel = normalizeFilterValue(state.filters.channelProfile);
+          const route = normalizeFilterValue(state.filters.routeFamilyRef);
+          const publication = normalizeFilterValue(state.filters.publicationState);
+          const boundary = normalizeFilterValue(state.filters.boundaryState);
+          if (audience && service.audienceFamily !== audience) return false;
+          if (channel && !service.channelProfiles.includes(channel)) return false;
+          if (route && !service.routeFamilyRefs.includes(route)) return false;
+          if (publication) {
+            const routeMatches = state.manifest.route_publications.some(
+              (row) =>
+                row.gatewayServiceRef === service.gatewayServiceRef &&
+                row.routeState === publication,
+            );
+            if (
+              service.authorityState !== publication &&
+              service.publicationState !== publication &&
+              !routeMatches
+            ) {
+              return false;
+            }
+          }
+          if (boundary) {
+            const boundaryRows = state.manifest.boundary_rows.filter(
+              (row) => row.gateway_service_ref === service.gatewayServiceRef,
+            );
+            if (!boundaryRows.some((row) => row.boundary_state === boundary)) return false;
+          }
+          return true;
+        });
+      }
+
+      function filteredRoutes() {
+        return state.manifest.route_publications.filter((route) => {
+          const audience = normalizeFilterValue(state.filters.audienceFamily);
+          const channel = normalizeFilterValue(state.filters.channelProfile);
+          const routeRef = normalizeFilterValue(state.filters.routeFamilyRef);
+          const publication = normalizeFilterValue(state.filters.publicationState);
+          const service = state.manifest.gateway_services.find(
+            (item) => item.gatewayServiceRef === route.gatewayServiceRef,
+          );
+          const primarySurface = state.manifest.gateway_surfaces.find(
+            (item) => item.surfaceId === route.primaryGatewaySurfaceRef,
+          );
+          if (audience && service?.audienceFamily !== audience) return false;
+          if (channel && primarySurface?.channelProfile !== channel) return false;
+          if (routeRef && route.routeFamilyRef !== routeRef) return false;
+          if (publication && route.routeState !== publication) return false;
+          return true;
+        });
+      }
+
+      function filteredBoundaries() {
+        return state.manifest.boundary_rows.filter((row) => {
+          const audience = normalizeFilterValue(state.filters.audienceFamily);
+          const channel = normalizeFilterValue(state.filters.channelProfile);
+          const routeRef = normalizeFilterValue(state.filters.routeFamilyRef);
+          const boundary = normalizeFilterValue(state.filters.boundaryState);
+          const service = state.manifest.gateway_services.find(
+            (item) => item.gatewayServiceRef === row.gateway_service_ref,
+          );
+          const surface = state.manifest.gateway_surfaces.find(
+            (item) => item.surfaceId === row.gateway_surface_ref,
+          );
+          if (audience && service?.audienceFamily !== audience) return false;
+          if (channel && surface?.channelProfile !== channel) return false;
+          if (routeRef && !row.route_family_refs.split(";").map((value) => value.trim()).includes(routeRef))
+            return false;
+          if (boundary && row.boundary_state !== boundary) return false;
+          return true;
+        });
+      }
+
+      function ensureSelection(services, routes, boundaries) {
+        const availableIds = new Set([
+          ...services.map((row) => `service:${row.gatewayServiceRef}`),
+          ...routes.map((row) => `route:${row.routeFamilyRef}`),
+          ...boundaries.map((_, index) => `boundary:${index}`),
+        ]);
+        const currentId = `${state.selection.kind}:${state.selection.id}`;
+        if (availableIds.has(currentId)) {
+          return;
+        }
+        if (services[0]) {
+          state.selection = { kind: "service", id: services[0].gatewayServiceRef };
+          return;
+        }
+        if (routes[0]) {
+          state.selection = { kind: "route", id: routes[0].routeFamilyRef };
+          return;
+        }
+        if (boundaries[0]) {
+          state.selection = { kind: "boundary", id: 0 };
+          return;
+        }
+        state.selection = { kind: "service", id: null };
+      }
+
+      function wireArrowNavigation(items, selectionKind, idAccessor) {
+        items.forEach((item, index) => {
+          item.addEventListener("keydown", (event) => {
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+            event.preventDefault();
+            const delta = event.key === "ArrowDown" ? 1 : -1;
+            const target = items[index + delta];
+            if (!target) return;
+            target.focus();
+            state.selection = { kind: selectionKind, id: idAccessor(target) };
+            render();
+          });
+        });
+      }
+
+      function renderTopology(services) {
+        const container = byId("topology-grid");
+        container.innerHTML = services
+          .map((service) => {
+            const selected =
+              state.selection.kind === "service" && state.selection.id === service.gatewayServiceRef;
+            const accent = audienceAccent[service.audienceFamily] || "";
+            return `
+              <button
+                type="button"
+                class="node"
+                data-testid="service-card-${service.gatewayServiceRef}"
+                data-selected="${selected}"
+                data-service-ref="${service.gatewayServiceRef}"
+              >
+                <div class="node-header">
+                  <strong class="${accent}">${service.serviceLabel}</strong>
+                  <span class="pill ${pillClass(service.authorityState)}">${service.authorityState}</span>
+                </div>
+                <div class="node-meta">
+                  <span class="pill mono">${service.gatewayServiceRef}</span>
+                  <span class="pill">${service.audienceFamily}</span>
+                  <span class="pill">${service.routeCount} routes</span>
+                </div>
+                <p class="muted">${service.combinedSurfaceJustification}</p>
+              </button>
+            `;
+          })
+          .join("");
+        const items = [...container.querySelectorAll("[data-service-ref]")];
+        items.forEach((item) => {
+          item.addEventListener("click", () => {
+            state.selection = {
+              kind: "service",
+              id: item.getAttribute("data-service-ref"),
+            };
+            render();
+          });
+        });
+        wireArrowNavigation(items, "service", (item) => item.getAttribute("data-service-ref"));
+        byId("topology-summary").textContent = `${services.length} visible audience gateway services`;
+      }
+
+      function renderAuthorityMap(routes) {
+        const container = byId("route-grid");
+        container.innerHTML = routes
+          .map((route) => {
+            const selected =
+              state.selection.kind === "route" && state.selection.id === route.routeFamilyRef;
+            return `
+              <button
+                type="button"
+                class="node"
+                data-testid="route-card-${route.routeFamilyRef}"
+                data-selected="${selected}"
+                data-route-ref="${route.routeFamilyRef}"
+              >
+                <div class="node-header">
+                  <strong>${route.routeFamilyRef}</strong>
+                  <span class="pill ${pillClass(route.routeState)}">${route.routeState}</span>
+                </div>
+                <div class="chip-row">
+                  <span class="pill mono">${route.primaryGatewaySurfaceRef}</span>
+                  <span class="pill mono">${route.sessionPolicyRef}</span>
+                </div>
+                <p class="muted">${route.routeFamilyLabel}</p>
+              </button>
+            `;
+          })
+          .join("");
+        const items = [...container.querySelectorAll("[data-route-ref]")];
+        items.forEach((item) => {
+          item.addEventListener("click", () => {
+            state.selection = {
+              kind: "route",
+              id: item.getAttribute("data-route-ref"),
+            };
+            render();
+          });
+        });
+        wireArrowNavigation(items, "route", (item) => item.getAttribute("data-route-ref"));
+        byId("authority-summary").textContent = `${routes.length} route-family publications match the current filters`;
+      }
+
+      function renderBoundaryRows(boundaries) {
+        const body = byId("boundary-body");
+        body.innerHTML = boundaries
+          .map((row, index) => {
+            const selected = state.selection.kind === "boundary" && Number(state.selection.id) === index;
+            return `
+              <tr>
+                <td>
+                  <button
+                    type="button"
+                    class="table-button"
+                    data-testid="boundary-row-${index}"
+                    data-boundary-index="${index}"
+                    data-selected="${selected}"
+                  >
+                    <strong class="mono">${row.gateway_surface_ref}</strong>
+                  </button>
+                </td>
+                <td class="mono">${row.trust_zone_boundary_ref || row.boundary_rule_ref}</td>
+                <td>${row.downstream_workload_family_ref || "browser ingress"}</td>
+                <td><span class="pill ${pillClass(row.boundary_state)}">${row.boundary_state}</span></td>
+              </tr>
+            `;
+          })
+          .join("");
+        const items = [...body.querySelectorAll("[data-boundary-index]")];
+        items.forEach((item) => {
+          item.addEventListener("click", () => {
+            state.selection = {
+              kind: "boundary",
+              id: Number(item.getAttribute("data-boundary-index")),
+            };
+            render();
+          });
+        });
+        wireArrowNavigation(items, "boundary", (item) => Number(item.getAttribute("data-boundary-index")));
+        byId("boundary-summary").textContent = `${boundaries.length} downstream or ingress boundary rows remain visible`;
+      }
+
+      function renderManifestTable(services) {
+        byId("manifest-body").innerHTML = services
+          .map((service) => {
+            const selected =
+              state.selection.kind === "service" && state.selection.id === service.gatewayServiceRef;
+            return `
+              <tr>
+                <td>
+                  <button
+                    type="button"
+                    class="table-button"
+                    data-service-ref="${service.gatewayServiceRef}"
+                    data-selected="${selected}"
+                  >
+                    <strong>${service.serviceLabel}</strong>
+                    <div class="muted mono">${service.entrypointBasePath}</div>
+                  </button>
+                </td>
+                <td>${service.audienceFamily}</td>
+                <td>${service.routeCount}</td>
+                <td><span class="pill ${pillClass(service.authorityState)}">${service.authorityState}</span></td>
+              </tr>
+            `;
+          })
+          .join("");
+        [...document.querySelectorAll("#manifest-body [data-service-ref]")].forEach((item) => {
+          item.addEventListener("click", () => {
+            state.selection = {
+              kind: "service",
+              id: item.getAttribute("data-service-ref"),
+            };
+            render();
+          });
+        });
+      }
+
+      function renderPolicyTable() {
+        byId("policy-body").innerHTML = state.manifest.refusal_policies
+          .map((policy, index) => {
+            const selected =
+              state.selection.kind === "policy" && state.selection.id === policy.refusalPolicyRef;
+            return `
+              <tr>
+                <td>
+                  <button
+                    type="button"
+                    class="table-button"
+                    data-policy-ref="${policy.refusalPolicyRef}"
+                    data-testid="policy-row-${index}"
+                    data-selected="${selected}"
+                  >
+                    <strong class="mono">${policy.refusalPolicyRef}</strong>
+                    <div class="muted mono">${policy.errorCode}</div>
+                  </button>
+                </td>
+                <td>${policy.httpStatus}</td>
+                <td>${policy.ruleSummary}</td>
+              </tr>
+            `;
+          })
+          .join("");
+        [...document.querySelectorAll("[data-policy-ref]")].forEach((item) => {
+          item.addEventListener("click", () => {
+            state.selection = {
+              kind: "policy",
+              id: item.getAttribute("data-policy-ref"),
+            };
+            renderInspector();
+          });
+        });
+      }
+
+      function renderInspector() {
+        const content = byId("inspector-content");
+        const title = byId("inspector-title");
+        const subtitle = byId("inspector-subtitle");
+        content.innerHTML = "";
+
+        if (state.selection.kind === "service") {
+          const service = state.manifest.gateway_services.find(
+            (row) => row.gatewayServiceRef === state.selection.id,
+          );
+          if (!service) return;
+          title.textContent = service.serviceLabel;
+          subtitle.textContent = service.combinedSurfaceJustification;
+          content.innerHTML = `
+            <div class="key-value">
+              <span class="eyebrow">Authority</span>
+              <strong class="mono">${service.gatewayServiceRef}</strong>
+              <div class="chip-row">
+                <span class="pill ${pillClass(service.authorityState)}">${service.authorityState}</span>
+                <span class="pill mono">${service.entrypointBasePath}</span>
+              </div>
+            </div>
+            <div class="key-value">
+              <span class="eyebrow">Routes</span>
+              <div class="inspector-list">${service.routeFamilyRefs
+                .map((ref) => `<span class="pill mono">${ref}</span>`)
+                .join("")}</div>
+            </div>
+            <div class="key-value">
+              <span class="eyebrow">Downstream Allowlist</span>
+              <div class="inspector-list">${service.allowedDownstreamWorkloadFamilyRefs
+                .map((ref) => `<span class="pill mono">${ref}</span>`)
+                .join("")}</div>
+            </div>
+          `;
+          return;
+        }
+
+        if (state.selection.kind === "route") {
+          const route = state.manifest.route_publications.find(
+            (row) => row.routeFamilyRef === state.selection.id,
+          );
+          if (!route) return;
+          title.textContent = route.routeFamilyRef;
+          subtitle.textContent = route.routeFamilyLabel;
+          content.innerHTML = `
+            <div class="key-value">
+              <span class="eyebrow">Publication</span>
+              <strong>${route.publicationState}</strong>
+              <div class="chip-row">
+                <span class="pill ${pillClass(route.routeState)}">${route.routeState}</span>
+                <span class="pill mono">${route.primaryGatewaySurfaceRef}</span>
+              </div>
+            </div>
+            <div class="key-value">
+              <span class="eyebrow">Contracts</span>
+              <div class="inspector-list">
+                ${route.projectionQueryContractRef ? `<span class="pill mono">${route.projectionQueryContractRef}</span>` : ""}
+                ${route.mutationCommandContractRef ? `<span class="pill mono">${route.mutationCommandContractRef}</span>` : ""}
+                ${route.liveUpdateChannelContractRef ? `<span class="pill mono">${route.liveUpdateChannelContractRef}</span>` : ""}
+                ${route.clientCachePolicyRefs.map((ref) => `<span class="pill mono">${ref}</span>`).join("")}
+              </div>
+            </div>
+            <div class="key-value">
+              <span class="eyebrow">Parallel Gaps</span>
+              <div class="inspector-list">${route.parallelInterfaceGapRefs
+                .map((ref) => `<span class="pill mono">${ref}</span>`)
+                .join("") || "<span class='muted'>No active gap</span>"}</div>
+            </div>
+          `;
+          return;
+        }
+
+        if (state.selection.kind === "boundary") {
+          const boundary = filteredBoundaries()[Number(state.selection.id)];
+          if (!boundary) return;
+          title.textContent = boundary.trust_zone_boundary_ref || boundary.boundary_rule_ref;
+          subtitle.textContent = boundary.boundary_scope;
+          content.innerHTML = `
+            <div class="key-value">
+              <span class="eyebrow">Boundary State</span>
+              <strong>${boundary.gateway_surface_ref}</strong>
+              <div class="chip-row">
+                <span class="pill ${pillClass(boundary.boundary_state)}">${boundary.boundary_state}</span>
+                <span class="pill mono">${boundary.downstream_workload_family_ref || "browser_ingress"}</span>
+              </div>
+            </div>
+            <div class="key-value">
+              <span class="eyebrow">Transfer Modes</span>
+              <span class="mono">${boundary.tenant_transfer_mode}</span>
+              <span class="mono">${boundary.assurance_trust_transfer_mode}</span>
+            </div>
+          `;
+          return;
+        }
+
+        if (state.selection.kind === "policy") {
+          const policy = state.manifest.refusal_policies.find(
+            (row) => row.refusalPolicyRef === state.selection.id,
+          );
+          if (!policy) return;
+          title.textContent = policy.refusalPolicyRef;
+          subtitle.textContent = policy.errorCode;
+          content.innerHTML = `
+            <div class="key-value">
+              <span class="eyebrow">HTTP Status</span>
+              <strong>${policy.httpStatus}</strong>
+            </div>
+            <div class="key-value">
+              <span class="eyebrow">Rule</span>
+              <span>${policy.ruleSummary}</span>
+            </div>
+          `;
+        }
+      }
+
+      function renderStats(services, routes) {
+        byId("stat-services").textContent = String(services.length);
+        byId("stat-degraded").textContent = String(
+          routes.filter((route) => route.routeState === "degraded").length,
+        );
+        byId("stat-blocked").textContent = String(
+          routes.filter((route) => route.routeState === "blocked").length,
+        );
+        byId("stat-gaps").textContent = String(state.manifest.parallel_interface_gaps.length);
+      }
+
+      function render() {
+        const services = filteredServices();
+        const routes = filteredRoutes();
+        const boundaries = filteredBoundaries();
+        ensureSelection(services, routes, boundaries);
+        renderStats(services, routes);
+        renderTopology(services);
+        renderAuthorityMap(routes);
+        renderBoundaryRows(boundaries);
+        renderManifestTable(services);
+        renderPolicyTable();
+        renderInspector();
+      }
+
+      function populateFilters() {
+        const manifest = state.manifest;
+        byId("filter-audience").innerHTML = [
+          optionMarkup("all", "All audiences"),
+          ...unique(manifest.gateway_services.map((row) => row.audienceFamily)).map((value) =>
+            optionMarkup(value, value),
+          ),
+        ].join("");
+        byId("filter-channel").innerHTML = [
+          optionMarkup("all", "All channels"),
+          ...unique(manifest.gateway_surfaces.map((row) => row.channelProfile)).map((value) =>
+            optionMarkup(value, value),
+          ),
+        ].join("");
+        byId("filter-boundary-state").innerHTML = [
+          optionMarkup("all", "All boundary states"),
+          ...unique(manifest.boundary_rows.map((row) => row.boundary_state)).map((value) =>
+            optionMarkup(value, value),
+          ),
+        ].join("");
+        byId("filter-route-family").innerHTML = [
+          optionMarkup("all", "All route families"),
+          ...manifest.route_publications.map((row) =>
+            optionMarkup(row.routeFamilyRef, row.routeFamilyRef),
+          ),
+        ].join("");
+        byId("filter-publication-state").innerHTML = [
+          optionMarkup("all", "All publication states"),
+          optionMarkup("published", "Published"),
+          optionMarkup("degraded", "Degraded"),
+          optionMarkup("blocked", "Blocked"),
+        ].join("");
+
+        const filterKeyById = {
+          "filter-audience": "audienceFamily",
+          "filter-channel": "channelProfile",
+          "filter-boundary-state": "boundaryState",
+          "filter-route-family": "routeFamilyRef",
+          "filter-publication-state": "publicationState",
+        };
+
+        Object.keys(filterKeyById).forEach((id) => {
+          byId(id).addEventListener("change", (event) => {
+            const target = event.currentTarget;
+            state.filters[filterKeyById[target.id]] = target.value;
+            render();
+          });
+        });
+      }
+
+      async function init() {
+        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        document.body.dataset.reducedMotion = String(reducedMotion);
+        const response = await fetch(DATA_URL);
+        state.manifest = await response.json();
+        populateFilters();
+        render();
+      }
+
+      init().catch((error) => {
+        byId("inspector-title").textContent = "Atlas failed to load";
+        byId("inspector-subtitle").textContent = String(error);
+      });
+    </script>
+  </body>
+</html>

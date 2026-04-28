@@ -1,0 +1,84 @@
+{
+  "schemaVersion": "186.phase2.identity-audit.v1",
+  "policyVersion": "phase2-identity-redaction-v1",
+  "cases": [
+    {
+      "caseId": "IDAUD186_AUTH_CALLBACK_TOKEN_MASKED",
+      "surface": "CanonicalEventEnvelope",
+      "eventName": "auth.callback.received",
+      "inputClass": "oauth_token",
+      "expectedDisclosureClass": "audit_safe",
+      "expectedReplacementMode": "hash_only",
+      "forbiddenLeakClasses": ["raw access token", "authorization code", "PKCE verifier"],
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_AUDIT_OBSERVABILITY_SCRUBBING_V1"
+    },
+    {
+      "caseId": "IDAUD186_NHS_NUMBER_MASKED_IN_LOGS",
+      "surface": "structured_log",
+      "eventName": "identity.patient.matched",
+      "inputClass": "nhs_number",
+      "expectedDisclosureClass": "operational_masked",
+      "expectedReplacementMode": "masked_fragment",
+      "forbiddenLeakClasses": ["raw NHS number"],
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_AUDIT_ROUTE_LOCAL_MASKING_V1"
+    },
+    {
+      "caseId": "IDAUD186_PHONE_AND_EMAIL_MASKED_IN_TRACE",
+      "surface": "trace_baggage",
+      "eventName": "identity.patient.match_attempted",
+      "inputClass": "phone_number|email_address",
+      "expectedDisclosureClass": "operational_masked",
+      "expectedReplacementMode": "masked_fragment",
+      "forbiddenLeakClasses": ["full phone number", "email address"],
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_AUDIT_OBSERVABILITY_SCRUBBING_V1"
+    },
+    {
+      "caseId": "IDAUD186_ACCESS_GRANT_OPAQUE_VALUE_DIGESTED",
+      "surface": "CanonicalEventEnvelope",
+      "eventName": "access.grant.redeemed",
+      "inputClass": "access_grant",
+      "expectedDisclosureClass": "audit_safe",
+      "expectedReplacementMode": "hash_only",
+      "forbiddenLeakClasses": ["raw grant value"],
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_AUDIT_REPAIR_CLAIM_EVENTS_V1"
+    },
+    {
+      "caseId": "IDAUD186_REPAIR_LIFECYCLE_RECONSTRUCTABLE",
+      "surface": "audit_reconstruction",
+      "eventName": "identity.repair_case.freeze_committed",
+      "inputClass": "repair_case_refs",
+      "expectedDisclosureClass": "audit_safe",
+      "requiredRefs": ["repairCaseRef", "routeIntentRef", "sessionRef", "decisionRef", "reasonCodes"],
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_AUDIT_REPAIR_CLAIM_EVENTS_V1"
+    },
+    {
+      "caseId": "IDAUD186_DUPLICATE_CALLBACK_COLLAPSES",
+      "surface": "duplicate_receipt",
+      "eventName": "auth.callback.received",
+      "inputClass": "effectKeyRef",
+      "expectedReplayDisposition": "duplicate_replayed",
+      "expectedLogicalEventCount": 1,
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_AUDIT_APPEND_ONLY_HISTORY_V1"
+    },
+    {
+      "caseId": "IDAUD186_METRIC_LABELS_MASKED",
+      "surface": "metric_labels",
+      "eventName": "identity.capability.denied",
+      "inputClass": "phone_number|grant_value",
+      "expectedDisclosureClass": "operational_masked",
+      "expectedReplacementMode": "hash_only",
+      "forbiddenLeakClasses": ["high-cardinality raw identifier"],
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_AUDIT_OBSERVABILITY_SCRUBBING_V1"
+    },
+    {
+      "caseId": "IDAUD186_PDS_PROVENANCE_WITHOUT_RAW_DEMOGRAPHICS",
+      "surface": "CanonicalEventEnvelope",
+      "eventName": "identity.pds.enrichment.succeeded",
+      "inputClass": "oidc_claim|nhs_number|pds_demographic_payload",
+      "expectedDisclosureClass": "audit_safe",
+      "requiredRefs": ["pdsAccessDecisionRef", "demographicSnapshotRef", "provenanceRef"],
+      "forbiddenLeakClasses": ["raw PDS demographic payload"],
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_IDENTITY_AUDIT_RECONSTRUCTABLE_DECISIONS_V1"
+    }
+  ]
+}

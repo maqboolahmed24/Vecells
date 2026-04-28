@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>313 Phase 5 Confirmation And Practice Visibility Atlas</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #F7F8FA;
+        --panel: #FFFFFF;
+        --inset: #E8EEF3;
+        --text-strong: #0F172A;
+        --text-default: #334155;
+        --text-muted: #64748B;
+        --offer-accent: #3158E0;
+        --pending-accent: #B7791F;
+        --confirmed-accent: #0F766E;
+        --practice-accent: #5B61F6;
+        --blocked-accent: #B42318;
+        --line: #D6DEE6;
+        --shadow: 0 20px 42px rgba(15, 23, 42, 0.08);
+        --radius: 12px;
+        --transition: 180ms ease;
+        font-family: "IBM Plex Sans", "Avenir Next", "Segoe UI", sans-serif;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        :root {
+          --transition: 0ms linear;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--text-default);
+        background:
+          radial-gradient(circle at top right, rgba(49, 88, 224, 0.09), transparent 26%),
+          linear-gradient(180deg, #f4f7fb 0%, var(--canvas) 45%, #edf2f7 100%);
+      }
+
+      .skip-link {
+        position: absolute;
+        left: 16px;
+        top: -44px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: var(--text-strong);
+        color: white;
+        z-index: 10;
+      }
+
+      .skip-link:focus {
+        top: 12px;
+      }
+
+      .page {
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .atlas {
+        max-width: 1740px;
+        margin: 0 auto;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .masthead {
+        min-height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--line);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.82));
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-family: "Iowan Old Style", Georgia, serif;
+        font-size: 24px;
+        line-height: 1.08;
+        color: var(--text-strong);
+      }
+
+      .brand p {
+        margin: 5px 0 0;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 11px;
+        border-radius: 999px;
+        font-size: 12px;
+        background: var(--inset);
+        color: var(--text-default);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr) 420px;
+        min-height: 980px;
+      }
+
+      .rail,
+      .canvas,
+      .inspector {
+        min-width: 0;
+      }
+
+      .rail,
+      .inspector {
+        background: rgba(255, 255, 255, 0.88);
+      }
+
+      .rail {
+        border-right: 1px solid var(--line);
+        padding: 20px;
+      }
+
+      .canvas {
+        padding: 20px;
+      }
+
+      .inspector {
+        border-left: 1px solid var(--line);
+        padding: 20px;
+      }
+
+      .section-label {
+        margin: 0 0 12px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .stack {
+        display: grid;
+        gap: 16px;
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+        padding: 16px;
+        min-width: 0;
+      }
+
+      .card h2,
+      .card h3 {
+        margin: 0 0 8px;
+        color: var(--text-strong);
+      }
+
+      .card h2 {
+        font-size: 18px;
+      }
+
+      .card h3 {
+        font-size: 15px;
+      }
+
+      .card p,
+      .card li,
+      .card td,
+      .card th {
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .state-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .state-button,
+      .message-row-button {
+        width: 100%;
+        text-align: left;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--panel);
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+        transition:
+          border-color var(--transition),
+          box-shadow var(--transition),
+          background var(--transition),
+          transform var(--transition);
+      }
+
+      .state-button {
+        padding: 12px 13px;
+      }
+
+      .message-row-button {
+        padding: 0;
+        overflow: hidden;
+      }
+
+      .state-button:hover,
+      .state-button:focus-visible,
+      .message-row-button:hover,
+      .message-row-button:focus-visible {
+        outline: none;
+        border-color: var(--offer-accent);
+        box-shadow: 0 0 0 3px rgba(49, 88, 224, 0.12);
+      }
+
+      .state-button[data-active="true"] {
+        border-color: var(--offer-accent);
+        background: rgba(49, 88, 224, 0.08);
+        transform: translateX(2px);
+      }
+
+      .message-row-button[data-active="true"] {
+        border-color: var(--practice-accent);
+        box-shadow: 0 0 0 3px rgba(91, 97, 246, 0.12);
+      }
+
+      .button-title {
+        display: block;
+        font-weight: 600;
+        color: var(--text-strong);
+      }
+
+      .button-note {
+        display: block;
+        margin-top: 4px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      .truth-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .lane {
+        position: relative;
+      }
+
+      .lane::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 4px;
+        border-radius: 999px;
+      }
+
+      .lane[data-accent="offer"]::before {
+        background: var(--offer-accent);
+      }
+
+      .lane[data-accent="pending"]::before {
+        background: var(--pending-accent);
+      }
+
+      .lane[data-accent="confirmed"]::before {
+        background: var(--confirmed-accent);
+      }
+
+      .lane[data-accent="practice"]::before {
+        background: var(--practice-accent);
+      }
+
+      .lane-cue {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 12px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        background: var(--inset);
+        color: var(--text-default);
+      }
+
+      .lane ul,
+      .inspector ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .parity-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .slim-grid {
+        display: grid;
+        grid-template-columns: 160px minmax(0, 1fr);
+        gap: 12px;
+      }
+
+      .ack-ladder {
+        display: grid;
+        gap: 8px;
+      }
+
+      .ladder-step {
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: var(--inset);
+      }
+
+      .ladder-step[data-highlight="true"] {
+        border-color: var(--practice-accent);
+        background: rgba(91, 97, 246, 0.08);
+      }
+
+      .ladder-step strong {
+        color: var(--text-strong);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      caption {
+        text-align: left;
+        margin-bottom: 10px;
+        color: var(--text-strong);
+        font-weight: 600;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 10px 8px;
+        vertical-align: top;
+        text-align: left;
+      }
+
+      th {
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .subdued {
+        color: var(--text-muted);
+      }
+
+      .projection-strip {
+        display: grid;
+        gap: 10px;
+      }
+
+      .projection-row {
+        display: grid;
+        grid-template-columns: 170px minmax(0, 1fr);
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: var(--inset);
+      }
+
+      .projection-row strong {
+        color: var(--text-strong);
+      }
+
+      @media (max-width: 1380px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .rail,
+        .inspector {
+          border: 0;
+          border-top: 1px solid var(--line);
+        }
+
+        .truth-grid,
+        .parity-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .page {
+          padding: 12px;
+        }
+
+        .masthead {
+          padding: 16px;
+        }
+
+        .slim-grid,
+        .projection-row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#atlas-main">Skip to atlas</a>
+    <div class="page">
+      <div
+        class="atlas"
+        data-testid="Phase5CommitVisibilityAtlas"
+        data-visual-mode="Phase5_Commit_Confirmation_Practice_Visibility_Atlas"
+        data-active-state="offer_live"
+        data-active-message="message_not_started"
+      >
+        <header class="masthead">
+          <div class="brand">
+            <h1>Confirmation and practice visibility atlas</h1>
+            <p>313 freeze pack: monotone truth, generation-bound acknowledgement, and leased manage posture.</p>
+          </div>
+          <div class="meta">
+            <span class="pill">Truth tuple <strong>fdc6e08e8592</strong></span>
+            <span class="pill">Policy tuple <strong>1a81720620c0</strong></span>
+            <span class="pill">Ack generation <strong>4</strong></span>
+          </div>
+        </header>
+        <div class="layout">
+          <aside class="rail">
+            <div class="stack">
+              <section>
+                <p class="section-label">Lifecycle rail</p>
+                <div class="state-list" id="state-list" data-testid="TruthStateRail"></div>
+              </section>
+              <section class="card">
+                <p class="section-label">Current objects</p>
+                <ul id="current-object-list"></ul>
+              </section>
+            </div>
+          </aside>
+          <main class="canvas" id="atlas-main">
+            <div class="stack">
+              <section class="truth-grid" data-testid="TruthCanvas">
+                <article class="card lane" data-accent="offer" data-testid="PatientChoiceLane">
+                  <p class="section-label">Lane 1</p>
+                  <h2 id="patient-choice-title"></h2>
+                  <div class="lane-cue" id="patient-choice-cue"></div>
+                  <ul id="patient-choice-bullets"></ul>
+                </article>
+                <article class="card lane" data-accent="pending" data-testid="CommitEvidenceLane">
+                  <p class="section-label">Lane 2</p>
+                  <h2 id="commit-evidence-title"></h2>
+                  <div class="lane-cue" id="commit-evidence-cue"></div>
+                  <ul id="commit-evidence-bullets"></ul>
+                </article>
+                <article class="card lane" data-accent="confirmed" data-testid="PatientConfirmationLane">
+                  <p class="section-label">Lane 3</p>
+                  <h2 id="patient-confirmation-title"></h2>
+                  <div class="lane-cue" id="patient-confirmation-cue"></div>
+                  <ul id="patient-confirmation-bullets"></ul>
+                </article>
+                <article class="card lane" data-accent="practice" data-testid="PracticeVisibilityLane">
+                  <p class="section-label">Lane 4</p>
+                  <h2 id="practice-visibility-title"></h2>
+                  <div class="lane-cue" id="practice-visibility-cue"></div>
+                  <ul id="practice-visibility-bullets"></ul>
+                  <div class="slim-grid" style="margin-top: 14px;">
+                    <div>
+                      <h3>Slim generation ladder</h3>
+                      <div class="ack-ladder" id="ack-ladder" data-testid="AckGenerationLadder"></div>
+                    </div>
+                    <div>
+                      <table data-testid="MessageChainTable">
+                        <caption>Message chain strip</caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">Message</th>
+                            <th scope="col">Transport</th>
+                            <th scope="col">Delivery</th>
+                            <th scope="col">Ack</th>
+                          </tr>
+                        </thead>
+                        <tbody id="message-chain-body"></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </article>
+              </section>
+              <section class="parity-grid">
+                <div class="card">
+                  <table data-testid="TruthTupleParityTable">
+                    <caption>Truth tuple parity</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Field</th>
+                        <th scope="col">Current value</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tuple-parity-body"></tbody>
+                  </table>
+                </div>
+                <div class="card">
+                  <table data-testid="AckGenerationParityTable">
+                    <caption>Acknowledgement generation parity</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Generation</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Clears debt?</th>
+                      </tr>
+                    </thead>
+                    <tbody id="ack-parity-body"></tbody>
+                  </table>
+                </div>
+                <div class="card">
+                  <table data-testid="BlockerParityTable">
+                    <caption>Blocker parity</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Blocker</th>
+                        <th scope="col">Impact</th>
+                      </tr>
+                    </thead>
+                    <tbody id="blocker-parity-body"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          </main>
+          <aside class="inspector">
+            <div class="stack">
+              <section class="card">
+                <p class="section-label">Active truth state</p>
+                <h2 id="active-state-title"></h2>
+                <p id="active-state-summary"></p>
+                <div class="projection-strip" id="projection-strip"></div>
+              </section>
+              <section class="card" data-testid="ManageCapabilityCard">
+                <p class="section-label">Manage capability lease</p>
+                <h2 id="manage-title"></h2>
+                <table>
+                  <tbody id="manage-body"></tbody>
+                </table>
+                <ul id="manage-blockers"></ul>
+              </section>
+              <section class="card" data-testid="MessageDetailCard">
+                <p class="section-label">Selected message row</p>
+                <h2 id="message-detail-title"></h2>
+                <table>
+                  <tbody id="message-detail-body"></tbody>
+                </table>
+                <p id="message-detail-note" class="subdued"></p>
+              </section>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+    <script>
+      const atlasData = {"visualMode":"Phase5_Commit_Confirmation_Practice_Visibility_Atlas","truthTupleHash":"fdc6e08e85922d8629a4e866f354ef9d6ce692cb98ff7c00ec745248a17ed16c","policyTupleHash":"1a81720620c0c808d02c73a0a034bde3c079f6634742b405777b67664d97490d","activeObjects":{"offerSessionRef":"offer_session_313_001","commitAttemptRef":"hub_commit_attempt_313_001","appointmentRecordRef":"hub_appointment_313_001","continuityMessageRef":"practice_continuity_message_313_001","acknowledgementRecordRef":"practice_ack_313_001"},"states":[{"stateId":"offer_live","label":"Offer Live","railNote":"Open choice is current and callback is still a separate card.","summary":"The current offer set is visible, the callback fallback remains separate, and no commit-side calmness exists yet.","projection":{"offerState":"live_offer","confirmationTruthState":"offer_only","patientConfirmationState":"not_shown","practiceVisibilityState":"not_informed","closureState":"not_closable","fallbackLinkageState":"none"},"tupleRows":[{"field":"truthTupleHash","value":"fdc6e08e85922d8629… (pre-commit draft)"},{"field":"policyTupleHash","value":"1a81720620c0c808d0…"},{"field":"offerSetHash","value":"51f8b84fda27ab3118…"},{"field":"selectedOfferEntryRef","value":"null"},{"field":"currentAckGeneration","value":"0"},{"field":"visibilityEnvelopeVersionRef","value":"visibility_envelope_313_v4"}],"blockerRows":[{"blockerId":"selection_not_final","label":"Selection not final","impact":"No commit may begin until one current entry or one current fallback card is selected."},{"blockerId":"confirmation_truth_pending","label":"Confirmation truth pending","impact":"Calm booked reassurance is illegal before the confirmation gate runs."},{"blockerId":"practice_message_not_emitted","label":"Practice message not emitted","impact":"Continuity must wait for authoritative confirmation rather than fire from offer visibility."}],"manage":{"capabilityState":"blocked","readOnlyMode":"read_only","allowedActions":["view_offer_context"],"blockers":["No appointment record exists yet.","Manage is leased only from current booked truth."]},"lanes":{"patientChoice":{"title":"Patient choice","cue":"Open choice preserved","bullets":["All ranked entries remain visible together under one current offer set.","The callback fallback card stays outside the ranked ordinal list.","Selections must validate against the current truthTupleHash before they mutate state."]},"commitEvidence":{"title":"Commit and evidence","cue":"No side effects yet","bullets":["No HubCommitAttempt exists in live execution.","Commit mode is not inferred from UI posture; it must be selected and fenced explicitly.","Stale tuple or stale candidate drift blocks commit before any supplier side effect."]},"patientConfirmation":{"title":"Patient-facing confirmation","cue":"No calm copy","bullets":["No green confirmation panel or calm booked message is legal here.","Patient copy may describe the live offer set and pending choice deadline only."]},"practiceVisibility":{"title":"Practice visibility and acknowledgement","cue":"No continuity debt yet","bullets":["No PracticeContinuityMessage exists before authoritative confirmation.","No acknowledgement debt is open because no current continuity generation exists."]}},"messageRows":[{"messageId":"message_not_started","label":"Continuity not started","channel":"mesh","transportState":"not_dispatched","deliveryState":"unknown","ackEvidenceState":"ack_missing","ackGeneration":0,"projectionState":"not_informed","note":"Outward practice continuity does not begin from offer visibility alone."}],"ackRows":[{"generation":0,"status":"idle","source":"No continuity generation emitted","clearsDebt":false,"note":"There is no acknowledgement obligation before authoritative confirmation."}]},{"stateId":"confirmation_pending","label":"Confirmation Pending","railNote":"A commit exists, but the evidence is not yet authoritative.","summary":"Manual, imported, or weak native evidence may widen pending posture, but calm booked truth and practice continuity remain gated.","projection":{"offerState":"selected","confirmationTruthState":"confirmation_pending","patientConfirmationState":"pending_copy","practiceVisibilityState":"not_informed","closureState":"not_closable","fallbackLinkageState":"none"},"tupleRows":[{"field":"truthTupleHash","value":"fdc6e08e85922d8629…"},{"field":"providerAdapterBindingHash","value":"binding_hash_313_provider_a"},{"field":"reservationFenceToken","value":"reservation_fence_313_001"},{"field":"commitMode","value":"manual_pending_confirmation or imported_confirmation"},{"field":"currentAckGeneration","value":"0"},{"field":"visibilityEnvelopeVersionRef","value":"visibility_envelope_313_v4"}],"blockerRows":[{"blockerId":"authoritative_confirmation_missing","label":"Authoritative confirmation missing","impact":"Patient reassurance must remain provisional and no practice continuity message may clear booked truth yet."},{"blockerId":"weak_or_ambiguous_evidence","label":"Weak or ambiguous evidence","impact":"Imported or manual evidence remains auditable only until the confirmation gate passes."},{"blockerId":"practice_message_not_emitted","label":"Practice message not emitted","impact":"Origin-practice continuity still waits for confirmed_pending_practice_ack posture."}],"manage":{"capabilityState":"blocked","readOnlyMode":"read_only","allowedActions":["view_pending_evidence"],"blockers":["Manage requires authoritative appointment truth.","Pending confirmation cannot expose stale CTAs."]},"lanes":{"patientChoice":{"title":"Patient choice","cue":"Selection pinned","bullets":["One selected entry is pinned to the current tuple for commit-side work.","The prior offer set remains auditable provenance rather than disappearing.","Callback can still exist as a recorded fallback option without becoming the selected slot."]},"commitEvidence":{"title":"Commit and evidence","cue":"Pending only","bullets":["A HubCommitAttempt exists, but the confirmation gate has not cleared it.","Weak manual proof and imported signals stay pending_confirmation until hard-match and confidence gates pass.","Split-brain or stale-binding conditions widen recovery, not calmness."]},"patientConfirmation":{"title":"Patient-facing confirmation","cue":"Provisional copy only","bullets":["Patient copy may explain that booking is being checked or confirmed.","It may not use calm booked confirmation language or hide dispute risk."]},"practiceVisibility":{"title":"Practice visibility and acknowledgement","cue":"Still dark","bullets":["No continuity generation is sent until the current tuple is authoritatively confirmed.","Transport or supplier optimism does not create acknowledgement debt on its own."]}},"messageRows":[{"messageId":"message_pending_gate","label":"Continuity blocked by confirmation gate","channel":"mesh","transportState":"not_dispatched","deliveryState":"unknown","ackEvidenceState":"ack_missing","ackGeneration":0,"projectionState":"not_informed","note":"Practice messaging waits until the truth projection reaches confirmed_pending_practice_ack."}],"ackRows":[{"generation":0,"status":"blocked","source":"Confirmation truth pending","clearsDebt":false,"note":"No practice acknowledgement may clear debt before the continuity generation exists."}]},{"stateId":"confirmed_pending_ack","label":"Confirmed Pending Ack","railNote":"Booked truth is durable, but the origin practice still owes current-generation acknowledgement.","summary":"The confirmation gate has passed, the patient can receive calm booked truth, and the practice continuity chain is active under generation 4.","projection":{"offerState":"selected","confirmationTruthState":"confirmed_pending_practice_ack","patientConfirmationState":"calm_confirmed","practiceVisibilityState":"ack_pending","closureState":"not_closable","fallbackLinkageState":"none"},"tupleRows":[{"field":"truthTupleHash","value":"fdc6e08e85922d8629…"},{"field":"appointmentVersionRef","value":"hub_appointment_version_4"},{"field":"ackGeneration","value":"4"},{"field":"visibilityEnvelopeVersionRef","value":"visibility_envelope_313_v4"},{"field":"policyTupleHash","value":"1a81720620c0c808d0…"},{"field":"manageLeaseState","value":"stale / read_only until current ack clears"}],"blockerRows":[{"blockerId":"current_ack_generation_open","label":"Current acknowledgement generation open","impact":"Practice-informed and practice-acknowledged remain separate facets until generation 4 is settled."},{"blockerId":"manage_capability_degraded","label":"Manage capability degraded","impact":"Manage posture is read-only while acknowledgement debt remains open."}],"manage":{"capabilityState":"stale","readOnlyMode":"read_only","allowedActions":["view","contact_practice"],"blockers":["Current practice acknowledgement debt is still open.","Leased manage capability has not revalidated after continuity delivery."]},"lanes":{"patientChoice":{"title":"Patient choice","cue":"Choice closed","bullets":["The selected offer has settled into durable booked truth.","Prior offer rows remain visible as provenance only and may not reopen hidden choice paths."]},"commitEvidence":{"title":"Commit and evidence","cue":"Confirmed tuple","bullets":["The current HubCommitAttempt, evidence bundle, and appointment record all carry the live truthTupleHash.","Booked truth exists only because the confirmation gate passed on the current tuple and binding."]},"patientConfirmation":{"title":"Patient-facing confirmation","cue":"Calm booked copy legal","bullets":["Patient confirmation may now use calm confirmation copy and booked appointment details.","This still does not imply the origin practice has acknowledged the change."]},"practiceVisibility":{"title":"Practice visibility and acknowledgement","cue":"Generation 4 active","bullets":["Practice continuity generation 4 is live and tied to the current visibility envelope and truth tuple.","Transport, delivery, and acknowledgement remain separate rows in the same chain."]}},"messageRows":[{"messageId":"message_transport_only","label":"Transport accepted only","channel":"mesh","transportState":"accepted","deliveryState":"unknown","ackEvidenceState":"ack_missing","ackGeneration":4,"projectionState":"transport_pending","note":"Transport acceptance widens pending guidance but does not clear current acknowledgement debt."},{"messageId":"message_delivered_pending_ack","label":"Delivered, awaiting practice acknowledgement","channel":"mesh","transportState":"accepted","deliveryState":"downloaded","ackEvidenceState":"ack_missing","ackGeneration":4,"projectionState":"delivered_pending_ack","note":"Delivery evidence exists, but the current practice acknowledgement is still missing."},{"messageId":"message_stale_generation","label":"Older generation acknowledged","channel":"mesh","transportState":"accepted","deliveryState":"downloaded","ackEvidenceState":"ack_superseded","ackGeneration":3,"projectionState":"stale_generation","note":"Generation 3 acknowledgement remains auditable only after the generation 4 material change."}],"ackRows":[{"generation":3,"status":"received_superseded","source":"Older acknowledgement","clearsDebt":false,"note":"Superseded acknowledgement may not clear the current material change."},{"generation":4,"status":"pending_current","source":"Current booked continuity message","clearsDebt":false,"note":"This is the live generation that must be acknowledged or excepted."}]},{"stateId":"confirmed_acknowledged","label":"Confirmed and Acknowledged","railNote":"The practice has acknowledged the current generation on the current truth tuple.","summary":"Patient confirmation is calm, practice acknowledgement is current, and the case can become closable without hiding provenance.","projection":{"offerState":"selected","confirmationTruthState":"confirmed","patientConfirmationState":"calm_confirmed","practiceVisibilityState":"acknowledged","closureState":"closable","fallbackLinkageState":"none"},"tupleRows":[{"field":"truthTupleHash","value":"fdc6e08e85922d8629…"},{"field":"appointmentVersionRef","value":"hub_appointment_version_4"},{"field":"ackGeneration","value":"4"},{"field":"acknowledgementId","value":"practice_ack_313_001"},{"field":"visibilityProjectionRef","value":"practice_visibility_projection_313_001"},{"field":"manageLeaseState","value":"live / interactive"}],"blockerRows":[],"manage":{"capabilityState":"live","readOnlyMode":"interactive","allowedActions":["view","reschedule_request","cancel_request","callback_request"],"blockers":[]},"lanes":{"patientChoice":{"title":"Patient choice","cue":"Provenance preserved","bullets":["The chosen offer remains the durable origin of booking truth.","Prior alternatives and fallback remain visible as history, not hidden control flow."]},"commitEvidence":{"title":"Commit and evidence","cue":"Current tuple settled","bullets":["Commit attempt, evidence bundle, appointment record, continuity message, and acknowledgement record all carry the same live truthTupleHash.","No weaker evidence family may supersede this calmer state unless a later tuple reopens it."]},"patientConfirmation":{"title":"Patient-facing confirmation","cue":"Booked copy stable","bullets":["Calm booked copy is legal and consistent with the current appointment record.","The confirmation page may reassure users there is nothing more for them to do before the appointment when that is true."]},"practiceVisibility":{"title":"Practice visibility and acknowledgement","cue":"Current generation cleared","bullets":["Generation 4 acknowledgement evidence is current, tuple-bound, and policy-bound.","The origin practice sees only the minimum-necessary projection, not hub-only replay detail."]}},"messageRows":[{"messageId":"message_current_ack","label":"Current generation acknowledged","channel":"mesh","transportState":"accepted","deliveryState":"downloaded","ackEvidenceState":"ack_received","ackGeneration":4,"projectionState":"acknowledged","note":"Current-generation acknowledgement evidence clears current debt."},{"messageId":"message_old_ack","label":"Older acknowledgement retained as provenance","channel":"mesh","transportState":"accepted","deliveryState":"downloaded","ackEvidenceState":"ack_superseded","ackGeneration":3,"projectionState":"stale_generation","note":"Older generations remain auditable and cannot replace the current one."}],"ackRows":[{"generation":3,"status":"received_superseded","source":"Prior material state","clearsDebt":false,"note":"Provenance only."},{"generation":4,"status":"received_current","source":"Current booked continuity message","clearsDebt":true,"note":"This generation lawfully clears current acknowledgement debt."}]},{"stateId":"stale_tuple_blocked","label":"Tuple Drift Reopened","railNote":"A newer tuple or newer generation exists, so older acknowledgements are auditable only.","summary":"Supplier drift, correction, or other material change has reopened the continuity obligation and degraded manage posture. The older calmer state is preserved as provenance only.","projection":{"offerState":"selected","confirmationTruthState":"blocked_by_drift","patientConfirmationState":"blocked","practiceVisibilityState":"blocked","closureState":"not_closable","fallbackLinkageState":"linkage_debt"},"tupleRows":[{"field":"truthTupleHash","value":"newer truth tuple required; prior hash superseded"},{"field":"supersededTruthTupleHash","value":"fdc6e08e85922d8629…"},{"field":"ackGeneration","value":"5 current / 4 superseded"},{"field":"visibilityEnvelopeVersionRef","value":"visibility_envelope_313_v5"},{"field":"manageLeaseState","value":"blocked / read_only"},{"field":"deltaReason","value":"policy_tuple_changed or appointment_version_changed"}],"blockerRows":[{"blockerId":"truth_tuple_drift","label":"Truth tuple drift","impact":"Older commit and acknowledgement evidence remain auditable only and cannot calm the new case."},{"blockerId":"manage_capability_stale","label":"Manage capability stale","impact":"Manage posture must degrade to blocked or expired instead of leaving stale CTAs live."},{"blockerId":"current_ack_reopened","label":"Current acknowledgement reopened","impact":"A new generation or new tuple now requires a fresh continuity chain and fresh acknowledgement."}],"manage":{"capabilityState":"blocked","readOnlyMode":"read_only","allowedActions":["view","contact_practice"],"blockers":["Supplier drift or material change invalidated the prior interactive lease.","New continuity evidence and new acknowledgement generation are required."]},"lanes":{"patientChoice":{"title":"Patient choice","cue":"Historic only","bullets":["The original selected offer remains provenance, not current actionable truth.","Any fresh mutation must bind to the newer tuple rather than reuse historic choice state."]},"commitEvidence":{"title":"Commit and evidence","cue":"Older proof retained","bullets":["Older confirmation evidence remains auditable, but drift or correction prevents it from calming the live state.","Reconciliation or supplier-mirror work may widen recovery, not calmness."]},"patientConfirmation":{"title":"Patient-facing confirmation","cue":"Calm copy withdrawn","bullets":["Patient reassurance must degrade when the live tuple no longer matches the calmer appointment truth.","The shell stays the same; the posture becomes blocked or recovery-oriented."]},"practiceVisibility":{"title":"Practice visibility and acknowledgement","cue":"Generation 5 required","bullets":["Current acknowledgement debt is reopened by the material change.","Older acknowledgement evidence and older visibility envelopes remain provenance only."]}},"messageRows":[{"messageId":"message_old_tuple_ack","label":"Older tuple acknowledged","channel":"mesh","transportState":"accepted","deliveryState":"downloaded","ackEvidenceState":"ack_superseded","ackGeneration":4,"projectionState":"stale_generation","note":"The old tuple's acknowledgement may not clear the new material change."},{"messageId":"message_new_generation_pending","label":"Generation 5 continuity reopened","channel":"mesh","transportState":"queued","deliveryState":"unknown","ackEvidenceState":"ack_missing","ackGeneration":5,"projectionState":"ack_pending","note":"The new tuple requires a fresh continuity message and fresh acknowledgement evidence."}],"ackRows":[{"generation":4,"status":"received_superseded","source":"Previous tuple","clearsDebt":false,"note":"No stale tuple may clear current debt."},{"generation":5,"status":"pending_current","source":"Current drift response","clearsDebt":false,"note":"Fresh acknowledgement is required under the new tuple and new envelope."}]}]};
+      const root = document.querySelector("[data-testid='Phase5CommitVisibilityAtlas']");
+      const stateMap = new Map(atlasData.states.map((entry) => [entry.stateId, entry]));
+      let activeStateId = atlasData.states[0].stateId;
+      let activeMessageId = atlasData.states[0].messageRows[0].messageId;
+
+      function create(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
+      }
+
+      function currentState() {
+        return stateMap.get(activeStateId);
+      }
+
+      function currentMessage() {
+        return currentState().messageRows.find((row) => row.messageId === activeMessageId) || currentState().messageRows[0];
+      }
+
+      function renderStateButtons() {
+        const container = document.getElementById("state-list");
+        container.innerHTML = "";
+        atlasData.states.forEach((state, index) => {
+          const button = create("button", "state-button");
+          button.type = "button";
+          button.dataset.id = state.stateId;
+          button.dataset.index = String(index);
+          button.dataset.active = String(state.stateId === activeStateId);
+          button.setAttribute("aria-pressed", String(state.stateId === activeStateId));
+          button.appendChild(create("span", "button-title", state.label));
+          button.appendChild(create("span", "button-note", state.railNote));
+          button.addEventListener("click", () => {
+            activeStateId = state.stateId;
+            sync();
+          });
+          button.addEventListener("keydown", (event) => {
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+            event.preventDefault();
+            const nextIndex =
+              event.key === "ArrowDown"
+                ? Math.min(index + 1, atlasData.states.length - 1)
+                : Math.max(index - 1, 0);
+            activeStateId = atlasData.states[nextIndex].stateId;
+            sync();
+            requestAnimationFrame(() => {
+              const next = document.querySelector('.state-button[data-id="' + atlasData.states[nextIndex].stateId + '"]');
+              if (next) next.focus();
+            });
+          });
+          container.appendChild(button);
+        });
+      }
+
+      function renderCurrentObjects() {
+        const container = document.getElementById("current-object-list");
+        container.innerHTML = "";
+        Object.entries(atlasData.activeObjects).forEach(([key, value]) => {
+          const item = create("li", "", key + ": " + value);
+          container.appendChild(item);
+        });
+      }
+
+      function renderLane(prefix, lane) {
+        document.getElementById(prefix + "-title").textContent = lane.title;
+        const cue = document.getElementById(prefix + "-cue");
+        cue.textContent = lane.cue;
+        const list = document.getElementById(prefix + "-bullets");
+        list.innerHTML = "";
+        lane.bullets.forEach((bullet) => list.appendChild(create("li", "", bullet)));
+      }
+
+      function renderPracticeLane(state) {
+        renderLane("practice-visibility", state.lanes.practiceVisibility);
+
+        const ladder = document.getElementById("ack-ladder");
+        ladder.innerHTML = "";
+        const activeMessage = currentMessage();
+        state.ackRows.forEach((row) => {
+          const step = create("div", "ladder-step");
+          step.dataset.highlight = String(row.generation === activeMessage.ackGeneration);
+          step.appendChild(create("strong", "", "Gen " + row.generation + " · " + row.status));
+          step.appendChild(create("div", "subdued", row.source));
+          step.appendChild(create("div", "", row.note));
+          ladder.appendChild(step);
+        });
+
+        const tbody = document.getElementById("message-chain-body");
+        tbody.innerHTML = "";
+        state.messageRows.forEach((row, index) => {
+          const tr = document.createElement("tr");
+          const button = create("button", "message-row-button");
+          button.type = "button";
+          button.dataset.id = row.messageId;
+          button.dataset.index = String(index);
+          button.dataset.active = String(row.messageId === activeMessageId);
+          button.setAttribute("aria-pressed", String(row.messageId === activeMessageId));
+          const inner = document.createElement("table");
+          inner.innerHTML =
+            "<tbody><tr>" +
+            "<td>" + row.label + "</td>" +
+            "<td>" + row.transportState + "</td>" +
+            "<td>" + row.deliveryState + "</td>" +
+            "<td>" + row.ackEvidenceState + " / gen " + row.ackGeneration + "</td>" +
+            "</tr></tbody>";
+          button.appendChild(inner);
+          button.addEventListener("click", () => {
+            activeMessageId = row.messageId;
+            sync(false);
+          });
+          button.addEventListener("keydown", (event) => {
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+            event.preventDefault();
+            const nextIndex =
+              event.key === "ArrowDown"
+                ? Math.min(index + 1, state.messageRows.length - 1)
+                : Math.max(index - 1, 0);
+            activeMessageId = state.messageRows[nextIndex].messageId;
+            sync(false);
+            requestAnimationFrame(() => {
+              const next = document.querySelector('.message-row-button[data-id="' + state.messageRows[nextIndex].messageId + '"]');
+              if (next) next.focus();
+            });
+          });
+          const td = document.createElement("td");
+          td.colSpan = 4;
+          td.style.padding = "0";
+          td.appendChild(button);
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+        });
+      }
+
+      function renderParityTables(state) {
+        const tupleBody = document.getElementById("tuple-parity-body");
+        tupleBody.innerHTML = "";
+        state.tupleRows.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = "<th scope='row'>" + row.field + "</th><td>" + row.value + "</td>";
+          tupleBody.appendChild(tr);
+        });
+
+        const ackBody = document.getElementById("ack-parity-body");
+        ackBody.innerHTML = "";
+        state.ackRows.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML =
+            "<th scope='row'>Gen " + row.generation + "</th>" +
+            "<td>" + row.status + "</td>" +
+            "<td>" + (row.clearsDebt ? "yes" : "no") + "</td>";
+          ackBody.appendChild(tr);
+        });
+
+        const blockerBody = document.getElementById("blocker-parity-body");
+        blockerBody.innerHTML = "";
+        if (state.blockerRows.length === 0) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = "<td colspan='2'>No active blockers. Closure may become legal once the current case-level rules are also clear.</td>";
+          blockerBody.appendChild(tr);
+          return;
+        }
+        state.blockerRows.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = "<th scope='row'>" + row.label + "</th><td>" + row.impact + "</td>";
+          blockerBody.appendChild(tr);
+        });
+      }
+
+      function renderInspector(state) {
+        document.getElementById("active-state-title").textContent = state.label;
+        document.getElementById("active-state-summary").textContent = state.summary;
+        const strip = document.getElementById("projection-strip");
+        strip.innerHTML = "";
+        [
+          ["Offer", state.projection.offerState],
+          ["Confirmation truth", state.projection.confirmationTruthState],
+          ["Patient confirmation", state.projection.patientConfirmationState],
+          ["Practice visibility", state.projection.practiceVisibilityState],
+          ["Fallback linkage", state.projection.fallbackLinkageState],
+          ["Closure", state.projection.closureState],
+        ].forEach(([label, value]) => {
+          const row = create("div", "projection-row");
+          row.appendChild(create("strong", "", label));
+          row.appendChild(create("div", "", value));
+          strip.appendChild(row);
+        });
+
+        const manage = state.manage;
+        document.getElementById("manage-title").textContent =
+          manage.capabilityState + " / " + manage.readOnlyMode;
+        const manageBody = document.getElementById("manage-body");
+        manageBody.innerHTML = "";
+        [
+          ["Capability state", manage.capabilityState],
+          ["Read-only mode", manage.readOnlyMode],
+          ["Allowed actions", manage.allowedActions.join(", ") || "none"],
+        ].forEach(([label, value]) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = "<th scope='row'>" + label + "</th><td>" + value + "</td>";
+          manageBody.appendChild(tr);
+        });
+        const manageBlockers = document.getElementById("manage-blockers");
+        manageBlockers.innerHTML = "";
+        if (manage.blockers.length === 0) {
+          manageBlockers.appendChild(create("li", "", "No active lease blockers."));
+        } else {
+          manage.blockers.forEach((entry) => manageBlockers.appendChild(create("li", "", entry)));
+        }
+
+        const message = currentMessage();
+        document.getElementById("message-detail-title").textContent = message.label;
+        const messageBody = document.getElementById("message-detail-body");
+        messageBody.innerHTML = "";
+        [
+          ["Channel", message.channel],
+          ["Transport", message.transportState],
+          ["Delivery", message.deliveryState],
+          ["Ack evidence", message.ackEvidenceState],
+          ["Ack generation", String(message.ackGeneration)],
+          ["Projection cue", message.projectionState],
+        ].forEach(([label, value]) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = "<th scope='row'>" + label + "</th><td>" + value + "</td>";
+          messageBody.appendChild(tr);
+        });
+        document.getElementById("message-detail-note").textContent = message.note;
+      }
+
+      function sync(resetMessage = true) {
+        const state = currentState();
+        if (resetMessage || !state.messageRows.some((row) => row.messageId === activeMessageId)) {
+          activeMessageId = state.messageRows[0].messageId;
+        }
+        root.setAttribute("data-active-state", activeStateId);
+        root.setAttribute("data-active-message", activeMessageId);
+        renderStateButtons();
+        renderCurrentObjects();
+        renderLane("patient-choice", state.lanes.patientChoice);
+        renderLane("commit-evidence", state.lanes.commitEvidence);
+        renderLane("patient-confirmation", state.lanes.patientConfirmation);
+        renderPracticeLane(state);
+        renderParityTables(state);
+        renderInspector(state);
+      }
+
+      sync();
+      window.__phase5CommitVisibilityAtlasData = { loaded: true, ...atlasData };
+    </script>
+  </body>
+</html>

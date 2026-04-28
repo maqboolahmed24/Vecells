@@ -1,0 +1,847 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>112 Route Guard Lab</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f2f4f7;
+        --panel: #ffffff;
+        --panel-alt: #eef2f6;
+        --border: #cfd6de;
+        --text: #122033;
+        --muted: #506277;
+        --live: #13683f;
+        --live-bg: #e7f5ed;
+        --read: #8a5a00;
+        --read-bg: #fff4d8;
+        --recovery: #6b37b6;
+        --recovery-bg: #efe8ff;
+        --blocked: #a32828;
+        --blocked-bg: #fde9e9;
+        --shadow: 0 18px 40px rgba(17, 24, 39, 0.08);
+        --duration: 220ms;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top right, rgba(19, 104, 63, 0.08), transparent 30%),
+          linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%);
+        color: var(--text);
+      }
+
+      body[data-reduced-motion="true"] * {
+        animation-duration: 0ms !important;
+        transition-duration: 0ms !important;
+        scroll-behavior: auto !important;
+      }
+
+      .lab {
+        max-width: 1560px;
+        margin: 0 auto;
+        padding: 28px 24px 32px;
+      }
+
+      .masthead {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        align-items: end;
+        margin-bottom: 24px;
+      }
+
+      .masthead h1,
+      .specimen h2,
+      .card h3,
+      .timeline h3 {
+        margin: 0;
+      }
+
+      .eyebrow {
+        font-size: 12px;
+        line-height: 16px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 8px;
+        display: block;
+      }
+
+      .masthead p,
+      .specimen p,
+      .card p,
+      .timeline p,
+      li,
+      dd,
+      dt {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .topology {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr) 388px;
+        gap: 20px;
+      }
+
+      .card,
+      .specimen,
+      .timeline,
+      .diagram {
+        background: color-mix(in srgb, var(--panel) 92%, transparent);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+      }
+
+      .rail,
+      .inspector {
+        padding: 20px;
+      }
+
+      label {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 16px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      select {
+        width: 100%;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--panel-alt);
+        color: var(--text);
+        padding: 10px 12px;
+        font: inherit;
+      }
+
+      .scenario-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .scenario-button {
+        text-align: left;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        padding: 14px;
+        cursor: pointer;
+        transition:
+          transform var(--duration) ease,
+          border-color var(--duration) ease,
+          background-color var(--duration) ease;
+      }
+
+      .scenario-button[data-active="true"] {
+        border-color: var(--text);
+        background: var(--panel-alt);
+        transform: translateY(-1px);
+      }
+
+      .scenario-button strong {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--text);
+      }
+
+      .posture-pill,
+      .meta-pill,
+      .capability-pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 7px 12px;
+        font-size: 12px;
+        line-height: 16px;
+        border: 1px solid var(--border);
+        background: var(--panel-alt);
+        color: var(--text);
+      }
+
+      .posture-pill[data-posture="live"] {
+        background: var(--live-bg);
+        color: var(--live);
+        border-color: color-mix(in srgb, var(--live) 30%, white);
+      }
+
+      .posture-pill[data-posture="read_only"] {
+        background: var(--read-bg);
+        color: var(--read);
+        border-color: color-mix(in srgb, var(--read) 28%, white);
+      }
+
+      .posture-pill[data-posture="recovery_only"] {
+        background: var(--recovery-bg);
+        color: var(--recovery);
+        border-color: color-mix(in srgb, var(--recovery) 28%, white);
+      }
+
+      .posture-pill[data-posture="blocked"] {
+        background: var(--blocked-bg);
+        color: var(--blocked);
+        border-color: color-mix(in srgb, var(--blocked) 28%, white);
+      }
+
+      .specimen {
+        padding: 22px;
+        min-height: 520px;
+        display: grid;
+        gap: 18px;
+        transition:
+          transform var(--duration) ease,
+          opacity var(--duration) ease,
+          border-color var(--duration) ease;
+      }
+
+      .specimen[data-guard-posture="read_only"] {
+        border-color: color-mix(in srgb, var(--read) 35%, var(--border));
+      }
+
+      .specimen[data-guard-posture="recovery_only"] {
+        border-color: color-mix(in srgb, var(--recovery) 35%, var(--border));
+      }
+
+      .specimen[data-guard-posture="blocked"] {
+        border-color: color-mix(in srgb, var(--blocked) 35%, var(--border));
+      }
+
+      .specimen__header,
+      .specimen__summary,
+      .specimen__footer {
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: var(--panel);
+        padding: 18px;
+      }
+
+      .specimen__header {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        align-items: start;
+      }
+
+      .specimen__meta,
+      .specimen__anchor-row,
+      .specimen__capability-row,
+      .inspector__grid,
+      .timeline__steps,
+      .diagram__row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .specimen__state {
+        display: grid;
+        gap: 14px;
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(242, 244, 247, 0.96)),
+          var(--panel);
+        padding: 20px;
+      }
+
+      .specimen__state h3 {
+        margin: 0 0 6px;
+      }
+
+      .specimen__state[data-posture="live"] {
+        background:
+          linear-gradient(180deg, rgba(231, 245, 237, 0.9), rgba(255, 255, 255, 0.98)),
+          var(--panel);
+      }
+
+      .specimen__state[data-posture="read_only"] {
+        background:
+          linear-gradient(180deg, rgba(255, 244, 216, 0.9), rgba(255, 255, 255, 0.98)),
+          var(--panel);
+      }
+
+      .specimen__state[data-posture="recovery_only"] {
+        background:
+          linear-gradient(180deg, rgba(239, 232, 255, 0.9), rgba(255, 255, 255, 0.98)),
+          var(--panel);
+      }
+
+      .specimen__state[data-posture="blocked"] {
+        background:
+          linear-gradient(180deg, rgba(253, 233, 233, 0.92), rgba(255, 255, 255, 0.98)),
+          var(--panel);
+      }
+
+      .primary-action {
+        border: 0;
+        border-radius: 999px;
+        padding: 12px 16px;
+        background: var(--text);
+        color: white;
+        font: inherit;
+      }
+
+      .inspector dl {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin: 0;
+      }
+
+      dt {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      dd {
+        margin: 4px 0 0;
+        color: var(--text);
+      }
+
+      .list {
+        display: grid;
+        gap: 8px;
+        padding: 0;
+        margin: 0;
+        list-style: none;
+        min-height: 28px;
+      }
+
+      .list li {
+        border-radius: 14px;
+        background: var(--panel-alt);
+        padding: 10px 12px;
+      }
+
+      .timeline {
+        margin-top: 22px;
+        padding: 22px;
+      }
+
+      .timeline__steps {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .timeline__step {
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: var(--panel-alt);
+        padding: 14px;
+        min-height: 124px;
+      }
+
+      .timeline__step strong {
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      .diagram-grid {
+        margin-top: 22px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .diagram {
+        padding: 18px;
+      }
+
+      .diagram__box {
+        flex: 1 1 120px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: var(--panel-alt);
+        padding: 10px 12px;
+        min-height: 74px;
+      }
+
+      .diagram__arrow {
+        align-self: center;
+        color: var(--muted);
+        font-size: 20px;
+      }
+
+      .empty {
+        border-radius: 16px;
+        background: var(--panel-alt);
+        padding: 14px;
+      }
+
+      @media (max-width: 1220px) {
+        .topology {
+          grid-template-columns: 1fr;
+        }
+
+        .diagram-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .timeline__steps {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="lab" data-testid="route-guard-lab">
+      <section class="masthead">
+        <div>
+          <span class="eyebrow">Route Guard Lab</span>
+          <h1>Browser authority stays ahead of rendered components.</h1>
+          <p>
+            One route guard seam controls live, read-only, recovery-only, and blocked posture from
+            manifest truth, runtime binding truth, channel truth, and governed recovery law.
+          </p>
+        </div>
+        <div class="specimen__meta">
+          <span class="meta-pill" id="schema-title">ManifestCapabilitySwitch</span>
+          <span class="meta-pill" id="scenario-count">0 scenarios</span>
+        </div>
+      </section>
+
+      <section class="topology">
+        <aside class="card rail">
+          <span class="eyebrow">Scenario Selector</span>
+          <label>
+            Route family
+            <select id="route-selector" data-testid="route-selector"></select>
+          </label>
+          <label>
+            Channel profile
+            <select id="channel-selector" data-testid="channel-selector">
+              <option value="all">All channels</option>
+              <option value="browser">browser</option>
+              <option value="constrained_browser">constrained_browser</option>
+              <option value="embedded">embedded</option>
+              <option value="assistive_sidecar">assistive_sidecar</option>
+            </select>
+          </label>
+          <div class="scenario-list" id="scenario-list" data-testid="guard-scenario-list"></div>
+        </aside>
+
+        <section
+          class="specimen"
+          id="guard-stage"
+          data-testid="guard-stage"
+          data-guard-posture="live"
+          data-runtime-binding-state="binding_ready"
+          data-recovery-action="none"
+        >
+          <header class="specimen__header" id="guard-stage-header" data-testid="guard-stage-header"></header>
+          <div class="specimen__anchor-row" id="anchor-row">
+            <span class="meta-pill" data-testid="guard-stage-anchor"></span>
+            <span class="meta-pill" id="header-preserve-pill"></span>
+            <span class="meta-pill" id="shell-pill"></span>
+          </div>
+          <section class="specimen__state" id="state-panel">
+            <div>
+              <span class="eyebrow">Guarded Route</span>
+              <h3 id="state-heading"></h3>
+              <p id="state-copy"></p>
+            </div>
+            <div class="specimen__capability-row" id="capability-pills"></div>
+            <button class="primary-action" id="state-action" data-testid="guard-recovery-action"></button>
+          </section>
+          <section class="specimen__summary">
+            <span class="eyebrow">Last Safe Summary</span>
+            <p id="last-safe-summary"></p>
+          </section>
+          <section class="specimen__footer">
+            <span class="eyebrow">Reason Refs</span>
+            <ul class="list" id="reason-list" data-testid="guard-reason-list"></ul>
+          </section>
+        </section>
+
+        <aside class="card inspector" data-testid="guard-runtime-inspector">
+          <span class="eyebrow">Runtime Tuple</span>
+          <dl id="inspector-grid"></dl>
+          <div style="height: 18px"></div>
+          <span class="eyebrow">Visible Capabilities</span>
+          <ul class="list" id="capability-list" data-testid="guard-capability-list"></ul>
+        </aside>
+      </section>
+
+      <section class="timeline" data-testid="guard-timeline">
+        <span class="eyebrow">Guard Decision Timeline</span>
+        <h3>Precedence trail and downgrade path</h3>
+        <p>
+          The lower strip shows where the route lost calm or writable posture and which same-shell
+          downgrade path remained lawful.
+        </p>
+        <div class="timeline__steps" id="timeline-steps"></div>
+      </section>
+
+      <section class="diagram-grid">
+        <article class="diagram" data-testid="precedence-diagram">
+          <span class="eyebrow">Precedence Diagram</span>
+          <div class="diagram__row">
+            <div class="diagram__box">Ownership and audience or channel eligibility</div>
+            <div class="diagram__arrow">→</div>
+            <div class="diagram__box">Runtime binding hydration and join validation</div>
+          </div>
+          <div class="diagram__row" style="margin-top: 10px">
+            <div class="diagram__box">Release, channel, and trust posture</div>
+            <div class="diagram__arrow">→</div>
+            <div class="diagram__box">Manifest-derived capability switches</div>
+          </div>
+          <div class="diagram__row" style="margin-top: 10px">
+            <div class="diagram__box">Route freeze and recovery disposition</div>
+            <div class="diagram__arrow">→</div>
+            <div class="diagram__box">Live or same-shell downgrade</div>
+          </div>
+        </article>
+
+        <article class="diagram" data-testid="guard-decision-tree">
+          <span class="eyebrow">Decision Tree</span>
+          <div class="diagram__row">
+            <div class="diagram__box">Manifest route present?</div>
+            <div class="diagram__arrow">→</div>
+            <div class="diagram__box">Runtime binding ready?</div>
+          </div>
+          <div class="diagram__row" style="margin-top: 10px">
+            <div class="diagram__box">Release verdict live?</div>
+            <div class="diagram__arrow">→</div>
+            <div class="diagram__box">Capability switches active?</div>
+          </div>
+          <div class="diagram__row" style="margin-top: 10px">
+            <div class="diagram__box">Freeze active?</div>
+            <div class="diagram__arrow">→</div>
+            <div class="diagram__box">Live, read-only, recovery-only, or blocked</div>
+          </div>
+        </article>
+
+        <article class="diagram" data-testid="embedded-downgrade-diagram">
+          <span class="eyebrow">Embedded Downgrade</span>
+          <div class="diagram__row">
+            <div class="diagram__box">Embedded route requested</div>
+            <div class="diagram__arrow">→</div>
+            <div class="diagram__box">Signed identity bridge and host return exact</div>
+          </div>
+          <div class="diagram__row" style="margin-top: 10px">
+            <div class="diagram__box">If floor drifts: keep same header and anchor</div>
+            <div class="diagram__arrow">→</div>
+            <div class="diagram__box">Recovery-only with governed handoff</div>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script type="module">
+      const routeSelector = document.getElementById("route-selector");
+      const channelSelector = document.getElementById("channel-selector");
+      const scenarioList = document.getElementById("scenario-list");
+      const stage = document.getElementById("guard-stage");
+      const stageHeader = document.getElementById("guard-stage-header");
+      const stageAnchor = document.querySelector("[data-testid='guard-stage-anchor']");
+      const headerPreservePill = document.getElementById("header-preserve-pill");
+      const shellPill = document.getElementById("shell-pill");
+      const statePanel = document.getElementById("state-panel");
+      const stateHeading = document.getElementById("state-heading");
+      const stateCopy = document.getElementById("state-copy");
+      const stateAction = document.getElementById("state-action");
+      const lastSafeSummary = document.getElementById("last-safe-summary");
+      const reasonList = document.getElementById("reason-list");
+      const capabilityPills = document.getElementById("capability-pills");
+      const inspectorGrid = document.getElementById("inspector-grid");
+      const capabilityList = document.getElementById("capability-list");
+      const timelineSteps = document.getElementById("timeline-steps");
+      const schemaTitle = document.getElementById("schema-title");
+      const scenarioCount = document.getElementById("scenario-count");
+
+      const state = {
+        schema: null,
+        scenarios: [],
+        route: "all",
+        channel: "all",
+        activeScenarioId: null
+      };
+
+      function updateReducedMotion() {
+        document.body.dataset.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)")
+          .matches
+          ? "true"
+          : "false";
+      }
+
+      function postureLabel(posture) {
+        switch (posture) {
+          case "live":
+            return "Live";
+          case "read_only":
+            return "Read-only";
+          case "recovery_only":
+            return "Recovery only";
+          case "blocked":
+            return "Blocked";
+          default:
+            return posture;
+        }
+      }
+
+      function currentFilteredScenarios() {
+        return state.scenarios.filter((scenario) => {
+          const routeMatch = state.route === "all" || scenario.routeFamilyRef === state.route;
+          const channelMatch = state.channel === "all" || scenario.channelProfile === state.channel;
+          return routeMatch && channelMatch;
+        });
+      }
+
+      function activeScenario() {
+        const filtered = currentFilteredScenarios();
+        if (!filtered.length) {
+          return null;
+        }
+        return (
+          filtered.find((scenario) => scenario.scenarioId === state.activeScenarioId) ??
+          filtered[0]
+        );
+      }
+
+      function syncUrl(active) {
+        const params = new URLSearchParams(window.location.search);
+        params.set("route", state.route);
+        params.set("channel", state.channel);
+        if (active) {
+          params.set("scenario", active.scenarioId);
+        }
+        window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+      }
+
+      function renderSelectors() {
+        const routeOptions = [
+          { value: "all", label: "All routes" },
+          ...Array.from(
+            new Map(
+              state.scenarios.map((scenario) => [
+                scenario.routeFamilyRef,
+                scenario.routeTitle
+              ])
+            ).entries()
+          ).map(([value, label]) => ({ value, label }))
+        ];
+
+        routeSelector.innerHTML = routeOptions
+          .map(
+            (option) =>
+              `<option value="${option.value}" ${
+                option.value === state.route ? "selected" : ""
+              }>${option.label}</option>`
+          )
+          .join("");
+        channelSelector.value = state.channel;
+      }
+
+      function renderScenarioList() {
+        const filtered = currentFilteredScenarios();
+        scenarioList.innerHTML = "";
+        if (!filtered.length) {
+          scenarioList.innerHTML = `<div class="empty">No scenarios match the current route and channel filter.</div>`;
+          return;
+        }
+        filtered.forEach((scenario) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "scenario-button";
+          button.dataset.scenarioId = scenario.scenarioId;
+          button.dataset.active = String(scenario.scenarioId === state.activeScenarioId);
+          button.innerHTML = `
+            <strong>${scenario.title}</strong>
+            <span class="posture-pill" data-posture="${scenario.effectivePosture}">${postureLabel(
+              scenario.effectivePosture
+            )}</span>
+          `;
+          button.addEventListener("click", () => {
+            state.activeScenarioId = scenario.scenarioId;
+            render();
+          });
+          scenarioList.appendChild(button);
+        });
+      }
+
+      function renderStage(active) {
+        stage.dataset.scenarioId = active.scenarioId;
+        stage.dataset.guardPosture = active.effectivePosture;
+        stage.dataset.runtimeBindingState = active.hydrationState;
+        stage.dataset.recoveryAction = active.recoveryAction
+          ? active.recoveryAction.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")
+          : "none";
+
+        stageHeader.innerHTML = `
+          <div>
+            <span class="eyebrow">Guarded Route</span>
+            <h2>${active.routeTitle}</h2>
+            <p>${active.title}</p>
+          </div>
+          <div class="specimen__meta">
+            <span class="posture-pill" data-posture="${active.effectivePosture}">${postureLabel(
+              active.effectivePosture
+            )}</span>
+            <span class="meta-pill">${active.channelProfile}</span>
+            <span class="meta-pill">${active.hydrationState}</span>
+          </div>
+        `;
+
+        stageAnchor.textContent = `Anchor: ${active.selectedAnchor}`;
+        headerPreservePill.textContent = `Header preserved: ${active.preserveHeader ? "yes" : "no"}`;
+        shellPill.textContent = `Same shell: ${active.sameShellDisposition}`;
+
+        statePanel.dataset.posture = active.effectivePosture;
+        stateHeading.textContent =
+          active.effectivePosture === "live" ? "Route remains live." : "Route downgraded in place.";
+        stateCopy.textContent =
+          active.effectivePosture === "live"
+            ? "Manifest truth, runtime truth, and release truth still agree, so the route may present ordinary actionability."
+            : `The same shell stays visible while the route settles to ${postureLabel(
+                active.effectivePosture
+              ).toLowerCase()}. The header and last safe summary remain visible.`;
+
+        capabilityPills.innerHTML = active.capabilities
+          .map(
+            (capability) =>
+              `<span class="capability-pill">${capability.label}: ${capability.state}</span>`
+          )
+          .join("");
+
+        if (active.recoveryAction) {
+          stateAction.hidden = false;
+          stateAction.textContent = active.recoveryAction.label;
+        } else {
+          stateAction.hidden = true;
+          stateAction.textContent = "";
+        }
+
+        lastSafeSummary.textContent = active.lastSafeSummary;
+        reasonList.innerHTML = active.reasonRefs.length
+          ? active.reasonRefs.map((reason) => `<li>${reason}</li>`).join("")
+          : `<li>none</li>`;
+      }
+
+      function renderInspector(active) {
+        inspectorGrid.innerHTML = `
+          <div>
+            <dt>Manifest</dt>
+            <dd>${active.manifestRef}</dd>
+          </div>
+          <div>
+            <dt>Runtime Binding</dt>
+            <dd>${active.runtimeBindingRef ?? "pending"}</dd>
+          </div>
+          <div>
+            <dt>Audience Surface</dt>
+            <dd>${active.audienceSurface}</dd>
+          </div>
+          <div>
+            <dt>Binding State</dt>
+            <dd>${active.bindingState}</dd>
+          </div>
+          <div>
+            <dt>Release Authority</dt>
+            <dd>${active.releaseAuthorityState}</dd>
+          </div>
+          <div>
+            <dt>Route Freeze</dt>
+            <dd>${active.routeFreezeState}</dd>
+          </div>
+          <div>
+            <dt>Recovery Disposition</dt>
+            <dd>${active.recoveryDispositionRef}</dd>
+          </div>
+          <div>
+            <dt>Capability Schema</dt>
+            <dd>${state.schema?.title ?? "ManifestCapabilitySwitch"}</dd>
+          </div>
+        `;
+
+        capabilityList.innerHTML = active.capabilities
+          .map(
+            (capability) =>
+              `<li><strong>${capability.label}</strong><br />state: ${capability.state}</li>`
+          )
+          .join("");
+      }
+
+      function renderTimeline(active) {
+        timelineSteps.innerHTML = active.precedenceTrail
+          .map(
+            (step) => `
+              <article class="timeline__step">
+                <span class="eyebrow">${step.stage.replaceAll("_", " ")}</span>
+                <strong>${postureLabel(step.posture)}</strong>
+                <p>${step.reasonRefs.length ? step.reasonRefs.join(", ") : "No downgrade at this stage."}</p>
+              </article>
+            `
+          )
+          .join("");
+      }
+
+      function render() {
+        renderSelectors();
+        const filtered = currentFilteredScenarios();
+        if (filtered.length && !filtered.some((scenario) => scenario.scenarioId === state.activeScenarioId)) {
+          state.activeScenarioId = filtered[0].scenarioId;
+        }
+        renderScenarioList();
+        const active = activeScenario();
+        scenarioCount.textContent = `${state.scenarios.length} scenarios`;
+        if (!active) {
+          stageHeader.innerHTML = "<p>No matching scenario.</p>";
+          return;
+        }
+        renderStage(active);
+        renderInspector(active);
+        renderTimeline(active);
+        syncUrl(active);
+      }
+
+      async function boot() {
+        updateReducedMotion();
+        window
+          .matchMedia("(prefers-reduced-motion: reduce)")
+          .addEventListener("change", updateReducedMotion);
+
+        const params = new URLSearchParams(window.location.search);
+        state.route = params.get("route") ?? "all";
+        state.channel = params.get("channel") ?? "all";
+        state.activeScenarioId = params.get("scenario");
+
+        const [examplesResponse, schemaResponse] = await Promise.all([
+          fetch("../../data/analysis/runtime_binding_guard_examples.json"),
+          fetch("../../data/analysis/feature_switch_schema.json")
+        ]);
+        const examples = await examplesResponse.json();
+        state.schema = await schemaResponse.json();
+        schemaTitle.textContent = state.schema.title;
+        state.scenarios = examples.scenarios;
+
+        routeSelector.addEventListener("change", (event) => {
+          state.route = event.target.value;
+          render();
+        });
+        channelSelector.addEventListener("change", (event) => {
+          state.channel = event.target.value;
+          render();
+        });
+
+        render();
+      }
+
+      boot().catch((error) => {
+        stageHeader.innerHTML = `<p>Failed to load route guard lab: ${error.message}</p>`;
+      });
+    </script>
+  </body>
+</html>

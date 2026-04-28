@@ -1,0 +1,254 @@
+{
+  "taskId": "par_405",
+  "schemaVersion": "405.release-approval-graph-contract.v1",
+  "contractFamily": "assistive_release_regulatory_change_control",
+  "sourceReleaseCandidateContractRef": "data/contracts/405_assistive_release_candidate_contracts.json",
+  "sourceRegulatoryRulesRef": "data/contracts/405_regulatory_change_control_rules.json",
+  "ownedBy": "assistive_release_approval_graph",
+  "objectContracts": [
+    {
+      "objectName": "ReleaseApprovalGraph",
+      "objectRole": "candidate-bound approval topology with no-self-approval law",
+      "requiredFields": [
+        "approvalGraphId",
+        "changeRequestId",
+        "releaseCandidateRef",
+        "candidateHash",
+        "assuranceBaselineSnapshotRef",
+        "requiredApproverRoles",
+        "currentApprovalState",
+        "noSelfApprovalState",
+        "independentSafetyReviewerRef",
+        "deploymentApproverRef",
+        "signoffRefs",
+        "completedAt"
+      ],
+      "states": ["draft", "awaiting_signoff", "partially_approved", "approved", "blocked", "invalidated", "superseded"],
+      "dependencyRules": [
+        "approved requires noSelfApprovalState satisfied",
+        "approved requires all requiredApproverRoles to have current signoffRefs",
+        "invalidated is emitted when candidateHash, baseline, publication, rollback, or regulatory decision drifts"
+      ]
+    },
+    {
+      "objectName": "ReleaseApprovalRoleAssignment",
+      "objectRole": "role-to-actor assignment for one candidate approval graph",
+      "requiredFields": [
+        "roleAssignmentId",
+        "approvalGraphRef",
+        "approverRole",
+        "actorRef",
+        "independenceClass",
+        "conflictCheckRef",
+        "assignmentState"
+      ],
+      "states": ["proposed", "assigned", "conflicted", "recused", "superseded"],
+      "dependencyRules": [
+        "conflicted assignments cannot satisfy requiredApproverRoles",
+        "independent_safety_reviewer cannot equal requester, maker, model_owner, or deployment_approver for the same candidateHash",
+        "deployment_approver cannot equal implementation_maker for the same candidateHash"
+      ]
+    },
+    {
+      "objectName": "ReleaseSignoffRecord",
+      "objectRole": "candidate-hash-bound approval evidence from one role",
+      "requiredFields": [
+        "releaseSignoffRecordId",
+        "approvalGraphRef",
+        "releaseCandidateRef",
+        "candidateHash",
+        "approverRole",
+        "actorRef",
+        "decision",
+        "decisionReasonCodes",
+        "evidenceRefs",
+        "signedAt"
+      ],
+      "states": ["approved", "rejected", "requires_changes", "expired", "superseded"],
+      "dependencyRules": [
+        "expired or superseded signoffs cannot satisfy the graph",
+        "approved signoff must reference the exact candidateHash",
+        "requires_changes blocks promotion until a new candidate or new signoff supersedes it"
+      ]
+    },
+    {
+      "objectName": "NoSelfApprovalCheck",
+      "objectRole": "machine-verifiable conflict check for maker, requester, reviewer, and deployment roles",
+      "requiredFields": [
+        "noSelfApprovalCheckId",
+        "approvalGraphRef",
+        "candidateHash",
+        "makerActorRefs",
+        "requesterActorRef",
+        "independentReviewerActorRefs",
+        "deploymentApproverActorRef",
+        "conflictActorRefs",
+        "checkState",
+        "checkedAt"
+      ],
+      "states": ["pending", "satisfied", "failed", "superseded"],
+      "dependencyRules": [
+        "failed blocks ReleaseApprovalGraph approved",
+        "satisfied requires empty conflictActorRefs",
+        "new role assignments supersede the prior check"
+      ]
+    },
+    {
+      "objectName": "AssistiveReleaseActionRecord",
+      "objectRole": "authoritative action record for approve, promote, freeze, unfreeze, and rollback actions",
+      "requiredFields": [
+        "assistiveReleaseActionRecordId",
+        "releaseCandidateRef",
+        "candidateHash",
+        "rolloutSliceContractRef",
+        "rolloutVerdictRef",
+        "actionType",
+        "routeIntentBindingRef",
+        "commandActionRecordRef",
+        "surfaceRouteContractRef",
+        "surfacePublicationRef",
+        "runtimePublicationBundleRef",
+        "transitionEnvelopeRef",
+        "releaseRecoveryDispositionRef",
+        "idempotencyKey",
+        "actorRef",
+        "createdAt",
+        "settledAt"
+      ],
+      "states": ["recorded", "accepted", "settled", "stale_recoverable", "denied_scope", "blocked_policy", "failed", "superseded"],
+      "dependencyRules": [
+        "actionType must be approve, promote, freeze, unfreeze, or rollback",
+        "settledAt may be set only after AssistiveReleaseActionSettlement is authoritative",
+        "promote requires approval graph approved and rollback bundle ready"
+      ]
+    },
+    {
+      "objectName": "AssistiveReleaseActionSettlement",
+      "objectRole": "authoritative completion record for release-admin actions",
+      "requiredFields": [
+        "assistiveReleaseActionSettlementId",
+        "assistiveReleaseActionRecordRef",
+        "commandSettlementRecordRef",
+        "uiTransitionSettlementRecordRef",
+        "uiTelemetryDisclosureFenceRef",
+        "presentationArtifactRef",
+        "result",
+        "recoveryActionRef",
+        "recordedAt"
+      ],
+      "states": ["approved", "promoted", "frozen", "unfrozen", "rollback_started", "stale_recoverable", "denied_scope", "blocked_policy", "failed"],
+      "dependencyRules": [
+        "UI acknowledgement does not imply settlement",
+        "authoritative settlement requires commandSettlementRecordRef",
+        "blocked_policy must preserve recoveryActionRef and releaseRecoveryDispositionRef"
+      ]
+    }
+  ],
+  "roleTopology": [
+    {
+      "approverRole": "implementation_maker",
+      "independenceClass": "maker",
+      "mayApprove": false
+    },
+    {
+      "approverRole": "requester",
+      "independenceClass": "requester",
+      "mayApprove": false
+    },
+    {
+      "approverRole": "product_owner",
+      "independenceClass": "product",
+      "mayApprove": true
+    },
+    {
+      "approverRole": "independent_clinical_safety_reviewer",
+      "independenceClass": "independent_safety",
+      "mayApprove": true
+    },
+    {
+      "approverRole": "deployment_approver",
+      "independenceClass": "deployment",
+      "mayApprove": true
+    },
+    {
+      "approverRole": "information_governance_reviewer",
+      "independenceClass": "information_governance",
+      "mayApprove": true
+    },
+    {
+      "approverRole": "security_reviewer",
+      "independenceClass": "security",
+      "mayApprove": true
+    },
+    {
+      "approverRole": "regulatory_owner",
+      "independenceClass": "regulatory",
+      "mayApprove": true
+    }
+  ],
+  "approvalProfiles": [
+    {
+      "approvalProfileId": "APPROVAL405_DOCUMENTATION_ONLY",
+      "requiredApproverRoles": ["product_owner"],
+      "requiresNoSelfApprovalCheck": true
+    },
+    {
+      "approvalProfileId": "APPROVAL405_PROMPT_THRESHOLD",
+      "requiredApproverRoles": ["product_owner", "independent_clinical_safety_reviewer"],
+      "requiresNoSelfApprovalCheck": true
+    },
+    {
+      "approvalProfileId": "APPROVAL405_MODEL_SUPPLIER",
+      "requiredApproverRoles": ["product_owner", "independent_clinical_safety_reviewer", "deployment_approver", "information_governance_reviewer", "security_reviewer"],
+      "requiresNoSelfApprovalCheck": true
+    },
+    {
+      "approvalProfileId": "APPROVAL405_CAPABILITY_EXPANSION",
+      "requiredApproverRoles": ["product_owner", "independent_clinical_safety_reviewer", "deployment_approver", "information_governance_reviewer", "security_reviewer", "regulatory_owner"],
+      "requiresNoSelfApprovalCheck": true
+    },
+    {
+      "approvalProfileId": "APPROVAL405_ENDPOINT_DECISION_SUPPORT",
+      "requiredApproverRoles": ["product_owner", "independent_clinical_safety_reviewer", "deployment_approver", "information_governance_reviewer", "security_reviewer", "regulatory_owner"],
+      "minimumIndependentClinicalReviewerCount": 2,
+      "requiresNoSelfApprovalCheck": true
+    },
+    {
+      "approvalProfileId": "APPROVAL405_REGULATORY_POSTURE",
+      "requiredApproverRoles": ["product_owner", "independent_clinical_safety_reviewer", "deployment_approver", "information_governance_reviewer", "security_reviewer", "regulatory_owner"],
+      "minimumIndependentClinicalReviewerCount": 2,
+      "requiresNoSelfApprovalCheck": true
+    },
+    {
+      "approvalProfileId": "APPROVAL405_SAFETY_INCIDENT",
+      "requiredApproverRoles": ["independent_clinical_safety_reviewer", "deployment_approver", "regulatory_owner"],
+      "requiresNoSelfApprovalCheck": true
+    }
+  ],
+  "noSelfApprovalRules": [
+    "implementation_maker may not satisfy product_owner, independent_clinical_safety_reviewer, deployment_approver, or regulatory_owner for the same candidateHash",
+    "requester may not satisfy independent_clinical_safety_reviewer for the same candidateHash",
+    "deployment_approver may not satisfy independent_clinical_safety_reviewer for the same candidateHash",
+    "one actor may not satisfy both information_governance_reviewer and security_reviewer when subprocessor_or_inference_host_change is in scope unless a published exception routes to regulatory_owner"
+  ],
+  "actionSettlementRules": [
+    "approve, promote, freeze, unfreeze, and rollback actions require routeIntentBindingRef",
+    "commandActionRecordRef is not completion",
+    "AssistiveReleaseActionSettlement.result is the authoritative release-admin completion signal",
+    "release-admin surfaces must render stale_recoverable, denied_scope, blocked_policy, or failed distinctly from promoted"
+  ],
+  "invariants": [
+    {
+      "invariantId": "INV405_APPROVAL_001",
+      "statement": "No actor can satisfy maker/requester and independent reviewer roles for the same candidate hash."
+    },
+    {
+      "invariantId": "INV405_APPROVAL_002",
+      "statement": "Approval graph completion is invalidated by candidate hash, baseline, rollback, publication, or regulatory-decision drift."
+    },
+    {
+      "invariantId": "INV405_APPROVAL_003",
+      "statement": "Action settlement, not UI acknowledgement, is the authoritative release-admin completion signal."
+    }
+  ]
+}

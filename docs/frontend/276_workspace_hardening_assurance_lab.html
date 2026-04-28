@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>276 Workspace Hardening Assurance Lab</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b1017;
+        --panel: #141c27;
+        --panel-strong: #1a2330;
+        --border: #2a3646;
+        --text: #f2f6fc;
+        --muted: #9aa8bb;
+        --accent: #73b7ff;
+        --good: #71d0af;
+        --warn: #f0c26c;
+        --bad: #ff8f8f;
+        --violet: #baa4ff;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: Inter, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(115, 183, 255, 0.12), transparent 24rem),
+          linear-gradient(180deg, #0b1017, #111926);
+        color: var(--text);
+      }
+
+      .lab-shell {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 21rem minmax(0, 1fr);
+      }
+
+      .rail,
+      .panel {
+        border: 1px solid var(--border);
+        background: rgba(20, 28, 39, 0.94);
+        border-radius: 0.55rem;
+      }
+
+      .rail {
+        margin: 1.25rem 0 1.25rem 1.25rem;
+        padding: 1.25rem;
+        position: sticky;
+        top: 1.25rem;
+        height: calc(100vh - 2.5rem);
+        overflow: auto;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.74rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      h1, h2, h3, p { margin: 0; }
+
+      .rail-copy,
+      .panel-header,
+      .hero-copy {
+        display: grid;
+        gap: 0.65rem;
+      }
+
+      .muted { color: var(--muted); line-height: 1.5; }
+
+      .scenario-list {
+        display: grid;
+        gap: 0.75rem;
+        margin-top: 1.1rem;
+      }
+
+      .scenario-button {
+        width: 100%;
+        padding: 0.95rem 1rem;
+        border: 1px solid var(--border);
+        border-radius: 0.5rem;
+        background: var(--panel-strong);
+        color: inherit;
+        text-align: left;
+        display: grid;
+        gap: 0.35rem;
+        cursor: pointer;
+      }
+
+      .scenario-button[data-selected="true"] {
+        border-color: var(--accent);
+        background: linear-gradient(180deg, rgba(115, 183, 255, 0.16), rgba(20, 28, 39, 0.98));
+      }
+
+      .main {
+        padding: 1.25rem;
+        display: grid;
+        gap: 1rem;
+      }
+
+      .hero {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.15rem 1.2rem;
+      }
+
+      .chip-row,
+      .mini-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.42rem 0.72rem;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        font-size: 0.8rem;
+      }
+
+      .chip[data-tone="good"] { color: var(--good); border-color: rgba(113, 208, 175, 0.34); background: rgba(113, 208, 175, 0.08); }
+      .chip[data-tone="warn"] { color: var(--warn); border-color: rgba(240, 194, 108, 0.34); background: rgba(240, 194, 108, 0.08); }
+      .chip[data-tone="bad"] { color: var(--bad); border-color: rgba(255, 143, 143, 0.34); background: rgba(255, 143, 143, 0.08); }
+      .chip[data-tone="violet"] { color: var(--violet); border-color: rgba(186, 164, 255, 0.34); background: rgba(186, 164, 255, 0.08); }
+
+      .grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+      }
+
+      .span-12 { grid-column: span 12; }
+      .span-7 { grid-column: span 7; }
+      .span-5 { grid-column: span 5; }
+      .span-6 { grid-column: span 6; }
+
+      .panel {
+        padding: 1rem;
+        display: grid;
+        gap: 0.85rem;
+      }
+
+      .panel-body,
+      .stack,
+      .ladder,
+      .heat-grid,
+      .budget-grid,
+      .matrix-grid {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .heat-grid,
+      .budget-grid,
+      .matrix-grid {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      }
+
+      .card,
+      .ladder-step,
+      .ledger-row {
+        border: 1px solid var(--border);
+        border-radius: 0.45rem;
+        background: var(--panel-strong);
+        padding: 0.82rem 0.9rem;
+        display: grid;
+        gap: 0.42rem;
+      }
+
+      .card strong,
+      .ladder-step strong,
+      .ledger-row strong {
+        display: block;
+      }
+
+      .meter {
+        height: 0.65rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        overflow: hidden;
+      }
+
+      .meter > span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, rgba(115, 183, 255, 0.82), rgba(113, 208, 175, 0.82));
+      }
+
+      .ownership-ladder {
+        display: grid;
+        gap: 0.55rem;
+      }
+
+      .ownership-ladder article {
+        display: grid;
+        grid-template-columns: 9rem minmax(0, 1fr);
+        gap: 0.9rem;
+        align-items: start;
+        border: 1px solid var(--border);
+        border-radius: 0.45rem;
+        background: var(--panel-strong);
+        padding: 0.82rem 0.9rem;
+      }
+
+      .legend {
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+
+      @media (max-width: 1080px) {
+        .lab-shell { grid-template-columns: 1fr; }
+        .rail { position: static; height: auto; margin-right: 1.25rem; }
+        .grid > * { grid-column: span 12 !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      class="lab-shell"
+      data-testid="WorkspaceHardeningAssuranceLab"
+      data-visual-mode="Workspace_Hardening_Assurance_Lab"
+      data-selected-scenario-id="semantic_live"
+    >
+      <aside class="rail" data-region="ScenarioFamilyRail">
+        <div class="rail-copy">
+          <span class="eyebrow">ScenarioFamilyRail</span>
+          <h1>Workspace hardening release board</h1>
+          <p class="muted">
+            Final Phase 3 browser proof for semantics, performance, reflow, reduced motion, and
+            one-writer fencing.
+          </p>
+        </div>
+        <div class="scenario-list" id="scenario-list"></div>
+      </aside>
+
+      <main class="main">
+        <section class="panel hero">
+          <div class="hero-copy">
+            <span class="eyebrow">Workspace_Hardening_Assurance_Lab</span>
+            <h2 id="hero-title">Calm live queue semantic proof</h2>
+            <p class="muted" id="hero-summary">
+              The live queue remains semantically complete, keyboard-safe, and windowed under the
+              large-queue fixture.
+            </p>
+          </div>
+          <div class="chip-row" id="hero-chips"></div>
+        </section>
+
+        <section class="grid">
+          <section class="panel span-7" data-region="SemanticCoverageGrid">
+            <div class="panel-header">
+              <span class="eyebrow">SemanticCoverageGrid</span>
+              <h3>Coverage heat</h3>
+            </div>
+            <div class="heat-grid" id="semantic-grid"></div>
+          </section>
+
+          <section class="panel span-5" data-region="FocusAndKeyboardPathway">
+            <div class="panel-header">
+              <span class="eyebrow">FocusAndKeyboardPathway</span>
+              <h3>Focus and keyboard pathway</h3>
+            </div>
+            <div class="ladder" id="focus-pathway"></div>
+          </section>
+
+          <section class="panel span-6" data-region="PerformanceBudgetBoard">
+            <div class="panel-header">
+              <span class="eyebrow">PerformanceBudgetBoard</span>
+              <h3>Budget rails</h3>
+            </div>
+            <div class="budget-grid" id="performance-board"></div>
+          </section>
+
+          <section class="panel span-6" data-region="MultiUserReadOnlyMatrix">
+            <div class="panel-header">
+              <span class="eyebrow">MultiUserReadOnlyMatrix</span>
+              <h3>One writer, many readers</h3>
+            </div>
+            <div class="ownership-ladder" id="ownership-matrix"></div>
+          </section>
+
+          <section class="panel span-6" data-region="ReflowAndReducedMotionBoard">
+            <div class="panel-header">
+              <span class="eyebrow">ReflowAndReducedMotionBoard</span>
+              <h3>Reflow and reduced-motion parity</h3>
+            </div>
+            <div class="matrix-grid" id="reflow-board"></div>
+          </section>
+
+          <section class="panel span-6" data-region="DefectAndRemediationLedger">
+            <div class="panel-header">
+              <span class="eyebrow">DefectAndRemediationLedger</span>
+              <h3>Defect ledger</h3>
+            </div>
+            <div class="stack" id="defect-ledger"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const scenarios = {
+        semantic_live: {
+          title: "Calm live queue semantic proof",
+          summary: "The live queue remains semantically complete, keyboard-safe, and windowed under the large-queue fixture.",
+          chips: [
+            { tone: "good", label: "semantic coverage complete" },
+            { tone: "good", label: "windowed queue" },
+            { tone: "good", label: "PHI-safe fixture" }
+          ],
+          semantic: [
+            { label: "Queue workboard", value: "complete", note: "Listbox, positions, selected anchor, preview pocket" },
+            { label: "Task shell", value: "complete", note: "Task canvas, decision dock, context region" },
+            { label: "Recovery regions", value: "complete", note: "Read-only recovery summary and blocked posture" }
+          ],
+          focus: [
+            "Skip link reaches the workboard region",
+            "Task route advertises workboard -> task canvas -> decision dock -> context",
+            "Command palette dismissal returns focus to the trigger"
+          ],
+          performance: [
+            { label: "Large queue ready", value: "within 1500 ms", fill: "86%" },
+            { label: "Rendered window cap", value: "<= 20 rows", fill: "80%" },
+            { label: "Palette shift", value: "<= 1 px", fill: "100%" }
+          ],
+          ownership: [
+            { actor: "Active writer", summary: "More-info draft stays writable on the live task route." },
+            { actor: "Reader 1", summary: "Read-only task route keeps the same summary but fences mutation." },
+            { actor: "Reader 2", summary: "Approval, escalation, changed, and message routes stay mutation-locked." }
+          ],
+          reflow: [
+            { label: "Mission stack", summary: "Queue and task shell keep headings and position cues at compact width." },
+            { label: "Reduced motion", summary: "The same route meaning survives with motion collapsed." }
+          ],
+          defects: [
+            { title: "WHS276_DEF_001", summary: "Queue windowing was declarative only; the shell rendered the full large list." },
+            { title: "WHS276_DEF_002", summary: "Command palette and focus return were missing from the shell." }
+          ]
+        },
+        large_queue_windowed: {
+          title: "Large-queue performance and scan proof",
+          summary: "The queue keeps dense scan ergonomics without mounting every row or blanking the shell.",
+          chips: [
+            { tone: "good", label: "windowed rendering" },
+            { tone: "warn", label: "performance budgeted" },
+            { tone: "violet", label: "summary-only prefetch" }
+          ],
+          semantic: [
+            { label: "Row cues", value: "retained", note: "Position and rank remain visible under windowing" },
+            { label: "Selection law", value: "retained", note: "Focus and selection stay distinct until commit" },
+            { label: "Preview pocket", value: "retained", note: "Summary-only digest remains same-shell" }
+          ],
+          focus: [
+            "Arrow keys move the declared active descendant",
+            "Enter opens the selected task in place",
+            "Space pins preview without route churn"
+          ],
+          performance: [
+            { label: "Queue ready", value: "budget tracked", fill: "82%" },
+            { label: "Task transition", value: "budget tracked", fill: "78%" },
+            { label: "Attachment open", value: "budget tracked", fill: "74%" }
+          ],
+          ownership: [
+            { actor: "Writer", summary: "Selected task opens inside the same shell with continuity preserved." },
+            { actor: "Reader", summary: "Read-only contexts can inspect the same queue without gaining mutation." }
+          ],
+          reflow: [
+            { label: "Compact width", summary: "Dense rows wrap lawfully without losing list semantics." },
+            { label: "Large text", summary: "No row or control forces horizontal scroll." }
+          ],
+          defects: [
+            { title: "Render cap enforced", summary: "The workboard now mounts a bounded slice around the selected anchor." }
+          ]
+        },
+        read_only_fallback: {
+          title: "Read-only fallback and stale-owner recovery",
+          summary: "The same shell degrades in place to lawful recovery instead of leaving stale writable controls armed.",
+          chips: [
+            { tone: "warn", label: "stale recoverable" },
+            { tone: "bad", label: "writable controls fenced" },
+            { tone: "good", label: "selected anchor preserved" }
+          ],
+          semantic: [
+            { label: "Recovery summary", value: "present", note: "Protected composition recovery stays visible" },
+            { label: "Same-shell continuity", value: "present", note: "No detached fallback page is required" }
+          ],
+          focus: [
+            "Dismissed palette returns to the trigger",
+            "Recovery summary remains keyboard reachable",
+            "Reload does not re-arm the draft field"
+          ],
+          performance: [
+            { label: "Region refresh", value: "same shell", fill: "70%" }
+          ],
+          ownership: [
+            { actor: "Writer", summary: "Live task retains mutation authority." },
+            { actor: "Reader", summary: "Read-only task, approvals, escalations, changed, and messages stay fenced." }
+          ],
+          reflow: [
+            { label: "Recovery cards", summary: "Freeze and recovery content stack without losing meaning." }
+          ],
+          defects: [
+            { title: "No fake calmness", summary: "Read-only and stale routes keep the lawful degraded summary instead of calm-success copy." }
+          ]
+        }
+      };
+
+      const scenarioList = document.getElementById("scenario-list");
+      const heroTitle = document.getElementById("hero-title");
+      const heroSummary = document.getElementById("hero-summary");
+      const heroChips = document.getElementById("hero-chips");
+      const semanticGrid = document.getElementById("semantic-grid");
+      const focusPathway = document.getElementById("focus-pathway");
+      const performanceBoard = document.getElementById("performance-board");
+      const ownershipMatrix = document.getElementById("ownership-matrix");
+      const reflowBoard = document.getElementById("reflow-board");
+      const defectLedger = document.getElementById("defect-ledger");
+      const root = document.querySelector("[data-testid='WorkspaceHardeningAssuranceLab']");
+
+      const params = new URLSearchParams(window.location.search);
+      let selectedScenarioId = params.get("scenario") || "semantic_live";
+      if (!scenarios[selectedScenarioId]) {
+        selectedScenarioId = "semantic_live";
+      }
+
+      function renderScenarioList() {
+        scenarioList.innerHTML = "";
+        Object.entries(scenarios).forEach(([scenarioId, scenario]) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "scenario-button";
+          button.dataset.selected = String(scenarioId === selectedScenarioId);
+          button.innerHTML = `
+            <strong>${scenario.title}</strong>
+            <span class="muted">${scenario.summary}</span>
+          `;
+          button.addEventListener("click", () => {
+            selectedScenarioId = scenarioId;
+            const nextParams = new URLSearchParams(window.location.search);
+            nextParams.set("scenario", scenarioId);
+            window.history.replaceState({}, "", `?${nextParams.toString()}`);
+            render();
+          });
+          scenarioList.appendChild(button);
+        });
+      }
+
+      function renderCards(target, items, builder) {
+        target.innerHTML = "";
+        items.forEach((item) => {
+          const element = document.createElement("article");
+          element.className = "card";
+          element.innerHTML = builder(item);
+          target.appendChild(element);
+        });
+      }
+
+      function render() {
+        const scenario = scenarios[selectedScenarioId];
+        root.setAttribute("data-selected-scenario-id", selectedScenarioId);
+        heroTitle.textContent = scenario.title;
+        heroSummary.textContent = scenario.summary;
+        heroChips.innerHTML = "";
+        scenario.chips.forEach((chip) => {
+          const element = document.createElement("span");
+          element.className = "chip";
+          element.dataset.tone = chip.tone;
+          element.textContent = chip.label;
+          heroChips.appendChild(element);
+        });
+        renderCards(
+          semanticGrid,
+          scenario.semantic,
+          (item) => `<strong>${item.label}</strong><span>${item.value}</span><small class="legend">${item.note}</small>`,
+        );
+        focusPathway.innerHTML = "";
+        scenario.focus.forEach((step, index) => {
+          const element = document.createElement("article");
+          element.className = "ladder-step";
+          element.innerHTML = `<strong>Step ${index + 1}</strong><span class="legend">${step}</span>`;
+          focusPathway.appendChild(element);
+        });
+        renderCards(
+          performanceBoard,
+          scenario.performance,
+          (item) => `
+            <strong>${item.label}</strong>
+            <span>${item.value}</span>
+            <div class="meter"><span style="width:${item.fill}"></span></div>
+          `,
+        );
+        ownershipMatrix.innerHTML = "";
+        scenario.ownership.forEach((item) => {
+          const element = document.createElement("article");
+          element.innerHTML = `<strong>${item.actor}</strong><span class="legend">${item.summary}</span>`;
+          ownershipMatrix.appendChild(element);
+        });
+        renderCards(
+          reflowBoard,
+          scenario.reflow,
+          (item) => `<strong>${item.label}</strong><span class="legend">${item.summary}</span>`,
+        );
+        defectLedger.innerHTML = "";
+        scenario.defects.forEach((item) => {
+          const element = document.createElement("article");
+          element.className = "ledger-row";
+          element.innerHTML = `<strong>${item.title}</strong><span class="legend">${item.summary}</span>`;
+          defectLedger.appendChild(element);
+        });
+        renderScenarioList();
+      }
+
+      render();
+    </script>
+  </body>
+</html>

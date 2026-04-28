@@ -1,0 +1,990 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Phase 1 Red Flag Gate Review Board</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f7f8fa;
+        --shell: #eef2f6;
+        --panel: #ffffff;
+        --inset: #e8eef3;
+        --text-strong: #0f1720;
+        --text-default: #24313d;
+        --text-muted: #5e6b78;
+        --approved: #117a55;
+        --constrained: #b7791f;
+        --withheld: #b42318;
+        --continuity: #5b61f6;
+        --evidence: #2f6fed;
+        --border: #d8e0e8;
+        --masthead-height: 72px;
+        --left-rail-width: 280px;
+        --right-inspector-width: 408px;
+        --shadow: 0 22px 48px rgba(15, 23, 32, 0.08);
+        font-family: "Aptos", "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          linear-gradient(120deg, rgba(47, 111, 237, 0.08), transparent 42%),
+          radial-gradient(circle at 76% 8%, rgba(91, 97, 246, 0.12), transparent 34rem),
+          var(--canvas);
+        color: var(--text-default);
+      }
+
+      body {
+        min-height: 100vh;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .skip-link {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 20;
+        transform: translateY(-150%);
+        border: 2px solid var(--text-strong);
+        border-radius: 999px;
+        background: var(--panel);
+        padding: 10px 14px;
+      }
+
+      .skip-link:focus {
+        transform: translateY(0);
+      }
+
+      .page {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 0 20px 28px;
+      }
+
+      .masthead {
+        position: sticky;
+        top: 0;
+        z-index: 12;
+        min-height: var(--masthead-height);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: center;
+        margin: 0 -20px 18px;
+        padding: 12px 20px;
+        border-bottom: 1px solid rgba(216, 224, 232, 0.9);
+        background: rgba(247, 248, 250, 0.94);
+        backdrop-filter: blur(16px);
+      }
+
+      .brand {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        min-width: 0;
+      }
+
+      .brand-mark {
+        width: 38px;
+        height: 38px;
+        display: grid;
+        flex: 0 0 auto;
+        place-items: center;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(17, 122, 85, 0.14), rgba(47, 111, 237, 0.15));
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        color: var(--text-strong);
+        font-size: clamp(1.5rem, 3vw, 2.45rem);
+        line-height: 0.96;
+        letter-spacing: -0.04em;
+        overflow-wrap: anywhere;
+      }
+
+      .mode {
+        color: var(--text-muted);
+        font-size: 0.77rem;
+        font-weight: 800;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+      }
+
+      .summary-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+
+      .summary-pill {
+        min-width: 132px;
+        padding: 9px 11px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        overflow-wrap: anywhere;
+      }
+
+      .summary-pill small {
+        display: block;
+        margin-bottom: 3px;
+        color: var(--text-muted);
+        font-size: 0.66rem;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+
+      .summary-pill strong {
+        color: var(--text-strong);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: var(--left-rail-width) minmax(0, 1fr) var(--right-inspector-width);
+        gap: 18px;
+        align-items: start;
+      }
+
+      .layout > * {
+        min-width: 0;
+      }
+
+      .rail,
+      .canvas,
+      .inspector,
+      .panel {
+        min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: 26px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+
+      .rail,
+      .inspector {
+        position: sticky;
+        top: 92px;
+        padding: 16px;
+      }
+
+      .rail {
+        background: var(--shell);
+      }
+
+      .canvas {
+        display: grid;
+        gap: 18px;
+        padding: 18px;
+      }
+
+      .inspector {
+        display: grid;
+        gap: 14px;
+      }
+
+      .panel {
+        display: grid;
+        gap: 14px;
+        padding: 16px;
+      }
+
+      .section-title {
+        color: var(--text-strong);
+        font-size: 0.96rem;
+      }
+
+      .muted {
+        color: var(--text-muted);
+      }
+
+      .family-list,
+      .open-item-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .family-button,
+      .open-item-button {
+        width: 100%;
+        min-height: 54px;
+        padding: 11px 12px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--panel);
+        color: var(--text-default);
+        text-align: left;
+        cursor: pointer;
+        overflow-wrap: anywhere;
+      }
+
+      .family-button[aria-pressed="true"],
+      .open-item-button[aria-pressed="true"] {
+        border-color: rgba(47, 111, 237, 0.42);
+        background: linear-gradient(180deg, rgba(47, 111, 237, 0.1), #fff);
+        box-shadow: inset 4px 0 0 var(--evidence);
+      }
+
+      button:focus-visible,
+      [tabindex]:focus-visible {
+        outline: 4px solid rgba(47, 111, 237, 0.35);
+        outline-offset: 3px;
+      }
+
+      .phase-braid {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .braid-node {
+        min-height: 104px;
+        padding: 14px;
+        border-radius: 22px;
+        background: linear-gradient(180deg, var(--shell), var(--panel));
+        border: 1px solid var(--border);
+        overflow-wrap: anywhere;
+      }
+
+      .braid-node strong {
+        display: block;
+        color: var(--text-strong);
+        margin-bottom: 8px;
+      }
+
+      .score-ladder {
+        display: grid;
+        gap: 8px;
+      }
+
+      .ladder-row {
+        display: grid;
+        grid-template-columns: minmax(120px, 0.8fr) minmax(0, 1.4fr) auto;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--panel);
+      }
+
+      .ladder-bar {
+        height: 10px;
+        border-radius: 999px;
+        background: var(--inset);
+        overflow: hidden;
+      }
+
+      .ladder-bar span {
+        display: block;
+        width: 100%;
+        height: 100%;
+        transform-origin: left;
+        animation: evidence-grow 520ms ease both;
+      }
+
+      .ladder-row[data-status="approved"] .ladder-bar span {
+        background: var(--approved);
+      }
+
+      .boundary-map {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .boundary-node {
+        min-height: 116px;
+        padding: 13px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: var(--shell);
+        overflow-wrap: anywhere;
+      }
+
+      .boundary-node[data-selected="true"] {
+        box-shadow: inset 0 0 0 2px rgba(91, 97, 246, 0.24);
+      }
+
+      @keyframes evidence-grow {
+        from {
+          transform: scaleX(0.22);
+        }
+        to {
+          transform: scaleX(1);
+        }
+      }
+
+      .table-shell {
+        min-width: 0;
+        max-width: 100%;
+        overflow: auto;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: var(--panel);
+      }
+
+      table {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 10px 11px;
+        border-bottom: 1px solid rgba(216, 224, 232, 0.82);
+        text-align: left;
+        vertical-align: top;
+        overflow-wrap: anywhere;
+        font-size: 0.78rem;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        background: rgba(238, 242, 246, 0.92);
+        color: var(--text-muted);
+        font-size: 0.64rem;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+
+      tbody tr[data-selected="true"] {
+        background: rgba(47, 111, 237, 0.08);
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 5px 8px;
+        font-size: 0.68rem;
+        font-weight: 900;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+
+      .status-pill[data-status="approved"] {
+        background: rgba(17, 122, 85, 0.12);
+        color: var(--approved);
+      }
+
+      .status-pill[data-status="deferred_non_blocking"] {
+        background: rgba(91, 97, 246, 0.12);
+        color: var(--continuity);
+      }
+
+      .inspector-block {
+        display: grid;
+        gap: 8px;
+        padding: 14px;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: linear-gradient(180deg, #fff, var(--shell));
+      }
+
+      .inspector-block small {
+        color: var(--text-muted);
+        font-size: 0.66rem;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+
+      .mono {
+        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+        font-size: 0.74rem;
+        word-break: break-word;
+      }
+
+      .footer-note {
+        margin-top: 18px;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        overflow-wrap: anywhere;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+          transition-duration: 0.001ms !important;
+        }
+      }
+
+      @media (max-width: 1320px) {
+        .layout {
+          grid-template-columns: var(--left-rail-width) minmax(0, 1fr);
+        }
+
+        .inspector {
+          position: static;
+          grid-column: 1 / -1;
+        }
+      }
+
+      @media (max-width: 900px) {
+        .page {
+          padding-inline: 12px;
+        }
+
+        .masthead {
+          grid-template-columns: 1fr;
+          height: auto;
+          min-height: var(--masthead-height);
+          margin-inline: -12px;
+        }
+
+        .summary-pills {
+          justify-content: flex-start;
+        }
+
+        .layout,
+        .phase-braid,
+        .boundary-map {
+          grid-template-columns: 1fr;
+        }
+
+        .rail {
+          position: static;
+        }
+
+        .ladder-row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body data-testid="Red_Flag_Gate_Review_Board">
+    <a class="skip-link" href="#gate-main">Skip to gate evidence</a>
+    <div class="page">
+      <header class="masthead" data-testid="board-masthead">
+        <div class="brand">
+          <div class="brand-mark">
+            <svg
+              id="gate_dossier_mark"
+              data-testid="gate_dossier_mark"
+              width="26"
+              height="26"
+              viewBox="0 0 26 26"
+              aria-hidden="true"
+            >
+              <path d="M5 19.5h16" stroke="#117A55" stroke-width="1.8" stroke-linecap="round" />
+              <path d="M7 13h12" stroke="#2F6FED" stroke-width="1.8" stroke-linecap="round" />
+              <path d="M9 7h8" stroke="#5B61F6" stroke-width="1.8" stroke-linecap="round" />
+              <circle cx="20" cy="19.5" r="2.6" fill="#117A55" />
+            </svg>
+          </div>
+          <div>
+            <div class="mode">Vecells / Red_Flag_Gate_Review_Board</div>
+            <h1>Phase 1 Gate Review</h1>
+          </div>
+        </div>
+        <div class="summary-pills">
+          <div class="summary-pill">
+            <small>Verdict</small>
+            <strong data-testid="decision-verdict">Loading</strong>
+          </div>
+          <div class="summary-pill">
+            <small>Approved rows</small>
+            <strong data-testid="approved-count">--</strong>
+          </div>
+          <div class="summary-pill">
+            <small>Suites passed</small>
+            <strong data-testid="suite-pass-count">--</strong>
+          </div>
+          <div class="summary-pill">
+            <small>Blockers</small>
+            <strong data-testid="blocker-count">--</strong>
+          </div>
+        </div>
+      </header>
+
+      <div class="layout">
+        <nav class="rail" aria-label="Conformance family rail" data-testid="family-rail">
+          <section class="panel">
+            <h2 class="section-title">Conformance Families</h2>
+            <p class="muted">
+              Select a family to synchronize the ladder, inspector, manifest, and boundary map.
+            </p>
+            <div class="family-list" data-testid="family-list"></div>
+          </section>
+          <section class="panel">
+            <h2 class="section-title">Carry Forward</h2>
+            <div class="open-item-list" data-testid="open-item-list"></div>
+          </section>
+        </nav>
+
+        <main id="gate-main" class="canvas" tabindex="-1" data-testid="board-canvas">
+          <section class="panel">
+            <h2 class="section-title">Phase Braid</h2>
+            <p class="muted">
+              The visual braid has table parity below and does not carry verdict meaning on its own.
+            </p>
+            <div class="phase-braid" data-testid="phase-braid">
+              <div class="braid-node">
+                <strong>Freeze</strong>
+                <span>139-143 public intake contract and parallel gate.</span>
+              </div>
+              <div class="braid-node">
+                <strong>Build</strong>
+                <span>144-163 backend and browser capability families.</span>
+              </div>
+              <div class="braid-node">
+                <strong>Verify</strong>
+                <span
+                  >164-168 integration, red-flag, replay, accessibility, and resilience
+                  suites.</span
+                >
+              </div>
+              <div class="braid-node">
+                <strong>Decide</strong>
+                <span>169 evidence-driven Red Flag Gate approval boundary.</span>
+              </div>
+            </div>
+            <div class="table-shell">
+              <table data-testid="phase-braid-table">
+                <thead>
+                  <tr>
+                    <th>Phase node</th>
+                    <th>Task span</th>
+                    <th>Meaning</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Freeze</td>
+                    <td>139-143</td>
+                    <td>Contract and parallel intake gate freeze.</td>
+                  </tr>
+                  <tr>
+                    <td>Build</td>
+                    <td>144-163</td>
+                    <td>Backend and browser implementation tracks.</td>
+                  </tr>
+                  <tr>
+                    <td>Verify</td>
+                    <td>164-168</td>
+                    <td>Integrated proof suites.</td>
+                  </tr>
+                  <tr>
+                    <td>Decide</td>
+                    <td>169</td>
+                    <td>Exit-gate verdict and Phase 2 boundary.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2 class="section-title">Conformance Score Ladder</h2>
+            <div class="score-ladder" data-testid="conformance-score-ladder"></div>
+            <div class="table-shell">
+              <table data-testid="conformance-score-table">
+                <thead>
+                  <tr>
+                    <th>Family</th>
+                    <th>Status</th>
+                    <th>Summary</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2 class="section-title">Open-Items Boundary Map</h2>
+            <div class="boundary-map" data-testid="open-items-boundary-map"></div>
+            <div class="table-shell">
+              <table data-testid="open-items-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Phase</th>
+                    <th>Why non-blocking now</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2 class="section-title">Evidence Manifest</h2>
+            <div class="table-shell">
+              <table data-testid="evidence-manifest-table">
+                <thead>
+                  <tr>
+                    <th>Evidence</th>
+                    <th>Kind</th>
+                    <th>State</th>
+                    <th>Artifact</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2 class="section-title">Diagram And Table Parity</h2>
+            <div class="table-shell">
+              <table data-testid="parity-table">
+                <thead>
+                  <tr>
+                    <th>Visual</th>
+                    <th>Parity table</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>phase-braid</td>
+                    <td>phase-braid-table</td>
+                  </tr>
+                  <tr>
+                    <td>conformance-score-ladder</td>
+                    <td>conformance-score-table</td>
+                  </tr>
+                  <tr>
+                    <td>open-items-boundary-map</td>
+                    <td>open-items-table</td>
+                  </tr>
+                  <tr>
+                    <td>gate_dossier_mark</td>
+                    <td>decision-verdict and phase-braid-table</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </main>
+
+        <aside class="inspector" aria-label="Selected gate item" data-testid="inspector">
+          <div class="inspector-block" data-testid="inspector-summary">
+            <small>Selected</small>
+            <h2 id="inspector-title">Loading</h2>
+            <span id="inspector-status" class="status-pill" data-status="approved">approved</span>
+            <p id="inspector-summary-text" class="muted"></p>
+          </div>
+          <div class="inspector-block" data-testid="inspector-evidence">
+            <small>Evidence count</small>
+            <strong id="inspector-evidence-count">--</strong>
+            <div id="inspector-suite-refs" class="mono"></div>
+          </div>
+          <div class="inspector-block" data-testid="inspector-boundary">
+            <small>Boundary</small>
+            <p id="inspector-boundary-text"></p>
+          </div>
+          <div class="inspector-block" data-testid="inspector-refs">
+            <small>Source refs</small>
+            <div id="inspector-refs-text" class="mono"></div>
+          </div>
+        </aside>
+      </div>
+      <p class="footer-note">
+        Source files: data/analysis/169_phase1_exit_gate_decision.json,
+        data/analysis/169_phase1_conformance_rows.json,
+        data/analysis/169_phase1_evidence_manifest.csv, and
+        data/analysis/169_phase1_open_items_and_phase2_carry_forward.json.
+      </p>
+    </div>
+
+    <script>
+      const paths = {
+        decision: "../../data/analysis/169_phase1_exit_gate_decision.json",
+        rows: "../../data/analysis/169_phase1_conformance_rows.json",
+        evidence: "../../data/analysis/169_phase1_evidence_manifest.csv",
+        openItems: "../../data/analysis/169_phase1_open_items_and_phase2_carry_forward.json",
+      };
+
+      const state = {
+        decision: null,
+        rows: [],
+        evidence: [],
+        openItems: [],
+        selectedFamily: "",
+        selectedOpenItem: "",
+        inspectorMode: "family",
+      };
+
+      function parseCsv(text) {
+        const [headerLine, ...lines] = text.trim().split(/\r?\n/);
+        const headers = headerLine.split(",");
+        return lines.map((line) => {
+          const values = [];
+          let current = "";
+          let inQuotes = false;
+          for (let index = 0; index < line.length; index += 1) {
+            const char = line[index];
+            if (char === '"' && line[index + 1] === '"') {
+              current += '"';
+              index += 1;
+            } else if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === "," && !inQuotes) {
+              values.push(current);
+              current = "";
+            } else {
+              current += char;
+            }
+          }
+          values.push(current);
+          return Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""]));
+        });
+      }
+
+      function cell(value) {
+        const td = document.createElement("td");
+        td.textContent = String(value);
+        return td;
+      }
+
+      function pill(status) {
+        const span = document.createElement("span");
+        span.className = "status-pill";
+        span.dataset.status = status;
+        span.textContent = status;
+        return span;
+      }
+
+      function selectedRow() {
+        return state.rows.find((row) => row.capabilityFamilyId === state.selectedFamily);
+      }
+
+      function selectedOpenItem() {
+        return state.openItems.find((item) => item.itemId === state.selectedOpenItem);
+      }
+
+      function familyEvidence(familyId) {
+        return state.evidence.filter((row) => row.capability_family_id === familyId);
+      }
+
+      function renderSummary() {
+        const summary = state.decision.summary;
+        document.querySelector("[data-testid='decision-verdict']").textContent =
+          state.decision.gateVerdict;
+        document.querySelector("[data-testid='approved-count']").textContent =
+          summary.approvedRowCount;
+        document.querySelector("[data-testid='suite-pass-count']").textContent =
+          `${summary.mandatorySuitePassCount}/${summary.mandatorySuiteCount}`;
+        document.querySelector("[data-testid='blocker-count']").textContent =
+          summary.blockingItemCount;
+      }
+
+      function renderFamilyRail() {
+        const list = document.querySelector("[data-testid='family-list']");
+        list.replaceChildren();
+        for (const row of state.rows) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "family-button";
+          button.dataset.testid = `family-button-${row.capabilityFamilyId}`;
+          button.setAttribute(
+            "aria-pressed",
+            String(row.capabilityFamilyId === state.selectedFamily),
+          );
+          button.innerHTML = `<strong>${row.capabilityLabel}</strong><br><span class="muted">${row.status}</span>`;
+          button.addEventListener("click", () => selectFamily(row.capabilityFamilyId));
+          list.append(button);
+        }
+      }
+
+      function renderOpenItemRail() {
+        const list = document.querySelector("[data-testid='open-item-list']");
+        list.replaceChildren();
+        for (const item of state.openItems) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "open-item-button";
+          button.dataset.testid = `open-item-button-${item.itemId}`;
+          button.setAttribute("aria-pressed", String(item.itemId === state.selectedOpenItem));
+          button.innerHTML = `<strong>${item.title}</strong><br><span class="muted">${item.ownerPhase}</span>`;
+          button.addEventListener("click", () => selectOpenItem(item.itemId));
+          list.append(button);
+        }
+      }
+
+      function renderScoreLadder() {
+        const ladder = document.querySelector("[data-testid='conformance-score-ladder']");
+        const tableBody = document.querySelector("[data-testid='conformance-score-table'] tbody");
+        ladder.replaceChildren();
+        tableBody.replaceChildren();
+        for (const row of state.rows) {
+          const evidenceCount = familyEvidence(row.capabilityFamilyId).length;
+          const item = document.createElement("div");
+          item.className = "ladder-row";
+          item.dataset.status = row.status;
+          item.dataset.testid = `ladder-row-${row.capabilityFamilyId}`;
+          item.dataset.selected = String(row.capabilityFamilyId === state.selectedFamily);
+          item.innerHTML = `<strong>${row.capabilityLabel}</strong><div class="ladder-bar"><span></span></div><span>${evidenceCount} artifacts</span>`;
+          item.tabIndex = 0;
+          item.addEventListener("click", () => selectFamily(row.capabilityFamilyId));
+          item.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              selectFamily(row.capabilityFamilyId);
+            }
+          });
+          ladder.append(item);
+
+          const tr = document.createElement("tr");
+          tr.dataset.selected = String(row.capabilityFamilyId === state.selectedFamily);
+          tr.append(cell(row.capabilityLabel));
+          const statusCell = document.createElement("td");
+          statusCell.append(pill(row.status));
+          tr.append(statusCell, cell(row.summary));
+          tableBody.append(tr);
+        }
+      }
+
+      function renderBoundaryMap() {
+        const map = document.querySelector("[data-testid='open-items-boundary-map']");
+        const tableBody = document.querySelector("[data-testid='open-items-table'] tbody");
+        map.replaceChildren();
+        tableBody.replaceChildren();
+        for (const item of state.openItems) {
+          const node = document.createElement("div");
+          node.className = "boundary-node";
+          node.dataset.testid = `boundary-node-${item.itemId}`;
+          node.dataset.selected = String(item.itemId === state.selectedOpenItem);
+          node.tabIndex = 0;
+          node.innerHTML = `<strong>${item.title}</strong><p class="muted">${item.currentBoundaryState}</p>`;
+          node.addEventListener("click", () => selectOpenItem(item.itemId));
+          node.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              selectOpenItem(item.itemId);
+            }
+          });
+          map.append(node);
+
+          const tr = document.createElement("tr");
+          tr.dataset.selected = String(item.itemId === state.selectedOpenItem);
+          tr.append(cell(item.title), cell(item.ownerPhase), cell(item.whyNonBlockingNow));
+          tableBody.append(tr);
+        }
+      }
+
+      function renderEvidenceTable() {
+        const tableBody = document.querySelector("[data-testid='evidence-manifest-table'] tbody");
+        const rows =
+          state.inspectorMode === "family"
+            ? familyEvidence(state.selectedFamily)
+            : state.evidence.filter((row) =>
+                selectedOpenItem()?.sourceRefs.includes(row.artifact_ref),
+              );
+        tableBody.replaceChildren();
+        for (const row of rows) {
+          const tr = document.createElement("tr");
+          tr.append(
+            cell(row.evidence_id),
+            cell(row.evidence_kind),
+            cell(row.machine_state),
+            cell(row.artifact_ref),
+          );
+          tableBody.append(tr);
+        }
+      }
+
+      function renderInspector() {
+        const status = document.querySelector("#inspector-status");
+        if (state.inspectorMode === "openItem") {
+          const item = selectedOpenItem();
+          document.querySelector("#inspector-title").textContent = item.title;
+          status.dataset.status = item.deferredState;
+          status.textContent = item.deferredState;
+          document.querySelector("#inspector-summary-text").textContent = item.summary;
+          document.querySelector("#inspector-evidence-count").textContent = item.sourceRefs.length;
+          document.querySelector("#inspector-suite-refs").textContent = item.ownerPhase;
+          document.querySelector("#inspector-boundary-text").textContent = item.whyNonBlockingNow;
+          document.querySelector("#inspector-refs-text").textContent = item.sourceRefs.join(" | ");
+          return;
+        }
+
+        const row = selectedRow();
+        const evidence = familyEvidence(row.capabilityFamilyId);
+        document.querySelector("#inspector-title").textContent = row.capabilityLabel;
+        status.dataset.status = row.status;
+        status.textContent = row.status;
+        document.querySelector("#inspector-summary-text").textContent = row.summary;
+        document.querySelector("#inspector-evidence-count").textContent = evidence.length;
+        document.querySelector("#inspector-suite-refs").textContent = row.suiteRefs.join(" | ");
+        document.querySelector("#inspector-boundary-text").textContent = row.blockingRationale
+          ? row.blockingRationale
+          : "No Phase 1 blocker. Deferred references are non-blocking and listed separately.";
+        document.querySelector("#inspector-refs-text").textContent = row.sourceRefs.join(" | ");
+      }
+
+      function selectFamily(familyId) {
+        state.selectedFamily = familyId;
+        state.inspectorMode = "family";
+        renderFamilyRail();
+        renderScoreLadder();
+        renderEvidenceTable();
+        renderInspector();
+      }
+
+      function selectOpenItem(itemId) {
+        state.selectedOpenItem = itemId;
+        state.inspectorMode = "openItem";
+        renderOpenItemRail();
+        renderBoundaryMap();
+        renderEvidenceTable();
+        renderInspector();
+      }
+
+      async function boot() {
+        const [decision, rows, evidenceText, openItems] = await Promise.all([
+          fetch(paths.decision).then((response) => response.json()),
+          fetch(paths.rows).then((response) => response.json()),
+          fetch(paths.evidence).then((response) => response.text()),
+          fetch(paths.openItems).then((response) => response.json()),
+        ]);
+        state.decision = decision;
+        state.rows = rows;
+        state.evidence = parseCsv(evidenceText);
+        state.openItems = openItems;
+        state.selectedFamily = rows[0].capabilityFamilyId;
+        state.selectedOpenItem = openItems[0].itemId;
+        renderSummary();
+        renderFamilyRail();
+        renderOpenItemRail();
+        renderScoreLadder();
+        renderBoundaryMap();
+        renderEvidenceTable();
+        renderInspector();
+        document.documentElement.dataset.ready = "true";
+      }
+
+      boot().catch((error) => {
+        document.querySelector("[data-testid='decision-verdict']").textContent = "load_failed";
+        document.querySelector("#inspector-summary-text").textContent = error.message;
+      });
+    </script>
+  </body>
+</html>

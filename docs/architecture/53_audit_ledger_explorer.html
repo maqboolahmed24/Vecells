@@ -1,0 +1,982 @@
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vecells Audit Ledger Explorer</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #F6F8FB;
+        --rail: #EEF2F7;
+        --panel: #FFFFFF;
+        --inset: #F4F6FB;
+        --text-strong: #0F172A;
+        --text: #1E293B;
+        --muted: #667085;
+        --border-subtle: #E2E8F0;
+        --border: #CBD5E1;
+        --primary: #3559E6;
+        --audit: #334155;
+        --disclosure: #0EA5A4;
+        --warning: #C98900;
+        --blocked: #C24141;
+        --shadow: 0 22px 40px rgba(15, 23, 42, 0.07);
+        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at top left, rgba(53, 89, 230, 0.06), transparent 26%),
+          radial-gradient(circle at 78% 16%, rgba(14, 165, 164, 0.06), transparent 26%),
+          linear-gradient(180deg, #F8FAFD, var(--canvas));
+        color: var(--text);
+      }
+      .app {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 18px;
+      }
+      .masthead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        min-height: 72px;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 12px 16px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: blur(12px);
+        box-shadow: var(--shadow);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 228px;
+      }
+      .mark {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        border: 1px solid rgba(15, 23, 42, 0.1);
+        background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(244,246,251,0.96));
+        display: grid;
+        place-items: center;
+        color: var(--audit);
+      }
+      .brand small,
+      .metric span,
+      .eyebrow,
+      .label {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .brand strong {
+        display: block;
+        font-size: 16px;
+        color: var(--text-strong);
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(120px, 1fr));
+        gap: 12px;
+        flex: 1;
+      }
+      .metric {
+        padding: 12px 14px;
+        border-radius: 18px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255, 255, 255, 0.84);
+      }
+      .metric strong {
+        display: block;
+        font-size: 22px;
+        color: var(--text-strong);
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 292px minmax(0, 1fr) 396px;
+        gap: 18px;
+        margin-top: 18px;
+        align-items: start;
+      }
+      .rail, .center, .inspector {
+        border-radius: 28px;
+        border: 1px solid var(--border-subtle);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+      .rail {
+        padding: 18px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.96), var(--rail));
+      }
+      .filters {
+        display: grid;
+        gap: 12px;
+      }
+      label {
+        display: grid;
+        gap: 6px;
+        font-size: 13px;
+        color: var(--text-strong);
+      }
+      select {
+        height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text);
+        padding: 0 12px;
+      }
+      .rail-copy {
+        margin-top: 16px;
+        padding: 14px;
+        border-radius: 18px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255,255,255,0.88);
+      }
+      .center {
+        padding: 18px;
+        display: grid;
+        gap: 18px;
+      }
+      .panel {
+        padding: 18px;
+        border-radius: 24px;
+        border: 1px solid var(--border-subtle);
+        background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(244,246,251,0.94));
+      }
+      .ledger-grid {
+        min-height: 580px;
+        display: grid;
+        grid-template-columns: minmax(260px, 0.42fr) minmax(0, 1fr);
+        gap: 16px;
+      }
+      .hash-lane {
+        position: relative;
+        padding: 8px 0 8px 20px;
+      }
+      .hash-lane::before {
+        content: "";
+        position: absolute;
+        left: 28px;
+        top: 20px;
+        bottom: 20px;
+        width: 2px;
+        background: linear-gradient(180deg, rgba(51,65,85,0.15), rgba(51,65,85,0.45), rgba(14,165,164,0.32));
+      }
+      .chain-step {
+        position: relative;
+        display: grid;
+        gap: 8px;
+        margin-bottom: 12px;
+        padding-left: 26px;
+      }
+      .chain-step button {
+        min-height: 44px;
+        border-radius: 18px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255,255,255,0.94);
+        text-align: left;
+        padding: 12px 14px;
+        cursor: pointer;
+        transition: transform 180ms ease, border-color 120ms ease, box-shadow 180ms ease;
+      }
+      .chain-step button:hover,
+      .chain-step button:focus-visible,
+      .chain-step button[data-selected="true"] {
+        transform: translateY(-1px);
+        border-color: rgba(53, 89, 230, 0.28);
+        box-shadow: 0 14px 28px rgba(53, 89, 230, 0.08);
+        outline: none;
+      }
+      .chain-step button::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 17px;
+        width: 16px;
+        height: 16px;
+        border-radius: 999px;
+        border: 2px solid rgba(51,65,85,0.5);
+        background: rgba(255,255,255,0.98);
+      }
+      .chain-step button[data-state="watch"]::before {
+        border-color: rgba(201,137,0,0.9);
+      }
+      .chain-step button[data-state="blocked"]::before {
+        border-color: rgba(194,65,65,0.9);
+      }
+      .mono {
+        font-family: ui-monospace, "SFMono-Regular", "SF Mono", Consolas, monospace;
+        font-size: 12px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th, td {
+        text-align: left;
+        padding: 12px 10px;
+        border-bottom: 1px solid var(--border-subtle);
+        vertical-align: top;
+        font-size: 13px;
+      }
+      th {
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      tr[data-selected="true"] {
+        background: rgba(53, 89, 230, 0.06);
+      }
+      tr:focus-visible {
+        outline: 2px solid rgba(53, 89, 230, 0.34);
+        outline-offset: -2px;
+      }
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(15,23,42,0.08);
+        background: rgba(15,23,42,0.04);
+        color: var(--text);
+        font-size: 12px;
+      }
+      .chip.watch { background: rgba(201,137,0,0.14); color: var(--warning); }
+      .chip.blocked { background: rgba(194,65,65,0.14); color: var(--blocked); }
+      .chip.admissible { background: rgba(14,165,164,0.14); color: var(--disclosure); }
+      .lower {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 18px;
+      }
+      .inspector {
+        position: sticky;
+        top: 90px;
+        padding: 18px;
+        display: grid;
+        gap: 18px;
+      }
+      .inspector-section {
+        display: grid;
+        gap: 10px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+      .inspector-section:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+      }
+      .definition-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 12px;
+      }
+      .definition-grid div {
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255,255,255,0.9);
+      }
+      .braid {
+        padding: 12px;
+        border-radius: 18px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255,255,255,0.92);
+      }
+      .braid svg {
+        width: 100%;
+        height: 160px;
+      }
+      .braid-node {
+        fill: rgba(255,255,255,0.98);
+        stroke: rgba(51,65,85,0.36);
+        stroke-width: 1.4;
+      }
+      .braid-edge {
+        stroke: rgba(148,163,184,0.92);
+        stroke-width: 1.6;
+      }
+      .braid-label {
+        fill: var(--text-strong);
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .braid-sub {
+        fill: var(--muted);
+        font-size: 10px;
+      }
+      .defect-strip {
+        display: grid;
+        gap: 10px;
+      }
+      .defect-card {
+        padding: 14px;
+        border-radius: 18px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255,255,255,0.9);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition-duration: 0ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+      @media (max-width: 1260px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        .inspector {
+          position: static;
+        }
+      }
+      @media (max-width: 980px) {
+        .ledger-grid,
+        .lower {
+          grid-template-columns: 1fr;
+        }
+        .metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 640px) {
+        .metrics,
+        .definition-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="masthead" data-testid="masthead">
+        <div class="brand">
+          <div class="mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none">
+              <path d="M7 24V8h6.2c4.6 0 7.2 2.7 7.2 6.6 0 4.2-2.8 6.6-7.4 6.6H9.6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
+              <path d="M20.5 24V8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path>
+              <path d="M24 8v16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path>
+            </svg>
+          </div>
+          <div>
+            <small>Vecells</small>
+            <strong>Audit Ledger Explorer</strong>
+          </div>
+        </div>
+        <div class="metrics" id="metrics"></div>
+      </header>
+      <div class="layout">
+        <aside class="rail" data-testid="filter-rail">
+          <div class="filters">
+            <label>
+              <span class="label">Action Taxonomy</span>
+              <select id="filter-taxonomy" data-testid="filter-taxonomy"></select>
+            </label>
+            <label>
+              <span class="label">Actor Class</span>
+              <select id="filter-actor" data-testid="filter-actor"></select>
+            </label>
+            <label>
+              <span class="label">WORM Class</span>
+              <select id="filter-worm" data-testid="filter-worm"></select>
+            </label>
+            <label>
+              <span class="label">Admissibility</span>
+              <select id="filter-admissibility" data-testid="filter-admissibility"></select>
+            </label>
+            <label>
+              <span class="label">Defect State</span>
+              <select id="filter-defect" data-testid="filter-defect"></select>
+            </label>
+          </div>
+          <div class="rail-copy">
+            <div class="eyebrow">Redacted default</div>
+            <p>Safe hashes, route refs, selected anchors, and disclosure fences stay visible by default. Raw IP, user-agent, and payload content do not.</p>
+          </div>
+        </aside>
+        <main class="center">
+          <section class="panel ledger-grid">
+            <section class="hash-lane" data-testid="chain-lane">
+              <div class="eyebrow">Hash-chain lane</div>
+              <div id="chain-lane"></div>
+            </section>
+            <section data-testid="ledger-table">
+              <div class="eyebrow">Audit record table</div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Seq</th>
+                    <th>Action</th>
+                    <th>Route</th>
+                    <th>State</th>
+                    <th>Hash</th>
+                  </tr>
+                </thead>
+                <tbody id="ledger-body"></tbody>
+              </table>
+            </section>
+          </section>
+          <div class="lower">
+            <section class="panel" data-testid="retention-matrix">
+              <div class="eyebrow">Retention-class matrix</div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Class</th>
+                    <th>Mode</th>
+                    <th>Archive</th>
+                    <th>Replay-critical</th>
+                  </tr>
+                </thead>
+                <tbody id="retention-body"></tbody>
+              </table>
+            </section>
+            <section class="panel" data-testid="dependency-table">
+              <div class="eyebrow">Admissibility dependency table</div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Flow</th>
+                    <th>State</th>
+                    <th>Blocked reason</th>
+                  </tr>
+                </thead>
+                <tbody id="dependency-body"></tbody>
+              </table>
+            </section>
+          </div>
+          <section class="panel" data-testid="defect-strip">
+            <div class="eyebrow">Defect strip</div>
+            <div class="defect-strip" id="defect-body"></div>
+          </section>
+        </main>
+        <aside class="inspector" data-testid="inspector" id="inspector"></aside>
+      </div>
+    </div>
+    <script type="module">
+      const DATA_PATHS = {
+        schema: "../../data/analysis/audit_record_schema.json",
+        taxonomy: "../../data/analysis/audit_action_taxonomy.csv",
+        worm: "../../data/analysis/worm_retention_classes.json",
+        companion: "../../data/analysis/audit_to_fhir_companion_matrix.csv",
+        dependencies: "../../data/analysis/audit_admissibility_dependencies.json",
+      };
+
+      const state = {
+        selectedRecordId: null,
+        taxonomy: "all",
+        actor: "all",
+        worm: "all",
+        admissibility: "all",
+        defect: "all",
+      };
+
+      const ids = {
+        metrics: document.getElementById("metrics"),
+        chainLane: document.getElementById("chain-lane"),
+        ledgerBody: document.getElementById("ledger-body"),
+        retentionBody: document.getElementById("retention-body"),
+        dependencyBody: document.getElementById("dependency-body"),
+        defectBody: document.getElementById("defect-body"),
+        inspector: document.getElementById("inspector"),
+        filterTaxonomy: document.getElementById("filter-taxonomy"),
+        filterActor: document.getElementById("filter-actor"),
+        filterWorm: document.getElementById("filter-worm"),
+        filterAdmissibility: document.getElementById("filter-admissibility"),
+        filterDefect: document.getElementById("filter-defect"),
+      };
+
+      const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+      document.body.dataset.reducedMotion = motionQuery.matches ? "true" : "false";
+      motionQuery.addEventListener("change", (event) => {
+        document.body.dataset.reducedMotion = event.matches ? "true" : "false";
+      });
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function toTestId(value) {
+        return String(value)
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "");
+      }
+
+      function parseCsv(text) {
+        const rows = [];
+        let row = [];
+        let cell = "";
+        let inQuotes = false;
+        for (let index = 0; index < text.length; index += 1) {
+          const char = text[index];
+          const next = text[index + 1];
+          if (char === '"' && inQuotes && next === '"') {
+            cell += '"';
+            index += 1;
+            continue;
+          }
+          if (char === '"') {
+            inQuotes = !inQuotes;
+            continue;
+          }
+          if (char === "," && !inQuotes) {
+            row.push(cell);
+            cell = "";
+            continue;
+          }
+          if ((char === "\n" || char === "\r") && !inQuotes) {
+            if (char === "\r" && next === "\n") {
+              index += 1;
+            }
+            row.push(cell);
+            if (row.some((value) => value.length > 0)) {
+              rows.push(row);
+            }
+            row = [];
+            cell = "";
+            continue;
+          }
+          cell += char;
+        }
+        if (cell.length || row.length) {
+          row.push(cell);
+          rows.push(row);
+        }
+        const [headers, ...body] = rows;
+        return body.map((values) =>
+          Object.fromEntries(headers.map((header, idx) => [header, values[idx] ?? ""])),
+        );
+      }
+
+      async function loadData() {
+        const [schema, taxonomyText, worm, companionText, dependencies] = await Promise.all([
+          fetch(DATA_PATHS.schema).then((response) => response.json()),
+          fetch(DATA_PATHS.taxonomy).then((response) => response.text()),
+          fetch(DATA_PATHS.worm).then((response) => response.json()),
+          fetch(DATA_PATHS.companion).then((response) => response.text()),
+          fetch(DATA_PATHS.dependencies).then((response) => response.json()),
+        ]);
+        const taxonomy = parseCsv(taxonomyText);
+        const companion = parseCsv(companionText);
+        return {
+          schema,
+          taxonomy,
+          worm,
+          companion,
+          dependencies,
+          records: dependencies.sampleAuditRecords,
+        };
+      }
+
+      function fillSelect(select, values, currentValue, labels = {}) {
+        const options = ["all", ...values];
+        select.innerHTML = options
+          .map((value) => {
+            const label = value === "all" ? "All" : labels[value] ?? value;
+            return `<option value="${escapeHtml(value)}" ${value === currentValue ? "selected" : ""}>${escapeHtml(label)}</option>`;
+          })
+          .join("");
+      }
+
+      function filteredRecords(data) {
+        return data.records.filter((record) => {
+          return (
+            (state.taxonomy === "all" || record.actionCategory === state.taxonomy) &&
+            (state.actor === "all" || record.actorClass === state.actor) &&
+            (state.worm === "all" || record.retentionClassRef === state.worm) &&
+            (state.admissibility === "all" || record.admissibilityState === state.admissibility) &&
+            (state.defect === "all" || record.defectState === state.defect)
+          );
+        });
+      }
+
+      function syncSelection(data) {
+        const rows = filteredRecords(data);
+        if (!rows.length) {
+          state.selectedRecordId = null;
+          return;
+        }
+        if (!rows.some((row) => row.auditRecordId === state.selectedRecordId)) {
+          state.selectedRecordId = rows[0].auditRecordId;
+        }
+      }
+
+      function selectedRecord(data) {
+        return data.records.find((row) => row.auditRecordId === state.selectedRecordId) ?? null;
+      }
+
+      function selectedTaxonomy(data) {
+        const record = selectedRecord(data);
+        if (!record) {
+          return null;
+        }
+        return data.taxonomy.find((row) => row.audit_action_taxonomy_id === record.actionTaxonomyRef) ?? null;
+      }
+
+      function selectedCompanion(data) {
+        const record = selectedRecord(data);
+        if (!record) {
+          return null;
+        }
+        return data.companion.find(
+          (row) => row.audit_to_fhir_companion_matrix_id === record.fhirCompanionTupleRef,
+        ) ?? null;
+      }
+
+      function linkedDependencies(data) {
+        const record = selectedRecord(data);
+        return data.dependencies.admissibilityDependencies.filter((row) => {
+          if (state.admissibility !== "all" && row.currentState !== state.admissibility) {
+            return false;
+          }
+          if (!record) {
+            return state.admissibility === "all";
+          }
+          return row.linkedRecordRefs.includes(record.auditRecordId) || state.admissibility !== "all";
+        });
+      }
+
+      function chipClass(stateValue) {
+        return `chip ${escapeHtml(stateValue)}`;
+      }
+
+      function renderFilters(data) {
+        fillSelect(
+          ids.filterTaxonomy,
+          [...new Set(data.taxonomy.map((row) => row.action_category))],
+          state.taxonomy,
+        );
+        fillSelect(
+          ids.filterActor,
+          [...new Set(data.records.map((row) => row.actorClass))],
+          state.actor,
+        );
+        fillSelect(
+          ids.filterWorm,
+          data.worm.wormRetentionClasses.map((row) => row.wormRetentionClassId),
+          state.worm,
+        );
+        fillSelect(
+          ids.filterAdmissibility,
+          [...new Set(data.records.map((row) => row.admissibilityState))],
+          state.admissibility,
+        );
+        fillSelect(
+          ids.filterDefect,
+          [...new Set(data.records.map((row) => row.defectState))],
+          state.defect,
+        );
+      }
+
+      function renderMetrics(data) {
+        ids.metrics.innerHTML = [
+          ["Audit rows", data.dependencies.summary.audit_record_count],
+          ["Chain breaks", data.dependencies.summary.chain_break_count],
+          ["WORM classes", data.worm.summary.worm_retention_class_count],
+          ["Inadmissible dependencies", data.dependencies.summary.inadmissible_dependency_count],
+        ]
+          .map(
+            ([label, value]) => `
+              <div class="metric">
+                <span>${escapeHtml(label)}</span>
+                <strong>${escapeHtml(value)}</strong>
+              </div>`,
+          )
+          .join("");
+      }
+
+      function renderChain(data) {
+        const rows = filteredRecords(data);
+        ids.chainLane.innerHTML = rows
+          .map(
+            (record) => `
+              <div class="chain-step">
+                <button
+                  type="button"
+                  tabindex="0"
+                  data-testid="chain-node-${toTestId(record.auditRecordId)}"
+                  data-record-id="${escapeHtml(record.auditRecordId)}"
+                  data-state="${escapeHtml(record.admissibilityState)}"
+                  data-selected="${record.auditRecordId === state.selectedRecordId}"
+                >
+                  <span class="eyebrow">${escapeHtml(record.actionLabel)}</span>
+                  <strong>${escapeHtml(record.routeFamilyLabel)}</strong>
+                  <div class="mono">${escapeHtml(record.hash.slice(0, 16))}</div>
+                </button>
+              </div>`,
+          )
+          .join("");
+        ids.chainLane.querySelectorAll("button").forEach((node) => {
+          node.addEventListener("click", () => {
+            state.selectedRecordId = node.dataset.recordId;
+            renderAll(data);
+          });
+          node.addEventListener("keydown", (event) => {
+            const nodes = [...ids.chainLane.querySelectorAll("button")];
+            const index = nodes.indexOf(node);
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+              const nextIndex =
+                event.key === "ArrowDown"
+                  ? Math.min(nodes.length - 1, index + 1)
+                  : Math.max(0, index - 1);
+              state.selectedRecordId = nodes[nextIndex].dataset.recordId;
+              renderAll(data);
+              ids.chainLane.querySelectorAll("button")[nextIndex]?.focus();
+            }
+          });
+        });
+      }
+
+      function renderLedgerTable(data) {
+        const rows = filteredRecords(data);
+        ids.ledgerBody.innerHTML = rows
+          .map(
+            (record) => `
+              <tr
+                tabindex="0"
+                data-testid="ledger-row-${toTestId(record.auditRecordId)}"
+                data-record-id="${escapeHtml(record.auditRecordId)}"
+                data-selected="${record.auditRecordId === state.selectedRecordId}"
+              >
+                <td>${escapeHtml(record.chainSequence)}</td>
+                <td>
+                  <div>${escapeHtml(record.actionLabel)}</div>
+                  <div class="mono">${escapeHtml(record.auditRecordId)}</div>
+                </td>
+                <td>${escapeHtml(record.routeFamilyLabel)}</td>
+                <td>
+                  <div class="chip-row">
+                    <span class="${chipClass(record.admissibilityState)}">${escapeHtml(record.admissibilityState)}</span>
+                    <span class="${chipClass(record.defectState)}">${escapeHtml(record.defectState)}</span>
+                  </div>
+                </td>
+                <td class="mono">${escapeHtml(record.hash.slice(0, 16))}</td>
+              </tr>`,
+          )
+          .join("");
+        ids.ledgerBody.querySelectorAll("tr").forEach((node) => {
+          node.addEventListener("click", () => {
+            state.selectedRecordId = node.dataset.recordId;
+            renderAll(data);
+          });
+          node.addEventListener("keydown", (event) => {
+            const nodes = [...ids.ledgerBody.querySelectorAll("tr")];
+            const index = nodes.indexOf(node);
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+              const nextIndex =
+                event.key === "ArrowDown"
+                  ? Math.min(nodes.length - 1, index + 1)
+                  : Math.max(0, index - 1);
+              state.selectedRecordId = nodes[nextIndex].dataset.recordId;
+              renderAll(data);
+              ids.ledgerBody.querySelectorAll("tr")[nextIndex]?.focus();
+            }
+          });
+        });
+      }
+
+      function renderRetentionMatrix(data) {
+        ids.retentionBody.innerHTML = data.worm.wormRetentionClasses
+          .map(
+            (row) => `
+              <tr data-testid="retention-row-${toTestId(row.wormRetentionClassId)}">
+                <td>
+                  <div>${escapeHtml(row.label)}</div>
+                  <div class="mono">${escapeHtml(row.wormRetentionClassId)}</div>
+                </td>
+                <td>${escapeHtml(row.immutabilityMode)}</td>
+                <td>${escapeHtml(row.archiveDisposition)}</td>
+                <td>${row.replayCritical ? "yes" : "no"}</td>
+              </tr>`,
+          )
+          .join("");
+      }
+
+      function renderDependencyTable(data) {
+        const record = selectedRecord(data);
+        const rows = linkedDependencies(data);
+        ids.dependencyBody.innerHTML = rows
+          .map((row) => {
+            const linked = record ? row.linkedRecordRefs.includes(record.auditRecordId) : false;
+            return `
+              <tr data-testid="dependency-row-${toTestId(row.auditAdmissibilityDependencyId)}" data-linked="${linked}">
+                <td>
+                  <div>${escapeHtml(row.consumerLabel)}</div>
+                  <div class="mono">${escapeHtml(row.auditAdmissibilityDependencyId)}</div>
+                </td>
+                <td><span class="${chipClass(row.currentState)}">${escapeHtml(row.currentState)}</span></td>
+                <td>${escapeHtml((row.blockedReasonCodes || []).join(", ") || "none")}</td>
+              </tr>`;
+          })
+          .join("");
+      }
+
+      function renderDefects(data) {
+        ids.defectBody.innerHTML = data.dependencies.defects
+          .map(
+            (defect) => `
+              <article class="defect-card" data-testid="defect-${toTestId(defect.defectId)}">
+                <div class="chip-row">
+                  <span class="${chipClass(defect.state)}">${escapeHtml(defect.state)}</span>
+                  <span class="chip">${escapeHtml(defect.consumerFlow)}</span>
+                </div>
+                <h3>${escapeHtml(defect.defectId)}</h3>
+                <p>${escapeHtml(defect.summary)}</p>
+              </article>`,
+          )
+          .join("");
+      }
+
+      function renderInspector(data) {
+        const record = selectedRecord(data);
+        const taxonomy = selectedTaxonomy(data);
+        const companion = selectedCompanion(data);
+        if (!record || !taxonomy || !companion) {
+          ids.inspector.innerHTML = "<p>No record selected.</p>";
+          return;
+        }
+        const linked = linkedDependencies(data);
+        ids.inspector.innerHTML = `
+          <section class="inspector-section">
+            <div class="eyebrow">Selected record</div>
+            <h2>${escapeHtml(record.actionLabel)}</h2>
+            <div class="chip-row">
+              <span class="${chipClass(record.admissibilityState)}">${escapeHtml(record.admissibilityState)}</span>
+              <span class="${chipClass(record.defectState)}">${escapeHtml(record.defectState)}</span>
+              <span class="chip">${escapeHtml(record.routeFamilyLabel)}</span>
+            </div>
+            <div class="definition-grid">
+              <div><span class="eyebrow">Actor</span><strong>${escapeHtml(record.actorClass)}</strong><div class="mono">${escapeHtml(record.actorRef)}</div></div>
+              <div><span class="eyebrow">Context</span><strong>${escapeHtml(record.actingContextLabel)}</strong><div class="mono">${escapeHtml(record.actingContextRef)}</div></div>
+              <div><span class="eyebrow">Reason</span><strong>${escapeHtml(record.reasonCode)}</strong></div>
+              <div><span class="eyebrow">Retention class</span><strong>${escapeHtml(record.retentionClassRef)}</strong></div>
+            </div>
+          </section>
+          <section class="inspector-section">
+            <div class="eyebrow">Causality braid</div>
+            <div class="braid" data-testid="causality-braid">
+              <svg viewBox="0 0 340 160" role="img" aria-label="Selected record causality braid">
+                <line class="braid-edge" x1="38" y1="82" x2="112" y2="48"></line>
+                <line class="braid-edge" x1="112" y1="48" x2="182" y2="82"></line>
+                <line class="braid-edge" x1="182" y1="82" x2="252" y2="48"></line>
+                <line class="braid-edge" x1="252" y1="48" x2="314" y2="82"></line>
+                <circle class="braid-node" cx="38" cy="82" r="22"></circle>
+                <circle class="braid-node" cx="112" cy="48" r="22"></circle>
+                <circle class="braid-node" cx="182" cy="82" r="22"></circle>
+                <circle class="braid-node" cx="252" cy="48" r="22"></circle>
+                <circle class="braid-node" cx="314" cy="82" r="22"></circle>
+                <text class="braid-label" x="38" y="78" text-anchor="middle">Edge</text>
+                <text class="braid-sub" x="38" y="94" text-anchor="middle">corr</text>
+                <text class="braid-label" x="112" y="44" text-anchor="middle">Route</text>
+                <text class="braid-sub" x="112" y="60" text-anchor="middle">intent</text>
+                <text class="braid-label" x="182" y="78" text-anchor="middle">Cmd</text>
+                <text class="braid-sub" x="182" y="94" text-anchor="middle">settle</text>
+                <text class="braid-label" x="252" y="44" text-anchor="middle">Visible</text>
+                <text class="braid-sub" x="252" y="60" text-anchor="middle">shell</text>
+                <text class="braid-label" x="314" y="78" text-anchor="middle">Fence</text>
+                <text class="braid-sub" x="314" y="94" text-anchor="middle">scope</text>
+              </svg>
+            </div>
+            <div class="definition-grid">
+              <div><span class="eyebrow">Edge correlation</span><div class="mono">${escapeHtml(record.edgeCorrelationId)}</div></div>
+              <div><span class="eyebrow">Route intent</span><div class="mono">${escapeHtml(record.routeIntentRef)}</div></div>
+              <div><span class="eyebrow">Command settlement</span><div class="mono">${escapeHtml(record.commandSettlementRef)}</div></div>
+              <div><span class="eyebrow">Projection visibility</span><div class="mono">${escapeHtml(record.projectionVisibilityRef)}</div></div>
+              <div><span class="eyebrow">Disclosure fence</span><div class="mono">${escapeHtml(record.disclosureFenceRef)}</div></div>
+              <div><span class="eyebrow">Selected anchor</span><div class="mono">${escapeHtml(record.selectedAnchorRef)}</div></div>
+            </div>
+          </section>
+          <section class="inspector-section">
+            <div class="eyebrow">Disclosure posture</div>
+            <div class="definition-grid">
+              <div><span class="eyebrow">Disclosure matrix</span><div class="mono">${escapeHtml(record.disclosureMatrixRef)}</div></div>
+              <div><span class="eyebrow">Source IP handling</span><strong>${escapeHtml(record.sourceIpDisposition)}</strong></div>
+              <div><span class="eyebrow">Source IP hash</span><div class="mono">${escapeHtml(record.sourceIpHash.slice(0, 18))}</div></div>
+              <div><span class="eyebrow">User-agent handling</span><strong>${escapeHtml(record.userAgentDisposition)}</strong></div>
+            </div>
+          </section>
+          <section class="inspector-section">
+            <div class="eyebrow">FHIR companion linkage</div>
+            <div class="definition-grid">
+              <div><span class="eyebrow">Contract</span><div class="mono">${escapeHtml(record.fhirRepresentationContractRef)}</div></div>
+              <div><span class="eyebrow">Companion tuple</span><div class="mono">${escapeHtml(record.fhirCompanionTupleRef)}</div></div>
+              <div><span class="eyebrow">Profiles</span><div class="mono">${escapeHtml(companion.audit_event_profile.split("/").pop())} + ${escapeHtml(companion.provenance_profile.split("/").pop())}</div></div>
+              <div><span class="eyebrow">Canonical truth</span><strong>AuditEvent + Provenance companion only</strong></div>
+            </div>
+          </section>
+          <section class="inspector-section">
+            <div class="eyebrow">Hash and admissibility</div>
+            <div class="definition-grid">
+              <div><span class="eyebrow">Previous hash</span><div class="mono">${escapeHtml(record.previousHash.slice(0, 18))}</div></div>
+              <div><span class="eyebrow">Current hash</span><div class="mono">${escapeHtml(record.hash.slice(0, 18))}</div></div>
+              <div><span class="eyebrow">Chain integrity</span><strong>${escapeHtml(record.chainIntegrityState)}</strong></div>
+              <div><span class="eyebrow">Linked dependencies</span><strong>${escapeHtml(linked.length)}</strong></div>
+            </div>
+          </section>`;
+      }
+
+      function renderAll(data) {
+        syncSelection(data);
+        renderFilters(data);
+        renderMetrics(data);
+        renderChain(data);
+        renderLedgerTable(data);
+        renderRetentionMatrix(data);
+        renderDependencyTable(data);
+        renderDefects(data);
+        renderInspector(data);
+      }
+
+      function bindFilters(data) {
+        const bindings = [
+          [ids.filterTaxonomy, "taxonomy"],
+          [ids.filterActor, "actor"],
+          [ids.filterWorm, "worm"],
+          [ids.filterAdmissibility, "admissibility"],
+          [ids.filterDefect, "defect"],
+        ];
+        bindings.forEach(([node, key]) => {
+          node.addEventListener("change", (event) => {
+            state[key] = event.target.value;
+            renderAll(data);
+          });
+        });
+      }
+
+      loadData().then((data) => {
+        window.__auditLedgerData = data;
+        bindFilters(data);
+        renderAll(data);
+      });
+    </script>
+  </body>
+</html>

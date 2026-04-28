@@ -1,0 +1,271 @@
+{
+  "matrix_id": "vecells_supply_chain_and_provenance_v1",
+  "mission": "Describe the immutable release and supply-chain chain so future implementation cannot treat provenance, runtime publication, watch tuples, or recovery posture as optional sidecars.",
+  "chosen_release_baseline_id": "BASELINE_IMMUTABLE_STAGE_LEDGER",
+  "hidden_ci_only_state_forbidden": true,
+  "stale_rehearsal_blocks_live_authority": true,
+  "logical_tooling_family_refs": [
+    "FAM_SIGNAL_PIPELINE",
+    "FAM_ALERTING_EVIDENCE_BOARDS",
+    "FAM_RELEASE_TUPLE_ORCHESTRATION",
+    "FAM_SYNTHETIC_CANARY_PROOF",
+    "FAM_PROVENANCE_SIGNING_SBOM",
+    "FAM_SECURITY_POLICY_GATE",
+    "FAM_INCIDENT_CAPA_WORKFLOW",
+    "FAM_RESILIENCE_RECOVERY_EVIDENCE"
+  ],
+  "pipeline_stage_chain": [
+    {
+      "stage_code": "dependency_resolve",
+      "settlement_required": true,
+      "family_refs": [
+        "FAM_SECURITY_POLICY_GATE",
+        "FAM_RELEASE_TUPLE_ORCHESTRATION"
+      ],
+      "produced_object_refs": [
+        "StandardsDependencyWatchlist",
+        "PipelineStageSettlement"
+      ],
+      "state_rule": "no dependency resolution result is authoritative until stage settlement is recorded"
+    },
+    {
+      "stage_code": "static_gate",
+      "settlement_required": true,
+      "family_refs": [
+        "FAM_SECURITY_POLICY_GATE",
+        "FAM_RELEASE_TUPLE_ORCHESTRATION"
+      ],
+      "produced_object_refs": [
+        "VerificationScenario",
+        "ReleaseContractVerificationMatrix",
+        "PipelineStageSettlement"
+      ],
+      "state_rule": "all Gate 0 evidence binds to the same verification scenario and contract matrix"
+    },
+    {
+      "stage_code": "sbom_sign",
+      "settlement_required": true,
+      "family_refs": [
+        "FAM_PROVENANCE_SIGNING_SBOM",
+        "FAM_RELEASE_TUPLE_ORCHESTRATION"
+      ],
+      "produced_object_refs": [
+        "BuildProvenanceRecord",
+        "ReleaseCandidate",
+        "PipelineStageSettlement"
+      ],
+      "state_rule": "signing, provenance, and SBOM are mandatory and candidate-bound"
+    },
+    {
+      "stage_code": "runtime_publish",
+      "settlement_required": true,
+      "family_refs": [
+        "FAM_RELEASE_TUPLE_ORCHESTRATION",
+        "FAM_ALERTING_EVIDENCE_BOARDS"
+      ],
+      "produced_object_refs": [
+        "RuntimePublicationBundle",
+        "ReleasePublicationParityRecord",
+        "PipelineStageSettlement"
+      ],
+      "state_rule": "runtime publication becomes live only when parity remains exact and provenance is publishable"
+    },
+    {
+      "stage_code": "preview_validate",
+      "settlement_required": true,
+      "family_refs": [
+        "FAM_SYNTHETIC_CANARY_PROOF",
+        "FAM_SIGNAL_PIPELINE"
+      ],
+      "produced_object_refs": [
+        "WritableRouteContractCoverageRecord",
+        "EmbeddedSurfaceContractCoverageRecord",
+        "PipelineStageSettlement"
+      ],
+      "state_rule": "preview validation proves route and embedded coverage, not just endpoint reachability"
+    },
+    {
+      "stage_code": "integration_validate",
+      "settlement_required": true,
+      "family_refs": [
+        "FAM_SYNTHETIC_CANARY_PROOF",
+        "FAM_SIGNAL_PIPELINE"
+      ],
+      "produced_object_refs": [
+        "ContinuityContractCoverageRecord",
+        "PipelineStageSettlement"
+      ],
+      "state_rule": "browser, callback, and recovery tests stay bound to the candidate tuple"
+    },
+    {
+      "stage_code": "preprod_validate",
+      "settlement_required": true,
+      "family_refs": [
+        "FAM_SECURITY_POLICY_GATE",
+        "FAM_RESILIENCE_RECOVERY_EVIDENCE"
+      ],
+      "produced_object_refs": [
+        "OperationalReadinessSnapshot",
+        "RunbookBindingRecord",
+        "RecoveryControlPosture",
+        "PipelineStageSettlement"
+      ],
+      "state_rule": "security, readiness, and rehearsal freshness are evaluated before canary"
+    },
+    {
+      "stage_code": "canary_promote",
+      "settlement_required": true,
+      "family_refs": [
+        "FAM_RELEASE_TUPLE_ORCHESTRATION",
+        "FAM_SYNTHETIC_CANARY_PROOF"
+      ],
+      "produced_object_refs": [
+        "ReleaseWatchTuple",
+        "WaveGuardrailSnapshot",
+        "PipelineStageSettlement"
+      ],
+      "state_rule": "canary start publishes the exact watch tuple and guardrail snapshot for the promoted slice"
+    },
+    {
+      "stage_code": "wave_control",
+      "settlement_required": true,
+      "family_refs": [
+        "FAM_RELEASE_TUPLE_ORCHESTRATION",
+        "FAM_ALERTING_EVIDENCE_BOARDS",
+        "FAM_RESILIENCE_RECOVERY_EVIDENCE"
+      ],
+      "produced_object_refs": [
+        "WaveVerificationRecord",
+        "ReleaseWatchEvidenceCockpit",
+        "PipelineStageSettlement"
+      ],
+      "state_rule": "widen, pause, rollback, kill-switch, and rollforward must settle against the current tuple and cockpit hash"
+    },
+    {
+      "stage_code": "history_append",
+      "settlement_required": true,
+      "family_refs": [
+        "FAM_RELEASE_TUPLE_ORCHESTRATION",
+        "FAM_INCIDENT_CAPA_WORKFLOW"
+      ],
+      "produced_object_refs": [
+        "PipelineStageSettlement",
+        "immutable release history append"
+      ],
+      "state_rule": "post-deploy history append preserves operator attribution, evidence links, and exception lineage"
+    }
+  ],
+  "required_object_bindings": [
+    {
+      "object_ref": "BuildProvenanceRecord",
+      "produced_by": [
+        "FAM_PROVENANCE_SIGNING_SBOM"
+      ],
+      "consumed_by": [
+        "FAM_RELEASE_TUPLE_ORCHESTRATION",
+        "FAM_ALERTING_EVIDENCE_BOARDS"
+      ],
+      "state_rule": "runtime consumption must be publishable before any live authority is advertised"
+    },
+    {
+      "object_ref": "RuntimePublicationBundle",
+      "produced_by": [
+        "FAM_RELEASE_TUPLE_ORCHESTRATION"
+      ],
+      "consumed_by": [
+        "FAM_SIGNAL_PIPELINE",
+        "FAM_ALERTING_EVIDENCE_BOARDS",
+        "FAM_RESILIENCE_RECOVERY_EVIDENCE"
+      ],
+      "state_rule": "all route, design, and recovery consumers read the same published bundle"
+    },
+    {
+      "object_ref": "ReleasePublicationParityRecord",
+      "produced_by": [
+        "FAM_RELEASE_TUPLE_ORCHESTRATION"
+      ],
+      "consumed_by": [
+        "FAM_ALERTING_EVIDENCE_BOARDS",
+        "FAM_RESILIENCE_RECOVERY_EVIDENCE",
+        "FAM_SYNTHETIC_CANARY_PROOF"
+      ],
+      "state_rule": "parity drift degrades boards, recovery posture, and wave proof immediately"
+    },
+    {
+      "object_ref": "VerificationScenario",
+      "produced_by": [
+        "FAM_RELEASE_TUPLE_ORCHESTRATION"
+      ],
+      "consumed_by": [
+        "FAM_SECURITY_POLICY_GATE",
+        "FAM_SYNTHETIC_CANARY_PROOF",
+        "FAM_PROVENANCE_SIGNING_SBOM"
+      ],
+      "state_rule": "every gate restarts if the pinned scenario drifts"
+    },
+    {
+      "object_ref": "ReleaseContractVerificationMatrix",
+      "produced_by": [
+        "FAM_RELEASE_TUPLE_ORCHESTRATION"
+      ],
+      "consumed_by": [
+        "FAM_SECURITY_POLICY_GATE",
+        "FAM_SYNTHETIC_CANARY_PROOF",
+        "FAM_ALERTING_EVIDENCE_BOARDS"
+      ],
+      "state_rule": "route, continuity, embedded, design, and recovery proof remain one tuple"
+    },
+    {
+      "object_ref": "ReleaseWatchTuple",
+      "produced_by": [
+        "FAM_RELEASE_TUPLE_ORCHESTRATION"
+      ],
+      "consumed_by": [
+        "FAM_ALERTING_EVIDENCE_BOARDS",
+        "FAM_SYNTHETIC_CANARY_PROOF",
+        "FAM_RESILIENCE_RECOVERY_EVIDENCE"
+      ],
+      "state_rule": "governance and operations must consume the same active watch tuple"
+    },
+    {
+      "object_ref": "OperationalReadinessSnapshot",
+      "produced_by": [
+        "FAM_RESILIENCE_RECOVERY_EVIDENCE"
+      ],
+      "consumed_by": [
+        "FAM_ALERTING_EVIDENCE_BOARDS",
+        "FAM_RELEASE_TUPLE_ORCHESTRATION"
+      ],
+      "state_rule": "stale readiness or stale rehearsal evidence blocks canary, widen, resume, and recovery activation"
+    },
+    {
+      "object_ref": "EssentialFunctionHealthEnvelope",
+      "produced_by": [
+        "FAM_ALERTING_EVIDENCE_BOARDS"
+      ],
+      "consumed_by": [
+        "FAM_RESILIENCE_RECOVERY_EVIDENCE",
+        "FAM_SYNTHETIC_CANARY_PROOF"
+      ],
+      "state_rule": "essential-function health is the only operator-facing join of trust, fallback, release, and resilience posture"
+    }
+  ],
+  "release_gate_refs": [
+    "GATE_0_STATIC_AND_UNIT",
+    "GATE_1_CONTRACT_AND_COMPONENT",
+    "GATE_2_INTEGRATION_AND_E2E",
+    "GATE_3_PERFORMANCE_AND_SECURITY",
+    "GATE_4_RESILIENCE_AND_RECOVERY",
+    "GATE_5_LIVE_WAVE_PROOF"
+  ],
+  "emergency_exception_law": [
+    "manual hotfixes require PipelineEmergencyException with expiry and compensating controls",
+    "exceptions may not bypass release recording, migration posture, or runtime publication",
+    "rollforward_only posture blocks binary rollback inheritance"
+  ],
+  "source_refs": [
+    "platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract",
+    "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+    "platform-admin-and-config-blueprint.md#Release governance contract"
+  ]
+}

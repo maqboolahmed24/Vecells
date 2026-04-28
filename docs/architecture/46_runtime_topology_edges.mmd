@@ -1,0 +1,48 @@
+
+flowchart LR
+  subgraph tz_public_edge["Public edge"]
+    fam_public_edge["wf_public_edge_ingress\npublic_edge"]
+  end
+
+  subgraph tz_shell_delivery["Shell delivery"]
+    fam_shell_pub["wf_shell_delivery_static_publication\nshell_delivery"]
+  end
+
+  subgraph tz_published_gateway["Published gateway"]
+    fam_gateway["wf_shell_delivery_published_gateway\nshell_delivery"]
+  end
+
+  subgraph tz_application_core["Application core"]
+    fam_command["wf_command_orchestration\ncommand"]
+    fam_projection["wf_projection_read_models\nprojection"]
+  end
+
+  subgraph tz_integration_perimeter["Integration perimeter"]
+    fam_integration["wf_integration_dispatch\nintegration"]
+    fam_sim["wf_integration_simulation_lab\nintegration (nonprod only)"]
+  end
+
+  subgraph tz_stateful_data["Stateful data"]
+    fam_data["wf_data_stateful_plane\ndata"]
+  end
+
+  subgraph tz_assurance_security["Assurance and security"]
+    fam_assurance["wf_assurance_security_control\nassurance_security"]
+  end
+
+  fam_public_edge -->|"static publication"| fam_shell_pub
+  fam_public_edge -->|"published gateway surfaces"| fam_gateway
+  fam_gateway -->|"projection reads"| fam_projection
+  fam_gateway -->|"command submission"| fam_command
+  fam_gateway -->|"support / ops / governance"| fam_assurance
+  fam_command -->|"writes / queues"| fam_data
+  fam_command -->|"outbox dispatch"| fam_integration
+  fam_command -->|"proof twin only"| fam_sim
+  fam_command -->|"audit and gates"| fam_assurance
+  fam_projection -->|"read-model storage"| fam_data
+  fam_projection -->|"freshness / watch"| fam_assurance
+  fam_integration -->|"receipts"| fam_data
+  fam_integration -->|"dependency evidence"| fam_assurance
+  fam_sim -->|"non-authoritative callback"| fam_command
+  fam_sim -->|"proof twin evidence"| fam_assurance
+  fam_assurance -->|"restore / release tuples"| fam_data

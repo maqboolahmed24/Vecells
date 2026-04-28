@@ -1,0 +1,148 @@
+{
+  "taskId": "seq_343_phase6_freeze_directory_discovery_referral_dispatch_and_outcome_reconciliation_contracts",
+  "contractVersion": "343.phase6.discovery-dispatch-outcome-freeze.v1",
+  "transportModes": [
+    "bars_fhir",
+    "supplier_interop",
+    "nhsmail_shared_mailbox",
+    "mesh",
+    "manual_assisted_dispatch"
+  ],
+  "calibratedCompetingRiskModel": {
+    "formulae": {
+      "lambda": "lambda_k(u | x_a) = P(T_a = u, J_a = k | T_a >= u, x_a)",
+      "survival": "S_a(u | x_a) = prod_{v = 1}^{u} (1 - sum_k lambda_k(v | x_a))",
+      "cumulativeIncidence": "F_k(u | x_a) = sum_{v = 1}^{u} lambda_k(v | x_a) * S_a(v - 1 | x_a)",
+      "calibratedProbability": "p_k(u | x_a) = Cal_dispatch,k(F_k(u | x_a))"
+    },
+    "riskStateMapping": {
+      "on_track": "max_k p_k(u | x_a) < theta_dispatch_track",
+      "at_risk": "theta_dispatch_track <= max_k p_k(u | x_a) < theta_dispatch_fail",
+      "likely_failed": "max_k p_k(u | x_a) >= theta_dispatch_fail",
+      "disputed": "contradictionScore(a) > contradictionThreshold or contradictory authoritative evidence exists"
+    },
+    "localAdapterDefaultsForbidden": true
+  },
+  "profiles": [
+    {
+      "profileId": "TAP_343_BARS_FHIR_V1",
+      "transportMode": "bars_fhir",
+      "assuranceClass": "direct_structured_with_business_ack",
+      "ackRequired": true,
+      "proofSources": [
+        "bars_transport_receipt",
+        "structured_provider_ack",
+        "authoritative_bars_response"
+      ],
+      "proofDeadlinePolicy": "PT60M",
+      "dispatchConfidenceThreshold": 0.82,
+      "contradictionThreshold": 0.25,
+      "proofRiskModelRef": "dispatch.competing-risk.bars.v1",
+      "proofRiskCalibrationVersion": "cal-2026-04-bars-v1",
+      "proofRiskThresholdSetRef": "dispatch-thresholds-bars-v1",
+      "revisionPolicyRef": "monotone-proof-revision-v1",
+      "patientAssurancePolicy": "pending_until_authoritative_structured_proof",
+      "exceptionPolicy": "open_reconciliation_or_pending_ack",
+      "theta_dispatch_track": 0.35,
+      "theta_dispatch_fail": 0.7,
+      "lambda_dispatch_contra": 1.45,
+      "manualReviewRequired": false
+    },
+    {
+      "profileId": "TAP_343_SUPPLIER_INTEROP_V1",
+      "transportMode": "supplier_interop",
+      "assuranceClass": "supplier_structured_with_provider_ack",
+      "ackRequired": true,
+      "proofSources": [
+        "supplier_delivery_receipt",
+        "supplier_provider_ack",
+        "operator_verified_provider_reply"
+      ],
+      "proofDeadlinePolicy": "PT90M",
+      "dispatchConfidenceThreshold": 0.8,
+      "contradictionThreshold": 0.28,
+      "proofRiskModelRef": "dispatch.competing-risk.supplier-interop.v1",
+      "proofRiskCalibrationVersion": "cal-2026-04-supplier-v1",
+      "proofRiskThresholdSetRef": "dispatch-thresholds-supplier-v1",
+      "revisionPolicyRef": "monotone-proof-revision-v1",
+      "patientAssurancePolicy": "pending_until_authoritative_supplier_or_provider_proof",
+      "exceptionPolicy": "pending_ack_then_reconciliation",
+      "theta_dispatch_track": 0.38,
+      "theta_dispatch_fail": 0.72,
+      "lambda_dispatch_contra": 1.5,
+      "manualReviewRequired": false
+    },
+    {
+      "profileId": "TAP_343_NHSMAIL_SHARED_V1",
+      "transportMode": "nhsmail_shared_mailbox",
+      "assuranceClass": "shared_mailbox_operator_attested",
+      "ackRequired": false,
+      "proofSources": [
+        "operator_send_evidence",
+        "provider_mailbox_reply",
+        "manual_supervisor_attestation"
+      ],
+      "proofDeadlinePolicy": "PT240M",
+      "dispatchConfidenceThreshold": 0.74,
+      "contradictionThreshold": 0.2,
+      "proofRiskModelRef": "dispatch.competing-risk.nhsmail.v1",
+      "proofRiskCalibrationVersion": "cal-2026-04-nhsmail-v1",
+      "proofRiskThresholdSetRef": "dispatch-thresholds-nhsmail-v1",
+      "revisionPolicyRef": "monotone-proof-revision-v1",
+      "patientAssurancePolicy": "pending_until_attested_or_provider_reply",
+      "exceptionPolicy": "manual_follow_up_and_reconciliation",
+      "theta_dispatch_track": 0.42,
+      "theta_dispatch_fail": 0.68,
+      "lambda_dispatch_contra": 1.3,
+      "manualReviewRequired": true
+    },
+    {
+      "profileId": "TAP_343_MESH_V1",
+      "transportMode": "mesh",
+      "assuranceClass": "secure_async_with_business_ack",
+      "ackRequired": true,
+      "proofSources": [
+        "mesh_submission_receipt",
+        "mesh_business_ack",
+        "provider_structured_ack"
+      ],
+      "proofDeadlinePolicy": "PT180M",
+      "dispatchConfidenceThreshold": 0.79,
+      "contradictionThreshold": 0.24,
+      "proofRiskModelRef": "dispatch.competing-risk.mesh.v1",
+      "proofRiskCalibrationVersion": "cal-2026-04-mesh-v1",
+      "proofRiskThresholdSetRef": "dispatch-thresholds-mesh-v1",
+      "revisionPolicyRef": "monotone-proof-revision-v1",
+      "patientAssurancePolicy": "pending_until_business_ack_or_provider_confirmation",
+      "exceptionPolicy": "pending_ack_then_manual_follow_up",
+      "theta_dispatch_track": 0.37,
+      "theta_dispatch_fail": 0.69,
+      "lambda_dispatch_contra": 1.4,
+      "manualReviewRequired": false
+    },
+    {
+      "profileId": "TAP_343_MANUAL_ASSISTED_V1",
+      "transportMode": "manual_assisted_dispatch",
+      "assuranceClass": "manual_supervised_dispatch",
+      "ackRequired": true,
+      "proofSources": [
+        "operator_attestation",
+        "second_reviewer_attestation",
+        "provider_receipt_or_callback"
+      ],
+      "proofDeadlinePolicy": "PT120M",
+      "dispatchConfidenceThreshold": 0.76,
+      "contradictionThreshold": 0.18,
+      "proofRiskModelRef": "dispatch.competing-risk.manual.v1",
+      "proofRiskCalibrationVersion": "cal-2026-04-manual-v1",
+      "proofRiskThresholdSetRef": "dispatch-thresholds-manual-v1",
+      "revisionPolicyRef": "monotone-proof-revision-v1",
+      "patientAssurancePolicy": "pending_until_manual_attestation_and_confirmed_route",
+      "exceptionPolicy": "manual_supervisor_review_required",
+      "theta_dispatch_track": 0.34,
+      "theta_dispatch_fail": 0.64,
+      "lambda_dispatch_contra": 1.25,
+      "manualReviewRequired": true
+    }
+  ]
+}

@@ -1,0 +1,226 @@
+-- 149_phase5_hub_commit_engine.sql
+-- Phase 5 hub commit attempts, confirmation gates, appointment truth, reconciliation, and supplier mirror persistence.
+-- Depends on:
+--   143_phase5_hub_case_kernel.sql
+--   145_phase5_enhanced_access_policy_engine.sql
+--   146_phase5_network_capacity_snapshot_pipeline.sql
+--   148_phase5_alternative_offer_engine.sql
+-- Uses canonical CapacityReservation and ExternalConfirmationGate persistence from the identity-access backbone.
+
+CREATE TABLE IF NOT EXISTS phase5_hub_action_records (
+  hub_action_record_id text PRIMARY KEY,
+  hub_coordination_case_id text NOT NULL,
+  action_scope text NOT NULL,
+  governing_object_ref text NOT NULL,
+  case_version_ref text NOT NULL,
+  reservation_fence_token text NOT NULL,
+  acting_context_ref text,
+  compiled_policy_bundle_ref text,
+  enhanced_access_policy_ref text,
+  policy_evaluation_ref text,
+  policy_tuple_hash text NOT NULL,
+  lineage_fence_epoch integer NOT NULL,
+  idempotency_key text NOT NULL,
+  created_by_ref text NOT NULL,
+  created_at timestamptz NOT NULL,
+  settled_at timestamptz,
+  source_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+  version integer NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS phase5_hub_commit_attempts (
+  commit_attempt_id text PRIMARY KEY,
+  hub_coordination_case_id text NOT NULL,
+  commit_mode text NOT NULL,
+  selected_candidate_ref text NOT NULL,
+  selected_offer_session_ref text,
+  selected_offer_entry_ref text,
+  capacity_unit_ref text NOT NULL,
+  reservation_ref text NOT NULL,
+  reservation_truth_projection_ref text,
+  reservation_fence_token text NOT NULL,
+  provider_adapter_binding_ref text NOT NULL,
+  provider_adapter_binding_hash text NOT NULL,
+  provider_source_version text NOT NULL,
+  truth_tuple_hash text NOT NULL,
+  policy_tuple_hash text NOT NULL,
+  lineage_fence_epoch integer NOT NULL,
+  idempotency_key text NOT NULL,
+  attempt_state text NOT NULL,
+  journal_state text NOT NULL,
+  external_response_state text NOT NULL,
+  external_booking_ref text,
+  adapter_correlation_key text,
+  confirmation_gate_ref text,
+  primary_evidence_bundle_ref text NOT NULL,
+  confirmation_confidence numeric NOT NULL DEFAULT 0,
+  competing_attempt_margin numeric NOT NULL DEFAULT 0,
+  continuity_evidence_projection_ref text,
+  blocking_reason_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+  command_action_ref text NOT NULL,
+  command_settlement_ref text NOT NULL,
+  route_intent_binding_ref text NOT NULL,
+  surface_route_contract_ref text NOT NULL,
+  surface_publication_ref text NOT NULL,
+  runtime_publication_bundle_ref text NOT NULL,
+  release_recovery_disposition_ref text,
+  route_family_ref text NOT NULL,
+  route_continuity_evidence_contract_ref text NOT NULL,
+  selected_anchor_ref text NOT NULL,
+  selected_anchor_tuple_hash_ref text NOT NULL,
+  transition_envelope_ref text NOT NULL,
+  continuity_envelope_version_ref text NOT NULL,
+  experience_continuity_evidence_ref text NOT NULL,
+  confirmation_deadline_at timestamptz NOT NULL,
+  created_at timestamptz NOT NULL,
+  updated_at timestamptz NOT NULL,
+  finalized_at timestamptz,
+  source_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+  version integer NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS phase5_hub_booking_evidence_bundles (
+  evidence_bundle_id text PRIMARY KEY,
+  hub_coordination_case_id text NOT NULL,
+  commit_attempt_id text NOT NULL,
+  commit_mode text NOT NULL,
+  independent_confirmation_state text NOT NULL,
+  confirmation_confidence numeric NOT NULL DEFAULT 0,
+  competing_attempt_margin numeric NOT NULL DEFAULT 0,
+  imported_evidence_ref text,
+  native_booking_receipt_ref text,
+  hard_match_result text NOT NULL,
+  evidence_captured_at timestamptz NOT NULL,
+  truth_tuple_hash text NOT NULL,
+  evidence_source_families jsonb NOT NULL DEFAULT '[]'::jsonb,
+  hard_match_refs_passed jsonb NOT NULL DEFAULT '[]'::jsonb,
+  hard_match_refs_failed jsonb NOT NULL DEFAULT '[]'::jsonb,
+  contradictory_evidence_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+  provider_booking_reference text,
+  supplier_appointment_ref text,
+  manual_evidence jsonb,
+  imported_evidence jsonb,
+  source_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+  version integer NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS phase5_hub_appointment_records (
+  hub_appointment_id text PRIMARY KEY,
+  hub_coordination_case_id text NOT NULL,
+  commit_attempt_id text NOT NULL,
+  source_booking_reference text NOT NULL,
+  supplier_appointment_ref text,
+  patient_facing_reference text NOT NULL,
+  appointment_version_ref text NOT NULL,
+  appointment_state text NOT NULL,
+  external_confirmation_state text NOT NULL,
+  practice_acknowledgement_state text NOT NULL,
+  manage_capabilities_ref text,
+  truth_tuple_hash text NOT NULL,
+  selected_candidate_ref text NOT NULL,
+  capacity_unit_ref text NOT NULL,
+  provider_adapter_binding_hash text NOT NULL,
+  source_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+  version integer NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS phase5_hub_commit_settlements (
+  hub_commit_settlement_id text PRIMARY KEY,
+  hub_coordination_case_id text NOT NULL,
+  hub_action_record_ref text NOT NULL,
+  commit_attempt_ref text NOT NULL,
+  result text NOT NULL,
+  experience_continuity_evidence_ref text,
+  causal_token text NOT NULL,
+  transition_envelope_ref text,
+  surface_route_contract_ref text NOT NULL,
+  surface_publication_ref text NOT NULL,
+  runtime_publication_bundle_ref text NOT NULL,
+  release_recovery_disposition_ref text,
+  state_confidence_band text NOT NULL,
+  recovery_route_ref text,
+  presentation_artifact_ref text,
+  recorded_at timestamptz NOT NULL,
+  source_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+  version integer NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS phase5_hub_continuity_evidence_projections (
+  hub_continuity_evidence_projection_id text PRIMARY KEY,
+  hub_coordination_case_id text NOT NULL,
+  control_code text NOT NULL,
+  route_family_ref text NOT NULL,
+  route_continuity_evidence_contract_ref text NOT NULL,
+  governing_object_ref text NOT NULL,
+  selected_anchor_ref text NOT NULL,
+  selected_anchor_tuple_hash_ref text NOT NULL,
+  continuity_envelope_version_ref text NOT NULL,
+  surface_publication_ref text NOT NULL,
+  runtime_publication_bundle_ref text NOT NULL,
+  latest_settlement_ref text,
+  latest_continuation_ref text,
+  experience_continuity_evidence_ref text,
+  continuity_tuple_hash text NOT NULL,
+  validation_state text NOT NULL,
+  blocking_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+  causal_token text NOT NULL,
+  monotone_revision integer NOT NULL,
+  captured_at timestamptz NOT NULL,
+  source_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+  version integer NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS phase5_hub_commit_reconciliation_records (
+  hub_commit_reconciliation_record_id text PRIMARY KEY,
+  hub_coordination_case_id text NOT NULL,
+  commit_attempt_id text NOT NULL,
+  idempotency_key text NOT NULL,
+  reconciliation_class text NOT NULL,
+  reason_code text NOT NULL,
+  state text NOT NULL,
+  provider_correlation_ref text,
+  external_booking_ref text,
+  latest_receipt_checkpoint_ref text,
+  due_at timestamptz NOT NULL,
+  created_at timestamptz NOT NULL,
+  updated_at timestamptz NOT NULL,
+  source_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+  version integer NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS phase5_hub_supplier_mirror_states (
+  hub_supplier_mirror_state_id text PRIMARY KEY,
+  hub_coordination_case_id text NOT NULL,
+  hub_appointment_id text NOT NULL,
+  supplier_system text NOT NULL,
+  supplier_version text NOT NULL,
+  last_sync_at timestamptz NOT NULL,
+  next_sync_due_at timestamptz NOT NULL,
+  drift_state text NOT NULL,
+  manage_freeze_state text NOT NULL,
+  last_observed_status text NOT NULL,
+  latest_continuity_message_ref text,
+  latest_drift_hook_ref text,
+  transition_envelope_ref text,
+  state_confidence_band text NOT NULL,
+  causal_token text NOT NULL,
+  monotone_revision integer NOT NULL,
+  reopen_task_ref text,
+  truth_tuple_hash text NOT NULL,
+  source_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+  version integer NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS phase5_hub_supplier_drift_hooks (
+  hub_supplier_drift_hook_id text PRIMARY KEY,
+  hub_coordination_case_id text NOT NULL,
+  hub_appointment_id text NOT NULL,
+  hub_supplier_mirror_state_id text NOT NULL,
+  truth_tuple_hash text NOT NULL,
+  drift_reason_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+  manage_freeze_state text NOT NULL,
+  hook_state text NOT NULL,
+  recorded_at timestamptz NOT NULL,
+  source_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+  version integer NOT NULL
+);

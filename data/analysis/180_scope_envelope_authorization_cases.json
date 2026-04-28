@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "180.phase2.capability.scope-envelope.v1",
+  "policyVersion": "phase2-trust-v1",
+  "authority": "CapabilityDecisionEngine",
+  "cases": [
+    {
+      "caseId": "CAP180_SCOPE_AUTHORIZED",
+      "title": "Matching grant envelope authorizes the route tuple",
+      "scopeEnvelopeRef": "scope_env_180_status",
+      "currentRouteTuple": {
+        "grantFamily": "public_status_minimal",
+        "routeFamily": "rf_phase2_authenticated_request_status",
+        "actionScope": "status_view",
+        "governingObjectRef": "request_180",
+        "governingObjectVersionRef": "request_180_v1",
+        "sessionEpochRef": "session_epoch_180_v1",
+        "subjectBindingVersionRef": "binding_180_v1",
+        "lineageFenceRef": "lineage_fence_180_v1"
+      },
+      "expectedAuthorizationState": "authorized",
+      "expectedReasonCodes": ["CAP_180_SCOPE_ENVELOPE_AUTHORIZED"],
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_CAPABILITY_SCOPE_ENVELOPE_DRIFT_V1"
+    },
+    {
+      "caseId": "CAP180_SCOPE_REPLAY_RETURNED",
+      "title": "Duplicate envelope authorization returns the idempotent record",
+      "idempotencyKey": "scope_180_idempotent",
+      "expectedAuthorizationState": "authorized",
+      "expectedReasonCodes": [
+        "CAP_180_SCOPE_ENVELOPE_AUTHORIZED",
+        "CAP_180_SCOPE_REPLAY_RETURNED"
+      ],
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_CAPABILITY_AUDIT_PUBLICATION_V1"
+    },
+    {
+      "caseId": "CAP180_SCOPE_SESSION_BINDING_DRIFT",
+      "title": "Session epoch and subject-binding drift downgrade to same-lineage recovery",
+      "driftFields": ["sessionEpochRef", "subjectBindingVersionRef"],
+      "sameLineageRecoveryAvailable": true,
+      "expectedAuthorizationState": "recover_only",
+      "expectedReasonCodes": [
+        "CAP_180_SCOPE_SESSION_EPOCH_DRIFT",
+        "CAP_180_SCOPE_BINDING_VERSION_DRIFT",
+        "CAP_180_SCOPE_RECOVER_ONLY"
+      ],
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_CAPABILITY_STALE_FENCE_RECOVERY_V1"
+    },
+    {
+      "caseId": "CAP180_SCOPE_GOVERNING_OBJECT_DRIFT",
+      "title": "Governing object version drift cannot be partially allowed",
+      "driftFields": ["governingObjectVersionRef"],
+      "sameLineageRecoveryAvailable": true,
+      "expectedAuthorizationState": "recover_only",
+      "expectedReasonCodes": [
+        "CAP_180_SCOPE_GOVERNING_VERSION_DRIFT",
+        "CAP_180_SCOPE_RECOVER_ONLY"
+      ],
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_CAPABILITY_SCOPE_ENVELOPE_DRIFT_V1"
+    },
+    {
+      "caseId": "CAP180_SCOPE_EXPIRED_DENIED",
+      "title": "Expired non-recoverable scope envelope denies",
+      "driftFields": ["expiresAt"],
+      "sameLineageRecoveryAvailable": false,
+      "expectedAuthorizationState": "deny",
+      "expectedReasonCodes": ["CAP_180_SCOPE_EXPIRED", "CAP_180_SCOPE_DENIED"],
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_CAPABILITY_STALE_FENCE_RECOVERY_V1"
+    },
+    {
+      "caseId": "CAP180_SCOPE_SUPERSEDED_RECOVERY",
+      "title": "Superseded grant routes to recovery when lineage can still be recovered",
+      "driftFields": ["supersessionState"],
+      "sameLineageRecoveryAvailable": true,
+      "expectedAuthorizationState": "recover_only",
+      "expectedReasonCodes": ["CAP_180_SCOPE_SUPERSEDED", "CAP_180_SCOPE_RECOVER_ONLY"],
+      "gapClosure": "PARALLEL_INTERFACE_GAP_PHASE2_CAPABILITY_SCOPE_ENVELOPE_DRIFT_V1"
+    }
+  ]
+}

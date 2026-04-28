@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vecells Scope and Isolation Atlas</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #F7F8FC;
+        --rail: #EEF2F8;
+        --panel: #FFFFFF;
+        --inset: #F4F6FB;
+        --text-strong: #0F172A;
+        --text: #1E293B;
+        --muted: #667085;
+        --border-subtle: #E2E8F0;
+        --border: #CBD5E1;
+        --primary: #3559E6;
+        --scope: #0EA5A4;
+        --governance: #6E59D9;
+        --warning: #C98900;
+        --blocked: #C24141;
+        --shadow: 0 22px 40px rgba(15, 23, 42, 0.07);
+        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at 12% 0%, rgba(53, 89, 230, 0.06), transparent 26%),
+          radial-gradient(circle at 88% 12%, rgba(14, 165, 164, 0.06), transparent 26%),
+          linear-gradient(180deg, #FAFBFE, var(--canvas));
+        color: var(--text);
+      }
+      .app { max-width: 1500px; margin: 0 auto; padding: 18px; }
+      .masthead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        min-height: 72px;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 12px 16px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: blur(12px);
+        box-shadow: var(--shadow);
+      }
+      .brand { display: flex; align-items: center; gap: 12px; min-width: 244px; }
+      .mark {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(244,246,251,0.96));
+        display: grid;
+        place-items: center;
+        color: var(--scope);
+      }
+      .brand small,
+      .metric span,
+      .eyebrow,
+      .label {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .brand strong { display: block; font-size: 16px; color: var(--text-strong); }
+      .metrics { display: grid; grid-template-columns: repeat(4, minmax(132px, 1fr)); gap: 12px; flex: 1; }
+      .metric {
+        padding: 12px 14px;
+        border-radius: 18px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255, 255, 255, 0.84);
+      }
+      .metric strong { display: block; font-size: 22px; color: var(--text-strong); }
+      .layout {
+        display: grid;
+        grid-template-columns: 296px minmax(0, 1fr) 392px;
+        gap: 18px;
+        margin-top: 18px;
+        align-items: start;
+      }
+      .rail, .center, .inspector {
+        border-radius: 28px;
+        border: 1px solid var(--border-subtle);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+      .rail {
+        padding: 18px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.97), var(--rail));
+      }
+      .filters { display: grid; gap: 12px; }
+      label { display: grid; gap: 6px; font-size: 13px; color: var(--text-strong); }
+      select {
+        height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text);
+        padding: 0 12px;
+      }
+      .rail-copy {
+        margin-top: 16px;
+        padding: 14px;
+        border-radius: 18px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255,255,255,0.88);
+      }
+      .center { padding: 18px; display: grid; gap: 18px; min-height: 580px; }
+      .panel {
+        padding: 18px;
+        border-radius: 24px;
+        border: 1px solid var(--border-subtle);
+        background: linear-gradient(180deg, rgba(255,255,255,0.97), rgba(244,246,251,0.94));
+      }
+      .braid-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(260px, 0.42fr);
+        gap: 16px;
+        align-items: center;
+      }
+      .braid {
+        padding: 12px;
+        border-radius: 20px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255,255,255,0.92);
+      }
+      .braid svg { width: 100%; height: 180px; }
+      .braid-node {
+        fill: rgba(255,255,255,0.98);
+        stroke: rgba(53, 89, 230, 0.28);
+        stroke-width: 1.4;
+      }
+      .braid-node.scope { stroke: rgba(14, 165, 164, 0.48); }
+      .braid-node.governance { stroke: rgba(110, 89, 217, 0.42); }
+      .braid-edge {
+        stroke: rgba(148,163,184,0.92);
+        stroke-width: 1.6;
+      }
+      .braid-label { fill: var(--text-strong); font-size: 11px; font-weight: 600; }
+      .braid-sub { fill: var(--muted); font-size: 10px; }
+      .mono {
+        font-family: ui-monospace, "SFMono-Regular", "SF Mono", Consolas, monospace;
+        font-size: 12px;
+      }
+      table { width: 100%; border-collapse: collapse; }
+      th, td {
+        text-align: left;
+        padding: 12px 10px;
+        border-bottom: 1px solid var(--border-subtle);
+        vertical-align: top;
+        font-size: 13px;
+      }
+      th {
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .route-card {
+        min-height: 148px;
+        display: grid;
+        gap: 10px;
+        padding: 16px;
+        border-radius: 22px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255,255,255,0.94);
+        cursor: pointer;
+        transition: transform 180ms ease, border-color 120ms ease, box-shadow 180ms ease;
+      }
+      .route-card:hover,
+      .route-card:focus-visible,
+      .route-card[data-selected="true"] {
+        transform: translateY(-1px);
+        border-color: rgba(53, 89, 230, 0.28);
+        box-shadow: 0 14px 28px rgba(53, 89, 230, 0.08);
+        outline: none;
+      }
+      .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(15,23,42,0.08);
+        background: rgba(15,23,42,0.04);
+        color: var(--text);
+        font-size: 12px;
+      }
+      .chip.scope { background: rgba(14,165,164,0.14); color: var(--scope); }
+      .chip.governance { background: rgba(110,89,217,0.14); color: var(--governance); }
+      .chip.warning { background: rgba(201,137,0,0.14); color: var(--warning); }
+      .chip.blocked { background: rgba(194,65,65,0.14); color: var(--blocked); }
+      .lower {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 18px;
+      }
+      .inspector {
+        position: sticky;
+        top: 90px;
+        padding: 18px;
+        display: grid;
+        gap: 18px;
+      }
+      .inspector-section {
+        display: grid;
+        gap: 10px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+      .inspector-section:last-child { border-bottom: 0; padding-bottom: 0; }
+      .definition-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 12px;
+      }
+      .definition-grid div {
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255,255,255,0.9);
+      }
+      .defect-strip { display: grid; gap: 10px; }
+      .defect-card {
+        padding: 14px;
+        border-radius: 18px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255,255,255,0.9);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition-duration: 0ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+      @media (max-width: 1260px) {
+        .layout { grid-template-columns: 1fr; }
+        .inspector { position: static; }
+      }
+      @media (max-width: 980px) {
+        .braid-grid,
+        .lower,
+        .card-grid,
+        .metrics { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 640px) {
+        .definition-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="masthead" data-testid="masthead">
+        <div class="brand">
+          <div class="mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none">
+              <path d="M8 9.5c0-1.4 1.1-2.5 2.5-2.5h8.5a5 5 0 0 1 0 10H14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
+              <path d="M14 17H9.5A2.5 2.5 0 0 0 7 19.5v0A2.5 2.5 0 0 0 9.5 22H18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
+              <path d="M18 7v18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path>
+            </svg>
+          </div>
+          <div>
+            <small>Vecells</small>
+            <strong>Scope and Isolation Atlas</strong>
+          </div>
+        </div>
+        <div class="metrics" id="metrics"></div>
+      </header>
+      <div class="layout">
+        <aside class="rail" data-testid="route-rail">
+          <div class="filters">
+            <label><span class="label">Audience</span><select id="filter-audience" data-testid="filter-audience"></select></label>
+            <label><span class="label">Shell type</span><select id="filter-shell" data-testid="filter-shell"></select></label>
+            <label><span class="label">Scope mode</span><select id="filter-scope-mode" data-testid="filter-scope-mode"></select></label>
+            <label><span class="label">Drift state</span><select id="filter-drift-state" data-testid="filter-drift-state"></select></label>
+            <label><span class="label">Blast radius</span><select id="filter-blast-radius" data-testid="filter-blast-radius"></select></label>
+            <label><span class="label">Route group</span><select id="filter-route-group" data-testid="filter-route-group"></select></label>
+          </div>
+          <div class="rail-copy">
+            <div class="eyebrow">Fail-closed posture</div>
+            <p>Writable routes freeze in place when tuple, visibility, runtime binding, purpose-of-use, environment, or blast radius drift from the current authority row.</p>
+          </div>
+        </aside>
+        <main class="center">
+          <section class="panel" data-testid="tuple-braid">
+            <div class="eyebrow">Tuple braid</div>
+            <div class="braid-grid">
+              <div class="braid" id="tuple-braid-graphic"></div>
+              <div>
+                <table>
+                  <thead>
+                    <tr><th>Stage</th><th>Ref</th></tr>
+                  </thead>
+                  <tbody id="tuple-braid-table"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+          <section class="panel" data-testid="route-matrix">
+            <div class="eyebrow">Route-to-scope matrix</div>
+            <div class="card-grid" id="route-cards"></div>
+          </section>
+          <div class="lower">
+            <section class="panel" data-testid="drift-table">
+              <div class="eyebrow">Drift trigger table</div>
+              <table>
+                <thead>
+                  <tr><th>Trigger</th><th>Freeze</th><th>Tuple</th></tr>
+                </thead>
+                <tbody id="drift-body"></tbody>
+              </table>
+            </section>
+            <section class="panel" data-testid="blast-matrix">
+              <div class="eyebrow">Surface-to-blast-radius matrix</div>
+              <table>
+                <thead>
+                  <tr><th>Surface</th><th>Blast radius</th><th>Counts</th></tr>
+                </thead>
+                <tbody id="blast-body"></tbody>
+              </table>
+            </section>
+          </div>
+          <section class="panel" data-testid="defect-strip">
+            <div class="eyebrow">Defect strip</div>
+            <div class="defect-strip" id="defect-body"></div>
+          </section>
+        </main>
+        <aside class="inspector" data-testid="inspector" id="inspector"></aside>
+      </div>
+    </div>
+    <script type="module">
+      const DATA_PATHS = {
+        tenant: "../../data/analysis/tenant_isolation_modes.json",
+        route: "../../data/analysis/route_to_scope_requirements.csv",
+        drift: "../../data/analysis/acting_context_drift_triggers.json",
+        blast: "../../data/analysis/surface_to_blast_radius_matrix.csv",
+      };
+
+      const state = {
+        audience: "all",
+        shell: "all",
+        scopeMode: "all",
+        driftState: "all",
+        blastRadius: "all",
+        routeGroup: "all",
+        selectedRequirementId: null,
+      };
+
+      const ids = {
+        metrics: document.getElementById("metrics"),
+        routeCards: document.getElementById("route-cards"),
+        inspector: document.getElementById("inspector"),
+        braidGraphic: document.getElementById("tuple-braid-graphic"),
+        braidTable: document.getElementById("tuple-braid-table"),
+        driftBody: document.getElementById("drift-body"),
+        blastBody: document.getElementById("blast-body"),
+        defectBody: document.getElementById("defect-body"),
+        filterAudience: document.getElementById("filter-audience"),
+        filterShell: document.getElementById("filter-shell"),
+        filterScopeMode: document.getElementById("filter-scope-mode"),
+        filterDriftState: document.getElementById("filter-drift-state"),
+        filterBlastRadius: document.getElementById("filter-blast-radius"),
+        filterRouteGroup: document.getElementById("filter-route-group"),
+      };
+
+      const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+      document.body.dataset.reducedMotion = motionQuery.matches ? "true" : "false";
+      motionQuery.addEventListener("change", (event) => {
+        document.body.dataset.reducedMotion = event.matches ? "true" : "false";
+      });
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function toTestId(value) {
+        return String(value).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      }
+
+      function parseCsv(text) {
+        const rows = [];
+        let row = [];
+        let cell = "";
+        let inQuotes = false;
+        for (let index = 0; index < text.length; index += 1) {
+          const char = text[index];
+          const next = text[index + 1];
+          if (char === '"' && inQuotes && next === '"') {
+            cell += '"';
+            index += 1;
+            continue;
+          }
+          if (char === '"') {
+            inQuotes = !inQuotes;
+            continue;
+          }
+          if (char === "," && !inQuotes) {
+            row.push(cell);
+            cell = "";
+            continue;
+          }
+          if ((char === "\n" || char === "\r") && !inQuotes) {
+            if (char === "\r" && next === "\n") {
+              index += 1;
+            }
+            row.push(cell);
+            if (row.some((value) => value.length > 0)) {
+              rows.push(row);
+            }
+            row = [];
+            cell = "";
+            continue;
+          }
+          cell += char;
+        }
+        if (cell.length || row.length) {
+          row.push(cell);
+          rows.push(row);
+        }
+        const [headers, ...body] = rows;
+        return body.map((values) =>
+          Object.fromEntries(headers.map((header, idx) => [header, values[idx] ?? ""])),
+        );
+      }
+
+      function splitList(value) {
+        if (!value) {
+          return [];
+        }
+        return String(value).split(";").map((item) => item.trim()).filter(Boolean);
+      }
+
+      async function loadData() {
+        const [tenant, routeText, drift, blastText] = await Promise.all([
+          fetch(DATA_PATHS.tenant).then((response) => response.json()),
+          fetch(DATA_PATHS.route).then((response) => response.text()),
+          fetch(DATA_PATHS.drift).then((response) => response.json()),
+          fetch(DATA_PATHS.blast).then((response) => response.text()),
+        ]);
+        return {
+          tenant,
+          routeRows: parseCsv(routeText),
+          drift,
+          blastRows: parseCsv(blastText),
+        };
+      }
+
+      function fillSelect(select, values, currentValue) {
+        const options = ["all", ...values];
+        select.innerHTML = options
+          .map((value) => {
+            const label = value === "all" ? "All" : value;
+            return `<option value="${escapeHtml(value)}" ${value === currentValue ? "selected" : ""}>${escapeHtml(label)}</option>`;
+          })
+          .join("");
+      }
+
+      function filteredRouteRows(data) {
+        return data.routeRows.filter((row) => {
+          return (
+            (state.audience === "all" || row.audience === state.audience) &&
+            (state.shell === "all" || row.shell_type === state.shell) &&
+            (state.scopeMode === "all" || row.scope_mode === state.scopeMode) &&
+            (state.driftState === "all" || row.drift_state === state.driftState) &&
+            (state.blastRadius === "all" || row.blast_radius_class === state.blastRadius) &&
+            (state.routeGroup === "all" || row.route_group === state.routeGroup)
+          );
+        });
+      }
+
+      function selectedRouteRow(data) {
+        const rows = filteredRouteRows(data);
+        if (!rows.length) {
+          return null;
+        }
+        return rows.find((row) => row.route_scope_requirement_id === state.selectedRequirementId) ?? rows[0];
+      }
+
+      function selectedTuple(data) {
+        const selected = selectedRouteRow(data);
+        if (!selected || !selected.sample_acting_scope_tuple_ref) {
+          return null;
+        }
+        return data.tenant.actingScopeTuples.find(
+          (row) => row.actingScopeTupleId === selected.sample_acting_scope_tuple_ref,
+        ) ?? null;
+      }
+
+      function selectedActingContext(data) {
+        const tuple = selectedTuple(data);
+        if (!tuple) {
+          return null;
+        }
+        return data.tenant.actingContexts.find((row) => row.actingContextId === tuple.actingContextRef) ?? null;
+      }
+
+      function selectedIdentity(data) {
+        const tuple = selectedTuple(data);
+        if (!tuple) {
+          return null;
+        }
+        return data.tenant.staffIdentityContexts.find(
+          (row) => row.staffIdentityContextId === tuple.staffIdentityContextRef,
+        ) ?? null;
+      }
+
+      function renderFilters(data) {
+        fillSelect(ids.filterAudience, [...new Set(data.routeRows.map((row) => row.audience))], state.audience);
+        fillSelect(ids.filterShell, [...new Set(data.routeRows.map((row) => row.shell_type))], state.shell);
+        fillSelect(ids.filterScopeMode, [...new Set(data.routeRows.map((row) => row.scope_mode))], state.scopeMode);
+        fillSelect(ids.filterDriftState, [...new Set(data.routeRows.map((row) => row.drift_state))], state.driftState);
+        fillSelect(ids.filterBlastRadius, [...new Set(data.routeRows.map((row) => row.blast_radius_class))], state.blastRadius);
+        fillSelect(ids.filterRouteGroup, [...new Set(data.routeRows.map((row) => row.route_group))], state.routeGroup);
+      }
+
+      function renderMetrics(data) {
+        ids.metrics.innerHTML = [
+          ["Scope tuples", data.tenant.summary.acting_scope_tuple_count],
+          ["Drift triggers", data.drift.summary.drift_trigger_count],
+          ["Routes with coverage", data.tenant.summary.route_scope_requirement_count],
+          ["Broad-scope routes", data.tenant.summary.broad_scope_route_count],
+        ]
+          .map(
+            ([label, value]) => `
+              <div class="metric">
+                <span>${escapeHtml(label)}</span>
+                <strong>${escapeHtml(value)}</strong>
+              </div>`,
+          )
+          .join("");
+      }
+
+      function renderRouteCards(data) {
+        const rows = filteredRouteRows(data);
+        if (!rows.length) {
+          state.selectedRequirementId = null;
+          ids.routeCards.innerHTML = "<p>No routes match the current filters.</p>";
+          return;
+        }
+        if (!rows.some((row) => row.route_scope_requirement_id === state.selectedRequirementId)) {
+          state.selectedRequirementId = rows[0].route_scope_requirement_id;
+        }
+        ids.routeCards.innerHTML = rows
+          .map(
+            (row) => `
+              <article
+                tabindex="0"
+                class="route-card"
+                data-testid="route-card-${toTestId(row.route_scope_requirement_id)}"
+                data-selected="${row.route_scope_requirement_id === state.selectedRequirementId}"
+                data-requirement-id="${escapeHtml(row.route_scope_requirement_id)}"
+              >
+                <div>
+                  <div class="eyebrow">${escapeHtml(row.audience)}</div>
+                  <h3>${escapeHtml(row.route_family)}</h3>
+                </div>
+                <div class="chip-row">
+                  <span class="chip scope">${escapeHtml(row.scope_mode)}</span>
+                  <span class="chip">${escapeHtml(row.tenant_isolation_mode)}</span>
+                  <span class="chip ${row.blast_radius_class === "platform" ? "governance" : row.blast_radius_class === "cross_org" || row.blast_radius_class === "multi_tenant" ? "warning" : ""}">${escapeHtml(row.blast_radius_class)}</span>
+                </div>
+                <div class="mono">${escapeHtml(row.gateway_surface_id)}</div>
+                <div>${escapeHtml(row.same_shell_freeze_posture)}</div>
+              </article>`,
+          )
+          .join("");
+        ids.routeCards.querySelectorAll(".route-card").forEach((node) => {
+          node.addEventListener("click", () => {
+            state.selectedRequirementId = node.dataset.requirementId;
+            renderAll(data);
+          });
+          node.addEventListener("keydown", (event) => {
+            const nodes = [...ids.routeCards.querySelectorAll(".route-card")];
+            const index = nodes.indexOf(node);
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+              const nextIndex =
+                event.key === "ArrowDown"
+                  ? Math.min(nodes.length - 1, index + 1)
+                  : Math.max(0, index - 1);
+              state.selectedRequirementId = nodes[nextIndex].dataset.requirementId;
+              renderAll(data);
+              ids.routeCards.querySelectorAll(".route-card")[nextIndex]?.focus();
+            }
+          });
+        });
+      }
+
+      function renderBraid(data) {
+        const route = selectedRouteRow(data);
+        const tuple = selectedTuple(data);
+        const actingContext = selectedActingContext(data);
+        const identity = selectedIdentity(data);
+        ids.braidGraphic.innerHTML = `
+          <svg viewBox="0 0 560 180" role="img" aria-label="Identity to route authority tuple braid">
+            <line class="braid-edge" x1="56" y1="90" x2="176" y2="54"></line>
+            <line class="braid-edge" x1="176" y1="54" x2="316" y2="90"></line>
+            <line class="braid-edge" x1="316" y1="90" x2="468" y2="54"></line>
+            <circle class="braid-node" cx="56" cy="90" r="28"></circle>
+            <circle class="braid-node" cx="176" cy="54" r="28"></circle>
+            <circle class="braid-node scope" cx="316" cy="90" r="28"></circle>
+            <circle class="braid-node governance" cx="468" cy="54" r="28"></circle>
+            <text class="braid-label" x="56" y="86" text-anchor="middle">Identity</text>
+            <text class="braid-sub" x="56" y="102" text-anchor="middle">${escapeHtml(identity ? identity.staffUserId.split("://").pop() : "browser")}</text>
+            <text class="braid-label" x="176" y="50" text-anchor="middle">Context</text>
+            <text class="braid-sub" x="176" y="66" text-anchor="middle">${escapeHtml(actingContext ? actingContext.purposeOfUseRef.split("://").pop() : route ? route.purpose_of_use_ref.split("://").pop() : "none")}</text>
+            <text class="braid-label" x="316" y="86" text-anchor="middle">Tuple</text>
+            <text class="braid-sub" x="316" y="102" text-anchor="middle">${escapeHtml(tuple ? tuple.tupleHash : "no_tuple")}</text>
+            <text class="braid-label" x="468" y="50" text-anchor="middle">Authority</text>
+            <text class="braid-sub" x="468" y="66" text-anchor="middle">${escapeHtml(route ? route.gateway_surface_id : "none")}</text>
+          </svg>`;
+        const braidRows = [
+          ["Identity", identity ? identity.staffIdentityContextId : "browser_authority"],
+          ["Acting context", actingContext ? actingContext.actingContextId : route ? route.acting_scope_profile_id : "none"],
+          ["Scope tuple", tuple ? tuple.actingScopeTupleId : "not_required"],
+          ["Route authority", route ? route.route_scope_requirement_id : "none"],
+        ];
+        ids.braidTable.innerHTML = braidRows
+          .map(([label, value]) => `<tr><td>${escapeHtml(label)}</td><td class="mono">${escapeHtml(value)}</td></tr>`)
+          .join("");
+      }
+
+      function renderDriftTable(data) {
+        const route = selectedRouteRow(data);
+        const tuple = selectedTuple(data);
+        ids.driftBody.innerHTML = data.drift.sampleDriftRecords
+          .map((record) => {
+            const linked = tuple ? record.priorActingScopeTupleRef === tuple.actingScopeTupleId : false;
+            return `
+              <tr data-testid="drift-row-${toTestId(record.actingContextDriftRecordId)}" data-linked="${linked}">
+                <td>
+                  <div>${escapeHtml(record.detectedChangeClass)}</div>
+                  <div class="mono">${escapeHtml(record.actingContextDriftRecordId)}</div>
+                </td>
+                <td>${escapeHtml(record.freezeState)}</td>
+                <td class="mono">${escapeHtml(record.priorActingScopeTupleRef)}</td>
+              </tr>`;
+          })
+          .join("");
+      }
+
+      function renderBlastTable(data) {
+        const route = selectedRouteRow(data);
+        ids.blastBody.innerHTML = data.blastRows
+          .map((row) => {
+            const linked = route ? row.gateway_surface_id === route.gateway_surface_id : false;
+            return `
+              <tr data-testid="blast-row-${toTestId(row.surface_blast_radius_id)}" data-linked="${linked}">
+                <td>
+                  <div>${escapeHtml(row.gateway_surface_id)}</div>
+                  <div class="mono">${escapeHtml(row.audience)}</div>
+                </td>
+                <td>${escapeHtml(row.blast_radius_class)}</td>
+                <td class="mono">${escapeHtml(row.affected_tenant_count)}/${escapeHtml(row.affected_organisation_count)}</td>
+              </tr>`;
+          })
+          .join("");
+      }
+
+      function renderDefects(data) {
+        ids.defectBody.innerHTML = data.tenant.defects
+          .map(
+            (defect) => `
+              <article class="defect-card" data-testid="defect-${toTestId(defect.defectId)}">
+                <div class="chip-row">
+                  <span class="chip blocked">${escapeHtml(defect.state)}</span>
+                </div>
+                <h3>${escapeHtml(defect.defectId)}</h3>
+                <p>${escapeHtml(defect.summary)}</p>
+              </article>`,
+          )
+          .join("");
+      }
+
+      function renderInspector(data) {
+        const route = selectedRouteRow(data);
+        if (!route) {
+          ids.inspector.innerHTML = "<p>No route selected.</p>";
+          return;
+        }
+        const tuple = selectedTuple(data);
+        const actingContext = selectedActingContext(data);
+        const identity = selectedIdentity(data);
+        ids.inspector.innerHTML = `
+          <section class="inspector-section">
+            <div class="eyebrow">Selected route</div>
+            <h2>${escapeHtml(route.route_family)}</h2>
+            <div class="chip-row">
+              <span class="chip scope">${escapeHtml(route.scope_mode)}</span>
+              <span class="chip">${escapeHtml(route.tenant_isolation_mode)}</span>
+              <span class="chip ${route.blast_radius_class === "platform" ? "governance" : route.blast_radius_class === "cross_org" || route.blast_radius_class === "multi_tenant" ? "warning" : ""}">${escapeHtml(route.blast_radius_class)}</span>
+            </div>
+            <div class="definition-grid">
+              <div><span class="eyebrow">Gateway surface</span><div class="mono">${escapeHtml(route.gateway_surface_id)}</div></div>
+              <div><span class="eyebrow">Audience</span><strong>${escapeHtml(route.audience)}</strong></div>
+              <div><span class="eyebrow">Tuple requirement</span><strong>${escapeHtml(route.acting_scope_tuple_requirement)}</strong></div>
+              <div><span class="eyebrow">Governance token</span><strong>${escapeHtml(route.governance_scope_token_requirement)}</strong></div>
+            </div>
+          </section>
+          <section class="inspector-section">
+            <div class="eyebrow">Visibility and runtime binding</div>
+            <div class="definition-grid">
+              <div><span class="eyebrow">Visibility coverage</span><div class="mono">${escapeHtml(route.audience_visibility_coverage_ref)}</div></div>
+              <div><span class="eyebrow">Minimum necessary</span><div class="mono">${escapeHtml(route.minimum_necessary_contract_ref)}</div></div>
+              <div><span class="eyebrow">Runtime binding</span><div class="mono">${escapeHtml(route.required_runtime_binding_refs)}</div></div>
+              <div><span class="eyebrow">Authority binding</span><div class="mono">${escapeHtml(route.runtime_browser_authority_binding_refs)}</div></div>
+            </div>
+          </section>
+          <section class="inspector-section">
+            <div class="eyebrow">Tuple and blast radius</div>
+            <div class="definition-grid">
+              <div><span class="eyebrow">Sample tuple</span><div class="mono">${escapeHtml(route.sample_acting_scope_tuple_ref || "not_required")}</div></div>
+              <div><span class="eyebrow">Tuple hash</span><div class="mono">${escapeHtml(route.scope_tuple_hash || "n/a")}</div></div>
+              <div><span class="eyebrow">Affected tenants</span><strong>${escapeHtml(route.affected_tenant_count)}</strong></div>
+              <div><span class="eyebrow">Affected organisations</span><strong>${escapeHtml(route.affected_organisation_count)}</strong></div>
+            </div>
+          </section>
+          <section class="inspector-section">
+            <div class="eyebrow">Acting context</div>
+            <div class="definition-grid">
+              <div><span class="eyebrow">Identity</span><div class="mono">${escapeHtml(identity ? identity.staffIdentityContextId : "browser_authority")}</div></div>
+              <div><span class="eyebrow">Acting context</span><div class="mono">${escapeHtml(actingContext ? actingContext.actingContextId : route.acting_scope_profile_id)}</div></div>
+              <div><span class="eyebrow">Purpose of use</span><div class="mono">${escapeHtml(route.purpose_of_use_ref)}</div></div>
+              <div><span class="eyebrow">Freeze posture</span><strong>${escapeHtml(route.same_shell_freeze_posture)}</strong></div>
+            </div>
+          </section>
+          <section class="inspector-section">
+            <div class="eyebrow">Trust refs</div>
+            <div class="mono">${escapeHtml(route.required_trust_refs || "none")}</div>
+          </section>`;
+      }
+
+      function renderAll(data) {
+        renderFilters(data);
+        renderMetrics(data);
+        renderRouteCards(data);
+        renderBraid(data);
+        renderDriftTable(data);
+        renderBlastTable(data);
+        renderDefects(data);
+        renderInspector(data);
+      }
+
+      function bindFilters(data) {
+        [
+          [ids.filterAudience, "audience"],
+          [ids.filterShell, "shell"],
+          [ids.filterScopeMode, "scopeMode"],
+          [ids.filterDriftState, "driftState"],
+          [ids.filterBlastRadius, "blastRadius"],
+          [ids.filterRouteGroup, "routeGroup"],
+        ].forEach(([node, key]) => {
+          node.addEventListener("change", (event) => {
+            state[key] = event.target.value;
+            renderAll(data);
+          });
+        });
+      }
+
+      loadData().then((data) => {
+        window.__scopeAtlasData = data;
+        bindFilters(data);
+        renderAll(data);
+      });
+    </script>
+  </body>
+</html>

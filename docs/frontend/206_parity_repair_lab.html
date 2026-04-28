@@ -1,0 +1,1012 @@
+<!doctype html>
+<html lang="en" data-ready="false">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>206 Parity Repair Lab</title>
+    <style>
+      :root {
+        --canvas: #f6f8fc;
+        --panel: #ffffff;
+        --inset: #eef2f7;
+        --strong: #0f172a;
+        --text: #334155;
+        --muted: #64748b;
+        --border: #d7dfea;
+        --parity: #3158e0;
+        --release: #0f766e;
+        --review: #b7791f;
+        --hold: #b42318;
+        --shadow: 0 24px 70px rgba(15, 23, 42, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at 18% 6%, rgba(49, 88, 224, 0.12), transparent 30%),
+          radial-gradient(circle at 78% 0%, rgba(15, 118, 110, 0.1), transparent 32%), var(--canvas);
+        color: var(--text);
+        font-family: "Aptos", "Segoe UI", sans-serif;
+      }
+
+      button,
+      table {
+        font: inherit;
+      }
+
+      button {
+        border: 0;
+      }
+
+      button:focus-visible,
+      [tabindex]:focus-visible {
+        outline: 3px solid rgba(49, 88, 224, 0.78);
+        outline-offset: 3px;
+      }
+
+      .lab {
+        width: min(100% - 56px, 1560px);
+        max-width: 1560px;
+        margin: 0 auto;
+        padding: 28px 0 44px;
+      }
+
+      .command-band {
+        min-height: 72px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 18px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .eyebrow {
+        margin: 0 0 4px;
+        color: var(--parity);
+        font-size: 12px;
+        line-height: 16px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 800;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        color: var(--strong);
+        font-size: 28px;
+        line-height: 34px;
+        letter-spacing: -0.02em;
+      }
+
+      .command-copy {
+        max-width: 860px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 20px;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 36px;
+        padding: 0 14px;
+        border: 1px solid rgba(15, 118, 110, 0.24);
+        border-radius: 999px;
+        background: rgba(15, 118, 110, 0.08);
+        color: var(--release);
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .scenario-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 18px 0 16px;
+      }
+
+      .scenario-button {
+        min-height: 38px;
+        padding: 0 13px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--panel);
+        color: var(--text);
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 800;
+        cursor: pointer;
+        transition:
+          transform 140ms ease,
+          border-color 140ms ease,
+          color 140ms ease,
+          background 140ms ease;
+      }
+
+      .scenario-button:hover {
+        transform: translateY(-1px);
+      }
+
+      .scenario-button[aria-pressed="true"] {
+        border-color: rgba(49, 88, 224, 0.34);
+        background: rgba(49, 88, 224, 0.08);
+        color: var(--parity);
+      }
+
+      .mobile-switcher {
+        display: none;
+      }
+
+      .split-board {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 18px;
+        align-items: stretch;
+      }
+
+      .lane,
+      .spine,
+      .matrix-section,
+      .mirror-section,
+      .suppression-section {
+        min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.88);
+        box-shadow: var(--shadow);
+      }
+
+      .lane {
+        min-height: 560px;
+        padding: 22px;
+      }
+
+      .web-lane {
+        grid-column: span 5;
+      }
+
+      .phone-lane {
+        grid-column: span 5;
+      }
+
+      .spine {
+        grid-column: span 2;
+        padding: 18px 14px;
+        background: linear-gradient(180deg, rgba(49, 88, 224, 0.09), transparent 28%), var(--panel);
+      }
+
+      .lane-header {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 16px;
+        padding-bottom: 18px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      h2 {
+        color: var(--strong);
+        font-size: 21px;
+        line-height: 27px;
+        letter-spacing: -0.01em;
+      }
+
+      h3 {
+        color: var(--strong);
+        font-size: 15px;
+        line-height: 20px;
+      }
+
+      .lane-summary,
+      .spine-summary,
+      .small-copy {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 19px;
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 9px;
+        border-radius: 999px;
+        background: var(--inset);
+        color: var(--text);
+        font-size: 12px;
+        line-height: 16px;
+        letter-spacing: 0.03em;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .chip.parity {
+        color: var(--parity);
+        background: rgba(49, 88, 224, 0.08);
+      }
+
+      .chip.hold {
+        color: var(--hold);
+        background: rgba(180, 35, 24, 0.08);
+      }
+
+      .chip.release {
+        color: var(--release);
+        background: rgba(15, 118, 110, 0.08);
+      }
+
+      .evidence-stack {
+        display: grid;
+        gap: 14px;
+        margin-top: 18px;
+      }
+
+      .evidence-row {
+        display: grid;
+        grid-template-columns: 116px minmax(0, 1fr);
+        gap: 14px;
+        align-items: start;
+        padding: 14px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: rgba(238, 242, 247, 0.58);
+        transition:
+          transform 160ms ease,
+          background 160ms ease;
+      }
+
+      .evidence-row:hover {
+        transform: translateY(-1px);
+        background: #ffffff;
+      }
+
+      .row-label {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 16px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 800;
+      }
+
+      .mono {
+        font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+        color: var(--strong);
+        font-size: 12px;
+        line-height: 18px;
+      }
+
+      .spine h2 {
+        font-size: 16px;
+        line-height: 21px;
+        text-align: center;
+      }
+
+      .braid {
+        display: grid;
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .braid-step {
+        position: relative;
+        display: grid;
+        gap: 6px;
+        padding: 12px 10px;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: #ffffff;
+        text-align: center;
+      }
+
+      .braid-step::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: -13px;
+        width: 1px;
+        height: 13px;
+        background: var(--border);
+      }
+
+      .braid-step:last-child::after {
+        display: none;
+      }
+
+      .braid-step strong {
+        color: var(--strong);
+        font-size: 13px;
+        line-height: 18px;
+      }
+
+      .braid-step span {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 16px;
+      }
+
+      .lower-grid {
+        display: grid;
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      .mirror-section,
+      .suppression-section,
+      .matrix-section {
+        padding: 22px;
+      }
+
+      .mirror-grid,
+      .suppression-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(220px, 1fr));
+        gap: 14px;
+        margin-top: 14px;
+      }
+
+      .proof-cell {
+        min-height: 116px;
+        padding: 16px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: var(--panel);
+      }
+
+      .proof-cell strong {
+        display: block;
+        color: var(--strong);
+        font-size: 14px;
+        line-height: 20px;
+        margin-bottom: 8px;
+      }
+
+      .proof-cell p {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 19px;
+      }
+
+      .matrix-pair {
+        display: grid;
+        gap: 18px;
+      }
+
+      .table-wrap {
+        contain: layout paint;
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: var(--panel);
+      }
+
+      table {
+        width: 100%;
+        min-width: 920px;
+        border-collapse: collapse;
+      }
+
+      caption {
+        padding: 14px 16px;
+        text-align: left;
+        color: var(--strong);
+        font-weight: 900;
+      }
+
+      th,
+      td {
+        padding: 12px 14px;
+        border-top: 1px solid var(--border);
+        text-align: left;
+        vertical-align: top;
+        font-size: 13px;
+        line-height: 19px;
+      }
+
+      th {
+        color: var(--strong);
+        background: var(--inset);
+        font-size: 12px;
+        line-height: 16px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .scenario-panel {
+        min-height: 118px;
+        margin-top: 18px;
+        padding: 16px;
+        border-radius: 22px;
+        background: linear-gradient(135deg, rgba(49, 88, 224, 0.09), transparent), var(--inset);
+        transition:
+          opacity 140ms ease,
+          transform 140ms ease;
+      }
+
+      .scenario-panel[data-active-case="active-hold"] {
+        background: linear-gradient(135deg, rgba(180, 35, 24, 0.1), transparent), var(--inset);
+      }
+
+      .scenario-panel[data-active-case="released"] {
+        background: linear-gradient(135deg, rgba(15, 118, 110, 0.12), transparent), var(--inset);
+      }
+
+      .panel-title {
+        color: var(--strong);
+        font-size: 15px;
+        line-height: 20px;
+        font-weight: 900;
+      }
+
+      .panel-copy {
+        margin-top: 8px;
+        color: var(--text);
+        font-size: 13px;
+        line-height: 19px;
+      }
+
+      @media (max-width: 1060px) {
+        .lab {
+          width: min(100% - 32px, 1560px);
+        }
+
+        .split-board {
+          grid-template-columns: 1fr;
+        }
+
+        .web-lane,
+        .spine,
+        .phone-lane {
+          grid-column: auto;
+        }
+
+        .spine {
+          min-height: 0;
+        }
+
+        .braid {
+          grid-template-columns: repeat(4, minmax(120px, 1fr));
+        }
+
+        .braid-step::after {
+          display: none;
+        }
+
+        .mirror-grid,
+        .suppression-grid {
+          grid-template-columns: repeat(2, minmax(220px, 1fr));
+        }
+      }
+
+      @media (max-width: 760px) {
+        .lab {
+          width: min(100% - 24px, 1560px);
+          padding-top: 18px;
+        }
+
+        .command-band {
+          grid-template-columns: 1fr;
+        }
+
+        .status-pill {
+          justify-content: center;
+          white-space: normal;
+          text-align: center;
+        }
+
+        .mobile-switcher {
+          position: sticky;
+          top: 0;
+          z-index: 5;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+          padding: 10px 0;
+          background: rgba(246, 248, 252, 0.94);
+          backdrop-filter: blur(10px);
+        }
+
+        .mobile-switcher button {
+          min-height: 40px;
+          border-radius: 999px;
+          background: var(--panel);
+          color: var(--text);
+          border: 1px solid var(--border);
+          font-size: 13px;
+          line-height: 18px;
+          font-weight: 900;
+        }
+
+        .lab[data-mobile-lane="web"] .phone-lane {
+          display: none;
+        }
+
+        .lab[data-mobile-lane="phone"] .web-lane {
+          display: none;
+        }
+
+        .lane,
+        .spine,
+        .matrix-section,
+        .mirror-section,
+        .suppression-section {
+          border-radius: 22px;
+        }
+
+        .lane-header {
+          display: grid;
+          grid-template-columns: 1fr;
+        }
+
+        .evidence-row {
+          grid-template-columns: 1fr;
+        }
+
+        .braid,
+        .mirror-grid,
+        .suppression-grid {
+          grid-template-columns: 1fr;
+        }
+
+        table {
+          min-width: 0;
+          table-layout: fixed;
+        }
+
+        th,
+        td {
+          overflow-wrap: anywhere;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 1ms !important;
+          scroll-behavior: auto !important;
+          transition-duration: 1ms !important;
+        }
+
+        .scenario-button:hover,
+        .evidence-row:hover {
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main
+      class="lab"
+      data-testid="Parity_Repair_Lab"
+      data-visual-mode="Parity_Repair_Lab"
+      data-mobile-lane="web"
+    >
+      <section class="command-band" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">Phase 2 regression proof</p>
+          <h1 id="page-title">Parity repair lab</h1>
+          <p class="command-copy">
+            Wrong-patient holds fail closed, while equivalent web and phone facts converge on the
+            same canonical request truth, safety outcome, duplicate result, and status semantics.
+          </p>
+        </div>
+        <div class="status-pill" data-testid="suite-status">
+          passed · failed: 0 · blocked_external: 1 · not_applicable: 1
+        </div>
+      </section>
+
+      <nav class="scenario-strip" aria-label="Parity repair scenarios">
+        <button class="scenario-button" type="button" data-case="aligned" aria-pressed="true">
+          Aligned parity
+        </button>
+        <button class="scenario-button" type="button" data-case="duplicate" aria-pressed="false">
+          Duplicate parity
+        </button>
+        <button class="scenario-button" type="button" data-case="resafety" aria-pressed="false">
+          Material re-safety
+        </button>
+        <button class="scenario-button" type="button" data-case="active-hold" aria-pressed="false">
+          Active wrong-patient hold
+        </button>
+        <button class="scenario-button" type="button" data-case="released" aria-pressed="false">
+          Released and resumed
+        </button>
+      </nav>
+
+      <div
+        class="mobile-switcher"
+        data-testid="mobile-comparison-switcher"
+        aria-label="Mobile comparison switcher"
+      >
+        <button type="button" data-lane-switch="web" aria-pressed="true">Web lane</button>
+        <button type="button" data-lane-switch="phone" aria-pressed="false">Phone lane</button>
+      </div>
+
+      <section class="split-board" aria-label="Web phone parity split board">
+        <article
+          class="lane web-lane"
+          data-testid="web-origin-lane"
+          aria-labelledby="web-lane-title"
+        >
+          <div class="lane-header">
+            <div>
+              <p class="eyebrow">Web origin</p>
+              <h2 id="web-lane-title">Structured form evidence</h2>
+              <p class="lane-summary">
+                Form answers and uploads produce one canonical normalized tuple before duplicate or
+                safety decisions.
+              </p>
+            </div>
+            <div class="chip-row">
+              <span class="chip parity">web</span>
+              <span class="chip release">canonical</span>
+            </div>
+          </div>
+          <div class="evidence-stack" aria-label="Web origin comparison facts">
+            <div class="evidence-row">
+              <span class="row-label">Inputs</span>
+              <span class="mono">form_symptoms_cough_fever_two_days · optional_upload</span>
+            </div>
+            <div class="evidence-row">
+              <span class="row-label">Tuple</span>
+              <span class="mono">Symptoms|cough_fever|onset_2d|routine_review</span>
+            </div>
+            <div class="evidence-row">
+              <span class="row-label">Duplicate</span>
+              <span class="mono">distinct → exact_retry_collapse → same_request_attach</span>
+            </div>
+            <div class="evidence-row">
+              <span class="row-label">Status</span>
+              <span class="mono">pending_review · Your request is being reviewed</span>
+            </div>
+          </div>
+          <div
+            id="active-panel"
+            class="scenario-panel"
+            data-testid="active-scenario-panel"
+            data-active-case="aligned"
+            aria-live="polite"
+          >
+            <p class="panel-title">Aligned parity case</p>
+            <p class="panel-copy">
+              Web and phone lanes share `PAR206_SAME_SYMPTOMS|routine_review|pending_review`. The
+              only visible difference is a provenance chip.
+            </p>
+          </div>
+        </article>
+
+        <aside
+          class="spine"
+          data-testid="ParityBraid"
+          data-parity="PAR206_SAME_SYMPTOMS PAR206_EXACT_DUPLICATE PAR206_SEMANTIC_DUPLICATE PAR206_MATERIAL_NEW_EVIDENCE"
+          aria-labelledby="parity-braid-title"
+        >
+          <h2 id="parity-braid-title">Parity braid</h2>
+          <p class="spine-summary">
+            Equivalent facts cross the same canonical comparison tuple before any channel-specific
+            copy is allowed.
+          </p>
+          <div class="braid" aria-label="Canonical parity braid summaries">
+            <div class="braid-step">
+              <strong>Capture</strong>
+              <span>web · phone · continuation</span>
+            </div>
+            <div class="braid-step">
+              <strong>Normalize</strong>
+              <span>one request tuple</span>
+            </div>
+            <div class="braid-step">
+              <strong>Decide</strong>
+              <span>duplicate and safety</span>
+            </div>
+            <div class="braid-step">
+              <strong>Return</strong>
+              <span>same shell · same anchor</span>
+            </div>
+          </div>
+        </aside>
+
+        <article
+          class="lane phone-lane"
+          data-testid="phone-origin-lane"
+          aria-labelledby="phone-lane-title"
+        >
+          <div class="lane-header">
+            <div>
+              <p class="eyebrow">Phone origin</p>
+              <h2 id="phone-lane-title">Call and continuation evidence</h2>
+              <p class="lane-summary">
+                IVR facts, transcript facts, and SMS continuation evidence enter the same request
+                truth instead of a phone-only model.
+              </p>
+            </div>
+            <div class="chip-row">
+              <span class="chip parity">phone</span>
+              <span class="chip release">same truth</span>
+            </div>
+          </div>
+          <div class="evidence-stack" aria-label="Phone origin comparison facts">
+            <div class="evidence-row">
+              <span class="row-label">Inputs</span>
+              <span class="mono"
+                >ivr_symptoms · transcript_cough_fever · continuation_optional</span
+              >
+            </div>
+            <div class="evidence-row">
+              <span class="row-label">Tuple</span>
+              <span class="mono">Symptoms|cough_fever|onset_2d|routine_review</span>
+            </div>
+            <div class="evidence-row">
+              <span class="row-label">Duplicate</span>
+              <span class="mono">same_request_attach requires telephony_lineage_authority</span>
+            </div>
+            <div class="evidence-row">
+              <span class="row-label">Status</span>
+              <span class="mono">pending_review · provenance chip only</span>
+            </div>
+          </div>
+          <div class="scenario-panel" data-testid="phone-scenario-panel" data-active-case="aligned">
+            <p class="panel-title">Phone path stays first-class</p>
+            <p class="panel-copy">
+              Phone evidence can narrow provenance context, but cannot change canonical request
+              meaning, safety entry, duplicate semantics, or receipt grammar.
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <section
+        class="lower-grid"
+        data-testid="WrongPatientFreezeReleaseChain"
+        aria-labelledby="freeze-chain-title"
+      >
+        <div class="suppression-section" data-testid="SuppressionInspector">
+          <p class="eyebrow">Wrong-patient repair</p>
+          <h2 id="freeze-chain-title">Freeze, suppress, release</h2>
+          <p class="small-copy">
+            Hold posture is immediate. Release waits for current binding authority, branch
+            settlements, and fresh route/session/grant authority.
+          </p>
+          <div class="suppression-grid" aria-label="Suppression inspector">
+            <div class="proof-cell">
+              <strong>Hold entered</strong>
+              <p>`PatientIdentityHoldProjection` suppresses PHI detail and mutable actions.</p>
+            </div>
+            <div class="proof-cell">
+              <strong>Branch gated</strong>
+              <p>
+                External delivery, file visibility, telephony continuation, and support branches
+                settle first.
+              </p>
+            </div>
+            <div class="proof-cell">
+              <strong>Fail-closed release</strong>
+              <p>
+                Release helper records do not reopen detail while the resulting binding is stale.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="mirror-section"
+          data-testid="StatusSemanticsMirror"
+          aria-labelledby="status-mirror-title"
+        >
+          <p class="eyebrow">Status semantics mirror</p>
+          <h2 id="status-mirror-title">One patient-facing meaning</h2>
+          <div class="mirror-grid" aria-label="Status semantics mirror cells">
+            <div class="proof-cell">
+              <strong>Receipt</strong>
+              <p>One receipt family is reused for exact and semantic duplicates.</p>
+            </div>
+            <div class="proof-cell">
+              <strong>Header</strong>
+              <p>
+                Request detail wording stays aligned across web, phone, secure-link, and signed-in
+                views.
+              </p>
+            </div>
+            <div class="proof-cell">
+              <strong>List row</strong>
+              <p>Phone provenance may add context, not a different status family.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="matrix-section" data-testid="MatrixPair" aria-labelledby="matrix-title">
+          <p class="eyebrow">Machine-readable matrices</p>
+          <h2 id="matrix-title">Parity and freeze cases</h2>
+          <p class="small-copy">
+            Current matrix status vocabulary: passed, failed, blocked_external, not_applicable.
+          </p>
+          <div class="matrix-pair">
+            <div class="table-wrap">
+              <table data-testid="parity-matrix" aria-label="Parity matrix">
+                <caption>
+                  Web phone normalization parity matrix
+                </caption>
+                <thead>
+                  <tr>
+                    <th>Pair</th>
+                    <th>Tuple</th>
+                    <th>Duplicate</th>
+                    <th>Safety</th>
+                    <th>Status</th>
+                    <th>Recovery</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="mono">PAR206_SAME_SYMPTOMS</td>
+                    <td>Symptoms cough fever onset 2d</td>
+                    <td>distinct</td>
+                    <td>routine_review</td>
+                    <td>pending_review</td>
+                    <td>track_status_available</td>
+                  </tr>
+                  <tr>
+                    <td class="mono">PAR206_EXACT_DUPLICATE</td>
+                    <td>normalized_hash_A</td>
+                    <td>exact_retry_collapse</td>
+                    <td>return_prior_result</td>
+                    <td>pending_review</td>
+                    <td>track_status_available</td>
+                  </tr>
+                  <tr>
+                    <td class="mono">PAR206_SEMANTIC_DUPLICATE</td>
+                    <td>semantic_hash_B</td>
+                    <td>same_request_attach</td>
+                    <td>routine_admin</td>
+                    <td>pending_review</td>
+                    <td>same_lineage_preserved</td>
+                  </tr>
+                  <tr>
+                    <td class="mono">PAR206_MATERIAL_NEW_EVIDENCE</td>
+                    <td>worsening_now</td>
+                    <td>same_request_attach</td>
+                    <td>re_safety_required</td>
+                    <td>being_checked</td>
+                    <td>detail_received_being_checked</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="table-wrap">
+              <table data-testid="freeze-matrix" aria-label="Freeze release matrix">
+                <caption>
+                  Wrong-patient freeze and release matrix
+                </caption>
+                <thead>
+                  <tr>
+                    <th>Case</th>
+                    <th>Trigger</th>
+                    <th>Hold</th>
+                    <th>Suppression</th>
+                    <th>Release condition</th>
+                    <th>Return</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="mono">WPR206_SUBJECT_CONFLICT_AFTER_DETAIL_VISIBLE</td>
+                    <td>subject conflict after detail</td>
+                    <td>identity_hold_active</td>
+                    <td>cached PHI removed</td>
+                    <td>branch review closed</td>
+                    <td>safe summary</td>
+                  </tr>
+                  <tr>
+                    <td class="mono">WPR206_BRANCH_COMPENSATION_PENDING</td>
+                    <td>external delivery dispute</td>
+                    <td>identity_hold_active</td>
+                    <td>message preview hidden</td>
+                    <td>compensation reference required</td>
+                    <td>hold remains</td>
+                  </tr>
+                  <tr>
+                    <td class="mono">WPR206_RELEASE_SETTLEMENT_BINDING_STALE</td>
+                    <td>helper settlement before current binding</td>
+                    <td>release_blocked</td>
+                    <td>writable resume blocked</td>
+                    <td>resulting binding current</td>
+                    <td>read-only summary</td>
+                  </tr>
+                  <tr>
+                    <td class="mono">WPR206_RESULTING_BINDING_CURRENT_RELEASE</td>
+                    <td>authority binding and branches current</td>
+                    <td>released</td>
+                    <td>stale grants still suppressed</td>
+                    <td>release settlement complete</td>
+                    <td>selected anchor</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const caseCopy = {
+        aligned: {
+          title: "Aligned parity case",
+          copy: "Web and phone lanes share PAR206_SAME_SYMPTOMS|routine_review|pending_review. The only visible difference is a provenance chip.",
+        },
+        duplicate: {
+          title: "Duplicate parity case",
+          copy: "Exact and semantic duplicates reuse the settled request lineage and receipt semantics instead of creating a second request or calmer phone-only status.",
+        },
+        resafety: {
+          title: "Material new evidence re-safety",
+          copy: "A later phone follow-up that changes clinical meaning opens re-safety and suppresses stale calm status before review settles.",
+        },
+        "active-hold": {
+          title: "Active wrong-patient hold",
+          copy: "PHI detail, cached snippets, attachments, and mutable CTAs are removed immediately. The same shell shows one bounded identity repair action.",
+        },
+        released: {
+          title: "Released and resumed",
+          copy: "Release resumes only after the resulting binding is current, governing branches are safe, projections rebuild, and fresh route authority exists.",
+        },
+      };
+
+      const lab = document.querySelector("[data-testid='Parity_Repair_Lab']");
+      const panel = document.querySelector("[data-testid='active-scenario-panel']");
+      const phonePanel = document.querySelector("[data-testid='phone-scenario-panel']");
+
+      document.querySelectorAll("[data-case]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const activeCase = button.getAttribute("data-case");
+          document
+            .querySelectorAll("[data-case]")
+            .forEach((candidate) =>
+              candidate.setAttribute("aria-pressed", String(candidate === button)),
+            );
+          const activeCopy = caseCopy[activeCase];
+          panel.dataset.activeCase = activeCase;
+          phonePanel.dataset.activeCase = activeCase;
+          panel.querySelector(".panel-title").textContent = activeCopy.title;
+          panel.querySelector(".panel-copy").textContent = activeCopy.copy;
+          phonePanel.querySelector(".panel-title").textContent = activeCopy.title;
+          phonePanel.querySelector(".panel-copy").textContent = activeCopy.copy;
+        });
+      });
+
+      document.querySelectorAll("[data-lane-switch]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const lane = button.getAttribute("data-lane-switch");
+          lab.dataset.mobileLane = lane;
+          document
+            .querySelectorAll("[data-lane-switch]")
+            .forEach((candidate) =>
+              candidate.setAttribute("aria-pressed", String(candidate === button)),
+            );
+        });
+      });
+
+      document.documentElement.dataset.ready = "true";
+    </script>
+  </body>
+</html>

@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="en" data-scenario="active-reply-needed">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>212 Response Continuity Atlas</title>
+    <style>
+      :root {
+        --canvas: #f6f8fb;
+        --panel: #ffffff;
+        --inset: #eef3f9;
+        --text: #102033;
+        --body: #425466;
+        --muted: #66758a;
+        --border: #d9e1ea;
+        --indigo: #495fea;
+        --teal: #0e8c87;
+        --amber: #b7791f;
+        --danger: #b42318;
+        --success: #127a5a;
+        --shadow: 0 24px 70px rgba(16, 32, 51, 0.12);
+        color-scheme: light;
+        font-family:
+          InterVariable, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background:
+          linear-gradient(90deg, rgba(73, 95, 234, 0.08), transparent 32%),
+          linear-gradient(180deg, #ffffff, var(--canvas));
+        color: var(--text);
+      }
+
+      .atlas {
+        width: min(1460px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: 28px 0 40px;
+      }
+
+      header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 24px;
+        align-items: end;
+        min-height: 118px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        max-width: 760px;
+        font-size: clamp(2.1rem, 5vw, 5rem);
+        line-height: 0.98;
+        letter-spacing: 0;
+      }
+
+      .meta {
+        color: var(--body);
+        margin-top: 14px;
+        max-width: 780px;
+        line-height: 1.55;
+      }
+
+      .mode {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.84);
+        padding: 14px 16px;
+        box-shadow: var(--shadow);
+        min-width: 278px;
+      }
+
+      .mode strong {
+        display: block;
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+
+      .mode span {
+        display: block;
+        margin-top: 6px;
+        font-weight: 800;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 22px 0 14px;
+      }
+
+      .tabs button {
+        min-height: 40px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 0 14px;
+        background: var(--panel);
+        color: var(--body);
+        font: inherit;
+        white-space: nowrap;
+      }
+
+      .tabs button[aria-selected="true"] {
+        color: #ffffff;
+        background: var(--text);
+        border-color: var(--text);
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: 3fr 4fr 3fr;
+        gap: 18px;
+        align-items: stretch;
+      }
+
+      .pane {
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 18px;
+        box-shadow: var(--shadow);
+        min-width: 0;
+      }
+
+      .pane h2 {
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+
+      .state-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .state-row {
+        display: grid;
+        grid-template-columns: 12px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        min-height: 54px;
+        padding: 12px;
+        border-radius: 14px;
+        background: var(--inset);
+      }
+
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        background: var(--indigo);
+      }
+
+      .state-row[data-tone="success"] .dot {
+        background: var(--success);
+      }
+
+      .state-row[data-tone="warning"] .dot {
+        background: var(--amber);
+      }
+
+      .state-row[data-tone="danger"] .dot {
+        background: var(--danger);
+      }
+
+      .state-row[data-tone="teal"] .dot {
+        background: var(--teal);
+      }
+
+      .state-row b,
+      .thread-line b,
+      .diagram-step b {
+        display: block;
+        font-size: 0.95rem;
+      }
+
+      .state-row span,
+      .thread-line span,
+      .diagram-step span,
+      .metric span {
+        display: block;
+        color: var(--body);
+        font-size: 0.82rem;
+        line-height: 1.35;
+      }
+
+      .chip {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 5px 9px;
+        color: var(--body);
+        background: var(--panel);
+        font-size: 0.75rem;
+      }
+
+      .thread {
+        display: grid;
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .thread-line {
+        border-left: 3px solid var(--indigo);
+        padding: 10px 0 10px 14px;
+        min-height: 58px;
+      }
+
+      .thread-line[data-state="blocked"] {
+        border-color: var(--danger);
+      }
+
+      .thread-line[data-state="receipt"] {
+        border-color: var(--success);
+      }
+
+      .diagram {
+        display: grid;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .diagram-step {
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: #ffffff;
+      }
+
+      .matrix {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .metric {
+        border-radius: 14px;
+        background: var(--inset);
+        padding: 12px;
+        min-height: 78px;
+      }
+
+      .metric b {
+        display: block;
+        font-size: 1.2rem;
+      }
+
+      details {
+        margin-top: 16px;
+        border-top: 1px solid var(--border);
+        padding-top: 12px;
+      }
+
+      summary {
+        cursor: pointer;
+        color: var(--text);
+        font-weight: 800;
+      }
+
+      code {
+        display: block;
+        overflow-x: auto;
+        margin-top: 10px;
+        padding: 12px;
+        border-radius: 12px;
+        background: #102033;
+        color: #eef3f9;
+        font-size: 0.78rem;
+        line-height: 1.5;
+      }
+
+      .lower {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      @media (max-width: 980px) {
+        .atlas {
+          width: min(100% - 24px, 720px);
+          padding-top: 18px;
+        }
+
+        header,
+        .workspace,
+        .lower {
+          grid-template-columns: 1fr;
+        }
+
+        h1 {
+          font-size: 2.5rem;
+        }
+
+        .matrix {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        .pane,
+        .mode {
+          animation: lift 180ms ease-out both;
+        }
+
+        .state-row,
+        .thread-line,
+        .diagram-step {
+          transition:
+            transform 160ms ease,
+            border-color 160ms ease;
+        }
+
+        .state-row:hover,
+        .diagram-step:hover {
+          transform: translateY(-2px);
+        }
+      }
+
+      @keyframes lift {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="atlas" data-testid="Response_Continuity_Atlas">
+      <header>
+        <div>
+          <h1>Response continuity atlas</h1>
+          <p class="meta">
+            More-info, callback, reachability, contact repair, and consent checkpoint truth in one
+            request shell.
+          </p>
+        </div>
+        <aside class="mode" aria-label="Atlas mode">
+          <strong>Visual mode</strong>
+          <span>Response_Continuity_Atlas</span>
+        </aside>
+      </header>
+
+      <nav class="tabs" aria-label="Response states" role="tablist" data-testid="StateTabs"></nav>
+
+      <section class="workspace" aria-label="Response continuity workspace">
+        <section class="pane" data-testid="StateGallery" aria-label="State gallery">
+          <h2>State gallery</h2>
+          <div class="state-list" id="stateGallery"></div>
+        </section>
+
+        <section class="pane" data-testid="ThreadAnatomyBoard" aria-label="Thread anatomy board">
+          <h2>Thread anatomy</h2>
+          <div class="thread" id="threadBoard"></div>
+          <details>
+            <summary>Projection refs</summary>
+            <code id="projectionRefs" tabindex="0"></code>
+          </details>
+        </section>
+
+        <section
+          class="pane"
+          data-testid="BlockerDominanceMatrix"
+          aria-label="Blocker dominance matrix"
+        >
+          <h2>Blocker dominance</h2>
+          <div class="matrix" id="dominanceMetrics"></div>
+          <div class="diagram" id="blockerDiagram"></div>
+        </section>
+      </section>
+
+      <section class="lower" aria-label="Route diagrams and continuity evidence">
+        <section
+          class="pane"
+          data-testid="RequestShellChildRouteDiagram"
+          aria-label="Request shell child-route diagram"
+        >
+          <h2>Request shell child route</h2>
+          <div class="diagram" id="requestRouteDiagram"></div>
+        </section>
+
+        <section
+          class="pane"
+          data-testid="MessageShellCallbackRepairDiagram"
+          aria-label="Message shell callback repair diagram"
+        >
+          <h2>Message shell callback repair</h2>
+          <div class="diagram" id="messageRouteDiagram"></div>
+        </section>
+      </section>
+
+      <section
+        class="pane"
+        data-testid="ContinuityEvidenceShelf"
+        aria-label="Continuity evidence shelf"
+        style="margin-top: 18px"
+      >
+        <h2>Continuity evidence</h2>
+        <div class="matrix" id="continuityShelf"></div>
+      </section>
+    </main>
+
+    <script id="response-continuity-data" type="application/json">
+      {
+        "visualMode": "Response_Continuity_Atlas",
+        "taskId": "par_212_crosscutting_track_backend_build_more_info_response_thread_callback_status_and_contact_repair_projections",
+        "projections": [
+          "PatientMoreInfoStatusProjection",
+          "PatientMoreInfoResponseThreadProjection",
+          "PatientCallbackStatusProjection",
+          "PatientReachabilitySummaryProjection",
+          "PatientContactRepairProjection",
+          "PatientConsentCheckpointProjection"
+        ],
+        "scenarios": [
+          {
+            "id": "active-reply-needed",
+            "label": "Active reply-needed",
+            "tone": "teal",
+            "moreInfo": "reply_needed",
+            "thread": "answerable",
+            "callback": "scheduled",
+            "reachability": "clear",
+            "repair": "not_required",
+            "consent": "satisfied",
+            "action": "respond_more_info"
+          },
+          {
+            "id": "reply-submitted-awaiting-review",
+            "label": "Reply submitted awaiting review",
+            "tone": "success",
+            "moreInfo": "reply_submitted",
+            "thread": "submitted_read_only",
+            "callback": "scheduled",
+            "reachability": "clear",
+            "repair": "not_required",
+            "consent": "satisfied",
+            "action": "none"
+          },
+          {
+            "id": "late-review",
+            "label": "Accepted late review",
+            "tone": "warning",
+            "moreInfo": "accepted_late_review",
+            "thread": "submitted_read_only",
+            "callback": "retry_planned",
+            "reachability": "clear",
+            "repair": "not_required",
+            "consent": "satisfied",
+            "action": "none"
+          },
+          {
+            "id": "expired-cycle-recovery",
+            "label": "Expired cycle with recovery",
+            "tone": "danger",
+            "moreInfo": "expired",
+            "thread": "expired_recovery",
+            "callback": "scheduled",
+            "reachability": "clear",
+            "repair": "not_required",
+            "consent": "satisfied",
+            "action": "recover_session"
+          },
+          {
+            "id": "callback-expected",
+            "label": "Callback expected",
+            "tone": "teal",
+            "moreInfo": "read_only",
+            "thread": "submitted_read_only",
+            "callback": "scheduled",
+            "reachability": "clear",
+            "repair": "not_required",
+            "consent": "satisfied",
+            "action": "callback_response"
+          },
+          {
+            "id": "callback-window-at-risk",
+            "label": "Callback window at risk",
+            "tone": "warning",
+            "moreInfo": "read_only",
+            "thread": "submitted_read_only",
+            "callback": "at_risk",
+            "reachability": "degraded",
+            "repair": "not_required",
+            "consent": "satisfied",
+            "action": "callback_response"
+          },
+          {
+            "id": "callback-completed",
+            "label": "Callback completed",
+            "tone": "success",
+            "moreInfo": "awaiting_review",
+            "thread": "submitted_read_only",
+            "callback": "closed",
+            "reachability": "clear",
+            "repair": "not_required",
+            "consent": "satisfied",
+            "action": "none"
+          },
+          {
+            "id": "repair-required",
+            "label": "Repair required",
+            "tone": "danger",
+            "moreInfo": "repair_required",
+            "thread": "blocked_by_repair",
+            "callback": "route_repair_required",
+            "reachability": "blocked",
+            "repair": "required",
+            "consent": "satisfied",
+            "action": "contact_route_repair"
+          },
+          {
+            "id": "consent-checkpoint-required",
+            "label": "Consent checkpoint required",
+            "tone": "warning",
+            "moreInfo": "reply_needed",
+            "thread": "blocked_by_consent",
+            "callback": "scheduled",
+            "reachability": "clear",
+            "repair": "not_required",
+            "consent": "expired",
+            "action": "renew_consent"
+          },
+          {
+            "id": "public-safe-placeholder",
+            "label": "Public-safe placeholder",
+            "tone": "warning",
+            "moreInfo": "reply_needed",
+            "thread": "public_safe_placeholder",
+            "callback": "scheduled",
+            "reachability": "clear",
+            "repair": "not_required",
+            "consent": "satisfied",
+            "action": "none"
+          }
+        ]
+      }
+    </script>
+    <script>
+      const data = JSON.parse(document.getElementById("response-continuity-data").textContent);
+      window.__responseContinuityAtlasData = data;
+
+      const tabs = document.querySelector("[data-testid='StateTabs']");
+      const stateGallery = document.getElementById("stateGallery");
+      const threadBoard = document.getElementById("threadBoard");
+      const projectionRefs = document.getElementById("projectionRefs");
+      const dominanceMetrics = document.getElementById("dominanceMetrics");
+      const blockerDiagram = document.getElementById("blockerDiagram");
+      const requestRouteDiagram = document.getElementById("requestRouteDiagram");
+      const messageRouteDiagram = document.getElementById("messageRouteDiagram");
+      const continuityShelf = document.getElementById("continuityShelf");
+
+      function scenario() {
+        return data.scenarios.find((item) => item.id === document.documentElement.dataset.scenario);
+      }
+
+      function row(label, value, tone = "indigo") {
+        return `<div class="state-row" data-tone="${tone}"><i class="dot"></i><span><b>${label}</b><span>${value}</span></span><em class="chip">${tone}</em></div>`;
+      }
+
+      function step(label, value) {
+        return `<div class="diagram-step"><b>${label}</b><span>${value}</span></div>`;
+      }
+
+      function metric(label, value) {
+        return `<div class="metric"><b>${value}</b><span>${label}</span></div>`;
+      }
+
+      function render() {
+        const current = scenario();
+        for (const button of tabs.querySelectorAll("button")) {
+          button.setAttribute("aria-selected", String(button.dataset.scenarioButton === current.id));
+          button.tabIndex = button.dataset.scenarioButton === current.id ? 0 : -1;
+        }
+        stateGallery.innerHTML = [
+          row("More-info cycle", current.moreInfo, current.tone),
+          row("Thread answerability", current.thread, current.thread.includes("blocked") ? "danger" : current.tone),
+          row("Callback visible state", current.callback, current.callback.includes("repair") ? "danger" : current.tone),
+          row("Reachability", current.reachability, current.reachability === "blocked" ? "danger" : current.tone),
+          row("Contact repair", current.repair, current.repair === "required" ? "danger" : current.tone),
+          row("Consent checkpoint", current.consent, current.consent === "expired" ? "warning" : current.tone)
+        ].join("");
+
+        threadBoard.innerHTML = [
+          `<div class="thread-line" data-state="${current.thread.includes("blocked") ? "blocked" : "open"}"><b>PatientMoreInfoStatusProjection</b><span>${current.moreInfo} resolves to ${current.thread}</span></div>`,
+          `<div class="thread-line" data-state="${current.thread.includes("blocked") ? "blocked" : "open"}"><b>PatientMoreInfoResponseThreadProjection</b><span>prompt stack stays derivative of MoreInfoCycle and PatientRequestReturnBundle</span></div>`,
+          `<div class="thread-line" data-state="${current.action === "none" ? "receipt" : "open"}"><b>Dominant action</b><span>${current.action}</span></div>`
+        ].join("");
+
+        projectionRefs.textContent = JSON.stringify(
+          {
+            PatientMoreInfoStatusProjection: current.moreInfo,
+            PatientMoreInfoResponseThreadProjection: current.thread,
+            PatientCallbackStatusProjection: current.callback,
+            PatientReachabilitySummaryProjection: current.reachability,
+            PatientContactRepairProjection: current.repair,
+            PatientConsentCheckpointProjection: current.consent
+          },
+          null,
+          2
+        );
+
+        dominanceMetrics.innerHTML = [
+          metric("blocker dominance", current.action),
+          metric("public safe", current.id === "public-safe-placeholder" ? "yes" : "no"),
+          metric("route writable", current.action === "none" ? "no" : "typed")
+        ].join("");
+        blockerDiagram.innerHTML = [
+          step("1. Consent", current.consent === "expired" ? "dominates reply and callback" : "clear"),
+          step("2. Reachability", current.reachability === "blocked" ? "contact repair becomes dominant" : current.reachability),
+          step("3. Cycle truth", current.moreInfo),
+          step("4. Callback truth", current.callback)
+        ].join("");
+        requestRouteDiagram.innerHTML = [
+          step("Request shell", "PatientRequestReturnBundle preserves request_212_a"),
+          step("Child route", "/v1/me/requests/{requestRef}/more-info/thread"),
+          step("Action route", "PatientActionRoutingProjection actionType = " + current.action)
+        ].join("");
+        messageRouteDiagram.innerHTML = [
+          step("Message shell", "/v1/me/messages/{clusterId}/callback/{callbackCaseId}"),
+          step("Callback basis", "CallbackExpectationEnvelope + CallbackOutcomeEvidenceBundle + CallbackResolutionGate"),
+          step("Repair route", current.repair === "required" ? "/v1/me/contact-repair/{repairCaseId}" : "no repair route")
+        ].join("");
+        continuityShelf.innerHTML = [
+          metric("requestReturnBundleRef", "stable"),
+          metric("continuityEvidenceRef", current.thread.includes("blocked") ? "held" : "current"),
+          metric("same-shell recovery", current.thread.includes("recovery") ? "active" : "available")
+        ].join("");
+      }
+
+      for (const item of data.scenarios) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.role = "tab";
+        button.dataset.scenarioButton = item.id;
+        button.textContent = item.label;
+        button.addEventListener("click", () => {
+          document.documentElement.dataset.scenario = item.id;
+          render();
+        });
+        button.addEventListener("keydown", (event) => {
+          const buttons = [...tabs.querySelectorAll("button")];
+          const index = buttons.indexOf(button);
+          const nextIndex =
+            event.key === "ArrowRight"
+              ? (index + 1) % buttons.length
+              : event.key === "ArrowLeft"
+                ? (index - 1 + buttons.length) % buttons.length
+                : index;
+          if (nextIndex !== index) {
+            event.preventDefault();
+            buttons[nextIndex].click();
+            buttons[nextIndex].focus();
+          }
+        });
+        tabs.append(button);
+      }
+      render();
+      document.documentElement.dataset.ready = "true";
+    </script>
+  </body>
+</html>

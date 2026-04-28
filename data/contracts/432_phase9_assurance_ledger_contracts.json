@@ -1,0 +1,3842 @@
+{
+  "schemaVersion": "432.phase9.assurance-ledger-contracts.v1",
+  "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9A",
+  "phase8ExitPacketRef": "data/contracts/431_phase8_exit_packet.json",
+  "canonicalizationRule": {
+    "ruleName": "JCS-equivalent SHA-256",
+    "fieldOrdering": "object keys sorted lexicographically by Unicode code point",
+    "nullHandling": "null is preserved; undefined is rejected before hashing",
+    "arrayOrdering": "arrays preserve source order; set-like ref collections use orderedSetHash over sorted element hashes",
+    "timestampNormalization": "ISO-8601 timestamps normalize to UTC milliseconds with Date.toISOString()",
+    "numericPrecision": "finite JSON numbers only; integers must be JavaScript safe integers",
+    "hashAlgorithm": "SHA-256 hex",
+    "hashNamespacePrefix": "phase9.assurance.*",
+    "inputSetHashConstruction": "Merkle root over lexicographically sorted element hashes",
+    "graphHashConstruction": "Merkle root over lexicographically sorted AssuranceEvidenceGraphEdge.edgeHash values",
+    "previousHashContinuity": "first ledger entry uses GENESIS_ASSURANCE_LEDGER_HASH; each next entry.previousHash equals prior entry.hash"
+  },
+  "requiredInvariants": [
+    "AssuranceLedgerEntry preserves producer provenance, namespace, schema version, normalization version, source sequence, bounded-context ownership, replay decision class, effect key, and previous-hash continuity.",
+    "Canonical payload hashes are deterministic over JCS-equivalent canonical payloads.",
+    "Complete AssuranceEvidenceGraphSnapshot records are immutable once sealed.",
+    "AssuranceEvidenceGraphEdge rows carry relation semantics plus source ledger or evidence refs.",
+    "AssuranceGraphCompletenessVerdict is required before pack export, support replay, retention disposition, deletion/archive, recovery proof, or authoritative dashboard display.",
+    "Incomplete graph state fails closed.",
+    "AssuranceSliceTrustRecord.trustLowerBound governs visible dashboards and operations shell posture.",
+    "EvidenceArtifact preserves source capture, derivation, summary parity, redaction transform, retention class, and visibility scope.",
+    "ControlStatusSnapshot accounts for freshness, validation basis, supersession, coverage, lineage, reproducibility, and graph verdict.",
+    "Phase 9 consumers may not maintain parallel local evidence lists when a graph snapshot is available."
+  ],
+  "migrationCompatibilityGuardrails": [
+    "Schema version pins are mandatory for ledger ingest and contract import.",
+    "Normalization version refs are mandatory for accepted ledger entries.",
+    "Standards/framework refs are carried on ControlObjective and AssuranceEvidenceGraphSnapshot.",
+    "Graph snapshot version refs are frozen by contract artifact version.",
+    "Trust evaluation model refs are mandatory on AssuranceSliceTrustRecord.",
+    "Replay and determinism version refs are pinned by this artifact and must trigger rebuild on change.",
+    "Unsupported schema versions quarantine before append."
+  ],
+  "downstreamReadiness": {
+    "435": "ledger ingest and graph snapshot service imports ledger, artifact, snapshot, and hash helpers",
+    "436": "graph completeness verdict engine imports edge, snapshot, and verdict gates",
+    "437": "operational projection trust integration imports ProjectionHealthSnapshot and AssuranceSliceTrustRecord",
+    "439": "timeline reconstruction consumes ledger continuity and graph edges",
+    "440": "assurance pack generation requires graph snapshot plus completeness verdict",
+    "441": "CAPA and attestation workflow consumes ControlStatusSnapshot and AttestationRecord",
+    "442": "retention lifecycle binding consumes graph completeness and retention refs"
+  },
+  "contractSetHash": "17b1e13e0207f05e4bcedfe763f80a0e61d1749a05b6a0669b3ad741865b0f80",
+  "contracts": [
+    {
+      "contractName": "AssuranceLedgerEntry",
+      "schemaVersion": "432.phase9.assurance-ledger-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9A",
+      "fieldNames": [
+        "assuranceLedgerEntryId",
+        "sourceEventRef",
+        "entryType",
+        "tenantId",
+        "producerRef",
+        "namespaceRef",
+        "schemaVersionRef",
+        "normalizationVersionRef",
+        "sourceSequenceRef",
+        "sourceBoundedContextRef",
+        "governingBoundedContextRef",
+        "requiredContextBoundaryRefs",
+        "edgeCorrelationId",
+        "continuityFrameRef",
+        "routeIntentRef",
+        "commandActionRef",
+        "commandSettlementRef",
+        "uiEventRef",
+        "uiTransitionSettlementRef",
+        "projectionVisibilityRef",
+        "auditRecordRef",
+        "telemetryDisclosureFenceRef",
+        "causalTokenRef",
+        "replayDecisionClass",
+        "effectKeyRef",
+        "controlRefs",
+        "evidenceRefs",
+        "graphEdgeRefs",
+        "canonicalPayloadHash",
+        "inputSetHash",
+        "hash",
+        "previousHash",
+        "createdAt"
+      ],
+      "requiredFields": [
+        "assuranceLedgerEntryId",
+        "sourceEventRef",
+        "entryType",
+        "tenantId",
+        "producerRef",
+        "namespaceRef",
+        "schemaVersionRef",
+        "normalizationVersionRef",
+        "sourceSequenceRef",
+        "sourceBoundedContextRef",
+        "governingBoundedContextRef",
+        "requiredContextBoundaryRefs",
+        "edgeCorrelationId",
+        "auditRecordRef",
+        "causalTokenRef",
+        "replayDecisionClass",
+        "effectKeyRef",
+        "controlRefs",
+        "evidenceRefs",
+        "graphEdgeRefs",
+        "canonicalPayloadHash",
+        "inputSetHash",
+        "hash",
+        "previousHash",
+        "createdAt"
+      ],
+      "optionalFields": [
+        "continuityFrameRef",
+        "routeIntentRef",
+        "commandActionRef",
+        "commandSettlementRef",
+        "uiEventRef",
+        "uiTransitionSettlementRef",
+        "projectionVisibilityRef",
+        "telemetryDisclosureFenceRef"
+      ],
+      "fields": [
+        {
+          "fieldName": "assuranceLedgerEntryId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "sourceEventRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "entryType",
+          "fieldType": "Phase9AssuranceEntryType",
+          "required": true,
+          "enumRef": "entryType",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.entryType."
+        },
+        {
+          "fieldName": "tenantId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "producerRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "namespaceRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "schemaVersionRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "normalizationVersionRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "sourceSequenceRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "sourceBoundedContextRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "governingBoundedContextRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "requiredContextBoundaryRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "edgeCorrelationId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "continuityFrameRef",
+          "fieldType": "string",
+          "required": false,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "routeIntentRef",
+          "fieldType": "string",
+          "required": false,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "commandActionRef",
+          "fieldType": "string",
+          "required": false,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "commandSettlementRef",
+          "fieldType": "string",
+          "required": false,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "uiEventRef",
+          "fieldType": "string",
+          "required": false,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "uiTransitionSettlementRef",
+          "fieldType": "string",
+          "required": false,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "projectionVisibilityRef",
+          "fieldType": "string",
+          "required": false,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "auditRecordRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "telemetryDisclosureFenceRef",
+          "fieldType": "string",
+          "required": false,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "causalTokenRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "replayDecisionClass",
+          "fieldType": "ReplayDecisionClass",
+          "required": true,
+          "enumRef": "replayDecisionClass",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.replayDecisionClass."
+        },
+        {
+          "fieldName": "effectKeyRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "controlRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "evidenceRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "graphEdgeRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "canonicalPayloadHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "inputSetHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "hash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "previousHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "createdAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        }
+      ],
+      "enumValues": {
+        "entryType": [
+          "event_ingest",
+          "control_evaluation",
+          "evidence_materialization",
+          "projection_health",
+          "trust_evaluation",
+          "continuity_evidence",
+          "identity_repair_evidence",
+          "surface_runtime_binding"
+        ],
+        "replayDecisionClass": [
+          "original",
+          "exact_replay",
+          "semantic_replay",
+          "stale_duplicate",
+          "collision_review"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "All refs that carry tenant or scope metadata must resolve inside the same tenant scope unless an explicit governed cross-organisation grant exists.",
+        "Analytics assurance remains observer or governance posture and must not mutate patient, booking, hub, pharmacy, or communication lifecycle truth.",
+        "tenantId is mandatory and must match every tenant-scoped referenced artifact."
+      ],
+      "identityKeys": [
+        "assuranceLedgerEntryId"
+      ],
+      "idempotencyKeys": [
+        "assuranceLedgerEntryId",
+        "tenantId",
+        "schemaVersionRef|versionRef|evaluationModelRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 432.phase9.assurance-ledger-contracts.v1",
+        "normalization pinned to phase9.assurance.normalization.v1 where source events are normalized",
+        "graph snapshots pinned to phase9.assurance.graph-snapshot.v1",
+        "slice trust lower-bound model pinned to phase9.assurance.slice-trust.lower-bound.v1",
+        "replay determinism pinned to phase9.assurance.replay-determinism.v1"
+      ],
+      "canonicalHashInputs": [
+        "assuranceLedgerEntryId",
+        "sourceEventRef",
+        "entryType",
+        "tenantId",
+        "producerRef",
+        "namespaceRef",
+        "schemaVersionRef",
+        "normalizationVersionRef",
+        "sourceSequenceRef",
+        "sourceBoundedContextRef",
+        "governingBoundedContextRef",
+        "requiredContextBoundaryRefs",
+        "edgeCorrelationId",
+        "continuityFrameRef",
+        "routeIntentRef",
+        "commandActionRef",
+        "commandSettlementRef",
+        "uiEventRef",
+        "uiTransitionSettlementRef",
+        "projectionVisibilityRef",
+        "auditRecordRef",
+        "telemetryDisclosureFenceRef",
+        "causalTokenRef",
+        "replayDecisionClass",
+        "effectKeyRef",
+        "controlRefs",
+        "evidenceRefs",
+        "graphEdgeRefs",
+        "canonicalPayloadHash",
+        "inputSetHash",
+        "previousHash",
+        "createdAt"
+      ],
+      "piiPhiClassification": "Operational assurance metadata; may contain tenant, audit, producer, and artifact refs but no inline PHI.",
+      "retentionClassRef": "inherits_retention_from_linked_evidence_or_audit_record",
+      "auditEventMapping": [
+        "assurance.phase9.AssuranceLedgerEntry.created",
+        "assurance.phase9.AssuranceLedgerEntry.validated",
+        "assurance.phase9.AssuranceLedgerEntry.superseded_or_quarantined"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unknown namespaces and unsupported schema versions must quarantine before ledger append.",
+        "Legacy aliases may normalize only through a registered CanonicalEventNormalizationRule and must record the alias mapping.",
+        "Hash, graph, replay, and trust model version changes require deterministic rebuild before authoritative use."
+      ],
+      "validStateExamples": [
+        {
+          "exampleId": "valid:AssuranceLedgerEntry:canonical-fixture",
+          "description": "Canonical valid AssuranceLedgerEntry example is materialized under data/fixtures/432_phase9_assurance_contract_fixtures.json#/examples/AssuranceLedgerEntry.",
+          "fieldValues": {
+            "fixturePath": "data/fixtures/432_phase9_assurance_contract_fixtures.json"
+          }
+        }
+      ],
+      "invalidStateExamples": [
+        {
+          "exampleId": "invalid:AssuranceLedgerEntry:missing-required-field",
+          "description": "Removing any required field from AssuranceLedgerEntry must fail contract validation.",
+          "fieldValues": {
+            "invalidMutation": "delete_first_required_field"
+          }
+        },
+        {
+          "exampleId": "invalid:AssuranceLedgerEntry:bad-enum",
+          "description": "Replacing an enum field on AssuranceLedgerEntry with an unregistered value must fail closed.",
+          "fieldValues": {
+            "invalidMutation": "replace_enum_with_unregistered_value"
+          }
+        }
+      ]
+    },
+    {
+      "contractName": "EvidenceArtifact",
+      "schemaVersion": "432.phase9.assurance-ledger-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9A",
+      "fieldNames": [
+        "evidenceArtifactId",
+        "artifactType",
+        "sourceRef",
+        "sourceVersion",
+        "sourceSnapshotRef",
+        "sourceCaptureBundleRef",
+        "sourceDerivationPackageRefs",
+        "sourceSummaryParityRef",
+        "producedByEntryRef",
+        "canonicalScopeRef",
+        "artifactRole",
+        "integrityHash",
+        "canonicalArtifactHash",
+        "artifactManifestHash",
+        "derivedFromArtifactRefs",
+        "redactionTransformHash",
+        "retentionClassRef",
+        "visibilityScope",
+        "supersedesArtifactRef",
+        "createdAt"
+      ],
+      "requiredFields": [
+        "evidenceArtifactId",
+        "artifactType",
+        "sourceRef",
+        "sourceVersion",
+        "sourceSnapshotRef",
+        "sourceCaptureBundleRef",
+        "sourceDerivationPackageRefs",
+        "sourceSummaryParityRef",
+        "producedByEntryRef",
+        "canonicalScopeRef",
+        "artifactRole",
+        "integrityHash",
+        "canonicalArtifactHash",
+        "artifactManifestHash",
+        "derivedFromArtifactRefs",
+        "redactionTransformHash",
+        "retentionClassRef",
+        "visibilityScope",
+        "createdAt"
+      ],
+      "optionalFields": [
+        "supersedesArtifactRef"
+      ],
+      "fields": [
+        {
+          "fieldName": "evidenceArtifactId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "artifactType",
+          "fieldType": "EvidenceArtifactType",
+          "required": true,
+          "enumRef": "artifactType",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.artifactType."
+        },
+        {
+          "fieldName": "sourceRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "sourceVersion",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "sourceSnapshotRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "sourceCaptureBundleRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "sourceDerivationPackageRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "sourceSummaryParityRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "producedByEntryRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "canonicalScopeRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "artifactRole",
+          "fieldType": "EvidenceArtifactRole",
+          "required": true,
+          "enumRef": "artifactRole",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.artifactRole."
+        },
+        {
+          "fieldName": "integrityHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "canonicalArtifactHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "artifactManifestHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "derivedFromArtifactRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "redactionTransformHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "retentionClassRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "visibilityScope",
+          "fieldType": "VisibilityScope",
+          "required": true,
+          "enumRef": "visibilityScope",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.visibilityScope."
+        },
+        {
+          "fieldName": "supersedesArtifactRef",
+          "fieldType": "string",
+          "required": false,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "createdAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        }
+      ],
+      "enumValues": {
+        "artifactType": [
+          "event_snapshot",
+          "projection_snapshot",
+          "audit_record",
+          "pack_section",
+          "retention_artifact"
+        ],
+        "artifactRole": [
+          "source",
+          "derived",
+          "summary",
+          "redacted",
+          "manifest"
+        ],
+        "visibilityScope": [
+          "tenant_internal",
+          "governance",
+          "support",
+          "audit_export",
+          "patient_visible"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "All refs that carry tenant or scope metadata must resolve inside the same tenant scope unless an explicit governed cross-organisation grant exists.",
+        "Analytics assurance remains observer or governance posture and must not mutate patient, booking, hub, pharmacy, or communication lifecycle truth."
+      ],
+      "identityKeys": [
+        "evidenceArtifactId"
+      ],
+      "idempotencyKeys": [
+        "evidenceArtifactId",
+        "scopeRef|tenantScopeRef|tenantScope",
+        "schemaVersionRef|versionRef|evaluationModelRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 432.phase9.assurance-ledger-contracts.v1",
+        "normalization pinned to phase9.assurance.normalization.v1 where source events are normalized",
+        "graph snapshots pinned to phase9.assurance.graph-snapshot.v1",
+        "slice trust lower-bound model pinned to phase9.assurance.slice-trust.lower-bound.v1",
+        "replay determinism pinned to phase9.assurance.replay-determinism.v1"
+      ],
+      "canonicalHashInputs": [
+        "evidenceArtifactId",
+        "artifactType",
+        "sourceRef",
+        "sourceVersion",
+        "sourceSnapshotRef",
+        "sourceCaptureBundleRef",
+        "sourceDerivationPackageRefs",
+        "sourceSummaryParityRef",
+        "producedByEntryRef",
+        "canonicalScopeRef",
+        "artifactRole",
+        "integrityHash",
+        "canonicalArtifactHash",
+        "artifactManifestHash",
+        "derivedFromArtifactRefs",
+        "redactionTransformHash",
+        "retentionClassRef",
+        "visibilityScope",
+        "supersedesArtifactRef",
+        "createdAt"
+      ],
+      "piiPhiClassification": "PHI/PII pointer-sensitive: no inline PHI; source, identity, and artifact refs require redaction and retention controls.",
+      "retentionClassRef": "retentionClassRef is required and must map to the Records Management Code aligned retention catalog.",
+      "auditEventMapping": [
+        "assurance.phase9.EvidenceArtifact.created",
+        "assurance.phase9.EvidenceArtifact.validated",
+        "assurance.phase9.EvidenceArtifact.superseded_or_quarantined"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unknown namespaces and unsupported schema versions must quarantine before ledger append.",
+        "Legacy aliases may normalize only through a registered CanonicalEventNormalizationRule and must record the alias mapping.",
+        "Hash, graph, replay, and trust model version changes require deterministic rebuild before authoritative use."
+      ],
+      "validStateExamples": [
+        {
+          "exampleId": "valid:EvidenceArtifact:canonical-fixture",
+          "description": "Canonical valid EvidenceArtifact example is materialized under data/fixtures/432_phase9_assurance_contract_fixtures.json#/examples/EvidenceArtifact.",
+          "fieldValues": {
+            "fixturePath": "data/fixtures/432_phase9_assurance_contract_fixtures.json"
+          }
+        }
+      ],
+      "invalidStateExamples": [
+        {
+          "exampleId": "invalid:EvidenceArtifact:missing-required-field",
+          "description": "Removing any required field from EvidenceArtifact must fail contract validation.",
+          "fieldValues": {
+            "invalidMutation": "delete_first_required_field"
+          }
+        },
+        {
+          "exampleId": "invalid:EvidenceArtifact:bad-enum",
+          "description": "Replacing an enum field on EvidenceArtifact with an unregistered value must fail closed.",
+          "fieldValues": {
+            "invalidMutation": "replace_enum_with_unregistered_value"
+          }
+        }
+      ]
+    },
+    {
+      "contractName": "ControlObjective",
+      "schemaVersion": "432.phase9.assurance-ledger-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9A",
+      "fieldNames": [
+        "controlObjectiveId",
+        "frameworkCode",
+        "controlCode",
+        "versionRef",
+        "ownerRole",
+        "status",
+        "evidenceRequirementSet",
+        "freshnessPolicyRef",
+        "validationPolicyRef"
+      ],
+      "requiredFields": [
+        "controlObjectiveId",
+        "frameworkCode",
+        "controlCode",
+        "versionRef",
+        "ownerRole",
+        "status",
+        "evidenceRequirementSet",
+        "freshnessPolicyRef",
+        "validationPolicyRef"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "controlObjectiveId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "frameworkCode",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "controlCode",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "versionRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "ownerRole",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "status",
+          "fieldType": "ControlObjectiveStatus",
+          "required": true,
+          "enumRef": "controlObjectiveStatus",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.controlObjectiveStatus."
+        },
+        {
+          "fieldName": "evidenceRequirementSet",
+          "fieldType": "readonly EvidenceRequirement[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "freshnessPolicyRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "validationPolicyRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        }
+      ],
+      "enumValues": {
+        "status": [
+          "active",
+          "deprecated",
+          "superseded",
+          "draft"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "All refs that carry tenant or scope metadata must resolve inside the same tenant scope unless an explicit governed cross-organisation grant exists.",
+        "Analytics assurance remains observer or governance posture and must not mutate patient, booking, hub, pharmacy, or communication lifecycle truth."
+      ],
+      "identityKeys": [
+        "controlObjectiveId"
+      ],
+      "idempotencyKeys": [
+        "controlObjectiveId",
+        "scopeRef|tenantScopeRef|tenantScope",
+        "schemaVersionRef|versionRef|evaluationModelRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 432.phase9.assurance-ledger-contracts.v1",
+        "normalization pinned to phase9.assurance.normalization.v1 where source events are normalized",
+        "graph snapshots pinned to phase9.assurance.graph-snapshot.v1",
+        "slice trust lower-bound model pinned to phase9.assurance.slice-trust.lower-bound.v1",
+        "replay determinism pinned to phase9.assurance.replay-determinism.v1"
+      ],
+      "canonicalHashInputs": [
+        "controlObjectiveId",
+        "frameworkCode",
+        "controlCode",
+        "versionRef",
+        "ownerRole",
+        "status",
+        "evidenceRequirementSet",
+        "freshnessPolicyRef",
+        "validationPolicyRef"
+      ],
+      "piiPhiClassification": "Operational assurance metadata; may contain tenant, audit, producer, and artifact refs but no inline PHI.",
+      "retentionClassRef": "inherits_retention_from_linked_evidence_or_audit_record",
+      "auditEventMapping": [
+        "assurance.phase9.ControlObjective.created",
+        "assurance.phase9.ControlObjective.validated",
+        "assurance.phase9.ControlObjective.superseded_or_quarantined"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unknown namespaces and unsupported schema versions must quarantine before ledger append.",
+        "Legacy aliases may normalize only through a registered CanonicalEventNormalizationRule and must record the alias mapping.",
+        "Hash, graph, replay, and trust model version changes require deterministic rebuild before authoritative use."
+      ],
+      "validStateExamples": [
+        {
+          "exampleId": "valid:ControlObjective:canonical-fixture",
+          "description": "Canonical valid ControlObjective example is materialized under data/fixtures/432_phase9_assurance_contract_fixtures.json#/examples/ControlObjective.",
+          "fieldValues": {
+            "fixturePath": "data/fixtures/432_phase9_assurance_contract_fixtures.json"
+          }
+        }
+      ],
+      "invalidStateExamples": [
+        {
+          "exampleId": "invalid:ControlObjective:missing-required-field",
+          "description": "Removing any required field from ControlObjective must fail contract validation.",
+          "fieldValues": {
+            "invalidMutation": "delete_first_required_field"
+          }
+        },
+        {
+          "exampleId": "invalid:ControlObjective:bad-enum",
+          "description": "Replacing an enum field on ControlObjective with an unregistered value must fail closed.",
+          "fieldValues": {
+            "invalidMutation": "replace_enum_with_unregistered_value"
+          }
+        }
+      ]
+    },
+    {
+      "contractName": "ControlEvidenceLink",
+      "schemaVersion": "432.phase9.assurance-ledger-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9A",
+      "fieldNames": [
+        "linkId",
+        "controlObjectiveId",
+        "requirementRef",
+        "requirementWeight",
+        "evidenceArtifactId",
+        "linkType",
+        "validFrom",
+        "validTo",
+        "validationState",
+        "validationBasisRef",
+        "freshnessState",
+        "lineagePathHash",
+        "evidenceSetHash",
+        "assuranceEvidenceGraphSnapshotRef",
+        "assuranceEvidenceGraphEdgeRef",
+        "linkConfidence",
+        "supersededAt"
+      ],
+      "requiredFields": [
+        "linkId",
+        "controlObjectiveId",
+        "requirementRef",
+        "requirementWeight",
+        "evidenceArtifactId",
+        "linkType",
+        "validFrom",
+        "validationState",
+        "validationBasisRef",
+        "freshnessState",
+        "lineagePathHash",
+        "evidenceSetHash",
+        "assuranceEvidenceGraphSnapshotRef",
+        "assuranceEvidenceGraphEdgeRef",
+        "linkConfidence"
+      ],
+      "optionalFields": [
+        "validTo",
+        "supersededAt"
+      ],
+      "fields": [
+        {
+          "fieldName": "linkId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "controlObjectiveId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "requirementRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "requirementWeight",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "evidenceArtifactId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "linkType",
+          "fieldType": "ControlEvidenceLinkType",
+          "required": true,
+          "enumRef": "linkType",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.linkType."
+        },
+        {
+          "fieldName": "validFrom",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "validTo",
+          "fieldType": "iso-timestamp",
+          "required": false,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "validationState",
+          "fieldType": "ValidationState",
+          "required": true,
+          "enumRef": "validationState",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.validationState."
+        },
+        {
+          "fieldName": "validationBasisRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "freshnessState",
+          "fieldType": "FreshnessState",
+          "required": true,
+          "enumRef": "freshnessState",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.freshnessState."
+        },
+        {
+          "fieldName": "lineagePathHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "evidenceSetHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "assuranceEvidenceGraphSnapshotRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "assuranceEvidenceGraphEdgeRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "linkConfidence",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "supersededAt",
+          "fieldType": "iso-timestamp",
+          "required": false,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        }
+      ],
+      "enumValues": {
+        "linkType": [
+          "mandatory",
+          "supporting",
+          "compensating",
+          "attestation"
+        ],
+        "validationState": [
+          "validated",
+          "pending",
+          "failed",
+          "superseded"
+        ],
+        "freshnessState": [
+          "current",
+          "stale",
+          "expired",
+          "missing",
+          "quarantined"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "All refs that carry tenant or scope metadata must resolve inside the same tenant scope unless an explicit governed cross-organisation grant exists.",
+        "Analytics assurance remains observer or governance posture and must not mutate patient, booking, hub, pharmacy, or communication lifecycle truth."
+      ],
+      "identityKeys": [
+        "linkId"
+      ],
+      "idempotencyKeys": [
+        "linkId",
+        "scopeRef|tenantScopeRef|tenantScope",
+        "schemaVersionRef|versionRef|evaluationModelRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 432.phase9.assurance-ledger-contracts.v1",
+        "normalization pinned to phase9.assurance.normalization.v1 where source events are normalized",
+        "graph snapshots pinned to phase9.assurance.graph-snapshot.v1",
+        "slice trust lower-bound model pinned to phase9.assurance.slice-trust.lower-bound.v1",
+        "replay determinism pinned to phase9.assurance.replay-determinism.v1"
+      ],
+      "canonicalHashInputs": [
+        "linkId",
+        "controlObjectiveId",
+        "requirementRef",
+        "requirementWeight",
+        "evidenceArtifactId",
+        "linkType",
+        "validFrom",
+        "validTo",
+        "validationState",
+        "validationBasisRef",
+        "freshnessState",
+        "lineagePathHash",
+        "evidenceSetHash",
+        "assuranceEvidenceGraphSnapshotRef",
+        "assuranceEvidenceGraphEdgeRef",
+        "linkConfidence",
+        "supersededAt"
+      ],
+      "piiPhiClassification": "Operational assurance metadata; may contain tenant, audit, producer, and artifact refs but no inline PHI.",
+      "retentionClassRef": "inherits_retention_from_linked_evidence_or_audit_record",
+      "auditEventMapping": [
+        "assurance.phase9.ControlEvidenceLink.created",
+        "assurance.phase9.ControlEvidenceLink.validated",
+        "assurance.phase9.ControlEvidenceLink.superseded_or_quarantined"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unknown namespaces and unsupported schema versions must quarantine before ledger append.",
+        "Legacy aliases may normalize only through a registered CanonicalEventNormalizationRule and must record the alias mapping.",
+        "Hash, graph, replay, and trust model version changes require deterministic rebuild before authoritative use."
+      ],
+      "validStateExamples": [
+        {
+          "exampleId": "valid:ControlEvidenceLink:canonical-fixture",
+          "description": "Canonical valid ControlEvidenceLink example is materialized under data/fixtures/432_phase9_assurance_contract_fixtures.json#/examples/ControlEvidenceLink.",
+          "fieldValues": {
+            "fixturePath": "data/fixtures/432_phase9_assurance_contract_fixtures.json"
+          }
+        }
+      ],
+      "invalidStateExamples": [
+        {
+          "exampleId": "invalid:ControlEvidenceLink:missing-required-field",
+          "description": "Removing any required field from ControlEvidenceLink must fail contract validation.",
+          "fieldValues": {
+            "invalidMutation": "delete_first_required_field"
+          }
+        },
+        {
+          "exampleId": "invalid:ControlEvidenceLink:bad-enum",
+          "description": "Replacing an enum field on ControlEvidenceLink with an unregistered value must fail closed.",
+          "fieldValues": {
+            "invalidMutation": "replace_enum_with_unregistered_value"
+          }
+        }
+      ]
+    },
+    {
+      "contractName": "ProjectionHealthSnapshot",
+      "schemaVersion": "432.phase9.assurance-ledger-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9A",
+      "fieldNames": [
+        "projectionHealthSnapshotId",
+        "projectionCode",
+        "lagMs",
+        "stalenessState",
+        "rebuildState",
+        "trustState",
+        "completenessState",
+        "expectedInputRefs",
+        "observedInputRefs",
+        "coverageScore",
+        "replayMatchScore",
+        "determinismState",
+        "snapshotHash",
+        "rebuildHash",
+        "integrityScore",
+        "affectedAudienceRefs",
+        "capturedAt"
+      ],
+      "requiredFields": [
+        "projectionHealthSnapshotId",
+        "projectionCode",
+        "lagMs",
+        "stalenessState",
+        "rebuildState",
+        "trustState",
+        "completenessState",
+        "expectedInputRefs",
+        "observedInputRefs",
+        "coverageScore",
+        "replayMatchScore",
+        "determinismState",
+        "snapshotHash",
+        "rebuildHash",
+        "integrityScore",
+        "affectedAudienceRefs",
+        "capturedAt"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "projectionHealthSnapshotId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "projectionCode",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "lagMs",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "stalenessState",
+          "fieldType": "ProjectionStalenessState",
+          "required": true,
+          "enumRef": "stalenessState",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.stalenessState."
+        },
+        {
+          "fieldName": "rebuildState",
+          "fieldType": "ProjectionRebuildState",
+          "required": true,
+          "enumRef": "rebuildState",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.rebuildState."
+        },
+        {
+          "fieldName": "trustState",
+          "fieldType": "AssuranceTrustState",
+          "required": true,
+          "enumRef": "trustState",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.trustState."
+        },
+        {
+          "fieldName": "completenessState",
+          "fieldType": "AssuranceCompletenessState",
+          "required": true,
+          "enumRef": "completenessState",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.completenessState."
+        },
+        {
+          "fieldName": "expectedInputRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "observedInputRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "coverageScore",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "replayMatchScore",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "determinismState",
+          "fieldType": "DeterminismState",
+          "required": true,
+          "enumRef": "determinismState",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.determinismState."
+        },
+        {
+          "fieldName": "snapshotHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "rebuildHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "integrityScore",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "affectedAudienceRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "capturedAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        }
+      ],
+      "enumValues": {
+        "stalenessState": [
+          "fresh",
+          "near_stale",
+          "stale",
+          "blocked"
+        ],
+        "rebuildState": [
+          "not_required",
+          "queued",
+          "rebuilt",
+          "failed"
+        ],
+        "trustState": [
+          "trusted",
+          "degraded",
+          "quarantined",
+          "unknown"
+        ],
+        "completenessState": [
+          "complete",
+          "partial",
+          "blocked"
+        ],
+        "determinismState": [
+          "deterministic",
+          "approximate",
+          "diverged",
+          "unknown"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "All refs that carry tenant or scope metadata must resolve inside the same tenant scope unless an explicit governed cross-organisation grant exists.",
+        "Analytics assurance remains observer or governance posture and must not mutate patient, booking, hub, pharmacy, or communication lifecycle truth."
+      ],
+      "identityKeys": [
+        "projectionHealthSnapshotId"
+      ],
+      "idempotencyKeys": [
+        "projectionHealthSnapshotId",
+        "scopeRef|tenantScopeRef|tenantScope",
+        "schemaVersionRef|versionRef|evaluationModelRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 432.phase9.assurance-ledger-contracts.v1",
+        "normalization pinned to phase9.assurance.normalization.v1 where source events are normalized",
+        "graph snapshots pinned to phase9.assurance.graph-snapshot.v1",
+        "slice trust lower-bound model pinned to phase9.assurance.slice-trust.lower-bound.v1",
+        "replay determinism pinned to phase9.assurance.replay-determinism.v1"
+      ],
+      "canonicalHashInputs": [
+        "projectionHealthSnapshotId",
+        "projectionCode",
+        "lagMs",
+        "stalenessState",
+        "rebuildState",
+        "trustState",
+        "completenessState",
+        "expectedInputRefs",
+        "observedInputRefs",
+        "coverageScore",
+        "replayMatchScore",
+        "determinismState",
+        "snapshotHash",
+        "rebuildHash",
+        "integrityScore",
+        "affectedAudienceRefs",
+        "capturedAt"
+      ],
+      "piiPhiClassification": "Operational assurance metadata; may contain tenant, audit, producer, and artifact refs but no inline PHI.",
+      "retentionClassRef": "inherits_retention_from_linked_evidence_or_audit_record",
+      "auditEventMapping": [
+        "assurance.phase9.ProjectionHealthSnapshot.created",
+        "assurance.phase9.ProjectionHealthSnapshot.validated",
+        "assurance.phase9.ProjectionHealthSnapshot.superseded_or_quarantined"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unknown namespaces and unsupported schema versions must quarantine before ledger append.",
+        "Legacy aliases may normalize only through a registered CanonicalEventNormalizationRule and must record the alias mapping.",
+        "Hash, graph, replay, and trust model version changes require deterministic rebuild before authoritative use."
+      ],
+      "validStateExamples": [
+        {
+          "exampleId": "valid:ProjectionHealthSnapshot:canonical-fixture",
+          "description": "Canonical valid ProjectionHealthSnapshot example is materialized under data/fixtures/432_phase9_assurance_contract_fixtures.json#/examples/ProjectionHealthSnapshot.",
+          "fieldValues": {
+            "fixturePath": "data/fixtures/432_phase9_assurance_contract_fixtures.json"
+          }
+        }
+      ],
+      "invalidStateExamples": [
+        {
+          "exampleId": "invalid:ProjectionHealthSnapshot:missing-required-field",
+          "description": "Removing any required field from ProjectionHealthSnapshot must fail contract validation.",
+          "fieldValues": {
+            "invalidMutation": "delete_first_required_field"
+          }
+        },
+        {
+          "exampleId": "invalid:ProjectionHealthSnapshot:bad-enum",
+          "description": "Replacing an enum field on ProjectionHealthSnapshot with an unregistered value must fail closed.",
+          "fieldValues": {
+            "invalidMutation": "replace_enum_with_unregistered_value"
+          }
+        }
+      ]
+    },
+    {
+      "contractName": "AttestationRecord",
+      "schemaVersion": "432.phase9.assurance-ledger-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9A",
+      "fieldNames": [
+        "attestationId",
+        "controlObjectiveId",
+        "attestedBy",
+        "attestedAt",
+        "attestationScope",
+        "status",
+        "commentRef"
+      ],
+      "requiredFields": [
+        "attestationId",
+        "controlObjectiveId",
+        "attestedBy",
+        "attestedAt",
+        "attestationScope",
+        "status"
+      ],
+      "optionalFields": [
+        "commentRef"
+      ],
+      "fields": [
+        {
+          "fieldName": "attestationId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "controlObjectiveId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "attestedBy",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "attestedAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "attestationScope",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "status",
+          "fieldType": "AttestationStatus",
+          "required": true,
+          "enumRef": "attestationStatus",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.attestationStatus."
+        },
+        {
+          "fieldName": "commentRef",
+          "fieldType": "string",
+          "required": false,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        }
+      ],
+      "enumValues": {
+        "status": [
+          "draft",
+          "attested",
+          "rejected",
+          "revoked"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "All refs that carry tenant or scope metadata must resolve inside the same tenant scope unless an explicit governed cross-organisation grant exists.",
+        "Analytics assurance remains observer or governance posture and must not mutate patient, booking, hub, pharmacy, or communication lifecycle truth."
+      ],
+      "identityKeys": [
+        "attestationId"
+      ],
+      "idempotencyKeys": [
+        "attestationId",
+        "scopeRef|tenantScopeRef|tenantScope",
+        "schemaVersionRef|versionRef|evaluationModelRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 432.phase9.assurance-ledger-contracts.v1",
+        "normalization pinned to phase9.assurance.normalization.v1 where source events are normalized",
+        "graph snapshots pinned to phase9.assurance.graph-snapshot.v1",
+        "slice trust lower-bound model pinned to phase9.assurance.slice-trust.lower-bound.v1",
+        "replay determinism pinned to phase9.assurance.replay-determinism.v1"
+      ],
+      "canonicalHashInputs": [
+        "attestationId",
+        "controlObjectiveId",
+        "attestedBy",
+        "attestedAt",
+        "attestationScope",
+        "status",
+        "commentRef"
+      ],
+      "piiPhiClassification": "Operational assurance metadata; may contain tenant, audit, producer, and artifact refs but no inline PHI.",
+      "retentionClassRef": "inherits_retention_from_linked_evidence_or_audit_record",
+      "auditEventMapping": [
+        "assurance.phase9.AttestationRecord.created",
+        "assurance.phase9.AttestationRecord.validated",
+        "assurance.phase9.AttestationRecord.superseded_or_quarantined"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unknown namespaces and unsupported schema versions must quarantine before ledger append.",
+        "Legacy aliases may normalize only through a registered CanonicalEventNormalizationRule and must record the alias mapping.",
+        "Hash, graph, replay, and trust model version changes require deterministic rebuild before authoritative use."
+      ],
+      "validStateExamples": [
+        {
+          "exampleId": "valid:AttestationRecord:canonical-fixture",
+          "description": "Canonical valid AttestationRecord example is materialized under data/fixtures/432_phase9_assurance_contract_fixtures.json#/examples/AttestationRecord.",
+          "fieldValues": {
+            "fixturePath": "data/fixtures/432_phase9_assurance_contract_fixtures.json"
+          }
+        }
+      ],
+      "invalidStateExamples": [
+        {
+          "exampleId": "invalid:AttestationRecord:missing-required-field",
+          "description": "Removing any required field from AttestationRecord must fail contract validation.",
+          "fieldValues": {
+            "invalidMutation": "delete_first_required_field"
+          }
+        },
+        {
+          "exampleId": "invalid:AttestationRecord:bad-enum",
+          "description": "Replacing an enum field on AttestationRecord with an unregistered value must fail closed.",
+          "fieldValues": {
+            "invalidMutation": "replace_enum_with_unregistered_value"
+          }
+        }
+      ]
+    },
+    {
+      "contractName": "AssurancePack",
+      "schemaVersion": "432.phase9.assurance-ledger-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9A",
+      "fieldNames": [
+        "assurancePackId",
+        "packType",
+        "periodStart",
+        "periodEnd",
+        "tenantScope",
+        "state",
+        "artifactRefs",
+        "signoffRefs",
+        "assuranceEvidenceGraphSnapshotRef",
+        "assuranceGraphCompletenessVerdictRef",
+        "graphHash"
+      ],
+      "requiredFields": [
+        "assurancePackId",
+        "packType",
+        "periodStart",
+        "periodEnd",
+        "tenantScope",
+        "state",
+        "artifactRefs",
+        "signoffRefs",
+        "assuranceEvidenceGraphSnapshotRef",
+        "assuranceGraphCompletenessVerdictRef",
+        "graphHash"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "assurancePackId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "packType",
+          "fieldType": "AssurancePackType",
+          "required": true,
+          "enumRef": "packType",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.packType."
+        },
+        {
+          "fieldName": "periodStart",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "periodEnd",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "tenantScope",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "state",
+          "fieldType": "AssurancePackState",
+          "required": true,
+          "enumRef": "packState",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.packState."
+        },
+        {
+          "fieldName": "artifactRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "signoffRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "assuranceEvidenceGraphSnapshotRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "assuranceGraphCompletenessVerdictRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "graphHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        }
+      ],
+      "enumValues": {
+        "packType": [
+          "dtac",
+          "dcb0129",
+          "im1",
+          "records_governance",
+          "incident_followup",
+          "release_assurance"
+        ],
+        "state": [
+          "collecting",
+          "validating",
+          "awaiting_attestation",
+          "published",
+          "superseded",
+          "archived"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "All refs that carry tenant or scope metadata must resolve inside the same tenant scope unless an explicit governed cross-organisation grant exists.",
+        "Analytics assurance remains observer or governance posture and must not mutate patient, booking, hub, pharmacy, or communication lifecycle truth.",
+        "tenant scope refs may narrow but never widen audience or organisation scope after materialization."
+      ],
+      "identityKeys": [
+        "assurancePackId"
+      ],
+      "idempotencyKeys": [
+        "assurancePackId",
+        "scopeRef|tenantScopeRef|tenantScope",
+        "schemaVersionRef|versionRef|evaluationModelRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 432.phase9.assurance-ledger-contracts.v1",
+        "normalization pinned to phase9.assurance.normalization.v1 where source events are normalized",
+        "graph snapshots pinned to phase9.assurance.graph-snapshot.v1",
+        "slice trust lower-bound model pinned to phase9.assurance.slice-trust.lower-bound.v1",
+        "replay determinism pinned to phase9.assurance.replay-determinism.v1"
+      ],
+      "canonicalHashInputs": [
+        "assurancePackId",
+        "packType",
+        "periodStart",
+        "periodEnd",
+        "tenantScope",
+        "state",
+        "artifactRefs",
+        "signoffRefs",
+        "assuranceEvidenceGraphSnapshotRef",
+        "assuranceGraphCompletenessVerdictRef"
+      ],
+      "piiPhiClassification": "Operational assurance metadata; may contain tenant, audit, producer, and artifact refs but no inline PHI.",
+      "retentionClassRef": "governance_assurance_worm_record",
+      "auditEventMapping": [
+        "assurance.phase9.AssurancePack.created",
+        "assurance.phase9.AssurancePack.validated",
+        "assurance.phase9.AssurancePack.superseded_or_quarantined"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unknown namespaces and unsupported schema versions must quarantine before ledger append.",
+        "Legacy aliases may normalize only through a registered CanonicalEventNormalizationRule and must record the alias mapping.",
+        "Hash, graph, replay, and trust model version changes require deterministic rebuild before authoritative use."
+      ],
+      "validStateExamples": [
+        {
+          "exampleId": "valid:AssurancePack:canonical-fixture",
+          "description": "Canonical valid AssurancePack example is materialized under data/fixtures/432_phase9_assurance_contract_fixtures.json#/examples/AssurancePack.",
+          "fieldValues": {
+            "fixturePath": "data/fixtures/432_phase9_assurance_contract_fixtures.json"
+          }
+        }
+      ],
+      "invalidStateExamples": [
+        {
+          "exampleId": "invalid:AssurancePack:missing-required-field",
+          "description": "Removing any required field from AssurancePack must fail contract validation.",
+          "fieldValues": {
+            "invalidMutation": "delete_first_required_field"
+          }
+        },
+        {
+          "exampleId": "invalid:AssurancePack:bad-enum",
+          "description": "Replacing an enum field on AssurancePack with an unregistered value must fail closed.",
+          "fieldValues": {
+            "invalidMutation": "replace_enum_with_unregistered_value"
+          }
+        }
+      ]
+    },
+    {
+      "contractName": "AssuranceIngestCheckpoint",
+      "schemaVersion": "432.phase9.assurance-ledger-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9A",
+      "fieldNames": [
+        "assuranceIngestCheckpointId",
+        "producerRef",
+        "namespaceRef",
+        "schemaVersionRef",
+        "lastAcceptedSequenceRef",
+        "lastAcceptedEventRef",
+        "lastAcceptedHash",
+        "quarantineState",
+        "quarantineReason",
+        "updatedAt"
+      ],
+      "requiredFields": [
+        "assuranceIngestCheckpointId",
+        "producerRef",
+        "namespaceRef",
+        "schemaVersionRef",
+        "lastAcceptedSequenceRef",
+        "lastAcceptedEventRef",
+        "lastAcceptedHash",
+        "quarantineState",
+        "updatedAt"
+      ],
+      "optionalFields": [
+        "quarantineReason"
+      ],
+      "fields": [
+        {
+          "fieldName": "assuranceIngestCheckpointId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "producerRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "namespaceRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "schemaVersionRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "lastAcceptedSequenceRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "lastAcceptedEventRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "lastAcceptedHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "quarantineState",
+          "fieldType": "QuarantineState",
+          "required": true,
+          "enumRef": "quarantineState",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.quarantineState."
+        },
+        {
+          "fieldName": "quarantineReason",
+          "fieldType": "string",
+          "required": false,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "updatedAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        }
+      ],
+      "enumValues": {
+        "quarantineState": [
+          "clear",
+          "quarantined",
+          "released"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "All refs that carry tenant or scope metadata must resolve inside the same tenant scope unless an explicit governed cross-organisation grant exists.",
+        "Analytics assurance remains observer or governance posture and must not mutate patient, booking, hub, pharmacy, or communication lifecycle truth."
+      ],
+      "identityKeys": [
+        "assuranceIngestCheckpointId"
+      ],
+      "idempotencyKeys": [
+        "assuranceIngestCheckpointId",
+        "scopeRef|tenantScopeRef|tenantScope",
+        "schemaVersionRef|versionRef|evaluationModelRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 432.phase9.assurance-ledger-contracts.v1",
+        "normalization pinned to phase9.assurance.normalization.v1 where source events are normalized",
+        "graph snapshots pinned to phase9.assurance.graph-snapshot.v1",
+        "slice trust lower-bound model pinned to phase9.assurance.slice-trust.lower-bound.v1",
+        "replay determinism pinned to phase9.assurance.replay-determinism.v1"
+      ],
+      "canonicalHashInputs": [
+        "assuranceIngestCheckpointId",
+        "producerRef",
+        "namespaceRef",
+        "schemaVersionRef",
+        "lastAcceptedSequenceRef",
+        "lastAcceptedEventRef",
+        "lastAcceptedHash",
+        "quarantineState",
+        "quarantineReason",
+        "updatedAt"
+      ],
+      "piiPhiClassification": "Operational assurance metadata; may contain tenant, audit, producer, and artifact refs but no inline PHI.",
+      "retentionClassRef": "inherits_retention_from_linked_evidence_or_audit_record",
+      "auditEventMapping": [
+        "assurance.phase9.AssuranceIngestCheckpoint.created",
+        "assurance.phase9.AssuranceIngestCheckpoint.validated",
+        "assurance.phase9.AssuranceIngestCheckpoint.superseded_or_quarantined"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unknown namespaces and unsupported schema versions must quarantine before ledger append.",
+        "Legacy aliases may normalize only through a registered CanonicalEventNormalizationRule and must record the alias mapping.",
+        "Hash, graph, replay, and trust model version changes require deterministic rebuild before authoritative use."
+      ],
+      "validStateExamples": [
+        {
+          "exampleId": "valid:AssuranceIngestCheckpoint:canonical-fixture",
+          "description": "Canonical valid AssuranceIngestCheckpoint example is materialized under data/fixtures/432_phase9_assurance_contract_fixtures.json#/examples/AssuranceIngestCheckpoint.",
+          "fieldValues": {
+            "fixturePath": "data/fixtures/432_phase9_assurance_contract_fixtures.json"
+          }
+        }
+      ],
+      "invalidStateExamples": [
+        {
+          "exampleId": "invalid:AssuranceIngestCheckpoint:missing-required-field",
+          "description": "Removing any required field from AssuranceIngestCheckpoint must fail contract validation.",
+          "fieldValues": {
+            "invalidMutation": "delete_first_required_field"
+          }
+        },
+        {
+          "exampleId": "invalid:AssuranceIngestCheckpoint:bad-enum",
+          "description": "Replacing an enum field on AssuranceIngestCheckpoint with an unregistered value must fail closed.",
+          "fieldValues": {
+            "invalidMutation": "replace_enum_with_unregistered_value"
+          }
+        }
+      ]
+    },
+    {
+      "contractName": "ControlStatusSnapshot",
+      "schemaVersion": "432.phase9.assurance-ledger-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9A",
+      "fieldNames": [
+        "controlStatusSnapshotId",
+        "controlObjectiveId",
+        "tenantId",
+        "state",
+        "coverageState",
+        "freshnessState",
+        "latestEvidenceRef",
+        "latestValidatedAt",
+        "coverageScore",
+        "coverageLowerBound",
+        "lineageScore",
+        "reproducibilityScore",
+        "decisionHash",
+        "evidenceSetHash",
+        "assuranceEvidenceGraphSnapshotRef",
+        "assuranceGraphCompletenessVerdictRef",
+        "graphHash",
+        "gapReasonRefs",
+        "generatedAt"
+      ],
+      "requiredFields": [
+        "controlStatusSnapshotId",
+        "controlObjectiveId",
+        "tenantId",
+        "state",
+        "coverageState",
+        "freshnessState",
+        "latestEvidenceRef",
+        "latestValidatedAt",
+        "coverageScore",
+        "coverageLowerBound",
+        "lineageScore",
+        "reproducibilityScore",
+        "decisionHash",
+        "evidenceSetHash",
+        "assuranceEvidenceGraphSnapshotRef",
+        "assuranceGraphCompletenessVerdictRef",
+        "graphHash",
+        "gapReasonRefs",
+        "generatedAt"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "controlStatusSnapshotId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "controlObjectiveId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "tenantId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "state",
+          "fieldType": "ControlStatusState",
+          "required": true,
+          "enumRef": "controlStatusState",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.controlStatusState."
+        },
+        {
+          "fieldName": "coverageState",
+          "fieldType": "CoverageState",
+          "required": true,
+          "enumRef": "coverageState",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.coverageState."
+        },
+        {
+          "fieldName": "freshnessState",
+          "fieldType": "FreshnessState",
+          "required": true,
+          "enumRef": "freshnessState",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.freshnessState."
+        },
+        {
+          "fieldName": "latestEvidenceRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "latestValidatedAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "coverageScore",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "coverageLowerBound",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "lineageScore",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "reproducibilityScore",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "decisionHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "evidenceSetHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "assuranceEvidenceGraphSnapshotRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "assuranceGraphCompletenessVerdictRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "graphHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "gapReasonRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "generatedAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        }
+      ],
+      "enumValues": {
+        "state": [
+          "satisfied",
+          "degraded",
+          "unsatisfied",
+          "blocked"
+        ],
+        "coverageState": [
+          "satisfied",
+          "partial",
+          "missing",
+          "blocked"
+        ],
+        "freshnessState": [
+          "current",
+          "stale",
+          "expired",
+          "missing",
+          "quarantined"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "All refs that carry tenant or scope metadata must resolve inside the same tenant scope unless an explicit governed cross-organisation grant exists.",
+        "Analytics assurance remains observer or governance posture and must not mutate patient, booking, hub, pharmacy, or communication lifecycle truth.",
+        "tenantId is mandatory and must match every tenant-scoped referenced artifact."
+      ],
+      "identityKeys": [
+        "controlStatusSnapshotId"
+      ],
+      "idempotencyKeys": [
+        "controlStatusSnapshotId",
+        "tenantId",
+        "schemaVersionRef|versionRef|evaluationModelRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 432.phase9.assurance-ledger-contracts.v1",
+        "normalization pinned to phase9.assurance.normalization.v1 where source events are normalized",
+        "graph snapshots pinned to phase9.assurance.graph-snapshot.v1",
+        "slice trust lower-bound model pinned to phase9.assurance.slice-trust.lower-bound.v1",
+        "replay determinism pinned to phase9.assurance.replay-determinism.v1"
+      ],
+      "canonicalHashInputs": [
+        "controlStatusSnapshotId",
+        "controlObjectiveId",
+        "tenantId",
+        "state",
+        "coverageState",
+        "freshnessState",
+        "latestEvidenceRef",
+        "latestValidatedAt",
+        "coverageScore",
+        "coverageLowerBound",
+        "lineageScore",
+        "reproducibilityScore",
+        "evidenceSetHash",
+        "assuranceEvidenceGraphSnapshotRef",
+        "assuranceGraphCompletenessVerdictRef",
+        "gapReasonRefs",
+        "generatedAt"
+      ],
+      "piiPhiClassification": "Operational assurance metadata; may contain tenant, audit, producer, and artifact refs but no inline PHI.",
+      "retentionClassRef": "inherits_retention_from_linked_evidence_or_audit_record",
+      "auditEventMapping": [
+        "assurance.phase9.ControlStatusSnapshot.created",
+        "assurance.phase9.ControlStatusSnapshot.validated",
+        "assurance.phase9.ControlStatusSnapshot.superseded_or_quarantined"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unknown namespaces and unsupported schema versions must quarantine before ledger append.",
+        "Legacy aliases may normalize only through a registered CanonicalEventNormalizationRule and must record the alias mapping.",
+        "Hash, graph, replay, and trust model version changes require deterministic rebuild before authoritative use."
+      ],
+      "validStateExamples": [
+        {
+          "exampleId": "valid:ControlStatusSnapshot:canonical-fixture",
+          "description": "Canonical valid ControlStatusSnapshot example is materialized under data/fixtures/432_phase9_assurance_contract_fixtures.json#/examples/ControlStatusSnapshot.",
+          "fieldValues": {
+            "fixturePath": "data/fixtures/432_phase9_assurance_contract_fixtures.json"
+          }
+        }
+      ],
+      "invalidStateExamples": [
+        {
+          "exampleId": "invalid:ControlStatusSnapshot:missing-required-field",
+          "description": "Removing any required field from ControlStatusSnapshot must fail contract validation.",
+          "fieldValues": {
+            "invalidMutation": "delete_first_required_field"
+          }
+        },
+        {
+          "exampleId": "invalid:ControlStatusSnapshot:bad-enum",
+          "description": "Replacing an enum field on ControlStatusSnapshot with an unregistered value must fail closed.",
+          "fieldValues": {
+            "invalidMutation": "replace_enum_with_unregistered_value"
+          }
+        }
+      ]
+    },
+    {
+      "contractName": "AssuranceSliceTrustRecord",
+      "schemaVersion": "432.phase9.assurance-ledger-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9A",
+      "fieldNames": [
+        "assuranceSliceTrustRecordId",
+        "sliceRef",
+        "scopeRef",
+        "audienceTier",
+        "trustState",
+        "completenessState",
+        "trustScore",
+        "trustLowerBound",
+        "freshnessScore",
+        "coverageScore",
+        "lineageScore",
+        "replayScore",
+        "consistencyScore",
+        "hardBlockState",
+        "blockingProducerRefs",
+        "blockingNamespaceRefs",
+        "evaluationModelRef",
+        "evaluationInputHash",
+        "lastEvaluatedAt"
+      ],
+      "requiredFields": [
+        "assuranceSliceTrustRecordId",
+        "sliceRef",
+        "scopeRef",
+        "audienceTier",
+        "trustState",
+        "completenessState",
+        "trustScore",
+        "trustLowerBound",
+        "freshnessScore",
+        "coverageScore",
+        "lineageScore",
+        "replayScore",
+        "consistencyScore",
+        "hardBlockState",
+        "blockingProducerRefs",
+        "blockingNamespaceRefs",
+        "evaluationModelRef",
+        "evaluationInputHash",
+        "lastEvaluatedAt"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "assuranceSliceTrustRecordId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "sliceRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "scopeRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "audienceTier",
+          "fieldType": "AudienceTier",
+          "required": true,
+          "enumRef": "audienceTier",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.audienceTier."
+        },
+        {
+          "fieldName": "trustState",
+          "fieldType": "AssuranceTrustState",
+          "required": true,
+          "enumRef": "trustState",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.trustState."
+        },
+        {
+          "fieldName": "completenessState",
+          "fieldType": "AssuranceCompletenessState",
+          "required": true,
+          "enumRef": "completenessState",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.completenessState."
+        },
+        {
+          "fieldName": "trustScore",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "trustLowerBound",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "freshnessScore",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "coverageScore",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "lineageScore",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "replayScore",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "consistencyScore",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "hardBlockState",
+          "fieldType": "boolean",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "blockingProducerRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "blockingNamespaceRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "evaluationModelRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "evaluationInputHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "lastEvaluatedAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        }
+      ],
+      "enumValues": {
+        "audienceTier": [
+          "patient",
+          "staff",
+          "support",
+          "operations",
+          "governance",
+          "tenant_admin"
+        ],
+        "trustState": [
+          "trusted",
+          "degraded",
+          "quarantined",
+          "unknown"
+        ],
+        "completenessState": [
+          "complete",
+          "partial",
+          "blocked"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "All refs that carry tenant or scope metadata must resolve inside the same tenant scope unless an explicit governed cross-organisation grant exists.",
+        "Analytics assurance remains observer or governance posture and must not mutate patient, booking, hub, pharmacy, or communication lifecycle truth.",
+        "tenant scope refs may narrow but never widen audience or organisation scope after materialization."
+      ],
+      "identityKeys": [
+        "assuranceSliceTrustRecordId"
+      ],
+      "idempotencyKeys": [
+        "assuranceSliceTrustRecordId",
+        "scopeRef|tenantScopeRef|tenantScope",
+        "schemaVersionRef|versionRef|evaluationModelRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 432.phase9.assurance-ledger-contracts.v1",
+        "normalization pinned to phase9.assurance.normalization.v1 where source events are normalized",
+        "graph snapshots pinned to phase9.assurance.graph-snapshot.v1",
+        "slice trust lower-bound model pinned to phase9.assurance.slice-trust.lower-bound.v1",
+        "replay determinism pinned to phase9.assurance.replay-determinism.v1"
+      ],
+      "canonicalHashInputs": [
+        "assuranceSliceTrustRecordId",
+        "sliceRef",
+        "scopeRef",
+        "audienceTier",
+        "trustState",
+        "completenessState",
+        "trustScore",
+        "trustLowerBound",
+        "freshnessScore",
+        "coverageScore",
+        "lineageScore",
+        "replayScore",
+        "consistencyScore",
+        "hardBlockState",
+        "blockingProducerRefs",
+        "blockingNamespaceRefs",
+        "evaluationModelRef",
+        "evaluationInputHash",
+        "lastEvaluatedAt"
+      ],
+      "piiPhiClassification": "Operational assurance metadata; may contain tenant, audit, producer, and artifact refs but no inline PHI.",
+      "retentionClassRef": "inherits_retention_from_linked_evidence_or_audit_record",
+      "auditEventMapping": [
+        "assurance.phase9.AssuranceSliceTrustRecord.created",
+        "assurance.phase9.AssuranceSliceTrustRecord.validated",
+        "assurance.phase9.AssuranceSliceTrustRecord.superseded_or_quarantined"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unknown namespaces and unsupported schema versions must quarantine before ledger append.",
+        "Legacy aliases may normalize only through a registered CanonicalEventNormalizationRule and must record the alias mapping.",
+        "Hash, graph, replay, and trust model version changes require deterministic rebuild before authoritative use."
+      ],
+      "validStateExamples": [
+        {
+          "exampleId": "valid:AssuranceSliceTrustRecord:canonical-fixture",
+          "description": "Canonical valid AssuranceSliceTrustRecord example is materialized under data/fixtures/432_phase9_assurance_contract_fixtures.json#/examples/AssuranceSliceTrustRecord.",
+          "fieldValues": {
+            "fixturePath": "data/fixtures/432_phase9_assurance_contract_fixtures.json"
+          }
+        }
+      ],
+      "invalidStateExamples": [
+        {
+          "exampleId": "invalid:AssuranceSliceTrustRecord:missing-required-field",
+          "description": "Removing any required field from AssuranceSliceTrustRecord must fail contract validation.",
+          "fieldValues": {
+            "invalidMutation": "delete_first_required_field"
+          }
+        },
+        {
+          "exampleId": "invalid:AssuranceSliceTrustRecord:bad-enum",
+          "description": "Replacing an enum field on AssuranceSliceTrustRecord with an unregistered value must fail closed.",
+          "fieldValues": {
+            "invalidMutation": "replace_enum_with_unregistered_value"
+          }
+        }
+      ]
+    },
+    {
+      "contractName": "ExperienceContinuityControlEvidence",
+      "schemaVersion": "432.phase9.assurance-ledger-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9A",
+      "fieldNames": [
+        "continuityControlEvidenceId",
+        "controlCode",
+        "producerFamilyRef",
+        "audienceTier",
+        "audienceSurfaceRef",
+        "routeFamilyRef",
+        "routeContinuityEvidenceContractRef",
+        "canonicalObjectDescriptorRef",
+        "governingObjectRef",
+        "governingObjectVersionRef",
+        "shellContinuityKey",
+        "entityContinuityKey",
+        "selectedAnchorRef",
+        "selectedAnchorTupleHashRef",
+        "surfacePublicationRef",
+        "runtimePublicationBundleRef",
+        "releasePublicationParityRef",
+        "sourceProjectionRef",
+        "sourceSettlementRef",
+        "sourceContinuationRef",
+        "evidenceArtifactRefs",
+        "validationState",
+        "validationBasisHash",
+        "continuityTupleHash",
+        "continuitySetHash",
+        "reproductionHash",
+        "lastValidatedAt"
+      ],
+      "requiredFields": [
+        "continuityControlEvidenceId",
+        "controlCode",
+        "producerFamilyRef",
+        "audienceTier",
+        "audienceSurfaceRef",
+        "routeFamilyRef",
+        "routeContinuityEvidenceContractRef",
+        "canonicalObjectDescriptorRef",
+        "governingObjectRef",
+        "governingObjectVersionRef",
+        "shellContinuityKey",
+        "entityContinuityKey",
+        "selectedAnchorRef",
+        "selectedAnchorTupleHashRef",
+        "surfacePublicationRef",
+        "runtimePublicationBundleRef",
+        "releasePublicationParityRef",
+        "sourceProjectionRef",
+        "sourceSettlementRef",
+        "sourceContinuationRef",
+        "evidenceArtifactRefs",
+        "validationState",
+        "validationBasisHash",
+        "continuityTupleHash",
+        "continuitySetHash",
+        "reproductionHash",
+        "lastValidatedAt"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "continuityControlEvidenceId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "controlCode",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "producerFamilyRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "audienceTier",
+          "fieldType": "AudienceTier",
+          "required": true,
+          "enumRef": "audienceTier",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.audienceTier."
+        },
+        {
+          "fieldName": "audienceSurfaceRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "routeFamilyRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "routeContinuityEvidenceContractRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "canonicalObjectDescriptorRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "governingObjectRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "governingObjectVersionRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "shellContinuityKey",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "entityContinuityKey",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "selectedAnchorRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "selectedAnchorTupleHashRef",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "surfacePublicationRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "runtimePublicationBundleRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "releasePublicationParityRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "sourceProjectionRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "sourceSettlementRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "sourceContinuationRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "evidenceArtifactRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "validationState",
+          "fieldType": "ValidationState",
+          "required": true,
+          "enumRef": "validationState",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.validationState."
+        },
+        {
+          "fieldName": "validationBasisHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "continuityTupleHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "continuitySetHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "reproductionHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "lastValidatedAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        }
+      ],
+      "enumValues": {
+        "audienceTier": [
+          "patient",
+          "staff",
+          "support",
+          "operations",
+          "governance",
+          "tenant_admin"
+        ],
+        "validationState": [
+          "validated",
+          "pending",
+          "failed",
+          "superseded"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "All refs that carry tenant or scope metadata must resolve inside the same tenant scope unless an explicit governed cross-organisation grant exists.",
+        "Analytics assurance remains observer or governance posture and must not mutate patient, booking, hub, pharmacy, or communication lifecycle truth."
+      ],
+      "identityKeys": [
+        "continuityControlEvidenceId"
+      ],
+      "idempotencyKeys": [
+        "continuityControlEvidenceId",
+        "scopeRef|tenantScopeRef|tenantScope",
+        "schemaVersionRef|versionRef|evaluationModelRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 432.phase9.assurance-ledger-contracts.v1",
+        "normalization pinned to phase9.assurance.normalization.v1 where source events are normalized",
+        "graph snapshots pinned to phase9.assurance.graph-snapshot.v1",
+        "slice trust lower-bound model pinned to phase9.assurance.slice-trust.lower-bound.v1",
+        "replay determinism pinned to phase9.assurance.replay-determinism.v1"
+      ],
+      "canonicalHashInputs": [
+        "continuityControlEvidenceId",
+        "controlCode",
+        "producerFamilyRef",
+        "audienceTier",
+        "audienceSurfaceRef",
+        "routeFamilyRef",
+        "routeContinuityEvidenceContractRef",
+        "canonicalObjectDescriptorRef",
+        "governingObjectRef",
+        "governingObjectVersionRef",
+        "shellContinuityKey",
+        "entityContinuityKey",
+        "selectedAnchorRef",
+        "selectedAnchorTupleHashRef",
+        "surfacePublicationRef",
+        "runtimePublicationBundleRef",
+        "releasePublicationParityRef",
+        "sourceProjectionRef",
+        "sourceSettlementRef",
+        "sourceContinuationRef",
+        "evidenceArtifactRefs",
+        "validationState",
+        "validationBasisHash",
+        "continuityTupleHash",
+        "continuitySetHash",
+        "reproductionHash",
+        "lastValidatedAt"
+      ],
+      "piiPhiClassification": "Operational continuity metadata with possible patient-route refs; no inline clinical content permitted.",
+      "retentionClassRef": "inherits_retention_from_linked_evidence_or_audit_record",
+      "auditEventMapping": [
+        "assurance.phase9.ExperienceContinuityControlEvidence.created",
+        "assurance.phase9.ExperienceContinuityControlEvidence.validated",
+        "assurance.phase9.ExperienceContinuityControlEvidence.superseded_or_quarantined"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unknown namespaces and unsupported schema versions must quarantine before ledger append.",
+        "Legacy aliases may normalize only through a registered CanonicalEventNormalizationRule and must record the alias mapping.",
+        "Hash, graph, replay, and trust model version changes require deterministic rebuild before authoritative use."
+      ],
+      "validStateExamples": [
+        {
+          "exampleId": "valid:ExperienceContinuityControlEvidence:canonical-fixture",
+          "description": "Canonical valid ExperienceContinuityControlEvidence example is materialized under data/fixtures/432_phase9_assurance_contract_fixtures.json#/examples/ExperienceContinuityControlEvidence.",
+          "fieldValues": {
+            "fixturePath": "data/fixtures/432_phase9_assurance_contract_fixtures.json"
+          }
+        }
+      ],
+      "invalidStateExamples": [
+        {
+          "exampleId": "invalid:ExperienceContinuityControlEvidence:missing-required-field",
+          "description": "Removing any required field from ExperienceContinuityControlEvidence must fail contract validation.",
+          "fieldValues": {
+            "invalidMutation": "delete_first_required_field"
+          }
+        },
+        {
+          "exampleId": "invalid:ExperienceContinuityControlEvidence:bad-enum",
+          "description": "Replacing an enum field on ExperienceContinuityControlEvidence with an unregistered value must fail closed.",
+          "fieldValues": {
+            "invalidMutation": "replace_enum_with_unregistered_value"
+          }
+        }
+      ]
+    },
+    {
+      "contractName": "AssuranceSurfaceRuntimeBinding",
+      "schemaVersion": "432.phase9.assurance-ledger-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9A",
+      "fieldNames": [
+        "assuranceSurfaceRuntimeBindingId",
+        "audienceSurface",
+        "routeFamilyRef",
+        "audienceSurfaceRuntimeBindingRef",
+        "surfaceRouteContractRef",
+        "surfacePublicationRef",
+        "runtimePublicationBundleRef",
+        "releasePublicationParityRef",
+        "requiredTrustRefs",
+        "requiredChannelFreezeRefs",
+        "releaseTrustFreezeVerdictRef",
+        "releaseRecoveryDispositionRef",
+        "bindingState",
+        "validatedAt"
+      ],
+      "requiredFields": [
+        "assuranceSurfaceRuntimeBindingId",
+        "audienceSurface",
+        "routeFamilyRef",
+        "audienceSurfaceRuntimeBindingRef",
+        "surfaceRouteContractRef",
+        "surfacePublicationRef",
+        "runtimePublicationBundleRef",
+        "releasePublicationParityRef",
+        "requiredTrustRefs",
+        "requiredChannelFreezeRefs",
+        "releaseTrustFreezeVerdictRef",
+        "releaseRecoveryDispositionRef",
+        "bindingState",
+        "validatedAt"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "assuranceSurfaceRuntimeBindingId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "audienceSurface",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "routeFamilyRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "audienceSurfaceRuntimeBindingRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "surfaceRouteContractRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "surfacePublicationRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "runtimePublicationBundleRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "releasePublicationParityRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "requiredTrustRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "requiredChannelFreezeRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "releaseTrustFreezeVerdictRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "releaseRecoveryDispositionRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "bindingState",
+          "fieldType": "BindingState",
+          "required": true,
+          "enumRef": "bindingState",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.bindingState."
+        },
+        {
+          "fieldName": "validatedAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        }
+      ],
+      "enumValues": {
+        "bindingState": [
+          "live",
+          "diagnostic_only",
+          "recovery_only",
+          "blocked"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "All refs that carry tenant or scope metadata must resolve inside the same tenant scope unless an explicit governed cross-organisation grant exists.",
+        "Analytics assurance remains observer or governance posture and must not mutate patient, booking, hub, pharmacy, or communication lifecycle truth."
+      ],
+      "identityKeys": [
+        "assuranceSurfaceRuntimeBindingId"
+      ],
+      "idempotencyKeys": [
+        "assuranceSurfaceRuntimeBindingId",
+        "scopeRef|tenantScopeRef|tenantScope",
+        "schemaVersionRef|versionRef|evaluationModelRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 432.phase9.assurance-ledger-contracts.v1",
+        "normalization pinned to phase9.assurance.normalization.v1 where source events are normalized",
+        "graph snapshots pinned to phase9.assurance.graph-snapshot.v1",
+        "slice trust lower-bound model pinned to phase9.assurance.slice-trust.lower-bound.v1",
+        "replay determinism pinned to phase9.assurance.replay-determinism.v1"
+      ],
+      "canonicalHashInputs": [
+        "assuranceSurfaceRuntimeBindingId",
+        "audienceSurface",
+        "routeFamilyRef",
+        "audienceSurfaceRuntimeBindingRef",
+        "surfaceRouteContractRef",
+        "surfacePublicationRef",
+        "runtimePublicationBundleRef",
+        "releasePublicationParityRef",
+        "requiredTrustRefs",
+        "requiredChannelFreezeRefs",
+        "releaseTrustFreezeVerdictRef",
+        "releaseRecoveryDispositionRef",
+        "bindingState",
+        "validatedAt"
+      ],
+      "piiPhiClassification": "Operational continuity metadata with possible patient-route refs; no inline clinical content permitted.",
+      "retentionClassRef": "inherits_retention_from_linked_evidence_or_audit_record",
+      "auditEventMapping": [
+        "assurance.phase9.AssuranceSurfaceRuntimeBinding.created",
+        "assurance.phase9.AssuranceSurfaceRuntimeBinding.validated",
+        "assurance.phase9.AssuranceSurfaceRuntimeBinding.superseded_or_quarantined"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unknown namespaces and unsupported schema versions must quarantine before ledger append.",
+        "Legacy aliases may normalize only through a registered CanonicalEventNormalizationRule and must record the alias mapping.",
+        "Hash, graph, replay, and trust model version changes require deterministic rebuild before authoritative use."
+      ],
+      "validStateExamples": [
+        {
+          "exampleId": "valid:AssuranceSurfaceRuntimeBinding:canonical-fixture",
+          "description": "Canonical valid AssuranceSurfaceRuntimeBinding example is materialized under data/fixtures/432_phase9_assurance_contract_fixtures.json#/examples/AssuranceSurfaceRuntimeBinding.",
+          "fieldValues": {
+            "fixturePath": "data/fixtures/432_phase9_assurance_contract_fixtures.json"
+          }
+        }
+      ],
+      "invalidStateExamples": [
+        {
+          "exampleId": "invalid:AssuranceSurfaceRuntimeBinding:missing-required-field",
+          "description": "Removing any required field from AssuranceSurfaceRuntimeBinding must fail contract validation.",
+          "fieldValues": {
+            "invalidMutation": "delete_first_required_field"
+          }
+        },
+        {
+          "exampleId": "invalid:AssuranceSurfaceRuntimeBinding:bad-enum",
+          "description": "Replacing an enum field on AssuranceSurfaceRuntimeBinding with an unregistered value must fail closed.",
+          "fieldValues": {
+            "invalidMutation": "replace_enum_with_unregistered_value"
+          }
+        }
+      ]
+    },
+    {
+      "contractName": "IdentityRepairEvidenceBundle",
+      "schemaVersion": "432.phase9.assurance-ledger-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9A",
+      "fieldNames": [
+        "identityRepairEvidenceBundleId",
+        "identityRepairCaseRef",
+        "repairSignalRefs",
+        "freezeRecordRef",
+        "downstreamDispositionRefs",
+        "resultingIdentityBindingRef",
+        "releaseSettlementRef",
+        "artifactRefs",
+        "bundleHash",
+        "createdAt"
+      ],
+      "requiredFields": [
+        "identityRepairEvidenceBundleId",
+        "identityRepairCaseRef",
+        "repairSignalRefs",
+        "freezeRecordRef",
+        "downstreamDispositionRefs",
+        "resultingIdentityBindingRef",
+        "releaseSettlementRef",
+        "artifactRefs",
+        "bundleHash",
+        "createdAt"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "identityRepairEvidenceBundleId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "identityRepairCaseRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "repairSignalRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "freezeRecordRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "downstreamDispositionRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "resultingIdentityBindingRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "releaseSettlementRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "artifactRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "bundleHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "createdAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        }
+      ],
+      "enumValues": {},
+      "tenantScopeConstraints": [
+        "All refs that carry tenant or scope metadata must resolve inside the same tenant scope unless an explicit governed cross-organisation grant exists.",
+        "Analytics assurance remains observer or governance posture and must not mutate patient, booking, hub, pharmacy, or communication lifecycle truth."
+      ],
+      "identityKeys": [
+        "identityRepairEvidenceBundleId"
+      ],
+      "idempotencyKeys": [
+        "identityRepairEvidenceBundleId",
+        "scopeRef|tenantScopeRef|tenantScope",
+        "schemaVersionRef|versionRef|evaluationModelRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 432.phase9.assurance-ledger-contracts.v1",
+        "normalization pinned to phase9.assurance.normalization.v1 where source events are normalized",
+        "graph snapshots pinned to phase9.assurance.graph-snapshot.v1",
+        "slice trust lower-bound model pinned to phase9.assurance.slice-trust.lower-bound.v1",
+        "replay determinism pinned to phase9.assurance.replay-determinism.v1"
+      ],
+      "canonicalHashInputs": [
+        "identityRepairEvidenceBundleId",
+        "identityRepairCaseRef",
+        "repairSignalRefs",
+        "freezeRecordRef",
+        "downstreamDispositionRefs",
+        "resultingIdentityBindingRef",
+        "releaseSettlementRef",
+        "artifactRefs",
+        "bundleHash",
+        "createdAt"
+      ],
+      "piiPhiClassification": "PHI/PII pointer-sensitive: no inline PHI; source, identity, and artifact refs require redaction and retention controls.",
+      "retentionClassRef": "inherits_retention_from_linked_evidence_or_audit_record",
+      "auditEventMapping": [
+        "assurance.phase9.IdentityRepairEvidenceBundle.created",
+        "assurance.phase9.IdentityRepairEvidenceBundle.validated",
+        "assurance.phase9.IdentityRepairEvidenceBundle.superseded_or_quarantined"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unknown namespaces and unsupported schema versions must quarantine before ledger append.",
+        "Legacy aliases may normalize only through a registered CanonicalEventNormalizationRule and must record the alias mapping.",
+        "Hash, graph, replay, and trust model version changes require deterministic rebuild before authoritative use."
+      ],
+      "validStateExamples": [
+        {
+          "exampleId": "valid:IdentityRepairEvidenceBundle:canonical-fixture",
+          "description": "Canonical valid IdentityRepairEvidenceBundle example is materialized under data/fixtures/432_phase9_assurance_contract_fixtures.json#/examples/IdentityRepairEvidenceBundle.",
+          "fieldValues": {
+            "fixturePath": "data/fixtures/432_phase9_assurance_contract_fixtures.json"
+          }
+        }
+      ],
+      "invalidStateExamples": [
+        {
+          "exampleId": "invalid:IdentityRepairEvidenceBundle:missing-required-field",
+          "description": "Removing any required field from IdentityRepairEvidenceBundle must fail contract validation.",
+          "fieldValues": {
+            "invalidMutation": "delete_first_required_field"
+          }
+        },
+        {
+          "exampleId": "invalid:IdentityRepairEvidenceBundle:bad-enum",
+          "description": "Replacing an enum field on IdentityRepairEvidenceBundle with an unregistered value must fail closed.",
+          "fieldValues": {
+            "invalidMutation": "replace_enum_with_unregistered_value"
+          }
+        }
+      ]
+    },
+    {
+      "contractName": "AssuranceEvidenceGraphSnapshot",
+      "schemaVersion": "432.phase9.assurance-ledger-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9A",
+      "fieldNames": [
+        "assuranceEvidenceGraphSnapshotId",
+        "tenantScopeRef",
+        "standardsVersionMapRefs",
+        "ledgerEntryRefs",
+        "evidenceArtifactRefs",
+        "controlObjectiveRefs",
+        "controlEvidenceLinkRefs",
+        "controlStatusSnapshotRefs",
+        "controlRecordRefs",
+        "evidenceGapRecordRefs",
+        "continuityEvidenceRefs",
+        "continuityEvidencePackSectionRefs",
+        "incidentRefs",
+        "exceptionRefs",
+        "capaActionRefs",
+        "retentionDecisionRefs",
+        "archiveManifestRefs",
+        "deletionCertificateRefs",
+        "packRefs",
+        "assurancePackActionRecordRefs",
+        "assurancePackSettlementRefs",
+        "recoveryEvidenceArtifactRefs",
+        "evidenceSetHash",
+        "continuitySetHash",
+        "incidentSetHash",
+        "retentionSetHash",
+        "graphHash",
+        "snapshotState",
+        "generatedAt"
+      ],
+      "requiredFields": [
+        "assuranceEvidenceGraphSnapshotId",
+        "tenantScopeRef",
+        "standardsVersionMapRefs",
+        "ledgerEntryRefs",
+        "evidenceArtifactRefs",
+        "controlObjectiveRefs",
+        "controlEvidenceLinkRefs",
+        "controlStatusSnapshotRefs",
+        "controlRecordRefs",
+        "evidenceGapRecordRefs",
+        "continuityEvidenceRefs",
+        "continuityEvidencePackSectionRefs",
+        "incidentRefs",
+        "exceptionRefs",
+        "capaActionRefs",
+        "retentionDecisionRefs",
+        "archiveManifestRefs",
+        "deletionCertificateRefs",
+        "packRefs",
+        "assurancePackActionRecordRefs",
+        "assurancePackSettlementRefs",
+        "recoveryEvidenceArtifactRefs",
+        "evidenceSetHash",
+        "continuitySetHash",
+        "incidentSetHash",
+        "retentionSetHash",
+        "graphHash",
+        "snapshotState",
+        "generatedAt"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "assuranceEvidenceGraphSnapshotId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "tenantScopeRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "standardsVersionMapRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "ledgerEntryRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "evidenceArtifactRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "controlObjectiveRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "controlEvidenceLinkRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "controlStatusSnapshotRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "controlRecordRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "evidenceGapRecordRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "continuityEvidenceRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "continuityEvidencePackSectionRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "incidentRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "exceptionRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "capaActionRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "retentionDecisionRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "archiveManifestRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "deletionCertificateRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "packRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "assurancePackActionRecordRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "assurancePackSettlementRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "recoveryEvidenceArtifactRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "evidenceSetHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "continuitySetHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "incidentSetHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "retentionSetHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "graphHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "snapshotState",
+          "fieldType": "GraphSnapshotState",
+          "required": true,
+          "enumRef": "graphSnapshotState",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.graphSnapshotState."
+        },
+        {
+          "fieldName": "generatedAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        }
+      ],
+      "enumValues": {
+        "snapshotState": [
+          "complete",
+          "stale",
+          "blocked"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "All refs that carry tenant or scope metadata must resolve inside the same tenant scope unless an explicit governed cross-organisation grant exists.",
+        "Analytics assurance remains observer or governance posture and must not mutate patient, booking, hub, pharmacy, or communication lifecycle truth.",
+        "tenant scope refs may narrow but never widen audience or organisation scope after materialization."
+      ],
+      "identityKeys": [
+        "assuranceEvidenceGraphSnapshotId"
+      ],
+      "idempotencyKeys": [
+        "assuranceEvidenceGraphSnapshotId",
+        "scopeRef|tenantScopeRef|tenantScope",
+        "schemaVersionRef|versionRef|evaluationModelRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 432.phase9.assurance-ledger-contracts.v1",
+        "normalization pinned to phase9.assurance.normalization.v1 where source events are normalized",
+        "graph snapshots pinned to phase9.assurance.graph-snapshot.v1",
+        "slice trust lower-bound model pinned to phase9.assurance.slice-trust.lower-bound.v1",
+        "replay determinism pinned to phase9.assurance.replay-determinism.v1"
+      ],
+      "canonicalHashInputs": [
+        "assuranceEvidenceGraphSnapshotId",
+        "tenantScopeRef",
+        "standardsVersionMapRefs",
+        "ledgerEntryRefs",
+        "evidenceArtifactRefs",
+        "controlObjectiveRefs",
+        "controlEvidenceLinkRefs",
+        "controlStatusSnapshotRefs",
+        "controlRecordRefs",
+        "evidenceGapRecordRefs",
+        "continuityEvidenceRefs",
+        "continuityEvidencePackSectionRefs",
+        "incidentRefs",
+        "exceptionRefs",
+        "capaActionRefs",
+        "retentionDecisionRefs",
+        "archiveManifestRefs",
+        "deletionCertificateRefs",
+        "packRefs",
+        "assurancePackActionRecordRefs",
+        "assurancePackSettlementRefs",
+        "recoveryEvidenceArtifactRefs",
+        "evidenceSetHash",
+        "continuitySetHash",
+        "incidentSetHash",
+        "retentionSetHash",
+        "snapshotState",
+        "generatedAt"
+      ],
+      "piiPhiClassification": "Operational assurance metadata; may contain tenant, audit, producer, and artifact refs but no inline PHI.",
+      "retentionClassRef": "governance_assurance_worm_record",
+      "auditEventMapping": [
+        "assurance.phase9.AssuranceEvidenceGraphSnapshot.created",
+        "assurance.phase9.AssuranceEvidenceGraphSnapshot.validated",
+        "assurance.phase9.AssuranceEvidenceGraphSnapshot.superseded_or_quarantined"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unknown namespaces and unsupported schema versions must quarantine before ledger append.",
+        "Legacy aliases may normalize only through a registered CanonicalEventNormalizationRule and must record the alias mapping.",
+        "Hash, graph, replay, and trust model version changes require deterministic rebuild before authoritative use."
+      ],
+      "validStateExamples": [
+        {
+          "exampleId": "valid:AssuranceEvidenceGraphSnapshot:canonical-fixture",
+          "description": "Canonical valid AssuranceEvidenceGraphSnapshot example is materialized under data/fixtures/432_phase9_assurance_contract_fixtures.json#/examples/AssuranceEvidenceGraphSnapshot.",
+          "fieldValues": {
+            "fixturePath": "data/fixtures/432_phase9_assurance_contract_fixtures.json"
+          }
+        }
+      ],
+      "invalidStateExamples": [
+        {
+          "exampleId": "invalid:AssuranceEvidenceGraphSnapshot:missing-required-field",
+          "description": "Removing any required field from AssuranceEvidenceGraphSnapshot must fail contract validation.",
+          "fieldValues": {
+            "invalidMutation": "delete_first_required_field"
+          }
+        },
+        {
+          "exampleId": "invalid:AssuranceEvidenceGraphSnapshot:bad-enum",
+          "description": "Replacing an enum field on AssuranceEvidenceGraphSnapshot with an unregistered value must fail closed.",
+          "fieldValues": {
+            "invalidMutation": "replace_enum_with_unregistered_value"
+          }
+        }
+      ]
+    },
+    {
+      "contractName": "AssuranceEvidenceGraphEdge",
+      "schemaVersion": "432.phase9.assurance-ledger-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9A",
+      "fieldNames": [
+        "assuranceEvidenceGraphEdgeId",
+        "graphSnapshotRef",
+        "fromRef",
+        "toRef",
+        "edgeType",
+        "scopeState",
+        "supersessionState",
+        "edgeHash",
+        "createdAt"
+      ],
+      "requiredFields": [
+        "assuranceEvidenceGraphEdgeId",
+        "graphSnapshotRef",
+        "fromRef",
+        "toRef",
+        "edgeType",
+        "scopeState",
+        "supersessionState",
+        "edgeHash",
+        "createdAt"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "assuranceEvidenceGraphEdgeId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "graphSnapshotRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "fromRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "toRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "edgeType",
+          "fieldType": "AssuranceGraphEdgeType",
+          "required": true,
+          "enumRef": "edgeType",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.edgeType."
+        },
+        {
+          "fieldName": "scopeState",
+          "fieldType": "EdgeScopeState",
+          "required": true,
+          "enumRef": "scopeState",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.scopeState."
+        },
+        {
+          "fieldName": "supersessionState",
+          "fieldType": "EdgeSupersessionState",
+          "required": true,
+          "enumRef": "supersessionState",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.supersessionState."
+        },
+        {
+          "fieldName": "edgeHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "createdAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        }
+      ],
+      "enumValues": {
+        "edgeType": [
+          "ledger_produces_artifact",
+          "artifact_satisfies_control",
+          "control_materializes_status",
+          "control_opens_gap",
+          "artifact_supports_continuity",
+          "continuity_section_supports_pack",
+          "incident_opens_gap",
+          "gap_drives_capa",
+          "retention_preserves_artifact",
+          "deletion_blocks_pack",
+          "export_materializes_artifact",
+          "standards_version_governs_control"
+        ],
+        "scopeState": [
+          "in_scope",
+          "out_of_scope_conflict"
+        ],
+        "supersessionState": [
+          "live",
+          "superseded",
+          "unresolved"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "All refs that carry tenant or scope metadata must resolve inside the same tenant scope unless an explicit governed cross-organisation grant exists.",
+        "Analytics assurance remains observer or governance posture and must not mutate patient, booking, hub, pharmacy, or communication lifecycle truth."
+      ],
+      "identityKeys": [
+        "assuranceEvidenceGraphEdgeId"
+      ],
+      "idempotencyKeys": [
+        "assuranceEvidenceGraphEdgeId",
+        "scopeRef|tenantScopeRef|tenantScope",
+        "schemaVersionRef|versionRef|evaluationModelRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 432.phase9.assurance-ledger-contracts.v1",
+        "normalization pinned to phase9.assurance.normalization.v1 where source events are normalized",
+        "graph snapshots pinned to phase9.assurance.graph-snapshot.v1",
+        "slice trust lower-bound model pinned to phase9.assurance.slice-trust.lower-bound.v1",
+        "replay determinism pinned to phase9.assurance.replay-determinism.v1"
+      ],
+      "canonicalHashInputs": [
+        "assuranceEvidenceGraphEdgeId",
+        "graphSnapshotRef",
+        "fromRef",
+        "toRef",
+        "edgeType",
+        "scopeState",
+        "supersessionState",
+        "createdAt"
+      ],
+      "piiPhiClassification": "Operational assurance metadata; may contain tenant, audit, producer, and artifact refs but no inline PHI.",
+      "retentionClassRef": "inherits_retention_from_linked_evidence_or_audit_record",
+      "auditEventMapping": [
+        "assurance.phase9.AssuranceEvidenceGraphEdge.created",
+        "assurance.phase9.AssuranceEvidenceGraphEdge.validated",
+        "assurance.phase9.AssuranceEvidenceGraphEdge.superseded_or_quarantined"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unknown namespaces and unsupported schema versions must quarantine before ledger append.",
+        "Legacy aliases may normalize only through a registered CanonicalEventNormalizationRule and must record the alias mapping.",
+        "Hash, graph, replay, and trust model version changes require deterministic rebuild before authoritative use."
+      ],
+      "validStateExamples": [
+        {
+          "exampleId": "valid:AssuranceEvidenceGraphEdge:canonical-fixture",
+          "description": "Canonical valid AssuranceEvidenceGraphEdge example is materialized under data/fixtures/432_phase9_assurance_contract_fixtures.json#/examples/AssuranceEvidenceGraphEdge.",
+          "fieldValues": {
+            "fixturePath": "data/fixtures/432_phase9_assurance_contract_fixtures.json"
+          }
+        }
+      ],
+      "invalidStateExamples": [
+        {
+          "exampleId": "invalid:AssuranceEvidenceGraphEdge:missing-required-field",
+          "description": "Removing any required field from AssuranceEvidenceGraphEdge must fail contract validation.",
+          "fieldValues": {
+            "invalidMutation": "delete_first_required_field"
+          }
+        },
+        {
+          "exampleId": "invalid:AssuranceEvidenceGraphEdge:bad-enum",
+          "description": "Replacing an enum field on AssuranceEvidenceGraphEdge with an unregistered value must fail closed.",
+          "fieldValues": {
+            "invalidMutation": "replace_enum_with_unregistered_value"
+          }
+        }
+      ]
+    },
+    {
+      "contractName": "AssuranceGraphCompletenessVerdict",
+      "schemaVersion": "432.phase9.assurance-ledger-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9A",
+      "fieldNames": [
+        "assuranceGraphCompletenessVerdictId",
+        "graphSnapshotRef",
+        "scopeRef",
+        "requiredNodeRefs",
+        "missingNodeRefs",
+        "orphanNodeRefs",
+        "missingEdgeRefs",
+        "supersessionConflictRefs",
+        "crossScopeConflictRefs",
+        "requiredPackRefs",
+        "requiredRetentionRefs",
+        "blockedExportRefs",
+        "verdictState",
+        "decisionHash",
+        "evaluatedAt"
+      ],
+      "requiredFields": [
+        "assuranceGraphCompletenessVerdictId",
+        "graphSnapshotRef",
+        "scopeRef",
+        "requiredNodeRefs",
+        "missingNodeRefs",
+        "orphanNodeRefs",
+        "missingEdgeRefs",
+        "supersessionConflictRefs",
+        "crossScopeConflictRefs",
+        "requiredPackRefs",
+        "requiredRetentionRefs",
+        "blockedExportRefs",
+        "verdictState",
+        "decisionHash",
+        "evaluatedAt"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "assuranceGraphCompletenessVerdictId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "graphSnapshotRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "scopeRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "requiredNodeRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "missingNodeRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "orphanNodeRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "missingEdgeRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "supersessionConflictRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "crossScopeConflictRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "requiredPackRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "requiredRetentionRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "blockedExportRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "verdictState",
+          "fieldType": "GraphVerdictState",
+          "required": true,
+          "enumRef": "graphVerdictState",
+          "notes": "Enum pinned by phase9AssuranceEnumValues.graphVerdictState."
+        },
+        {
+          "fieldName": "decisionHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        },
+        {
+          "fieldName": "evaluatedAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9A assurance ledger source algorithm."
+        }
+      ],
+      "enumValues": {
+        "verdictState": [
+          "complete",
+          "stale",
+          "blocked"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "All refs that carry tenant or scope metadata must resolve inside the same tenant scope unless an explicit governed cross-organisation grant exists.",
+        "Analytics assurance remains observer or governance posture and must not mutate patient, booking, hub, pharmacy, or communication lifecycle truth.",
+        "tenant scope refs may narrow but never widen audience or organisation scope after materialization."
+      ],
+      "identityKeys": [
+        "assuranceGraphCompletenessVerdictId"
+      ],
+      "idempotencyKeys": [
+        "assuranceGraphCompletenessVerdictId",
+        "scopeRef|tenantScopeRef|tenantScope",
+        "schemaVersionRef|versionRef|evaluationModelRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 432.phase9.assurance-ledger-contracts.v1",
+        "normalization pinned to phase9.assurance.normalization.v1 where source events are normalized",
+        "graph snapshots pinned to phase9.assurance.graph-snapshot.v1",
+        "slice trust lower-bound model pinned to phase9.assurance.slice-trust.lower-bound.v1",
+        "replay determinism pinned to phase9.assurance.replay-determinism.v1"
+      ],
+      "canonicalHashInputs": [
+        "assuranceGraphCompletenessVerdictId",
+        "graphSnapshotRef",
+        "scopeRef",
+        "requiredNodeRefs",
+        "missingNodeRefs",
+        "orphanNodeRefs",
+        "missingEdgeRefs",
+        "supersessionConflictRefs",
+        "crossScopeConflictRefs",
+        "requiredPackRefs",
+        "requiredRetentionRefs",
+        "blockedExportRefs",
+        "verdictState",
+        "evaluatedAt"
+      ],
+      "piiPhiClassification": "Operational assurance metadata; may contain tenant, audit, producer, and artifact refs but no inline PHI.",
+      "retentionClassRef": "governance_assurance_worm_record",
+      "auditEventMapping": [
+        "assurance.phase9.AssuranceGraphCompletenessVerdict.created",
+        "assurance.phase9.AssuranceGraphCompletenessVerdict.validated",
+        "assurance.phase9.AssuranceGraphCompletenessVerdict.superseded_or_quarantined"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unknown namespaces and unsupported schema versions must quarantine before ledger append.",
+        "Legacy aliases may normalize only through a registered CanonicalEventNormalizationRule and must record the alias mapping.",
+        "Hash, graph, replay, and trust model version changes require deterministic rebuild before authoritative use."
+      ],
+      "validStateExamples": [
+        {
+          "exampleId": "valid:AssuranceGraphCompletenessVerdict:canonical-fixture",
+          "description": "Canonical valid AssuranceGraphCompletenessVerdict example is materialized under data/fixtures/432_phase9_assurance_contract_fixtures.json#/examples/AssuranceGraphCompletenessVerdict.",
+          "fieldValues": {
+            "fixturePath": "data/fixtures/432_phase9_assurance_contract_fixtures.json"
+          }
+        }
+      ],
+      "invalidStateExamples": [
+        {
+          "exampleId": "invalid:AssuranceGraphCompletenessVerdict:missing-required-field",
+          "description": "Removing any required field from AssuranceGraphCompletenessVerdict must fail contract validation.",
+          "fieldValues": {
+            "invalidMutation": "delete_first_required_field"
+          }
+        },
+        {
+          "exampleId": "invalid:AssuranceGraphCompletenessVerdict:bad-enum",
+          "description": "Replacing an enum field on AssuranceGraphCompletenessVerdict with an unregistered value must fail closed.",
+          "fieldValues": {
+            "invalidMutation": "replace_enum_with_unregistered_value"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1468 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vecells Safety Gate Lab</title>
+    <style>
+      :root {
+        --canvas: #f7f8fa;
+        --shell: #eef2f6;
+        --panel: #ffffff;
+        --inset: #e8eef3;
+        --strong: #0f1720;
+        --text: #24313d;
+        --muted: #5e6b78;
+        --routine: #2f6fed;
+        --residual: #b7791f;
+        --urgent: #b42318;
+        --safe: #117a55;
+        --continuity: #5b61f6;
+        --line: rgba(15, 23, 32, 0.11);
+        font-family: "Aptos Display", "Segoe UI Variable Display", "Helvetica Neue", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 8% 12%, rgba(91, 97, 246, 0.12), transparent 28rem),
+          radial-gradient(circle at 92% 18%, rgba(17, 122, 85, 0.1), transparent 24rem),
+          linear-gradient(145deg, var(--canvas), var(--shell));
+        color: var(--text);
+        overflow-x: hidden;
+      }
+
+      body.reduced-motion *,
+      body.reduced-motion *::before,
+      body.reduced-motion *::after {
+        animation-duration: 0.001ms !important;
+        transition-duration: 0.001ms !important;
+      }
+
+      header {
+        height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 28px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.72);
+        backdrop-filter: blur(18px);
+      }
+
+      .wordmark {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--strong);
+        font-weight: 760;
+        letter-spacing: -0.04em;
+      }
+
+      .wordmark span {
+        font-size: 22px;
+      }
+
+      .mode-chip {
+        border: 1px solid rgba(91, 97, 246, 0.22);
+        color: var(--continuity);
+        background: rgba(91, 97, 246, 0.08);
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 720;
+      }
+
+      .lab-shell {
+        width: min(1580px, calc(100vw - 28px));
+        margin: 18px auto 34px;
+        display: grid;
+        grid-template-columns: 284px minmax(0, 1fr) 408px;
+        gap: 16px;
+      }
+
+      .lab-shell > * {
+        min-width: 0;
+      }
+
+      body[data-layout="stack"] .lab-shell {
+        grid-template-columns: 1fr;
+      }
+
+      nav,
+      main,
+      aside,
+      .lower-grid {
+        background: rgba(255, 255, 255, 0.84);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        box-shadow: 0 24px 60px rgba(15, 23, 32, 0.08);
+      }
+
+      nav,
+      aside {
+        padding: 18px;
+      }
+
+      main {
+        padding: 18px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        color: var(--strong);
+        font-size: clamp(28px, 4vw, 50px);
+        line-height: 0.96;
+        letter-spacing: -0.055em;
+      }
+
+      h2 {
+        color: var(--strong);
+        font-size: 17px;
+        letter-spacing: -0.025em;
+      }
+
+      h3 {
+        color: var(--strong);
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .rail-group {
+        display: grid;
+        gap: 8px;
+        margin-top: 16px;
+      }
+
+      .rail-label {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .case-button,
+      .settlement-button {
+        width: 100%;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        color: var(--text);
+        border-radius: 18px;
+        padding: 12px;
+        text-align: left;
+        cursor: pointer;
+        transition:
+          transform 180ms ease,
+          border-color 180ms ease,
+          box-shadow 180ms ease;
+      }
+
+      .case-button:hover,
+      .case-button:focus,
+      .settlement-button:hover,
+      .settlement-button:focus {
+        outline: none;
+        transform: translateY(-1px);
+        border-color: rgba(91, 97, 246, 0.42);
+        box-shadow: 0 10px 28px rgba(91, 97, 246, 0.12);
+      }
+
+      .case-button[data-selected="true"],
+      .settlement-button[data-selected="true"] {
+        border-color: rgba(91, 97, 246, 0.48);
+        background: linear-gradient(180deg, rgba(91, 97, 246, 0.08), #fff);
+      }
+
+      .button-title {
+        display: block;
+        color: var(--strong);
+        font-size: 12px;
+        font-weight: 780;
+        line-height: 1.2;
+        overflow-wrap: anywhere;
+      }
+
+      .button-meta {
+        display: block;
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+        gap: 18px;
+        margin-bottom: 18px;
+      }
+
+      body[data-layout="stack"] .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-card,
+      .diagram-card,
+      .inspector-card,
+      .table-card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        padding: 18px;
+        min-width: 0;
+      }
+
+      .hero-card {
+        background:
+          linear-gradient(135deg, rgba(15, 23, 32, 0.96), rgba(36, 49, 61, 0.92)), var(--strong);
+        color: #fff;
+        min-height: 210px;
+        display: grid;
+        align-content: space-between;
+      }
+
+      .hero-card .muted {
+        color: rgba(255, 255, 255, 0.72);
+      }
+
+      .hero-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+
+      .metric {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 18px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .metric strong {
+        display: block;
+        color: #fff;
+        font-size: 20px;
+      }
+
+      .diagram-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+
+      body[data-layout="stack"] .diagram-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .steps {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: 32px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        padding: 12px;
+        border-radius: 18px;
+        background: var(--inset);
+        border: 1px solid transparent;
+      }
+
+      .step > div,
+      .step strong,
+      .step .muted {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .step[data-active="true"] {
+        background: rgba(91, 97, 246, 0.09);
+        border-color: rgba(91, 97, 246, 0.3);
+      }
+
+      .dot {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        background: var(--routine);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .dot.urgent {
+        background: var(--urgent);
+      }
+
+      .dot.residual {
+        background: var(--residual);
+      }
+
+      .dot.safe {
+        background: var(--safe);
+      }
+
+      .dot.continuity {
+        background: var(--continuity);
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 5px 9px;
+        background: var(--inset);
+        color: var(--text);
+        font-size: 11px;
+        font-weight: 760;
+      }
+
+      .chip.urgent {
+        background: rgba(180, 35, 24, 0.1);
+        color: var(--urgent);
+      }
+
+      .chip.residual {
+        background: rgba(183, 121, 31, 0.12);
+        color: var(--residual);
+      }
+
+      .chip.safe {
+        background: rgba(17, 122, 85, 0.1);
+        color: var(--safe);
+      }
+
+      .chip.continuity {
+        background: rgba(91, 97, 246, 0.1);
+        color: var(--continuity);
+      }
+
+      .ribbon {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      body[data-layout="stack"] .ribbon {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .ribbon-cell {
+        min-height: 96px;
+        border-radius: 20px;
+        padding: 12px;
+        background: var(--inset);
+        border: 1px solid transparent;
+      }
+
+      .ribbon-cell[data-active="true"] {
+        border-color: rgba(91, 97, 246, 0.34);
+        background: rgba(91, 97, 246, 0.08);
+      }
+
+      aside {
+        position: sticky;
+        top: 88px;
+        align-self: start;
+      }
+
+      body[data-layout="stack"] aside {
+        position: static;
+      }
+
+      .inspector-grid {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .inspector-row {
+        padding: 12px;
+        border-radius: 16px;
+        background: var(--inset);
+      }
+
+      .inspector-row span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .inspector-row strong {
+        display: block;
+        margin-top: 4px;
+        color: var(--strong);
+        overflow-wrap: anywhere;
+      }
+
+      .lower-grid {
+        grid-column: 1 / -1;
+        padding: 18px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      body[data-layout="stack"] .lower-grid {
+        grid-template-columns: 1fr;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+        font-size: 12px;
+        table-layout: fixed;
+      }
+
+      th,
+      td {
+        padding: 9px 8px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+        overflow-wrap: anywhere;
+      }
+
+      th {
+        color: var(--muted);
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      tr[data-selected="true"] {
+        background: rgba(91, 97, 246, 0.08);
+      }
+    </style>
+  </head>
+  <body data-layout="grid">
+    <header data-testid="safety-lab-masthead">
+      <div class="wordmark" aria-label="Vecells">
+        <svg
+          id="safety_vector_mark"
+          data-testid="safety_vector_mark"
+          width="34"
+          height="34"
+          viewBox="0 0 34 34"
+          role="img"
+          aria-label="safety vector mark"
+        >
+          <rect x="3" y="3" width="28" height="28" rx="10" fill="#0F1720" />
+          <path d="M10 17.4 15 22l9-10" fill="none" stroke="#FFFFFF" stroke-width="3" />
+          <circle cx="26" cy="8" r="3" fill="#5B61F6" />
+        </svg>
+        <span>Vecells</span>
+      </div>
+      <div class="mode-chip" data-testid="surface-mode">Safety_Gate_Lab</div>
+    </header>
+
+    <div class="lab-shell" data-testid="safety-gate-lab">
+      <nav aria-label="Safety gate case families" data-testid="case-family-rail">
+        <h2>Case Families</h2>
+        <p class="muted">Rule rows and upload-abuse fixtures share one governed shell.</p>
+        <div class="rail-label">Red flag rules</div>
+        <div id="decision-rail" class="rail-group"></div>
+        <div class="rail-label">Upload evidence</div>
+        <div id="upload-rail" class="rail-group"></div>
+      </nav>
+
+      <main data-testid="safety-lab-main">
+        <section class="hero">
+          <div class="hero-card">
+            <div>
+              <h1>Safety gate proof without false calmness.</h1>
+              <p class="muted">
+                A browser-visible lab for frozen red-flag rows, unsafe evidence, urgent settlement
+                states, and same-shell continuity.
+              </p>
+            </div>
+            <div class="hero-metrics" aria-label="proof counts">
+              <div class="metric">
+                <strong id="metric-rule-count">13</strong><span>rule rows</span>
+              </div>
+              <div class="metric">
+                <strong id="metric-upload-count">12</strong><span>upload cases</span>
+              </div>
+              <div class="metric"><strong>4</strong><span>urgent states</span></div>
+            </div>
+          </div>
+          <div class="diagram-card">
+            <h2>Current Selection</h2>
+            <p id="selection-summary" class="muted" data-testid="selection-summary"></p>
+            <div class="inspector-grid">
+              <div class="inspector-row">
+                <span>Shell continuity key</span>
+                <strong data-testid="shell-continuity-key">patient.portal.requests</strong>
+              </div>
+              <div class="inspector-row">
+                <span>Requested safety state</span>
+                <strong id="summary-state" data-testid="summary-state"></strong>
+              </div>
+              <div class="inspector-row">
+                <span>Continuity posture</span>
+                <strong id="summary-continuity" data-testid="summary-continuity"></strong>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="diagram-grid" aria-label="decision and evidence diagrams">
+          <div class="diagram-card">
+            <h2>Decision-table Ladder</h2>
+            <p class="muted">Each visual step has parity in the adjacent table.</p>
+            <div id="decision-ladder" class="steps" data-testid="decision-ladder"></div>
+            <table data-testid="decision-ladder-table">
+              <thead>
+                <tr>
+                  <th>Step</th>
+                  <th>Runtime value</th>
+                </tr>
+              </thead>
+              <tbody id="decision-ladder-table-body"></tbody>
+            </table>
+          </div>
+
+          <div class="diagram-card">
+            <h2>Evidence-lane Classifier Ribbon</h2>
+            <div id="evidence-ribbon" class="ribbon" data-testid="evidence-ribbon"></div>
+            <table data-testid="evidence-ribbon-table">
+              <thead>
+                <tr>
+                  <th>Lane</th>
+                  <th>Meaning</th>
+                </tr>
+              </thead>
+              <tbody id="evidence-ribbon-table-body"></tbody>
+            </table>
+          </div>
+
+          <div class="diagram-card">
+            <h2>Urgent-settlement Ladder</h2>
+            <p class="muted">Pending guidance and issued diversion are separate durable truths.</p>
+            <div
+              id="urgent-settlement-ladder"
+              class="steps"
+              data-testid="urgent-settlement-ladder"
+            ></div>
+            <div id="settlement-buttons" class="rail-group"></div>
+            <table data-testid="urgent-settlement-table">
+              <thead>
+                <tr>
+                  <th>Settlement</th>
+                  <th>Visible state</th>
+                </tr>
+              </thead>
+              <tbody id="urgent-settlement-table-body"></tbody>
+            </table>
+          </div>
+
+          <div class="diagram-card">
+            <h2>Rule And Upload Parity</h2>
+            <p class="muted">Machine rows back every browser-visible proof item.</p>
+            <table data-testid="case-parity-table">
+              <thead>
+                <tr>
+                  <th>Case</th>
+                  <th>Family</th>
+                  <th>Expected</th>
+                </tr>
+              </thead>
+              <tbody id="case-parity-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+
+      <aside data-testid="case-inspector" aria-label="Selected case inspector">
+        <div class="inspector-card">
+          <h2>Inspector</h2>
+          <p class="muted">Synchronized row, ribbon, settlement, and event state.</p>
+          <div class="inspector-grid">
+            <div class="inspector-row">
+              <span>Case ID</span>
+              <strong id="inspector-case-id" data-testid="inspector-case-id"></strong>
+            </div>
+            <div class="inspector-row">
+              <span>Decision outcome</span>
+              <strong id="inspector-decision" data-testid="inspector-decision"></strong>
+            </div>
+            <div class="inspector-row">
+              <span>Settlement state</span>
+              <strong id="inspector-settlement" data-testid="inspector-settlement"></strong>
+            </div>
+            <div class="inspector-row">
+              <span>Urgent diverted visible</span>
+              <strong id="inspector-urgent-visible" data-testid="inspector-urgent-visible"></strong>
+            </div>
+            <div class="inspector-row">
+              <span>Upload trust posture</span>
+              <strong id="inspector-trust" data-testid="inspector-trust"></strong>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="lower-grid" aria-label="event settlement and upload tables">
+        <div class="table-card">
+          <h2>Event Chain</h2>
+          <table data-testid="event-chain-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Event</th>
+              </tr>
+            </thead>
+            <tbody id="event-chain-table-body"></tbody>
+          </table>
+        </div>
+        <div class="table-card">
+          <h2>Settlement Parity</h2>
+          <table data-testid="settlement-parity-table">
+            <thead>
+              <tr>
+                <th>State</th>
+                <th>Distinct from issued?</th>
+              </tr>
+            </thead>
+            <tbody id="settlement-parity-table-body"></tbody>
+          </table>
+        </div>
+        <div class="table-card">
+          <h2>Upload Quarantine</h2>
+          <table data-testid="upload-quarantine-table">
+            <thead>
+              <tr>
+                <th>Upload case</th>
+                <th>Disposition</th>
+              </tr>
+            </thead>
+            <tbody id="upload-quarantine-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const decisionCases = [
+        {
+          id: "RF142_HS_ACUTE_CHEST_BREATHING",
+          family: "hard_stop",
+          outcome: "urgent_required",
+          requested: "urgent_diversion_required",
+          evidence: "potentially_clinical",
+          basis: "content_signal",
+          risk: "urgent_hold",
+          continuity: "urgent_required_same_shell",
+          settlement: "pending",
+          urgentVisible: false,
+          events: [
+            "EvidenceClassificationDecision",
+            "SafetyPreemptionRecord",
+            "SafetyDecisionRecord",
+          ],
+        },
+        {
+          id: "RF142_HS_STROKE_COLLAPSE_OR_SEIZURE",
+          family: "hard_stop",
+          outcome: "urgent_required",
+          requested: "urgent_diversion_required",
+          evidence: "potentially_clinical",
+          basis: "content_signal",
+          risk: "urgent_hold",
+          continuity: "urgent_required_same_shell",
+          settlement: "pending",
+          urgentVisible: false,
+          events: [
+            "EvidenceClassificationDecision",
+            "SafetyPreemptionRecord",
+            "SafetyDecisionRecord",
+          ],
+        },
+        {
+          id: "RF142_HS_ANAPHYLAXIS_OR_SEVERE_MED_REACTION",
+          family: "hard_stop",
+          outcome: "urgent_required",
+          requested: "urgent_diversion_required",
+          evidence: "potentially_clinical",
+          basis: "content_signal",
+          risk: "urgent_hold",
+          continuity: "urgent_required_same_shell",
+          settlement: "pending",
+          urgentVisible: false,
+          events: [
+            "EvidenceClassificationDecision",
+            "SafetyPreemptionRecord",
+            "SafetyDecisionRecord",
+          ],
+        },
+        {
+          id: "RF142_HS_HEAVY_BLEEDING_OR_PREGNANCY_RED_FLAG",
+          family: "hard_stop",
+          outcome: "urgent_required",
+          requested: "urgent_diversion_required",
+          evidence: "potentially_clinical",
+          basis: "content_signal",
+          risk: "ordinary",
+          continuity: "urgent_required_same_shell",
+          settlement: "pending",
+          urgentVisible: false,
+          events: [
+            "EvidenceClassificationDecision",
+            "SafetyPreemptionRecord",
+            "SafetyDecisionRecord",
+          ],
+        },
+        {
+          id: "RF142_HS_SELF_HARM_OR_SAFEGUARDING_SIGNAL",
+          family: "hard_stop",
+          outcome: "urgent_required",
+          requested: "urgent_diversion_required",
+          evidence: "potentially_clinical",
+          basis: "content_signal",
+          risk: "urgent_hold",
+          continuity: "urgent_required_same_shell",
+          settlement: "pending",
+          urgentVisible: false,
+          events: [
+            "EvidenceClassificationDecision",
+            "SafetyPreemptionRecord",
+            "SafetyDecisionRecord",
+          ],
+        },
+        {
+          id: "RF142_UC_SEVERE_PAIN_ESCALATION",
+          family: "urgent_contributor",
+          outcome: "urgent_required",
+          requested: "urgent_diversion_required",
+          evidence: "potentially_clinical",
+          basis: "content_signal",
+          risk: "ordinary",
+          continuity: "urgent_required_same_shell",
+          settlement: "pending",
+          urgentVisible: false,
+          events: [
+            "EvidenceClassificationDecision",
+            "SafetyPreemptionRecord",
+            "SafetyDecisionRecord",
+          ],
+        },
+        {
+          id: "RF142_UC_RAPID_WORSENING_RECENT_ONSET",
+          family: "urgent_contributor",
+          outcome: "urgent_required",
+          requested: "urgent_diversion_required",
+          evidence: "potentially_clinical",
+          basis: "content_signal",
+          risk: "ordinary",
+          continuity: "urgent_required_same_shell",
+          settlement: "pending",
+          urgentVisible: false,
+          events: [
+            "EvidenceClassificationDecision",
+            "SafetyPreemptionRecord",
+            "SafetyDecisionRecord",
+          ],
+        },
+        {
+          id: "RF142_UC_HIGH_RISK_RESULT_WITH_CURRENT_SYMPTOMS",
+          family: "urgent_contributor",
+          outcome: "urgent_required",
+          requested: "urgent_diversion_required",
+          evidence: "potentially_clinical",
+          basis: "content_signal",
+          risk: "ordinary",
+          continuity: "urgent_required_same_shell",
+          settlement: "pending",
+          urgentVisible: false,
+          events: [
+            "EvidenceClassificationDecision",
+            "SafetyPreemptionRecord",
+            "SafetyDecisionRecord",
+          ],
+        },
+        {
+          id: "RF142_UC_HIGH_RISK_MED_INTERRUPTION",
+          family: "urgent_contributor",
+          outcome: "urgent_required",
+          requested: "urgent_diversion_required",
+          evidence: "potentially_clinical",
+          basis: "content_signal",
+          risk: "ordinary",
+          continuity: "urgent_required_same_shell",
+          settlement: "pending",
+          urgentVisible: false,
+          events: [
+            "EvidenceClassificationDecision",
+            "SafetyPreemptionRecord",
+            "SafetyDecisionRecord",
+          ],
+        },
+        {
+          id: "RF142_RC_MODERATE_PERSISTENT_SYMPTOMS",
+          family: "residual_contributor",
+          outcome: "residual_review",
+          requested: "residual_risk_flagged",
+          evidence: "potentially_clinical",
+          basis: "content_signal",
+          risk: "ordinary",
+          continuity: "residual_review_same_shell",
+          settlement: "not_applicable",
+          urgentVisible: false,
+          events: [
+            "EvidenceClassificationDecision",
+            "SafetyPreemptionRecord",
+            "SafetyDecisionRecord",
+          ],
+        },
+        {
+          id: "RF142_RC_RESULTS_UNCLEAR_FOLLOW_UP",
+          family: "residual_contributor",
+          outcome: "residual_review",
+          requested: "residual_risk_flagged",
+          evidence: "potentially_clinical",
+          basis: "content_signal",
+          risk: "ordinary",
+          continuity: "residual_review_same_shell",
+          settlement: "not_applicable",
+          urgentVisible: false,
+          events: [
+            "EvidenceClassificationDecision",
+            "SafetyPreemptionRecord",
+            "SafetyDecisionRecord",
+          ],
+        },
+        {
+          id: "RF142_RC_ADMIN_TIME_DEPENDENT_CLINICAL_FORM",
+          family: "residual_contributor",
+          outcome: "residual_review",
+          requested: "residual_risk_flagged",
+          evidence: "potentially_clinical",
+          basis: "content_signal",
+          risk: "ordinary",
+          continuity: "residual_review_same_shell",
+          settlement: "not_applicable",
+          urgentVisible: false,
+          events: [
+            "EvidenceClassificationDecision",
+            "SafetyPreemptionRecord",
+            "SafetyDecisionRecord",
+          ],
+        },
+        {
+          id: "RF142_RCH_NO_SAFE_CALLBACK_WINDOW",
+          family: "reachability_contributor",
+          outcome: "fallback_manual_review",
+          requested: "residual_risk_flagged",
+          evidence: "contact_safety_relevant",
+          basis: "manual_review",
+          risk: "fail_closed_review",
+          continuity: "manual_review_same_shell",
+          settlement: "not_applicable",
+          urgentVisible: false,
+          events: [
+            "EvidenceClassificationDecision",
+            "SafetyPreemptionRecord",
+            "FallbackReviewOpened",
+          ],
+        },
+        {
+          id: "165_BOUNDARY_HARD_STOP_DOMINATES_RESIDUAL",
+          family: "boundary_value",
+          outcome: "urgent_required",
+          requested: "urgent_diversion_required",
+          evidence: "potentially_clinical",
+          basis: "content_signal",
+          risk: "urgent_hold",
+          continuity: "urgent_required_same_shell",
+          settlement: "pending",
+          urgentVisible: false,
+          events: [
+            "EvidenceClassificationDecision",
+            "SafetyPreemptionRecord",
+            "SafetyDecisionRecord",
+          ],
+        },
+        {
+          id: "165_DEPENDENCY_DUPLICATE_EVIDENCE_CAP",
+          family: "dependency_group_capping",
+          outcome: "urgent_required",
+          requested: "urgent_diversion_required",
+          evidence: "potentially_clinical",
+          basis: "content_signal",
+          risk: "urgent_hold",
+          continuity: "urgent_required_same_shell",
+          settlement: "pending",
+          urgentVisible: false,
+          events: [
+            "EvidenceClassificationDecision",
+            "SafetyPreemptionRecord",
+            "SafetyDecisionRecord",
+          ],
+        },
+        {
+          id: "165_DEGRADED_ATTACHMENT_FAIL_CLOSED",
+          family: "degraded_evidence",
+          outcome: "fallback_manual_review",
+          requested: "residual_risk_flagged",
+          evidence: "potentially_clinical",
+          basis: "manual_review",
+          risk: "fail_closed_review",
+          continuity: "manual_review_same_shell",
+          settlement: "not_applicable",
+          urgentVisible: false,
+          events: [
+            "EvidenceClassificationDecision",
+            "SafetyPreemptionRecord",
+            "FallbackReviewOpened",
+          ],
+        },
+        {
+          id: "165_URGENT_REQUIRED_PENDING",
+          family: "urgent_settlement_separation",
+          outcome: "urgent_required",
+          requested: "urgent_diversion_required",
+          evidence: "potentially_clinical",
+          basis: "content_signal",
+          risk: "urgent_hold",
+          continuity: "urgent_required_same_shell",
+          settlement: "pending",
+          urgentVisible: false,
+          events: [
+            "EvidenceClassificationDecision",
+            "SafetyPreemptionRecord",
+            "SafetyDecisionRecord",
+          ],
+        },
+      ];
+
+      const uploadCases = [
+        {
+          id: "UP165_SAFE_PDF",
+          family: "safe_baseline",
+          outcome: "promoted",
+          requested: "screen_clear",
+          evidence: "preserved_supporting_evidence",
+          basis: "authoritative_scan",
+          risk: "ordinary",
+          continuity: "safe_preview_ready",
+          settlement: "not_applicable",
+          urgentVisible: false,
+          trust: "governed_preview_after_scan",
+          events: [
+            "intake.attachment.initiated",
+            "intake.attachment.uploaded",
+            "intake.attachment.scanning",
+            "intake.attachment.safe",
+            "intake.attachment.preview.generated",
+            "intake.attachment.promoted",
+          ],
+        },
+        {
+          id: "UP165_PREVIEW_FAILURE",
+          family: "safe_degraded_preview",
+          outcome: "promoted",
+          requested: "screen_clear",
+          evidence: "preserved_supporting_evidence",
+          basis: "authoritative_scan",
+          risk: "ordinary",
+          continuity: "safe_placeholder_same_shell",
+          settlement: "not_applicable",
+          urgentVisible: false,
+          trust: "summary_only_after_scan",
+          events: [
+            "intake.attachment.initiated",
+            "intake.attachment.uploaded",
+            "intake.attachment.scanning",
+            "intake.attachment.safe",
+            "intake.attachment.promoted",
+          ],
+        },
+        {
+          id: "UP165_MALWARE_POSITIVE",
+          family: "quarantine",
+          outcome: "quarantined_malware",
+          requested: "residual_risk_flagged",
+          evidence: "unresolved_fail_closed_review",
+          basis: "quarantine",
+          risk: "fail_closed_review",
+          continuity: "quarantine_visible_same_shell",
+          settlement: "not_applicable",
+          urgentVisible: false,
+          trust: "hidden_forbidden_no_grant",
+          events: [
+            "intake.attachment.initiated",
+            "intake.attachment.uploaded",
+            "intake.attachment.scanning",
+            "intake.attachment.quarantined",
+          ],
+        },
+        {
+          id: "UP165_MIME_SPOOF",
+          family: "quarantine",
+          outcome: "quarantined_unsupported_type",
+          requested: "residual_risk_flagged",
+          evidence: "unresolved_fail_closed_review",
+          basis: "quarantine",
+          risk: "fail_closed_review",
+          continuity: "quarantine_visible_same_shell",
+          settlement: "not_applicable",
+          urgentVisible: false,
+          trust: "hidden_forbidden_no_grant",
+          events: [
+            "intake.attachment.initiated",
+            "intake.attachment.uploaded",
+            "intake.attachment.scanning",
+            "intake.attachment.quarantined",
+          ],
+        },
+        {
+          id: "UP165_UNREADABLE_PAYLOAD",
+          family: "quarantine",
+          outcome: "quarantined_unreadable",
+          requested: "residual_risk_flagged",
+          evidence: "unresolved_fail_closed_review",
+          basis: "quarantine",
+          risk: "fail_closed_review",
+          continuity: "quarantine_visible_same_shell",
+          settlement: "not_applicable",
+          urgentVisible: false,
+          trust: "hidden_forbidden_no_grant",
+          events: [
+            "intake.attachment.initiated",
+            "intake.attachment.uploaded",
+            "intake.attachment.scanning",
+            "intake.attachment.quarantined",
+          ],
+        },
+        {
+          id: "UP165_INTEGRITY_FAILURE",
+          family: "quarantine",
+          outcome: "quarantined_integrity_failure",
+          requested: "residual_risk_flagged",
+          evidence: "unresolved_fail_closed_review",
+          basis: "quarantine",
+          risk: "fail_closed_review",
+          continuity: "quarantine_visible_same_shell",
+          settlement: "not_applicable",
+          urgentVisible: false,
+          trust: "hidden_forbidden_no_grant",
+          events: [
+            "intake.attachment.initiated",
+            "intake.attachment.uploaded",
+            "intake.attachment.scanning",
+            "intake.attachment.quarantined",
+          ],
+        },
+        {
+          id: "UP165_SCAN_TIMEOUT_RETRY",
+          family: "unresolved_retry",
+          outcome: "scan_failed_retryable",
+          requested: "residual_risk_flagged",
+          evidence: "unresolved_fail_closed_review",
+          basis: "scanner_timeout",
+          risk: "fail_closed_review",
+          continuity: "review_required_same_shell",
+          settlement: "not_applicable",
+          urgentVisible: false,
+          trust: "hidden_forbidden_no_grant",
+          events: [
+            "intake.attachment.initiated",
+            "intake.attachment.uploaded",
+            "intake.attachment.scanning",
+          ],
+        },
+        {
+          id: "UP165_OVERSIZED_REJECTED",
+          family: "policy_rejection",
+          outcome: "rejected_policy",
+          requested: "residual_risk_flagged",
+          evidence: "not_yet_captured",
+          basis: "policy_rejection",
+          risk: "fail_closed_review",
+          continuity: "local_card_recovery",
+          settlement: "not_applicable",
+          urgentVisible: false,
+          trust: "hidden_forbidden_no_grant",
+          events: [],
+        },
+        {
+          id: "UP165_EXTENSION_MISMATCH_REJECTED",
+          family: "policy_rejection",
+          outcome: "rejected_policy",
+          requested: "residual_risk_flagged",
+          evidence: "not_yet_captured",
+          basis: "policy_rejection",
+          risk: "fail_closed_review",
+          continuity: "local_card_recovery",
+          settlement: "not_applicable",
+          urgentVisible: false,
+          trust: "hidden_forbidden_no_grant",
+          events: [],
+        },
+        {
+          id: "UP165_POLICY_DISALLOWED_REJECTED",
+          family: "policy_rejection",
+          outcome: "rejected_policy",
+          requested: "residual_risk_flagged",
+          evidence: "not_yet_captured",
+          basis: "policy_rejection",
+          risk: "fail_closed_review",
+          continuity: "local_card_recovery",
+          settlement: "not_applicable",
+          urgentVisible: false,
+          trust: "hidden_forbidden_no_grant",
+          events: [],
+        },
+        {
+          id: "UP165_DUPLICATE_REPLAY",
+          family: "duplicate",
+          outcome: "promoted",
+          requested: "screen_clear",
+          evidence: "preserved_supporting_evidence",
+          basis: "lineage_replay",
+          risk: "ordinary",
+          continuity: "safe_preview_ready",
+          settlement: "not_applicable",
+          urgentVisible: false,
+          trust: "existing_governed_preview_reused",
+          events: [
+            "intake.attachment.initiated",
+            "intake.attachment.uploaded",
+            "intake.attachment.scanning",
+            "intake.attachment.safe",
+            "intake.attachment.preview.generated",
+            "intake.attachment.promoted",
+          ],
+        },
+        {
+          id: "UP165_MIXED_BATCH_UNSAFE",
+          family: "mixed_batch",
+          outcome: "quarantined_malware",
+          requested: "residual_risk_flagged",
+          evidence: "unresolved_fail_closed_review",
+          basis: "quarantine",
+          risk: "fail_closed_review",
+          continuity: "mixed_batch_review_required",
+          settlement: "not_applicable",
+          urgentVisible: false,
+          trust: "hidden_forbidden_no_grant",
+          events: [
+            "intake.attachment.initiated",
+            "intake.attachment.uploaded",
+            "intake.attachment.scanning",
+            "intake.attachment.quarantined",
+          ],
+        },
+      ];
+
+      const settlementStates = [
+        {
+          id: "URGENT_REQUIRED_PENDING",
+          state: "pending",
+          requested: "urgent_diversion_required",
+          visible: false,
+          label: "Required, not issued",
+        },
+        {
+          id: "URGENT_ISSUED",
+          state: "issued",
+          requested: "urgent_diverted",
+          visible: true,
+          label: "Issued diversion",
+        },
+        {
+          id: "URGENT_FAILED",
+          state: "failed",
+          requested: "urgent_diversion_required",
+          visible: false,
+          label: "Failed safe",
+        },
+        {
+          id: "URGENT_SUPERSEDED_BY_ISSUED",
+          state: "superseded",
+          requested: "urgent_diverted",
+          visible: true,
+          label: "Superseded by issued",
+        },
+      ];
+
+      const ladderSteps = [
+        { id: "freeze", label: "Frozen evidence cut" },
+        { id: "classify", label: "Evidence classification" },
+        { id: "decide", label: "Safety decision" },
+        { id: "continue", label: "Same-shell continuity" },
+      ];
+
+      const evidenceLanes = [
+        {
+          id: "potentially_clinical",
+          label: "Potentially clinical",
+          detail: "Clinical meaning or unresolved parser output.",
+        },
+        {
+          id: "contact_safety_relevant",
+          label: "Contact safety",
+          detail: "Reachability blocks routine calmness.",
+        },
+        {
+          id: "preserved_supporting_evidence",
+          label: "Preserved support",
+          detail: "Clean evidence after authoritative scan.",
+        },
+        {
+          id: "unresolved_fail_closed_review",
+          label: "Fail-closed review",
+          detail: "Quarantined or unresolved upload evidence.",
+        },
+      ];
+
+      let selected = decisionCases[0];
+      let selectedKind = "decision";
+      let selectedSettlement = settlementStates[0];
+
+      const byId = (id) => document.getElementById(id);
+
+      function chipClass(value) {
+        if (String(value).includes("urgent") || String(value).includes("quarantined"))
+          return "urgent";
+        if (String(value).includes("residual") || String(value).includes("review"))
+          return "residual";
+        if (String(value).includes("safe") || String(value).includes("screen_clear")) return "safe";
+        return "continuity";
+      }
+
+      function renderRail() {
+        const decisionRail = byId("decision-rail");
+        const uploadRail = byId("upload-rail");
+        decisionRail.innerHTML = "";
+        uploadRail.innerHTML = "";
+        decisionCases.forEach((item) => decisionRail.appendChild(caseButton(item, "decision")));
+        uploadCases.forEach((item) => uploadRail.appendChild(caseButton(item, "upload")));
+      }
+
+      function caseButton(item, kind) {
+        const button = document.createElement("button");
+        button.className = "case-button";
+        button.type = "button";
+        button.dataset.caseId = item.id;
+        button.dataset.caseKind = kind;
+        button.dataset.selected = item.id === selected.id ? "true" : "false";
+        button.setAttribute("data-testid", `case-button-${item.id}`);
+        button.innerHTML = `<span class="button-title">${item.id}</span><span class="button-meta">${item.family} / ${item.outcome}</span>`;
+        button.addEventListener("click", () => selectCase(item, kind));
+        button.addEventListener("keydown", onRailKeydown);
+        return button;
+      }
+
+      function onRailKeydown(event) {
+        const buttons = [...document.querySelectorAll(".case-button")];
+        const index = buttons.indexOf(event.currentTarget);
+        let next = index;
+        if (event.key === "ArrowDown" || event.key === "ArrowRight")
+          next = Math.min(buttons.length - 1, index + 1);
+        if (event.key === "ArrowUp" || event.key === "ArrowLeft") next = Math.max(0, index - 1);
+        if (event.key === "Home") next = 0;
+        if (event.key === "End") next = buttons.length - 1;
+        if (next !== index) {
+          event.preventDefault();
+          const nextCaseId = buttons[next].dataset.caseId;
+          buttons[next].focus();
+          buttons[next].click();
+          [...document.querySelectorAll(".case-button")]
+            .find((button) => button.dataset.caseId === nextCaseId)
+            ?.focus();
+        }
+      }
+
+      function selectCase(item, kind) {
+        selected = item;
+        selectedKind = kind;
+        const settlement = settlementStates.find((state) => state.state === item.settlement);
+        if (settlement) selectedSettlement = settlement;
+        renderAll();
+      }
+
+      function selectSettlement(item) {
+        selectedSettlement = item;
+        renderAll();
+      }
+
+      function renderDecisionLadder() {
+        const ladder = byId("decision-ladder");
+        const table = byId("decision-ladder-table-body");
+        const values = {
+          freeze: selected.id,
+          classify: `${selected.evidence} / ${selected.basis}`,
+          decide: selected.outcome,
+          continue: selected.continuity,
+        };
+        ladder.innerHTML = "";
+        table.innerHTML = "";
+        ladderSteps.forEach((step, index) => {
+          const el = document.createElement("div");
+          el.className = "step";
+          el.dataset.active =
+            index === 2 || (selected.risk || "").includes("fail_closed") ? "true" : "false";
+          el.setAttribute("data-testid", `decision-step-${step.id}`);
+          el.innerHTML = `<span class="dot ${chipClass(values[step.id])}">${index + 1}</span><div><strong>${step.label}</strong><br><span class="muted">${values[step.id]}</span></div><span class="chip ${chipClass(values[step.id])}">${selectedKind}</span>`;
+          ladder.appendChild(el);
+          table.insertAdjacentHTML(
+            "beforeend",
+            `<tr data-step="${step.id}"><td>${step.label}</td><td>${values[step.id]}</td></tr>`,
+          );
+        });
+      }
+
+      function renderEvidenceRibbon() {
+        const ribbon = byId("evidence-ribbon");
+        const table = byId("evidence-ribbon-table-body");
+        ribbon.innerHTML = "";
+        table.innerHTML = "";
+        evidenceLanes.forEach((lane) => {
+          const active = selected.evidence === lane.id || selected.evidence === lane.label;
+          ribbon.insertAdjacentHTML(
+            "beforeend",
+            `<div class="ribbon-cell" data-testid="evidence-lane-${lane.id}" data-active="${active}"><strong>${lane.label}</strong><p class="muted">${lane.detail}</p></div>`,
+          );
+          table.insertAdjacentHTML(
+            "beforeend",
+            `<tr data-selected="${active}"><td>${lane.id}</td><td>${lane.detail}</td></tr>`,
+          );
+        });
+      }
+
+      function renderSettlement() {
+        const ladder = byId("urgent-settlement-ladder");
+        const buttons = byId("settlement-buttons");
+        const table = byId("urgent-settlement-table-body");
+        ladder.innerHTML = "";
+        buttons.innerHTML = "";
+        table.innerHTML = "";
+        settlementStates.forEach((state, index) => {
+          const active = state.id === selectedSettlement.id;
+          ladder.insertAdjacentHTML(
+            "beforeend",
+            `<div class="step" data-testid="urgent-settlement-step-${state.state}" data-active="${active}" data-urgent-diverted-visible="${state.visible}"><span class="dot ${chipClass(state.state)}">${index + 1}</span><div><strong>${state.label}</strong><br><span class="muted">${state.requested}</span></div><span class="chip ${chipClass(state.state)}">${state.state}</span></div>`,
+          );
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "settlement-button";
+          button.dataset.selected = String(active);
+          button.setAttribute("data-testid", `urgent-settlement-button-${state.id}`);
+          button.innerHTML = `<span class="button-title">${state.id}</span><span class="button-meta">${state.state} / visible ${state.visible}</span>`;
+          button.addEventListener("click", () => selectSettlement(state));
+          buttons.appendChild(button);
+          table.insertAdjacentHTML(
+            "beforeend",
+            `<tr data-selected="${active}"><td>${state.state}</td><td>${state.label}; urgent_diverted_visible=${state.visible}</td></tr>`,
+          );
+        });
+      }
+
+      function renderTables() {
+        const caseBody = byId("case-parity-table-body");
+        const eventBody = byId("event-chain-table-body");
+        const settlementBody = byId("settlement-parity-table-body");
+        const uploadBody = byId("upload-quarantine-table-body");
+        caseBody.innerHTML = "";
+        [...decisionCases, ...uploadCases].forEach((item) => {
+          caseBody.insertAdjacentHTML(
+            "beforeend",
+            `<tr data-case-id="${item.id}" data-selected="${item.id === selected.id}"><td>${item.id}</td><td>${item.family}</td><td>${item.outcome}</td></tr>`,
+          );
+        });
+        eventBody.innerHTML = "";
+        selected.events.forEach((eventName, index) => {
+          eventBody.insertAdjacentHTML(
+            "beforeend",
+            `<tr><td>${index + 1}</td><td>${eventName}</td></tr>`,
+          );
+        });
+        if (selected.events.length === 0) {
+          eventBody.insertAdjacentHTML(
+            "beforeend",
+            "<tr><td>0</td><td>No trusted event before authoritative pipeline</td></tr>",
+          );
+        }
+        settlementBody.innerHTML = "";
+        settlementStates.forEach((state) => {
+          settlementBody.insertAdjacentHTML(
+            "beforeend",
+            `<tr data-selected="${state.id === selectedSettlement.id}"><td>${state.state}</td><td>${state.state === "issued" ? "issued truth" : "distinct from issued"}</td></tr>`,
+          );
+        });
+        uploadBody.innerHTML = "";
+        uploadCases.forEach((item) => {
+          uploadBody.insertAdjacentHTML(
+            "beforeend",
+            `<tr data-case-id="${item.id}" data-selected="${item.id === selected.id}"><td>${item.id}</td><td>${item.continuity}; ${item.trust}</td></tr>`,
+          );
+        });
+      }
+
+      function renderInspector() {
+        byId("selection-summary").textContent =
+          `${selected.id} asserts ${selected.outcome} with ${selected.continuity}.`;
+        byId("summary-state").textContent = selected.requested;
+        byId("summary-continuity").textContent = selected.continuity;
+        byId("inspector-case-id").textContent = selected.id;
+        byId("inspector-decision").textContent = selected.outcome;
+        byId("inspector-settlement").textContent = selectedSettlement.state;
+        byId("inspector-urgent-visible").textContent = String(selectedSettlement.visible);
+        byId("inspector-trust").textContent =
+          selected.trust || "no urgent settlement issued by safety evaluation";
+        document.body.dataset.selectedCase = selected.id;
+        document.body.dataset.selectedKind = selectedKind;
+        document.body.dataset.urgentSettlementState = selectedSettlement.state;
+        document.body.dataset.urgentDivertedVisible = String(selectedSettlement.visible);
+      }
+
+      function renderAll() {
+        renderRail();
+        renderDecisionLadder();
+        renderEvidenceRibbon();
+        renderSettlement();
+        renderTables();
+        renderInspector();
+      }
+
+      function updateLayout() {
+        document.body.dataset.layout = window.innerWidth <= 1080 ? "stack" : "grid";
+      }
+
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        document.body.classList.add("reduced-motion");
+      }
+      window.addEventListener("resize", updateLayout);
+      updateLayout();
+      renderAll();
+    </script>
+  </body>
+</html>

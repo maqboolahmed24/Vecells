@@ -1,0 +1,975 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vecells Persistent Shell Gallery</title>
+    <link rel="stylesheet" href="../../packages/design-system/src/foundation.css" />
+    <link rel="stylesheet" href="../../packages/persistent-shell/src/persistent-shell.css" />
+    <style>
+      body {
+        margin: 0;
+      }
+
+      .shell-gallery {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr) 388px;
+        grid-template-rows: 72px min-content minmax(0, 1fr) 220px;
+        gap: 16px;
+        padding: 16px;
+      }
+
+      .shell-gallery[data-rail-collapsed="true"] {
+        grid-template-columns: 72px minmax(0, 1fr) 388px;
+      }
+
+      .shell-gallery__masthead,
+      .shell-gallery__rail,
+      .shell-gallery__stage,
+      .shell-gallery__inspector,
+      .shell-gallery__timeline,
+      .shell-gallery__trace-ribbon {
+        border: 1px solid var(--sys-border-default);
+        border-radius: 20px;
+        background: var(--sys-surface-panel);
+        box-shadow: var(--shadow-z1);
+      }
+
+      .shell-gallery__masthead {
+        grid-column: 1 / -1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        padding: 0 18px;
+      }
+
+      .shell-gallery__trace-ribbon {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 16px;
+        background: var(--sys-surface-inset);
+      }
+
+      .shell-gallery__mark {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .shell-gallery__mark-chip {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--sys-state-insight-border);
+        background:
+          radial-gradient(circle at 25% 25%, rgba(91, 97, 246, 0.18), transparent 55%),
+          var(--sys-state-insight-container);
+      }
+
+      .shell-gallery__mark-copy {
+        display: grid;
+        gap: 3px;
+      }
+
+      .shell-gallery__mark-copy strong {
+        color: var(--sys-text-strong);
+      }
+
+      .shell-gallery__mark-copy small {
+        color: var(--sys-text-muted);
+      }
+
+      .shell-gallery__masthead-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .shell-gallery__button,
+      .shell-gallery__chip,
+      .shell-gallery__control select {
+        min-height: 40px;
+        border-radius: 999px;
+        border: 1px solid var(--sys-border-default);
+        background: var(--sys-surface-shell);
+        color: var(--sys-text-strong);
+      }
+
+      .shell-gallery__button {
+        padding: 0 14px;
+        cursor: pointer;
+      }
+
+      .shell-gallery__rail {
+        padding: 14px;
+        overflow: auto;
+      }
+
+      .shell-gallery[data-rail-collapsed="true"] .shell-gallery__rail-copy,
+      .shell-gallery[data-rail-collapsed="true"] .shell-gallery__card-copy,
+      .shell-gallery[data-rail-collapsed="true"] .shell-gallery__card-tags {
+        display: none;
+      }
+
+      .shell-gallery__rail-header,
+      .shell-gallery__inspector-header,
+      .shell-gallery__timeline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .shell-gallery__shell-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .shell-gallery__shell-card {
+        width: 100%;
+        padding: 14px;
+        border-radius: 18px;
+        border: 1px solid var(--sys-border-default);
+        background: var(--sys-surface-shell);
+        text-align: left;
+        cursor: pointer;
+        display: grid;
+        gap: 8px;
+      }
+
+      .shell-gallery__shell-card[data-selected="true"] {
+        border-color: var(--sys-state-insight-border);
+        background: var(--sys-state-insight-container);
+      }
+
+      .shell-gallery__card-topline {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .shell-gallery__card-badge {
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: var(--sys-surface-panel);
+        color: var(--sys-text-muted);
+        font-size: 12px;
+        line-height: 16px;
+      }
+
+      .shell-gallery__card-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .shell-gallery__chip {
+        padding: 6px 10px;
+        min-height: auto;
+        font-size: 12px;
+        line-height: 16px;
+      }
+
+      .shell-gallery__stage,
+      .shell-gallery__inspector,
+      .shell-gallery__timeline {
+        padding: 14px;
+      }
+
+      .shell-gallery__stage {
+        display: grid;
+        grid-template-rows: min-content minmax(0, 1fr);
+        gap: 14px;
+      }
+
+      .shell-gallery__toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .shell-gallery__toolbar-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .shell-gallery__control {
+        display: grid;
+        gap: 6px;
+        color: var(--sys-text-muted);
+        font-size: 12px;
+        line-height: 16px;
+      }
+
+      .shell-gallery__control select {
+        padding: 0 12px;
+      }
+
+      .shell-gallery__inspector {
+        display: grid;
+        grid-template-rows: min-content minmax(0, 1fr);
+        gap: 12px;
+        overflow: auto;
+      }
+
+      .shell-gallery__inspector-panels {
+        display: grid;
+        gap: 12px;
+      }
+
+      .shell-gallery__panel {
+        border-radius: 16px;
+        border: 1px solid var(--sys-border-subtle);
+        background: var(--sys-surface-inset);
+        padding: 14px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .shell-gallery__panel strong,
+      .shell-gallery__timeline li strong {
+        color: var(--sys-text-strong);
+      }
+
+      .shell-gallery__panel p,
+      .shell-gallery__panel li,
+      .shell-gallery__timeline li span {
+        color: var(--sys-text-muted);
+      }
+
+      .shell-gallery__route-list,
+      .shell-gallery__timeline-list {
+        margin: 0;
+        padding-left: 18px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .shell-gallery__timeline {
+        grid-column: 2 / -1;
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(300px, 360px);
+        gap: 14px;
+        overflow: auto;
+      }
+
+      .shell-gallery__timeline-diagrams {
+        display: grid;
+        gap: 10px;
+      }
+
+      .shell-gallery__diagram {
+        border-radius: 16px;
+        border: 1px solid var(--sys-border-subtle);
+        background: var(--sys-surface-inset);
+        padding: 12px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .shell-gallery__diagram-steps {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .shell-gallery__diagram-steps span {
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--sys-border-default);
+        background: var(--sys-surface-panel);
+        color: var(--sys-text-muted);
+        font-size: 12px;
+        line-height: 16px;
+      }
+
+      @media (max-width: 1180px) {
+        .shell-gallery {
+          grid-template-columns: 1fr;
+          grid-template-rows: 72px min-content min-content minmax(0, 1fr) min-content;
+        }
+
+        .shell-gallery__timeline {
+          grid-column: auto;
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body class="token-foundation" data-theme="light" data-contrast="standard" data-density="balanced">
+    <div class="shell-gallery" data-rail-collapsed="false" data-testid="shell-gallery">
+      <header class="shell-gallery__masthead">
+        <div class="shell-gallery__mark">
+          <div class="shell-gallery__mark-chip" aria-hidden="true"></div>
+          <div class="shell-gallery__mark-copy">
+            <strong>Signal Atlas Live</strong>
+            <small>Vecells persistent shell gallery</small>
+          </div>
+        </div>
+        <div class="shell-gallery__masthead-actions">
+          <button class="shell-gallery__button" data-testid="gallery-rail-toggle" type="button">
+            Collapse rail
+          </button>
+        </div>
+      </header>
+
+      <div class="shell-gallery__trace-ribbon" data-testid="gallery-trace-ribbon"></div>
+
+      <aside class="shell-gallery__rail" data-testid="shell-gallery-rail">
+        <div class="shell-gallery__rail-header">
+          <div class="shell-gallery__rail-copy">
+            <strong>Specimens</strong>
+            <p>One shell family live at a time.</p>
+          </div>
+          <span class="shell-gallery__chip">6 + support</span>
+        </div>
+        <div class="shell-gallery__shell-list" data-testid="gallery-shell-list"></div>
+      </aside>
+
+      <main class="shell-gallery__stage">
+        <div class="shell-gallery__toolbar">
+          <div class="shell-gallery__toolbar-group">
+            <div class="shell-gallery__control">
+              <span>Breakpoint</span>
+              <div class="shell-gallery__toolbar-group" data-testid="gallery-breakpoint-controls"></div>
+            </div>
+          </div>
+          <div class="shell-gallery__toolbar-group">
+            <label class="shell-gallery__control">
+              <span>Runtime</span>
+              <select data-testid="gallery-runtime-scenario" aria-label="Runtime scenario"></select>
+            </label>
+            <button class="shell-gallery__button" data-testid="gallery-reduced-motion" type="button">
+              Reduced motion
+            </button>
+          </div>
+        </div>
+        <section data-testid="gallery-live-shell"></section>
+      </main>
+
+      <aside class="shell-gallery__inspector" data-testid="shell-gallery-inspector">
+        <div class="shell-gallery__inspector-header">
+          <strong>Inspector</strong>
+          <span class="shell-gallery__chip" data-testid="gallery-runtime-posture"></span>
+        </div>
+        <div class="shell-gallery__inspector-panels">
+          <article class="shell-gallery__panel">
+            <span class="persistent-shell__eyebrow">Shell tuple</span>
+            <strong data-testid="gallery-shell-tuple"></strong>
+            <p data-testid="gallery-shell-continuity-key"></p>
+          </article>
+          <article class="shell-gallery__panel">
+            <span class="persistent-shell__eyebrow">Boundary state</span>
+            <strong data-testid="gallery-boundary-state"></strong>
+            <p data-testid="gallery-selected-anchor"></p>
+            <p data-testid="gallery-breakpoint"></p>
+          </article>
+          <article class="shell-gallery__panel">
+            <span class="persistent-shell__eyebrow">Route residency</span>
+            <ol class="shell-gallery__route-list" data-testid="gallery-route-residency"></ol>
+          </article>
+        </div>
+      </aside>
+
+      <footer class="shell-gallery__timeline" data-testid="shell-gallery-timeline">
+        <div>
+          <div class="shell-gallery__timeline-header">
+            <strong>Motion and continuity timeline</strong>
+            <span class="shell-gallery__chip">120 / 180 / 240 / 320ms</span>
+          </div>
+          <ol class="shell-gallery__timeline-list" data-testid="gallery-timeline-list"></ol>
+        </div>
+        <div class="shell-gallery__timeline-diagrams">
+          <article class="shell-gallery__diagram">
+            <span class="persistent-shell__eyebrow">Ownership</span>
+            <div class="shell-gallery__diagram-steps">
+              <span>shell family</span>
+              <span>route residency</span>
+              <span>same-shell child</span>
+              <span>bounded stage</span>
+            </div>
+          </article>
+          <article class="shell-gallery__diagram">
+            <span class="persistent-shell__eyebrow">Breakpoint topology</span>
+            <div class="shell-gallery__diagram-steps">
+              <span>xs / sm</span>
+              <span>mission_stack</span>
+              <span>md / lg / xl</span>
+              <span>family default</span>
+            </div>
+          </article>
+          <article class="shell-gallery__diagram">
+            <span class="persistent-shell__eyebrow">Same-shell continuity</span>
+            <div class="shell-gallery__diagram-steps">
+              <span>reuse</span>
+              <span>morph</span>
+              <span>read-only preserve</span>
+              <span>recover in place</span>
+            </div>
+          </article>
+          <article class="shell-gallery__diagram">
+            <span class="persistent-shell__eyebrow">Mission stack fold</span>
+            <div class="shell-gallery__diagram-steps">
+              <span>fold</span>
+              <span>selected anchor</span>
+              <span>DecisionDock</span>
+              <span>return target</span>
+            </div>
+          </article>
+        </div>
+      </footer>
+    </div>
+
+    <script type="module">
+      const galleryRoot = document.querySelector('[data-testid="shell-gallery"]');
+      const railList = document.querySelector('[data-testid="gallery-shell-list"]');
+      const traceRibbon = document.querySelector('[data-testid="gallery-trace-ribbon"]');
+      const liveShell = document.querySelector('[data-testid="gallery-live-shell"]');
+      const breakpointControls = document.querySelector('[data-testid="gallery-breakpoint-controls"]');
+      const runtimeSelect = document.querySelector('[data-testid="gallery-runtime-scenario"]');
+      const timelineList = document.querySelector('[data-testid="gallery-timeline-list"]');
+      const routeResidency = document.querySelector('[data-testid="gallery-route-residency"]');
+      const inspectorTuple = document.querySelector('[data-testid="gallery-shell-tuple"]');
+      const inspectorContinuityKey = document.querySelector('[data-testid="gallery-shell-continuity-key"]');
+      const inspectorBoundary = document.querySelector('[data-testid="gallery-boundary-state"]');
+      const inspectorAnchor = document.querySelector('[data-testid="gallery-selected-anchor"]');
+      const inspectorBreakpoint = document.querySelector('[data-testid="gallery-breakpoint"]');
+      const inspectorRuntime = document.querySelector('[data-testid="gallery-runtime-posture"]');
+      const railToggle = document.querySelector('[data-testid="gallery-rail-toggle"]');
+      const reducedMotionToggle = document.querySelector('[data-testid="gallery-reduced-motion"]');
+      const breakpointOrder = ["xs", "sm", "md", "lg", "xl"];
+      const runtimeScenarios = ["live", "stale_review", "read_only", "recovery_only", "blocked"];
+
+      const state = {
+        activeShellSlug: "patient-web",
+        activeRouteFamilyRef: null,
+        selectedAnchor: null,
+        breakpoint: "lg",
+        runtimeScenario: "live",
+        reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+        railCollapsed: false,
+        foldState: "expanded",
+        boundaryState: "Reuse shell",
+        timeline: [
+          {
+            label: "Gallery ready",
+            detail: "Persistent shell specimens loaded from the shared contract pack.",
+          },
+        ],
+      };
+
+      let contracts;
+      let routeMap;
+
+      function runtimeLabel(value) {
+        return value.replaceAll("_", " ");
+      }
+
+      function getShell(shellSlug) {
+        return contracts.shells.find((shell) => shell.shellSlug === shellSlug);
+      }
+
+      function getRoute(shell, routeFamilyRef) {
+        return shell.routeClaims.find((route) => route.routeFamilyRef === routeFamilyRef);
+      }
+
+      function getProfile(shellSlug, breakpoint) {
+        return contracts.breakpoint_rows.find(
+          (row) => row.shell_slug === shellSlug && row.breakpoint === breakpoint,
+        )?.profile;
+      }
+
+      function boundaryLabel(value) {
+        switch (value) {
+          case "reuse_shell":
+            return "Reuse shell";
+          case "morph_child_surface":
+            return "Same-shell morph";
+          case "preserve_shell_read_only":
+            return "Preserve read-only";
+          case "recover_in_place":
+            return "Recover in place";
+          case "replace_shell":
+            return "Replace shell";
+          default:
+            return value;
+        }
+      }
+
+      function resolveBoundary(currentRoute, nextRoute, runtimeScenario) {
+        if (!currentRoute || currentRoute.shellSlug !== nextRoute.shellSlug) {
+          return "replace_shell";
+        }
+        if (runtimeScenario === "blocked" || runtimeScenario === "recovery_only") {
+          return "recover_in_place";
+        }
+        if (runtimeScenario === "read_only") {
+          return "preserve_shell_read_only";
+        }
+        if (currentRoute.routeFamilyRef === nextRoute.routeFamilyRef) {
+          return "reuse_shell";
+        }
+        return "morph_child_surface";
+      }
+
+      function readShellState(shellSlug) {
+        const payload = window.localStorage.getItem(`persistent-shell-gallery::${shellSlug}`);
+        if (!payload) {
+          return null;
+        }
+        try {
+          return JSON.parse(payload);
+        } catch {
+          return null;
+        }
+      }
+
+      function persistShellState() {
+        window.localStorage.setItem(
+          `persistent-shell-gallery::${state.activeShellSlug}`,
+          JSON.stringify({
+            routeFamilyRef: state.activeRouteFamilyRef,
+            selectedAnchor: state.selectedAnchor,
+            runtimeScenario: state.runtimeScenario,
+            foldState: state.foldState,
+          }),
+        );
+      }
+
+      function pushTimeline(label, detail) {
+        state.timeline = [...state.timeline.slice(-4), { label, detail }];
+      }
+
+      function renderTrace(shell) {
+        traceRibbon.innerHTML = "";
+        [
+          contracts.task_id,
+          shell.ownership.ownershipContractId,
+          shell.ownership.statusStripAuthorityRef,
+          shell.ownership.missionStackFoldPlanRef,
+          getProfile(shell.shellSlug, state.breakpoint)?.profileSelectionResolutionId ?? "unknown",
+        ].forEach((token) => {
+          const chip = document.createElement("span");
+          chip.className = "shell-gallery__chip";
+          chip.textContent = token;
+          traceRibbon.appendChild(chip);
+        });
+      }
+
+      function renderRail() {
+        railList.innerHTML = "";
+        contracts.shells.forEach((shell, index) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "shell-gallery__shell-card";
+          button.dataset.selected = String(shell.shellSlug === state.activeShellSlug);
+          button.dataset.index = String(index);
+          button.dataset.testid = `gallery-shell-card-${shell.shellSlug}`;
+          button.setAttribute("data-testid", `gallery-shell-card-${shell.shellSlug}`);
+          button.innerHTML = `
+            <div class="shell-gallery__card-topline">
+              <strong>${shell.displayName}</strong>
+              <span class="shell-gallery__card-badge">${shell.defaultTopology.replaceAll("_", " ")}</span>
+            </div>
+            <div class="shell-gallery__card-copy">
+              <p>${shell.shellSummary}</p>
+            </div>
+            <div class="shell-gallery__card-tags">
+              <span class="shell-gallery__chip">${shell.shellFamily}</span>
+              <span class="shell-gallery__chip">${shell.routeClaims.length} routes</span>
+            </div>
+          `;
+          button.addEventListener("click", () => selectShell(shell.shellSlug));
+          button.addEventListener("keydown", (event) => {
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+              return;
+            }
+            event.preventDefault();
+            const nextIndex =
+              event.key === "ArrowDown"
+                ? Math.min(index + 1, contracts.shells.length - 1)
+                : Math.max(index - 1, 0);
+            const nextShell = contracts.shells[nextIndex];
+            selectShell(nextShell.shellSlug);
+            requestAnimationFrame(() => {
+              document
+                .querySelector(`[data-testid="gallery-shell-card-${nextShell.shellSlug}"]`)
+                ?.focus();
+            });
+          });
+          railList.appendChild(button);
+        });
+      }
+
+      function renderBreakpointControls(shell) {
+        breakpointControls.innerHTML = "";
+        breakpointOrder.forEach((breakpoint) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "shell-gallery__button";
+          button.dataset.active = String(state.breakpoint === breakpoint);
+          button.setAttribute("data-testid", `gallery-breakpoint-${breakpoint}`);
+          button.textContent = breakpoint.toUpperCase();
+          button.addEventListener("click", () => {
+            state.breakpoint = breakpoint;
+            pushTimeline("Breakpoint change", `${shell.displayName} -> ${breakpoint.toUpperCase()}`);
+            render();
+          });
+          breakpointControls.appendChild(button);
+        });
+      }
+
+      function renderRuntimeSelect() {
+        runtimeSelect.innerHTML = runtimeScenarios
+          .map(
+            (scenario) =>
+              `<option value="${scenario}" ${scenario === state.runtimeScenario ? "selected" : ""}>${runtimeLabel(
+                scenario,
+              )}</option>`,
+          )
+          .join("");
+      }
+
+      function renderLiveShell(shell, route, profile) {
+        liveShell.innerHTML = `
+          <article
+            class="token-foundation persistent-shell persistent-shell--${shell.shellFamily}"
+            data-shell-family="${shell.shellFamily}"
+            data-layout-topology="${profile.topology}"
+            data-breakpoint-class="${profile.breakpointClass}"
+            data-runtime-posture="${state.runtimeScenario}"
+            data-selected-anchor="${state.selectedAnchor}"
+            data-shell-continuity-key="${shell.ownership.continuityKey}"
+            data-fold-state="${state.foldState}"
+            data-testid="gallery-shell-root"
+          >
+            <header class="persistent-shell__masthead">
+              <div class="persistent-shell__brand-block">
+                <div class="persistent-shell__brand-mark" aria-hidden="true">
+                  <span>Signal Atlas Live</span>
+                  <small>${shell.shellFamily}</small>
+                </div>
+                <div>
+                  <span class="persistent-shell__eyebrow">${shell.shellEyebrow}</span>
+                  <h1>${shell.shellTitle}</h1>
+                  <p>${shell.shellSummary}</p>
+                </div>
+              </div>
+              <div class="persistent-shell__masthead-meta">
+                <span class="persistent-shell__meta-pill">${profile.topology.replaceAll("_", " ")}</span>
+                <span class="persistent-shell__meta-pill">${profile.breakpointClass}</span>
+                <span class="persistent-shell__meta-pill">${runtimeLabel(state.runtimeScenario)}</span>
+              </div>
+            </header>
+            ${
+              shell.shellFamily === "patient"
+                ? `<nav class="persistent-shell__section-band" aria-label="Primary sections">${shell.routeClaims
+                    .filter((candidate) => candidate.residency === "resident_root")
+                    .map(
+                      (candidate) => `
+                        <button
+                          class="persistent-shell__section-button"
+                          data-active="${String(candidate.routeFamilyRef === route.routeFamilyRef)}"
+                          data-testid="gallery-route-${candidate.routeFamilyRef}"
+                          type="button"
+                        >
+                          ${candidate.section}
+                        </button>
+                      `,
+                    )
+                    .join("")}</nav>`
+                : ""
+            }
+            <div class="persistent-shell__utility-strip">
+              <div class="persistent-shell__utility-copy">
+                <span class="persistent-shell__eyebrow">${shell.northStarLabel}</span>
+                <strong>${route.routeSummary}</strong>
+              </div>
+              <div class="persistent-shell__controls">
+                <button class="persistent-shell__fold-toggle" data-testid="gallery-fold-toggle" type="button">
+                  ${state.foldState === "folded" ? "Unfold shell" : "Fold to mission stack"}
+                </button>
+              </div>
+            </div>
+            <div class="persistent-shell__layout">
+              ${
+                shell.shellFamily !== "patient"
+                  ? `<section class="persistent-shell__pane">
+                      <header class="persistent-shell__pane-header">
+                        <span class="persistent-shell__eyebrow">${shell.leftPaneLabel}</span>
+                        <p>${shell.shellSummary}</p>
+                      </header>
+                      <nav class="persistent-shell__route-rail" aria-label="Route families">
+                        ${shell.routeClaims
+                          .map(
+                            (candidate) => `
+                              <button
+                                class="persistent-shell__route-button"
+                                data-active="${String(candidate.routeFamilyRef === route.routeFamilyRef)}"
+                                data-testid="gallery-route-${candidate.routeFamilyRef}"
+                                type="button"
+                              >
+                                <span>${candidate.title}</span>
+                                <small>${candidate.residency.replaceAll("_", " ")}</small>
+                              </button>
+                            `,
+                          )
+                          .join("")}
+                      </nav>
+                    </section>`
+                  : ""
+              }
+              <section class="persistent-shell__primary">
+                <header class="persistent-shell__section-header">
+                  <div>
+                    <span class="persistent-shell__eyebrow">${route.section}</span>
+                    <h2>${route.title}</h2>
+                    <p>${route.trustCue}</p>
+                  </div>
+                  <button class="persistent-shell__dominant-action" type="button">${route.dominantActionLabel}</button>
+                </header>
+                <div class="persistent-shell__anchor-strip">
+                  ${route.anchors
+                    .map(
+                      (anchor) => `
+                        <button
+                          class="persistent-shell__anchor-chip"
+                          data-active="${String(anchor === state.selectedAnchor)}"
+                          data-testid="gallery-anchor-${anchor}"
+                          type="button"
+                        >
+                          ${anchor.replaceAll("-", " ")}
+                        </button>
+                      `,
+                    )
+                    .join("")}
+                </div>
+                <div class="persistent-shell__primary-grid">
+                  <article class="persistent-shell__slot" data-testid="gallery-case-pulse">
+                    <span class="persistent-shell__eyebrow">${route.casePulse.title}</span>
+                    <h3>${route.casePulse.summary}</h3>
+                    <p>${route.casePulse.detail}</p>
+                  </article>
+                  <article class="persistent-shell__hero-card" data-testid="gallery-primary-region">
+                    <span class="persistent-shell__eyebrow">Primary region</span>
+                    <h3>${route.primaryRegion.summary}</h3>
+                    <p>${route.primaryRegion.detail}</p>
+                    <dl class="persistent-shell__metadata">
+                      <div>
+                        <dt>Selected anchor</dt>
+                        <dd>${state.selectedAnchor}</dd>
+                      </div>
+                      <div>
+                        <dt>Boundary</dt>
+                        <dd>${state.boundaryState}</dd>
+                      </div>
+                      <div>
+                        <dt>Runtime</dt>
+                        <dd>${runtimeLabel(state.runtimeScenario)}</dd>
+                      </div>
+                    </dl>
+                  </article>
+                </div>
+              </section>
+              <aside class="persistent-shell__aside">
+                <article class="persistent-shell__slot" data-testid="gallery-decision-dock">
+                  <span class="persistent-shell__eyebrow">${route.decisionDock.title}</span>
+                  <h3>${route.decisionDock.summary}</h3>
+                  <p>${route.decisionDock.detail}</p>
+                </article>
+                ${
+                  route.supportSlot
+                    ? `<article class="persistent-shell__slot" data-testid="gallery-support-region">
+                        <span class="persistent-shell__eyebrow">${route.supportSlot.title}</span>
+                        <h3>${route.supportSlot.summary}</h3>
+                        <p>${route.supportSlot.detail}</p>
+                      </article>`
+                    : ""
+                }
+                <article class="persistent-shell__inspector-card" data-testid="gallery-runtime-card">
+                  <span class="persistent-shell__eyebrow">Runtime authority</span>
+                  <strong>${runtimeLabel(state.runtimeScenario)}</strong>
+                  <p>${route.trustCue}</p>
+                </article>
+              </aside>
+            </div>
+          </article>
+        `;
+
+        liveShell.querySelectorAll('[data-testid^="gallery-route-"]').forEach((button) => {
+          button.addEventListener("click", () => selectRoute(button.dataset.testid.replace("gallery-route-", "")));
+        });
+        liveShell.querySelectorAll('[data-testid^="gallery-anchor-"]').forEach((button) => {
+          button.addEventListener("click", () => {
+            state.selectedAnchor = button.dataset.testid.replace("gallery-anchor-", "");
+            pushTimeline("Anchor selected", state.selectedAnchor);
+            persistShellState();
+            render();
+          });
+        });
+        liveShell
+          .querySelector('[data-testid="gallery-fold-toggle"]')
+          ?.addEventListener("click", () => {
+            state.foldState = state.foldState === "folded" ? "expanded" : "folded";
+            pushTimeline(
+              state.foldState === "folded" ? "Fold shell" : "Unfold shell",
+              "Mission stack preserves anchor and return contract.",
+            );
+            persistShellState();
+            render();
+          });
+      }
+
+      function renderInspector(shell, route, profile) {
+        inspectorTuple.textContent = `${shell.displayName} / ${shell.shellFamily} / ${profile.topology}`;
+        inspectorContinuityKey.textContent = shell.ownership.continuityKey;
+        inspectorBoundary.textContent = state.boundaryState;
+        inspectorAnchor.textContent = `Selected anchor: ${state.selectedAnchor}`;
+        inspectorBreakpoint.textContent = `Breakpoint ${state.breakpoint.toUpperCase()} / ${profile.breakpointClass}`;
+        inspectorRuntime.textContent = runtimeLabel(state.runtimeScenario);
+
+        routeResidency.innerHTML = shell.routeClaims
+          .map((candidate) => {
+            const routeEntry = routeMap.routes[candidate.routeFamilyRef];
+            return `
+              <li>
+                <strong>${candidate.title}</strong>
+                <span>${routeEntry.residency.replaceAll("_", " ")}</span>
+              </li>
+            `;
+          })
+          .join("");
+      }
+
+      function renderTimeline() {
+        timelineList.innerHTML = state.timeline
+          .map(
+            (entry) => `
+              <li>
+                <strong>${entry.label}</strong>
+                <span>${entry.detail}</span>
+              </li>
+            `,
+          )
+          .join("");
+      }
+
+      function selectShell(shellSlug) {
+        const currentShell = getShell(state.activeShellSlug);
+        const nextShell = getShell(shellSlug);
+        const persisted = readShellState(shellSlug);
+        const nextRouteFamilyRef =
+          persisted?.routeFamilyRef && nextShell.routeClaims.some((route) => route.routeFamilyRef === persisted.routeFamilyRef)
+            ? persisted.routeFamilyRef
+            : nextShell.routeClaims[0].routeFamilyRef;
+        const nextRoute = getRoute(nextShell, nextRouteFamilyRef);
+        const currentRoute = currentShell ? getRoute(currentShell, state.activeRouteFamilyRef) : null;
+        state.activeShellSlug = shellSlug;
+        state.activeRouteFamilyRef = nextRoute.routeFamilyRef;
+        state.selectedAnchor =
+          persisted?.selectedAnchor && nextRoute.anchors.includes(persisted.selectedAnchor)
+            ? persisted.selectedAnchor
+            : nextRoute.defaultAnchor;
+        state.runtimeScenario = persisted?.runtimeScenario ?? "live";
+        state.foldState = persisted?.foldState ?? "expanded";
+        state.boundaryState = boundaryLabel(resolveBoundary(currentRoute, nextRoute, state.runtimeScenario));
+        pushTimeline("Shell switch", `${currentShell?.displayName ?? "Gallery"} -> ${nextShell.displayName}`);
+        persistShellState();
+        render();
+      }
+
+      function selectRoute(routeFamilyRef) {
+        const shell = getShell(state.activeShellSlug);
+        const currentRoute = getRoute(shell, state.activeRouteFamilyRef);
+        const nextRoute = getRoute(shell, routeFamilyRef);
+        const boundary = resolveBoundary(currentRoute, nextRoute, state.runtimeScenario);
+        state.activeRouteFamilyRef = routeFamilyRef;
+        state.selectedAnchor =
+          boundary !== "replace_shell" &&
+          boundary !== "recover_in_place" &&
+          nextRoute.anchors.includes(state.selectedAnchor)
+            ? state.selectedAnchor
+            : nextRoute.defaultAnchor;
+        state.boundaryState = boundaryLabel(boundary);
+        pushTimeline(state.boundaryState, `${currentRoute.title} -> ${nextRoute.title}`);
+        persistShellState();
+        render();
+      }
+
+      function render() {
+        const shell = getShell(state.activeShellSlug);
+        const route = getRoute(shell, state.activeRouteFamilyRef ?? shell.routeClaims[0].routeFamilyRef);
+        const profile = getProfile(shell.shellSlug, state.breakpoint);
+        document.body.dataset.motion = state.reducedMotion ? "essential_only" : "reduced";
+        document.body.dataset.reducedMotion = state.reducedMotion ? "true" : "false";
+        galleryRoot.dataset.railCollapsed = String(state.railCollapsed);
+        railToggle.textContent = state.railCollapsed ? "Expand rail" : "Collapse rail";
+        reducedMotionToggle.textContent = state.reducedMotion ? "Full motion" : "Reduced motion";
+        renderTrace(shell);
+        renderRail();
+        renderBreakpointControls(shell);
+        renderRuntimeSelect();
+        renderLiveShell(shell, route, profile);
+        renderInspector(shell, route, profile);
+        renderTimeline();
+      }
+
+      railToggle.addEventListener("click", () => {
+        state.railCollapsed = !state.railCollapsed;
+        render();
+      });
+
+      reducedMotionToggle.addEventListener("click", () => {
+        state.reducedMotion = !state.reducedMotion;
+        pushTimeline(
+          state.reducedMotion ? "Reduced motion" : "Full motion",
+          "State order stays fixed while motion amplitude changes.",
+        );
+        render();
+      });
+
+      runtimeSelect.addEventListener("change", (event) => {
+        state.runtimeScenario = event.currentTarget.value;
+        state.boundaryState = boundaryLabel(
+          resolveBoundary(
+            getRoute(getShell(state.activeShellSlug), state.activeRouteFamilyRef),
+            getRoute(getShell(state.activeShellSlug), state.activeRouteFamilyRef),
+            state.runtimeScenario,
+          ),
+        );
+        pushTimeline("Runtime change", runtimeLabel(state.runtimeScenario));
+        persistShellState();
+        render();
+      });
+
+      const contractsResponse = await fetch("../../data/analysis/persistent_shell_contracts.json");
+      const routeMapResponse = await fetch("../../data/analysis/shell_route_residency_map.json");
+      contracts = await contractsResponse.json();
+      routeMap = await routeMapResponse.json();
+
+      const initialShellState = readShellState(state.activeShellSlug);
+      if (initialShellState) {
+        state.activeRouteFamilyRef = initialShellState.routeFamilyRef;
+        state.selectedAnchor = initialShellState.selectedAnchor;
+        state.runtimeScenario = initialShellState.runtimeScenario;
+        state.foldState = initialShellState.foldState;
+      } else {
+        const initialShell = getShell(state.activeShellSlug);
+        state.activeRouteFamilyRef = initialShell.routeClaims[0].routeFamilyRef;
+        state.selectedAnchor = initialShell.routeClaims[0].defaultAnchor;
+      }
+      render();
+    </script>
+  </body>
+</html>

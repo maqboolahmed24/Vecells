@@ -1,0 +1,891 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Auth Callback Recovery Atlas</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f6f8fb;
+        --shell: #eef2f6;
+        --panel: #ffffff;
+        --muted-panel: #f8fafc;
+        --border: #d7dee7;
+        --text: #0f1724;
+        --text-soft: #24313d;
+        --muted: #5e6b78;
+        --accent: #2f6fed;
+        --recovery: #5b61f6;
+        --caution: #a05a07;
+        --blocked: #b42318;
+        --healthy: #116b5c;
+        --focus: #0b57d0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 18% -6%, rgba(47, 111, 237, 0.16), transparent 34%),
+          radial-gradient(circle at 92% 10%, rgba(91, 97, 246, 0.12), transparent 30%),
+          linear-gradient(180deg, var(--canvas), var(--shell));
+        font-family: "Aptos", "Avenir Next", "Segoe UI", sans-serif;
+      }
+
+      button,
+      select {
+        font: inherit;
+      }
+
+      button:focus-visible,
+      select:focus-visible,
+      [tabindex]:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 4px;
+      }
+
+      .atlas {
+        min-height: 100vh;
+        padding: 24px clamp(14px, 3vw, 42px) 44px;
+      }
+
+      .masthead,
+      .rail,
+      .canvas,
+      .inspector,
+      .lower section,
+      .state-card,
+      .diagram-panel {
+        border: 1px solid var(--border);
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 24px 70px rgba(15, 23, 36, 0.08);
+      }
+
+      .masthead {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 24px;
+        margin-bottom: 18px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        color: var(--accent);
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 18px;
+        height: 2px;
+        border-radius: 99px;
+        background: currentColor;
+        opacity: 0.55;
+      }
+
+      h1,
+      h2,
+      h3,
+      p,
+      figure {
+        margin: 0;
+      }
+
+      h1 {
+        max-width: 900px;
+        margin-top: 10px;
+        font-family: "Iowan Old Style", Georgia, serif;
+        font-size: clamp(2.4rem, 6vw, 5.8rem);
+        line-height: 0.92;
+        letter-spacing: -0.05em;
+      }
+
+      p,
+      td,
+      th,
+      li,
+      figcaption {
+        line-height: 1.52;
+      }
+
+      .masthead p,
+      .state-card p,
+      .inspector p,
+      figcaption {
+        color: var(--muted);
+      }
+
+      .mode-chip {
+        align-self: flex-start;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: var(--muted-panel);
+        font-weight: 800;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(190px, 0.72fr) minmax(0, 1.85fr) minmax(260px, 0.9fr);
+        gap: 18px;
+        align-items: start;
+      }
+
+      .rail {
+        display: grid;
+        gap: 8px;
+        padding: 10px;
+      }
+
+      .rail button {
+        display: grid;
+        gap: 5px;
+        width: 100%;
+        padding: 13px 14px;
+        text-align: left;
+        cursor: pointer;
+        border: 1px solid transparent;
+        border-radius: 20px;
+        background: transparent;
+        transition:
+          transform 180ms ease,
+          background-color 180ms ease,
+          border-color 180ms ease;
+      }
+
+      .rail button span {
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .rail button[aria-current="page"] {
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--accent), #244eaf);
+      }
+
+      .rail button[aria-current="page"] span {
+        color: rgba(255, 255, 255, 0.75);
+      }
+
+      .canvas,
+      .inspector {
+        padding: clamp(18px, 3vw, 30px);
+      }
+
+      .canvas {
+        display: grid;
+        gap: 16px;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .toolbar select {
+        min-height: 42px;
+        padding: 0 12px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--panel);
+      }
+
+      .state-card {
+        display: grid;
+        gap: 14px;
+        padding: 22px;
+        transform: translateY(0);
+        transition:
+          opacity 180ms ease,
+          transform 180ms ease;
+      }
+
+      .state-card[data-hidden="true"] {
+        display: none;
+      }
+
+      .state-card h2 {
+        font-family: "Iowan Old Style", Georgia, serif;
+        font-size: clamp(1.9rem, 4vw, 3.4rem);
+        letter-spacing: -0.04em;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .primary {
+        min-height: 46px;
+        padding: 0 16px;
+        color: #ffffff;
+        cursor: pointer;
+        border: 1px solid var(--accent);
+        border-radius: 14px;
+        background: var(--accent);
+      }
+
+      .nhs-login {
+        min-height: 46px;
+        padding: 0 16px;
+        color: #ffffff;
+        cursor: pointer;
+        border: 0;
+        border-bottom: 3px solid #003087;
+        border-radius: 0;
+        background: #005eb8;
+        font-weight: 800;
+      }
+
+      .secondary {
+        min-height: 46px;
+        padding: 0 16px;
+        color: var(--text-soft);
+        cursor: pointer;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--panel);
+      }
+
+      .diagram-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .diagram-panel {
+        min-height: 188px;
+        padding: 16px;
+        box-shadow: none;
+      }
+
+      .ladder {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        padding: 0;
+        margin: 12px 0 0;
+        list-style: none;
+      }
+
+      .ladder li {
+        display: grid;
+        gap: 8px;
+        padding: 10px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--muted-panel);
+      }
+
+      .ladder span {
+        width: 22px;
+        height: 4px;
+        border-radius: 99px;
+        background: var(--border);
+        transition: width 140ms ease;
+      }
+
+      .ladder li[data-active="true"] span {
+        width: 44px;
+        background: var(--accent);
+      }
+
+      .orbit {
+        position: relative;
+        width: 118px;
+        height: 118px;
+        margin: 14px auto;
+        border-radius: 999px;
+        background:
+          radial-gradient(circle, #fff 0 42%, transparent 43%),
+          conic-gradient(var(--accent), var(--recovery), var(--healthy), var(--border));
+      }
+
+      .orbit i {
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+
+      .orbit i:nth-child(1) {
+        top: 8px;
+        left: 52px;
+      }
+
+      .orbit i:nth-child(2) {
+        right: 12px;
+        top: 66px;
+        background: var(--recovery);
+      }
+
+      .orbit i:nth-child(3) {
+        bottom: 18px;
+        left: 18px;
+        background: var(--healthy);
+      }
+
+      .shell-map {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .shell-map span {
+        padding: 10px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--muted-panel);
+      }
+
+      .gallery {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .gallery button {
+        min-height: 48px;
+        cursor: pointer;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--muted-panel);
+      }
+
+      .gallery button[data-selected="true"] {
+        color: #ffffff;
+        background: var(--recovery);
+      }
+
+      .inspector {
+        position: sticky;
+        top: 18px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .kv {
+        display: grid;
+        gap: 8px;
+      }
+
+      .kv div {
+        display: grid;
+        gap: 4px;
+        padding: 10px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--muted-panel);
+      }
+
+      .kv span {
+        color: var(--muted);
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .lower {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      .lower section {
+        padding: 18px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+        font-size: 0.88rem;
+      }
+
+      th,
+      td {
+        padding: 9px 8px;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--text-soft);
+        font-size: 0.76rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      @media (max-width: 1180px) {
+        .layout,
+        .lower,
+        .diagram-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .rail,
+        .gallery {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .inspector {
+          position: static;
+        }
+      }
+
+      @media (max-width: 680px) {
+        .masthead,
+        .rail,
+        .gallery,
+        .ladder {
+          display: grid;
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="atlas" data-testid="Auth_Callback_Recovery_Atlas">
+      <header class="masthead" data-testid="atlas-masthead">
+        <div>
+          <span class="eyebrow">Auth callback recovery</span>
+          <h1>Same-shell sign-in callback atlas</h1>
+          <p>
+            Task 195 deterministic view of callback holding, recovery, timeout, and signed-out
+            states mapped from authoritative backend fields.
+          </p>
+        </div>
+        <div class="mode-chip">Auth_Callback_Recovery_Atlas</div>
+      </header>
+
+      <section class="layout">
+        <nav class="rail" data-testid="atlas-state-rail" aria-label="Auth callback states"></nav>
+
+        <main class="canvas" data-testid="atlas-canvas" id="atlas-main" tabindex="-1">
+          <div class="toolbar" aria-label="Atlas filters">
+            <label>
+              Outcome
+              <select data-testid="atlas-outcome-filter">
+                <option value="all">All outcomes</option>
+              </select>
+            </label>
+            <label>
+              Authority
+              <select data-testid="atlas-authority-filter">
+                <option value="all">All authorities</option>
+                <option value="writable_resume">Writable resume</option>
+                <option value="recovery_only">Recovery only</option>
+                <option value="auth_only">Auth only</option>
+              </select>
+            </label>
+          </div>
+
+          <section id="screen-gallery" data-testid="page-state-gallery"></section>
+
+          <section class="diagram-grid">
+            <article class="diagram-panel" data-testid="callback-ladder-diagram">
+              <h2>Callback ladder</h2>
+              <ol class="ladder" aria-label="Callback settlement ladder">
+                <li data-step="opened"><span></span><strong>Opened</strong></li>
+                <li data-step="callback_received"><span></span><strong>Callback</strong></li>
+                <li data-step="verified"><span></span><strong>Verified</strong></li>
+                <li data-step="consumed"><span></span><strong>Consumed</strong></li>
+              </ol>
+            </article>
+
+            <article class="diagram-panel" data-testid="same-shell-recovery-atlas">
+              <h2>Same-shell recovery atlas</h2>
+              <div class="shell-map">
+                <span>Return intent held</span>
+                <span>Route binding checked</span>
+                <span>Writable authority narrowed when stale</span>
+              </div>
+            </article>
+
+            <article class="diagram-panel" data-testid="session-state-ring">
+              <h2>Session-state orbit</h2>
+              <div class="orbit" aria-hidden="true"><i></i><i></i><i></i></div>
+              <figcaption>
+                Transaction, session, and capability decisions are separate signals.
+              </figcaption>
+            </article>
+          </section>
+        </main>
+
+        <aside class="inspector" data-testid="atlas-inspector">
+          <span class="eyebrow">Inspector</span>
+          <h2 id="inspector-title">State</h2>
+          <p id="inspector-summary"></p>
+          <div class="kv" id="inspector-kv"></div>
+        </aside>
+      </section>
+
+      <section class="lower">
+        <section data-testid="auth-state-matrix-table">
+          <h2>State matrix parity</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Screen</th>
+                <th>Transaction</th>
+                <th>Session</th>
+                <th>Capability</th>
+              </tr>
+            </thead>
+            <tbody id="state-table-body"></tbody>
+          </table>
+        </section>
+
+        <section data-testid="refresh-back-cases-table">
+          <h2>Refresh and back-button cases</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Case</th>
+                <th>Expected screen</th>
+                <th>Writable</th>
+              </tr>
+            </thead>
+            <tbody id="case-table-body"></tbody>
+          </table>
+        </section>
+
+        <section data-testid="atlas-parity-table">
+          <h2>Visual to table parity</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Visual</th>
+                <th>Table</th>
+                <th>Authority</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>callback-ladder-diagram</td>
+                <td>auth-state-matrix-table</td>
+                <td>AuthTransaction.transactionState</td>
+              </tr>
+              <tr>
+                <td>same-shell-recovery-atlas</td>
+                <td>refresh-back-cases-table</td>
+                <td>PostAuthReturnIntent and RouteIntentBinding</td>
+              </tr>
+              <tr>
+                <td>session-state-ring</td>
+                <td>auth-state-matrix-table</td>
+                <td>SessionEstablishmentDecision and CapabilityDecision</td>
+              </tr>
+              <tr>
+                <td>page-state-gallery</td>
+                <td>auth-state-matrix-table</td>
+                <td>Resolved screen family</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </section>
+    </div>
+
+    <script>
+      const states = [
+        [
+          "sign_in_entry",
+          "Sign-in entry",
+          "opened",
+          "not_started",
+          "create_fresh",
+          "auth_only",
+          "pending",
+          "recover_only",
+          "none",
+          "valid",
+        ],
+        [
+          "callback_holding",
+          "Callback holding",
+          "callback_received",
+          "holding",
+          "create_fresh",
+          "auth_only",
+          "pending",
+          "recover_only",
+          "none",
+          "valid",
+        ],
+        [
+          "confirming_details",
+          "Confirming details",
+          "verified",
+          "session_settling",
+          "create_fresh",
+          "writable_resume",
+          "pending",
+          "allow",
+          "none",
+          "valid",
+        ],
+        [
+          "consent_declined",
+          "Consent declined",
+          "denied",
+          "consent_declined",
+          "deny",
+          "auth_only",
+          "recovered",
+          "deny",
+          "none",
+          "valid",
+        ],
+        [
+          "higher_assurance_required",
+          "Higher assurance required",
+          "verified",
+          "insufficient_assurance",
+          "bounded_recovery",
+          "recovery_only",
+          "pending",
+          "step_up_required",
+          "none",
+          "valid",
+        ],
+        [
+          "safe_re_entry",
+          "Safe re-entry",
+          "consumed",
+          "success",
+          "reuse_existing",
+          "recovery_only",
+          "recovered",
+          "recover_only",
+          "callback_replay",
+          "stale",
+        ],
+        [
+          "session_expired",
+          "Session expired",
+          "expired",
+          "expired_transaction",
+          "bounded_recovery",
+          "recovery_only",
+          "recovered",
+          "recover_only",
+          "idle_timeout",
+          "valid",
+        ],
+        [
+          "signed_out_clean",
+          "Signed out cleanly",
+          "consumed",
+          "signed_out",
+          "deny",
+          "auth_only",
+          "consumed",
+          "deny",
+          "user_sign_out",
+          "valid",
+        ],
+      ].map(
+        ([
+          key,
+          title,
+          transaction,
+          outcome,
+          session,
+          returnAuthority,
+          intentState,
+          capability,
+          trigger,
+          binding,
+        ]) => ({
+          key,
+          title,
+          transaction,
+          outcome,
+          session,
+          returnAuthority,
+          intentState,
+          capability,
+          trigger,
+          binding,
+          summary: `${title} is driven by ${transaction}, ${session}, ${returnAuthority}, ${capability}, and ${binding} binding.`,
+        }),
+      );
+
+      const cases = [
+        ["REFRESH_CALLBACK_HOLDING", "callback_holding", "false"],
+        ["REPLAY_CONSUMED_CALLBACK", "safe_re_entry", "false"],
+        ["BACK_FROM_PROVIDER_AFTER_SUCCESS", "confirming_details", "true"],
+        ["STALE_ROUTE_RELEASE_DRIFT", "safe_re_entry", "false"],
+        ["EXPIRED_CALLBACK_TRANSACTION", "session_expired", "false"],
+        ["SIGNED_OUT_BACK_BUTTON", "signed_out_clean", "false"],
+        ["CONSENT_DECLINED_RETURN", "consent_declined", "false"],
+        ["HIGHER_ASSURANCE_RETRY", "higher_assurance_required", "false"],
+      ];
+
+      const rail = document.querySelector("[data-testid='atlas-state-rail']");
+      const gallery = document.querySelector("#screen-gallery");
+      const outcomeFilter = document.querySelector("[data-testid='atlas-outcome-filter']");
+      const authorityFilter = document.querySelector("[data-testid='atlas-authority-filter']");
+      const inspectorTitle = document.querySelector("#inspector-title");
+      const inspectorSummary = document.querySelector("#inspector-summary");
+      const inspectorKv = document.querySelector("#inspector-kv");
+      const stateTableBody = document.querySelector("#state-table-body");
+      const caseTableBody = document.querySelector("#case-table-body");
+      let selectedKey = states[0].key;
+
+      for (const state of states) {
+        const option = document.createElement("option");
+        option.value = state.outcome;
+        option.textContent = state.outcome;
+        outcomeFilter.append(option);
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.testid = `atlas-state-button-${state.key}`;
+        button.dataset.stateKey = state.key;
+        button.innerHTML = `<span>${state.outcome}</span><strong>${state.title}</strong>`;
+        button.addEventListener("click", () => selectState(state.key));
+        button.addEventListener("keydown", (event) => {
+          const index = states.findIndex((entry) => entry.key === state.key);
+          if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+            event.preventDefault();
+            const next = states[(index + 1) % states.length];
+            selectState(next.key);
+            rail.querySelector(`[data-state-key='${next.key}']`).focus();
+          }
+          if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+            event.preventDefault();
+            const previous = states[(index - 1 + states.length) % states.length];
+            selectState(previous.key);
+            rail.querySelector(`[data-state-key='${previous.key}']`).focus();
+          }
+        });
+        rail.append(button);
+
+        const card = document.createElement("article");
+        card.className = "state-card";
+        card.dataset.testid = `atlas-view-${state.key}`;
+        card.dataset.stateKey = state.key;
+        card.innerHTML = `
+          <span class="eyebrow">${state.outcome}</span>
+          <h2>${state.title}</h2>
+          <p>${state.summary}</p>
+          <div class="actions">
+            <button class="${state.key === "sign_in_entry" ? "nhs-login" : "primary"}" data-testid="${state.key === "sign_in_entry" ? "nhs-login-button-standard" : `atlas-primary-${state.key}`}">
+              ${state.key === "sign_in_entry" ? "Continue with NHS login" : "Continue safely"}
+            </button>
+            <button class="secondary">Keep same shell</button>
+          </div>
+        `;
+        gallery.append(card);
+
+        const row = document.createElement("tr");
+        row.dataset.testid = `state-row-${state.key}`;
+        row.tabIndex = 0;
+        row.innerHTML = `<td>${state.key}</td><td>${state.transaction}</td><td>${state.session}</td><td>${state.capability}</td>`;
+        row.addEventListener("click", () => selectState(state.key));
+        row.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            selectState(state.key);
+          }
+        });
+        stateTableBody.append(row);
+      }
+
+      for (const [caseId, expected, writable] of cases) {
+        const row = document.createElement("tr");
+        row.dataset.testid = `case-row-${caseId}`;
+        row.innerHTML = `<td>${caseId}</td><td>${expected}</td><td>${writable}</td>`;
+        caseTableBody.append(row);
+      }
+
+      function selectState(key) {
+        selectedKey = key;
+        render();
+      }
+
+      function render() {
+        const selected = states.find((state) => state.key === selectedKey) || states[0];
+        const outcomeValue = outcomeFilter.value;
+        const authorityValue = authorityFilter.value;
+        for (const button of rail.querySelectorAll("button")) {
+          button.setAttribute(
+            "aria-current",
+            button.dataset.stateKey === selected.key ? "page" : "false",
+          );
+        }
+        for (const card of gallery.querySelectorAll(".state-card")) {
+          const state = states.find((entry) => entry.key === card.dataset.stateKey);
+          const visible =
+            state &&
+            (outcomeValue === "all" || state.outcome === outcomeValue) &&
+            (authorityValue === "all" || state.returnAuthority === authorityValue);
+          card.dataset.hidden = visible ? "false" : "true";
+        }
+        for (const node of document.querySelectorAll(".ladder li")) {
+          node.dataset.active = node.dataset.step === selected.transaction ? "true" : "false";
+        }
+        for (const button of document.querySelectorAll(".gallery button")) {
+          button.dataset.selected =
+            button.closest(".state-card")?.dataset.stateKey === selected.key ? "true" : "false";
+        }
+        inspectorTitle.textContent = selected.title;
+        inspectorSummary.textContent = selected.summary;
+        inspectorKv.innerHTML = [
+          ["AuthTransaction.transactionState", selected.transaction],
+          ["callbackOutcomeClass", selected.outcome],
+          ["SessionEstablishmentDecision.decision", selected.session],
+          ["PostAuthReturnIntent.returnAuthority", selected.returnAuthority],
+          ["PostAuthReturnIntent.intentState", selected.intentState],
+          ["CapabilityDecision.decisionState", selected.capability],
+          ["SessionTerminationSettlement.trigger", selected.trigger],
+          ["RouteIntentBinding.validity", selected.binding],
+        ]
+          .map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`)
+          .join("");
+      }
+
+      outcomeFilter.addEventListener("change", render);
+      authorityFilter.addEventListener("change", render);
+      render();
+      document.documentElement.dataset.ready = "true";
+    </script>
+  </body>
+</html>

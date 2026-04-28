@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>280 Booking Flow Contract Atlas</title>
+    <style>
+      :root {
+        --canvas: #f7f8fa;
+        --shell: #eef2f6;
+        --panel: #ffffff;
+        --inset: #e8eef3;
+        --text-strong: #0f1720;
+        --text-default: #24313d;
+        --text-muted: #5e6b78;
+        --accent-search: #3158e0;
+        --accent-offer: #5b61f6;
+        --accent-confirmed: #0f766e;
+        --accent-pending: #b7791f;
+        --accent-blocked: #b42318;
+        --border: #d6dee7;
+        --shadow: 0 10px 24px rgba(15, 23, 32, 0.06);
+        color-scheme: light;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: linear-gradient(180deg, var(--shell), var(--canvas));
+        color: var(--text-default);
+      }
+      .atlas-root {
+        min-height: 100vh;
+        padding: 18px 20px 32px;
+      }
+      .frame {
+        max-width: 1680px;
+        margin: 0 auto;
+        display: grid;
+        gap: 16px;
+        min-width: 0;
+      }
+      .masthead {
+        min-height: 72px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        padding: 16px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .wordmark {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        letter-spacing: 0;
+        color: var(--text-strong);
+      }
+      .wordmark svg { width: 24px; height: 24px; }
+      .layout {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: 300px minmax(0, 1fr) 420px;
+        align-items: start;
+        min-width: 0;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        min-width: 0;
+      }
+      .rail, .inspector {
+        padding: 14px;
+      }
+      .rail h2, .inspector h2, .canvas h2 {
+        margin: 0 0 10px;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+      }
+      .button-list {
+        display: grid;
+        gap: 8px;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 10px 12px;
+        text-align: left;
+        cursor: pointer;
+      }
+      button[aria-pressed="true"] {
+        border-color: var(--active-accent, var(--accent-search));
+        box-shadow: inset 0 0 0 1px var(--active-accent, var(--accent-search));
+        background: color-mix(in srgb, var(--active-accent, var(--accent-search)) 8%, white);
+      }
+      button:focus-visible, a:focus-visible {
+        outline: 3px solid color-mix(in srgb, var(--active-accent, var(--accent-search)) 45%, white);
+        outline-offset: 2px;
+      }
+      .button-label {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: baseline;
+      }
+      .button-note {
+        color: var(--text-muted);
+        font-size: 13px;
+        margin-top: 4px;
+      }
+      .canvas {
+        padding: 14px;
+        display: grid;
+        gap: 14px;
+      }
+      .diagram-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .diagram {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--canvas);
+        padding: 12px;
+        min-width: 0;
+      }
+      .diagram h3 {
+        margin: 0 0 10px;
+        font-size: 14px;
+        color: var(--text-strong);
+      }
+      .ladder, .pipeline {
+        display: grid;
+        gap: 8px;
+      }
+      .node {
+        border-radius: 6px;
+        padding: 10px;
+        background: white;
+        border: 1px solid var(--border);
+      }
+      .node strong {
+        display: block;
+        color: var(--text-strong);
+      }
+      .node small {
+        color: var(--text-muted);
+      }
+      .inspector-card {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--canvas);
+        padding: 12px;
+        margin-bottom: 10px;
+        min-width: 0;
+      }
+      .inspector-card p,
+      .inspector-card li,
+      .inspector-card strong,
+      #inspector-contracts {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .lower-grid {
+        display: grid;
+        gap: 16px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        table-layout: fixed;
+      }
+      th, td {
+        padding: 10px 9px;
+        border-top: 1px solid var(--border);
+        vertical-align: top;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      thead th {
+        border-top: none;
+        color: var(--text-strong);
+        background: var(--inset);
+        font-weight: 600;
+      }
+      .token {
+        display: inline-block;
+        padding: 3px 7px;
+        border-radius: 999px;
+        background: var(--inset);
+        color: var(--text-strong);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      .muted { color: var(--text-muted); }
+      .accent-search { color: var(--accent-search); }
+      .accent-offer { color: var(--accent-offer); }
+      .accent-confirmed { color: var(--accent-confirmed); }
+      .accent-pending { color: var(--accent-pending); }
+      .accent-blocked { color: var(--accent-blocked); }
+      .skip-link {
+        position: absolute;
+        left: 12px;
+        top: -40px;
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 8px 10px;
+      }
+      .skip-link:focus {
+        top: 12px;
+      }
+      @media (max-width: 1200px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 820px) {
+        .atlas-root {
+          padding: 14px;
+        }
+        .diagram-grid {
+          grid-template-columns: 1fr;
+        }
+        .masthead {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation-duration: 0s !important;
+          transition-duration: 0s !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#atlas-main">Skip to atlas content</a>
+    <div
+      class="atlas-root"
+      data-testid="BookingFlowContractAtlas"
+      data-visual-mode="Booking_Flow_Contract_Atlas"
+      data-active-stage="search_snapshot"
+      data-active-formula="SnapshotSelectable"
+      id="atlas-main"
+    >
+      <div class="frame">
+        <section class="masthead panel" data-testid="BookingFlowAtlasMasthead" aria-label="Booking flow masthead">
+          <div>
+            <div class="wordmark">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M3 12h5l3-5 3 10 3-5h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+              <span>Vecells</span>
+              <span class="muted">Booking_Flow_Contract_Atlas</span>
+            </div>
+            <p style="margin:8px 0 0; max-width: 920px;">
+              Search, ranking, reservation, commit, confirmation, and manage truth are frozen here as one bounded contract pack.
+            </p>
+          </div>
+          <div class="token" data-testid="AtlasVersionToken">280.phase4.booking-flow-freeze.v1</div>
+        </section>
+
+        <div class="layout">
+          <aside class="panel rail" data-testid="BookingFlowStageRail" aria-label="Booking flow stage rail">
+            <h2>Flow stages</h2>
+            <div class="button-list" id="stage-buttons"></div>
+            <div style="height:12px"></div>
+            <h2>Formula rail</h2>
+            <div class="button-list" id="formula-buttons"></div>
+          </aside>
+
+          <section class="panel canvas" data-testid="BookingFlowCanvas" aria-label="Booking flow atlas canvas">
+            <div class="diagram-grid">
+              <section class="diagram" data-testid="SnapshotPipelineRegion">
+                <h3>Snapshot pipeline</h3>
+                <div class="pipeline" id="snapshot-pipeline"></div>
+                <table data-testid="SnapshotPipelineTable" aria-label="Snapshot pipeline table">
+                  <thead><tr><th>Stage</th><th>Purpose</th></tr></thead>
+                  <tbody id="snapshot-table-body"></tbody>
+                </table>
+              </section>
+
+              <section class="diagram" data-testid="RankingFrontierRegion">
+                <h3>Ranking frontier rail</h3>
+                <div class="pipeline" id="frontier-rail"></div>
+                <table data-testid="RankingFrontierTable" aria-label="Ranking frontier table">
+                  <thead><tr><th>Formula</th><th>Use</th></tr></thead>
+                  <tbody id="frontier-table-body"></tbody>
+                </table>
+              </section>
+
+              <section class="diagram" data-testid="ReservationTruthLadderRegion">
+                <h3>Reservation truth ladder</h3>
+                <div class="ladder" id="reservation-ladder"></div>
+                <table data-testid="ReservationTruthTable" aria-label="Reservation truth table">
+                  <thead><tr><th>Truth state</th><th>Meaning</th></tr></thead>
+                  <tbody id="reservation-table-body"></tbody>
+                </table>
+              </section>
+
+              <section class="diagram" data-testid="ConfirmationTruthLadderRegion">
+                <h3>Confirmation truth ladder</h3>
+                <div class="ladder" id="confirmation-ladder"></div>
+                <table data-testid="ConfirmationTruthTable" aria-label="Confirmation truth table">
+                  <thead><tr><th>Truth state</th><th>Meaning</th></tr></thead>
+                  <tbody id="confirmation-table-body"></tbody>
+                </table>
+              </section>
+            </div>
+
+            <section class="diagram" data-testid="ManageStateMatrixRegion">
+              <h3>Manage-state matrix</h3>
+              <table data-testid="ManageStateMatrixTable" aria-label="Manage-state matrix">
+                <thead><tr><th>Settlement result</th><th>Meaning</th></tr></thead>
+                <tbody id="manage-table-body"></tbody>
+              </table>
+            </section>
+
+            <section class="lower-grid" data-testid="BookingFlowLowerLedgers">
+              <section class="diagram">
+                <h3>Formula ledger</h3>
+                <table data-testid="FormulaLedgerTable" aria-label="Formula ledger">
+                  <thead><tr><th>Formula</th><th>Expression</th><th>Fields</th></tr></thead>
+                  <tbody id="formula-ledger-body"></tbody>
+                </table>
+              </section>
+              <section class="diagram">
+                <h3>Contract split</h3>
+                <table data-testid="ContractSplitTable" aria-label="Contract split table">
+                  <thead><tr><th>Contract</th><th>Authority</th><th>Reason</th></tr></thead>
+                  <tbody id="contract-split-body"></tbody>
+                </table>
+              </section>
+              <section class="diagram">
+                <h3>Revalidation, commit, and manage state table</h3>
+                <table data-testid="BookingFlowStateTable" aria-label="Booking flow state table">
+                  <thead><tr><th>State</th><th>Snapshot</th><th>Reservation</th><th>Confirmation</th><th>Posture</th></tr></thead>
+                  <tbody id="state-table-body"></tbody>
+                </table>
+              </section>
+            </section>
+          </section>
+
+          <aside class="panel inspector" data-testid="BookingFlowInspector" aria-label="Booking flow inspector">
+            <h2>Inspector</h2>
+            <div class="inspector-card">
+              <strong id="inspector-stage-label">Search snapshot</strong>
+              <p id="inspector-stage-summary" style="margin:8px 0 0;"></p>
+            </div>
+            <div class="inspector-card">
+              <strong id="inspector-formula-label">SnapshotSelectable(q,t)</strong>
+              <p id="inspector-formula-expression" style="margin:8px 0 0;"></p>
+            </div>
+            <div class="inspector-card">
+              <strong>Bound contracts</strong>
+              <ul id="inspector-contracts" style="padding-left: 18px; margin: 8px 0 0;"></ul>
+            </div>
+            <div class="inspector-card">
+              <strong>Scenario parity</strong>
+              <table data-testid="ScenarioParityTable" aria-label="Scenario parity table">
+                <thead><tr><th>Scenario</th><th>Dominant action</th><th>Same-shell posture</th></tr></thead>
+                <tbody id="scenario-parity-body"></tbody>
+              </table>
+            </div>
+          </aside>
+        </div>
+      </div>
+      <script id="atlas-data" type="application/json">{&quot;taskId&quot;: &quot;seq_280&quot;, &quot;visualMode&quot;: &quot;Booking_Flow_Contract_Atlas&quot;, &quot;contractVersion&quot;: &quot;280.phase4.booking-flow-freeze.v1&quot;, &quot;stages&quot;: [{&quot;stageId&quot;: &quot;search_snapshot&quot;, &quot;label&quot;: &quot;Search snapshot&quot;, &quot;accent&quot;: &quot;#3158E0&quot;, &quot;summary&quot;: &quot;Search is a snapshot-producing operation. Selection and commit consume persisted snapshot truth, not live supplier lists.&quot;, &quot;primaryFormulaId&quot;: &quot;SnapshotSelectable&quot;, &quot;contracts&quot;: [&quot;280_slot_search_session.schema.json&quot;, &quot;280_provider_search_slice.schema.json&quot;, &quot;280_temporal_normalization_envelope.schema.json&quot;, &quot;280_canonical_slot_identity.schema.json&quot;, &quot;280_slot_set_snapshot.schema.json&quot;, &quot;280_slot_snapshot_recovery_state.schema.json&quot;]}, {&quot;stageId&quot;: &quot;ranking_frontier&quot;, &quot;label&quot;: &quot;Ranking frontier&quot;, &quot;accent&quot;: &quot;#5B61F6&quot;, &quot;summary&quot;: &quot;Hard filters run before a versioned rank plan computes frontier-safe soft reordering inside clinically bounded timeliness bands.&quot;, &quot;primaryFormulaId&quot;: &quot;softScore&quot;, &quot;contracts&quot;: [&quot;280_rank_plan_and_capacity_rank_proof_contract.json&quot;]}, {&quot;stageId&quot;: &quot;offer_session&quot;, &quot;label&quot;: &quot;Offer session&quot;, &quot;accent&quot;: &quot;#5B61F6&quot;, &quot;summary&quot;: &quot;OfferSession binds selected candidates, rank proof, and one current reservation-truth projection without implying exclusivity from session TTL alone.&quot;, &quot;primaryFormulaId&quot;: &quot;Frontier_b&quot;, &quot;contracts&quot;: [&quot;280_offer_session.schema.json&quot;, &quot;280_reservation_truth_projection_contract.json&quot;]}, {&quot;stageId&quot;: &quot;reservation_truth&quot;, &quot;label&quot;: &quot;Reservation truth&quot;, &quot;accent&quot;: &quot;#3158E0&quot;, &quot;summary&quot;: &quot;Reserved wording, hold countdowns, and truthful nonexclusive posture can render only from ReservationTruthProjection.&quot;, &quot;primaryFormulaId&quot;: &quot;SnapshotSelectable&quot;, &quot;contracts&quot;: [&quot;280_reservation_truth_projection_contract.json&quot;]}, {&quot;stageId&quot;: &quot;commit_revalidation&quot;, &quot;label&quot;: &quot;Commit revalidation&quot;, &quot;accent&quot;: &quot;#B7791F&quot;, &quot;summary&quot;: &quot;Commit separates local acknowledgement, processing acceptance, external observation, and authoritative outcome, and it fails closed on stale route, policy, or supplier truth.&quot;, &quot;primaryFormulaId&quot;: &quot;RevalidationPass&quot;, &quot;contracts&quot;: [&quot;280_booking_transaction.schema.json&quot;, &quot;280_waitlist_and_fallback_interface_stubs.json&quot;]}, {&quot;stageId&quot;: &quot;confirmation_truth&quot;, &quot;label&quot;: &quot;Confirmation truth&quot;, &quot;accent&quot;: &quot;#0F766E&quot;, &quot;summary&quot;: &quot;Booked summary, manage, artifact, and reminder exposure appear only when confirmation truth is confirmed with durable proof or same-commit read-after-write.&quot;, &quot;primaryFormulaId&quot;: &quot;RouteWritable&quot;, &quot;contracts&quot;: [&quot;280_booking_confirmation_truth_projection.schema.json&quot;]}, {&quot;stageId&quot;: &quot;manage_continuity&quot;, &quot;label&quot;: &quot;Manage continuity&quot;, &quot;accent&quot;: &quot;#0F766E&quot;, &quot;summary&quot;: &quot;Manage exposure depends on current capability, continuity evidence, and route writability, not on page shape or appointment presence.&quot;, &quot;primaryFormulaId&quot;: &quot;Cancelable&quot;, &quot;contracts&quot;: [&quot;280_appointment_manage_and_reminder_contract_bundle.json&quot;]}, {&quot;stageId&quot;: &quot;waitlist_fallback&quot;, &quot;label&quot;: &quot;Waitlist and fallback&quot;, &quot;accent&quot;: &quot;#B42318&quot;, &quot;summary&quot;: &quot;No-supply, expired offer, and failed commit branches already depend on typed waitlist and fallback truth, so those seams are frozen now.&quot;, &quot;primaryFormulaId&quot;: &quot;SnapshotSelectable&quot;, &quot;contracts&quot;: [&quot;280_waitlist_and_fallback_interface_stubs.json&quot;, &quot;PHASE4_INTERFACE_GAP_SLOT_OFFER_COMMIT_MANAGE.json&quot;]}], &quot;formulas&quot;: [{&quot;name&quot;: &quot;SnapshotSelectable(q,t)&quot;, &quot;expression&quot;: &quot;SnapshotSelectable(q,t) = 1[t &lt;= q.expiresAt] * 1[q.caseVersionRef matches the active BookingCase version] * 1[q.policyBundleHash matches the active compiled policy bundle] * 1[q.providerAdapterBindingHash matches the current BookingCapabilityResolution.providerAdapterBindingHash] * 1[q.capabilityTupleHash matches the current BookingCapabilityResolution.capabilityTupleHash] * 1[q.coverageState in {complete, partial_coverage}] * 1[recoveryState(q).viewState != stale_refresh_required]&quot;, &quot;machineFields&quot;: [&quot;expiresAt&quot;, &quot;caseVersionRef&quot;, &quot;policyBundleHash&quot;, &quot;providerAdapterBindingHash&quot;, &quot;capabilityTupleHash&quot;, &quot;coverageState&quot;, &quot;recoveryState.viewState&quot;], &quot;inputObjects&quot;: [&quot;SlotSetSnapshot&quot;, &quot;SlotSnapshotRecoveryState&quot;, &quot;BookingCase&quot;, &quot;BookingCapabilityResolution&quot;], &quot;failurePosture&quot;: &quot;selection may preserve provenance and day anchor, but confirm-path mutation must fail closed and require refresh or governed recovery before a slot can be committed&quot;}, {&quot;name&quot;: &quot;windowClass(s)&quot;, &quot;expression&quot;: &quot;windowClass(s) = 2 for inside clinically preferred window, 1 for inside clinically acceptable window, 0 for outside window&quot;, &quot;machineFields&quot;: [&quot;preferredWindowStartAt&quot;, &quot;preferredWindowEndAt&quot;, &quot;acceptableWindowStartAt&quot;, &quot;acceptableWindowEndAt&quot;, &quot;slotStartAtEpoch&quot;], &quot;orderedValues&quot;: [{&quot;value&quot;: 2, &quot;meaning&quot;: &quot;inside clinically preferred window&quot;}, {&quot;value&quot;: 1, &quot;meaning&quot;: &quot;inside clinically acceptable window&quot;}, {&quot;value&quot;: 0, &quot;meaning&quot;: &quot;outside window&quot;}]}, {&quot;name&quot;: &quot;Frontier_b&quot;, &quot;expression&quot;: &quot;Frontier_b = { s : windowClass(s)=b and startAtEpoch(s) &lt;= earliestStart_b + Delta_reorder_b }&quot;, &quot;machineFields&quot;: [&quot;windowClass&quot;, &quot;startAtEpoch&quot;, &quot;earliestStart_b&quot;, &quot;Delta_reorder_b&quot;], &quot;compiledFrom&quot;: &quot;SearchPolicy.sameBandReorderSlackMinutesByWindow&quot;}, {&quot;name&quot;: &quot;softScore(s)&quot;, &quot;expression&quot;: &quot;softScore(s) = w_delay * f_delay(s) + w_continuity * f_continuity(s) + w_site * f_site(s) + w_tod * f_tod(s) + w_travel * f_travel(s) + w_modality * f_modality(s)&quot;, &quot;machineFields&quot;: [&quot;w_delay&quot;, &quot;w_continuity&quot;, &quot;w_site&quot;, &quot;w_tod&quot;, &quot;w_travel&quot;, &quot;w_modality&quot;, &quot;f_delay&quot;, &quot;f_continuity&quot;, &quot;f_site&quot;, &quot;f_tod&quot;, &quot;f_travel&quot;, &quot;f_modality&quot;], &quot;constraints&quot;: [&quot;sum w_* = 1&quot;, &quot;do not include both waitMinutes and waitDays in the same linear score&quot;]}, {&quot;name&quot;: &quot;RevalidationPass(tx,t)&quot;, &quot;expression&quot;: &quot;RevalidationPass(tx,t) = SnapshotSelectable(SlotSetSnapshot(tx.snapshotId),t) * 1[tx.providerAdapterBindingHash matches the current BookingCapabilityResolution.providerAdapterBindingHash] * LiveSupplierBookable(tx.selectedSlotRef,t) * PolicySatisfied(tx.selectedSlotRef, tx.policyBundleHash) * RouteWritable(tx,t) * VersionFresh(tx.preflightVersion, tx.selectedSlotRef, t)&quot;, &quot;machineFields&quot;: [&quot;snapshotId&quot;, &quot;providerAdapterBindingHash&quot;, &quot;selectedSlotRef&quot;, &quot;policyBundleHash&quot;, &quot;preflightVersion&quot;, &quot;routeIntentBindingRef&quot;, &quot;surfacePublicationRef&quot;, &quot;runtimePublicationBundleRef&quot;], &quot;subPredicates&quot;: [&quot;SnapshotSelectable&quot;, &quot;RouteWritable&quot;], &quot;sameShellFailure&quot;: &quot;keep the selected slot visible in the same shell and degrade to bounded refresh, read-only recovery, placeholder, or safe browser handoff instead of generic failure&quot;}, {&quot;name&quot;: &quot;RouteWritable(tx,t)&quot;, &quot;expression&quot;: &quot;RouteWritable(tx,t) = 1[AudienceSurfaceRouteContract live and surface publication current and RuntimePublicationBundle live and PatientShellConsistencyProjection valid and, when embedded, PatientEmbeddedSessionProjection valid]&quot;, &quot;machineFields&quot;: [&quot;surfaceRouteContractRef&quot;, &quot;surfacePublicationRef&quot;, &quot;runtimePublicationBundleRef&quot;, &quot;patientShellConsistencyProjectionRef&quot;, &quot;patientEmbeddedSessionProjectionRef&quot;], &quot;failClosedOutcome&quot;: &quot;confirm may not proceed if route publication is stale or withdrawn, if shell consistency no longer matches the booking lineage, or if embedded session posture has drifted&quot;}, {&quot;name&quot;: &quot;Cancelable(a,t)&quot;, &quot;expression&quot;: &quot;Cancelable(a,t) = 1[a.status = booked and startAt(a) - t &gt;= cancelCutoff(a) and no live AppointmentManageCommand fence exists for a]&quot;, &quot;machineFields&quot;: [&quot;appointmentStatus&quot;, &quot;startAt&quot;, &quot;cancelCutoff&quot;, &quot;liveCommandFence&quot;]}, {&quot;name&quot;: &quot;Reschedulable(a,t)&quot;, &quot;expression&quot;: &quot;Reschedulable(a,t) = 1[a.status = booked and startAt(a) - t &gt;= amendCutoff(a) and no live AppointmentManageCommand fence exists for a]&quot;, &quot;machineFields&quot;: [&quot;appointmentStatus&quot;, &quot;startAt&quot;, &quot;amendCutoff&quot;, &quot;liveCommandFence&quot;]}], &quot;contractSplitRows&quot;: [{&quot;contract&quot;: &quot;SlotSearchSession&quot;, &quot;file&quot;: &quot;data/contracts/280_slot_search_session.schema.json&quot;, &quot;phaseStage&quot;: &quot;4C&quot;, &quot;authority&quot;: &quot;Snapshot-producing search session, fenced to case version, policy bundle, capability tuple, and adapter binding&quot;, &quot;primaryConsumers&quot;: &quot;patient booking shell, staff booking shell, commit preflight&quot;, &quot;whySeparate&quot;: &quot;keeps live supplier lists from leaking directly into selection or commit&quot;}, {&quot;contract&quot;: &quot;ProviderSearchSlice&quot;, &quot;file&quot;: &quot;data/contracts/280_provider_search_slice.schema.json&quot;, &quot;phaseStage&quot;: &quot;4C&quot;, &quot;authority&quot;: &quot;per-provider coverage, degradation, and raw payload lineage&quot;, &quot;primaryConsumers&quot;: &quot;coverage truth, partial-coverage copy, support fallback routing&quot;, &quot;whySeparate&quot;: &quot;distinguishes complete, partial, timeout, and degraded coverage&quot;}, {&quot;contract&quot;: &quot;TemporalNormalizationEnvelope&quot;, &quot;file&quot;: &quot;data/contracts/280_temporal_normalization_envelope.schema.json&quot;, &quot;phaseStage&quot;: &quot;4C&quot;, &quot;authority&quot;: &quot;timezone, DST, and clock-skew correctness&quot;, &quot;primaryConsumers&quot;: &quot;normalization, dedupe, rank plan, appointment rendering&quot;, &quot;whySeparate&quot;: &quot;prevents supplier-local timestamps from forking booking truth&quot;}, {&quot;contract&quot;: &quot;CanonicalSlotIdentity&quot;, &quot;file&quot;: &quot;data/contracts/280_canonical_slot_identity.schema.json&quot;, &quot;phaseStage&quot;: &quot;4C&quot;, &quot;authority&quot;: &quot;dedupe-safe slot identity and stable tie-break key&quot;, &quot;primaryConsumers&quot;: &quot;snapshot index, rank proof, offer session, commit&quot;, &quot;whySeparate&quot;: &quot;prevents distinct inventory from collapsing under aliasing&quot;}, {&quot;contract&quot;: &quot;SlotSetSnapshot&quot;, &quot;file&quot;: &quot;data/contracts/280_slot_set_snapshot.schema.json&quot;, &quot;phaseStage&quot;: &quot;4C&quot;, &quot;authority&quot;: &quot;frozen searchable and selectable slot set with checksum and recovery posture&quot;, &quot;primaryConsumers&quot;: &quot;rank proof, offer session, commit preflight&quot;, &quot;whySeparate&quot;: &quot;selection and commit must consume persisted snapshot truth&quot;}, {&quot;contract&quot;: &quot;SlotSnapshotRecoveryState&quot;, &quot;file&quot;: &quot;data/contracts/280_slot_snapshot_recovery_state.schema.json&quot;, &quot;phaseStage&quot;: &quot;4C&quot;, &quot;authority&quot;: &quot;renderable vs partial vs stale vs no-supply vs support-fallback view state&quot;, &quot;primaryConsumers&quot;: &quot;patient copy, support path, same-shell recovery&quot;, &quot;whySeparate&quot;: &quot;empty results are not enough to imply no supply&quot;}, {&quot;contract&quot;: &quot;RankPlan and CapacityRankProof&quot;, &quot;file&quot;: &quot;data/contracts/280_rank_plan_and_capacity_rank_proof_contract.json&quot;, &quot;phaseStage&quot;: &quot;4D&quot;, &quot;authority&quot;: &quot;frontier-safe rank plan, proof, explanations, and patient cue law&quot;, &quot;primaryConsumers&quot;: &quot;offer list, compare mode, support replay, operations diagnostics&quot;, &quot;whySeparate&quot;: &quot;keeps ordering stable across pagination, grouping, and replay&quot;}, {&quot;contract&quot;: &quot;OfferSession&quot;, &quot;file&quot;: &quot;data/contracts/280_offer_session.schema.json&quot;, &quot;phaseStage&quot;: &quot;4D&quot;, &quot;authority&quot;: &quot;selected candidate, proof hash, and interaction TTL over pre-ranked offers&quot;, &quot;primaryConsumers&quot;: &quot;selection shell, compare mode, commit start&quot;, &quot;whySeparate&quot;: &quot;OfferSession.expiresAt is not proof of exclusivity&quot;}, {&quot;contract&quot;: &quot;ReservationTruthProjection&quot;, &quot;file&quot;: &quot;data/contracts/280_reservation_truth_projection_contract.json&quot;, &quot;phaseStage&quot;: &quot;4D/4E&quot;, &quot;authority&quot;: &quot;sole authority for exclusivity, truthful-nonexclusive, pending-confirmation, release, and expiry language&quot;, &quot;primaryConsumers&quot;: &quot;offer cards, waitlist cards, selected slot cards&quot;, &quot;whySeparate&quot;: &quot;selected means held is explicitly forbidden&quot;}, {&quot;contract&quot;: &quot;BookingTransaction&quot;, &quot;file&quot;: &quot;data/contracts/280_booking_transaction.schema.json&quot;, &quot;phaseStage&quot;: &quot;4E&quot;, &quot;authority&quot;: &quot;append-only commit chain with local, processing, external, and authoritative states&quot;, &quot;primaryConsumers&quot;: &quot;booking commit, reconciliation, request detail, support&quot;, &quot;whySeparate&quot;: &quot;appointment rows or accepted processing alone may not imply booked truth&quot;}, {&quot;contract&quot;: &quot;BookingConfirmationTruthProjection&quot;, &quot;file&quot;: &quot;data/contracts/280_booking_confirmation_truth_projection.schema.json&quot;, &quot;phaseStage&quot;: &quot;4E/4F&quot;, &quot;authority&quot;: &quot;sole audience-safe authority for booked summary, manage, artifact, and reminder exposure&quot;, &quot;primaryConsumers&quot;: &quot;patient shells, request detail, manage shell, reminder and artifact surfaces&quot;, &quot;whySeparate&quot;: &quot;async or disputed confirmation must stay first-class and same-shell&quot;}, {&quot;contract&quot;: &quot;AppointmentManage and Reminder bundle&quot;, &quot;file&quot;: &quot;data/contracts/280_appointment_manage_and_reminder_contract_bundle.json&quot;, &quot;phaseStage&quot;: &quot;4F&quot;, &quot;authority&quot;: &quot;manage command, settlement, continuity evidence, reminder plan, and artifact rules&quot;, &quot;primaryConsumers&quot;: &quot;cancel, reschedule, reminder change, detail update, artifact handoff&quot;, &quot;whySeparate&quot;: &quot;manage cannot infer capability or safety from page shape&quot;}, {&quot;contract&quot;: &quot;Waitlist and fallback stubs&quot;, &quot;file&quot;: &quot;data/contracts/280_waitlist_and_fallback_interface_stubs.json&quot;, &quot;phaseStage&quot;: &quot;4C/4E/4F&quot;, &quot;authority&quot;: &quot;typed continuation truth for no-supply, expired offer, revalidation failure, and fallback transfer&quot;, &quot;primaryConsumers&quot;: &quot;search recovery, commit failure routing, callback or hub transfer&quot;, &quot;whySeparate&quot;: &quot;waitlist or fallback is already part of truthful booking semantics&quot;}], &quot;stateTableRows&quot;: [{&quot;stateId&quot;: &quot;search_renderable&quot;, &quot;phaseStage&quot;: &quot;4C&quot;, &quot;snapshotRecoveryState&quot;: &quot;renderable&quot;, &quot;reservationTruthState&quot;: &quot;truthful_nonexclusive&quot;, &quot;bookingTransactionState&quot;: &quot;not_started&quot;, &quot;confirmationTruthState&quot;: &quot;booking_in_progress&quot;, &quot;manageExposureState&quot;: &quot;hidden&quot;, &quot;waitlistRoute&quot;: &quot;stay_local_waitlist&quot;, &quot;dominantNarrative&quot;: &quot;Slots are available to review and choose.&quot;, &quot;sameShellPosture&quot;: &quot;normal selection allowed&quot;}, {&quot;stateId&quot;: &quot;search_partial_coverage&quot;, &quot;phaseStage&quot;: &quot;4C&quot;, &quot;snapshotRecoveryState&quot;: &quot;partial_coverage&quot;, &quot;reservationTruthState&quot;: &quot;truthful_nonexclusive&quot;, &quot;bookingTransactionState&quot;: &quot;not_started&quot;, &quot;confirmationTruthState&quot;: &quot;booking_in_progress&quot;, &quot;manageExposureState&quot;: &quot;hidden&quot;, &quot;waitlistRoute&quot;: &quot;stay_local_waitlist&quot;, &quot;dominantNarrative&quot;: &quot;Availability may be incomplete; support help stays visible.&quot;, &quot;sameShellPosture&quot;: &quot;selection allowed with bounded warning&quot;}, {&quot;stateId&quot;: &quot;search_stale_refresh&quot;, &quot;phaseStage&quot;: &quot;4C&quot;, &quot;snapshotRecoveryState&quot;: &quot;stale_refresh_required&quot;, &quot;reservationTruthState&quot;: &quot;revalidation_required&quot;, &quot;bookingTransactionState&quot;: &quot;not_started&quot;, &quot;confirmationTruthState&quot;: &quot;booking_in_progress&quot;, &quot;manageExposureState&quot;: &quot;hidden&quot;, &quot;waitlistRoute&quot;: &quot;stay_local_waitlist&quot;, &quot;dominantNarrative&quot;: &quot;Selection freezes in place until refresh restores current truth.&quot;, &quot;sameShellPosture&quot;: &quot;anchor preserved, confirm blocked&quot;}, {&quot;stateId&quot;: &quot;search_no_supply_confirmed&quot;, &quot;phaseStage&quot;: &quot;4C&quot;, &quot;snapshotRecoveryState&quot;: &quot;no_supply_confirmed&quot;, &quot;reservationTruthState&quot;: &quot;unavailable&quot;, &quot;bookingTransactionState&quot;: &quot;not_started&quot;, &quot;confirmationTruthState&quot;: &quot;booking_in_progress&quot;, &quot;manageExposureState&quot;: &quot;hidden&quot;, &quot;waitlistRoute&quot;: &quot;callback_fallback&quot;, &quot;dominantNarrative&quot;: &quot;Search completed exhaustively for the current policy and no directly bookable supply remains.&quot;, &quot;sameShellPosture&quot;: &quot;recovery and continuation only&quot;}, {&quot;stateId&quot;: &quot;offer_selected_nonexclusive&quot;, &quot;phaseStage&quot;: &quot;4D&quot;, &quot;snapshotRecoveryState&quot;: &quot;renderable&quot;, &quot;reservationTruthState&quot;: &quot;truthful_nonexclusive&quot;, &quot;bookingTransactionState&quot;: &quot;not_started&quot;, &quot;confirmationTruthState&quot;: &quot;booking_in_progress&quot;, &quot;manageExposureState&quot;: &quot;hidden&quot;, &quot;waitlistRoute&quot;: &quot;stay_local_waitlist&quot;, &quot;dominantNarrative&quot;: &quot;Selected state persists, but copy must still say availability is confirmed when you book.&quot;, &quot;sameShellPosture&quot;: &quot;selected anchor preserved&quot;}, {&quot;stateId&quot;: &quot;offer_selected_exclusive_hold&quot;, &quot;phaseStage&quot;: &quot;4D&quot;, &quot;snapshotRecoveryState&quot;: &quot;renderable&quot;, &quot;reservationTruthState&quot;: &quot;exclusive_held&quot;, &quot;bookingTransactionState&quot;: &quot;not_started&quot;, &quot;confirmationTruthState&quot;: &quot;booking_in_progress&quot;, &quot;manageExposureState&quot;: &quot;hidden&quot;, &quot;waitlistRoute&quot;: &quot;stay_local_waitlist&quot;, &quot;dominantNarrative&quot;: &quot;Reserved-for-you wording and hold countdown are legal only from ReservationTruthProjection.&quot;, &quot;sameShellPosture&quot;: &quot;real hold countdown allowed&quot;}, {&quot;stateId&quot;: &quot;commit_pending_provisional&quot;, &quot;phaseStage&quot;: &quot;4E&quot;, &quot;snapshotRecoveryState&quot;: &quot;renderable&quot;, &quot;reservationTruthState&quot;: &quot;pending_confirmation&quot;, &quot;bookingTransactionState&quot;: &quot;accepted_for_processing&quot;, &quot;confirmationTruthState&quot;: &quot;booking_in_progress&quot;, &quot;manageExposureState&quot;: &quot;hidden&quot;, &quot;waitlistRoute&quot;: &quot;stay_local_waitlist&quot;, &quot;dominantNarrative&quot;: &quot;Local acknowledgement and provisional receipt are visible, but booked reassurance is still blocked.&quot;, &quot;sameShellPosture&quot;: &quot;pending receipt in place&quot;}, {&quot;stateId&quot;: &quot;confirmation_pending&quot;, &quot;phaseStage&quot;: &quot;4E&quot;, &quot;snapshotRecoveryState&quot;: &quot;renderable&quot;, &quot;reservationTruthState&quot;: &quot;pending_confirmation&quot;, &quot;bookingTransactionState&quot;: &quot;awaiting_external_confirmation&quot;, &quot;confirmationTruthState&quot;: &quot;confirmation_pending&quot;, &quot;manageExposureState&quot;: &quot;hidden&quot;, &quot;waitlistRoute&quot;: &quot;stay_local_waitlist&quot;, &quot;dominantNarrative&quot;: &quot;The supplier or external gate is still settling; manage and reminder exposure remain hidden.&quot;, &quot;sameShellPosture&quot;: &quot;selected slot or provisional summary stays visible&quot;}, {&quot;stateId&quot;: &quot;reconciliation_required&quot;, &quot;phaseStage&quot;: &quot;4E&quot;, &quot;snapshotRecoveryState&quot;: &quot;renderable&quot;, &quot;reservationTruthState&quot;: &quot;disputed&quot;, &quot;bookingTransactionState&quot;: &quot;provider_pending&quot;, &quot;confirmationTruthState&quot;: &quot;reconciliation_required&quot;, &quot;manageExposureState&quot;: &quot;hidden&quot;, &quot;waitlistRoute&quot;: &quot;support_fallback&quot;, &quot;dominantNarrative&quot;: &quot;Contradictory or weak supplier truth keeps the same shell in governed recovery.&quot;, &quot;sameShellPosture&quot;: &quot;recovery only, provenance preserved&quot;}, {&quot;stateId&quot;: &quot;confirmed_booked&quot;, &quot;phaseStage&quot;: &quot;4E&quot;, &quot;snapshotRecoveryState&quot;: &quot;renderable&quot;, &quot;reservationTruthState&quot;: &quot;confirmed&quot;, &quot;bookingTransactionState&quot;: &quot;provider_reference_seen&quot;, &quot;confirmationTruthState&quot;: &quot;confirmed&quot;, &quot;manageExposureState&quot;: &quot;writable&quot;, &quot;waitlistRoute&quot;: &quot;stay_local_waitlist&quot;, &quot;dominantNarrative&quot;: &quot;Booked summary, writable manage posture, and pending reminder scheduling are now legal.&quot;, &quot;sameShellPosture&quot;: &quot;calm manage entry&quot;}, {&quot;stateId&quot;: &quot;manage_pending&quot;, &quot;phaseStage&quot;: &quot;4F&quot;, &quot;snapshotRecoveryState&quot;: &quot;renderable&quot;, &quot;reservationTruthState&quot;: &quot;confirmed&quot;, &quot;bookingTransactionState&quot;: &quot;provider_reference_seen&quot;, &quot;confirmationTruthState&quot;: &quot;confirmed&quot;, &quot;manageExposureState&quot;: &quot;writable&quot;, &quot;waitlistRoute&quot;: &quot;stay_local_waitlist&quot;, &quot;dominantNarrative&quot;: &quot;Manage action can return supplier_pending without losing the appointment summary or anchor.&quot;, &quot;sameShellPosture&quot;: &quot;same-shell pending&quot;}, {&quot;stateId&quot;: &quot;manage_stale_recoverable&quot;, &quot;phaseStage&quot;: &quot;4F&quot;, &quot;snapshotRecoveryState&quot;: &quot;renderable&quot;, &quot;reservationTruthState&quot;: &quot;confirmed&quot;, &quot;bookingTransactionState&quot;: &quot;provider_reference_seen&quot;, &quot;confirmationTruthState&quot;: &quot;confirmed&quot;, &quot;manageExposureState&quot;: &quot;recovery_only&quot;, &quot;waitlistRoute&quot;: &quot;support_fallback&quot;, &quot;dominantNarrative&quot;: &quot;Manage summary remains visible, but ordinary controls freeze until continuity proof refreshes.&quot;, &quot;sameShellPosture&quot;: &quot;bounded recovery only&quot;}], &quot;scenarios&quot;: [{&quot;scenarioId&quot;: &quot;SCN_280_RENDERABLE_SNAPSHOT&quot;, &quot;stageId&quot;: &quot;search_snapshot&quot;, &quot;label&quot;: &quot;Renderable search snapshot&quot;, &quot;snapshotRecoveryState&quot;: &quot;renderable&quot;, &quot;reservationTruthState&quot;: &quot;truthful_nonexclusive&quot;, &quot;confirmationTruthState&quot;: &quot;booking_in_progress&quot;, &quot;manageResult&quot;: &quot;supplier_pending&quot;, &quot;dominantAction&quot;: &quot;select_slot&quot;, &quot;sameShellPosture&quot;: &quot;normal selection allowed&quot;}, {&quot;scenarioId&quot;: &quot;SCN_280_PARTIAL_COVERAGE&quot;, &quot;stageId&quot;: &quot;search_snapshot&quot;, &quot;label&quot;: &quot;Partial coverage with explicit bounded copy&quot;, &quot;snapshotRecoveryState&quot;: &quot;partial_coverage&quot;, &quot;reservationTruthState&quot;: &quot;truthful_nonexclusive&quot;, &quot;confirmationTruthState&quot;: &quot;booking_in_progress&quot;, &quot;manageResult&quot;: &quot;supplier_pending&quot;, &quot;dominantAction&quot;: &quot;keep_support_help_visible&quot;, &quot;sameShellPosture&quot;: &quot;selection allowed with warning&quot;}, {&quot;scenarioId&quot;: &quot;SCN_280_STALE_REFRESH_REQUIRED&quot;, &quot;stageId&quot;: &quot;search_snapshot&quot;, &quot;label&quot;: &quot;Stale snapshot requires refresh&quot;, &quot;snapshotRecoveryState&quot;: &quot;stale_refresh_required&quot;, &quot;reservationTruthState&quot;: &quot;revalidation_required&quot;, &quot;confirmationTruthState&quot;: &quot;booking_in_progress&quot;, &quot;manageResult&quot;: &quot;stale_recoverable&quot;, &quot;dominantAction&quot;: &quot;refresh_in_place&quot;, &quot;sameShellPosture&quot;: &quot;selected day anchor preserved&quot;}, {&quot;scenarioId&quot;: &quot;SCN_280_EXCLUSIVE_HOLD&quot;, &quot;stageId&quot;: &quot;reservation_truth&quot;, &quot;label&quot;: &quot;Exclusive hold backed by ReservationAuthority&quot;, &quot;snapshotRecoveryState&quot;: &quot;renderable&quot;, &quot;reservationTruthState&quot;: &quot;exclusive_held&quot;, &quot;confirmationTruthState&quot;: &quot;booking_in_progress&quot;, &quot;manageResult&quot;: &quot;supplier_pending&quot;, &quot;dominantAction&quot;: &quot;confirm_booking&quot;, &quot;sameShellPosture&quot;: &quot;real hold countdown visible&quot;}, {&quot;scenarioId&quot;: &quot;SCN_280_PROVISIONAL_RECEIPT&quot;, &quot;stageId&quot;: &quot;commit_revalidation&quot;, &quot;label&quot;: &quot;Commit accepted for processing&quot;, &quot;snapshotRecoveryState&quot;: &quot;renderable&quot;, &quot;reservationTruthState&quot;: &quot;pending_confirmation&quot;, &quot;confirmationTruthState&quot;: &quot;booking_in_progress&quot;, &quot;manageResult&quot;: &quot;supplier_pending&quot;, &quot;dominantAction&quot;: &quot;wait_for_authoritative_confirmation&quot;, &quot;sameShellPosture&quot;: &quot;selected slot or receipt stays visible&quot;}, {&quot;scenarioId&quot;: &quot;SCN_280_CONFIRMATION_PENDING&quot;, &quot;stageId&quot;: &quot;confirmation_truth&quot;, &quot;label&quot;: &quot;Authoritative confirmation still pending&quot;, &quot;snapshotRecoveryState&quot;: &quot;renderable&quot;, &quot;reservationTruthState&quot;: &quot;pending_confirmation&quot;, &quot;confirmationTruthState&quot;: &quot;confirmation_pending&quot;, &quot;manageResult&quot;: &quot;supplier_pending&quot;, &quot;dominantAction&quot;: &quot;stay_pending&quot;, &quot;sameShellPosture&quot;: &quot;booked reassurance still blocked&quot;}, {&quot;scenarioId&quot;: &quot;SCN_280_CONFIRMED&quot;, &quot;stageId&quot;: &quot;confirmation_truth&quot;, &quot;label&quot;: &quot;Confirmed booking with durable proof&quot;, &quot;snapshotRecoveryState&quot;: &quot;renderable&quot;, &quot;reservationTruthState&quot;: &quot;confirmed&quot;, &quot;confirmationTruthState&quot;: &quot;confirmed&quot;, &quot;manageResult&quot;: &quot;applied&quot;, &quot;dominantAction&quot;: &quot;manage_appointment&quot;, &quot;sameShellPosture&quot;: &quot;calm booked summary allowed&quot;}, {&quot;scenarioId&quot;: &quot;SCN_280_MANAGE_STALE&quot;, &quot;stageId&quot;: &quot;manage_continuity&quot;, &quot;label&quot;: &quot;Manage continuity stale&quot;, &quot;snapshotRecoveryState&quot;: &quot;renderable&quot;, &quot;reservationTruthState&quot;: &quot;confirmed&quot;, &quot;confirmationTruthState&quot;: &quot;confirmed&quot;, &quot;manageResult&quot;: &quot;stale_recoverable&quot;, &quot;dominantAction&quot;: &quot;refresh_manage_continuity&quot;, &quot;sameShellPosture&quot;: &quot;summary preserved, controls frozen&quot;}, {&quot;scenarioId&quot;: &quot;SCN_280_WAITLIST_FALLBACK&quot;, &quot;stageId&quot;: &quot;waitlist_fallback&quot;, &quot;label&quot;: &quot;No supply confirmed to callback fallback&quot;, &quot;snapshotRecoveryState&quot;: &quot;no_supply_confirmed&quot;, &quot;reservationTruthState&quot;: &quot;unavailable&quot;, &quot;confirmationTruthState&quot;: &quot;failed&quot;, &quot;manageResult&quot;: &quot;unsupported_capability&quot;, &quot;dominantAction&quot;: &quot;callback_fallback&quot;, &quot;sameShellPosture&quot;: &quot;continuation or support route only&quot;}], &quot;reservationRows&quot;: [{&quot;state&quot;: &quot;exclusive_held&quot;, &quot;meaning&quot;: &quot;Real held reservation with lawful hold countdown.&quot;}, {&quot;state&quot;: &quot;truthful_nonexclusive&quot;, &quot;meaning&quot;: &quot;Selected offer is still subject to live confirmation.&quot;}, {&quot;state&quot;: &quot;pending_confirmation&quot;, &quot;meaning&quot;: &quot;Capacity claim is preserved while booking confirmation is still pending.&quot;}, {&quot;state&quot;: &quot;confirmed&quot;, &quot;meaning&quot;: &quot;Reservation and booking truth have converged.&quot;}, {&quot;state&quot;: &quot;disputed&quot;, &quot;meaning&quot;: &quot;Supplier or callback truth is contradictory.&quot;}, {&quot;state&quot;: &quot;released&quot;, &quot;meaning&quot;: &quot;Previously visible claim is released.&quot;}, {&quot;state&quot;: &quot;expired&quot;, &quot;meaning&quot;: &quot;Previously visible claim expired.&quot;}, {&quot;state&quot;: &quot;revalidation_required&quot;, &quot;meaning&quot;: &quot;Snapshot or route truth drifted and must refresh.&quot;}, {&quot;state&quot;: &quot;unavailable&quot;, &quot;meaning&quot;: &quot;Capacity is no longer safely claimable.&quot;}], &quot;confirmationRows&quot;: [{&quot;state&quot;: &quot;booking_in_progress&quot;, &quot;meaning&quot;: &quot;Local acknowledgement or dispatch may exist, but final truth is unresolved.&quot;}, {&quot;state&quot;: &quot;confirmation_pending&quot;, &quot;meaning&quot;: &quot;External or weak confirmation is still pending.&quot;}, {&quot;state&quot;: &quot;reconciliation_required&quot;, &quot;meaning&quot;: &quot;Contradictory or ambiguous confirmation needs governed recovery.&quot;}, {&quot;state&quot;: &quot;confirmed&quot;, &quot;meaning&quot;: &quot;Booked summary, manage, artifacts, and reminders may widen according to exposure state.&quot;}, {&quot;state&quot;: &quot;failed&quot;, &quot;meaning&quot;: &quot;Booking failed and must stay in recovery posture.&quot;}, {&quot;state&quot;: &quot;expired&quot;, &quot;meaning&quot;: &quot;Pending confirmation timed out.&quot;}, {&quot;state&quot;: &quot;superseded&quot;, &quot;meaning&quot;: &quot;A newer transaction or lineage superseded this projection.&quot;}], &quot;manageRows&quot;: [{&quot;result&quot;: &quot;applied&quot;, &quot;meaning&quot;: &quot;Manage mutation applied and authoritative continuity still validates.&quot;}, {&quot;result&quot;: &quot;supplier_pending&quot;, &quot;meaning&quot;: &quot;Manage mutation is accepted locally but still waiting on supplier truth.&quot;}, {&quot;result&quot;: &quot;stale_recoverable&quot;, &quot;meaning&quot;: &quot;Refresh or reconcile before another ordinary mutation.&quot;}, {&quot;result&quot;: &quot;unsupported_capability&quot;, &quot;meaning&quot;: &quot;Current route, supplier, or audience cannot perform the requested manage action.&quot;}, {&quot;result&quot;: &quot;safety_preempted&quot;, &quot;meaning&quot;: &quot;Clinical content must route back into governed request review.&quot;}, {&quot;result&quot;: &quot;reconciliation_required&quot;, &quot;meaning&quot;: &quot;Supplier or continuity truth is contradictory.&quot;}]}</script>
+      <script>
+        const decoder = document.createElement("textarea");
+        decoder.innerHTML = document.getElementById("atlas-data").textContent;
+        const data = JSON.parse(decoder.value);
+        const root = document.querySelector("[data-testid='BookingFlowContractAtlas']");
+        const stageButtons = document.getElementById("stage-buttons");
+        const formulaButtons = document.getElementById("formula-buttons");
+        const stageMap = new Map(data.stages.map((stage) => [stage.stageId, stage]));
+        const formulaMap = new Map(data.formulas.map((formula) => [formula.name.replace(/\(.*$/, ""), formula]));
+        let activeStageId = data.stages[0].stageId;
+        let activeFormulaKey = data.stages[0].primaryFormulaId;
+
+        function accentFor(stageId) {
+          const stage = stageMap.get(stageId);
+          return stage ? stage.accent : "#3158E0";
+        }
+
+        function setActiveStage(stageId) {
+          activeStageId = stageId;
+          const stage = stageMap.get(stageId);
+          if (stage) {
+            activeFormulaKey = stage.primaryFormulaId;
+          }
+          render();
+        }
+
+        function setActiveFormula(formulaKey) {
+          activeFormulaKey = formulaKey;
+          const owner = data.stages.find((stage) => stage.primaryFormulaId === formulaKey);
+          if (owner) {
+            activeStageId = owner.stageId;
+          }
+          render();
+        }
+
+        function renderButtons() {
+          stageButtons.innerHTML = "";
+          formulaButtons.innerHTML = "";
+          data.stages.forEach((stage) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.id = `StageButton-${stage.stageId}`;
+            button.setAttribute("aria-pressed", String(stage.stageId === activeStageId));
+            button.style.setProperty("--active-accent", stage.accent);
+            button.innerHTML = `<span class="button-label"><strong>${stage.label}</strong><span class="token">${stage.contracts.length}</span></span><span class="button-note">${stage.summary}</span>`;
+            button.addEventListener("click", () => setActiveStage(stage.stageId));
+            stageButtons.appendChild(button);
+          });
+          data.formulas.forEach((formula) => {
+            const key = formula.name.replace(/\(.*$/, "");
+            const button = document.createElement("button");
+            button.type = "button";
+            button.id = `FormulaButton-${key}`;
+            button.setAttribute("aria-pressed", String(key === activeFormulaKey));
+            button.style.setProperty("--active-accent", accentFor(activeStageId));
+            button.innerHTML = `<span class="button-label"><strong>${formula.name}</strong></span><span class="button-note">${formula.machineFields.slice(0, 3).join(", ")}</span>`;
+            button.addEventListener("click", () => setActiveFormula(key));
+            formulaButtons.appendChild(button);
+          });
+        }
+
+        function renderTables() {
+          document.getElementById("snapshot-pipeline").innerHTML = data.stages
+            .slice(0, 3)
+            .map((stage) => `<div class="node"><strong>${stage.label}</strong><small>${stage.summary}</small></div>`)
+            .join("");
+          document.getElementById("snapshot-table-body").innerHTML = data.stages
+            .slice(0, 3)
+            .map((stage) => `<tr><td>${stage.label}</td><td>${stage.summary}</td></tr>`)
+            .join("");
+          document.getElementById("frontier-rail").innerHTML = ["windowClass", "Frontier_b", "softScore"]
+            .map((key) => formulaMap.get(key))
+            .filter(Boolean)
+            .map((formula) => `<div class="node"><strong>${formula.name}</strong><small>${formula.expression}</small></div>`)
+            .join("");
+          document.getElementById("frontier-table-body").innerHTML = ["windowClass", "Frontier_b", "softScore"]
+            .map((key) => formulaMap.get(key))
+            .filter(Boolean)
+            .map((formula) => `<tr><td>${formula.name}</td><td>${formula.expression}</td></tr>`)
+            .join("");
+          document.getElementById("reservation-ladder").innerHTML = data.reservationRows
+            .map((row) => `<div class="node"><strong>${row.state}</strong><small>${row.meaning}</small></div>`)
+            .join("");
+          document.getElementById("reservation-table-body").innerHTML = data.reservationRows
+            .map((row) => `<tr><td>${row.state}</td><td>${row.meaning}</td></tr>`)
+            .join("");
+          document.getElementById("confirmation-ladder").innerHTML = data.confirmationRows
+            .map((row) => `<div class="node"><strong>${row.state}</strong><small>${row.meaning}</small></div>`)
+            .join("");
+          document.getElementById("confirmation-table-body").innerHTML = data.confirmationRows
+            .map((row) => `<tr><td>${row.state}</td><td>${row.meaning}</td></tr>`)
+            .join("");
+          document.getElementById("manage-table-body").innerHTML = data.manageRows
+            .map((row) => `<tr><td>${row.result}</td><td>${row.meaning}</td></tr>`)
+            .join("");
+          document.getElementById("formula-ledger-body").innerHTML = data.formulas
+            .map((formula) => `<tr><td>${formula.name}</td><td>${formula.expression}</td><td>${formula.machineFields.join(", ")}</td></tr>`)
+            .join("");
+          document.getElementById("contract-split-body").innerHTML = data.contractSplitRows
+            .map((row) => `<tr><td>${row.contract}</td><td>${row.authority}</td><td>${row.whySeparate}</td></tr>`)
+            .join("");
+          document.getElementById("state-table-body").innerHTML = data.stateTableRows
+            .map((row) => `<tr><td>${row.stateId}</td><td>${row.snapshotRecoveryState}</td><td>${row.reservationTruthState}</td><td>${row.confirmationTruthState}</td><td>${row.sameShellPosture}</td></tr>`)
+            .join("");
+        }
+
+        function renderInspector() {
+          const stage = stageMap.get(activeStageId);
+          const formula = formulaMap.get(activeFormulaKey);
+          root.dataset.activeStage = activeStageId;
+          root.dataset.activeFormula = activeFormulaKey;
+          root.style.setProperty("--active-accent", accentFor(activeStageId));
+          document.getElementById("inspector-stage-label").textContent = stage.label;
+          document.getElementById("inspector-stage-summary").textContent = stage.summary;
+          document.getElementById("inspector-formula-label").textContent = formula.name;
+          document.getElementById("inspector-formula-expression").textContent = formula.expression;
+          document.getElementById("inspector-contracts").innerHTML = stage.contracts
+            .map((contract) => `<li>${contract}</li>`)
+            .join("");
+          const parity = data.scenarios.filter((scenario) => scenario.stageId === activeStageId);
+          document.getElementById("scenario-parity-body").innerHTML = parity
+            .map((scenario) => `<tr><td>${scenario.label}</td><td>${scenario.dominantAction}</td><td>${scenario.sameShellPosture}</td></tr>`)
+            .join("");
+        }
+
+        function render() {
+          renderButtons();
+          renderTables();
+          renderInspector();
+        }
+
+        render();
+      </script>
+    </div>
+  </body>
+</html>

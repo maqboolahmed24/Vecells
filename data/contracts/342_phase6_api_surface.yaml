@@ -1,0 +1,252 @@
+{
+  "taskId": "seq_342_phase6_freeze_pharmacy_case_model_eligibility_and_policy_pack_contracts",
+  "contractVersion": "342.phase6.pharmacy-case-policy-freeze.v1",
+  "basePath": "/v1/pharmacy/cases",
+  "commandSurfaces": [
+    {
+      "operationId": "createPharmacyCase",
+      "method": "POST",
+      "path": "/v1/pharmacy/cases",
+      "statePreconditions": [
+        "A pharmacy-suitable source decision exists on the current request lineage.",
+        "A new or reused pharmacy LineageCaseLink(caseFamily = pharmacy) can be acknowledged without violating lineage fences."
+      ],
+      "stateExits": [
+        "candidate_received"
+      ],
+      "idempotencyExpectation": "Idempotent on originRequestId + pharmacyIntentId + sourceDecisionEpochRef.",
+      "failureClasses": [
+        "duplicate_case_conflict",
+        "lineage_fence_violation",
+        "identity_repair_branch_active"
+      ],
+      "lineageAndLeaseChecks": [
+        "Create or reuse lineage child link",
+        "Establish RequestLifecycleLease and ownership epoch"
+      ],
+      "staleWriteBehavior": "Reject and emit stale-owner recovery if the claimed ownership epoch is not current.",
+      "auditAppends": [
+        "CommandActionRecord",
+        "IdempotencyRecord",
+        "pharmacy.case.created"
+      ]
+    },
+    {
+      "operationId": "getPharmacyCase",
+      "method": "GET",
+      "path": "/v1/pharmacy/cases/{pharmacyCaseId}",
+      "statePreconditions": [
+        "The caller has a minimum-necessary audience view for the pharmacy case."
+      ],
+      "stateExits": [],
+      "idempotencyExpectation": "Read-only; no idempotency key required.",
+      "failureClasses": [
+        "not_found",
+        "visibility_denied"
+      ],
+      "lineageAndLeaseChecks": [
+        "Read the current lineage and blocker posture without mutating state"
+      ],
+      "staleWriteBehavior": "Not applicable; read surfaces must render current blocker and stale posture explicitly.",
+      "auditAppends": [
+        "Audit read trail where policy requires"
+      ]
+    },
+    {
+      "operationId": "evaluatePharmacyCase",
+      "method": "POST",
+      "path": "/v1/pharmacy/cases/{pharmacyCaseId}:evaluate",
+      "statePreconditions": [
+        "Current status is candidate_received or rules_evaluating.",
+        "The active PharmacyRulePack and threshold family registry are resolvable for the evaluation instant."
+      ],
+      "stateExits": [
+        "rules_evaluating",
+        "ineligible_returned",
+        "eligible_choice_pending"
+      ],
+      "idempotencyExpectation": "Idempotent on pharmacyCaseId + rulePackId + evidenceSnapshotHash.",
+      "failureClasses": [
+        "illegal_transition",
+        "missing_threshold_family",
+        "pack_mutation_rejected",
+        "stale_write"
+      ],
+      "lineageAndLeaseChecks": [
+        "ScopedMutationGate",
+        "RequestLifecycleLease ownership epoch",
+        "LineageFence current epoch"
+      ],
+      "staleWriteBehavior": "Reject stale writes and keep the case visibly blocked until the current owner reacquires or transfers.",
+      "auditAppends": [
+        "CommandActionRecord",
+        "PathwayEligibilityEvaluation",
+        "pharmacy.service_type.resolved",
+        "pharmacy.pathway.evaluated"
+      ]
+    },
+    {
+      "operationId": "choosePharmacyProvider",
+      "method": "POST",
+      "path": "/v1/pharmacy/cases/{pharmacyCaseId}:choose-provider",
+      "statePreconditions": [
+        "Current status is eligible_choice_pending or consent_pending.",
+        "The selected provider is still present in the current choice proof and any override acknowledgement requirement is satisfied."
+      ],
+      "stateExits": [
+        "provider_selected",
+        "consent_pending",
+        "package_ready"
+      ],
+      "idempotencyExpectation": "Idempotent on pharmacyCaseId + choiceProofRef + selectionBindingHash.",
+      "failureClasses": [
+        "illegal_transition",
+        "choice_proof_superseded",
+        "override_ack_missing",
+        "stale_write"
+      ],
+      "lineageAndLeaseChecks": [
+        "ScopedMutationGate",
+        "RequestLifecycleLease ownership epoch",
+        "LineageFence current epoch"
+      ],
+      "staleWriteBehavior": "Reject and preserve the current selected anchor rather than replaying stale recommendations.",
+      "auditAppends": [
+        "CommandActionRecord",
+        "pharmacy.provider.selected",
+        "pharmacy.consent.checkpoint.updated"
+      ]
+    },
+    {
+      "operationId": "dispatchPharmacyReferral",
+      "method": "POST",
+      "path": "/v1/pharmacy/cases/{pharmacyCaseId}:dispatch",
+      "statePreconditions": [
+        "Current status is package_ready or consent_pending.",
+        "The current PharmacyConsentCheckpoint.checkpointState is satisfied at command time."
+      ],
+      "stateExits": [
+        "dispatch_pending",
+        "referred",
+        "consent_pending"
+      ],
+      "idempotencyExpectation": "Idempotent on pharmacyCaseId + packageFingerprint + dispatchPlanHash + routeIntentTupleHash.",
+      "failureClasses": [
+        "consent_invalid",
+        "route_intent_drift",
+        "confirmation_gate_open",
+        "stale_write"
+      ],
+      "lineageAndLeaseChecks": [
+        "ScopedMutationGate",
+        "RequestLifecycleLease ownership epoch",
+        "LineageFence current epoch",
+        "RouteIntent binding"
+      ],
+      "staleWriteBehavior": "Reject and force same-shell consent or package renewal when the current tuple no longer matches.",
+      "auditAppends": [
+        "CommandActionRecord",
+        "pharmacy.package.composed",
+        "pharmacy.dispatch.started",
+        "pharmacy.dispatch.confirmed or pharmacy.dispatch.proof_missing"
+      ]
+    },
+    {
+      "operationId": "capturePharmacyOutcome",
+      "method": "POST",
+      "path": "/v1/pharmacy/cases/{pharmacyCaseId}:capture-outcome",
+      "statePreconditions": [
+        "Current status is referred, consultation_outcome_pending, or outcome_reconciliation_pending.",
+        "The governing dispatch tuple and continuity evidence remain current for the case."
+      ],
+      "stateExits": [
+        "consultation_outcome_pending",
+        "outcome_reconciliation_pending",
+        "resolved_by_pharmacy",
+        "unresolved_returned",
+        "urgent_bounce_back",
+        "no_contact_return_pending"
+      ],
+      "idempotencyExpectation": "Idempotent on pharmacyCaseId + outcomeEvidenceHash + sourceCorrelationTupleHash.",
+      "failureClasses": [
+        "dispatch_tuple_drift",
+        "outcome_match_ambiguous",
+        "illegal_transition",
+        "stale_write"
+      ],
+      "lineageAndLeaseChecks": [
+        "ScopedMutationGate",
+        "RequestLifecycleLease ownership epoch",
+        "LineageFence current epoch"
+      ],
+      "staleWriteBehavior": "Reject stale owner writes and materialize explicit review or recovery posture instead of mutating silently.",
+      "auditAppends": [
+        "CommandActionRecord",
+        "pharmacy.outcome.received",
+        "pharmacy.outcome.reconciled or pharmacy.case.bounce_back"
+      ]
+    },
+    {
+      "operationId": "reopenPharmacyCase",
+      "method": "POST",
+      "path": "/v1/pharmacy/cases/{pharmacyCaseId}:reopen",
+      "statePreconditions": [
+        "Current status is unresolved_returned, urgent_bounce_back, no_contact_return_pending, or outcome_reconciliation_pending.",
+        "Any reopened branch binds back to the same RequestLineage and current pharmacy child link."
+      ],
+      "stateExits": [
+        "candidate_received",
+        "rules_evaluating",
+        "consent_pending"
+      ],
+      "idempotencyExpectation": "Idempotent on pharmacyCaseId + reopenReasonHash + ownershipEpoch.",
+      "failureClasses": [
+        "illegal_transition",
+        "closure_blocker_open",
+        "stale_write"
+      ],
+      "lineageAndLeaseChecks": [
+        "ScopedMutationGate",
+        "RequestLifecycleLease ownership epoch",
+        "LineageFence current epoch",
+        "LifecycleCoordinator close veto"
+      ],
+      "staleWriteBehavior": "Reject and emit stale-owner recovery instead of reopening under a superseded epoch.",
+      "auditAppends": [
+        "CommandActionRecord",
+        "pharmacy.case.reopened"
+      ]
+    },
+    {
+      "operationId": "closePharmacyCase",
+      "method": "POST",
+      "path": "/v1/pharmacy/cases/{pharmacyCaseId}:close",
+      "statePreconditions": [
+        "Current status is resolved_by_pharmacy.",
+        "currentConfirmationGateRefs, currentClosureBlockerRefs, and activeReachabilityDependencyRefs are all empty or settled."
+      ],
+      "stateExits": [
+        "closed"
+      ],
+      "idempotencyExpectation": "Idempotent on pharmacyCaseId + closureDecisionHash + ownershipEpoch.",
+      "failureClasses": [
+        "illegal_transition",
+        "closure_blocker_open",
+        "reachability_dependency_open",
+        "stale_write"
+      ],
+      "lineageAndLeaseChecks": [
+        "ScopedMutationGate",
+        "RequestLifecycleLease ownership epoch",
+        "LifecycleCoordinator approval",
+        "LineageFence current epoch"
+      ],
+      "staleWriteBehavior": "Reject stale close attempts and keep closure blockers visible until authoritative settlement.",
+      "auditAppends": [
+        "CommandActionRecord",
+        "RequestClosureRecord",
+        "pharmacy.case.closed"
+      ]
+    }
+  ]
+}

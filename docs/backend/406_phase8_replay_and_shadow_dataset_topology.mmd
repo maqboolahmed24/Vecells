@@ -1,0 +1,31 @@
+flowchart LR
+  LiveWorkflow["Live workflow\nread-only frozen refs"] --> Evidence["Evidence snapshots\ncapture bundles\nderivation packages"]
+  LiveWorkflow --> Feature["Feature snapshots"]
+  Evidence --> Bundle["CaseReplayBundleService\nbundleHash"]
+  Feature --> Bundle
+  Prompt["PromptTemplateVersion"] --> Bundle
+  Model["ModelRegistryEntry"] --> Bundle
+  Schema["OutputSchemaVersion"] --> Bundle
+  Runtime["RuntimePublicationBundle\nruntimeConfigHash"] --> Bundle
+
+  Partition["EvaluationDatasetPartitionService"] --> Gold["gold\nimmutable after publication"]
+  Partition --> Shadow["shadow_live\ncapture-job only"]
+  Partition --> Feedback["feedback\nsettlement-backed only"]
+  Bundle --> Gold
+  Bundle --> Shadow
+  Bundle --> Feedback
+
+  ShadowJob["ShadowDatasetCaptureService\nno end-user visibility"] --> Binding["AssistiveEvaluationSurfaceBindingResolver"]
+  Binding --> Shadow
+  ShadowJob --> Bundle
+
+  Bundle --> Replay["ReplayHarnessOrchestrator\nreplayInputHash"]
+  Replay --> Result["ReplayRunRecord\noutputHash\nfailed_closed on drift"]
+  Result --> Label["GroundTruthLabelService\nraw labels"]
+  Label --> Adjudication["ReplayAdjudicationService\nfinal truth"]
+  Result --> ErrorTaxonomy["ErrorTaxonomyService\nseverity and routing"]
+  Adjudication --> Export["EvaluationExportArtifactService\nsummary_only default"]
+  ErrorTaxonomy --> Export
+
+  Export --> InternalReview["Internal review / release gate\nArtifactPresentationContract"]
+  Export -. blocks .-> RawDump["Raw PHI / direct storage URL / raw replay dump"]

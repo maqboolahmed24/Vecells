@@ -1,0 +1,264 @@
+{
+  "task_id": "par_077",
+  "visual_mode": "Lifecycle_Control_Center",
+  "captured_on": "2026-04-12",
+  "generated_at": "2026-04-12T16:12:00+00:00",
+  "transitionRules": [
+    {
+      "ruleId": "LF_077_INITIALIZE_PARTITION",
+      "issuedFor": "cross_domain_commit",
+      "mutationClass": "initializeLifecyclePartition",
+      "epochDelta": "set_to_1",
+      "staleWriteRejected": true,
+      "notes": "Every episode partition starts with an explicit fence."
+    },
+    {
+      "ruleId": "LF_077_SIGNAL_MUTATION",
+      "issuedFor": "cross_domain_commit",
+      "mutationClass": "recordLifecycleSignal",
+      "epochDelta": "+1_when_refs_or_workflow_change",
+      "staleWriteRejected": true,
+      "notes": "Signals advance the fence only when canonical truth changes."
+    },
+    {
+      "ruleId": "LF_077_CLOSE_MUTATION",
+      "issuedFor": "close",
+      "mutationClass": "evaluateRequestClosure(decision=close)",
+      "epochDelta": "+1",
+      "staleWriteRejected": true,
+      "notes": "Legal closure consumes the current epoch and mints a fresh one."
+    },
+    {
+      "ruleId": "LF_077_REOPEN_MUTATION",
+      "issuedFor": "reopen",
+      "mutationClass": "recordLifecycleSignal(governed_reopen)",
+      "epochDelta": "+1",
+      "staleWriteRejected": true,
+      "notes": "Governed reopen is explicit and never mutates prior closure history in place."
+    },
+    {
+      "ruleId": "LF_077_EXACT_REPLAY",
+      "issuedFor": "none",
+      "mutationClass": "recordLifecycleSignal(exact_replay)",
+      "epochDelta": "+0",
+      "staleWriteRejected": false,
+      "notes": "A byte-identical replay short-circuits against the stored digest."
+    }
+  ],
+  "scenarioWaterfalls": {
+    "normal_closure": [
+      {
+        "epoch": 1,
+        "issuedFor": "cross_domain_commit",
+        "cause": "partition_initialized",
+        "label": "Partition initialized",
+        "workflowStateAfter": "submitted"
+      },
+      {
+        "epoch": 2,
+        "issuedFor": "cross_domain_commit",
+        "cause": "triage.ready",
+        "label": "triage.ready advanced the request",
+        "workflowStateAfter": "triage_ready"
+      },
+      {
+        "epoch": 3,
+        "issuedFor": "cross_domain_commit",
+        "cause": "triage.active",
+        "label": "triage.active advanced the request",
+        "workflowStateAfter": "triage_active"
+      },
+      {
+        "epoch": 4,
+        "issuedFor": "cross_domain_commit",
+        "cause": "booking.confirmed",
+        "label": "Terminal outcome evidence recorded",
+        "workflowStateAfter": "outcome_recorded"
+      },
+      {
+        "epoch": 5,
+        "issuedFor": "close",
+        "cause": "close-normal-001",
+        "label": "Legal close committed",
+        "workflowStateAfter": "closed"
+      }
+    ],
+    "more_info_reopen": [
+      {
+        "epoch": 1,
+        "issuedFor": "cross_domain_commit",
+        "cause": "partition_initialized",
+        "label": "Partition initialized",
+        "workflowStateAfter": "submitted"
+      },
+      {
+        "epoch": 2,
+        "issuedFor": "cross_domain_commit",
+        "cause": "triage.more_info.open",
+        "label": "More-info blocker opened",
+        "workflowStateAfter": "triage_active"
+      },
+      {
+        "epoch": 3,
+        "issuedFor": "cross_domain_commit",
+        "cause": "messaging.more_info.resolved",
+        "label": "More-info blocker cleared and terminal outcome recorded",
+        "workflowStateAfter": "outcome_recorded"
+      },
+      {
+        "epoch": 4,
+        "issuedFor": "close",
+        "cause": "close-more-info-002",
+        "label": "Request closed under the current epoch",
+        "workflowStateAfter": "closed"
+      },
+      {
+        "epoch": 5,
+        "issuedFor": "reopen",
+        "cause": "patient.reply.late",
+        "label": "Governed reopen reactivated triage",
+        "workflowStateAfter": "triage_active"
+      }
+    ],
+    "booking_confirmation": [
+      {
+        "epoch": 1,
+        "issuedFor": "cross_domain_commit",
+        "cause": "partition_initialized",
+        "label": "Partition initialized",
+        "workflowStateAfter": "submitted"
+      },
+      {
+        "epoch": 2,
+        "issuedFor": "cross_domain_commit",
+        "cause": "booking.confirmation.pending",
+        "label": "Confirmation gate opened",
+        "workflowStateAfter": "handoff_active"
+      },
+      {
+        "epoch": 3,
+        "issuedFor": "cross_domain_commit",
+        "cause": "booking.confirmation.cleared",
+        "label": "Confirmation gate cleared",
+        "workflowStateAfter": "outcome_recorded"
+      },
+      {
+        "epoch": 4,
+        "issuedFor": "close",
+        "cause": "close-booking-002",
+        "label": "Legal close committed",
+        "workflowStateAfter": "closed"
+      }
+    ],
+    "hub_return_visibility_debt": [
+      {
+        "epoch": 1,
+        "issuedFor": "cross_domain_commit",
+        "cause": "partition_initialized",
+        "label": "Partition initialized",
+        "workflowStateAfter": "submitted"
+      },
+      {
+        "epoch": 2,
+        "issuedFor": "cross_domain_commit",
+        "cause": "hub.return.visibility.debt",
+        "label": "Hub visibility debt materialized",
+        "workflowStateAfter": "outcome_recorded"
+      }
+    ],
+    "pharmacy_weak_match": [
+      {
+        "epoch": 1,
+        "issuedFor": "cross_domain_commit",
+        "cause": "partition_initialized",
+        "label": "Partition initialized",
+        "workflowStateAfter": "submitted"
+      },
+      {
+        "epoch": 2,
+        "issuedFor": "cross_domain_commit",
+        "cause": "pharmacy.outcome.weak_match",
+        "label": "Reconciliation debt opened",
+        "workflowStateAfter": "outcome_recorded"
+      },
+      {
+        "epoch": 3,
+        "issuedFor": "cross_domain_commit",
+        "cause": "pharmacy.outcome.reconciled",
+        "label": "Reconciliation debt cleared",
+        "workflowStateAfter": "outcome_recorded"
+      }
+    ],
+    "wrong_patient_repair_release": [
+      {
+        "epoch": 1,
+        "issuedFor": "cross_domain_commit",
+        "cause": "partition_initialized",
+        "label": "Partition initialized",
+        "workflowStateAfter": "submitted"
+      },
+      {
+        "epoch": 2,
+        "issuedFor": "cross_domain_commit",
+        "cause": "identity.repair.open",
+        "label": "Wrong-patient repair opened",
+        "workflowStateAfter": "triage_active"
+      },
+      {
+        "epoch": 3,
+        "issuedFor": "cross_domain_commit",
+        "cause": "identity.repair.corrected",
+        "label": "Wrong-patient repair released",
+        "workflowStateAfter": "triage_active"
+      }
+    ],
+    "duplicate_review_hold": [
+      {
+        "epoch": 1,
+        "issuedFor": "cross_domain_commit",
+        "cause": "partition_initialized",
+        "label": "Partition initialized",
+        "workflowStateAfter": "submitted"
+      },
+      {
+        "epoch": 2,
+        "issuedFor": "cross_domain_commit",
+        "cause": "support.duplicate.review.required",
+        "label": "Duplicate-review blocker opened",
+        "workflowStateAfter": "triage_active"
+      }
+    ],
+    "fallback_review_hold": [
+      {
+        "epoch": 1,
+        "issuedFor": "cross_domain_commit",
+        "cause": "partition_initialized",
+        "label": "Partition initialized",
+        "workflowStateAfter": "submitted"
+      },
+      {
+        "epoch": 2,
+        "issuedFor": "cross_domain_commit",
+        "cause": "support.fallback.review.open",
+        "label": "Fallback-review blocker opened",
+        "workflowStateAfter": "triage_active"
+      }
+    ],
+    "reachability_repair_hold": [
+      {
+        "epoch": 1,
+        "issuedFor": "cross_domain_commit",
+        "cause": "partition_initialized",
+        "label": "Partition initialized",
+        "workflowStateAfter": "submitted"
+      },
+      {
+        "epoch": 2,
+        "issuedFor": "cross_domain_commit",
+        "cause": "communication.reachability.repair.required",
+        "label": "Reachability repair opened",
+        "workflowStateAfter": "outcome_recorded"
+      }
+    ]
+  }
+}

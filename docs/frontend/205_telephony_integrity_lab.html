@@ -1,0 +1,1039 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>205 Telephony Integrity Grant Lab</title>
+    <style>
+      :root {
+        --canvas: #f5f7fb;
+        --panel: #ffffff;
+        --inset: #eef2f7;
+        --strong: #0f172a;
+        --text: #334155;
+        --muted: #64748b;
+        --border: #d7dfea;
+        --webhook: #3158e0;
+        --custody: #0f766e;
+        --review: #b7791f;
+        --danger: #b42318;
+        --shadow: 0 24px 72px rgba(15, 23, 42, 0.08);
+        --tab-ms: 160ms;
+        --hover-ms: 120ms;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at 8% 0%, rgba(49, 88, 224, 0.1), transparent 28rem),
+          radial-gradient(circle at 94% 8%, rgba(15, 118, 110, 0.11), transparent 30rem),
+          linear-gradient(180deg, #f9fbff 0%, var(--canvas) 48%, #edf2f7 100%);
+        color: var(--text);
+        font-family: Inter, system-ui, sans-serif;
+        font-size: 14px;
+        line-height: 20px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        color: var(--strong);
+        font-family: "Inter Tight", Inter, system-ui, sans-serif;
+        font-size: 28px;
+        font-weight: 650;
+        letter-spacing: -0.035em;
+        line-height: 34px;
+      }
+
+      h2,
+      h3 {
+        color: var(--strong);
+        font-family: "Inter Tight", Inter, system-ui, sans-serif;
+        font-size: 18px;
+        font-weight: 620;
+        letter-spacing: -0.02em;
+        line-height: 24px;
+      }
+
+      code,
+      .mono,
+      td:first-child,
+      .event-id {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        overflow-wrap: anywhere;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        line-height: 19px;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--border);
+        padding: 10px 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        line-height: 16px;
+        text-transform: uppercase;
+      }
+
+      .page {
+        width: 100%;
+        max-width: 1560px;
+        margin: 0 auto;
+        padding: 28px;
+      }
+
+      .command-band {
+        display: flex;
+        min-height: 72px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .command-band p {
+        max-width: 780px;
+        color: var(--muted);
+      }
+
+      .status-stack {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.86);
+        color: var(--strong);
+        font-weight: 850;
+        padding: 8px 11px;
+      }
+
+      .pill::before {
+        width: 8px;
+        height: 8px;
+        border-radius: 99px;
+        background: var(--custody);
+        content: "";
+      }
+
+      .pill.review::before {
+        background: var(--review);
+      }
+
+      .pill.danger::before {
+        background: var(--danger);
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: 280px minmax(760px, 1fr) 392px;
+        gap: 18px;
+        margin-top: 22px;
+        align-items: start;
+      }
+
+      .scenario-rail,
+      .evidence-plane,
+      .detail-rail,
+      .matrix-card {
+        min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: var(--shadow);
+      }
+
+      .scenario-rail,
+      .detail-rail {
+        position: sticky;
+        top: 16px;
+        display: grid;
+        gap: 14px;
+        padding: 16px;
+      }
+
+      .label,
+      .card-label {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        line-height: 16px;
+        text-transform: uppercase;
+      }
+
+      .scenario-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .scenario-button,
+      .integrity-tab {
+        border: 1px solid transparent;
+        border-radius: 16px;
+        background: var(--inset);
+        color: var(--text);
+        cursor: pointer;
+        font: inherit;
+        text-align: left;
+        transition:
+          transform var(--hover-ms) ease,
+          border-color var(--hover-ms) ease,
+          background var(--tab-ms) ease;
+      }
+
+      .scenario-button {
+        display: grid;
+        gap: 5px;
+        min-height: 74px;
+        padding: 12px;
+      }
+
+      .scenario-button:hover,
+      .scenario-button:focus-visible,
+      .integrity-tab:hover,
+      .integrity-tab:focus-visible {
+        border-color: var(--webhook);
+        outline: 3px solid rgba(49, 88, 224, 0.18);
+        outline-offset: 2px;
+        transform: translateY(-1px);
+      }
+
+      .scenario-button[aria-pressed="true"],
+      .integrity-tab[aria-selected="true"] {
+        border-color: var(--webhook);
+        background: #ffffff;
+      }
+
+      .scenario-button strong {
+        color: var(--strong);
+      }
+
+      .evidence-plane {
+        overflow: hidden;
+      }
+
+      .tab-strip {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(238, 242, 247, 0.72);
+        padding: 10px;
+      }
+
+      .integrity-tab {
+        min-height: 42px;
+        padding: 10px 12px;
+        font-size: 13px;
+        font-weight: 620;
+        line-height: 18px;
+        text-align: center;
+      }
+
+      .plane-body {
+        display: grid;
+        gap: 18px;
+        padding: 20px;
+      }
+
+      .panel-switch {
+        opacity: 1;
+        transform: translateY(0);
+        transition:
+          opacity var(--tab-ms) ease,
+          transform var(--tab-ms) ease;
+      }
+
+      .panel-switch[data-switching="true"] {
+        opacity: 0.36;
+        transform: translateY(6px);
+      }
+
+      .diagram-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
+        gap: 16px;
+      }
+
+      .diagram,
+      .note-panel,
+      .table-wrap,
+      .detail-card {
+        min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        background: var(--panel);
+        padding: 16px;
+      }
+
+      .diagram {
+        display: grid;
+        gap: 14px;
+      }
+
+      .ladder {
+        display: grid;
+        gap: 9px;
+      }
+
+      .ladder-step {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr);
+        gap: 10px;
+        align-items: stretch;
+      }
+
+      .rung {
+        display: grid;
+        place-items: center;
+        border-radius: 14px;
+        background: rgba(49, 88, 224, 0.12);
+        color: var(--webhook);
+        font-weight: 900;
+      }
+
+      .rung.custody {
+        background: rgba(15, 118, 110, 0.13);
+        color: var(--custody);
+      }
+
+      .rung.review {
+        background: rgba(183, 121, 31, 0.14);
+        color: var(--review);
+      }
+
+      .rung.danger {
+        background: rgba(180, 35, 24, 0.11);
+        color: var(--danger);
+      }
+
+      .node {
+        border: 1px solid var(--border);
+        border-radius: 15px;
+        background: #fbfdff;
+        color: var(--strong);
+        font-weight: 800;
+        padding: 9px 10px;
+      }
+
+      .custody-chain {
+        display: grid;
+        gap: 10px;
+      }
+
+      .chain-row {
+        display: grid;
+        grid-template-columns: 128px minmax(0, 1fr) 120px;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .chain-line {
+        min-height: 10px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--custody), rgba(183, 121, 31, 0.55));
+      }
+
+      .grant-strip {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .grant-card {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: var(--inset);
+        padding: 12px;
+      }
+
+      .grant-card strong {
+        display: block;
+        color: var(--strong);
+        margin-bottom: 6px;
+      }
+
+      .note-panel {
+        border-left: 4px solid var(--webhook);
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+      }
+
+      .detail-card ul {
+        display: grid;
+        gap: 8px;
+        margin: 12px 0 0;
+        padding: 0 0 0 18px;
+      }
+
+      .matrix-zone {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(240px, 1fr));
+        gap: 16px;
+        margin-top: 18px;
+      }
+
+      .matrix-card {
+        padding: 16px;
+      }
+
+      .metric {
+        color: var(--strong);
+        font-family: "Inter Tight", Inter, system-ui, sans-serif;
+        font-size: 26px;
+        font-weight: 720;
+        letter-spacing: -0.04em;
+        line-height: 32px;
+        margin-top: 8px;
+      }
+
+      .status-pass {
+        color: var(--custody);
+        font-weight: 850;
+      }
+
+      .status-blocked,
+      .status-failed {
+        color: var(--danger);
+        font-weight: 850;
+      }
+
+      .status-not-applicable {
+        color: var(--muted);
+        font-weight: 850;
+      }
+
+      button:focus-visible,
+      [tabindex]:focus-visible {
+        outline: 3px solid rgba(49, 88, 224, 0.28);
+        outline-offset: 3px;
+      }
+
+      @media (max-width: 1580px) {
+        .workspace {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .scenario-rail,
+        .detail-rail {
+          position: static;
+        }
+
+        .scenario-list {
+          grid-template-columns: repeat(4, minmax(190px, 1fr));
+          overflow-x: auto;
+          padding-bottom: 4px;
+        }
+
+        .matrix-zone {
+          grid-template-columns: repeat(2, minmax(240px, 1fr));
+        }
+      }
+
+      @media (max-width: 760px) {
+        .page {
+          padding: 18px;
+        }
+
+        .command-band {
+          display: grid;
+        }
+
+        .tab-strip {
+          display: flex;
+          overflow-x: auto;
+        }
+
+        .integrity-tab {
+          min-width: 136px;
+        }
+
+        .scenario-list {
+          grid-template-columns: repeat(4, minmax(220px, 80vw));
+        }
+
+        .diagram-grid,
+        .grant-strip,
+        .matrix-zone {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .chain-row {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          scroll-behavior: auto !important;
+          transition-duration: 0.001ms !important;
+        }
+
+        .integrity-tab[aria-selected="true"],
+        .scenario-button[aria-pressed="true"] {
+          outline: 3px solid rgba(49, 88, 224, 0.28);
+          outline-offset: 2px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main
+      class="page"
+      data-testid="Telephony_Integrity_Grant_Lab"
+      data-visual-mode="Telephony_Integrity_Grant_Lab"
+      aria-label="Telephony integrity grant lab"
+    >
+      <a href="#EvidenceMatrix" class="mono" id="keyboard-sentinel-start"
+        >Skip to evidence matrix</a
+      >
+      <header class="command-band">
+        <div>
+          <p class="label">Phase 2 telephony integrity</p>
+          <h1>Telephony integrity grant lab</h1>
+          <p>
+            Mock-now browser proof for signed webhooks, IVR capture, recording custody, readiness,
+            and seeded versus challenge continuation grants.
+          </p>
+        </div>
+        <div class="status-stack" data-testid="suite-status" aria-label="Suite status">
+          <span class="pill">41 cases passed</span>
+          <span class="pill review">55 service tests</span>
+          <span class="pill danger">Live provider not applicable</span>
+        </div>
+      </header>
+
+      <section class="workspace" aria-label="Telephony integrity workbench">
+        <aside class="scenario-rail" data-testid="scenario-rail" aria-label="Scenario rail">
+          <p class="label">Scenario rail</p>
+          <div class="scenario-list">
+            <button
+              class="scenario-button"
+              type="button"
+              data-case="bad-signature"
+              data-tab="Webhook"
+              aria-pressed="false"
+              data-testid="scenario-bad-signature"
+            >
+              <strong>Bad signature</strong>
+              <span>Rejected at edge before business processing.</span>
+            </button>
+            <button
+              class="scenario-button"
+              type="button"
+              data-case="bad-audio"
+              data-tab="Recording"
+              aria-pressed="false"
+              data-testid="scenario-bad-audio"
+            >
+              <strong>Bad audio</strong>
+              <span>Checksum, format, and quarantine failures stay unusable.</span>
+            </button>
+            <button
+              class="scenario-button"
+              type="button"
+              data-case="superseded-grant"
+              data-tab="Grant"
+              aria-pressed="false"
+              data-testid="scenario-superseded-grant"
+            >
+              <strong>Superseded grant</strong>
+              <span>Older continuation token cannot widen visibility.</span>
+            </button>
+            <button
+              class="scenario-button"
+              type="button"
+              data-case="ready"
+              data-tab="Readiness"
+              aria-pressed="true"
+              data-testid="scenario-ready"
+            >
+              <strong>Ready evidence</strong>
+              <span>Custody plus transcript facts support promotion.</span>
+            </button>
+          </div>
+        </aside>
+
+        <section class="evidence-plane" data-testid="central-evidence-plane">
+          <div class="tab-strip" data-testid="tab-strip" role="tablist" aria-label="Integrity tabs">
+            <button
+              class="integrity-tab"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              data-tab="Webhook"
+            >
+              Webhook
+            </button>
+            <button
+              class="integrity-tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              data-tab="IVR"
+            >
+              IVR
+            </button>
+            <button
+              class="integrity-tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              data-tab="Recording"
+            >
+              Recording
+            </button>
+            <button
+              class="integrity-tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              data-tab="Readiness"
+            >
+              Readiness
+            </button>
+            <button
+              class="integrity-tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              data-tab="Grant"
+            >
+              Grant
+            </button>
+          </div>
+
+          <div
+            class="plane-body panel-switch"
+            id="active-panel"
+            data-active-tab="Webhook"
+            data-active-case="ready"
+          >
+            <div>
+              <p class="label" id="panel-label">Webhook integrity</p>
+              <h2 id="panel-title">Signed callbacks enter the canonical call-session lane once</h2>
+              <p id="panel-copy">
+                Valid provider callbacks are verified, replay checked, normalized, and queued
+                without leaking provider payload fields past the edge.
+              </p>
+            </div>
+
+            <div class="diagram-grid">
+              <section
+                class="diagram"
+                id="VoiceIngressLadder"
+                data-testid="VoiceIngressLadder"
+                data-parity="TEL205_VALID_STATUS_CALLBACK TEL205_DTMF_CAPTURE TEL205_RECORDING_AVAILABLE_ON_TIME TEL205_VERIFICATION_SUFFICIENT_SEEDED_ALLOWED"
+                aria-label="VoiceIngressLadder diagram"
+                tabindex="0"
+              >
+                <div>
+                  <p class="card-label">VoiceIngressLadder</p>
+                  <h3>Webhook to continuation authority</h3>
+                </div>
+                <div class="ladder">
+                  <div class="ladder-step">
+                    <span class="rung">1</span>
+                    <span class="node">webhook verified and replay fenced</span>
+                  </div>
+                  <div class="ladder-step">
+                    <span class="rung">2</span>
+                    <span class="node">call session advances once</span>
+                  </div>
+                  <div class="ladder-step">
+                    <span class="rung review">3</span>
+                    <span class="node">IVR gather captured or recovery branch opened</span>
+                  </div>
+                  <div class="ladder-step">
+                    <span class="rung custody">4</span>
+                    <span class="node">recording custody and readiness assessed</span>
+                  </div>
+                  <div class="ladder-step">
+                    <span class="rung danger">5</span>
+                    <span class="node">grant issuance denied unless scope tuple is lawful</span>
+                  </div>
+                </div>
+              </section>
+
+              <section
+                class="diagram"
+                id="AudioCustodyChain"
+                data-testid="AudioCustodyChain"
+                data-parity="TEL205_CORRUPT_AUDIO TEL205_UNSUPPORTED_FORMAT TEL205_HASH_MISMATCH_AFTER_FETCH TEL205_TRANSCRIPT_RETRY_TEMP_PROVIDER_ERROR"
+                aria-label="AudioCustodyChain diagram"
+                tabindex="0"
+              >
+                <div>
+                  <p class="card-label">AudioCustodyChain</p>
+                  <h3>Fetch, hash, quarantine, transcript, verdict</h3>
+                </div>
+                <div class="custody-chain">
+                  <div class="chain-row">
+                    <span class="node">Fetch</span>
+                    <span class="chain-line"></span>
+                    <span class="node">Provider asset</span>
+                  </div>
+                  <div class="chain-row">
+                    <span class="node">Hash</span>
+                    <span class="chain-line"></span>
+                    <span class="node">Integrity</span>
+                  </div>
+                  <div class="chain-row">
+                    <span class="node">Quarantine</span>
+                    <span class="chain-line"></span>
+                    <span class="node">Scanner</span>
+                  </div>
+                  <div class="chain-row">
+                    <span class="node">Transcript</span>
+                    <span class="chain-line"></span>
+                    <span class="node">Readiness</span>
+                  </div>
+                </div>
+              </section>
+
+              <section
+                class="diagram"
+                id="SeededVsChallengeGrantStrip"
+                data-testid="SeededVsChallengeGrantStrip"
+                data-parity="TEL205_VERIFICATION_SUFFICIENT_SEEDED_ALLOWED TEL205_INSUFFICIENT_VERIFICATION_CHALLENGE_ONLY TEL205_SUPERSEDED_GRANT_AFTER_NEWER_ISSUANCE"
+                aria-label="SeededVsChallengeGrantStrip"
+                tabindex="0"
+              >
+                <div>
+                  <p class="card-label">SeededVsChallengeGrantStrip</p>
+                  <h3>Grant family separation</h3>
+                </div>
+                <div class="grant-strip">
+                  <div class="grant-card">
+                    <strong>Seeded</strong>
+                    <span
+                      >High-confidence destination and current binding permit scoped resume. Token
+                      is one-time and supersession-bound.</span
+                    >
+                  </div>
+                  <div class="grant-card">
+                    <strong>Challenge</strong>
+                    <span
+                      >Weak destination or binding posture exposes public-safe summary only. Seeded
+                      facts remain hidden.</span
+                    >
+                  </div>
+                </div>
+              </section>
+
+              <section
+                class="note-panel"
+                id="TelephonyParityNote"
+                data-testid="TelephonyParityNote"
+                aria-label="TelephonyParityNote"
+                tabindex="0"
+              >
+                <p class="card-label">TelephonyParityNote</p>
+                <h3>Phone remains one canonical intake lane</h3>
+                <p>
+                  A phone call can seed evidence and recovery context, but promotion still resolves
+                  through `SubmissionEnvelope`, readiness, duplicate control, safety preemption,
+                  receipt, and status truth. Provider completion alone never means request
+                  completion.
+                </p>
+              </section>
+            </div>
+
+            <section
+              class="table-wrap"
+              id="EvidenceMatrix"
+              data-testid="EvidenceMatrix"
+              tabindex="0"
+            >
+              <div>
+                <p class="card-label">EvidenceMatrix</p>
+                <h3>Expected versus actual outcomes</h3>
+              </div>
+              <table aria-label="Evidence matrix for telephony integrity">
+                <thead>
+                  <tr>
+                    <th>Case</th>
+                    <th>Expected</th>
+                    <th>Actual</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>TEL205_INVALID_SIGNATURE</td>
+                    <td>rejected before business processing</td>
+                    <td>401, no canonical event</td>
+                    <td class="status-pass">passed</td>
+                  </tr>
+                  <tr>
+                    <td>TEL205_DTMF_CAPTURE</td>
+                    <td>menu_selected once</td>
+                    <td>state revision advanced once</td>
+                    <td class="status-pass">passed</td>
+                  </tr>
+                  <tr>
+                    <td>TEL205_CORRUPT_AUDIO</td>
+                    <td>recording unusable and quarantined</td>
+                    <td>no governed DocumentReference</td>
+                    <td class="status-pass">passed</td>
+                  </tr>
+                  <tr>
+                    <td>TEL205_SUPERSEDED_GRANT_AFTER_NEWER_ISSUANCE</td>
+                    <td>older grant blocked</td>
+                    <td>newest lawful grant required</td>
+                    <td class="status-pass">passed</td>
+                  </tr>
+                  <tr>
+                    <td>LIVE_PROVIDER_EVIDENCE</td>
+                    <td>provider proof later</td>
+                    <td>mock-now only</td>
+                    <td class="status-not-applicable">not_applicable</td>
+                  </tr>
+                  <tr>
+                    <td>EXTERNAL_CONSOLE_MUTATION</td>
+                    <td>blocked until approval</td>
+                    <td>no live mutation performed</td>
+                    <td class="status-blocked">blocked_external</td>
+                  </tr>
+                  <tr>
+                    <td>FAILED_STATUS_VOCABULARY</td>
+                    <td>reserved failure state</td>
+                    <td>zero active failures in current run</td>
+                    <td class="status-failed">failed: 0</td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+          </div>
+        </section>
+
+        <aside class="detail-rail" data-testid="detail-rail" aria-label="Detail rail">
+          <section class="detail-card">
+            <p class="card-label">Run verdict</p>
+            <h3>Mock-now suite passed</h3>
+            <ul>
+              <li>7 targeted service test files passed.</li>
+              <li>55 targeted service tests passed.</li>
+              <li>No 205-owned repository defect found.</li>
+            </ul>
+          </section>
+          <section class="detail-card" data-testid="detail-state">
+            <p class="card-label">Active proof</p>
+            <h3 id="detail-heading">Ready evidence proof</h3>
+            <ul id="detail-list">
+              <li>readiness sufficient</li>
+              <li>governed audio retained</li>
+              <li>seeded grant may issue only under lawful tuple</li>
+            </ul>
+          </section>
+          <section class="detail-card">
+            <p class="card-label">Status vocabulary</p>
+            <h3>Machine-readable outcomes</h3>
+            <ul>
+              <li><span class="status-pass">passed</span> for local represented cases</li>
+              <li><span class="status-failed">failed</span> reserved for active regressions</li>
+              <li>
+                <span class="status-blocked">blocked_external</span> for gated live provider action
+              </li>
+              <li><span class="status-not-applicable">not_applicable</span> for live calls now</li>
+            </ul>
+          </section>
+        </aside>
+      </section>
+
+      <section class="matrix-zone" data-testid="lower-matrix-zone" aria-label="Lower matrix zone">
+        <article class="matrix-card">
+          <p class="card-label">Webhook and IVR</p>
+          <p class="metric">20 / 20</p>
+          <p>
+            Signature, replay, duplicate, disorder, malformed, retry, DTMF, speech, timeout, urgent,
+            and hangup paths.
+          </p>
+        </article>
+        <article class="matrix-card">
+          <p class="card-label">Recording custody</p>
+          <p class="metric">11 / 11</p>
+          <p>
+            Missing, late, duplicate, corrupt, truncated, unsupported, hash mismatch, quarantine,
+            and transcript retry paths.
+          </p>
+        </article>
+        <article class="matrix-card">
+          <p class="card-label">Continuation grant</p>
+          <p class="metric">10 / 10</p>
+          <p>
+            Seeded, challenge, manual-only, redeemed, replayed, superseded, expired, wrong-subject,
+            and lineage mismatch paths.
+          </p>
+        </article>
+      </section>
+      <a href="#keyboard-sentinel-start" class="mono" id="keyboard-sentinel-end">Back to top</a>
+    </main>
+
+    <script>
+      const tabContent = {
+        Webhook: {
+          label: "Webhook integrity",
+          title: "Signed callbacks enter the canonical call-session lane once",
+          copy: "Valid provider callbacks are verified, replay checked, normalized, and queued without leaking provider payload fields past the edge.",
+        },
+        IVR: {
+          label: "IVR capture",
+          title: "Gather callbacks preserve the call-session state machine",
+          copy: "DTMF, speech, retry, timeout, urgent, and abandonment paths settle through deterministic state transitions.",
+        },
+        Recording: {
+          label: "Recording custody",
+          title: "Audio cannot become evidence before custody and quarantine settle",
+          copy: "Recording fetch, hash verification, format checks, malware posture, and transcript retry decide readiness.",
+        },
+        Readiness: {
+          label: "Readiness assessment",
+          title: "Transcript and safety facts decide promotion eligibility",
+          copy: "Readiness joins structured capture, transcript quality, custody, and manual-review disposition before request promotion.",
+        },
+        Grant: {
+          label: "Continuation grant",
+          title: "Seeded and challenge grants stay separated by scope",
+          copy: "One-time redemption, expiry, replay, subject, supersession, and lineage fences prevent stale token widening.",
+        },
+      };
+
+      const caseContent = {
+        "bad-signature": {
+          heading: "Bad signature proof",
+          tab: "Webhook",
+          detail: [
+            "webhook rejected invalid signature",
+            "no canonical event dispatched",
+            "business processing remains frozen",
+          ],
+        },
+        "bad-audio": {
+          heading: "Bad audio proof",
+          tab: "Recording",
+          detail: [
+            "recording unusable",
+            "quarantine or manual review required",
+            "no governed DocumentReference",
+          ],
+        },
+        "superseded-grant": {
+          heading: "Superseded grant proof",
+          tab: "Grant",
+          detail: [
+            "continuation grant superseded",
+            "older token blocked",
+            "same-lineage recovery only",
+          ],
+        },
+        ready: {
+          heading: "Ready evidence proof",
+          tab: "Readiness",
+          detail: [
+            "readiness sufficient",
+            "governed audio retained",
+            "seeded grant may issue only under lawful tuple",
+          ],
+        },
+      };
+
+      const tabs = Array.from(document.querySelectorAll(".integrity-tab"));
+      const scenarios = Array.from(document.querySelectorAll(".scenario-button"));
+      const panel = document.querySelector("#active-panel");
+
+      function setTab(tabName) {
+        const content = tabContent[tabName];
+        panel.dataset.switching = "true";
+        window.setTimeout(() => {
+          document.querySelector("#panel-label").textContent = content.label;
+          document.querySelector("#panel-title").textContent = content.title;
+          document.querySelector("#panel-copy").textContent = content.copy;
+          panel.dataset.activeTab = tabName;
+          tabs.forEach((tab) =>
+            tab.setAttribute("aria-selected", String(tab.dataset.tab === tabName)),
+          );
+          panel.dataset.switching = "false";
+        }, 160);
+      }
+
+      function setCase(caseName) {
+        const content = caseContent[caseName];
+        document.querySelector("#detail-heading").textContent = content.heading;
+        document.querySelector("#detail-list").innerHTML = content.detail
+          .map((item) => `<li>${item}</li>`)
+          .join("");
+        panel.dataset.activeCase = caseName;
+        scenarios.forEach((scenario) =>
+          scenario.setAttribute("aria-pressed", String(scenario.dataset.case === caseName)),
+        );
+        setTab(content.tab);
+      }
+
+      tabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => setTab(tab.dataset.tab));
+        tab.addEventListener("keydown", (event) => {
+          if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(event.key)) {
+            return;
+          }
+          event.preventDefault();
+          let nextIndex = index;
+          if (event.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
+          if (event.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length;
+          if (event.key === "Home") nextIndex = 0;
+          if (event.key === "End") nextIndex = tabs.length - 1;
+          tabs[nextIndex].focus();
+          setTab(tabs[nextIndex].dataset.tab);
+        });
+      });
+
+      scenarios.forEach((scenario) => {
+        scenario.addEventListener("click", () => setCase(scenario.dataset.case));
+      });
+
+      document.documentElement.dataset.ready = "true";
+    </script>
+  </body>
+</html>

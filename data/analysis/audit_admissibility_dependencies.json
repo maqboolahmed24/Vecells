@@ -1,0 +1,1399 @@
+{
+  "task_id": "seq_053",
+  "generated_at": "2026-04-13T14:51:08+00:00",
+  "captured_on": "2026-04-13",
+  "visual_mode": "Audit_Ledger_Explorer",
+  "mission": "Define the authoritative audit and WORM-ledger strategy so immutable audit truth, causality, disclosure posture, replay admissibility, and retention protection stay bound to one append-only audit spine from Phase 0 onward.",
+  "source_precedence": [
+    "prompt/053.md",
+    "prompt/shared_operating_contract_046_to_055.md",
+    "prompt/AGENT.md",
+    "prompt/checklist.md",
+    "docs/architecture/10_audit_posture_and_event_disclosure.md",
+    "docs/architecture/10_break_glass_and_investigation_scope_rules.md",
+    "docs/architecture/10_retention_and_artifact_sensitivity_matrix.md",
+    "docs/architecture/15_incident_audit_and_assurance_tooling.md",
+    "blueprint/phase-0-the-foundation-protocol.md#AuditRecord",
+    "blueprint/phase-0-the-foundation-protocol.md#FhirRepresentationContract",
+    "blueprint/phase-0-the-foundation-protocol.md#UIProjectionVisibilityReceipt",
+    "blueprint/phase-0-the-foundation-protocol.md#4.5 Command-following read rule",
+    "blueprint/phase-0-the-foundation-protocol.md#62H Assurance admissibility",
+    "blueprint/platform-runtime-and-release-blueprint.md#immutable audit in the WORM ledger",
+    "blueprint/phase-9-the-assurance-ledger.md#AssuranceEvidenceGraphSnapshot",
+    "blueprint/phase-9-the-assurance-ledger.md#AssuranceGraphCompletenessVerdict",
+    "blueprint/phase-9-the-assurance-ledger.md#9C. Audit explorer, break-glass review, and support replay",
+    "blueprint/forensic-audit-findings.md#Finding 102",
+    "blueprint/forensic-audit-findings.md#Finding 103",
+    "blueprint/forensic-audit-findings.md#Finding 104",
+    "blueprint/forensic-audit-findings.md#Finding 105",
+    "blueprint/forensic-audit-findings.md#Finding 106",
+    "blueprint/forensic-audit-findings.md#Finding 113",
+    "blueprint/forensic-audit-findings.md#Finding 115",
+    "data/analysis/audit_event_disclosure_matrix.csv",
+    "data/analysis/canonical_event_contracts.json",
+    "data/analysis/fhir_representation_contracts.json",
+    "data/analysis/release_publication_parity_rules.json",
+    "data/analysis/design_contract_publication_bundles.json"
+  ],
+  "upstream_inputs": {
+    "frontend_manifest_count": 9,
+    "design_bundle_count": 9,
+    "canonical_event_contract_count": 192,
+    "fhir_contract_count": 13,
+    "release_candidate_count": 5,
+    "audit_disclosure_family_count": 11
+  },
+  "summary": {
+    "audit_record_count": 14,
+    "action_taxonomy_count": 18,
+    "worm_retention_class_count": 6,
+    "fhir_companion_row_count": 18,
+    "admissibility_dependency_count": 9,
+    "worm_append_required_count": 18,
+    "replay_critical_action_count": 18,
+    "chain_break_count": 0,
+    "inadmissible_dependency_count": 4,
+    "watch_dependency_count": 3,
+    "blocked_record_count": 2
+  },
+  "assumptions": [
+    "ASSUMPTION_053_HASH_CLOCKS_USE_UTC_SECOND_PRECISION",
+    "ASSUMPTION_053_SUPPORT_REPLAY_REUSES_THE_EXISTING_INVESTIGATION_SCOPE_ENVELOPE",
+    "ASSUMPTION_053_FHIR_AUDIT_COMPANIONS_PUBLISH_ONLY_MASKED_HASH_JOIN_OUTPUTS"
+  ],
+  "defects": [
+    {
+      "defectId": "BLOCKER_053_EXPORT_REQUIRES_COMPLETE_GRAPH",
+      "state": "blocked",
+      "consumerFlow": "audit_export",
+      "summary": "Investigation export cannot claim completeness without the current graph snapshot and completeness verdict."
+    },
+    {
+      "defectId": "BLOCKER_053_RETENTION_GRAPH_INCOMPLETE",
+      "state": "blocked",
+      "consumerFlow": "retention_governance",
+      "summary": "Retention preservation remains archive-only until the admissibility graph proves the exact preserved scope."
+    },
+    {
+      "defectId": "BLOCKER_053_HASH_CHAINED_CLASSES_NEVER_DELETE_READY",
+      "state": "blocked",
+      "consumerFlow": "deletion_certificate",
+      "summary": "WORM and hash-chained audit classes may never enter ordinary deletion posture."
+    },
+    {
+      "defectId": "DRIFT_053_BREAK_GLASS_FOLLOW_UP_BURDEN_OPEN",
+      "state": "watch",
+      "consumerFlow": "break_glass_review",
+      "summary": "Break-glass review is still watch-bound while follow-up burden and reason adequacy remain open."
+    },
+    {
+      "defectId": "RISK_053_RECOVERY_GRAPH_REFRESH_PENDING",
+      "state": "watch",
+      "consumerFlow": "recovery_evidence",
+      "summary": "Recovery evidence remains watch-only until the graph refresh proves the latest rehearsal and continuity artifacts."
+    }
+  ],
+  "authoritativeAuditJoin": {
+    "joinId": "AAJ_053_AUTHORITATIVE_AUDIT_JOIN_V1",
+    "canonicalRecordType": "AuditRecord",
+    "requiredJoinRefs": [
+      "edgeCorrelationId",
+      "routeIntentRef",
+      "commandActionRef",
+      "commandSettlementRef",
+      "uiEventRef",
+      "uiEventCausalityFrameRef",
+      "uiTransitionSettlementRef",
+      "projectionVisibilityRef",
+      "selectedAnchorRef",
+      "disclosureFenceRef"
+    ],
+    "requiredProjectionCompanion": "UIProjectionVisibilityReceipt",
+    "requiredCommandCompanion": "CommandSettlementRecord",
+    "requiredDisclosureCompanion": "UITelemetryDisclosureFence",
+    "canonicalTruthRule": "Server acceptance, local acknowledgement, and detached analytics may never replace the immutable audit join.",
+    "source_refs": [
+      "blueprint/phase-0-the-foundation-protocol.md#AuditRecord",
+      "prompt/053.md"
+    ]
+  },
+  "hashChainPolicy": {
+    "auditHashPolicyId": "AHP_053_AUDIT_JOIN_CHAIN_V1",
+    "canonicalizationMode": "RFC8785_JCS",
+    "hashAlgorithm": "SHA-256",
+    "previousHashMode": "chain_to_prior_entry_hash",
+    "chainRootMode": "Merkle(sorted(auditRecord.hash))",
+    "supersessionModel": "append_only_supersedes_reference",
+    "integrityVerificationMode": "recompute_hash_and_previous_hash_then_compare_merkle_root",
+    "entryHashInputFields": [
+      "auditRecordId",
+      "chainSequence",
+      "actorClass",
+      "actorRef",
+      "actingContextRef",
+      "actionTaxonomyRef",
+      "actionCode",
+      "targetType",
+      "targetId",
+      "reasonCode",
+      "edgeCorrelationId",
+      "routeIntentRef",
+      "commandActionRef",
+      "commandSettlementRef",
+      "uiEventRef",
+      "uiEventCausalityFrameRef",
+      "uiTransitionSettlementRef",
+      "projectionVisibilityRef",
+      "selectedAnchorRef",
+      "shellDecisionClass",
+      "disclosureFenceRef",
+      "sourceIpHash",
+      "userAgentHash",
+      "timestamp",
+      "previousHash",
+      "retentionClassRef",
+      "fhirRepresentationContractRef"
+    ],
+    "chainMerkleRoot": "be77a689111bda6aa32eeaaa3e1196f5d4a0fd7a5cd555a9daf19a39374e2927",
+    "graphAuthorityRefs": [
+      "AssuranceEvidenceGraphSnapshot",
+      "AssuranceGraphCompletenessVerdict"
+    ],
+    "failureState": "blocked",
+    "source_refs": [
+      "blueprint/phase-0-the-foundation-protocol.md#AuditRecord",
+      "blueprint/phase-9-the-assurance-ledger.md#AssuranceEvidenceGraphSnapshot"
+    ]
+  },
+  "sampleAuditRecords": [
+    {
+      "auditRecordId": "AR_053_IDENTITY_SESSION_ESTABLISHED_01",
+      "chainSequence": 1,
+      "actorClass": "patient",
+      "actorRef": "actor://patient/nhs-login/session-claim",
+      "actingContextRef": "ACTCTX_053_PATIENT_SECURE_LINK_RECOVERY",
+      "actingContextLabel": "Patient secure-link recovery",
+      "actionTaxonomyRef": "AAT_053_IDENTITY_SESSION_ESTABLISHED",
+      "actionCode": "identity_session_established",
+      "actionLabel": "Identity session established",
+      "actionCategory": "auth_session",
+      "routeFamilyRef": "rf_patient_secure_link_recovery",
+      "routeFamilyLabel": "Secure-link recovery",
+      "audienceSurface": "audsurf_patient_transaction_recovery",
+      "audienceSurfaceLabel": "Grant-scoped patient transaction and recovery",
+      "targetType": "Session",
+      "targetId": "session://patient/secure-link/0001",
+      "reasonCode": "auth_callback_verified",
+      "edgeCorrelationId": "edge::053::ar_053_identity_session_established_01",
+      "routeIntentRef": "route-intent::053::rf_patient_secure_link_recovery::01",
+      "commandActionRef": "car::053::ar_053_identity_session_established_01",
+      "commandSettlementRef": "csr::053::ar_053_identity_session_established_01",
+      "uiEventRef": "uie::053::ar_053_identity_session_established_01",
+      "uiEventCausalityFrameRef": "uicf::053::ar_053_identity_session_established_01",
+      "uiTransitionSettlementRef": "uits::053::ar_053_identity_session_established_01",
+      "projectionVisibilityRef": "uipr::053::ar_053_identity_session_established_01",
+      "selectedAnchorRef": "anchor://patient-recovery/sign-in",
+      "shellDecisionClass": "created",
+      "disclosureFenceRef": "fence::053::ev_immutable_audit_ledger",
+      "disclosureMatrixRef": "EV_IMMUTABLE_AUDIT_LEDGER",
+      "sourceIpDisposition": "hashed_descriptor",
+      "sourceIpHash": "8a62a9ded71a5faed7f7ad2e3707bfaf899c5cd246810f94c50d08c78c64996c",
+      "userAgentDisposition": "hashed_descriptor",
+      "userAgentHash": "eebc93614a88e057eb07ee12245008d352c7262c3d4a7eb239063020d37752b8",
+      "timestamp": "2026-04-13T08:00:00+00:00",
+      "timestampPrecision": "second",
+      "previousHash": "GENESIS_053_AUDIT_JOIN_SPINE",
+      "chainIntegrityState": "exact",
+      "retentionClassRef": "WRC_053_AUDIT_JOIN_SPINE",
+      "designContractPublicationBundleRef": "dcpb::patient_transaction_recovery::planned",
+      "designContractDigestRef": "d1de5b8bf4766054",
+      "releaseCandidateRef": "RC_PRODUCTION_V1",
+      "releaseApprovalFreezeRef": "RAF_PRODUCTION_V1",
+      "fhirRepresentationContractRef": "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1",
+      "fhirCompanionTupleRef": "AFCM_053_IDENTITY_SESSION_ESTABLISHED",
+      "admissibilityState": "admissible",
+      "defectState": "clean",
+      "admissibilityDependencyRefs": [
+        "AUDDEP_053_AUDIT_TIMELINE_RECONSTRUCTION"
+      ],
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#AuditRecord",
+        "data/analysis/canonical_event_contracts.json",
+        "data/analysis/design_contract_publication_bundles.json",
+        "data/analysis/release_publication_parity_rules.json"
+      ],
+      "rationale": "Patient callback establishes the first immutable join for the recovery shell.",
+      "hash": "885ae885d713cc60addee9eab3512726027814711b3980f705dd1ab3437eb7f2"
+    },
+    {
+      "auditRecordId": "AR_053_ROUTE_INTENT_ESTABLISHED_01",
+      "chainSequence": 2,
+      "actorClass": "patient",
+      "actorRef": "actor://patient/public-entry/browser",
+      "actingContextRef": "ACTCTX_053_PATIENT_PUBLIC_ENTRY",
+      "actingContextLabel": "Patient public entry",
+      "actionTaxonomyRef": "AAT_053_ROUTE_INTENT_ESTABLISHED",
+      "actionCode": "route_intent_established",
+      "actionLabel": "Route intent established",
+      "actionCategory": "route_intent",
+      "routeFamilyRef": "rf_intake_self_service",
+      "routeFamilyLabel": "Patient self-service intake",
+      "audienceSurface": "audsurf_patient_public_entry",
+      "audienceSurfaceLabel": "Patient public entry",
+      "targetType": "RouteIntentBinding",
+      "targetId": "route-intent://patient/intake/self-service",
+      "reasonCode": "self_service_entry_routed",
+      "edgeCorrelationId": "edge::053::ar_053_route_intent_established_01",
+      "routeIntentRef": "route-intent::053::rf_intake_self_service::02",
+      "commandActionRef": "car::053::ar_053_route_intent_established_01",
+      "commandSettlementRef": "csr::053::ar_053_route_intent_established_01",
+      "uiEventRef": "uie::053::ar_053_route_intent_established_01",
+      "uiEventCausalityFrameRef": "uicf::053::ar_053_route_intent_established_01",
+      "uiTransitionSettlementRef": "uits::053::ar_053_route_intent_established_01",
+      "projectionVisibilityRef": "uipr::053::ar_053_route_intent_established_01",
+      "selectedAnchorRef": "anchor://intake/request-type",
+      "shellDecisionClass": "created",
+      "disclosureFenceRef": "fence::053::ev_immutable_audit_ledger",
+      "disclosureMatrixRef": "EV_IMMUTABLE_AUDIT_LEDGER",
+      "sourceIpDisposition": "hashed_descriptor",
+      "sourceIpHash": "9c7301ca64c31a389045f19bb0d7191f548209ad2047328e4ac9ce851120dfae",
+      "userAgentDisposition": "hashed_descriptor",
+      "userAgentHash": "618621f2c05682bbd280ca4fa63678a8b090980a977a9046ac64e3c71ce58083",
+      "timestamp": "2026-04-13T08:07:00+00:00",
+      "timestampPrecision": "second",
+      "previousHash": "885ae885d713cc60addee9eab3512726027814711b3980f705dd1ab3437eb7f2",
+      "chainIntegrityState": "exact",
+      "retentionClassRef": "WRC_053_AUDIT_JOIN_SPINE",
+      "designContractPublicationBundleRef": "dcpb::patient_public_entry::planned",
+      "designContractDigestRef": "e27e77568367e5db",
+      "releaseCandidateRef": "RC_PRODUCTION_V1",
+      "releaseApprovalFreezeRef": "RAF_PRODUCTION_V1",
+      "fhirRepresentationContractRef": "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1",
+      "fhirCompanionTupleRef": "AFCM_053_ROUTE_INTENT_ESTABLISHED",
+      "admissibilityState": "admissible",
+      "defectState": "clean",
+      "admissibilityDependencyRefs": [
+        "AUDDEP_053_AUDIT_TIMELINE_RECONSTRUCTION"
+      ],
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#AuditRecord",
+        "data/analysis/design_contract_publication_bundles.json",
+        "data/analysis/release_publication_parity_rules.json",
+        "prompt/053.md"
+      ],
+      "rationale": "Route intent becomes authoritative before any calm intake state can be trusted.",
+      "hash": "18a3c37748fdf19d1782488a97b937cbb1b7cd6151fa2e352748dc751678b62b"
+    },
+    {
+      "auditRecordId": "AR_053_COMMAND_INGESTED_01",
+      "chainSequence": 3,
+      "actorClass": "patient",
+      "actorRef": "actor://patient/public-entry/browser",
+      "actingContextRef": "ACTCTX_053_PATIENT_PUBLIC_ENTRY",
+      "actingContextLabel": "Patient public entry",
+      "actionTaxonomyRef": "AAT_053_COMMAND_INGESTED",
+      "actionCode": "command_ingested",
+      "actionLabel": "Command ingested",
+      "actionCategory": "command_lifecycle",
+      "routeFamilyRef": "rf_intake_self_service",
+      "routeFamilyLabel": "Patient self-service intake",
+      "audienceSurface": "audsurf_patient_public_entry",
+      "audienceSurfaceLabel": "Patient public entry",
+      "targetType": "CommandActionRecord",
+      "targetId": "command://request/submit/0001",
+      "reasonCode": "submission_requested",
+      "edgeCorrelationId": "edge::053::ar_053_command_ingested_01",
+      "routeIntentRef": "route-intent::053::rf_intake_self_service::03",
+      "commandActionRef": "car::053::ar_053_command_ingested_01",
+      "commandSettlementRef": "csr::053::ar_053_command_ingested_01",
+      "uiEventRef": "uie::053::ar_053_command_ingested_01",
+      "uiEventCausalityFrameRef": "uicf::053::ar_053_command_ingested_01",
+      "uiTransitionSettlementRef": "uits::053::ar_053_command_ingested_01",
+      "projectionVisibilityRef": "uipr::053::ar_053_command_ingested_01",
+      "selectedAnchorRef": "anchor://intake/review-submit",
+      "shellDecisionClass": "reused",
+      "disclosureFenceRef": "fence::053::ev_immutable_audit_ledger",
+      "disclosureMatrixRef": "EV_IMMUTABLE_AUDIT_LEDGER",
+      "sourceIpDisposition": "hashed_descriptor",
+      "sourceIpHash": "18da3b5753d124147c8f7b3916357ff3e86b6d6df499c2d2e32fb6034221c6b8",
+      "userAgentDisposition": "hashed_descriptor",
+      "userAgentHash": "960dbd15552afe4abc78bc9c9c758afa1bb04a82e8487961b359ce2f663ded23",
+      "timestamp": "2026-04-13T08:14:00+00:00",
+      "timestampPrecision": "second",
+      "previousHash": "18a3c37748fdf19d1782488a97b937cbb1b7cd6151fa2e352748dc751678b62b",
+      "chainIntegrityState": "exact",
+      "retentionClassRef": "WRC_053_AUDIT_JOIN_SPINE",
+      "designContractPublicationBundleRef": "dcpb::patient_public_entry::planned",
+      "designContractDigestRef": "e27e77568367e5db",
+      "releaseCandidateRef": "RC_PRODUCTION_V1",
+      "releaseApprovalFreezeRef": "RAF_PRODUCTION_V1",
+      "fhirRepresentationContractRef": "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1",
+      "fhirCompanionTupleRef": "AFCM_053_COMMAND_INGESTED",
+      "admissibilityState": "admissible",
+      "defectState": "clean",
+      "admissibilityDependencyRefs": [
+        "AUDDEP_053_AUDIT_TIMELINE_RECONSTRUCTION"
+      ],
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#4.1 Command ingest and envelope creation",
+        "blueprint/phase-0-the-foundation-protocol.md#AuditRecord",
+        "data/analysis/design_contract_publication_bundles.json",
+        "data/analysis/release_publication_parity_rules.json"
+      ],
+      "rationale": "Transport acceptance is not authoritative; command ingest still binds the full audit join.",
+      "hash": "4d7929c1efd3c13a7c6af38bb0770c1c8036c91d527d8725989971467d726804"
+    },
+    {
+      "auditRecordId": "AR_053_COMMAND_SETTLED_01",
+      "chainSequence": 4,
+      "actorClass": "patient",
+      "actorRef": "actor://service/command-api",
+      "actingContextRef": "ACTCTX_053_PATIENT_PUBLIC_ENTRY",
+      "actingContextLabel": "Patient public entry",
+      "actionTaxonomyRef": "AAT_053_COMMAND_SETTLED",
+      "actionCode": "command_settled",
+      "actionLabel": "Command settled",
+      "actionCategory": "command_lifecycle",
+      "routeFamilyRef": "rf_intake_self_service",
+      "routeFamilyLabel": "Patient self-service intake",
+      "audienceSurface": "audsurf_patient_public_entry",
+      "audienceSurfaceLabel": "Patient public entry",
+      "targetType": "CommandSettlementRecord",
+      "targetId": "settlement://request/submit/0001",
+      "reasonCode": "submission_authoritative",
+      "edgeCorrelationId": "edge::053::ar_053_command_settled_01",
+      "routeIntentRef": "route-intent::053::rf_intake_self_service::04",
+      "commandActionRef": "car::053::ar_053_command_settled_01",
+      "commandSettlementRef": "csr::053::ar_053_command_settled_01",
+      "uiEventRef": "uie::053::ar_053_command_settled_01",
+      "uiEventCausalityFrameRef": "uicf::053::ar_053_command_settled_01",
+      "uiTransitionSettlementRef": "uits::053::ar_053_command_settled_01",
+      "projectionVisibilityRef": "uipr::053::ar_053_command_settled_01",
+      "selectedAnchorRef": "anchor://intake/review-submit",
+      "shellDecisionClass": "reused",
+      "disclosureFenceRef": "fence::053::ev_immutable_audit_ledger",
+      "disclosureMatrixRef": "EV_IMMUTABLE_AUDIT_LEDGER",
+      "sourceIpDisposition": "hashed_descriptor",
+      "sourceIpHash": "b3f729146965599622b718248f9beb79275a6d136848049ff418740556448e29",
+      "userAgentDisposition": "hashed_descriptor",
+      "userAgentHash": "ca84ca96f874aca7d023f79e01572f91e3d496f34382c79efbbf603761b65620",
+      "timestamp": "2026-04-13T08:21:00+00:00",
+      "timestampPrecision": "second",
+      "previousHash": "4d7929c1efd3c13a7c6af38bb0770c1c8036c91d527d8725989971467d726804",
+      "chainIntegrityState": "exact",
+      "retentionClassRef": "WRC_053_AUDIT_JOIN_SPINE",
+      "designContractPublicationBundleRef": "dcpb::patient_public_entry::planned",
+      "designContractDigestRef": "e27e77568367e5db",
+      "releaseCandidateRef": "RC_PRODUCTION_V1",
+      "releaseApprovalFreezeRef": "RAF_PRODUCTION_V1",
+      "fhirRepresentationContractRef": "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1",
+      "fhirCompanionTupleRef": "AFCM_053_COMMAND_SETTLED",
+      "admissibilityState": "admissible",
+      "defectState": "clean",
+      "admissibilityDependencyRefs": [
+        "AUDDEP_053_AUDIT_TIMELINE_RECONSTRUCTION"
+      ],
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#4.5 Command-following read rule",
+        "blueprint/phase-0-the-foundation-protocol.md#AuditRecord",
+        "data/analysis/design_contract_publication_bundles.json",
+        "data/analysis/release_publication_parity_rules.json"
+      ],
+      "rationale": "Command settlement distinguishes authoritative outcome from provisional acknowledgement.",
+      "hash": "83a8fcccf59ffbbaa5588a27ae5a10b59b4e25a5cae2fd41e6ea4ad7508ae0cb"
+    },
+    {
+      "auditRecordId": "AR_053_PROJECTION_VISIBLE_01",
+      "chainSequence": 5,
+      "actorClass": "system_service",
+      "actorRef": "actor://service/projection-worker",
+      "actingContextRef": "ACTCTX_053_PATIENT_PORTAL",
+      "actingContextLabel": "Authenticated patient portal",
+      "actionTaxonomyRef": "AAT_053_PROJECTION_VISIBLE",
+      "actionCode": "projection_visible",
+      "actionLabel": "Projection visibility confirmed",
+      "actionCategory": "ui_visibility",
+      "routeFamilyRef": "rf_patient_requests",
+      "routeFamilyLabel": "Patient requests",
+      "audienceSurface": "audsurf_patient_authenticated_portal",
+      "audienceSurfaceLabel": "Authenticated patient portal",
+      "targetType": "UIProjectionVisibilityReceipt",
+      "targetId": "projection://patient/requests/receipt",
+      "reasonCode": "quiet_receipt_visible",
+      "edgeCorrelationId": "edge::053::ar_053_projection_visible_01",
+      "routeIntentRef": "route-intent::053::rf_patient_requests::05",
+      "commandActionRef": "car::053::ar_053_projection_visible_01",
+      "commandSettlementRef": "csr::053::ar_053_projection_visible_01",
+      "uiEventRef": "uie::053::ar_053_projection_visible_01",
+      "uiEventCausalityFrameRef": "uicf::053::ar_053_projection_visible_01",
+      "uiTransitionSettlementRef": "uits::053::ar_053_projection_visible_01",
+      "projectionVisibilityRef": "uipr::053::ar_053_projection_visible_01",
+      "selectedAnchorRef": "anchor://patient-requests/latest",
+      "shellDecisionClass": "restored",
+      "disclosureFenceRef": "fence::053::ev_immutable_audit_ledger",
+      "disclosureMatrixRef": "EV_IMMUTABLE_AUDIT_LEDGER",
+      "sourceIpDisposition": "service_identity_only",
+      "sourceIpHash": "6cbcde50e4e583be9ec571267551e11850374dad97da1c85b719e569a533f6bc",
+      "userAgentDisposition": "service_identity_only",
+      "userAgentHash": "a25270c027e8d0d1c38ab6e2864afe2231a14af45862efab3e35fa1422220d60",
+      "timestamp": "2026-04-13T08:28:00+00:00",
+      "timestampPrecision": "second",
+      "previousHash": "83a8fcccf59ffbbaa5588a27ae5a10b59b4e25a5cae2fd41e6ea4ad7508ae0cb",
+      "chainIntegrityState": "exact",
+      "retentionClassRef": "WRC_053_AUDIT_JOIN_SPINE",
+      "designContractPublicationBundleRef": "dcpb::patient_authenticated_shell::planned",
+      "designContractDigestRef": "0975f264474e14e3",
+      "releaseCandidateRef": "RC_PRODUCTION_V1",
+      "releaseApprovalFreezeRef": "RAF_PRODUCTION_V1",
+      "fhirRepresentationContractRef": "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1",
+      "fhirCompanionTupleRef": "AFCM_053_PROJECTION_VISIBLE",
+      "admissibilityState": "admissible",
+      "defectState": "clean",
+      "admissibilityDependencyRefs": [
+        "AUDDEP_053_AUDIT_TIMELINE_RECONSTRUCTION"
+      ],
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#4.5 Command-following read rule",
+        "blueprint/phase-0-the-foundation-protocol.md#UIProjectionVisibilityReceipt",
+        "data/analysis/design_contract_publication_bundles.json",
+        "data/analysis/release_publication_parity_rules.json"
+      ],
+      "rationale": "Visible receipt proof and immutable audit now share the same causal token.",
+      "hash": "fc306929032997d12e95ac1d119ec4e611390bffa23d657fe83cfe361ec2624d"
+    },
+    {
+      "auditRecordId": "AR_053_BREAK_GLASS_USED_01",
+      "chainSequence": 6,
+      "actorClass": "support_agent",
+      "actorRef": "actor://support/agent-007",
+      "actingContextRef": "ACTCTX_053_SUPPORT_BREAK_GLASS",
+      "actingContextLabel": "Support replay with break-glass coverage",
+      "actionTaxonomyRef": "AAT_053_BREAK_GLASS_USED",
+      "actionCode": "break_glass_used",
+      "actionLabel": "Break-glass used",
+      "actionCategory": "break_glass",
+      "routeFamilyRef": "rf_support_replay_observe",
+      "routeFamilyLabel": "Support replay observe",
+      "audienceSurface": "audsurf_support_workspace",
+      "audienceSurfaceLabel": "Support routes",
+      "targetType": "BreakGlassReviewRecord",
+      "targetId": "break-glass://ticket/TK-2048",
+      "reasonCode": "same_ticket_identity_dispute",
+      "edgeCorrelationId": "edge::053::ar_053_break_glass_used_01",
+      "routeIntentRef": "route-intent::053::rf_support_replay_observe::06",
+      "commandActionRef": "car::053::ar_053_break_glass_used_01",
+      "commandSettlementRef": "csr::053::ar_053_break_glass_used_01",
+      "uiEventRef": "uie::053::ar_053_break_glass_used_01",
+      "uiEventCausalityFrameRef": "uicf::053::ar_053_break_glass_used_01",
+      "uiTransitionSettlementRef": "uits::053::ar_053_break_glass_used_01",
+      "projectionVisibilityRef": "uipr::053::ar_053_break_glass_used_01",
+      "selectedAnchorRef": "anchor://support/timeline",
+      "shellDecisionClass": "frozen",
+      "disclosureFenceRef": "fence::053::ev_break_glass_review",
+      "disclosureMatrixRef": "EV_BREAK_GLASS_REVIEW",
+      "sourceIpDisposition": "hashed_descriptor",
+      "sourceIpHash": "e30dd6908d568b57dfa8ebf3db9a29b7b20b2ea8c59cb9b31f6af6f34391c92a",
+      "userAgentDisposition": "hashed_descriptor",
+      "userAgentHash": "0ec55e0c9eea0eb07c6fd5f0f27a0a1a83fe315bcdc068cff48f653b140f7767",
+      "timestamp": "2026-04-13T08:35:00+00:00",
+      "timestampPrecision": "second",
+      "previousHash": "fc306929032997d12e95ac1d119ec4e611390bffa23d657fe83cfe361ec2624d",
+      "chainIntegrityState": "exact",
+      "retentionClassRef": "WRC_053_BREAK_GLASS_DISCLOSURE",
+      "designContractPublicationBundleRef": "dcpb::support_workspace::planned",
+      "designContractDigestRef": "793689faafb9990a",
+      "releaseCandidateRef": "RC_PRODUCTION_V1",
+      "releaseApprovalFreezeRef": "RAF_PRODUCTION_V1",
+      "fhirRepresentationContractRef": "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1",
+      "fhirCompanionTupleRef": "AFCM_053_BREAK_GLASS_USED",
+      "admissibilityState": "admissible",
+      "defectState": "watch",
+      "admissibilityDependencyRefs": [
+        "AUDDEP_053_BREAK_GLASS_REVIEW",
+        "AUDDEP_053_SUPPORT_REPLAY_SESSION"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "data/analysis/design_contract_publication_bundles.json",
+        "data/analysis/release_publication_parity_rules.json",
+        "docs/architecture/10_break_glass_and_investigation_scope_rules.md"
+      ],
+      "rationale": "Heightened access stays immutable and remains tied to the exact shell and disclosure fence that widened scope.",
+      "hash": "e80138ef7ffb84aa228e0188686825c003add16619d993fc10ca66b7ce55b77a"
+    },
+    {
+      "auditRecordId": "AR_053_SUPPORT_REPLAY_RESTORE_REQUIRED_01",
+      "chainSequence": 7,
+      "actorClass": "support_agent",
+      "actorRef": "actor://support/agent-007",
+      "actingContextRef": "ACTCTX_053_SUPPORT_REPLAY",
+      "actingContextLabel": "Support replay observe",
+      "actionTaxonomyRef": "AAT_053_SUPPORT_REPLAY_RESTORE_REQUIRED",
+      "actionCode": "support_replay_restore_required",
+      "actionLabel": "Support replay restore required",
+      "actionCategory": "support_replay",
+      "routeFamilyRef": "rf_support_replay_observe",
+      "routeFamilyLabel": "Support replay observe",
+      "audienceSurface": "audsurf_support_workspace",
+      "audienceSurfaceLabel": "Support routes",
+      "targetType": "SupportReplaySession",
+      "targetId": "replay://request/REQ-2048/restore-required",
+      "reasonCode": "continuity_revalidation_pending",
+      "edgeCorrelationId": "edge::053::ar_053_support_replay_restore_required_01",
+      "routeIntentRef": "route-intent::053::rf_support_replay_observe::07",
+      "commandActionRef": "car::053::ar_053_support_replay_restore_required_01",
+      "commandSettlementRef": "csr::053::ar_053_support_replay_restore_required_01",
+      "uiEventRef": "uie::053::ar_053_support_replay_restore_required_01",
+      "uiEventCausalityFrameRef": "uicf::053::ar_053_support_replay_restore_required_01",
+      "uiTransitionSettlementRef": "uits::053::ar_053_support_replay_restore_required_01",
+      "projectionVisibilityRef": "uipr::053::ar_053_support_replay_restore_required_01",
+      "selectedAnchorRef": "anchor://support/replay",
+      "shellDecisionClass": "recovered",
+      "disclosureFenceRef": "fence::053::ev_support_replay_view",
+      "disclosureMatrixRef": "EV_SUPPORT_REPLAY_VIEW",
+      "sourceIpDisposition": "hashed_descriptor",
+      "sourceIpHash": "39b6a1c5070b3f58a3dd6db636bb9f3b30e40d0030a3d2c8c694b747b2457a68",
+      "userAgentDisposition": "hashed_descriptor",
+      "userAgentHash": "6bbae6d61a0ce15486d755e53af4c39e8ee91f7521c712463c074bce3358944e",
+      "timestamp": "2026-04-13T08:42:00+00:00",
+      "timestampPrecision": "second",
+      "previousHash": "e80138ef7ffb84aa228e0188686825c003add16619d993fc10ca66b7ce55b77a",
+      "chainIntegrityState": "exact",
+      "retentionClassRef": "WRC_053_EXPORT_AND_REPLAY",
+      "designContractPublicationBundleRef": "dcpb::support_workspace::planned",
+      "designContractDigestRef": "793689faafb9990a",
+      "releaseCandidateRef": "RC_PRODUCTION_V1",
+      "releaseApprovalFreezeRef": "RAF_PRODUCTION_V1",
+      "fhirRepresentationContractRef": "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1",
+      "fhirCompanionTupleRef": "AFCM_053_SUPPORT_REPLAY_RESTORE_REQUIRED",
+      "admissibilityState": "admissible",
+      "defectState": "clean",
+      "admissibilityDependencyRefs": [
+        "AUDDEP_053_SUPPORT_REPLAY_SESSION"
+      ],
+      "source_refs": [
+        "blueprint/phase-9-the-assurance-ledger.md#9C. Audit explorer, break-glass review, and support replay",
+        "data/analysis/canonical_event_contracts.json",
+        "data/analysis/design_contract_publication_bundles.json",
+        "data/analysis/release_publication_parity_rules.json"
+      ],
+      "rationale": "Replay cannot restore live support work until the same audit and completeness graph prove the chain.",
+      "hash": "f795e3d905ad311f6e0f7ec16778ae5c5916a19cdc8a50c8e7dce3ac7d314590"
+    },
+    {
+      "auditRecordId": "AR_053_SUPPORT_REPLAY_RESTORE_SETTLED_01",
+      "chainSequence": 8,
+      "actorClass": "support_agent",
+      "actorRef": "actor://support/agent-007",
+      "actingContextRef": "ACTCTX_053_SUPPORT_REPLAY",
+      "actingContextLabel": "Support replay observe",
+      "actionTaxonomyRef": "AAT_053_SUPPORT_REPLAY_RESTORE_SETTLED",
+      "actionCode": "support_replay_restore_settled",
+      "actionLabel": "Support replay restore settled",
+      "actionCategory": "support_replay",
+      "routeFamilyRef": "rf_support_replay_observe",
+      "routeFamilyLabel": "Support replay observe",
+      "audienceSurface": "audsurf_support_workspace",
+      "audienceSurfaceLabel": "Support routes",
+      "targetType": "SupportReplayRestoreSettlement",
+      "targetId": "replay://request/REQ-2048/restore-settled",
+      "reasonCode": "continuity_revalidated",
+      "edgeCorrelationId": "edge::053::ar_053_support_replay_restore_settled_01",
+      "routeIntentRef": "route-intent::053::rf_support_replay_observe::08",
+      "commandActionRef": "car::053::ar_053_support_replay_restore_settled_01",
+      "commandSettlementRef": "csr::053::ar_053_support_replay_restore_settled_01",
+      "uiEventRef": "uie::053::ar_053_support_replay_restore_settled_01",
+      "uiEventCausalityFrameRef": "uicf::053::ar_053_support_replay_restore_settled_01",
+      "uiTransitionSettlementRef": "uits::053::ar_053_support_replay_restore_settled_01",
+      "projectionVisibilityRef": "uipr::053::ar_053_support_replay_restore_settled_01",
+      "selectedAnchorRef": "anchor://support/replay",
+      "shellDecisionClass": "restored",
+      "disclosureFenceRef": "fence::053::ev_support_replay_view",
+      "disclosureMatrixRef": "EV_SUPPORT_REPLAY_VIEW",
+      "sourceIpDisposition": "hashed_descriptor",
+      "sourceIpHash": "e1c4068c2c2ab11c26efaeeb88a9ba88b35b923e4e30f408204cc153035ad343",
+      "userAgentDisposition": "hashed_descriptor",
+      "userAgentHash": "1d94329f950c2b5069fb04aa45ba071ecaca2d96afef70d9d618d96a7ac9535c",
+      "timestamp": "2026-04-13T08:49:00+00:00",
+      "timestampPrecision": "second",
+      "previousHash": "f795e3d905ad311f6e0f7ec16778ae5c5916a19cdc8a50c8e7dce3ac7d314590",
+      "chainIntegrityState": "exact",
+      "retentionClassRef": "WRC_053_EXPORT_AND_REPLAY",
+      "designContractPublicationBundleRef": "dcpb::support_workspace::planned",
+      "designContractDigestRef": "793689faafb9990a",
+      "releaseCandidateRef": "RC_PRODUCTION_V1",
+      "releaseApprovalFreezeRef": "RAF_PRODUCTION_V1",
+      "fhirRepresentationContractRef": "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1",
+      "fhirCompanionTupleRef": "AFCM_053_SUPPORT_REPLAY_RESTORE_SETTLED",
+      "admissibilityState": "admissible",
+      "defectState": "clean",
+      "admissibilityDependencyRefs": [
+        "AUDDEP_053_SUPPORT_REPLAY_SESSION"
+      ],
+      "source_refs": [
+        "blueprint/phase-9-the-assurance-ledger.md#9C. Audit explorer, break-glass review, and support replay",
+        "data/analysis/canonical_event_contracts.json",
+        "data/analysis/design_contract_publication_bundles.json",
+        "data/analysis/release_publication_parity_rules.json"
+      ],
+      "rationale": "Restore settlement is authoritative only after the same immutable chain confirms replay-safe continuity.",
+      "hash": "219e097492dd859848e39dd952a6675fef37f18003cfefe058a8e5c90149538a"
+    },
+    {
+      "auditRecordId": "AR_053_RELEASE_CANDIDATE_PUBLISHED_01",
+      "chainSequence": 9,
+      "actorClass": "governance_reviewer",
+      "actorRef": "actor://governance/release-reviewer",
+      "actingContextRef": "ACTCTX_053_GOVERNANCE_RELEASE_REVIEW",
+      "actingContextLabel": "Governance release review",
+      "actionTaxonomyRef": "AAT_053_RELEASE_CANDIDATE_PUBLISHED",
+      "actionCode": "release_candidate_published",
+      "actionLabel": "Release candidate published",
+      "actionCategory": "release_governance",
+      "routeFamilyRef": "rf_governance_shell",
+      "routeFamilyLabel": "Governance shell",
+      "audienceSurface": "audsurf_governance_admin",
+      "audienceSurfaceLabel": "Governance and admin routes",
+      "targetType": "ReleaseCandidate",
+      "targetId": "release://candidate/RC_PREPROD_V1",
+      "reasonCode": "preprod_candidate_published",
+      "edgeCorrelationId": "edge::053::ar_053_release_candidate_published_01",
+      "routeIntentRef": "route-intent::053::rf_governance_shell::09",
+      "commandActionRef": "car::053::ar_053_release_candidate_published_01",
+      "commandSettlementRef": "csr::053::ar_053_release_candidate_published_01",
+      "uiEventRef": "uie::053::ar_053_release_candidate_published_01",
+      "uiEventCausalityFrameRef": "uicf::053::ar_053_release_candidate_published_01",
+      "uiTransitionSettlementRef": "uits::053::ar_053_release_candidate_published_01",
+      "projectionVisibilityRef": "uipr::053::ar_053_release_candidate_published_01",
+      "selectedAnchorRef": "anchor://governance/release-candidate",
+      "shellDecisionClass": "created",
+      "disclosureFenceRef": "fence::053::ev_assurance_ledger_entry",
+      "disclosureMatrixRef": "EV_ASSURANCE_LEDGER_ENTRY",
+      "sourceIpDisposition": "hashed_descriptor",
+      "sourceIpHash": "70859783198d5abd6282a0adfb60339c275758836c18fa22c4e0d0eb110a7e27",
+      "userAgentDisposition": "hashed_descriptor",
+      "userAgentHash": "ab8066d3f0a2bfed233bcd65175c2845cc578ac34f83ff5eb9e56ab74dd6b7e6",
+      "timestamp": "2026-04-13T08:56:00+00:00",
+      "timestampPrecision": "second",
+      "previousHash": "219e097492dd859848e39dd952a6675fef37f18003cfefe058a8e5c90149538a",
+      "chainIntegrityState": "exact",
+      "retentionClassRef": "WRC_053_RELEASE_GOVERNANCE",
+      "designContractPublicationBundleRef": "dcpb::governance_admin::planned",
+      "designContractDigestRef": "f28e43bf102aeb5d",
+      "releaseCandidateRef": "RC_PREPROD_V1",
+      "releaseApprovalFreezeRef": "RAF_PREPROD_V1",
+      "fhirRepresentationContractRef": "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1",
+      "fhirCompanionTupleRef": "AFCM_053_RELEASE_CANDIDATE_PUBLISHED",
+      "admissibilityState": "watch",
+      "defectState": "watch",
+      "admissibilityDependencyRefs": [
+        "AUDDEP_053_RELEASE_WATCH_EXCEPTION_PACK"
+      ],
+      "source_refs": [
+        "blueprint/platform-runtime-and-release-blueprint.md#immutable audit in the WORM ledger",
+        "data/analysis/design_contract_publication_bundles.json",
+        "data/analysis/release_publication_parity_rules.json"
+      ],
+      "rationale": "Release publication is immutable but still watch-bound until the same continuity and assurance graph stay exact.",
+      "hash": "63aeb3895c78277c2ec315bb1ade42e4001449533d5e7f07ab851bb3b1d40dae"
+    },
+    {
+      "auditRecordId": "AR_053_RELEASE_FREEZE_OPENED_01",
+      "chainSequence": 10,
+      "actorClass": "governance_reviewer",
+      "actorRef": "actor://governance/release-reviewer",
+      "actingContextRef": "ACTCTX_053_GOVERNANCE_RELEASE_REVIEW",
+      "actingContextLabel": "Governance release review",
+      "actionTaxonomyRef": "AAT_053_RELEASE_FREEZE_OPENED",
+      "actionCode": "release_freeze_opened",
+      "actionLabel": "Release freeze opened",
+      "actionCategory": "release_governance",
+      "routeFamilyRef": "rf_governance_shell",
+      "routeFamilyLabel": "Governance shell",
+      "audienceSurface": "audsurf_governance_admin",
+      "audienceSurfaceLabel": "Governance and admin routes",
+      "targetType": "ReleaseApprovalFreeze",
+      "targetId": "freeze://production/live-freeze",
+      "reasonCode": "production_freeze_armed",
+      "edgeCorrelationId": "edge::053::ar_053_release_freeze_opened_01",
+      "routeIntentRef": "route-intent::053::rf_governance_shell::10",
+      "commandActionRef": "car::053::ar_053_release_freeze_opened_01",
+      "commandSettlementRef": "csr::053::ar_053_release_freeze_opened_01",
+      "uiEventRef": "uie::053::ar_053_release_freeze_opened_01",
+      "uiEventCausalityFrameRef": "uicf::053::ar_053_release_freeze_opened_01",
+      "uiTransitionSettlementRef": "uits::053::ar_053_release_freeze_opened_01",
+      "projectionVisibilityRef": "uipr::053::ar_053_release_freeze_opened_01",
+      "selectedAnchorRef": "anchor://governance/freeze",
+      "shellDecisionClass": "frozen",
+      "disclosureFenceRef": "fence::053::ev_assurance_ledger_entry",
+      "disclosureMatrixRef": "EV_ASSURANCE_LEDGER_ENTRY",
+      "sourceIpDisposition": "hashed_descriptor",
+      "sourceIpHash": "aeb58d36f7dab5b9fd9f907f58af87bd64e64f8f941a6153440f2bbf61636325",
+      "userAgentDisposition": "hashed_descriptor",
+      "userAgentHash": "62ee9d5ab28b98ee4ce152b59ce226680c5a33c481e4b044d2ddca9ebae8809a",
+      "timestamp": "2026-04-13T09:03:00+00:00",
+      "timestampPrecision": "second",
+      "previousHash": "63aeb3895c78277c2ec315bb1ade42e4001449533d5e7f07ab851bb3b1d40dae",
+      "chainIntegrityState": "exact",
+      "retentionClassRef": "WRC_053_RELEASE_GOVERNANCE",
+      "designContractPublicationBundleRef": "dcpb::governance_admin::planned",
+      "designContractDigestRef": "f28e43bf102aeb5d",
+      "releaseCandidateRef": "RC_PRODUCTION_V1",
+      "releaseApprovalFreezeRef": "RAF_PRODUCTION_V1",
+      "fhirRepresentationContractRef": "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1",
+      "fhirCompanionTupleRef": "AFCM_053_RELEASE_FREEZE_OPENED",
+      "admissibilityState": "admissible",
+      "defectState": "clean",
+      "admissibilityDependencyRefs": [
+        "AUDDEP_053_RELEASE_WATCH_EXCEPTION_PACK"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "data/analysis/design_contract_publication_bundles.json",
+        "data/analysis/release_publication_parity_rules.json"
+      ],
+      "rationale": "Freeze posture is stored as contract law, not as an ops-side deployment annotation.",
+      "hash": "5eee535db53496cbd1354a6492b4d052d87d086f1c961d84f1f7c4aa65d95d94"
+    },
+    {
+      "auditRecordId": "AR_053_RELEASE_WAVE_STARTED_01",
+      "chainSequence": 11,
+      "actorClass": "release_manager",
+      "actorRef": "actor://release/manager-01",
+      "actingContextRef": "ACTCTX_053_OPERATIONS_WATCH",
+      "actingContextLabel": "Operations release watch",
+      "actionTaxonomyRef": "AAT_053_RELEASE_WAVE_STARTED",
+      "actionCode": "release_wave_started",
+      "actionLabel": "Release wave started",
+      "actionCategory": "release_governance",
+      "routeFamilyRef": "rf_operations_board",
+      "routeFamilyLabel": "Operations board",
+      "audienceSurface": "audsurf_operations_console",
+      "audienceSurfaceLabel": "Operations console routes",
+      "targetType": "WaveActionRecord",
+      "targetId": "wave://production/main",
+      "reasonCode": "wave_watch_opened",
+      "edgeCorrelationId": "edge::053::ar_053_release_wave_started_01",
+      "routeIntentRef": "route-intent::053::rf_operations_board::11",
+      "commandActionRef": "car::053::ar_053_release_wave_started_01",
+      "commandSettlementRef": "csr::053::ar_053_release_wave_started_01",
+      "uiEventRef": "uie::053::ar_053_release_wave_started_01",
+      "uiEventCausalityFrameRef": "uicf::053::ar_053_release_wave_started_01",
+      "uiTransitionSettlementRef": "uits::053::ar_053_release_wave_started_01",
+      "projectionVisibilityRef": "uipr::053::ar_053_release_wave_started_01",
+      "selectedAnchorRef": "anchor://ops/watch",
+      "shellDecisionClass": "reused",
+      "disclosureFenceRef": "fence::053::ev_assurance_ledger_entry",
+      "disclosureMatrixRef": "EV_ASSURANCE_LEDGER_ENTRY",
+      "sourceIpDisposition": "hashed_descriptor",
+      "sourceIpHash": "35c486fca4c4294022625f96dadd849dd752b0073605fe9676013be0213f1cd9",
+      "userAgentDisposition": "hashed_descriptor",
+      "userAgentHash": "4c104774ca2a1f886eb6331322b0c0fbea11dc1b7d61db10e2a106b9f275d563",
+      "timestamp": "2026-04-13T09:10:00+00:00",
+      "timestampPrecision": "second",
+      "previousHash": "5eee535db53496cbd1354a6492b4d052d87d086f1c961d84f1f7c4aa65d95d94",
+      "chainIntegrityState": "exact",
+      "retentionClassRef": "WRC_053_RELEASE_GOVERNANCE",
+      "designContractPublicationBundleRef": "dcpb::operations_console::planned",
+      "designContractDigestRef": "a7e89226ec28b6b5",
+      "releaseCandidateRef": "RC_PRODUCTION_V1",
+      "releaseApprovalFreezeRef": "RAF_PRODUCTION_V1",
+      "fhirRepresentationContractRef": "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1",
+      "fhirCompanionTupleRef": "AFCM_053_RELEASE_WAVE_STARTED",
+      "admissibilityState": "watch",
+      "defectState": "watch",
+      "admissibilityDependencyRefs": [
+        "AUDDEP_053_RELEASE_WATCH_EXCEPTION_PACK"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "data/analysis/design_contract_publication_bundles.json",
+        "data/analysis/release_publication_parity_rules.json"
+      ],
+      "rationale": "Wave watch must reference the same continuity and admissibility proof as governance review.",
+      "hash": "3862c68cb20046a5a36ec95e25122aea522f59e82737657645643014fa3ecaba"
+    },
+    {
+      "auditRecordId": "AR_053_AUDIT_EXPORT_GENERATED_01",
+      "chainSequence": 12,
+      "actorClass": "governance_reviewer",
+      "actorRef": "actor://governance/export-reviewer",
+      "actingContextRef": "ACTCTX_053_AUDIT_EXPORT",
+      "actingContextLabel": "Governed investigation export",
+      "actionTaxonomyRef": "AAT_053_AUDIT_EXPORT_GENERATED",
+      "actionCode": "audit_export_generated",
+      "actionLabel": "Governed audit export generated",
+      "actionCategory": "audit_export",
+      "routeFamilyRef": "rf_operations_drilldown",
+      "routeFamilyLabel": "Operations drilldown",
+      "audienceSurface": "audsurf_operations_console",
+      "audienceSurfaceLabel": "Operations console routes",
+      "targetType": "InvestigationBundleExport",
+      "targetId": "export://audit/investigation-bundle/0001",
+      "reasonCode": "investigation_bundle_requested",
+      "edgeCorrelationId": "edge::053::ar_053_audit_export_generated_01",
+      "routeIntentRef": "route-intent::053::rf_operations_drilldown::12",
+      "commandActionRef": "car::053::ar_053_audit_export_generated_01",
+      "commandSettlementRef": "csr::053::ar_053_audit_export_generated_01",
+      "uiEventRef": "uie::053::ar_053_audit_export_generated_01",
+      "uiEventCausalityFrameRef": "uicf::053::ar_053_audit_export_generated_01",
+      "uiTransitionSettlementRef": "uits::053::ar_053_audit_export_generated_01",
+      "projectionVisibilityRef": "uipr::053::ar_053_audit_export_generated_01",
+      "selectedAnchorRef": "anchor://ops/audit/export",
+      "shellDecisionClass": "reused",
+      "disclosureFenceRef": "fence::053::ev_investigation_export_bundle",
+      "disclosureMatrixRef": "EV_INVESTIGATION_EXPORT_BUNDLE",
+      "sourceIpDisposition": "hashed_descriptor",
+      "sourceIpHash": "7e46c712535c9fdb44860abd6f5dd60d0a0900ba94d1e03f2584e298afcb6af9",
+      "userAgentDisposition": "hashed_descriptor",
+      "userAgentHash": "4d41737e924c3c79afbad117ab486ace3a9ef717914f99109bb534bceaceb370",
+      "timestamp": "2026-04-13T09:17:00+00:00",
+      "timestampPrecision": "second",
+      "previousHash": "3862c68cb20046a5a36ec95e25122aea522f59e82737657645643014fa3ecaba",
+      "chainIntegrityState": "exact",
+      "retentionClassRef": "WRC_053_EXPORT_AND_REPLAY",
+      "designContractPublicationBundleRef": "dcpb::operations_console::planned",
+      "designContractDigestRef": "a7e89226ec28b6b5",
+      "releaseCandidateRef": "RC_PRODUCTION_V1",
+      "releaseApprovalFreezeRef": "RAF_PRODUCTION_V1",
+      "fhirRepresentationContractRef": "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1",
+      "fhirCompanionTupleRef": "AFCM_053_AUDIT_EXPORT_GENERATED",
+      "admissibilityState": "blocked",
+      "defectState": "blocked",
+      "admissibilityDependencyRefs": [
+        "AUDDEP_053_AUDIT_EXPORT_BUNDLE"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "data/analysis/design_contract_publication_bundles.json",
+        "data/analysis/release_publication_parity_rules.json",
+        "docs/architecture/10_audit_posture_and_event_disclosure.md"
+      ],
+      "rationale": "Export stays blocked whenever the completeness graph cannot prove the exact admissible cut.",
+      "hash": "4c5bfbd6f63cd1e06d201899f6bd7eb24197c45f2bbe1547a09f2f7e00b7d9bd"
+    },
+    {
+      "auditRecordId": "AR_053_RETENTION_FREEZE_CREATED_01",
+      "chainSequence": 13,
+      "actorClass": "governance_reviewer",
+      "actorRef": "actor://governance/privacy-reviewer",
+      "actingContextRef": "ACTCTX_053_RETENTION_GOVERNANCE",
+      "actingContextLabel": "Retention governance",
+      "actionTaxonomyRef": "AAT_053_RETENTION_FREEZE_CREATED",
+      "actionCode": "retention_freeze_created",
+      "actionLabel": "Retention freeze created",
+      "actionCategory": "retention_governance",
+      "routeFamilyRef": "rf_governance_shell",
+      "routeFamilyLabel": "Governance shell",
+      "audienceSurface": "audsurf_governance_admin",
+      "audienceSurfaceLabel": "Governance and admin routes",
+      "targetType": "RetentionFreezeRecord",
+      "targetId": "freeze://request/REQ-2048",
+      "reasonCode": "identity_dispute_preservation",
+      "edgeCorrelationId": "edge::053::ar_053_retention_freeze_created_01",
+      "routeIntentRef": "route-intent::053::rf_governance_shell::13",
+      "commandActionRef": "car::053::ar_053_retention_freeze_created_01",
+      "commandSettlementRef": "csr::053::ar_053_retention_freeze_created_01",
+      "uiEventRef": "uie::053::ar_053_retention_freeze_created_01",
+      "uiEventCausalityFrameRef": "uicf::053::ar_053_retention_freeze_created_01",
+      "uiTransitionSettlementRef": "uits::053::ar_053_retention_freeze_created_01",
+      "projectionVisibilityRef": "uipr::053::ar_053_retention_freeze_created_01",
+      "selectedAnchorRef": "anchor://governance/preservation",
+      "shellDecisionClass": "frozen",
+      "disclosureFenceRef": "fence::053::ev_assurance_ledger_entry",
+      "disclosureMatrixRef": "EV_ASSURANCE_LEDGER_ENTRY",
+      "sourceIpDisposition": "hashed_descriptor",
+      "sourceIpHash": "ac3084b8e8bc703f30eaab3c8b7cbc387b9571919f297748851331c84fbe96f3",
+      "userAgentDisposition": "hashed_descriptor",
+      "userAgentHash": "b49bacb7d21638bbefc7a37c414fe36e161393109903abdeaac1e207797f386f",
+      "timestamp": "2026-04-13T09:24:00+00:00",
+      "timestampPrecision": "second",
+      "previousHash": "4c5bfbd6f63cd1e06d201899f6bd7eb24197c45f2bbe1547a09f2f7e00b7d9bd",
+      "chainIntegrityState": "exact",
+      "retentionClassRef": "WRC_053_RETENTION_PRESERVATION",
+      "designContractPublicationBundleRef": "dcpb::governance_admin::planned",
+      "designContractDigestRef": "f28e43bf102aeb5d",
+      "releaseCandidateRef": "RC_PRODUCTION_V1",
+      "releaseApprovalFreezeRef": "RAF_PRODUCTION_V1",
+      "fhirRepresentationContractRef": "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1",
+      "fhirCompanionTupleRef": "AFCM_053_RETENTION_FREEZE_CREATED",
+      "admissibilityState": "blocked",
+      "defectState": "blocked",
+      "admissibilityDependencyRefs": [
+        "AUDDEP_053_RETENTION_DECISION_CHAIN",
+        "AUDDEP_053_ARCHIVE_MANIFEST_ADMISSIBILITY",
+        "AUDDEP_053_DELETION_CERTIFICATE_ADMISSIBILITY"
+      ],
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#13.3 Conservative retention freeze for high-risk episodes",
+        "data/analysis/design_contract_publication_bundles.json",
+        "data/analysis/release_publication_parity_rules.json",
+        "prompt/053.md"
+      ],
+      "rationale": "Retention preservation blocks delete-ready posture until the same admissibility graph proves the scope and chain are complete.",
+      "hash": "a9d93338f92a05fe9600a5b0cb9ba58da1d692cf2bfac8fdc115bac91f5b2c84"
+    },
+    {
+      "auditRecordId": "AR_053_RESILIENCE_ACTION_APPLIED_01",
+      "chainSequence": 14,
+      "actorClass": "platform_operator",
+      "actorRef": "actor://ops/platform-operator",
+      "actingContextRef": "ACTCTX_053_RECOVERY_CONTROL",
+      "actingContextLabel": "Recovery control room",
+      "actionTaxonomyRef": "AAT_053_RESILIENCE_ACTION_APPLIED",
+      "actionCode": "resilience_action_applied",
+      "actionLabel": "Resilience action applied",
+      "actionCategory": "recovery_evidence",
+      "routeFamilyRef": "rf_operations_drilldown",
+      "routeFamilyLabel": "Operations drilldown",
+      "audienceSurface": "audsurf_operations_console",
+      "audienceSurfaceLabel": "Operations console routes",
+      "targetType": "ResilienceActionSettlement",
+      "targetId": "resilience://restore-run/RUN-0007",
+      "reasonCode": "restore_rehearsal_applied",
+      "edgeCorrelationId": "edge::053::ar_053_resilience_action_applied_01",
+      "routeIntentRef": "route-intent::053::rf_operations_drilldown::14",
+      "commandActionRef": "car::053::ar_053_resilience_action_applied_01",
+      "commandSettlementRef": "csr::053::ar_053_resilience_action_applied_01",
+      "uiEventRef": "uie::053::ar_053_resilience_action_applied_01",
+      "uiEventCausalityFrameRef": "uicf::053::ar_053_resilience_action_applied_01",
+      "uiTransitionSettlementRef": "uits::053::ar_053_resilience_action_applied_01",
+      "projectionVisibilityRef": "uipr::053::ar_053_resilience_action_applied_01",
+      "selectedAnchorRef": "anchor://ops/recovery",
+      "shellDecisionClass": "recovered",
+      "disclosureFenceRef": "fence::053::ev_assurance_ledger_entry",
+      "disclosureMatrixRef": "EV_ASSURANCE_LEDGER_ENTRY",
+      "sourceIpDisposition": "hashed_descriptor",
+      "sourceIpHash": "4fdccb93d68b217ffcc3bdb509677ddbd05c64bf2b6147e3327beb4cd8f3340f",
+      "userAgentDisposition": "hashed_descriptor",
+      "userAgentHash": "d768035c30f1f920057a122ae8c040b5f79ce29f61bc0db346ed8030c44f03ce",
+      "timestamp": "2026-04-13T09:31:00+00:00",
+      "timestampPrecision": "second",
+      "previousHash": "a9d93338f92a05fe9600a5b0cb9ba58da1d692cf2bfac8fdc115bac91f5b2c84",
+      "chainIntegrityState": "exact",
+      "retentionClassRef": "WRC_053_RECOVERY_EVIDENCE",
+      "designContractPublicationBundleRef": "dcpb::operations_console::planned",
+      "designContractDigestRef": "a7e89226ec28b6b5",
+      "releaseCandidateRef": "RC_PRODUCTION_V1",
+      "releaseApprovalFreezeRef": "RAF_PRODUCTION_V1",
+      "fhirRepresentationContractRef": "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1",
+      "fhirCompanionTupleRef": "AFCM_053_RESILIENCE_ACTION_APPLIED",
+      "admissibilityState": "watch",
+      "defectState": "watch",
+      "admissibilityDependencyRefs": [
+        "AUDDEP_053_RECOVERY_EVIDENCE_BUNDLE"
+      ],
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#62E Restore, failover, and chaos completion",
+        "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+        "data/analysis/design_contract_publication_bundles.json",
+        "data/analysis/release_publication_parity_rules.json"
+      ],
+      "rationale": "Recovery evidence is recorded on the same audit spine but remains watch-bound until the evidence graph refresh completes.",
+      "hash": "bad5668d087935f979e3011755f348ebd2519d0b0ae404214e2898df58a240e7"
+    }
+  ],
+  "admissibilityDependencies": [
+    {
+      "auditAdmissibilityDependencyId": "AUDDEP_053_AUDIT_TIMELINE_RECONSTRUCTION",
+      "consumerFlow": "audit_investigation",
+      "consumerLabel": "Audit investigation timeline reconstruction",
+      "currentState": "admissible",
+      "linkedRecordRefs": [
+        "AR_053_IDENTITY_SESSION_ESTABLISHED_01",
+        "AR_053_ROUTE_INTENT_ESTABLISHED_01",
+        "AR_053_COMMAND_INGESTED_01",
+        "AR_053_COMMAND_SETTLED_01",
+        "AR_053_PROJECTION_VISIBLE_01"
+      ],
+      "consumerRouteFamilyRefs": [
+        "rf_operations_drilldown",
+        "rf_support_replay_observe"
+      ],
+      "requiredAuthoritativeRefs": [
+        "AuditRecord",
+        "UIProjectionVisibilityReceipt",
+        "UITransitionSettlementRecord"
+      ],
+      "requiredGraphAuthorityRefs": [
+        "AssuranceEvidenceGraphSnapshot",
+        "AssuranceGraphCompletenessVerdict"
+      ],
+      "requiredContinuityEvidenceRefs": [
+        "ExperienceContinuityControlEvidence"
+      ],
+      "requiredReleaseTupleRefs": [
+        "RC_PRODUCTION_V1",
+        "dcpb::patient_authenticated_shell::planned"
+      ],
+      "requiredFhirCompanionRefs": [
+        "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1"
+      ],
+      "blockedReasonCodes": [],
+      "failureMode": "read_only_recovery",
+      "source_refs": [
+        "blueprint/phase-9-the-assurance-ledger.md#9C. Audit explorer, break-glass review, and support replay",
+        "blueprint/phase-0-the-foundation-protocol.md#62H Assurance admissibility"
+      ],
+      "rationale": "Audit search and timeline reconstruction consume the append-only audit chain plus the current admissibility graph rather than local joins."
+    },
+    {
+      "auditAdmissibilityDependencyId": "AUDDEP_053_SUPPORT_REPLAY_SESSION",
+      "consumerFlow": "support_replay",
+      "consumerLabel": "Support replay and restore",
+      "currentState": "admissible",
+      "linkedRecordRefs": [
+        "AR_053_BREAK_GLASS_USED_01",
+        "AR_053_SUPPORT_REPLAY_RESTORE_REQUIRED_01",
+        "AR_053_SUPPORT_REPLAY_RESTORE_SETTLED_01"
+      ],
+      "consumerRouteFamilyRefs": [
+        "rf_support_replay_observe"
+      ],
+      "requiredAuthoritativeRefs": [
+        "AuditRecord",
+        "SupportReplaySession",
+        "SupportReplayRestoreSettlement"
+      ],
+      "requiredGraphAuthorityRefs": [
+        "AssuranceEvidenceGraphSnapshot",
+        "AssuranceGraphCompletenessVerdict"
+      ],
+      "requiredContinuityEvidenceRefs": [
+        "SupportContinuityEvidenceProjection"
+      ],
+      "requiredReleaseTupleRefs": [
+        "RC_PRODUCTION_V1",
+        "dcpb::support_workspace::planned"
+      ],
+      "requiredFhirCompanionRefs": [
+        "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1"
+      ],
+      "blockedReasonCodes": [],
+      "failureMode": "read_only_recovery",
+      "source_refs": [
+        "blueprint/phase-9-the-assurance-ledger.md#9C. Audit explorer, break-glass review, and support replay",
+        "blueprint/forensic-audit-findings.md#Finding 102"
+      ],
+      "rationale": "Support replay restore depends on the same immutable audit join, disclosure fence, and graph completeness verdict as export and investigation."
+    },
+    {
+      "auditAdmissibilityDependencyId": "AUDDEP_053_BREAK_GLASS_REVIEW",
+      "consumerFlow": "break_glass_review",
+      "consumerLabel": "Break-glass adequacy review",
+      "currentState": "watch",
+      "linkedRecordRefs": [
+        "AR_053_BREAK_GLASS_USED_01"
+      ],
+      "consumerRouteFamilyRefs": [
+        "rf_support_replay_observe",
+        "rf_governance_shell"
+      ],
+      "requiredAuthoritativeRefs": [
+        "AuditRecord",
+        "BreakGlassReviewRecord",
+        "InvestigationScopeEnvelope"
+      ],
+      "requiredGraphAuthorityRefs": [
+        "AssuranceEvidenceGraphSnapshot",
+        "AssuranceGraphCompletenessVerdict"
+      ],
+      "requiredContinuityEvidenceRefs": [
+        "SupportContinuityEvidenceProjection"
+      ],
+      "requiredReleaseTupleRefs": [
+        "RC_PRODUCTION_V1",
+        "dcpb::support_workspace::planned"
+      ],
+      "requiredFhirCompanionRefs": [
+        "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1"
+      ],
+      "blockedReasonCodes": [
+        "DRIFT_053_BREAK_GLASS_FOLLOW_UP_BURDEN_OPEN"
+      ],
+      "failureMode": "read_only_review",
+      "source_refs": [
+        "blueprint/phase-9-the-assurance-ledger.md#9C. Audit explorer, break-glass review, and support replay",
+        "docs/architecture/10_break_glass_and_investigation_scope_rules.md"
+      ],
+      "rationale": "Break-glass review remains watch-bound while reviewer burden is open, but still consumes the same audit spine and admissibility graph."
+    },
+    {
+      "auditAdmissibilityDependencyId": "AUDDEP_053_RELEASE_WATCH_EXCEPTION_PACK",
+      "consumerFlow": "release_watch",
+      "consumerLabel": "Release watch and governance continuity pack",
+      "currentState": "watch",
+      "linkedRecordRefs": [
+        "AR_053_RELEASE_CANDIDATE_PUBLISHED_01",
+        "AR_053_RELEASE_FREEZE_OPENED_01",
+        "AR_053_RELEASE_WAVE_STARTED_01"
+      ],
+      "consumerRouteFamilyRefs": [
+        "rf_governance_shell",
+        "rf_operations_board"
+      ],
+      "requiredAuthoritativeRefs": [
+        "AuditRecord",
+        "ReleaseCandidate",
+        "ReleasePublicationParityRecord"
+      ],
+      "requiredGraphAuthorityRefs": [
+        "AssuranceEvidenceGraphSnapshot",
+        "AssuranceGraphCompletenessVerdict"
+      ],
+      "requiredContinuityEvidenceRefs": [
+        "GovernanceContinuityEvidenceBundle",
+        "OpsContinuityEvidenceSlice"
+      ],
+      "requiredReleaseTupleRefs": [
+        "RC_PREPROD_V1",
+        "RC_PRODUCTION_V1",
+        "dcpb::operations_console::planned",
+        "dcpb::governance_admin::planned"
+      ],
+      "requiredFhirCompanionRefs": [
+        "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1"
+      ],
+      "blockedReasonCodes": [
+        "DRIFT_053_CONTINUITY_EVIDENCE_REFRESH_PENDING"
+      ],
+      "failureMode": "watch_only",
+      "source_refs": [
+        "blueprint/forensic-audit-findings.md#Finding 103",
+        "blueprint/forensic-audit-findings.md#Finding 104",
+        "blueprint/forensic-audit-findings.md#Finding 106"
+      ],
+      "rationale": "Governance review and ops watch stay on one continuity-proof loop and therefore remain watch-bound until the current evidence cut is exact."
+    },
+    {
+      "auditAdmissibilityDependencyId": "AUDDEP_053_AUDIT_EXPORT_BUNDLE",
+      "consumerFlow": "audit_export",
+      "consumerLabel": "Governed investigation export bundle",
+      "currentState": "blocked",
+      "linkedRecordRefs": [
+        "AR_053_AUDIT_EXPORT_GENERATED_01"
+      ],
+      "consumerRouteFamilyRefs": [
+        "rf_operations_drilldown"
+      ],
+      "requiredAuthoritativeRefs": [
+        "AuditRecord",
+        "InvestigationTimelineReconstruction",
+        "ArtifactPresentationContract"
+      ],
+      "requiredGraphAuthorityRefs": [
+        "AssuranceEvidenceGraphSnapshot",
+        "AssuranceGraphCompletenessVerdict"
+      ],
+      "requiredContinuityEvidenceRefs": [
+        "ExperienceContinuityControlEvidence"
+      ],
+      "requiredReleaseTupleRefs": [
+        "RC_PRODUCTION_V1",
+        "dcpb::operations_console::planned"
+      ],
+      "requiredFhirCompanionRefs": [
+        "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1"
+      ],
+      "blockedReasonCodes": [
+        "BLOCKER_053_EXPORT_REQUIRES_COMPLETE_GRAPH"
+      ],
+      "failureMode": "export_blocked",
+      "source_refs": [
+        "blueprint/phase-9-the-assurance-ledger.md#AssuranceEvidenceGraphSnapshot",
+        "blueprint/phase-9-the-assurance-ledger.md#AssuranceGraphCompletenessVerdict",
+        "prompt/053.md"
+      ],
+      "rationale": "Export cannot claim authoritative completeness without the same graph snapshot and verdict that govern replay and retention."
+    },
+    {
+      "auditAdmissibilityDependencyId": "AUDDEP_053_RETENTION_DECISION_CHAIN",
+      "consumerFlow": "retention_governance",
+      "consumerLabel": "Retention decision and freeze lineage",
+      "currentState": "blocked",
+      "linkedRecordRefs": [
+        "AR_053_RETENTION_FREEZE_CREATED_01"
+      ],
+      "consumerRouteFamilyRefs": [
+        "rf_governance_shell"
+      ],
+      "requiredAuthoritativeRefs": [
+        "AuditRecord",
+        "RetentionFreezeRecord",
+        "FreezeBundleManifest"
+      ],
+      "requiredGraphAuthorityRefs": [
+        "AssuranceEvidenceGraphSnapshot",
+        "AssuranceGraphCompletenessVerdict"
+      ],
+      "requiredContinuityEvidenceRefs": [
+        "ExperienceContinuityControlEvidence"
+      ],
+      "requiredReleaseTupleRefs": [
+        "RC_PRODUCTION_V1",
+        "dcpb::governance_admin::planned"
+      ],
+      "requiredFhirCompanionRefs": [
+        "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1"
+      ],
+      "blockedReasonCodes": [
+        "BLOCKER_053_RETENTION_GRAPH_INCOMPLETE"
+      ],
+      "failureMode": "archive_only",
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#13.3 Conservative retention freeze for high-risk episodes",
+        "blueprint/phase-9-the-assurance-ledger.md#AssuranceEvidenceGraphSnapshot"
+      ],
+      "rationale": "Retention and freeze decisions must consume the same graph the audit, replay, export, and archive flows later validate."
+    },
+    {
+      "auditAdmissibilityDependencyId": "AUDDEP_053_ARCHIVE_MANIFEST_ADMISSIBILITY",
+      "consumerFlow": "archive_manifest",
+      "consumerLabel": "Archive manifest admissibility",
+      "currentState": "blocked",
+      "linkedRecordRefs": [
+        "AR_053_RETENTION_FREEZE_CREATED_01"
+      ],
+      "consumerRouteFamilyRefs": [
+        "rf_governance_shell"
+      ],
+      "requiredAuthoritativeRefs": [
+        "AuditRecord",
+        "ArchiveManifest",
+        "RetentionDecision"
+      ],
+      "requiredGraphAuthorityRefs": [
+        "AssuranceEvidenceGraphSnapshot",
+        "AssuranceGraphCompletenessVerdict"
+      ],
+      "requiredContinuityEvidenceRefs": [
+        "ExperienceContinuityControlEvidence"
+      ],
+      "requiredReleaseTupleRefs": [
+        "RC_PRODUCTION_V1",
+        "dcpb::governance_admin::planned"
+      ],
+      "requiredFhirCompanionRefs": [
+        "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1"
+      ],
+      "blockedReasonCodes": [
+        "BLOCKER_053_ARCHIVE_NEEDS_UNSUPERSEDED_GRAPH"
+      ],
+      "failureMode": "archive_only",
+      "source_refs": [
+        "blueprint/phase-9-the-assurance-ledger.md#AssuranceGraphCompletenessVerdict",
+        "prompt/053.md"
+      ],
+      "rationale": "Archive manifests are blocked until the same completeness verdict proves the preservation lineage is unsuperseded and in scope."
+    },
+    {
+      "auditAdmissibilityDependencyId": "AUDDEP_053_DELETION_CERTIFICATE_ADMISSIBILITY",
+      "consumerFlow": "deletion_certificate",
+      "consumerLabel": "Deletion-certificate admissibility",
+      "currentState": "blocked",
+      "linkedRecordRefs": [
+        "AR_053_RETENTION_FREEZE_CREATED_01"
+      ],
+      "consumerRouteFamilyRefs": [
+        "rf_governance_shell"
+      ],
+      "requiredAuthoritativeRefs": [
+        "AuditRecord",
+        "DeletionCertificate",
+        "RetentionDecision"
+      ],
+      "requiredGraphAuthorityRefs": [
+        "AssuranceEvidenceGraphSnapshot",
+        "AssuranceGraphCompletenessVerdict"
+      ],
+      "requiredContinuityEvidenceRefs": [
+        "ExperienceContinuityControlEvidence"
+      ],
+      "requiredReleaseTupleRefs": [
+        "RC_PRODUCTION_V1",
+        "dcpb::governance_admin::planned"
+      ],
+      "requiredFhirCompanionRefs": [
+        "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1"
+      ],
+      "blockedReasonCodes": [
+        "BLOCKER_053_HASH_CHAINED_CLASSES_NEVER_DELETE_READY"
+      ],
+      "failureMode": "blocked",
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#62H Assurance admissibility",
+        "prompt/053.md"
+      ],
+      "rationale": "Delete-ready posture is forbidden for WORM and hash-chained audit classes even when later lifecycle automation exists."
+    },
+    {
+      "auditAdmissibilityDependencyId": "AUDDEP_053_RECOVERY_EVIDENCE_BUNDLE",
+      "consumerFlow": "recovery_evidence",
+      "consumerLabel": "Recovery evidence bundle",
+      "currentState": "watch",
+      "linkedRecordRefs": [
+        "AR_053_RESILIENCE_ACTION_APPLIED_01"
+      ],
+      "consumerRouteFamilyRefs": [
+        "rf_operations_drilldown"
+      ],
+      "requiredAuthoritativeRefs": [
+        "AuditRecord",
+        "ResilienceActionSettlement",
+        "RecoveryEvidenceArtifact"
+      ],
+      "requiredGraphAuthorityRefs": [
+        "AssuranceEvidenceGraphSnapshot",
+        "AssuranceGraphCompletenessVerdict"
+      ],
+      "requiredContinuityEvidenceRefs": [
+        "OpsContinuityEvidenceSlice"
+      ],
+      "requiredReleaseTupleRefs": [
+        "RC_PRODUCTION_V1",
+        "dcpb::operations_console::planned"
+      ],
+      "requiredFhirCompanionRefs": [
+        "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1"
+      ],
+      "blockedReasonCodes": [
+        "RISK_053_RECOVERY_GRAPH_REFRESH_PENDING"
+      ],
+      "failureMode": "watch_only",
+      "source_refs": [
+        "blueprint/platform-runtime-and-release-blueprint.md#Verification ladder contract",
+        "blueprint/forensic-audit-findings.md#Finding 113"
+      ],
+      "rationale": "Recovery evidence must stay on the same graph and audit spine as export, replay, and retention; stale graph refresh leaves it watch-bound."
+    }
+  ],
+  "graphAuthorities": [
+    {
+      "ref": "AssuranceEvidenceGraphSnapshot",
+      "hashRef": "graphHash",
+      "purpose": "authoritative admissibility graph for audit, replay, export, retention, and recovery completeness"
+    },
+    {
+      "ref": "AssuranceGraphCompletenessVerdict",
+      "hashRef": "decisionHash",
+      "purpose": "fail-closed completeness verdict over the current admissible graph"
+    }
+  ],
+  "fhirCompanionPolicy": {
+    "canonicalContractRef": "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1",
+    "canonicalTruthState": "AuditRecord_canonical_companion_only",
+    "allowedResourceTypes": [
+      "AuditEvent",
+      "Provenance"
+    ],
+    "requiredProfileCanonicalUrls": [
+      "https://vecells.example/fhir/StructureDefinition/vecells-audit-event",
+      "https://vecells.example/fhir/StructureDefinition/vecells-audit-provenance"
+    ],
+    "source_refs": [
+      "blueprint/phase-0-the-foundation-protocol.md#FhirRepresentationContract",
+      "blueprint/phase-0-the-foundation-protocol.md#AuditRecord",
+      "blueprint/platform-runtime-and-release-blueprint.md#AdapterContractProfile"
+    ]
+  }
+}

@@ -1,0 +1,66 @@
+schemaVersion: 172.phase2.patient-link.v1
+policyVersion: phase2-patient-link-v1
+seamId: PDS_ENRICHMENT_SEAM_172
+enabledByDefault: false
+providerRole: optional_enrichment_only
+featureFlag: identity.pds_enrichment.enabled
+legalBasisGate:
+  required: true
+  evidenceRefRequired: true
+  acceptedStates:
+    - approved_for_patient_lookup
+onboardingGate:
+  required: true
+  nhsEnglandDigitalOnboardingComplete: true
+  apiAccessApproved: true
+  environmentApproved:
+    - integration
+    - production
+secureConnectivityGate:
+  required: true
+  transport: nhs_api_platform
+  mutualTlsOrEquivalentRequired: true
+  secretsSource: managed_secret_ref_only
+providerPort:
+  name: PdsEnrichmentProvider
+  requestContract:
+    permittedOperations:
+      - search_patient_by_identifier_when_legal_basis_exists
+      - search_patient_by_bounded_demographics_when_identifier_absent
+    permittedSearchKeys:
+      - nhs_number_hash_exact
+      - date_of_birth
+      - normalized_family_name
+      - normalized_given_name
+      - postcode_prefix
+    forbiddenSearchKeys:
+      - free_text_notes
+      - browser_memory
+      - patient_preferred_comms
+  responseContract:
+    allowedOutputs:
+      - pdsDemographicsRef
+      - pdsLookupOutcome
+      - pdsProvenancePenalty
+      - pdsUnavailableReason
+    forbiddenOutputs:
+      - patientPreferredCommsOverwrite
+      - directIdentityBindingWrite
+      - directSessionCreation
+timeoutPolicy:
+  connectTimeoutMs: 1200
+  totalTimeoutMs: 2600
+  retryCount: 0
+fallbackSemantics:
+  fallbackMode: local_matching_only
+  blockedWhenUnavailable: false
+  degradedReasonCode: LINK_172_PDS_DISABLED_OR_UNAVAILABLE
+  autoLinkMayNotDependOnlyOnPds: true
+noAmbientSideEffect: true
+auditAndLogging:
+  eventFamily: LINK_172_PDS_SEAM
+  payloadPolicy: references_and_outcomes_only
+  rawIdentifierLogging: forbidden
+im1GpLinkPosture:
+  linkageKeyLookup: disabled_until_live_im1_prerequisites
+  shortcutRetrieval: forbidden

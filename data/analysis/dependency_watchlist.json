@@ -1,0 +1,1054 @@
+{
+  "watchlist_id": "vecells_dependency_watchlist_v1",
+  "mission": "Merge external onboarding, supplier capability, standards hygiene, release-control seams, and runbook dependencies into one reviewable watchlist.",
+  "source_precedence": [
+    "prompt/AGENT.md",
+    "prompt/checklist.md",
+    "prompt/018.md",
+    "prompt/shared_operating_contract_016_to_020.md",
+    "data/analysis/summary_conflicts.json",
+    "data/analysis/programme_milestones.json",
+    "data/analysis/external_dependencies.json",
+    "data/analysis/regulatory_workstreams.json",
+    "data/analysis/architecture_gap_register.json",
+    "data/analysis/adr_index.json",
+    "blueprint/platform-admin-and-config-blueprint.md#StandardsBaselineMap",
+    "blueprint/platform-admin-and-config-blueprint.md#DependencyLifecycleRecord",
+    "blueprint/platform-admin-and-config-blueprint.md#StandardsDependencyWatchlist",
+    "blueprint/platform-runtime-and-release-blueprint.md#DependencyDegradationProfile",
+    "blueprint/platform-runtime-and-release-blueprint.md#ReleaseWatchTuple",
+    "blueprint/platform-runtime-and-release-blueprint.md#WaveObservationPolicy",
+    "blueprint/platform-runtime-and-release-blueprint.md#ReleaseRecoveryDisposition",
+    "blueprint/phase-9-the-assurance-ledger.md#Assurance graph completeness and incident workflow",
+    "blueprint/forensic-audit-findings.md#Findings 91, 95, 104-120"
+  ],
+  "summary": {
+    "dependency_count": 26,
+    "current_count": 22,
+    "deferred_count": 1,
+    "optional_count": 3,
+    "lifecycle_counts": {
+      "blocked": 2,
+      "current": 5,
+      "deferred": 1,
+      "onboarding": 15,
+      "replaceable_by_simulator": 3
+    },
+    "type_counts": {
+      "external_approval": 2,
+      "external_service": 10,
+      "infra_component": 2,
+      "runbook_dependency": 2,
+      "security_control": 1,
+      "standards_baseline": 2,
+      "supplier_capability": 7
+    }
+  },
+  "assumptions": [
+    {
+      "assumption_id": "ASSUMPTION_018_SIMULATOR_NOT_HEALTHY",
+      "decision": "Simulator or manual fallback posture counts as watch or replaceable-by-simulator, never as the dependency being fully healthy.",
+      "source_refs": [
+        "prompt/018.md#Non-negotiable risk/watchlist rules",
+        "data/analysis/dependency_truth_and_fallback_matrix.csv"
+      ]
+    },
+    {
+      "assumption_id": "ASSUMPTION_018_RESOLVED_ADR_GAPS_STAY_VISIBLE",
+      "decision": "Resolved architecture gaps remain in the register as retired or guarded rows so later gate tasks can prove they were deliberately closed rather than forgotten.",
+      "source_refs": [
+        "data/analysis/architecture_gap_register.json",
+        "prompt/018.md#Execution steps"
+      ]
+    },
+    {
+      "assumption_id": "ASSUMPTION_018_INTERNAL_WATCH_ROWS",
+      "decision": "Standards, release-publication, evidence-graph, HSM, alert-routing, and restore-rehearsal seams are added as internal dependency watch rows because the prompt requires one merged watch posture, not only external inventory rows.",
+      "source_refs": [
+        "prompt/018.md#Mandatory gap closures",
+        "blueprint/platform-admin-and-config-blueprint.md#StandardsDependencyWatchlist"
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "dependency_id": "dep_alert_destination_binding",
+      "dependency_name": "Alert-routing destination and on-call binding",
+      "dependency_type": "runbook_dependency",
+      "baseline_scope": "current",
+      "source_refs": [
+        "data/analysis/architecture_gap_register.json#GAP_015_ALERT_DESTINATION_BINDING",
+        "data/analysis/incident_and_alert_routing_matrix.csv"
+      ],
+      "linked_external_inventory_refs": [],
+      "linked_adapter_profile_refs": [],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "blocked",
+      "required_for_milestone_refs": [
+        "MS_P9_PROOF_AND_EXIT_PACK",
+        "MS_PRG_RELEASE_READINESS"
+      ],
+      "required_for_gate_refs": [
+        "GATE_RELEASE_READINESS",
+        "GATE_WAVE1_OBSERVATION"
+      ],
+      "blast_radius_scope": "incident escalation, watch tuple response, and continuity recovery",
+      "monitoring_signals": [
+        "Alert routes still use placeholder destination identifiers",
+        "role-to-rotation mapping is not yet tenant- or service-owner bound"
+      ],
+      "degradation_mode": "incident_response_relies_on_manual_broadcast",
+      "fallback_strategy": "Use controlled manual escalation lists and freeze optimistic alert-coverage claims.",
+      "owner_role": "ROLE_OPERATIONS_LEAD",
+      "next_review_ref": "GATE_RELEASE_READINESS",
+      "notes": "Inherited open gap from seq_015 and seq_016."
+    },
+    {
+      "dependency_id": "dep_assurance_evidence_graph",
+      "dependency_name": "Assurance evidence graph completeness engine",
+      "dependency_type": "infra_component",
+      "baseline_scope": "current",
+      "source_refs": [
+        "data/analysis/regulatory_workstreams.json#WS_RELEASE_RUNTIME_PUBLICATION_PARITY",
+        "blueprint/phase-9-the-assurance-ledger.md#AssuranceGraphCompletenessVerdict"
+      ],
+      "linked_external_inventory_refs": [],
+      "linked_adapter_profile_refs": [],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "current",
+      "required_for_milestone_refs": [
+        "MS_P9_PROOF_AND_EXIT_PACK",
+        "MS_PRG_CURRENT_BASELINE_CONFORMANCE"
+      ],
+      "required_for_gate_refs": [
+        "GATE_CURRENT_BASELINE_CONFORMANCE",
+        "GATE_BAU_TRANSFER"
+      ],
+      "blast_radius_scope": "all release, conformance, retention, and BAU evidence admissibility",
+      "monitoring_signals": [
+        "AssuranceGraphCompletenessVerdict remains admissible for the current candidate",
+        "Evidence export rows still point to the same graph hash"
+      ],
+      "degradation_mode": "approval_and_archive_actions_fail_closed",
+      "fallback_strategy": "Stop signoff and archive operations until the graph is regenerated and complete.",
+      "owner_role": "ROLE_ASSURANCE_PLATFORM_LEAD",
+      "next_review_ref": "GATE_CURRENT_BASELINE_CONFORMANCE",
+      "notes": ""
+    },
+    {
+      "dependency_id": "dep_cross_org_secure_messaging_mesh",
+      "dependency_name": "Cross-organisation secure messaging rail including MESH",
+      "dependency_type": "external_service",
+      "baseline_scope": "current",
+      "source_refs": [
+        "blueprint-init.md#1. Product definition",
+        "phase-5-the-network-horizon.md#Hub commit algorithm",
+        "phase-6-the-pharmacy-loop.md#6D. Referral pack composer, dispatch adapters, and transport contract"
+      ],
+      "linked_external_inventory_refs": [
+        "dep_cross_org_secure_messaging_mesh"
+      ],
+      "linked_adapter_profile_refs": [
+        "secure_message_transport_adapter"
+      ],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "onboarding",
+      "required_for_milestone_refs": [
+        "MS_EXT_MESH_ACCESS",
+        "MS_P5_DEFINITION_AND_ENTRY",
+        "MS_P5_PARALLEL_NETWORK_IMPLEMENTATION",
+        "MS_P5_MERGE_CONFIG_AND_PROOF",
+        "MS_P5_EXIT_GATE"
+      ],
+      "required_for_gate_refs": [
+        "GATE_EXTERNAL_TO_FOUNDATION",
+        "GATE_P5_PARALLEL_MERGE"
+      ],
+      "blast_radius_scope": "cross-organisation messaging and hub coordination",
+      "monitoring_signals": [
+        "Current delivery evidence or other allowed proof class accepted by the live transport assurance profile for the exact outbound effect chain.",
+        "Transport accepted or checksum acknowledged",
+        "Mailbox queued or message handed off",
+        "Cross-organisation access approval before live mailbox use"
+      ],
+      "degradation_mode": "Delivery evidence still pending or disputed; Transport-only evidence without current-generation acknowledgement",
+      "fallback_strategy": "Retry through the same idempotent effect chain; Monitored mailbox or telephone escalation where policy allows",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "next_review_ref": "GATE_EXTERNAL_TO_FOUNDATION",
+      "notes": "The rail may carry practice visibility or pharmacy payloads, but transport acceptance alone never settles either business truth."
+    },
+    {
+      "dependency_id": "dep_email_notification_provider",
+      "dependency_name": "Email and notification delivery provider",
+      "dependency_type": "external_service",
+      "baseline_scope": "current",
+      "source_refs": [
+        "callback-and-clinician-messaging-loop.md#Clinician message domain",
+        "phase-5-the-network-horizon.md#Reminder and communication publication",
+        "phase-0-the-foundation-protocol.md#Command and adapter effect ledger"
+      ],
+      "linked_external_inventory_refs": [
+        "dep_email_notification_provider"
+      ],
+      "linked_adapter_profile_refs": [
+        "email_delivery_adapter"
+      ],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "onboarding",
+      "required_for_milestone_refs": [
+        "MS_EXT_COMMS_AND_SCAN_VENDORS",
+        "MS_P2_EXTERNAL_CONFIG"
+      ],
+      "required_for_gate_refs": [],
+      "blast_radius_scope": "notification, secure-link, and patient reassurance posture",
+      "monitoring_signals": [
+        "Current MessageDeliveryEvidenceBundle or AdapterReceiptCheckpoint for the live CommunicationEnvelope and route tuple.",
+        "Provider accepted the send",
+        "SMTP or API returned queued state",
+        "Sender-domain verification and security review"
+      ],
+      "degradation_mode": "Delivery failed, disputed, expired, or suppressed; Message thread closed locally while delivery truth is still unresolved",
+      "fallback_strategy": "Controlled resend under the same authoritative chain; Support repair or callback escalation",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "next_review_ref": "MS_EXT_COMMS_AND_SCAN_VENDORS",
+      "notes": "Transport accepted is never equal to delivered; patient or staff calmness must wait for current delivery evidence or explicit fallback."
+    },
+    {
+      "dependency_id": "dep_gp_system_supplier_paths",
+      "dependency_name": "Principal GP-system supplier integration paths",
+      "dependency_type": "supplier_capability",
+      "baseline_scope": "current",
+      "source_refs": [
+        "phase-4-the-booking-engine.md#4B Provider capability matrix and adapter seam",
+        "phase-4-the-booking-engine.md#4C Slot search",
+        "phase-6-the-pharmacy-loop.md#6F. Outcome ingest, Update Record observation, and reconciliation"
+      ],
+      "linked_external_inventory_refs": [
+        "dep_gp_system_supplier_paths"
+      ],
+      "linked_adapter_profile_refs": [
+        "gp_supplier_adapter_family"
+      ],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "onboarding",
+      "required_for_milestone_refs": [
+        "MS_EXT_PROVIDER_PATHS_AND_EVIDENCE",
+        "MS_P4_DEFINITION_AND_ENTRY",
+        "MS_P4_PARALLEL_BOOKING_IMPLEMENTATION",
+        "MS_P4_MERGE_CONFIG_AND_PROOF",
+        "MS_P4_EXIT_GATE"
+      ],
+      "required_for_gate_refs": [],
+      "blast_radius_scope": "booking, waitlist, and provider confirmation truth",
+      "monitoring_signals": [
+        "Current supplier binding and authoritative read or outcome observation path accepted for the same supplier, organisation, action scope, and transport assurance profile.",
+        "Supplier name matches a supported family",
+        "Static docs suggest support without current binding proof",
+        "Supplier sandbox and capability evidence review"
+      ],
+      "degradation_mode": "linkage_required or local_component_required capability states; Supplier-specific action support withdrawn or stale",
+      "fallback_strategy": "Assisted-only handling or hub fallback; Simulator and contract-test path while supplier access remains incomplete",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "next_review_ref": "MS_EXT_PROVIDER_PATHS_AND_EVIDENCE",
+      "notes": "This row captures live supplier paths; the separate IM1 pairing row captures the programme gates that must exist before these paths are usable."
+    },
+    {
+      "dependency_id": "dep_hsm_signing_key_provisioning",
+      "dependency_name": "HSM-backed signing key provisioning seam",
+      "dependency_type": "security_control",
+      "baseline_scope": "current",
+      "source_refs": [
+        "data/analysis/architecture_gap_register.json#GAP_015_HSM_SIGNING_KEY_PROVISIONING",
+        "data/analysis/security_control_matrix.csv"
+      ],
+      "linked_external_inventory_refs": [],
+      "linked_adapter_profile_refs": [],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "blocked",
+      "required_for_milestone_refs": [
+        "MS_P0_0C_RUNTIME_PUBLICATION_SUBSTRATE",
+        "MS_PRG_RELEASE_READINESS"
+      ],
+      "required_for_gate_refs": [
+        "GATE_RELEASE_READINESS"
+      ],
+      "blast_radius_scope": "release signing, provenance, and emergency exception control",
+      "monitoring_signals": [
+        "HSM-backed signing key not yet bound to the chosen supply-chain path",
+        "release evidence still references placeholder signing material"
+      ],
+      "degradation_mode": "promotion_blocked_for_live_release",
+      "fallback_strategy": "Keep non-production verification only and block live promotion until HSM provisioning is complete.",
+      "owner_role": "ROLE_SECURITY_LEAD",
+      "next_review_ref": "GATE_RELEASE_READINESS",
+      "notes": "Inherited open gap from seq_015 and seq_016."
+    },
+    {
+      "dependency_id": "dep_im1_pairing_programme",
+      "dependency_name": "IM1 Pairing programme and prerequisite path",
+      "dependency_type": "supplier_capability",
+      "baseline_scope": "current",
+      "source_refs": [
+        "phase-4-the-booking-engine.md#4B Provider capability matrix and adapter seam",
+        "phase-4-the-booking-engine.md#4E Commit path",
+        "blueprint-init.md#1. Product definition"
+      ],
+      "linked_external_inventory_refs": [
+        "dep_im1_pairing_programme"
+      ],
+      "linked_adapter_profile_refs": [
+        "im1_pairing_governance_boundary"
+      ],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "onboarding",
+      "required_for_milestone_refs": [
+        "MS_EXT_IM1_SCAL_READINESS",
+        "MS_P0_0G_IM1_SCAL_ASSURANCE"
+      ],
+      "required_for_gate_refs": [
+        "GATE_EXTERNAL_TO_FOUNDATION",
+        "GATE_P0_LONG_LEAD_ASSURANCE_MERGE",
+        "GATE_P0_EXIT"
+      ],
+      "blast_radius_scope": "booking, waitlist, and provider confirmation truth",
+      "monitoring_signals": [
+        "Current pairing evidence pack showing the exact supplier, organisation, and environment have cleared the required IM1 stage for the targeted capability set.",
+        "Prerequisite forms submitted",
+        "Supplier conversation started",
+        "Commercial and assurance approval before live supplier access"
+      ],
+      "degradation_mode": "SCAL or model-interface prerequisites still pending; Supported-test or assurance incomplete for the selected supplier path",
+      "fallback_strategy": "Stay on simulator or supported-test path only; Keep the related route in assisted-only, recovery-only, or blocked posture",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "next_review_ref": "GATE_EXTERNAL_TO_FOUNDATION",
+      "notes": "IM1 remains baseline for local booking reach, but the corpus is explicit that it stays out of the Phase 2 identity critical path."
+    },
+    {
+      "dependency_id": "dep_local_booking_supplier_adapters",
+      "dependency_name": "Local booking supplier adapter family",
+      "dependency_type": "supplier_capability",
+      "baseline_scope": "current",
+      "source_refs": [
+        "phase-4-the-booking-engine.md#4C Slot search",
+        "phase-4-the-booking-engine.md#4E Commit path",
+        "phase-4-the-booking-engine.md#4F Manage flows"
+      ],
+      "linked_external_inventory_refs": [
+        "dep_local_booking_supplier_adapters"
+      ],
+      "linked_adapter_profile_refs": [
+        "booking_provider_adapter_binding"
+      ],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "onboarding",
+      "required_for_milestone_refs": [
+        "MS_EXT_PROVIDER_PATHS_AND_EVIDENCE",
+        "MS_P4_DEFINITION_AND_ENTRY",
+        "MS_P4_PARALLEL_BOOKING_IMPLEMENTATION",
+        "MS_P4_MERGE_CONFIG_AND_PROOF",
+        "MS_P4_EXIT_GATE"
+      ],
+      "required_for_gate_refs": [
+        "GATE_P4_PARALLEL_MERGE",
+        "GATE_P4_EXIT"
+      ],
+      "blast_radius_scope": "booking, waitlist, and provider confirmation truth",
+      "monitoring_signals": [
+        "BookingConfirmationTruthProjection(confirmationTruthState = confirmed) backed by a durable provider reference or same-commit read-after-write proof for the same BookingTransaction.",
+        "Slot list rendered from a frozen snapshot",
+        "Local click acknowledgement",
+        "Supplier-selection scorecard and simulation evidence before live booking exposure"
+      ],
+      "degradation_mode": "confirmation_pending posture after async acceptance; supplier_reconciliation_pending due to disputed or stale supplier truth",
+      "fallback_strategy": "Stay in confirmation_pending with explicit truth posture; Route to waitlist, callback, or hub fallback under current policy",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "next_review_ref": "GATE_P4_PARALLEL_MERGE",
+      "notes": "No supplier queue acceptance, webhook arrival, or worker dequeue may be projected as booked truth."
+    },
+    {
+      "dependency_id": "dep_malware_scanning_provider",
+      "dependency_name": "Malware and artifact scanning provider",
+      "dependency_type": "external_service",
+      "baseline_scope": "current",
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#4.3A Artifact quarantine and fallback review",
+        "phase-2-identity-and-echoes.md#2E. Telephony call-session ingestion, evidence readiness, and convergence",
+        "forensic-audit-findings.md#Finding 12 - No safe fallback when ingest or safety failed"
+      ],
+      "linked_external_inventory_refs": [
+        "dep_malware_scanning_provider"
+      ],
+      "linked_adapter_profile_refs": [
+        "artifact_scanning_adapter"
+      ],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "onboarding",
+      "required_for_milestone_refs": [
+        "MS_EXT_COMMS_AND_SCAN_VENDORS"
+      ],
+      "required_for_gate_refs": [],
+      "blast_radius_scope": "partner-facing capability and current-baseline delivery",
+      "monitoring_signals": [
+        "Current artifact quarantine outcome showing the capture bundle or recording is safe, readable enough, or explicitly quarantined with governed next action.",
+        "Object stored successfully",
+        "Scan job started",
+        "Security review of scanner placement and quarantine policy"
+      ],
+      "degradation_mode": "Scan timed out or returned unsupported; File is quarantined or unreadable",
+      "fallback_strategy": "FallbackReviewCase with same-lineage degraded receipt; Manual review or re-upload request",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "next_review_ref": "MS_EXT_COMMS_AND_SCAN_VENDORS",
+      "notes": "Private object storage is an internal platform surface; the external dependency here is the scanning service, not the storage bucket."
+    },
+    {
+      "dependency_id": "dep_network_capacity_partner_feeds",
+      "dependency_name": "Network and hub partner capacity feeds",
+      "dependency_type": "supplier_capability",
+      "baseline_scope": "current",
+      "source_refs": [
+        "phase-5-the-network-horizon.md#5C. Enhanced Access policy engine and network capacity ingestion",
+        "phase-5-the-network-horizon.md#Network coordination contract, case model, and state machine",
+        "phase-9-the-assurance-ledger.md#9B. Essential-functions health, queues, and assurance operations boards"
+      ],
+      "linked_external_inventory_refs": [
+        "dep_network_capacity_partner_feeds"
+      ],
+      "linked_adapter_profile_refs": [
+        "network_capacity_ingestion_adapter"
+      ],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "onboarding",
+      "required_for_milestone_refs": [
+        "MS_P5_DEFINITION_AND_ENTRY",
+        "MS_P5_PARALLEL_NETWORK_IMPLEMENTATION",
+        "MS_P5_MERGE_CONFIG_AND_PROOF",
+        "MS_P5_EXIT_GATE"
+      ],
+      "required_for_gate_refs": [
+        "GATE_P5_PARALLEL_MERGE",
+        "GATE_P5_EXIT"
+      ],
+      "blast_radius_scope": "booking, waitlist, and provider confirmation truth",
+      "monitoring_signals": [
+        "Current CandidateSnapshot admitted as trusted_offerable by NetworkCoordinationPolicyEvaluation for the same policy tuple and source set.",
+        "Manual site list or stale spreadsheet",
+        "Partial supplier coverage without trust admission",
+        "Partner data-sharing and source-freshness review"
+      ],
+      "degradation_mode": "degraded_diagnostic_only or quarantined_hidden source posture; Snapshot expiry or stale source version",
+      "fallback_strategy": "callback fallback or return_to_practice; read_only_provenance or callback_only recovery in the same shell",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "next_review_ref": "GATE_P5_PARALLEL_MERGE",
+      "notes": "Network offers may not become patient-visible or closable while the current feed posture is degraded or quarantined."
+    },
+    {
+      "dependency_id": "dep_nhs_assurance_and_standards_sources",
+      "dependency_name": "NHS standards and assurance source set",
+      "dependency_type": "standards_baseline",
+      "baseline_scope": "current",
+      "source_refs": [
+        "phase-9-the-assurance-ledger.md#9D. Assurance pack factory and standards evidence pipeline",
+        "phase-9-the-assurance-ledger.md#9H. Tenant governance, config immutability, and dependency hygiene",
+        "phase-7-inside-the-nhs-app.md#What Phase 7 must prove before Phase 8 starts"
+      ],
+      "linked_external_inventory_refs": [
+        "dep_nhs_assurance_and_standards_sources"
+      ],
+      "linked_adapter_profile_refs": [
+        "standards_watch_and_assurance_boundary"
+      ],
+      "linked_standards_watch_refs": [
+        "StandardsDependencyWatchlist"
+      ],
+      "lifecycle_state": "current",
+      "required_for_milestone_refs": [
+        "MS_P0_0G_DCB0129_SAFETY_CASE",
+        "MS_P0_0G_DSPT_READINESS"
+      ],
+      "required_for_gate_refs": [
+        "GATE_P0_LONG_LEAD_ASSURANCE_MERGE"
+      ],
+      "blast_radius_scope": "standards posture, governance evidence, and release gating",
+      "monitoring_signals": [
+        "Current StandardsVersionMap and StandardsDependencyWatchlist bound to the same assurance-evidence graph and release candidate under review.",
+        "Static checklist copied into local notes",
+        "Legacy documentation link still resolves somewhere",
+        "Governance sign-off on refreshed standards baselines"
+      ],
+      "degradation_mode": "Standards version moved, refreshed, or decommissioned; Supplier assurance evidence is stale or suspended",
+      "fallback_strategy": "Freeze affected onboarding or release step until review completes; Open explicit standards exception or evidence gap",
+      "owner_role": "ROLE_PLATFORM_GOVERNANCE_LEAD",
+      "next_review_ref": "GATE_P0_LONG_LEAD_ASSURANCE_MERGE",
+      "notes": "This row captures source-of-law dependency, not a live API. It is still operationally real because stale standards can block release and onboarding."
+    },
+    {
+      "dependency_id": "dep_nhs_login_rail",
+      "dependency_name": "NHS login authentication rail",
+      "dependency_type": "external_approval",
+      "baseline_scope": "current",
+      "source_refs": [
+        "phase-2-identity-and-echoes.md#2B. NHS login bridge and local session engine",
+        "blueprint-init.md#10. Identity, consent, security, and policy",
+        "platform-runtime-and-release-blueprint.md#AdapterContractProfile"
+      ],
+      "linked_external_inventory_refs": [
+        "dep_nhs_login_rail"
+      ],
+      "linked_adapter_profile_refs": [
+        "nhs_login_oidc_bridge"
+      ],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "onboarding",
+      "required_for_milestone_refs": [
+        "MS_EXT_NHS_LOGIN_ONBOARDING",
+        "MS_P0_0G_NHS_LOGIN_ONBOARDING_EVIDENCE",
+        "MS_P2_DEFINITION_AND_ENTRY",
+        "MS_P2_PARALLEL_IDENTITY_AND_TELEPHONY",
+        "MS_P2_EXTERNAL_CONFIG"
+      ],
+      "required_for_gate_refs": [
+        "GATE_EXTERNAL_TO_FOUNDATION",
+        "GATE_P0_LONG_LEAD_ASSURANCE_MERGE",
+        "GATE_P0_EXIT",
+        "GATE_P2_PARALLEL_MERGE",
+        "GATE_P2_EXIT"
+      ],
+      "blast_radius_scope": "patient authentication, writable posture, and recovery continuity",
+      "monitoring_signals": [
+        "Current SessionEstablishmentDecision plus current Session, IdentityBinding, and RouteIntentBinding showing writable authority for the same subject and lineage.",
+        "NHS login callback arrived",
+        "Token exchange completed",
+        "Partner approval before non-mock credentials are issued"
+      ],
+      "degradation_mode": "ConsentNotGiven or access_denied returns; Subject mismatch or stale subject binding version",
+      "fallback_strategy": "bounded_recovery with explicit post-auth next step; auth_read_only or claim_pending shell posture",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "next_review_ref": "GATE_EXTERNAL_TO_FOUNDATION",
+      "notes": "NHS login remains an authentication rail only; it does not replace patient linkage, PDS, or claim ownership."
+    },
+    {
+      "dependency_id": "dep_origin_practice_ack_rail",
+      "dependency_name": "Origin-practice acknowledgement rail",
+      "dependency_type": "external_service",
+      "baseline_scope": "current",
+      "source_refs": [
+        "phase-5-the-network-horizon.md#PracticeAcknowledgementRecord",
+        "phase-5-the-network-horizon.md#Hub commit algorithm",
+        "phase-5-the-network-horizon.md#Manage, reminders, and practice visibility after hub booking"
+      ],
+      "linked_external_inventory_refs": [
+        "dep_origin_practice_ack_rail"
+      ],
+      "linked_adapter_profile_refs": [
+        "practice_acknowledgement_transport_adapter"
+      ],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "onboarding",
+      "required_for_milestone_refs": [],
+      "required_for_gate_refs": [],
+      "blast_radius_scope": "cross-organisation messaging and hub coordination",
+      "monitoring_signals": [
+        "Current-generation PracticeAcknowledgementRecord matching the live truthTupleHash and ackGeneration for the active hub visibility duty.",
+        "Transport accepted or delivered",
+        "Origin practice viewed an older message",
+        "Policy review for which changes require renewed acknowledgement"
+      ],
+      "degradation_mode": "Acknowledgement overdue or disputed; Generation drift after cancellation, reschedule, or supplier-drift update",
+      "fallback_strategy": "Operational escalation and overdue timers; Recovery-required practice visibility posture",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "next_review_ref": "seq_040",
+      "notes": "Transport acceptance, delivery evidence, and explicit acknowledgement are distinct facts and must stay distinct in the inventory and UI."
+    },
+    {
+      "dependency_id": "dep_pharmacy_directory_dohs",
+      "dependency_name": "Pharmacy directory and discovery dependency",
+      "dependency_type": "supplier_capability",
+      "baseline_scope": "current",
+      "source_refs": [
+        "phase-6-the-pharmacy-loop.md#6C. Pharmacy discovery, provider choice, and directory abstraction",
+        "phase-6-the-pharmacy-loop.md#Pharmacy contract, case model, and state machine",
+        "blueprint-init.md#7. Pharmacy First pathway"
+      ],
+      "linked_external_inventory_refs": [
+        "dep_pharmacy_directory_dohs"
+      ],
+      "linked_adapter_profile_refs": [
+        "pharmacy_directory_adapter"
+      ],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "onboarding",
+      "required_for_milestone_refs": [
+        "MS_EXT_PROVIDER_PATHS_AND_EVIDENCE",
+        "MS_P6_DEFINITION_AND_ENTRY",
+        "MS_P6_PARALLEL_PHARMACY_IMPLEMENTATION",
+        "MS_P6_MERGE_CONFIG_AND_PROOF",
+        "MS_P6_EXIT_GATE"
+      ],
+      "required_for_gate_refs": [
+        "GATE_P6_PARALLEL_MERGE",
+        "GATE_P6_EXIT"
+      ],
+      "blast_radius_scope": "pharmacy referral, dispatch proof, and closure posture",
+      "monitoring_signals": [
+        "Current PharmacyDirectorySnapshot and PharmacyChoiceProof over the visible choice set and selected provider explanation.",
+        "Cached provider list without current snapshot age",
+        "Convenience ranking or open-now signal alone",
+        "Directory access-path selection and deprecation watch review"
+      ],
+      "degradation_mode": "Stale or partial directory snapshot; Unsafe timing or capability drift",
+      "fallback_strategy": "Same-shell directory regeneration; Warned choice or clinician fallback when no safe provider remains",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "next_review_ref": "GATE_P6_PARALLEL_MERGE",
+      "notes": "Discovery truth must remain separate from later dispatch and outcome truth; no hidden-default provider path is allowed."
+    },
+    {
+      "dependency_id": "dep_pharmacy_outcome_observation",
+      "dependency_name": "Pharmacy outcome observation and reconciliation path",
+      "dependency_type": "supplier_capability",
+      "baseline_scope": "current",
+      "source_refs": [
+        "phase-6-the-pharmacy-loop.md#6F. Outcome ingest, Update Record observation, and reconciliation",
+        "forensic-audit-findings.md#Finding 79 - weak-source matching did not clearly stop at a case-local review state",
+        "phase-6-the-pharmacy-loop.md#6G. Bounce-back, urgent return, and reopen mechanics"
+      ],
+      "linked_external_inventory_refs": [
+        "dep_pharmacy_outcome_observation"
+      ],
+      "linked_adapter_profile_refs": [
+        "pharmacy_outcome_ingest_adapter"
+      ],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "onboarding",
+      "required_for_milestone_refs": [
+        "MS_P6_DEFINITION_AND_ENTRY",
+        "MS_P6_PARALLEL_PHARMACY_IMPLEMENTATION",
+        "MS_P6_MERGE_CONFIG_AND_PROOF",
+        "MS_P6_EXIT_GATE"
+      ],
+      "required_for_gate_refs": [],
+      "blast_radius_scope": "pharmacy referral, dispatch proof, and closure posture",
+      "monitoring_signals": [
+        "Current PharmacyOutcomeRecord or PharmacyBounceBackRecord correlated to the active PharmacyCase and, where needed, resolved through PharmacyOutcomeReconciliationGate.",
+        "Update Record transport observed",
+        "Email or inbox delivery received",
+        "Outcome source acceptance policy review"
+      ],
+      "degradation_mode": "Weak or conflicting match against the active case; Duplicate or replayed outcome evidence",
+      "fallback_strategy": "outcome_reconciliation_pending with explicit review placeholder; Reopen for safety when the outcome is urgent or materially different",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "next_review_ref": "MS_P6_DEFINITION_AND_ENTRY",
+      "notes": "Outcome ingest is an observation boundary only; it cannot behave like direct pharmacy-system control or auto-close on weak evidence."
+    },
+    {
+      "dependency_id": "dep_pharmacy_referral_transport",
+      "dependency_name": "Pharmacy referral transport dependency",
+      "dependency_type": "supplier_capability",
+      "baseline_scope": "current",
+      "source_refs": [
+        "phase-6-the-pharmacy-loop.md#6D. Referral pack composer, dispatch adapters, and transport contract",
+        "phase-6-the-pharmacy-loop.md#Pharmacy contract, case model, and state machine",
+        "phase-0-the-foundation-protocol.md#Pharmacy dispatch and confirmation gate algorithm"
+      ],
+      "linked_external_inventory_refs": [
+        "dep_pharmacy_referral_transport"
+      ],
+      "linked_adapter_profile_refs": [
+        "pharmacy_dispatch_transport_adapter"
+      ],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "onboarding",
+      "required_for_milestone_refs": [
+        "MS_P6_DEFINITION_AND_ENTRY",
+        "MS_P6_PARALLEL_PHARMACY_IMPLEMENTATION",
+        "MS_P6_MERGE_CONFIG_AND_PROOF",
+        "MS_P6_EXIT_GATE"
+      ],
+      "required_for_gate_refs": [
+        "GATE_P6_PARALLEL_MERGE"
+      ],
+      "blast_radius_scope": "pharmacy referral, dispatch proof, and closure posture",
+      "monitoring_signals": [
+        "Current DispatchProofEnvelope(authoritative proof satisfied) accepted by the live TransportAssuranceProfile and current ExternalConfirmationGate for the same dispatch attempt.",
+        "adapter_dispatched",
+        "transport_accepted",
+        "Transport-path selection and data-sharing review"
+      ],
+      "degradation_mode": "proof_pending at or near deadline; contradiction score above threshold",
+      "fallback_strategy": "Keep same-shell pending or reconciliation posture; Controlled redispatch only under a fresh tuple",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "next_review_ref": "GATE_P6_PARALLEL_MERGE",
+      "notes": "Vecells may dispatch through several transports, but no transport-only evidence may project calm referred truth."
+    },
+    {
+      "dependency_id": "dep_pharmacy_urgent_return_professional_routes",
+      "dependency_name": "Pharmacy urgent-return and professional-contact routes",
+      "dependency_type": "external_service",
+      "baseline_scope": "current",
+      "source_refs": [
+        "phase-6-the-pharmacy-loop.md#6D. Referral pack composer, dispatch adapters, and transport contract",
+        "phase-6-the-pharmacy-loop.md#6G. Bounce-back, urgent return, and reopen mechanics",
+        "blueprint-init.md#7. Pharmacy First pathway"
+      ],
+      "linked_external_inventory_refs": [
+        "dep_pharmacy_urgent_return_professional_routes"
+      ],
+      "linked_adapter_profile_refs": [
+        "pharmacy_urgent_return_route_config"
+      ],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "onboarding",
+      "required_for_milestone_refs": [],
+      "required_for_gate_refs": [],
+      "blast_radius_scope": "cross-organisation messaging and hub coordination",
+      "monitoring_signals": [
+        "Current urgent-return or bounce-back evidence acknowledged on the configured route and bound to the active PharmacyCase or reopened request lineage.",
+        "Email sent to the safety-net mailbox",
+        "Voicemail or phone transfer attempted",
+        "Practice-level route ownership sign-off"
+      ],
+      "degradation_mode": "Urgent return not yet acknowledged on the current route; Stale or misconfigured monitored email or professional number",
+      "fallback_strategy": "Immediate duty-task reopen or supervisor escalation; Phone escalation if mailbox or digital route is unavailable",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "next_review_ref": "seq_040",
+      "notes": "Urgent return is a human-operated safety net and therefore cannot be downgraded into a simulated healthy dependency."
+    },
+    {
+      "dependency_id": "dep_release_publication_tuple_pipeline",
+      "dependency_name": "Runtime publication and release tuple pipeline",
+      "dependency_type": "infra_component",
+      "baseline_scope": "current",
+      "source_refs": [
+        "data/analysis/release_gate_matrix.csv",
+        "data/analysis/supply_chain_and_provenance_matrix.json"
+      ],
+      "linked_external_inventory_refs": [],
+      "linked_adapter_profile_refs": [
+        "runtime_publication_pipeline"
+      ],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "current",
+      "required_for_milestone_refs": [
+        "MS_P0_0C_RUNTIME_PUBLICATION_SUBSTRATE",
+        "MS_PRG_RELEASE_READINESS"
+      ],
+      "required_for_gate_refs": [
+        "GATE_P0_PARALLEL_FOUNDATION_OPEN",
+        "GATE_RELEASE_READINESS",
+        "GATE_WAVE1_OBSERVATION"
+      ],
+      "blast_radius_scope": "all live audience surfaces, release tuples, and wave guardrails",
+      "monitoring_signals": [
+        "RuntimePublicationBundle hash matches DesignContractPublicationBundle hash set",
+        "ReleasePublicationParityRecord exists for the candidate"
+      ],
+      "degradation_mode": "freeze_release_and_keep_last_published_tuple",
+      "fallback_strategy": "Hold promotion and route all operators to the last known-good published tuple.",
+      "owner_role": "ROLE_RELEASE_MANAGER",
+      "next_review_ref": "GATE_RELEASE_READINESS",
+      "notes": ""
+    },
+    {
+      "dependency_id": "dep_restore_rehearsal_evidence",
+      "dependency_name": "Restore rehearsal and recovery evidence pack",
+      "dependency_type": "runbook_dependency",
+      "baseline_scope": "current",
+      "source_refs": [
+        "data/analysis/regulatory_workstreams.json#WS_OPERATIONAL_RESILIENCE_RESTORE",
+        "data/analysis/release_gate_matrix.csv"
+      ],
+      "linked_external_inventory_refs": [],
+      "linked_adapter_profile_refs": [],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "current",
+      "required_for_milestone_refs": [
+        "MS_P0_0G_EXIT_PROOF_AND_FOUNDATION_SIGNOFF",
+        "MS_PRG_BAU_HANDOVER_AND_ARCHIVE"
+      ],
+      "required_for_gate_refs": [
+        "GATE_RELEASE_READINESS",
+        "GATE_BAU_TRANSFER"
+      ],
+      "blast_radius_scope": "restore authority, operational readiness, and BAU handover",
+      "monitoring_signals": [
+        "Restore rehearsal pack is current for the candidate",
+        "runbook steps match the current region and trust-zone topology"
+      ],
+      "degradation_mode": "recovery_posture_downgrades_to_review_required",
+      "fallback_strategy": "Hold BAU transfer and widen observation until a fresh rehearsal pack is produced.",
+      "owner_role": "ROLE_SRE_LEAD",
+      "next_review_ref": "GATE_RELEASE_READINESS",
+      "notes": ""
+    },
+    {
+      "dependency_id": "dep_standards_baseline_map",
+      "dependency_name": "Standards baseline and exception map",
+      "dependency_type": "standards_baseline",
+      "baseline_scope": "current",
+      "source_refs": [
+        "blueprint/platform-admin-and-config-blueprint.md#StandardsBaselineMap",
+        "blueprint/platform-admin-and-config-blueprint.md#StandardsDependencyWatchlist"
+      ],
+      "linked_external_inventory_refs": [],
+      "linked_adapter_profile_refs": [],
+      "linked_standards_watch_refs": [
+        "StandardsBaselineMap",
+        "StandardsDependencyWatchlist",
+        "StandardsExceptionRecord"
+      ],
+      "lifecycle_state": "current",
+      "required_for_milestone_refs": [
+        "MS_EXT_SIMULATOR_AND_MANUAL_GATE_FREEZE",
+        "MS_PRG_RELEASE_READINESS"
+      ],
+      "required_for_gate_refs": [
+        "GATE_PLAN_EXTERNAL_ENTRY",
+        "GATE_RELEASE_READINESS"
+      ],
+      "blast_radius_scope": "programme-wide standards posture and release gating",
+      "monitoring_signals": [
+        "Standards watchlist hash remains stable for the current review package",
+        "No open promotion-blocking compatibility alerts"
+      ],
+      "degradation_mode": "promotion_blocked_until_exception_or_baseline_updates_settle",
+      "fallback_strategy": "Keep the current published tuple and require explicit, time-bound exception evidence.",
+      "owner_role": "ROLE_PLATFORM_GOVERNANCE_LEAD",
+      "next_review_ref": "GATE_RELEASE_READINESS",
+      "notes": "Internal dependency row added by seq_018 so standards hygiene cannot stay ownerless."
+    },
+    {
+      "dependency_id": "dep_telephony_ivr_recording_provider",
+      "dependency_name": "Telephony, IVR, and call-recording provider",
+      "dependency_type": "external_service",
+      "baseline_scope": "current",
+      "source_refs": [
+        "phase-2-identity-and-echoes.md#2E. Telephony call-session ingestion, evidence readiness, and convergence",
+        "phase-2-identity-and-echoes.md#2F. Caller verification, voice capture, transcript stub, and SMS continuation",
+        "callback-and-clinician-messaging-loop.md#Callback domain"
+      ],
+      "linked_external_inventory_refs": [
+        "dep_telephony_ivr_recording_provider"
+      ],
+      "linked_adapter_profile_refs": [
+        "telephony_ingress_and_callback_adapter"
+      ],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "onboarding",
+      "required_for_milestone_refs": [
+        "MS_EXT_COMMS_AND_SCAN_VENDORS",
+        "MS_P2_DEFINITION_AND_ENTRY",
+        "MS_P2_PARALLEL_IDENTITY_AND_TELEPHONY"
+      ],
+      "required_for_gate_refs": [
+        "GATE_P2_PARALLEL_MERGE"
+      ],
+      "blast_radius_scope": "telephony ingress, evidence readiness, and callback repair",
+      "monitoring_signals": [
+        "Current CallSession evidence or CallbackOutcomeEvidenceBundle linked to AdapterReceiptCheckpoint and the current lineage-bound callback or intake objects.",
+        "Carrier accepted a call leg",
+        "Callback queued or dial started",
+        "Contract and regulated-recording review before live call handling"
+      ],
+      "degradation_mode": "recording_missing or transcript_degraded; Duplicate or contradictory callback outcomes",
+      "fallback_strategy": "Callback retry or governed manual escalation; Secure-link continuation where route authority allows",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "next_review_ref": "GATE_P2_PARALLEL_MERGE",
+      "notes": "Telephony parity is baseline, but carrier acceptance or callback initiation never equals completed clinical contact."
+    },
+    {
+      "dependency_id": "dep_transcription_processing_provider",
+      "dependency_name": "Transcript and derived-facts processing provider",
+      "dependency_type": "external_service",
+      "baseline_scope": "current",
+      "source_refs": [
+        "phase-2-identity-and-echoes.md#2E. Telephony call-session ingestion, evidence readiness, and convergence",
+        "phase-2-identity-and-echoes.md#2F. Caller verification, voice capture, transcript stub, and SMS continuation",
+        "forensic-audit-findings.md#Finding 12 - No safe fallback when ingest or safety failed"
+      ],
+      "linked_external_inventory_refs": [
+        "dep_transcription_processing_provider"
+      ],
+      "linked_adapter_profile_refs": [
+        "transcription_readiness_adapter"
+      ],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "onboarding",
+      "required_for_milestone_refs": [
+        "MS_EXT_COMMS_AND_SCAN_VENDORS",
+        "MS_P2_PARALLEL_IDENTITY_AND_TELEPHONY"
+      ],
+      "required_for_gate_refs": [],
+      "blast_radius_scope": "telephony ingress, evidence readiness, and callback repair",
+      "monitoring_signals": [
+        "TelephonyTranscriptReadinessRecord with clinically sufficient coverage accepted by TelephonyEvidenceReadinessAssessment(usabilityState = safety_usable).",
+        "Transcript job queued or running",
+        "Keyword-only or partial utterance output",
+        "Clinical-safety review of derived-facts use before any automated promotion depends on the provider"
+      ],
+      "degradation_mode": "Coverage is partial or clinically insufficient; Contradictory transcript reruns or stale derivation packages",
+      "fallback_strategy": "Manual transcription or audio review; continuation_challenge or manual_only posture",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "next_review_ref": "MS_EXT_COMMS_AND_SCAN_VENDORS",
+      "notes": "Transcript completion is never enough by itself; the readiness assessment is the governing proof."
+    },
+    {
+      "dependency_id": "dep_nhs_app_embedded_channel_ecosystem",
+      "dependency_name": "NHS App embedded-channel ecosystem",
+      "dependency_type": "external_approval",
+      "baseline_scope": "deferred",
+      "source_refs": [
+        "phase-7-inside-the-nhs-app.md#7A. Integration manifest and route inventory",
+        "phase-7-inside-the-nhs-app.md#7H. Sandpit, AOS, SCAL, and operational delivery pipeline",
+        "phase-cards.md#Phase 7 - Inside the NHS App"
+      ],
+      "linked_external_inventory_refs": [
+        "dep_nhs_app_embedded_channel_ecosystem"
+      ],
+      "linked_adapter_profile_refs": [
+        "nhs_app_embedded_channel_boundary"
+      ],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "deferred",
+      "required_for_milestone_refs": [
+        "MS_EXT_DEFERRED_NHSAPP_ECOSYSTEM",
+        "MS_P7_DEFINITION_AND_ENTRY",
+        "MS_P7_PARALLEL_EMBEDDED_CHANNEL",
+        "MS_P7_MERGE_AND_PROOF",
+        "MS_P7_EXIT_GATE",
+        "MS_PRG_DEFERRED_NHSAPP_ENABLEMENT"
+      ],
+      "required_for_gate_refs": [
+        "GATE_P7_DEFERRED_MERGE",
+        "GATE_P7_EXIT",
+        "GATE_DEFERRED_NHSAPP_ENABLEMENT"
+      ],
+      "blast_radius_scope": "deferred embedded channel readiness and publication control",
+      "monitoring_signals": [
+        "Current NHSAppIntegrationManifest, PatientEmbeddedNavEligibility, and PatientEmbeddedSessionProjection under the approved manifest, release, and bridge-capability tuple.",
+        "User-agent or query hint suggests embedded mode",
+        "Raw bridge object is present",
+        "NHS App suitability and demo-environment review before Sandpit or AOS access"
+      ],
+      "degradation_mode": "Manifest drift across Sandpit, AOS, and live; Bridge capability mismatch or stale embedded continuity evidence",
+      "fallback_strategy": "Safe browser handoff; read_only or placeholder-only embedded posture",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "next_review_ref": "GATE_P7_DEFERRED_MERGE",
+      "notes": "Deferred channel expansion only. The inventory keeps the onboarding and downgrade rules ready without rebasing current scope."
+    },
+    {
+      "dependency_id": "dep_assistive_model_vendor_family",
+      "dependency_name": "Assistive model vendor and subprocessor family",
+      "dependency_type": "external_service",
+      "baseline_scope": "optional",
+      "source_refs": [
+        "phase-8-the-assistive-layer.md#8H",
+        "phase-8-the-assistive-layer.md#AssistiveCapabilityTrustEnvelope",
+        "phase-cards.md#Phase 8 - The Assistive Layer"
+      ],
+      "linked_external_inventory_refs": [
+        "dep_assistive_model_vendor_family"
+      ],
+      "linked_adapter_profile_refs": [
+        "assistive_vendor_boundary"
+      ],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "replaceable_by_simulator",
+      "required_for_milestone_refs": [
+        "MS_P8_DEFINITION_AND_ENTRY",
+        "MS_P8_PARALLEL_ASSISTIVE_IMPLEMENTATION",
+        "MS_P8_MERGE",
+        "MS_P8_PROOF_AND_EXIT_PACK",
+        "MS_P8_EXIT_GATE"
+      ],
+      "required_for_gate_refs": [
+        "GATE_P8_PARALLEL_MERGE",
+        "GATE_P8_EXIT",
+        "GATE_OPTIONAL_ASSISTIVE_ENABLEMENT"
+      ],
+      "blast_radius_scope": "partner-facing capability and current-baseline delivery",
+      "monitoring_signals": [
+        "Current AssistiveCapabilityTrustEnvelope plus AssistiveCapabilityRolloutVerdict and supplier-assurance freshness for the exact route, cohort, and watch tuple.",
+        "Model returned output successfully",
+        "Vendor status page looks healthy",
+        "Subprocessor and assurance review before any live visible cohort"
+      ],
+      "degradation_mode": "trustState = degraded, quarantined, shadow_only, or frozen; Supplier assurance drifted, suspended, or stale",
+      "fallback_strategy": "observe_only, provenance_only, placeholder_only, or hidden posture; Shadow-only or frozen rollout without widening assistive actionability",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "next_review_ref": "GATE_P8_PARALLEL_MERGE",
+      "notes": "The assistive control plane is in scope, but live model vendors remain optional and must fail to shadow, observe-only, or hidden posture."
+    },
+    {
+      "dependency_id": "dep_pds_fhir_enrichment",
+      "dependency_name": "Optional PDS enrichment seam",
+      "dependency_type": "external_service",
+      "baseline_scope": "optional",
+      "source_refs": [
+        "phase-2-identity-and-echoes.md#2C. Patient linkage, demographic confidence, and optional PDS enrichment",
+        "blueprint-init.md#10. Identity, consent, security, and policy",
+        "phase-cards.md#Phase 2 - Identity and Echoes"
+      ],
+      "linked_external_inventory_refs": [
+        "dep_pds_fhir_enrichment"
+      ],
+      "linked_adapter_profile_refs": [
+        "pds_enrichment_adapter"
+      ],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "replaceable_by_simulator",
+      "required_for_milestone_refs": [
+        "MS_EXT_OPTIONAL_PDS_ENRICHMENT"
+      ],
+      "required_for_gate_refs": [
+        "GATE_OPTIONAL_PDS_ENABLEMENT"
+      ],
+      "blast_radius_scope": "partner-facing capability and current-baseline delivery",
+      "monitoring_signals": [
+        "A legally permitted PDS lookup correlated to the current linkage candidate set and accepted as supporting evidence by IdentityBindingAuthority.",
+        "NHS login contact claim",
+        "Single local demographic candidate without sufficient confidence",
+        "Legal basis and governance approval before sandbox or live access"
+      ],
+      "degradation_mode": "Legal basis or onboarding still incomplete; PDS response conflicts with local or telephony evidence",
+      "fallback_strategy": "Local matching only with partial_match or review posture; Support-assisted correction without widening identity truth",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "next_review_ref": "GATE_OPTIONAL_PDS_ENABLEMENT",
+      "notes": "Optional by corpus law: PDS is an enrichment seam, not a baseline blocker and not a substitute for NHS login or local binding governance."
+    },
+    {
+      "dependency_id": "dep_sms_notification_provider",
+      "dependency_name": "SMS delivery provider",
+      "dependency_type": "external_service",
+      "baseline_scope": "optional",
+      "source_refs": [
+        "phase-2-identity-and-echoes.md#2F. Caller verification, voice capture, transcript stub, and SMS continuation",
+        "callback-and-clinician-messaging-loop.md#Delivery, callback-window, and settlement confidence model",
+        "phase-0-the-foundation-protocol.md#Command and adapter effect ledger"
+      ],
+      "linked_external_inventory_refs": [
+        "dep_sms_notification_provider"
+      ],
+      "linked_adapter_profile_refs": [
+        "sms_delivery_adapter"
+      ],
+      "linked_standards_watch_refs": [],
+      "lifecycle_state": "replaceable_by_simulator",
+      "required_for_milestone_refs": [
+        "MS_EXT_COMMS_AND_SCAN_VENDORS",
+        "MS_P2_EXTERNAL_CONFIG"
+      ],
+      "required_for_gate_refs": [],
+      "blast_radius_scope": "notification, secure-link, and patient reassurance posture",
+      "monitoring_signals": [
+        "Current AdapterReceiptCheckpoint plus the governing AccessGrant or CommunicationEnvelope still current for the same route and visibility tuple.",
+        "Send request accepted by provider",
+        "Link issued but not redeemed",
+        "Sender registration and regulated messaging review before live traffic"
+      ],
+      "degradation_mode": "Wrong-recipient or stale-number risk; Bounced, expired, or disputed delivery",
+      "fallback_strategy": "Email or support reissue; Challenge continuation instead of seeded continuation",
+      "owner_role": "ROLE_INTEROPERABILITY_LEAD",
+      "next_review_ref": "MS_EXT_COMMS_AND_SCAN_VENDORS",
+      "notes": "SMS is external only for delivery. Secure-link issuance and AccessGrant semantics remain internal control-plane behavior."
+    }
+  ]
+}

@@ -1,0 +1,1180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>41 Repo Topology Atlas</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Crect width='96' height='96' rx='24' fill='%233559E6'/%3E%3Cpath d='M25 27h46v10H53v32H43V37H25V27z' fill='white'/%3E%3Cpath d='M26 48h10v21H26z' fill='white'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --canvas: #F6F8FB;
+      --rail: #EEF2F7;
+      --panel: #FFFFFF;
+      --inset: #F3F5FA;
+      --text-strong: #0F172A;
+      --text: #1E293B;
+      --text-muted: #667085;
+      --border-subtle: #E2E8F0;
+      --border-default: #CBD5E1;
+      --primary: #3559E6;
+      --context: #0EA5A4;
+      --warning: #C98900;
+      --blocked: #C24141;
+      --shared: #7C3AED;
+      --shadow: 0 28px 60px rgba(15, 23, 42, 0.08);
+      --radius-xl: 24px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --max-width: 1440px;
+      --rail-width: 296px;
+      --inspector-width: 360px;
+      --header-height: 72px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { color-scheme: light; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(53, 89, 230, 0.08), transparent 24%),
+        radial-gradient(circle at top right, rgba(14, 165, 164, 0.08), transparent 28%),
+        linear-gradient(180deg, #FBFCFE 0%, var(--canvas) 100%);
+      color: var(--text);
+      font-family: var(--sans);
+    }
+    body[data-reduced-motion="true"] * {
+      animation-duration: 0ms !important;
+      transition-duration: 0ms !important;
+      scroll-behavior: auto !important;
+    }
+    a { color: inherit; }
+    button, select {
+      font: inherit;
+      color: inherit;
+    }
+    :focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+    .page {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 16px;
+    }
+    .shell {
+      display: grid;
+      gap: 16px;
+    }
+    .panel {
+      background: rgba(255,255,255,0.98);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+    .masthead-shell {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      padding-top: 4px;
+      background: linear-gradient(180deg, rgba(246,248,251,0.96), rgba(246,248,251,0.90) 82%, rgba(246,248,251,0));
+    }
+    .masthead {
+      min-height: var(--header-height);
+      padding: 16px 20px;
+      display: grid;
+      gap: 16px;
+    }
+    .masthead-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      max-width: 76ch;
+    }
+    .brand svg {
+      width: 84px;
+      height: 84px;
+      flex: none;
+    }
+    .brand-copy {
+      display: grid;
+      gap: 8px;
+    }
+    .eyebrow {
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(32px, 4vw, 46px);
+      line-height: 0.96;
+      letter-spacing: -0.04em;
+      color: var(--text-strong);
+    }
+    .subtitle {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.55;
+      color: var(--text-muted);
+    }
+    .metric-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .metric {
+      min-height: 44px;
+      padding: 12px 14px;
+      border-radius: 999px;
+      background: rgba(243,245,250,0.92);
+      border: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+    }
+    .metric strong {
+      font-size: 20px;
+      color: var(--text-strong);
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: var(--rail-width) minmax(0, 1fr) var(--inspector-width);
+      gap: 16px;
+      align-items: start;
+    }
+    .context-rail,
+    .workspace,
+    .inspector {
+      padding: 18px;
+    }
+    .context-rail {
+      background: linear-gradient(180deg, rgba(238,242,247,0.96), rgba(255,255,255,0.98));
+      display: grid;
+      gap: 16px;
+      position: sticky;
+      top: 92px;
+      max-height: calc(100vh - 108px);
+      overflow: auto;
+    }
+    .workspace {
+      display: grid;
+      gap: 16px;
+    }
+    .section-label {
+      margin: 0 0 10px;
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+    label {
+      font-size: 11px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    select {
+      min-height: 44px;
+      border-radius: 14px;
+      border: 1px solid var(--border-default);
+      background: white;
+      padding: 0 12px;
+    }
+    .context-group {
+      display: grid;
+      gap: 10px;
+    }
+    .context-card {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--border-default);
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(243,245,250,0.96));
+      display: grid;
+      gap: 8px;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease;
+    }
+    .context-card:hover {
+      transform: translateY(-1px);
+    }
+    .context-card[data-selected="true"] {
+      border-color: rgba(53,89,230,0.4);
+      box-shadow: inset 0 0 0 1px rgba(53,89,230,0.22);
+      background: linear-gradient(180deg, rgba(245,248,255,0.98), rgba(238,242,247,0.96));
+    }
+    .context-card strong {
+      font-size: 15px;
+      color: var(--text-strong);
+    }
+    .context-card span {
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--text-muted);
+    }
+    .context-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+    }
+    .graph-panel,
+    .lower-panel,
+    .defect-panel {
+      padding: 18px;
+    }
+    .graph-header,
+    .lower-header,
+    .defect-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .graph-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 16px;
+      align-items: start;
+    }
+    .graph-canvas {
+      min-height: 560px;
+      border-radius: 20px;
+      border: 1px solid var(--border-subtle);
+      background: linear-gradient(180deg, rgba(246,248,251,0.88), rgba(255,255,255,0.98));
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+    }
+    .lane {
+      display: grid;
+      gap: 10px;
+    }
+    .lane-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .lane-header h3 {
+      margin: 0;
+      font-size: 14px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-strong);
+    }
+    .lane-badge {
+      min-width: 28px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(53,89,230,0.08);
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .lane-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .node-card {
+      min-height: 100px;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--border-default);
+      background: rgba(255,255,255,0.98);
+      display: grid;
+      gap: 10px;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    }
+    .node-card:hover {
+      transform: translateY(-1px);
+    }
+    .node-card[data-selected="true"] {
+      border-color: rgba(53,89,230,0.42);
+      box-shadow: inset 0 0 0 1px rgba(53,89,230,0.20), 0 16px 28px rgba(15,23,42,0.08);
+    }
+    .node-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 10px;
+    }
+    .glyph {
+      width: 28px;
+      height: 28px;
+      border-radius: 10px;
+      border: 1px solid var(--border-default);
+      display: grid;
+      place-items: center;
+      background: rgba(243,245,250,0.95);
+      color: var(--text-strong);
+    }
+    .node-title {
+      margin: 0;
+      font-size: 15px;
+      color: var(--text-strong);
+    }
+    .node-path,
+    .mono {
+      font-family: var(--mono);
+    }
+    .node-path {
+      font-size: 12px;
+      color: var(--text-muted);
+      word-break: break-word;
+    }
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .chip {
+      min-height: 28px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border-default);
+      background: rgba(243,245,250,0.95);
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .chip.watch {
+      color: var(--warning);
+      border-color: rgba(201,137,0,0.34);
+      background: rgba(201,137,0,0.10);
+    }
+    .chip.resolved {
+      color: var(--context);
+      border-color: rgba(14,165,164,0.34);
+      background: rgba(14,165,164,0.10);
+    }
+    .chip.clean {
+      color: var(--text-muted);
+    }
+    .boundary-card {
+      padding: 16px;
+      border-radius: 20px;
+      border: 1px solid var(--border-subtle);
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(243,245,250,0.96));
+      display: grid;
+      gap: 14px;
+    }
+    .boundary-card svg {
+      width: 100%;
+      height: auto;
+    }
+    .boundary-legend {
+      display: grid;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .legend-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+    }
+    .table-shell {
+      overflow-x: auto;
+      border-radius: 18px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255,255,255,0.98);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 13px;
+      vertical-align: top;
+    }
+    th {
+      font-size: 11px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      background: rgba(243,245,250,0.96);
+    }
+    tr[data-selected="true"] {
+      background: rgba(53,89,230,0.06);
+    }
+    tr {
+      transition: background-color 180ms ease;
+      cursor: pointer;
+    }
+    .parity-shell {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .parity-card {
+      border-radius: 18px;
+      border: 1px solid var(--border-subtle);
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(243,245,250,0.96));
+      padding: 14px;
+    }
+    .parity-card h4 {
+      margin: 0 0 12px;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .inspector {
+      display: grid;
+      gap: 14px;
+      position: sticky;
+      top: 92px;
+      min-height: 360px;
+      max-height: calc(100vh - 108px);
+      overflow: auto;
+    }
+    .inspector h2 {
+      margin: 0;
+      font-size: 22px;
+      color: var(--text-strong);
+    }
+    .inspector .meta-grid {
+      display: grid;
+      gap: 12px;
+    }
+    .inspector-block {
+      border-radius: 16px;
+      border: 1px solid var(--border-subtle);
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(243,245,250,0.94));
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+    .inspector-list {
+      display: grid;
+      gap: 8px;
+    }
+    .inspector-item {
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--text);
+    }
+    .inspector-item small {
+      display: block;
+      color: var(--text-muted);
+    }
+    .defect-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+    }
+    .defect-card {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--border-default);
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(243,245,250,0.96));
+      display: grid;
+      gap: 10px;
+    }
+    .defect-card[data-state="watch"] {
+      border-color: rgba(201,137,0,0.34);
+    }
+    .defect-card[data-state="resolved"] {
+      border-color: rgba(14,165,164,0.30);
+    }
+    .empty-state {
+      border-radius: 18px;
+      border: 1px dashed var(--border-default);
+      padding: 18px;
+      color: var(--text-muted);
+      background: rgba(243,245,250,0.72);
+      font-size: 14px;
+    }
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    @media (max-width: 1260px) {
+      .layout {
+        grid-template-columns: 280px minmax(0, 1fr);
+      }
+      .inspector {
+        grid-column: 1 / -1;
+        position: static;
+        max-height: none;
+      }
+      .graph-shell {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 980px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .context-rail {
+        position: static;
+        max-height: none;
+      }
+      .field-grid,
+      .metric-row,
+      .parity-shell {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 640px) {
+      .page {
+        padding: 10px;
+      }
+      .masthead,
+      .context-rail,
+      .workspace,
+      .inspector,
+      .graph-panel,
+      .lower-panel,
+      .defect-panel {
+        padding: 14px;
+      }
+      .lane-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="shell" data-testid="topology-shell">
+      <div class="masthead-shell">
+        <header class="panel masthead">
+          <div class="masthead-top">
+            <div class="brand">
+              <svg viewBox="0 0 120 120" aria-hidden="true">
+                <defs>
+                  <linearGradient id="atlasGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#3559E6"/>
+                    <stop offset="100%" stop-color="#0EA5A4"/>
+                  </linearGradient>
+                </defs>
+                <rect x="10" y="10" width="100" height="100" rx="28" fill="white" stroke="url(#atlasGlow)" stroke-width="4"/>
+                <path d="M30 34h60v12H66v40H54V46H30V34z" fill="#3559E6"/>
+                <path d="M31 60h14v26H31z" fill="#0EA5A4"/>
+                <text x="60" y="102" text-anchor="middle" font-size="14" font-family="system-ui, sans-serif" fill="#667085" letter-spacing="3">TOPOLOGY</text>
+              </svg>
+              <div class="brand-copy">
+                <div class="eyebrow">Vecells topology atlas</div>
+                <h1>Topology_Atlas</h1>
+                <p class="subtitle">Repository topology, package boundaries, and bounded-context ownership are frozen here before scaffold prompts build the monorepo.</p>
+              </div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div class="metric"><span>Apps</span><strong id="metric-apps">0</strong></div>
+            <div class="metric"><span>Services</span><strong id="metric-services">0</strong></div>
+            <div class="metric"><span>Packages</span><strong id="metric-packages">0</strong></div>
+            <div class="metric"><span>Topology defects</span><strong id="metric-defects">0</strong></div>
+          </div>
+        </header>
+      </div>
+
+      <div class="layout">
+        <aside class="panel context-rail" data-testid="context-rail" aria-label="Context rail">
+          <div>
+            <p class="section-label">Bounded contexts</p>
+            <div id="context-groups"></div>
+          </div>
+        </aside>
+
+        <main class="panel workspace">
+          <section class="graph-panel">
+            <div class="graph-header">
+              <div>
+                <p class="section-label">Repository graph</p>
+                <p class="subtitle">Filter by artifact type, owner, or defect state. Graph cards and table rows share one selected node and one filtered result set.</p>
+              </div>
+            </div>
+
+            <div class="field-grid" role="group" aria-label="Topology filters">
+              <div class="field">
+                <label for="filter-artifact">Artifact type</label>
+                <select id="filter-artifact" data-testid="filter-artifact"></select>
+              </div>
+              <div class="field">
+                <label for="filter-context">Bounded context</label>
+                <select id="filter-context" data-testid="filter-context"></select>
+              </div>
+              <div class="field">
+                <label for="filter-defect">Defect state</label>
+                <select id="filter-defect" data-testid="filter-defect"></select>
+              </div>
+            </div>
+
+            <div class="graph-shell">
+              <section class="graph-canvas" data-testid="graph-canvas" aria-label="Repository topology graph">
+                <div id="graph-lanes"></div>
+              </section>
+              <aside class="boundary-card" aria-label="Context boundary diagram">
+                <div>
+                  <p class="section-label">Boundary diagram</p>
+                  <p class="subtitle">One exact seam: shells render published contracts, the gateway enforces policy, services coordinate runtime work, and packages own the write model.</p>
+                </div>
+                <svg viewBox="0 0 280 210" role="img" aria-label="Shell to package boundary diagram">
+                  <rect x="12" y="20" width="86" height="42" rx="14" fill="#EEF2FF" stroke="#3559E6"/>
+                  <rect x="112" y="20" width="66" height="42" rx="14" fill="#ECFDF3" stroke="#0EA5A4"/>
+                  <rect x="190" y="20" width="78" height="42" rx="14" fill="#F5F3FF" stroke="#7C3AED"/>
+                  <rect x="12" y="128" width="86" height="42" rx="14" fill="#FFF7ED" stroke="#C98900"/>
+                  <rect x="112" y="128" width="66" height="42" rx="14" fill="#FEECEC" stroke="#C24141"/>
+                  <rect x="190" y="128" width="78" height="42" rx="14" fill="#F8FAFC" stroke="#CBD5E1"/>
+                  <text x="55" y="45" text-anchor="middle" font-size="12" font-family="system-ui, sans-serif" fill="#0F172A">Shell apps</text>
+                  <text x="145" y="45" text-anchor="middle" font-size="12" font-family="system-ui, sans-serif" fill="#0F172A">Gateway</text>
+                  <text x="229" y="45" text-anchor="middle" font-size="12" font-family="system-ui, sans-serif" fill="#0F172A">Services</text>
+                  <text x="55" y="153" text-anchor="middle" font-size="12" font-family="system-ui, sans-serif" fill="#0F172A">Contracts</text>
+                  <text x="145" y="153" text-anchor="middle" font-size="12" font-family="system-ui, sans-serif" fill="#0F172A">Domains</text>
+                  <text x="229" y="153" text-anchor="middle" font-size="12" font-family="system-ui, sans-serif" fill="#0F172A">Tooling</text>
+                  <path d="M98 41H112" stroke="#3559E6" stroke-width="2.5" stroke-linecap="round"/>
+                  <path d="M178 41H190" stroke="#0EA5A4" stroke-width="2.5" stroke-linecap="round"/>
+                  <path d="M55 62V128" stroke="#3559E6" stroke-width="2.5" stroke-linecap="round"/>
+                  <path d="M145 62V128" stroke="#0EA5A4" stroke-width="2.5" stroke-linecap="round"/>
+                  <path d="M229 62V128" stroke="#7C3AED" stroke-width="2.5" stroke-linecap="round"/>
+                  <text x="100" y="103" text-anchor="middle" font-size="11" font-family="system-ui, sans-serif" fill="#667085">published contracts only</text>
+                  <text x="188" y="103" text-anchor="middle" font-size="11" font-family="system-ui, sans-serif" fill="#667085">no app-owned truth</text>
+                </svg>
+                <div class="boundary-legend">
+                  <div class="legend-row"><span class="legend-swatch" style="background:#3559E6"></span><span>Delivery shells own route residency, not write models.</span></div>
+                  <div class="legend-row"><span class="legend-swatch" style="background:#0EA5A4"></span><span>Gateway and services enforce policy, settlement, projection, and integration seams.</span></div>
+                  <div class="legend-row"><span class="legend-swatch" style="background:#7C3AED"></span><span>Packages own shared kernel, contracts, and domain truth boundaries.</span></div>
+                  <div class="legend-row"><span class="legend-swatch" style="background:#C98900"></span><span>Conditional assistive work stays tools-only until later route publication exists.</span></div>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section class="lower-panel">
+            <div class="lower-header">
+              <div>
+                <p class="section-label">Table parity</p>
+                <p class="subtitle">The node table mirrors the filtered graph exactly and keeps keyboard navigation deterministic.</p>
+              </div>
+            </div>
+            <div class="table-shell" data-testid="node-table">
+              <table aria-describedby="table-help">
+                <thead>
+                  <tr>
+                    <th>Artifact</th>
+                    <th>Owner</th>
+                    <th>Shells / routes</th>
+                    <th>Allowed deps</th>
+                    <th>Defect</th>
+                  </tr>
+                </thead>
+                <tbody id="node-body"></tbody>
+              </table>
+            </div>
+            <p id="table-help" class="visually-hidden">Arrow keys move between filtered rows and update the inspector.</p>
+
+            <div class="parity-shell" data-testid="parity-table">
+              <div class="parity-card">
+                <h4>By artifact type</h4>
+                <table>
+                  <tbody id="parity-artifact-body"></tbody>
+                </table>
+              </div>
+              <div class="parity-card">
+                <h4>By defect state</h4>
+                <table>
+                  <tbody id="parity-defect-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="defect-panel">
+            <div class="defect-header">
+              <div>
+                <p class="section-label">Defect strip</p>
+                <p class="subtitle">Resolved closures and remaining watch items stay visible instead of hiding in prose.</p>
+              </div>
+            </div>
+            <div class="defect-strip" data-testid="defect-strip" id="defect-strip"></div>
+          </section>
+        </main>
+
+        <aside class="panel inspector" data-testid="inspector" aria-live="polite"></aside>
+      </div>
+    </div>
+  </div>
+
+  <script id="atlas-data" type="application/json">{"task_id":"seq_041","visual_mode":"Topology_Atlas","summary":{"artifact_count":39,"app_count":7,"service_count":5,"package_count":22,"special_workspace_count":5,"context_count":22,"shell_family_count":8,"route_family_count":20,"gateway_surface_count":22,"boundary_rule_count":19,"context_boundary_contract_count":17,"topology_defect_count":2,"resolved_defect_count":3,"conditional_surface_count":1,"upstream_import_rule_count":15},"owner_contexts":[{"owner_context_code":"patient_experience","owner_context_label":"Patient Experience","owner_kind":"bounded_context","category":"delivery","accent":"#3559E6","description":"Owns patient-shell residency, route continuity, and calm patient posture without owning any write model.","artifact_count":1},{"owner_context_code":"triage_workspace","owner_context_label":"Triage Workspace","owner_kind":"bounded_context","category":"delivery","accent":"#0EA5A4","description":"Owns the staff workspace shell, human checkpoint framing, and bounded assistive sidecar residency.","artifact_count":2},{"owner_context_code":"hub_coordination","owner_context_label":"Hub Coordination","owner_kind":"bounded_context","category":"domain","accent":"#3559E6","description":"Owns hub queue, alternatives, acknowledgement, and exception-handling coordination flows.","artifact_count":2},{"owner_context_code":"pharmacy","owner_context_label":"Pharmacy","owner_kind":"bounded_context","category":"domain","accent":"#C98900","description":"Owns pharmacy dispatch, provider-choice, and outcome proof handling without leaking into other shells.","artifact_count":2},{"owner_context_code":"support","owner_context_label":"Support","owner_kind":"bounded_context","category":"domain","accent":"#64748B","description":"Owns support ticket, replay, observe, and assisted-capture control surfaces and package boundaries.","artifact_count":2},{"owner_context_code":"operations","owner_context_label":"Operations","owner_kind":"bounded_context","category":"domain","accent":"#0F9D58","description":"Owns operations-board telemetry, drill-down, and intervention guardrails inside one exact shell family.","artifact_count":2},{"owner_context_code":"governance_admin","owner_context_label":"Governance Admin","owner_kind":"bounded_context","category":"domain","accent":"#6E59D9","description":"Owns governance, release, access, config, and communications review work under one control-plane shell.","artifact_count":2},{"owner_context_code":"intake_safety","owner_context_label":"Intake Safety","owner_kind":"bounded_context","category":"domain","accent":"#3559E6","description":"Owns submission ingress, promotion, artifact quarantine, and intake safety gates.","artifact_count":1},{"owner_context_code":"identity_access","owner_context_label":"Identity Access","owner_kind":"bounded_context","category":"domain","accent":"#0EA5A4","description":"Owns claims, secure-link redemption, access grants, acting-scope rules, and authorization policy truth.","artifact_count":2},{"owner_context_code":"booking","owner_context_label":"Booking","owner_kind":"bounded_context","category":"domain","accent":"#3559E6","description":"Owns booking, waitlist, reservation authority, and external confirmation gates.","artifact_count":1},{"owner_context_code":"communications","owner_context_label":"Communications","owner_kind":"bounded_context","category":"domain","accent":"#0EA5A4","description":"Owns message, callback, and controlled-resend contracts while delivery evidence stays explicit.","artifact_count":1},{"owner_context_code":"analytics_assurance","owner_context_label":"Analytics Assurance","owner_kind":"bounded_context","category":"domain","accent":"#7C3AED","description":"Owns published observability, trust slices, projection analytics, and assurance-facing telemetry contracts.","artifact_count":2},{"owner_context_code":"audit_compliance","owner_context_label":"Audit Compliance","owner_kind":"bounded_context","category":"domain","accent":"#C24141","description":"Owns tamper-evident evidence, replay witness law, and compliance-oriented disclosure proofs.","artifact_count":1},{"owner_context_code":"release_control","owner_context_label":"Release Control","owner_kind":"bounded_context","category":"domain","accent":"#7C3AED","description":"Owns runtime publication, release approval freeze, watch tuples, and promotion parity controls.","artifact_count":2},{"owner_context_code":"platform_runtime","owner_context_label":"Platform Runtime","owner_kind":"shared_kernel_class","category":"shared","accent":"#3559E6","description":"Shared runtime application plane that stitches shells, contracts, services, and publication tuples without owning domain truth.","artifact_count":3},{"owner_context_code":"platform_integration","owner_context_label":"Platform Integration","owner_kind":"shared_kernel_class","category":"shared","accent":"#0EA5A4","description":"Shared integration and simulator class for bounded provider seams, receipts, retries, and non-authoritative local labs.","artifact_count":2},{"owner_context_code":"shared_domain_kernel","owner_context_label":"Shared Domain Kernel","owner_kind":"shared_kernel_class","category":"shared","accent":"#7C3AED","description":"Only legal shared home for reusable canonical primitives, identifiers, and cross-context invariants.","artifact_count":1},{"owner_context_code":"shared_contracts","owner_context_label":"Shared Contracts","owner_kind":"shared_kernel_class","category":"shared","accent":"#7C3AED","description":"Versioned publication packages for API, event, and derived representation contracts; never a convenience dump.","artifact_count":3},{"owner_context_code":"design_system","owner_context_label":"Design System","owner_kind":"shared_kernel_class","category":"shared","accent":"#7C3AED","description":"Owns design tokens, markers, accessibility vocabulary, and shell-inheritance law.","artifact_count":1},{"owner_context_code":"test_fixtures","owner_context_label":"Test Fixtures","owner_kind":"shared_kernel_class","category":"shared","accent":"#667085","description":"Owns non-authoritative fixture builders and publication-safe test helpers only.","artifact_count":1},{"owner_context_code":"analysis_validation","owner_context_label":"Analysis Validation","owner_kind":"shared_kernel_class","category":"tooling","accent":"#667085","description":"Owns docs, validation, architectural rule files, and Playwright instrumentation without runtime write authority.","artifact_count":4},{"owner_context_code":"assistive_lab","owner_context_label":"Assistive Lab","owner_kind":"shared_kernel_class","category":"tooling","accent":"#C98900","description":"Reserved tools-only namespace for standalone assistive evaluation, replay, or release-control work while live assist remains bounded.","artifact_count":1}],"artifacts":[{"artifact_id":"app_patient_web","repo_path":"apps/patient-web","display_name":"Patient Web","artifact_type":"app","artifact_class":"app_shell","owner_context_code":"patient_experience","owner_context_label":"Patient Experience","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":["patient"],"route_families_owned":[{"route_family_id":"rf_intake_self_service","route_family":"Intake / self-service form (derived)","shell_type":"patient","explicit_route_contract":false,"scope_posture":"baseline","source_refs":["blueprint-init.md#2. Core product surfaces","phase-0-the-foundation-protocol.md#12.1 Mandatory audience tiers"]},{"route_family_id":"rf_intake_telephony_capture","route_family":"Intake / telephony capture (derived)","shell_type":"patient","explicit_route_contract":false,"scope_posture":"baseline","source_refs":["blueprint-init.md#2. Core product surfaces","phase-0-the-foundation-protocol.md#0.2 Continuity key and shell law"]},{"route_family_id":"rf_patient_secure_link_recovery","route_family":"Secure-link recovery and claim resume (derived)","shell_type":"patient","explicit_route_contract":false,"scope_posture":"baseline","source_refs":["patient-account-and-communications-blueprint.md#Patient audience coverage contract","phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm"]},{"route_family_id":"rf_patient_home","route_family":"Home","shell_type":"patient","explicit_route_contract":true,"scope_posture":"baseline","source_refs":["patient-portal-experience-architecture-blueprint.md#Portal entry and shell topology","patient-account-and-communications-blueprint.md#Patient home contract"]},{"route_family_id":"rf_patient_requests","route_family":"Requests","shell_type":"patient","explicit_route_contract":true,"scope_posture":"baseline","source_refs":["patient-account-and-communications-blueprint.md#Requests browsing contract","patient-account-and-communications-blueprint.md#Request detail contract"]},{"route_family_id":"rf_patient_appointments","route_family":"Appointments","shell_type":"patient","explicit_route_contract":true,"scope_posture":"baseline","source_refs":["phase-0-the-foundation-protocol.md#5.6 Booking, waitlist, hub, and pharmacy continuity algorithm","patient-account-and-communications-blueprint.md#Core projections"]},{"route_family_id":"rf_patient_health_record","route_family":"Health record","shell_type":"patient","explicit_route_contract":true,"scope_posture":"baseline","source_refs":["phase-0-the-foundation-protocol.md#5.5A Patient record and results visualization algorithm","patient-portal-experience-architecture-blueprint.md#Primary navigation model"]},{"route_family_id":"rf_patient_messages","route_family":"Messages","shell_type":"patient","explicit_route_contract":true,"scope_posture":"baseline","source_refs":["phase-0-the-foundation-protocol.md#5.5 Unified care conversation algorithm","callback-and-clinician-messaging-loop.md"]},{"route_family_id":"rf_patient_embedded_channel","route_family":"Patient embedded channel parity","shell_type":"patient","explicit_route_contract":true,"scope_posture":"deferred","source_refs":["patient-portal-experience-architecture-blueprint.md#Control priorities","phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm"]}],"gateway_surfaces_owned":[{"gateway_surface_id":"gws_patient_appointments","surface_name":"Appointments and manage","route_family_id":"rf_patient_appointments","shell_type":"patient","source_refs":["phase-0-the-foundation-protocol.md#5.6 Booking, waitlist, hub, and pharmacy continuity algorithm","patient-account-and-communications-blueprint.md#Core projections","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]},{"gateway_surface_id":"gws_patient_embedded_shell","surface_name":"Embedded patient shell reuse","route_family_id":"rf_patient_embedded_channel","shell_type":"patient","source_refs":["patient-portal-experience-architecture-blueprint.md#Control priorities","phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]},{"gateway_surface_id":"gws_patient_health_record","surface_name":"Patient health record and documents","route_family_id":"rf_patient_health_record","shell_type":"patient","source_refs":["phase-0-the-foundation-protocol.md#5.5A Patient record and results visualization algorithm","patient-account-and-communications-blueprint.md#Core projections","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]},{"gateway_surface_id":"gws_patient_home","surface_name":"Patient home and spotlight","route_family_id":"rf_patient_home","shell_type":"patient","source_refs":["patient-portal-experience-architecture-blueprint.md#Portal entry and shell topology","patient-account-and-communications-blueprint.md#Patient home contract","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]},{"gateway_surface_id":"gws_patient_intake_phone","surface_name":"Telephony / IVR intake capture","route_family_id":"rf_intake_telephony_capture","shell_type":"patient","source_refs":["blueprint-init.md#2. Core product surfaces","phase-0-the-foundation-protocol.md#0.2 Continuity key and shell law","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]},{"gateway_surface_id":"gws_patient_intake_web","surface_name":"Patient intake entry","route_family_id":"rf_intake_self_service","shell_type":"patient","source_refs":["blueprint-init.md#2. Core product surfaces","phase-0-the-foundation-protocol.md#12.1 Mandatory audience tiers","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]},{"gateway_surface_id":"gws_patient_messages","surface_name":"Messages and callback thread","route_family_id":"rf_patient_messages","shell_type":"patient","source_refs":["phase-0-the-foundation-protocol.md#5.5 Unified care conversation algorithm","callback-and-clinician-messaging-loop.md","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]},{"gateway_surface_id":"gws_patient_requests","surface_name":"Request list and detail","route_family_id":"rf_patient_requests","shell_type":"patient","source_refs":["patient-account-and-communications-blueprint.md#Requests browsing contract","patient-account-and-communications-blueprint.md#Request detail contract","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]},{"gateway_surface_id":"gws_patient_secure_link_recovery","surface_name":"Secure-link recovery and claim resume","route_family_id":"rf_patient_secure_link_recovery","shell_type":"patient","source_refs":["patient-account-and-communications-blueprint.md#Patient audience coverage contract","phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]}],"allowed_dependencies":["packages/api-contracts","packages/design-system","packages/observability","packages/release-controls"],"forbidden_dependencies":["packages/domains/*","services/*","packages/fhir-mapping","tools/** private entrypoints"],"dependency_contract_refs":["CBC_041_SHELLS_TO_API_CONTRACTS","CBC_041_SHELLS_TO_DESIGN_SYSTEM","CBC_041_SHELLS_TO_RELEASE_CONTROLS"],"source_refs":["blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture","blueprint/platform-frontend-blueprint.md#Shell and route-family ownership rules","data/analysis/shell_ownership_map.json"],"notes":"Owns patient-shell residency, including embedded reuse, while all lifecycle truth remains in packages and services.","defect_state":"watch","defect_refs":["DEFECT_041_APP_OWNS_TRUTH_AMBIGUITY","DEFECT_041_DERIVED_PATIENT_ENTRY_ROUTES"]},{"artifact_id":"app_clinical_workspace","repo_path":"apps/clinical-workspace","display_name":"Clinical Workspace","artifact_type":"app","artifact_class":"app_shell","owner_context_code":"triage_workspace","owner_context_label":"Triage Workspace","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":["staff"],"route_families_owned":[{"route_family_id":"rf_staff_workspace","route_family":"/workspace, /workspace/queue/:queueKey, /workspace/task/:taskId","shell_type":"staff","explicit_route_contract":true,"scope_posture":"baseline","source_refs":["staff-workspace-interface-architecture.md#Route family","staff-workspace-interface-architecture.md#Workspace shell-family ownership is explicit"]},{"route_family_id":"rf_staff_workspace_child","route_family":"/workspace/task/:taskId/more-info, /workspace/task/:taskId/decision, /workspace/approvals, /workspace/escalations, /workspace/changed, /workspace/search","shell_type":"staff","explicit_route_contract":true,"scope_posture":"baseline","source_refs":["staff-workspace-interface-architecture.md#Route family","staff-workspace-interface-architecture.md#Additional route rules"]}],"gateway_surfaces_owned":[{"gateway_surface_id":"gws_assistive_sidecar","surface_name":"Assistive companion sidecar inside the owning task","route_family_id":"rf_staff_workspace_child","shell_type":"staff","source_refs":["phase-8-the-assistive-layer.md#Control priorities","staff-workspace-interface-architecture.md#Assistive companion presentation profile","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]},{"gateway_surface_id":"gws_clinician_workspace","surface_name":"Clinical Workspace queue and task canvas","route_family_id":"rf_staff_workspace","shell_type":"staff","source_refs":["staff-workspace-interface-architecture.md#Route family","staff-operations-and-support-blueprint.md#Clinical Workspace specialization","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]},{"gateway_surface_id":"gws_clinician_workspace_child","surface_name":"Clinical Workspace child review states","route_family_id":"rf_staff_workspace_child","shell_type":"staff","source_refs":["staff-workspace-interface-architecture.md#Route family","staff-workspace-interface-architecture.md#Additional route rules","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]},{"gateway_surface_id":"gws_practice_ops_workspace","surface_name":"Practice operations workspace","route_family_id":"rf_staff_workspace","shell_type":"staff","source_refs":["staff-workspace-interface-architecture.md#Route family","staff-operations-and-support-blueprint.md#Staff audience coverage contract","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]}],"allowed_dependencies":["packages/api-contracts","packages/design-system","packages/observability","packages/release-controls"],"forbidden_dependencies":["packages/domains/*","services/*","packages/fhir-mapping","tools/** private entrypoints"],"dependency_contract_refs":["CBC_041_SHELLS_TO_API_CONTRACTS","CBC_041_SHELLS_TO_DESIGN_SYSTEM","CBC_041_SHELLS_TO_RELEASE_CONTROLS"],"source_refs":["blueprint/platform-frontend-blueprint.md#Clinical workspace shell","blueprint/staff-operations-and-support-blueprint.md#Workspace contract","data/analysis/audience_surface_inventory.csv"],"notes":"Owns the staff shell and bounded assistive sidecar while triage, booking, and communications truth stay package-owned.","defect_state":"resolved","defect_refs":["DEFECT_041_APP_OWNS_TRUTH_AMBIGUITY"]},{"artifact_id":"app_hub_desk","repo_path":"apps/hub-desk","display_name":"Hub Desk","artifact_type":"app","artifact_class":"app_shell","owner_context_code":"hub_coordination","owner_context_label":"Hub Coordination","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":["hub"],"route_families_owned":[{"route_family_id":"rf_hub_queue","route_family":"/hub/queue","shell_type":"hub","explicit_route_contract":true,"scope_posture":"baseline","source_refs":["phase-5-the-network-horizon.md#Frontend work","phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"]},{"route_family_id":"rf_hub_case_management","route_family":"/hub/case/:hubCoordinationCaseId, /hub/alternatives/:offerSessionId, /hub/exceptions, /hub/audit/:hubCoordinationCaseId","shell_type":"hub","explicit_route_contract":true,"scope_posture":"baseline","source_refs":["phase-5-the-network-horizon.md#Frontend work","phase-5-the-network-horizon.md#Hub shell-family ownership is explicit"]}],"gateway_surfaces_owned":[{"gateway_surface_id":"gws_hub_case_management","surface_name":"Hub case, alternatives, exception, and audit work","route_family_id":"rf_hub_case_management","shell_type":"hub","source_refs":["phase-5-the-network-horizon.md#Frontend work","phase-5-the-network-horizon.md#Hub shell-family ownership is explicit","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]},{"gateway_surface_id":"gws_hub_queue","surface_name":"Hub queue","route_family_id":"rf_hub_queue","shell_type":"hub","source_refs":["phase-5-the-network-horizon.md#Frontend work","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]}],"allowed_dependencies":["packages/api-contracts","packages/design-system","packages/observability","packages/release-controls"],"forbidden_dependencies":["packages/domains/*","services/*","packages/fhir-mapping","tools/** private entrypoints"],"dependency_contract_refs":["CBC_041_SHELLS_TO_API_CONTRACTS","CBC_041_SHELLS_TO_DESIGN_SYSTEM","CBC_041_SHELLS_TO_RELEASE_CONTROLS"],"source_refs":["blueprint/staff-operations-and-support-blueprint.md#Hub work","blueprint/phase-0-the-foundation-protocol.md#5.6 Booking, waitlist, hub, and pharmacy continuity algorithm","data/analysis/route_family_inventory.csv"],"notes":"Owns hub queue and case-management shell residency; booking, callback, and practice acknowledgements cross the seam only through contracts.","defect_state":"resolved","defect_refs":["DEFECT_041_APP_OWNS_TRUTH_AMBIGUITY"]},{"artifact_id":"app_pharmacy_console","repo_path":"apps/pharmacy-console","display_name":"Pharmacy Console","artifact_type":"app","artifact_class":"app_shell","owner_context_code":"pharmacy","owner_context_label":"Pharmacy","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":["pharmacy"],"route_families_owned":[{"route_family_id":"rf_pharmacy_console","route_family":"/workspace/pharmacy, /workspace/pharmacy/:pharmacyCaseId, /validate, /inventory, /resolve, /handoff, /assurance","shell_type":"pharmacy","explicit_route_contract":true,"scope_posture":"baseline","source_refs":["pharmacy-console-frontend-architecture.md#Mission frame","pharmacy-console-frontend-architecture.md#The recommended route family is"]}],"gateway_surfaces_owned":[{"gateway_surface_id":"gws_pharmacy_console","surface_name":"Pharmacy Console case workbench","route_family_id":"rf_pharmacy_console","shell_type":"pharmacy","source_refs":["pharmacy-console-frontend-architecture.md#Mission frame","pharmacy-console-frontend-architecture.md#The recommended route family is","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]}],"allowed_dependencies":["packages/api-contracts","packages/design-system","packages/observability","packages/release-controls"],"forbidden_dependencies":["packages/domains/*","services/*","packages/fhir-mapping","tools/** private entrypoints"],"dependency_contract_refs":["CBC_041_SHELLS_TO_API_CONTRACTS","CBC_041_SHELLS_TO_DESIGN_SYSTEM","CBC_041_SHELLS_TO_RELEASE_CONTROLS"],"source_refs":["blueprint/pharmacy-console-frontend-architecture.md#Mission frame","docs/architecture/04_surface_conflict_and_gap_report.md","data/analysis/gateway_surface_matrix.csv"],"notes":"Closes the starter-shape omission for the servicing-site shell and keeps dispatch proof inside package and service seams.","defect_state":"resolved","defect_refs":["DEFECT_041_LATER_SHELLS_OMITTED_FROM_STARTER_SHAPE","DEFECT_041_APP_OWNS_TRUTH_AMBIGUITY"]},{"artifact_id":"app_support_workspace","repo_path":"apps/support-workspace","display_name":"Support Workspace","artifact_type":"app","artifact_class":"app_shell","owner_context_code":"support","owner_context_label":"Support","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":["support"],"route_families_owned":[{"route_family_id":"rf_support_ticket_workspace","route_family":"/ops/support, /ops/support/inbox/:viewKey, /ops/support/tickets/:supportTicketId, /conversation, /history, /knowledge, /actions/:actionKey, /handoff/:supportOwnershipTransferId","shell_type":"support","explicit_route_contract":true,"scope_posture":"baseline","source_refs":["staff-operations-and-support-blueprint.md#Support route contract","phase-0-the-foundation-protocol.md#6.5 Support and replay algorithm"]},{"route_family_id":"rf_support_replay_observe","route_family":"/ops/support/replay/:supportReplaySessionId and /ops/support/tickets/:supportTicketId/observe/:supportObserveSessionId","shell_type":"support","explicit_route_contract":true,"scope_posture":"baseline","source_refs":["staff-operations-and-support-blueprint.md#Support route contract","phase-0-the-foundation-protocol.md#6.5 Support and replay algorithm"]}],"gateway_surfaces_owned":[{"gateway_surface_id":"gws_support_assisted_capture","surface_name":"Support-assisted capture and recovery","route_family_id":"rf_support_ticket_workspace","shell_type":"support","source_refs":["blueprint-init.md#2. Core product surfaces","staff-operations-and-support-blueprint.md#Support route contract","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]},{"gateway_surface_id":"gws_support_replay_observe","surface_name":"Support replay and observe","route_family_id":"rf_support_replay_observe","shell_type":"support","source_refs":["staff-operations-and-support-blueprint.md#Support route contract","phase-0-the-foundation-protocol.md#6.5 Support and replay algorithm","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]},{"gateway_surface_id":"gws_support_ticket_workspace","surface_name":"Support ticket workspace","route_family_id":"rf_support_ticket_workspace","shell_type":"support","source_refs":["staff-operations-and-support-blueprint.md#Support route contract","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]}],"allowed_dependencies":["packages/api-contracts","packages/design-system","packages/observability","packages/release-controls"],"forbidden_dependencies":["packages/domains/*","services/*","packages/fhir-mapping","tools/** private entrypoints"],"dependency_contract_refs":["CBC_041_SHELLS_TO_API_CONTRACTS","CBC_041_SHELLS_TO_DESIGN_SYSTEM","CBC_041_SHELLS_TO_RELEASE_CONTROLS"],"source_refs":["blueprint/staff-operations-and-support-blueprint.md#Support route contract","docs/architecture/04_surface_conflict_and_gap_report.md","data/analysis/gateway_surface_matrix.csv"],"notes":"Closes the support-shell omission and records that replay, observe, and assisted capture remain support work rather than operations or governance drift.","defect_state":"resolved","defect_refs":["DEFECT_041_LATER_SHELLS_OMITTED_FROM_STARTER_SHAPE","DEFECT_041_APP_OWNS_TRUTH_AMBIGUITY"]},{"artifact_id":"app_ops_console","repo_path":"apps/ops-console","display_name":"Ops Console","artifact_type":"app","artifact_class":"app_shell","owner_context_code":"operations","owner_context_label":"Operations","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":["operations"],"route_families_owned":[{"route_family_id":"rf_operations_board","route_family":"/ops/overview, /ops/queues, /ops/capacity, /ops/dependencies, /ops/audit, /ops/assurance, /ops/incidents, /ops/resilience","shell_type":"operations","explicit_route_contract":true,"scope_posture":"baseline","source_refs":["operations-console-frontend-blueprint.md#Canonical route family","platform-frontend-blueprint.md#Operations Console specialization"]},{"route_family_id":"rf_operations_drilldown","route_family":"/ops/:opsLens/investigations/:opsRouteIntentId, /interventions/:opsRouteIntentId, /compare/:opsRouteIntentId, /health/:opsRouteIntentId","shell_type":"operations","explicit_route_contract":true,"scope_posture":"baseline","source_refs":["operations-console-frontend-blueprint.md#Canonical route family","operations-console-frontend-blueprint.md#Restore reporting and board-frame discipline"]}],"gateway_surfaces_owned":[{"gateway_surface_id":"gws_operations_board","surface_name":"Operations board","route_family_id":"rf_operations_board","shell_type":"operations","source_refs":["operations-console-frontend-blueprint.md#Canonical route family","operations-console-frontend-blueprint.md#Calm board posture and briefing artifacts","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]},{"gateway_surface_id":"gws_operations_drilldown","surface_name":"Operations investigation and intervention drill-down","route_family_id":"rf_operations_drilldown","shell_type":"operations","source_refs":["operations-console-frontend-blueprint.md#Canonical route family","operations-console-frontend-blueprint.md#Restore reporting and board-frame discipline","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]}],"allowed_dependencies":["packages/api-contracts","packages/design-system","packages/observability","packages/release-controls"],"forbidden_dependencies":["packages/domains/*","services/*","packages/fhir-mapping","tools/** private entrypoints"],"dependency_contract_refs":["CBC_041_SHELLS_TO_API_CONTRACTS","CBC_041_SHELLS_TO_DESIGN_SYSTEM","CBC_041_SHELLS_TO_RELEASE_CONTROLS"],"source_refs":["blueprint/operations-console-frontend-blueprint.md#Canonical route family","docs/architecture/04_surface_conflict_and_gap_report.md","data/analysis/route_family_inventory.csv"],"notes":"Owns operations board and drill-down shell frames while governance handoff stays explicit and reversible.","defect_state":"resolved","defect_refs":["DEFECT_041_APP_OWNS_TRUTH_AMBIGUITY"]},{"artifact_id":"app_governance_console","repo_path":"apps/governance-console","display_name":"Governance Console","artifact_type":"app","artifact_class":"app_shell","owner_context_code":"governance_admin","owner_context_label":"Governance Admin","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":["governance"],"route_families_owned":[{"route_family_id":"rf_governance_shell","route_family":"/ops/governance/*, /ops/access/*, /ops/config/*, /ops/comms/*, /ops/release/*","shell_type":"governance","explicit_route_contract":true,"scope_posture":"baseline","source_refs":["governance-admin-console-frontend-blueprint.md#Shell and route topology","platform-frontend-blueprint.md#Governance/Admin specialization"]}],"gateway_surfaces_owned":[{"gateway_surface_id":"gws_governance_shell","surface_name":"Governance and Admin shell","route_family_id":"rf_governance_shell","shell_type":"governance","source_refs":["governance-admin-console-frontend-blueprint.md#Shell and route topology","governance-admin-console-frontend-blueprint.md#Primary governance personas","platform-runtime-and-release-blueprint.md#GatewayBffSurface"]}],"allowed_dependencies":["packages/api-contracts","packages/design-system","packages/observability","packages/release-controls"],"forbidden_dependencies":["packages/domains/*","services/*","packages/fhir-mapping","tools/** private entrypoints"],"dependency_contract_refs":["CBC_041_SHELLS_TO_API_CONTRACTS","CBC_041_SHELLS_TO_DESIGN_SYSTEM","CBC_041_SHELLS_TO_RELEASE_CONTROLS"],"source_refs":["blueprint/governance-admin-console-frontend-blueprint.md#Shell and route topology","docs/architecture/04_surface_conflict_and_gap_report.md","data/analysis/shell_ownership_map.json"],"notes":"Closes the governance/admin omission and makes release, access, config, and communications review a first-class shell rather than an operations subpanel.","defect_state":"resolved","defect_refs":["DEFECT_041_LATER_SHELLS_OMITTED_FROM_STARTER_SHAPE","DEFECT_041_APP_OWNS_TRUTH_AMBIGUITY"]},{"artifact_id":"service_api_gateway","repo_path":"services/api-gateway","display_name":"API Gateway","artifact_type":"service","artifact_class":"service_gateway","owner_context_code":"platform_runtime","owner_context_label":"Platform Runtime","owner_kind":"shared_kernel_class","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/api-contracts","packages/authz-policy","packages/observability","packages/release-controls"],"forbidden_dependencies":["packages/domains/* private internals","apps/*","packages/fhir-mapping","direct adapter SDK imports"],"dependency_contract_refs":["CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS","CBC_041_API_GATEWAY_TO_IDENTITY_POLICY"],"source_refs":["blueprint/platform-runtime-and-release-blueprint.md#GatewayBffSurface","blueprint/platform-runtime-and-release-blueprint.md#Frontend and backend integration contract","prompt/043.md"],"notes":"Only browser-addressable compute boundary; owns route-scoped BFF ingress, auth/session edge adapters, and publication-aware freeze posture.","defect_state":"clean","defect_refs":[]},{"artifact_id":"service_command_api","repo_path":"services/command-api","display_name":"Command API","artifact_type":"service","artifact_class":"service_runtime","owner_context_code":"platform_runtime","owner_context_label":"Platform Runtime","owner_kind":"shared_kernel_class","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domains/* (public entrypoints only)","packages/domain-kernel","packages/event-contracts","packages/api-contracts","packages/authz-policy","packages/observability","packages/release-controls"],"forbidden_dependencies":["apps/*","packages/design-system","tools/** runtime bypasses"],"dependency_contract_refs":["CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS","CBC_041_COMMAND_API_TO_EVENT_CONTRACTS"],"source_refs":["blueprint/phase-0-the-foundation-protocol.md#2.8 ScopedMutationGate","blueprint/platform-runtime-and-release-blueprint.md#MutationCommandContract","prompt/043.md"],"notes":"Canonical mutation ingress and settlement seam; only service allowed to coordinate cross-context writes through published domain entrypoints.","defect_state":"clean","defect_refs":[]},{"artifact_id":"service_projection_worker","repo_path":"services/projection-worker","display_name":"Projection Worker","artifact_type":"service","artifact_class":"service_runtime","owner_context_code":"platform_runtime","owner_context_label":"Platform Runtime","owner_kind":"shared_kernel_class","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domains/* (public projections only)","packages/domain-kernel","packages/event-contracts","packages/api-contracts","packages/fhir-mapping","packages/observability","packages/release-controls"],"forbidden_dependencies":["apps/*","packages/design-system","direct browser clients"],"dependency_contract_refs":["CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS","CBC_041_PROJECTION_WORKER_TO_FHIR_MAPPING"],"source_refs":["blueprint/platform-runtime-and-release-blueprint.md#ProjectionContractVersionSet","blueprint/platform-runtime-and-release-blueprint.md#ProjectionQueryContract","prompt/043.md"],"notes":"Derived-read and rebuild worker only; no canonical write authority and no browser-owned joins.","defect_state":"clean","defect_refs":[]},{"artifact_id":"service_notification_worker","repo_path":"services/notification-worker","display_name":"Notification Worker","artifact_type":"service","artifact_class":"service_runtime","owner_context_code":"platform_integration","owner_context_label":"Platform Integration","owner_kind":"shared_kernel_class","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domains/communications","packages/domains/identity_access","packages/domains/support","packages/event-contracts","packages/api-contracts","packages/authz-policy","packages/observability","packages/release-controls"],"forbidden_dependencies":["apps/*","packages/design-system","real provider credentials in source"],"dependency_contract_refs":["CBC_041_NOTIFICATION_WORKER_TO_COMMUNICATIONS_SUPPORT_IDENTITY"],"source_refs":["blueprint/platform-runtime-and-release-blueprint.md#DependencyDegradationProfile","blueprint/platform-runtime-and-release-blueprint.md#RuntimeTopologyManifest","prompt/043.md"],"notes":"Effect worker for dispatch, callback, resend, and provider settlement seams with explicit evidence and idempotency posture.","defect_state":"clean","defect_refs":[]},{"artifact_id":"service_adapter_simulators","repo_path":"services/adapter-simulators","display_name":"Adapter Simulators","artifact_type":"service","artifact_class":"service_runtime","owner_context_code":"platform_integration","owner_context_label":"Platform Integration","owner_kind":"shared_kernel_class","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/api-contracts","packages/event-contracts","packages/fhir-mapping","packages/test-fixtures","packages/observability"],"forbidden_dependencies":["apps/*","packages/domains/* private internals","live-provider credentials"],"dependency_contract_refs":["CBC_041_ADAPTER_SIMULATORS_TO_CONTRACT_AND_FIXTURE_PACKAGES"],"source_refs":["docs/external/38_local_adapter_simulator_backlog.md","docs/external/39_manual_approval_checkpoint_register.md","prompt/041.md"],"notes":"Non-authoritative local integration lab for unavailable or manual providers; never a substitute for live-provider proof.","defect_state":"clean","defect_refs":[]},{"artifact_id":"package_domain_kernel","repo_path":"packages/domain-kernel","display_name":"Domain Kernel","artifact_type":"package","artifact_class":"shared_kernel_package","owner_context_code":"shared_domain_kernel","owner_context_label":"Shared Domain Kernel","owner_kind":"shared_kernel_class","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":[],"forbidden_dependencies":["apps/*","services/*","packages/domains/*"],"dependency_contract_refs":["CBC_041_DOMAIN_PACKAGES_TO_DOMAIN_KERNEL"],"source_refs":["blueprint/phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine","prompt/044.md"],"notes":"Only legal shared-kernel home for canonical identifiers, invariants, and cross-context primitives.","defect_state":"resolved","defect_refs":["DEFECT_041_SHARED_UTIL_LOOPHOLE"]},{"artifact_id":"package_event_contracts","repo_path":"packages/event-contracts","display_name":"Event Contracts","artifact_type":"package","artifact_class":"shared_contract_package","owner_context_code":"shared_contracts","owner_context_label":"Shared Contracts","owner_kind":"shared_kernel_class","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domain-kernel"],"forbidden_dependencies":["apps/*","services/* deep imports"],"dependency_contract_refs":["CBC_041_DOMAIN_PACKAGES_TO_EVENT_CONTRACTS","CBC_041_COMMAND_API_TO_EVENT_CONTRACTS"],"source_refs":["blueprint/phase-0-the-foundation-protocol.md#CanonicalEventContract","prompt/044.md"],"notes":"Canonical source for published event truth; downstream consumers may not replace it with route-local DTOs.","defect_state":"resolved","defect_refs":["DEFECT_041_SHARED_UTIL_LOOPHOLE"]},{"artifact_id":"package_api_contracts","repo_path":"packages/api-contracts","display_name":"API Contracts","artifact_type":"package","artifact_class":"shared_contract_package","owner_context_code":"shared_contracts","owner_context_label":"Shared Contracts","owner_kind":"shared_kernel_class","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domain-kernel","packages/event-contracts","packages/release-controls"],"forbidden_dependencies":["apps/* truth owners","services/* deep imports","packages/domains/* private internals"],"dependency_contract_refs":["CBC_041_SHELLS_TO_API_CONTRACTS","CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS"],"source_refs":["blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","prompt/044.md"],"notes":"Published browser and runtime contract surface; shells and services must consume this layer instead of sibling package internals.","defect_state":"resolved","defect_refs":["DEFECT_041_SHARED_UTIL_LOOPHOLE"]},{"artifact_id":"package_fhir_mapping","repo_path":"packages/fhir-mapping","display_name":"FHIR Mapping","artifact_type":"package","artifact_class":"shared_contract_package","owner_context_code":"shared_contracts","owner_context_label":"Shared Contracts","owner_kind":"shared_kernel_class","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domain-kernel","packages/event-contracts","packages/domains/* (representation-only entrypoints)"],"forbidden_dependencies":["apps/*","services/* raw-store writes"],"dependency_contract_refs":["CBC_041_PROJECTION_WORKER_TO_FHIR_MAPPING"],"source_refs":["blueprint/phase-0-the-foundation-protocol.md#FhirRepresentationContract","prompt/044.md"],"notes":"Derived representation boundary only; never a canonical truth owner or shortcut around command settlement.","defect_state":"resolved","defect_refs":["DEFECT_041_SHARED_UTIL_LOOPHOLE"]},{"artifact_id":"package_design_system","repo_path":"packages/design-system","display_name":"Design System","artifact_type":"package","artifact_class":"shared_design_package","owner_context_code":"design_system","owner_context_label":"Design System","owner_kind":"shared_kernel_class","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":[],"forbidden_dependencies":["packages/domains/*","services/*"],"dependency_contract_refs":["CBC_041_SHELLS_TO_DESIGN_SYSTEM"],"source_refs":["docs/architecture/14_frontend_stack_decision.md","blueprint/platform-frontend-blueprint.md#DesignContractPublicationBundle","prompt/044.md"],"notes":"Single legal shared home for tokens, automation markers, accessibility vocabulary, and shell-inheritance law.","defect_state":"resolved","defect_refs":["DEFECT_041_SHARED_UTIL_LOOPHOLE"]},{"artifact_id":"package_authz_policy","repo_path":"packages/authz-policy","display_name":"Authz Policy","artifact_type":"package","artifact_class":"shared_policy_package","owner_context_code":"identity_access","owner_context_label":"Identity Access","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domain-kernel","packages/event-contracts","packages/release-controls"],"forbidden_dependencies":["apps/* policy mutations","services/* private domain models"],"dependency_contract_refs":["CBC_041_API_GATEWAY_TO_IDENTITY_POLICY","CBC_041_DOMAIN_PACKAGES_TO_POLICY_AND_OBSERVABILITY"],"source_refs":["blueprint/phase-0-the-foundation-protocol.md#ActingScopeTuple","prompt/044.md"],"notes":"Published scope, acting-context, and authorization fences; no app may mint local policy truth.","defect_state":"resolved","defect_refs":["DEFECT_041_SHARED_UTIL_LOOPHOLE"]},{"artifact_id":"package_test_fixtures","repo_path":"packages/test-fixtures","display_name":"Test Fixtures","artifact_type":"package","artifact_class":"shared_support_package","owner_context_code":"test_fixtures","owner_context_label":"Test Fixtures","owner_kind":"shared_kernel_class","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domain-kernel","packages/event-contracts","packages/api-contracts","packages/domains/* (public test seams only)"],"forbidden_dependencies":["apps/* runtime truth","services/* private internals"],"dependency_contract_refs":["CBC_041_ADAPTER_SIMULATORS_TO_CONTRACT_AND_FIXTURE_PACKAGES"],"source_refs":["prompt/044.md","data/analysis/import_boundary_rules.json"],"notes":"Shared non-authoritative fixture builders; cannot become a dumping ground for runtime behavior.","defect_state":"resolved","defect_refs":["DEFECT_041_SHARED_UTIL_LOOPHOLE"]},{"artifact_id":"package_observability","repo_path":"packages/observability","display_name":"Observability","artifact_type":"package","artifact_class":"shared_support_package","owner_context_code":"analytics_assurance","owner_context_label":"Analytics Assurance","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domain-kernel","packages/release-controls"],"forbidden_dependencies":["apps/* truth writes","packages/domains/* private internals"],"dependency_contract_refs":["CBC_041_DOMAIN_PACKAGES_TO_POLICY_AND_OBSERVABILITY","CBC_041_RELEASE_CONTROL_TO_OBSERVABILITY"],"source_refs":["blueprint/platform-runtime-and-release-blueprint.md#AssuranceSliceTrustRecord","prompt/044.md"],"notes":"Published telemetry and trust-slice vocabulary for shells, services, and release controls; never a shadow write model.","defect_state":"resolved","defect_refs":["DEFECT_041_SHARED_UTIL_LOOPHOLE"]},{"artifact_id":"package_release_controls","repo_path":"packages/release-controls","display_name":"Release Controls","artifact_type":"package","artifact_class":"shared_policy_package","owner_context_code":"release_control","owner_context_label":"Release Control","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domain-kernel","packages/event-contracts","packages/api-contracts","packages/observability"],"forbidden_dependencies":["apps/* release authority","packages/domains/* private internals"],"dependency_contract_refs":["CBC_041_SHELLS_TO_RELEASE_CONTROLS","CBC_041_RELEASE_CONTROL_TO_OBSERVABILITY"],"source_refs":["blueprint/platform-runtime-and-release-blueprint.md#RuntimePublicationBundle","prompt/044.md"],"notes":"Single package family for publication tuples, approval freezes, watch posture, and runtime parity law.","defect_state":"resolved","defect_refs":["DEFECT_041_SHARED_UTIL_LOOPHOLE"]},{"artifact_id":"package_domains_intake_safety","repo_path":"packages/domains/intake_safety","display_name":"Intake Safety Domain","artifact_type":"package","artifact_class":"domain_context_package","owner_context_code":"intake_safety","owner_context_label":"Intake Safety","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domain-kernel","packages/event-contracts","packages/authz-policy","packages/observability"],"forbidden_dependencies":["packages/domains/* sibling internals","apps/*","services/*","packages/design-system"],"dependency_contract_refs":["CBC_041_DOMAIN_PACKAGES_TO_DOMAIN_KERNEL","CBC_041_DOMAIN_PACKAGES_TO_EVENT_CONTRACTS","CBC_041_DOMAIN_PACKAGES_TO_POLICY_AND_OBSERVABILITY"],"source_refs":["prompt/044.md","blueprint/phase-0-the-foundation-protocol.md#BoundedContextDescriptor"],"notes":"Canonical package home for the Intake Safety bounded context.","defect_state":"clean","defect_refs":[]},{"artifact_id":"package_domains_identity_access","repo_path":"packages/domains/identity_access","display_name":"Identity Access Domain","artifact_type":"package","artifact_class":"domain_context_package","owner_context_code":"identity_access","owner_context_label":"Identity Access","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domain-kernel","packages/event-contracts","packages/authz-policy","packages/observability"],"forbidden_dependencies":["packages/domains/* sibling internals","apps/*","services/*","packages/design-system"],"dependency_contract_refs":["CBC_041_DOMAIN_PACKAGES_TO_DOMAIN_KERNEL","CBC_041_DOMAIN_PACKAGES_TO_EVENT_CONTRACTS","CBC_041_DOMAIN_PACKAGES_TO_POLICY_AND_OBSERVABILITY"],"source_refs":["prompt/044.md","blueprint/phase-0-the-foundation-protocol.md#BoundedContextDescriptor"],"notes":"Canonical package home for the Identity Access bounded context.","defect_state":"clean","defect_refs":[]},{"artifact_id":"package_domains_triage_workspace","repo_path":"packages/domains/triage_workspace","display_name":"Triage Workspace Domain","artifact_type":"package","artifact_class":"domain_context_package","owner_context_code":"triage_workspace","owner_context_label":"Triage Workspace","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domain-kernel","packages/event-contracts","packages/authz-policy","packages/observability"],"forbidden_dependencies":["packages/domains/* sibling internals","apps/*","services/*","packages/design-system"],"dependency_contract_refs":["CBC_041_DOMAIN_PACKAGES_TO_DOMAIN_KERNEL","CBC_041_DOMAIN_PACKAGES_TO_EVENT_CONTRACTS","CBC_041_DOMAIN_PACKAGES_TO_POLICY_AND_OBSERVABILITY"],"source_refs":["prompt/044.md","blueprint/phase-0-the-foundation-protocol.md#BoundedContextDescriptor"],"notes":"Canonical package home for the Triage Workspace bounded context.","defect_state":"clean","defect_refs":[]},{"artifact_id":"package_domains_booking","repo_path":"packages/domains/booking","display_name":"Booking Domain","artifact_type":"package","artifact_class":"domain_context_package","owner_context_code":"booking","owner_context_label":"Booking","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domain-kernel","packages/event-contracts","packages/authz-policy","packages/observability"],"forbidden_dependencies":["packages/domains/* sibling internals","apps/*","services/*","packages/design-system"],"dependency_contract_refs":["CBC_041_DOMAIN_PACKAGES_TO_DOMAIN_KERNEL","CBC_041_DOMAIN_PACKAGES_TO_EVENT_CONTRACTS","CBC_041_DOMAIN_PACKAGES_TO_POLICY_AND_OBSERVABILITY"],"source_refs":["prompt/044.md","blueprint/phase-0-the-foundation-protocol.md#BoundedContextDescriptor"],"notes":"Canonical package home for the Booking bounded context.","defect_state":"clean","defect_refs":[]},{"artifact_id":"package_domains_hub_coordination","repo_path":"packages/domains/hub_coordination","display_name":"Hub Coordination Domain","artifact_type":"package","artifact_class":"domain_context_package","owner_context_code":"hub_coordination","owner_context_label":"Hub Coordination","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domain-kernel","packages/event-contracts","packages/authz-policy","packages/observability"],"forbidden_dependencies":["packages/domains/* sibling internals","apps/*","services/*","packages/design-system"],"dependency_contract_refs":["CBC_041_DOMAIN_PACKAGES_TO_DOMAIN_KERNEL","CBC_041_DOMAIN_PACKAGES_TO_EVENT_CONTRACTS","CBC_041_DOMAIN_PACKAGES_TO_POLICY_AND_OBSERVABILITY"],"source_refs":["prompt/044.md","blueprint/phase-0-the-foundation-protocol.md#BoundedContextDescriptor"],"notes":"Canonical package home for the Hub Coordination bounded context.","defect_state":"clean","defect_refs":[]},{"artifact_id":"package_domains_pharmacy","repo_path":"packages/domains/pharmacy","display_name":"Pharmacy Domain","artifact_type":"package","artifact_class":"domain_context_package","owner_context_code":"pharmacy","owner_context_label":"Pharmacy","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domain-kernel","packages/event-contracts","packages/authz-policy","packages/observability"],"forbidden_dependencies":["packages/domains/* sibling internals","apps/*","services/*","packages/design-system"],"dependency_contract_refs":["CBC_041_DOMAIN_PACKAGES_TO_DOMAIN_KERNEL","CBC_041_DOMAIN_PACKAGES_TO_EVENT_CONTRACTS","CBC_041_DOMAIN_PACKAGES_TO_POLICY_AND_OBSERVABILITY"],"source_refs":["prompt/044.md","blueprint/phase-0-the-foundation-protocol.md#BoundedContextDescriptor"],"notes":"Canonical package home for the Pharmacy bounded context.","defect_state":"resolved","defect_refs":["DEFECT_041_LATER_SHELLS_OMITTED_FROM_STARTER_SHAPE"]},{"artifact_id":"package_domains_communications","repo_path":"packages/domains/communications","display_name":"Communications Domain","artifact_type":"package","artifact_class":"domain_context_package","owner_context_code":"communications","owner_context_label":"Communications","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domain-kernel","packages/event-contracts","packages/authz-policy","packages/observability"],"forbidden_dependencies":["packages/domains/* sibling internals","apps/*","services/*","packages/design-system"],"dependency_contract_refs":["CBC_041_DOMAIN_PACKAGES_TO_DOMAIN_KERNEL","CBC_041_DOMAIN_PACKAGES_TO_EVENT_CONTRACTS","CBC_041_DOMAIN_PACKAGES_TO_POLICY_AND_OBSERVABILITY"],"source_refs":["prompt/044.md","blueprint/phase-0-the-foundation-protocol.md#BoundedContextDescriptor"],"notes":"Canonical package home for the Communications bounded context.","defect_state":"clean","defect_refs":[]},{"artifact_id":"package_domains_support","repo_path":"packages/domains/support","display_name":"Support Domain","artifact_type":"package","artifact_class":"domain_context_package","owner_context_code":"support","owner_context_label":"Support","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domain-kernel","packages/event-contracts","packages/authz-policy","packages/observability"],"forbidden_dependencies":["packages/domains/* sibling internals","apps/*","services/*","packages/design-system"],"dependency_contract_refs":["CBC_041_DOMAIN_PACKAGES_TO_DOMAIN_KERNEL","CBC_041_DOMAIN_PACKAGES_TO_EVENT_CONTRACTS","CBC_041_DOMAIN_PACKAGES_TO_POLICY_AND_OBSERVABILITY"],"source_refs":["prompt/044.md","blueprint/phase-0-the-foundation-protocol.md#BoundedContextDescriptor"],"notes":"Canonical package home for the Support bounded context.","defect_state":"resolved","defect_refs":["DEFECT_041_LATER_SHELLS_OMITTED_FROM_STARTER_SHAPE"]},{"artifact_id":"package_domains_operations","repo_path":"packages/domains/operations","display_name":"Operations Domain","artifact_type":"package","artifact_class":"domain_context_package","owner_context_code":"operations","owner_context_label":"Operations","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domain-kernel","packages/event-contracts","packages/authz-policy","packages/observability"],"forbidden_dependencies":["packages/domains/* sibling internals","apps/*","services/*","packages/design-system"],"dependency_contract_refs":["CBC_041_DOMAIN_PACKAGES_TO_DOMAIN_KERNEL","CBC_041_DOMAIN_PACKAGES_TO_EVENT_CONTRACTS","CBC_041_DOMAIN_PACKAGES_TO_POLICY_AND_OBSERVABILITY"],"source_refs":["prompt/044.md","blueprint/phase-0-the-foundation-protocol.md#BoundedContextDescriptor"],"notes":"Canonical package home for the Operations bounded context.","defect_state":"clean","defect_refs":[]},{"artifact_id":"package_domains_governance_admin","repo_path":"packages/domains/governance_admin","display_name":"Governance Admin Domain","artifact_type":"package","artifact_class":"domain_context_package","owner_context_code":"governance_admin","owner_context_label":"Governance Admin","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domain-kernel","packages/event-contracts","packages/authz-policy","packages/observability"],"forbidden_dependencies":["packages/domains/* sibling internals","apps/*","services/*","packages/design-system"],"dependency_contract_refs":["CBC_041_DOMAIN_PACKAGES_TO_DOMAIN_KERNEL","CBC_041_DOMAIN_PACKAGES_TO_EVENT_CONTRACTS","CBC_041_DOMAIN_PACKAGES_TO_POLICY_AND_OBSERVABILITY"],"source_refs":["prompt/044.md","blueprint/phase-0-the-foundation-protocol.md#BoundedContextDescriptor"],"notes":"Canonical package home for the Governance Admin bounded context.","defect_state":"resolved","defect_refs":["DEFECT_041_LATER_SHELLS_OMITTED_FROM_STARTER_SHAPE"]},{"artifact_id":"package_domains_analytics_assurance","repo_path":"packages/domains/analytics_assurance","display_name":"Analytics Assurance Domain","artifact_type":"package","artifact_class":"domain_context_package","owner_context_code":"analytics_assurance","owner_context_label":"Analytics Assurance","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domain-kernel","packages/event-contracts","packages/authz-policy","packages/observability"],"forbidden_dependencies":["packages/domains/* sibling internals","apps/*","services/*","packages/design-system"],"dependency_contract_refs":["CBC_041_DOMAIN_PACKAGES_TO_DOMAIN_KERNEL","CBC_041_DOMAIN_PACKAGES_TO_EVENT_CONTRACTS","CBC_041_DOMAIN_PACKAGES_TO_POLICY_AND_OBSERVABILITY"],"source_refs":["prompt/044.md","blueprint/phase-0-the-foundation-protocol.md#BoundedContextDescriptor"],"notes":"Canonical package home for the Analytics Assurance bounded context.","defect_state":"clean","defect_refs":[]},{"artifact_id":"package_domains_audit_compliance","repo_path":"packages/domains/audit_compliance","display_name":"Audit Compliance Domain","artifact_type":"package","artifact_class":"domain_context_package","owner_context_code":"audit_compliance","owner_context_label":"Audit Compliance","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domain-kernel","packages/event-contracts","packages/authz-policy","packages/observability"],"forbidden_dependencies":["packages/domains/* sibling internals","apps/*","services/*","packages/design-system"],"dependency_contract_refs":["CBC_041_DOMAIN_PACKAGES_TO_DOMAIN_KERNEL","CBC_041_DOMAIN_PACKAGES_TO_EVENT_CONTRACTS","CBC_041_DOMAIN_PACKAGES_TO_POLICY_AND_OBSERVABILITY"],"source_refs":["prompt/044.md","blueprint/phase-0-the-foundation-protocol.md#BoundedContextDescriptor"],"notes":"Canonical package home for the Audit Compliance bounded context.","defect_state":"clean","defect_refs":[]},{"artifact_id":"package_domains_release_control","repo_path":"packages/domains/release_control","display_name":"Release Control Domain","artifact_type":"package","artifact_class":"domain_context_package","owner_context_code":"release_control","owner_context_label":"Release Control","owner_kind":"bounded_context","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/domain-kernel","packages/event-contracts","packages/authz-policy","packages/observability"],"forbidden_dependencies":["packages/domains/* sibling internals","apps/*","services/*","packages/design-system"],"dependency_contract_refs":["CBC_041_DOMAIN_PACKAGES_TO_DOMAIN_KERNEL","CBC_041_DOMAIN_PACKAGES_TO_EVENT_CONTRACTS","CBC_041_DOMAIN_PACKAGES_TO_POLICY_AND_OBSERVABILITY"],"source_refs":["prompt/044.md","blueprint/phase-0-the-foundation-protocol.md#BoundedContextDescriptor"],"notes":"Canonical package home for the Release Control bounded context.","defect_state":"clean","defect_refs":[]},{"artifact_id":"docs_architecture","repo_path":"docs/architecture","display_name":"Architecture Docs","artifact_type":"docs-only","artifact_class":"docs_workspace","owner_context_code":"analysis_validation","owner_context_label":"Analysis Validation","owner_kind":"shared_kernel_class","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["data/analysis/*.json","docs/architecture/*.md","tests/playwright","tools/analysis"],"forbidden_dependencies":["apps/* runtime truth","services/* live credentials","packages/domains/* private internals"],"dependency_contract_refs":["CBC_041_TOOLING_TO_MANIFESTS_AND_DOCS"],"source_refs":["prompt/041.md","prompt/042.md"],"notes":"Reserved docs-only workspace for topology, ADR, and architecture artifacts; documentation is descriptive and machine-checked, not authoritative runtime truth.","defect_state":"clean","defect_refs":[]},{"artifact_id":"tool_analysis","repo_path":"tools/analysis","display_name":"Analysis Tools","artifact_type":"tools-only","artifact_class":"tools_workspace","owner_context_code":"analysis_validation","owner_context_label":"Analysis Validation","owner_kind":"shared_kernel_class","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["data/analysis/*.json","docs/architecture/*.md","tests/playwright","tools/analysis"],"forbidden_dependencies":["apps/* runtime truth","services/* live credentials","packages/domains/* private internals"],"dependency_contract_refs":["CBC_041_TOOLING_TO_MANIFESTS_AND_DOCS"],"source_refs":["prompt/041.md","data/analysis/import_boundary_rules.json"],"notes":"Holds deterministic generators and validators only; no runtime mutation authority.","defect_state":"clean","defect_refs":[]},{"artifact_id":"tool_architecture","repo_path":"tools/architecture","display_name":"Architecture Rules","artifact_type":"tools-only","artifact_class":"tools_workspace","owner_context_code":"analysis_validation","owner_context_label":"Analysis Validation","owner_kind":"shared_kernel_class","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["data/analysis/*.json","docs/architecture/*.md","tests/playwright","tools/analysis"],"forbidden_dependencies":["apps/* runtime truth","services/* live credentials","packages/domains/* private internals"],"dependency_contract_refs":["CBC_041_TOOLING_TO_MANIFESTS_AND_DOCS"],"source_refs":["prompt/041.md","prompt/042.md"],"notes":"Reserved home for machine-readable dependency and ownership rules that lint and CI can consume directly.","defect_state":"clean","defect_refs":[]},{"artifact_id":"tool_playwright","repo_path":"tests/playwright","display_name":"Playwright Tests","artifact_type":"tools-only","artifact_class":"tools_workspace","owner_context_code":"analysis_validation","owner_context_label":"Analysis Validation","owner_kind":"shared_kernel_class","topology_status":"baseline_required","shell_types_owned":[],"route_families_owned":[],"gateway_surfaces_owned":[],"allowed_dependencies":["data/analysis/*.json","docs/architecture/*.md","tests/playwright","tools/analysis"],"forbidden_dependencies":["apps/* runtime truth","services/* live credentials","packages/domains/* private internals"],"dependency_contract_refs":["CBC_041_TOOLING_TO_MANIFESTS_AND_DOCS"],"source_refs":["prompt/shared_operating_contract_036_to_045.md","prompt/041.md"],"notes":"Owns browser instrumentation and parity checks from day one; never a runtime truth owner.","defect_state":"clean","defect_refs":[]},{"artifact_id":"tool_assistive_control_lab","repo_path":"tools/assistive-control-lab","display_name":"Assistive Control Lab","artifact_type":"tools-only","artifact_class":"tools_workspace","owner_context_code":"assistive_lab","owner_context_label":"Assistive Lab","owner_kind":"shared_kernel_class","topology_status":"conditional_reserved","shell_types_owned":["assistive"],"route_families_owned":[{"route_family_id":"rf_assistive_control_shell","route_family":"Assistive evaluation, replay, monitoring, and release-control surfaces (derived)","shell_type":"assistive","explicit_route_contract":false,"scope_posture":"conditional","source_refs":["phase-8-the-assistive-layer.md#Control priorities","phase-0-the-foundation-protocol.md#1.1 PersistentShell"]}],"gateway_surfaces_owned":[],"allowed_dependencies":["packages/api-contracts","packages/release-controls","packages/observability","tests/playwright"],"forbidden_dependencies":["packages/domains/* writable models","services/* live mutation controls"],"dependency_contract_refs":["CBC_041_ASSISTIVE_LAB_TO_CONTRACTS_AND_RELEASE_CONTROLS"],"source_refs":["blueprint/phase-0-the-foundation-protocol.md#1.1 PersistentShell","data/analysis/shell_ownership_map.json","prompt/041.md"],"notes":"Conditional reserved namespace for standalone assistive evaluation, replay, monitoring, or release-control work; live assist remains inside `apps/clinical-workspace`.","defect_state":"watch","defect_refs":["DEFECT_041_STANDALONE_ASSISTIVE_REMAINS_CONDITIONAL"]}],"topology_defects":[{"defect_id":"DEFECT_041_LATER_SHELLS_OMITTED_FROM_STARTER_SHAPE","state":"resolved","severity":"high","title":"Support, pharmacy, and governance shell families were omitted from the starter shape","summary":"The Phase 0 starter shape listed four baseline apps but later blueprints required support, pharmacy, and governance shells too. This manifest closes the gap by freezing all seven baseline apps now.","affected_artifact_ids":["app_pharmacy_console","app_support_workspace","app_governance_console","package_domains_pharmacy","package_domains_support","package_domains_governance_admin"],"source_refs":["prompt/041.md","docs/architecture/04_surface_conflict_and_gap_report.md"]},{"defect_id":"DEFECT_041_SHARED_UTIL_LOOPHOLE","state":"resolved","severity":"high","title":"A generic shared-utils escape hatch would have allowed cross-context truth drift","summary":"Shared code is now legal only in explicit shared-kernel, shared-contract, policy, design, release, observability, or fixture packages. No generic utils namespace remains in the topology.","affected_artifact_ids":["package_domain_kernel","package_event_contracts","package_api_contracts","package_design_system","package_authz_policy","package_test_fixtures","package_observability","package_release_controls","package_fhir_mapping"],"source_refs":["prompt/041.md","data/analysis/import_boundary_rules.json"]},{"defect_id":"DEFECT_041_APP_OWNS_TRUTH_AMBIGUITY","state":"resolved","severity":"high","title":"App shell ownership could have been confused with write-model ownership","summary":"Every app row now records shell ownership separately from package and service write ownership. The boundary rules explicitly forbid apps from importing domain package internals or claiming canonical truth.","affected_artifact_ids":["app_patient_web","app_clinical_workspace","app_hub_desk","app_pharmacy_console","app_support_workspace","app_ops_console","app_governance_console"],"source_refs":["blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture","prompt/041.md"]},{"defect_id":"DEFECT_041_DERIVED_PATIENT_ENTRY_ROUTES","state":"watch","severity":"medium","title":"Patient intake and secure-link entry route families are still inventory labels rather than final URL contracts","summary":"Ownership is frozen now so later prompts can scaffold safely, but intake web, telephony, and secure-link recovery still need final endpoint publication to replace derived route labels.","affected_artifact_ids":["app_patient_web"],"source_refs":["data/analysis/route_family_inventory.csv","data/analysis/shell_ownership_map.json","docs/architecture/04_surface_conflict_and_gap_report.md"]},{"defect_id":"DEFECT_041_STANDALONE_ASSISTIVE_REMAINS_CONDITIONAL","state":"watch","severity":"medium","title":"Standalone assistive work remains conditional until later prompts publish concrete routes and live-control fences","summary":"The baseline topology reserves `tools/assistive-control-lab` only as a conditional tools-only namespace. Live assistive usage remains inside `apps/clinical-workspace` until a later prompt explicitly widens scope.","affected_artifact_ids":["tool_assistive_control_lab"],"source_refs":["data/analysis/shell_ownership_map.json","prompt/041.md"]}],"lane_order":[{"artifact_type":"app","label":"Apps"},{"artifact_type":"service","label":"Services"},{"artifact_type":"package","label":"Packages"},{"artifact_type":"docs-only","label":"Docs"},{"artifact_type":"tools-only","label":"Tools"}],"parity_rows":[{"artifact_type":"app","label":"Apps","count":7},{"artifact_type":"service","label":"Services","count":5},{"artifact_type":"package","label":"Packages","count":22},{"artifact_type":"docs-only","label":"Docs","count":1},{"artifact_type":"tools-only","label":"Tools","count":4}],"defect_state_rows":[{"state":"clean","count":19},{"state":"resolved","count":18},{"state":"watch","count":2}]}</script>
+  <script>
+    const payload = JSON.parse(document.getElementById("atlas-data").textContent);
+    const artifactTypeOrder = ["app", "service", "package", "docs-only", "tools-only"];
+    const defectOrder = ["clean", "resolved", "watch"];
+    const state = {
+      artifactType: "all",
+      context: "all",
+      defect: "all",
+      selectedArtifactId: payload.artifacts[0]?.artifact_id ?? null,
+    };
+
+    const contextGroups = document.getElementById("context-groups");
+    const filterArtifact = document.getElementById("filter-artifact");
+    const filterContext = document.getElementById("filter-context");
+    const filterDefect = document.getElementById("filter-defect");
+    const graphLanes = document.getElementById("graph-lanes");
+    const nodeBody = document.getElementById("node-body");
+    const inspector = document.querySelector("[data-testid='inspector']");
+    const defectStrip = document.getElementById("defect-strip");
+    const parityArtifactBody = document.getElementById("parity-artifact-body");
+    const parityDefectBody = document.getElementById("parity-defect-body");
+    const metricApps = document.getElementById("metric-apps");
+    const metricServices = document.getElementById("metric-services");
+    const metricPackages = document.getElementById("metric-packages");
+    const metricDefects = document.getElementById("metric-defects");
+
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const applyMotionFlag = () => {
+      document.body.setAttribute("data-reduced-motion", media.matches ? "true" : "false");
+    };
+    applyMotionFlag();
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", applyMotionFlag);
+    } else if (typeof media.addListener === "function") {
+      media.addListener(applyMotionFlag);
+    }
+
+    function sortArtifacts(items) {
+      return [...items].sort((left, right) => {
+        const leftType = artifactTypeOrder.indexOf(left.artifact_type);
+        const rightType = artifactTypeOrder.indexOf(right.artifact_type);
+        if (leftType !== rightType) {
+          return leftType - rightType;
+        }
+        return left.display_name.localeCompare(right.display_name);
+      });
+    }
+
+    function selectedContextCount(contextCode) {
+      return payload.artifacts.filter((artifact) => artifact.owner_context_code === contextCode).length;
+    }
+
+    function populateSelects() {
+      filterArtifact.innerHTML = [
+        '<option value="all">All artifacts</option>',
+        ...payload.lane_order.map((lane) => `<option value="${lane.artifact_type}">${lane.label}</option>`),
+      ].join("");
+
+      filterContext.innerHTML = [
+        '<option value="all">All owners</option>',
+        ...payload.owner_contexts
+          .filter((context) => context.artifact_count > 0)
+          .map((context) => `<option value="${context.owner_context_code}">${context.owner_context_label}</option>`),
+      ].join("");
+
+      filterDefect.innerHTML = [
+        '<option value="all">All defect states</option>',
+        '<option value="clean">Clean only</option>',
+        '<option value="resolved">Resolved only</option>',
+        '<option value="watch">Watch only</option>',
+      ].join("");
+    }
+
+    function getFilteredArtifacts() {
+      return sortArtifacts(
+        payload.artifacts.filter((artifact) => {
+          if (state.artifactType !== "all" && artifact.artifact_type !== state.artifactType) {
+            return false;
+          }
+          if (state.context !== "all" && artifact.owner_context_code !== state.context) {
+            return false;
+          }
+          if (state.defect !== "all" && artifact.defect_state !== state.defect) {
+            return false;
+          }
+          return true;
+        }),
+      );
+    }
+
+    function ensureSelection(filteredArtifacts) {
+      if (!filteredArtifacts.length) {
+        state.selectedArtifactId = null;
+        return null;
+      }
+      if (!filteredArtifacts.some((artifact) => artifact.artifact_id === state.selectedArtifactId)) {
+        state.selectedArtifactId = filteredArtifacts[0].artifact_id;
+      }
+      return filteredArtifacts.find((artifact) => artifact.artifact_id === state.selectedArtifactId) ?? filteredArtifacts[0];
+    }
+
+    function renderContextRail() {
+      const groups = {
+        delivery: "Delivery contexts",
+        domain: "Domain contexts",
+        shared: "Shared kernel",
+        tooling: "Tooling and reserved",
+      };
+      contextGroups.innerHTML = Object.entries(groups).map(([category, label]) => {
+        const items = payload.owner_contexts.filter((context) => context.category === category && context.artifact_count > 0);
+        if (!items.length) {
+          return "";
+        }
+        return `
+          <section class="context-group">
+            <p class="section-label">${label}</p>
+            ${items.map((context) => `
+              <button
+                type="button"
+                class="context-card"
+                data-context-code="${context.owner_context_code}"
+                data-selected="${state.context === context.owner_context_code ? "true" : "false"}"
+                data-testid="context-card-${context.owner_context_code}"
+              >
+                <strong>${context.owner_context_label}</strong>
+                <span>${context.description}</span>
+                <div class="context-meta">
+                  <span>${context.owner_kind === "bounded_context" ? "Bounded context" : "Shared class"}</span>
+                  <span class="mono">${selectedContextCount(context.owner_context_code)}</span>
+                </div>
+              </button>
+            `).join("")}
+          </section>
+        `;
+      }).join("");
+
+      contextGroups.querySelectorAll(".context-card").forEach((card) => {
+        card.addEventListener("click", () => {
+          const code = card.getAttribute("data-context-code");
+          state.context = state.context === code ? "all" : code;
+          filterContext.value = state.context;
+          render();
+        });
+      });
+    }
+
+    function badgeForState(stateValue) {
+      return `<span class="chip ${stateValue}">${stateValue}</span>`;
+    }
+
+    function routeSummary(artifact) {
+      if (artifact.route_families_owned.length) {
+        return artifact.route_families_owned.map((route) => route.route_family_id).join(", ");
+      }
+      if (artifact.shell_types_owned.length) {
+        return artifact.shell_types_owned.join(", ");
+      }
+      return "none";
+    }
+
+    function glyphMarkup(artifactType) {
+      if (artifactType === "app") {
+        return '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 19v-3m8 3v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+      }
+      if (artifactType === "service") {
+        return '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="5" y="4" width="14" height="6" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="5" y="14" width="14" height="6" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 10v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+      }
+      if (artifactType === "package") {
+        return '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4-8-4zm0 3l8 4 8-4m-16 3l8 4 8-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      }
+      return '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M7 5h7l5 5v9H7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 5v5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+    }
+
+    function renderGraph(filteredArtifacts) {
+      graphLanes.innerHTML = payload.lane_order.map((lane) => {
+        const items = filteredArtifacts.filter((artifact) => artifact.artifact_type === lane.artifact_type);
+        if (!items.length) {
+          return "";
+        }
+        return `
+          <section class="lane">
+            <div class="lane-header">
+              <h3>${lane.label}</h3>
+              <span class="lane-badge">${items.length}</span>
+            </div>
+            <div class="lane-grid">
+              ${items.map((artifact) => `
+                <article
+                  class="node-card"
+                  tabindex="0"
+                  role="button"
+                  aria-pressed="${artifact.artifact_id === state.selectedArtifactId ? "true" : "false"}"
+                  data-artifact-id="${artifact.artifact_id}"
+                  data-selected="${artifact.artifact_id === state.selectedArtifactId ? "true" : "false"}"
+                  data-testid="graph-node-${artifact.artifact_id}"
+                >
+                  <div class="node-top">
+                    <div class="glyph">${glyphMarkup(artifact.artifact_type)}</div>
+                    ${badgeForState(artifact.defect_state)}
+                  </div>
+                  <div>
+                    <h3 class="node-title">${artifact.display_name}</h3>
+                    <div class="node-path mono">${artifact.repo_path}</div>
+                  </div>
+                  <div class="chip-row">
+                    <span class="chip">${artifact.owner_context_label}</span>
+                    <span class="chip">${artifact.route_families_owned.length || artifact.gateway_surfaces_owned.length || artifact.shell_types_owned.length} ownerships</span>
+                  </div>
+                </article>
+              `).join("")}
+            </div>
+          </section>
+        `;
+      }).join("");
+
+      graphLanes.querySelectorAll(".node-card").forEach((card) => {
+        card.addEventListener("click", () => {
+          state.selectedArtifactId = card.getAttribute("data-artifact-id");
+          render();
+        });
+        card.addEventListener("keydown", (event) => {
+          if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+            event.preventDefault();
+            moveSelection(1, "graph");
+          } else if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+            event.preventDefault();
+            moveSelection(-1, "graph");
+          }
+        });
+      });
+    }
+
+    function renderTable(filteredArtifacts) {
+      nodeBody.innerHTML = filteredArtifacts.map((artifact) => `
+        <tr
+          tabindex="0"
+          data-artifact-id="${artifact.artifact_id}"
+          data-selected="${artifact.artifact_id === state.selectedArtifactId ? "true" : "false"}"
+          data-testid="table-row-${artifact.artifact_id}"
+        >
+          <td>
+            <strong>${artifact.display_name}</strong>
+            <div class="mono">${artifact.repo_path}</div>
+          </td>
+          <td>${artifact.owner_context_label}</td>
+          <td>${routeSummary(artifact)}</td>
+          <td>${artifact.allowed_dependencies.slice(0, 2).join(", ")}${artifact.allowed_dependencies.length > 2 ? ", ..." : ""}</td>
+          <td>${artifact.defect_state}</td>
+        </tr>
+      `).join("");
+
+      nodeBody.querySelectorAll("tr").forEach((row) => {
+        row.addEventListener("click", () => {
+          state.selectedArtifactId = row.getAttribute("data-artifact-id");
+          render();
+        });
+        row.addEventListener("keydown", (event) => {
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            moveSelection(1, "table");
+          } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            moveSelection(-1, "table");
+          }
+        });
+      });
+    }
+
+    function renderInspector(selectedArtifact) {
+      if (!selectedArtifact) {
+        inspector.innerHTML = '<div class="empty-state">No artifact matches the current filters.</div>';
+        return;
+      }
+      const routeItems = selectedArtifact.route_families_owned.length
+        ? selectedArtifact.route_families_owned.map((route) => `
+            <div class="inspector-item">
+              <span class="mono">${route.route_family_id}</span> · ${route.route_family}
+              <small>${route.explicit_route_contract ? "Explicit route contract" : "Derived inventory label"}</small>
+            </div>
+          `).join("")
+        : '<div class="inspector-item">No route-family ownership for this workspace.</div>';
+      const gatewayItems = selectedArtifact.gateway_surfaces_owned.length
+        ? selectedArtifact.gateway_surfaces_owned.map((surface) => `
+            <div class="inspector-item">
+              <span class="mono">${surface.gateway_surface_id}</span> · ${surface.surface_name}
+            </div>
+          `).join("")
+        : '<div class="inspector-item">No gateway-surface ownership for this workspace.</div>';
+      const sourceItems = selectedArtifact.source_refs.map((sourceRef) => `<div class="inspector-item mono">${sourceRef}</div>`).join("");
+      inspector.innerHTML = `
+        <div>
+          <p class="section-label">Selected node</p>
+          <h2>${selectedArtifact.display_name}</h2>
+          <div class="mono">${selectedArtifact.repo_path}</div>
+        </div>
+        <div class="chip-row">
+          <span class="chip">${selectedArtifact.artifact_type}</span>
+          <span class="chip">${selectedArtifact.owner_context_label}</span>
+          ${badgeForState(selectedArtifact.defect_state)}
+        </div>
+        <div class="meta-grid">
+          <section class="inspector-block">
+            <strong>Ownership notes</strong>
+            <div class="inspector-item">${selectedArtifact.notes}</div>
+          </section>
+          <section class="inspector-block">
+            <strong>Allowed imports</strong>
+            <div class="inspector-list">
+              ${selectedArtifact.allowed_dependencies.map((entry) => `<div class="inspector-item mono">${entry}</div>`).join("")}
+            </div>
+          </section>
+          <section class="inspector-block">
+            <strong>Forbidden imports</strong>
+            <div class="inspector-list">
+              ${selectedArtifact.forbidden_dependencies.map((entry) => `<div class="inspector-item mono">${entry}</div>`).join("")}
+            </div>
+          </section>
+          <section class="inspector-block">
+            <strong>Route ownership</strong>
+            <div class="inspector-list">${routeItems}</div>
+          </section>
+          <section class="inspector-block">
+            <strong>Gateway surfaces</strong>
+            <div class="inspector-list">${gatewayItems}</div>
+          </section>
+          <section class="inspector-block">
+            <strong>Context boundary contracts</strong>
+            <div class="inspector-list">
+              ${selectedArtifact.dependency_contract_refs.map((contractRef) => `<div class="inspector-item mono">${contractRef}</div>`).join("")}
+            </div>
+          </section>
+          <section class="inspector-block">
+            <strong>Source refs</strong>
+            <div class="inspector-list">${sourceItems}</div>
+          </section>
+        </div>
+      `;
+    }
+
+    function renderParity(filteredArtifacts) {
+      const artifactCounts = new Map(payload.lane_order.map((lane) => [lane.artifact_type, 0]));
+      const defectCounts = new Map(defectOrder.map((stateValue) => [stateValue, 0]));
+      filteredArtifacts.forEach((artifact) => {
+        artifactCounts.set(artifact.artifact_type, (artifactCounts.get(artifact.artifact_type) ?? 0) + 1);
+        defectCounts.set(artifact.defect_state, (defectCounts.get(artifact.defect_state) ?? 0) + 1);
+      });
+
+      parityArtifactBody.innerHTML = payload.lane_order.map((lane) => `
+        <tr><td>${lane.label}</td><td class="mono">${artifactCounts.get(lane.artifact_type) ?? 0}</td></tr>
+      `).join("");
+      parityDefectBody.innerHTML = defectOrder.map((stateValue) => `
+        <tr><td>${stateValue}</td><td class="mono">${defectCounts.get(stateValue) ?? 0}</td></tr>
+      `).join("");
+    }
+
+    function renderDefects(filteredArtifacts) {
+      const visibleIds = new Set(filteredArtifacts.map((artifact) => artifact.artifact_id));
+      const visibleDefects = payload.topology_defects.filter((defect) => {
+        if (state.defect !== "all" && defect.state !== state.defect) {
+          return false;
+        }
+        if (state.context === "all") {
+          return true;
+        }
+        return defect.affected_artifact_ids.some((artifactId) => visibleIds.has(artifactId));
+      });
+      defectStrip.innerHTML = visibleDefects.length
+        ? visibleDefects.map((defect) => `
+            <article class="defect-card" data-state="${defect.state}">
+              <div class="chip-row">
+                <span class="chip ${defect.state}">${defect.state}</span>
+                <span class="chip">${defect.severity}</span>
+              </div>
+              <strong>${defect.title}</strong>
+              <div class="inspector-item">${defect.summary}</div>
+              <div class="inspector-item mono">${defect.defect_id}</div>
+            </article>
+          `).join("")
+        : '<div class="empty-state">No defects match the current filters.</div>';
+    }
+
+    function updateMetrics() {
+      metricApps.textContent = payload.summary.app_count;
+      metricServices.textContent = payload.summary.service_count;
+      metricPackages.textContent = payload.summary.package_count;
+      metricDefects.textContent = payload.summary.topology_defect_count;
+    }
+
+    function moveSelection(delta, target) {
+      const filteredArtifacts = getFilteredArtifacts();
+      if (!filteredArtifacts.length) {
+        return;
+      }
+      const currentIndex = filteredArtifacts.findIndex((artifact) => artifact.artifact_id === state.selectedArtifactId);
+      const safeIndex = currentIndex === -1 ? 0 : currentIndex;
+      const nextIndex = Math.min(filteredArtifacts.length - 1, Math.max(0, safeIndex + delta));
+      state.selectedArtifactId = filteredArtifacts[nextIndex].artifact_id;
+      render();
+      const selector = target === "graph" ? `[data-testid="graph-node-${state.selectedArtifactId}"]` : `[data-testid="table-row-${state.selectedArtifactId}"]`;
+      const element = document.querySelector(selector);
+      if (element) {
+        element.focus();
+      }
+    }
+
+    function render() {
+      const filteredArtifacts = getFilteredArtifacts();
+      const selectedArtifact = ensureSelection(filteredArtifacts);
+      renderContextRail();
+      renderGraph(filteredArtifacts);
+      renderTable(filteredArtifacts);
+      renderInspector(selectedArtifact);
+      renderParity(filteredArtifacts);
+      renderDefects(filteredArtifacts);
+      updateMetrics();
+    }
+
+    filterArtifact.addEventListener("change", () => {
+      state.artifactType = filterArtifact.value;
+      render();
+    });
+    filterContext.addEventListener("change", () => {
+      state.context = filterContext.value;
+      render();
+    });
+    filterDefect.addEventListener("change", () => {
+      state.defect = filterDefect.value;
+      render();
+    });
+
+    populateSelects();
+    render();
+  </script>
+</body>
+</html>

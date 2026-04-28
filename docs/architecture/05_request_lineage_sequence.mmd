@@ -1,0 +1,54 @@
+sequenceDiagram
+    actor Patient
+    participant Intake as Intake and Identity
+    participant Safety as SafetyOrchestrator
+    participant Triage as Triage Workspace
+    participant Child as Child Case
+    participant Support as Support / Replay
+    participant Life as LifecycleCoordinator
+
+    Patient->>Intake: submit, call, or resume
+    Intake->>Intake: SubmissionIngressRecord + SubmissionEnvelope
+    Intake->>Intake: IdentityBinding / secure-link / claim checks
+    alt wrong-patient or binding dispute
+        Intake->>Intake: open IdentityRepairCase
+        Intake-->>Patient: same-shell identity hold and recovery
+    else routine capture continues
+        Intake->>Intake: capture evidence, quarantine, readiness
+    end
+    alt degraded evidence or ingest failure
+        Intake->>Support: open FallbackReviewCase
+        Support-->>Patient: degraded receipt with same-lineage recovery
+    else governed submit
+        Intake->>Intake: SubmissionPromotionRecord + Request + RequestLineage
+        Intake->>Safety: canonical safety decision
+    end
+    alt urgent diversion required
+        Safety->>Life: urgent milestone and blocker facts
+        Safety-->>Patient: urgent guidance until UrgentDiversionSettlement
+    else routine triage
+        Safety->>Triage: create TriageTask + RequestLifecycleLease
+        Triage-->>Patient: receipt and status
+        opt more-info needed
+            Triage-->>Patient: MoreInfoCycle prompt
+            Patient->>Triage: reply or late reply
+            Triage->>Safety: re-safety when material delta exists
+        end
+        alt direct outcome
+            Triage->>Life: outcome milestone with authoritative proof
+        else downstream case
+            Triage->>Child: create LineageCaseLink + child case
+            Child-->>Patient: same-shell child status, pending, or repair posture
+            opt support replay or resend affects the lineage
+                Support->>Support: SupportReplayRestoreSettlement before live repair
+                Support->>Child: bounded restore or resend
+            end
+            Child->>Life: handoff and outcome milestones, blockers, and gates
+        end
+        Life->>Life: evaluate RequestClosureRecord with leases, blockers, gates, grants, and lineage links
+        alt blockers remain
+            Life-->>Patient: keep lineage open with truthful blocker posture
+        else closeable
+            Life-->>Patient: closed status after RequestClosureRecord(decision = close)
+        end
+    end

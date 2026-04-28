@@ -1,0 +1,165 @@
+{
+  "resilience_matrix_id": "vecells_region_resilience_matrix_v1",
+  "chosen_region_strategy": "dual_uk_region_hybrid_tenant_slice",
+  "uk_residency_rule": "All production, preprod restore, and disaster-recovery data paths remain UK-hosted. No DR promotion may target a non-UK region.",
+  "regions": [
+    {
+      "region_ref": "uk_primary_region",
+      "role": "primary",
+      "residency": "United Kingdom",
+      "usage": "Normal write path for managed environments."
+    },
+    {
+      "region_ref": "uk_secondary_region",
+      "role": "secondary",
+      "residency": "United Kingdom",
+      "usage": "Warm standby, restore rehearsal target, failover target, and replay target for declared store classes."
+    },
+    {
+      "region_ref": "local_nonprod",
+      "role": "nonprod_local",
+      "residency": "developer controlled",
+      "usage": "Developer-only local execution; not authority for production or DR posture."
+    }
+  ],
+  "environment_region_bindings": [
+    {
+      "environment_ring": "local",
+      "allowed_regions": [
+        "local_nonprod"
+      ],
+      "default_write_region": "local_nonprod",
+      "notes": "Local builds may emulate topology but are never production authority."
+    },
+    {
+      "environment_ring": "ci-preview",
+      "allowed_regions": [
+        "uk_primary_region"
+      ],
+      "default_write_region": "uk_primary_region",
+      "notes": "Ephemeral preview posture in the primary UK role only."
+    },
+    {
+      "environment_ring": "integration",
+      "allowed_regions": [
+        "uk_primary_region"
+      ],
+      "default_write_region": "uk_primary_region",
+      "notes": "Simulator-backed verification ring before restore rehearsal."
+    },
+    {
+      "environment_ring": "preprod",
+      "allowed_regions": [
+        "uk_primary_region",
+        "uk_secondary_region"
+      ],
+      "default_write_region": "uk_primary_region",
+      "notes": "Restore rehearsal and failover validation ring."
+    },
+    {
+      "environment_ring": "production",
+      "allowed_regions": [
+        "uk_primary_region",
+        "uk_secondary_region"
+      ],
+      "default_write_region": "uk_primary_region",
+      "notes": "Secondary region stays warm and promotable only under declared authority."
+    }
+  ],
+  "store_classes": [
+    {
+      "store_class_id": "STORE_RELATIONAL_FHIR",
+      "name": "FHIR-capable relational store",
+      "primary_posture": "Primary-region writable, tenant-partitioned logical schemas or keys.",
+      "secondary_posture": "Warm replica in secondary UK region; promotion requires restore proof, publication parity, and scope-tuple refresh.",
+      "residency_rule": "uk_only",
+      "failover_user_posture": "command_halt then read_only until tuple refresh and projection readiness converge"
+    },
+    {
+      "store_class_id": "STORE_OBJECT_ARTIFACT",
+      "name": "Object and artifact storage",
+      "primary_posture": "Primary-region writes with immutable object manifests and malware posture.",
+      "secondary_posture": "Cross-region UK replication with manifest parity verification before promotion.",
+      "residency_rule": "uk_only",
+      "failover_user_posture": "summary_only or governed handoff until artifact parity recovers"
+    },
+    {
+      "store_class_id": "STORE_EVENT_BUS_OUTBOX",
+      "name": "Event bus, queue, and outbox checkpoints",
+      "primary_posture": "Primary-region active dispatch and callback correlation.",
+      "secondary_posture": "Checkpointed durable mirror; replay from durable checkpoints only.",
+      "residency_rule": "uk_only",
+      "failover_user_posture": "integration_queue_only and command_halt for affected routes"
+    },
+    {
+      "store_class_id": "STORE_PROJECTION_READ",
+      "name": "Projection read store",
+      "primary_posture": "Primary-region live audience projections.",
+      "secondary_posture": "Warm or rebuildable copy; readiness verdict required before live claims.",
+      "residency_rule": "uk_only",
+      "failover_user_posture": "projection_stale, summary_only, or recovery_only"
+    },
+    {
+      "store_class_id": "STORE_APPEND_ONLY_AUDIT",
+      "name": "Append-only audit and assurance ledger",
+      "primary_posture": "Primary-region append and query.",
+      "secondary_posture": "Replicated or dual-written UK evidence path with continuity verification.",
+      "residency_rule": "uk_only",
+      "failover_user_posture": "diagnostic_copy_only until resilience tuple becomes exact"
+    },
+    {
+      "store_class_id": "STORE_CACHE",
+      "name": "Ephemeral cache and shell continuity cache",
+      "primary_posture": "Region-local disposable cache keyed by tenant tuple.",
+      "secondary_posture": "Cold or disposable; never authoritative during failover.",
+      "residency_rule": "uk_only for managed rings",
+      "failover_user_posture": "recompute from projection or drop to recovery_only"
+    }
+  ],
+  "queue_and_outbox_posture": [
+    "Every external effect originates from an outbox or durable queue checkpoint in the primary region.",
+    "Secondary-region activation replays only durable checkpoints and authoritative correlation state.",
+    "Gateways never bypass queue or outbox discipline for failover expediency."
+  ],
+  "failover_authorities": [
+    {
+      "authority_id": "AUTH_RESILIENCE_ORCHESTRATOR",
+      "role": "ResilienceOrchestrator proposes restore or failover posture from exact runtime truth."
+    },
+    {
+      "authority_id": "AUTH_OPERATIONS_DRILLDOWN",
+      "role": "Operations drilldown may execute declared actions only while the resilience tuple and watch tuple remain exact."
+    },
+    {
+      "authority_id": "AUTH_GOVERNANCE_SCOPE",
+      "role": "Governance must approve platform or multi-tenant blast-radius widening, rollback stand-down, and exceptional recovery scope."
+    }
+  ],
+  "degraded_user_postures": [
+    {
+      "surface_class": "patient",
+      "posture": "same-shell read_only, placeholder_only, or redirect_safe_route",
+      "reason": "PatientDegradedModeProjection and ReleaseRecoveryDisposition stay authoritative."
+    },
+    {
+      "surface_class": "staff_workspace",
+      "posture": "same-shell read_only or queue placeholder",
+      "reason": "ScopedMutationGate freezes mutation on tuple or runtime drift."
+    },
+    {
+      "surface_class": "support_replay",
+      "posture": "masked replay visible, restore controls frozen",
+      "reason": "InvestigationScopeEnvelope remains visible, but restore authority halts on drift."
+    },
+    {
+      "surface_class": "operations_and_governance",
+      "posture": "diagnostic evidence visible, controls frozen",
+      "reason": "ReleaseWatchTuple and resilience tuple decide authority, not dashboard-local state."
+    }
+  ],
+  "source_refs": [
+    "blueprint-init.md#12. Practical engineering shape",
+    "phase-9-the-assurance-ledger.md#9F. Resilience architecture, restore orchestration, and chaos programme",
+    "platform-runtime-and-release-blueprint.md#Operational readiness contract"
+  ]
+}

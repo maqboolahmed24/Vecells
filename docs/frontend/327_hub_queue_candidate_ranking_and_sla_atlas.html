@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>327 Hub Queue Candidate Ranking And SLA Atlas</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f5f7fa;
+        --shell: #eef2f6;
+        --panel: rgba(255, 255, 255, 0.96);
+        --inset: #edf2f7;
+        --stroke: #d7e0ea;
+        --text-strong: #0f172a;
+        --text: #334155;
+        --text-muted: #64748b;
+        --accent: #2457ff;
+        --warning: #b7791f;
+        --critical: #b42318;
+        --confirmed: #0f766e;
+        --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+        --radius: 20px;
+        font-family: "IBM Plex Sans", "Avenir Next", "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at top left, rgba(36, 87, 255, 0.08), transparent 26%),
+          radial-gradient(circle at 88% 18%, rgba(124, 58, 237, 0.08), transparent 18%),
+          linear-gradient(180deg, #f9fbfd 0%, var(--canvas) 42%, #eef2f7 100%);
+        color: var(--text);
+      }
+
+      .page {
+        padding: 20px;
+      }
+
+      .atlas {
+        width: min(1760px, 100%);
+        margin: 0 auto;
+        display: grid;
+        gap: 16px;
+      }
+
+      .panel,
+      .workbench,
+      .layout,
+      .queue,
+      .candidate,
+      .dock,
+      .meter,
+      .card,
+      .callback {
+        background: var(--panel);
+        border: 1px solid var(--stroke);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+
+      .panel,
+      .workbench,
+      .queue,
+      .candidate,
+      .dock,
+      .meter {
+        padding: 18px 20px;
+      }
+
+      .eyebrow {
+        margin: 0 0 6px;
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1,
+      h2,
+      h3 {
+        color: var(--text-strong);
+      }
+
+      .muted {
+        color: var(--text-muted);
+        line-height: 1.5;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 336px minmax(0, 1fr) 384px;
+        gap: 16px;
+        align-items: start;
+        padding: 0;
+        border: 0;
+        box-shadow: none;
+        background: transparent;
+      }
+
+      .workbench,
+      .candidate,
+      .dock {
+        display: grid;
+        gap: 14px;
+      }
+
+      .chip-row,
+      .risk-row,
+      .reason-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip,
+      .risk-chip,
+      .saved-view {
+        min-height: 34px;
+        padding: 7px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--stroke);
+        background: var(--inset);
+        color: var(--text-strong);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .saved-view[data-active="true"] {
+        background: rgba(36, 87, 255, 0.08);
+        border-color: rgba(36, 87, 255, 0.3);
+        color: var(--accent);
+      }
+
+      .risk-chip[data-tone="critical"] {
+        background: rgba(180, 35, 24, 0.1);
+        color: var(--critical);
+      }
+
+      .risk-chip[data-tone="watch"] {
+        background: rgba(183, 121, 31, 0.12);
+        color: #7b560f;
+      }
+
+      .risk-chip[data-tone="ready"] {
+        background: rgba(15, 118, 110, 0.1);
+        color: var(--confirmed);
+      }
+
+      .queue-list,
+      .card-stack {
+        display: grid;
+        gap: 10px;
+      }
+
+      .queue {
+        padding: 14px 16px;
+      }
+
+      .queue[data-selected="true"],
+      .card[data-selected="true"] {
+        border-color: rgba(36, 87, 255, 0.32);
+        box-shadow: 0 0 0 3px rgba(36, 87, 255, 0.08);
+      }
+
+      .queue strong,
+      .card strong {
+        color: var(--text-strong);
+      }
+
+      .queue span,
+      .queue small,
+      .card p,
+      .card li,
+      .dock li {
+        color: var(--text-muted);
+        line-height: 1.45;
+      }
+
+      .meter {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 120px auto;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .meter-bar {
+        height: 10px;
+        border-radius: 999px;
+        background: #dbe4ed;
+        overflow: hidden;
+      }
+
+      .meter-bar span {
+        display: block;
+        width: 72%;
+        height: 100%;
+        background: linear-gradient(90deg, var(--warning), var(--critical));
+      }
+
+      .card {
+        padding: 16px 18px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .callback {
+        padding: 16px 18px;
+        border-style: dashed;
+        background: rgba(183, 121, 31, 0.06);
+      }
+
+      .dock ul {
+        margin: 0;
+        padding-left: 18px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .note-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      @media (max-width: 1180px) {
+        .layout,
+        .note-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <main
+        class="atlas"
+        data-testid="HubQueueWorkbenchAtlas"
+        data-visual-mode="Hub_Queue_Risk_Workbench"
+      >
+        <section class="panel">
+          <p class="eyebrow">327 Atlas</p>
+          <h1>Hub queue, candidate ranking, and SLA visualization</h1>
+          <p class="muted">
+            This atlas shows the intended scan order: authoritative queue first, selected candidate
+            second, one dominant decision dock third. Buffered queue deltas keep the anchor and
+            selected option pinned.
+          </p>
+        </section>
+
+        <section class="layout">
+          <section class="workbench">
+            <div>
+              <p class="eyebrow">Left workbench</p>
+              <h2>Saved view, filters, queue</h2>
+            </div>
+            <div class="chip-row">
+              <button class="saved-view" data-active="true" type="button">Resume today</button>
+              <button class="saved-view" type="button">Ack watch</button>
+              <button class="saved-view" type="button">Callback recovery</button>
+            </div>
+            <div class="risk-row">
+              <span class="risk-chip" data-tone="critical">Critical 2</span>
+              <span class="risk-chip" data-tone="watch">Watch 1</span>
+              <span class="risk-chip" data-tone="ready">Stable 0</span>
+            </div>
+            <div class="queue-list">
+              <article class="queue" data-selected="true">
+                <strong>Case 087 / urgent COPD review</strong>
+                <span>Confirmation review remains authoritative and selected.</span>
+                <small>Required-window breach in 24m</small>
+              </article>
+              <article class="queue">
+                <strong>Case 104 / child fever follow-up</strong>
+                <span>Held same-day continuation remains trustworthy backup.</span>
+                <small>Held continuation expires in 11m</small>
+              </article>
+              <article class="queue">
+                <strong>Case 066 / medication review booking</strong>
+                <span>Booked truth is durable, but acknowledgement debt remains open.</span>
+                <small>Practice acknowledgement overdue by 19m</small>
+              </article>
+            </div>
+          </section>
+
+          <section class="candidate">
+            <section class="panel" style="padding: 16px 18px">
+              <p class="eyebrow">Best fit now</p>
+              <h2>10:10 / Kingsgate Hub / COPD urgent review</h2>
+              <p class="muted">
+                Trusted booking evidence remains selected while confirmation is still pending.
+              </p>
+            </section>
+            <section class="meter" data-breach-visualization="summary_strip">
+              <div>
+                <strong>72% current queue pressure</strong>
+                <p class="muted">
+                  Selected case stays pinned while one authoritative delta buffers.
+                </p>
+              </div>
+              <div class="meter-bar" aria-hidden="true"><span></span></div>
+              <strong>72%</strong>
+            </section>
+            <section class="panel" style="padding: 16px 18px">
+              <p class="eyebrow">Window class 2</p>
+              <h2>Clinically preferred now</h2>
+              <div class="card-stack">
+                <article class="card" data-selected="true">
+                  <strong>#1 10:10 / Kingsgate Hub / COPD urgent review</strong>
+                  <div class="chip-row">
+                    <span class="chip">Trusted</span>
+                    <span class="chip">Aging 6m</span>
+                    <span class="chip">Revalidation required</span>
+                  </div>
+                  <div class="reason-row">
+                    <span class="chip">Critical inside-window fit</span>
+                    <span class="chip">Confirmation still pending</span>
+                    <span class="chip">Trusted route</span>
+                  </div>
+                </article>
+                <article class="card">
+                  <strong>#2 10:40 / North Shore Respiratory Hub / urgent review</strong>
+                  <div class="chip-row">
+                    <span class="chip">Trusted</span>
+                    <span class="chip">Fresh 2m</span>
+                    <span class="chip">No exclusive hold</span>
+                  </div>
+                </article>
+              </div>
+            </section>
+            <section class="callback">
+              <p class="eyebrow">Callback fallback</p>
+              <h3>Governed callback fallback remains separate</h3>
+              <p class="muted">
+                It explains the recovery path without inheriting slot rank or slot markers.
+              </p>
+            </section>
+          </section>
+
+          <aside class="dock">
+            <div>
+              <p class="eyebrow">DecisionDock</p>
+              <h2>One dominant action</h2>
+              <p class="muted">
+                The dock stays pinned while queue order and selected option remain anchored.
+              </p>
+            </div>
+            <ul>
+              <li>Reservation truth stays explicit and non-exclusive where needed.</li>
+              <li>
+                Practice visibility debt remains visible while confirmation is weaker than booked
+                truth.
+              </li>
+              <li>Buffered deltas may not steal the current case or selected option.</li>
+            </ul>
+          </aside>
+        </section>
+
+        <section class="note-grid">
+          <section class="panel">
+            <p class="eyebrow">Borrowed posture</p>
+            <p class="muted">
+              Low-noise operational scanning from Linear, row rhythm from Carbon, explicit
+              text-plus-color status from WCAG, and behaviour-led Playwright proofing.
+            </p>
+          </section>
+          <section class="panel">
+            <p class="eyebrow">Explicit rejection</p>
+            <p class="muted">
+              No dashboard vanity metrics, no browser-local queue sorting, and no callback card
+              masquerading as another slot.
+            </p>
+          </section>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

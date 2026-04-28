@@ -1,0 +1,908 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>84 Runtime Network Trust Atlas</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --canvas: #F7F9FC;
+      --panel: #FFFFFF;
+      --rail: #EEF2F7;
+      --inset: #F4F7FB;
+      --text-strong: #0F172A;
+      --text-default: #1E293B;
+      --text-muted: #64748B;
+      --border-subtle: #E2E8F0;
+      --edge: #2563EB;
+      --command: #0EA5A4;
+      --integration: #7C3AED;
+      --data: #D97706;
+      --blocked: #C24141;
+      --trusted: #059669;
+      --masthead-height: 76px;
+      --rail-width: 324px;
+      --inspector-width: 420px;
+      --radius: 18px;
+      --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+      --transition-fast: 120ms ease;
+      --transition-mid: 180ms ease;
+      --transition-panel: 220ms ease;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--text-default);
+      background:
+        radial-gradient(circle at top left, rgba(37, 99, 235, 0.09), transparent 34%),
+        radial-gradient(circle at top right, rgba(124, 58, 237, 0.08), transparent 28%),
+        linear-gradient(180deg, rgba(247, 249, 252, 0.98), rgba(244, 247, 251, 0.95)),
+        var(--canvas);
+    }
+    body[data-reduced-motion="true"] * {
+      animation: none !important;
+      transition-duration: 0ms !important;
+      scroll-behavior: auto !important;
+    }
+    .page {
+      max-width: 1580px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .masthead {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      min-height: var(--masthead-height);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 20px;
+      align-items: center;
+      padding: 14px 18px;
+      margin-bottom: 18px;
+      border-radius: calc(var(--radius) + 4px);
+      border: 1px solid rgba(226, 232, 240, 0.92);
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(14px);
+      box-shadow: var(--shadow);
+    }
+    .wordmark {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .monogram {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(14, 165, 164, 0.1));
+      border: 1px solid rgba(37, 99, 235, 0.14);
+    }
+    .eyebrow {
+      margin: 0 0 4px;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .headline {
+      margin: 0;
+      font-size: 20px;
+      color: var(--text-strong);
+    }
+    .subhead {
+      margin: 4px 0 0;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .metric-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .metric {
+      min-width: 118px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border-subtle);
+      background: var(--inset);
+    }
+    .metric strong {
+      display: block;
+      font-size: 18px;
+      color: var(--text-strong);
+    }
+    .metric span {
+      display: block;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: var(--rail-width) minmax(0, 1fr) var(--inspector-width);
+      gap: 18px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .rail {
+      padding: 16px;
+      background: linear-gradient(180deg, rgba(238, 242, 247, 0.98), rgba(255, 255, 255, 0.96));
+    }
+    .section-label {
+      margin: 0 0 6px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .filter-grid {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    label {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    select {
+      width: 100%;
+      min-height: 44px;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      background: var(--panel);
+      color: var(--text-default);
+      padding: 0 12px;
+    }
+    .legend {
+      display: grid;
+      gap: 10px;
+    }
+    .legend-item {
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.9);
+    }
+    .legend-item strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--text-strong);
+    }
+    .center {
+      padding: 16px;
+    }
+    .visual {
+      min-height: 320px;
+      padding: 18px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(244, 247, 251, 0.85), rgba(255, 255, 255, 0.96));
+    }
+    .visual h2 {
+      margin: 0 0 6px;
+      font-size: 16px;
+      color: var(--text-strong);
+    }
+    .visual p {
+      margin: 0 0 14px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .zone-band {
+      margin-bottom: 12px;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.84);
+    }
+    .zone-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      margin-bottom: 10px;
+    }
+    .zone-header h3 {
+      margin: 0;
+      font-size: 15px;
+      color: var(--text-strong);
+    }
+    .node-grid,
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+    }
+    .node,
+    .matrix-row,
+    .egress-card,
+    .table-row {
+      width: 100%;
+      text-align: left;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid var(--border-subtle);
+      background: var(--panel);
+      cursor: pointer;
+      transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+    .node:hover,
+    .matrix-row:hover,
+    .egress-card:hover,
+    .table-row:hover,
+    .node:focus-visible,
+    .matrix-row:focus-visible,
+    .egress-card:focus-visible,
+    .table-row:focus-visible {
+      transform: translateY(-1px);
+      border-color: rgba(37, 99, 235, 0.34);
+      outline: none;
+    }
+    [data-selected="true"] {
+      border-color: rgba(37, 99, 235, 0.58) !important;
+      box-shadow: 0 18px 32px rgba(37, 99, 235, 0.12);
+      transform: translateY(-1px);
+    }
+    .accent-edge { border-left: 4px solid var(--edge); }
+    .accent-command { border-left: 4px solid var(--command); }
+    .accent-integration { border-left: 4px solid var(--integration); }
+    .accent-data { border-left: 4px solid var(--data); }
+    .accent-blocked { border-left: 4px solid var(--blocked); }
+    .accent-trusted { border-left: 4px solid var(--trusted); }
+    .meta-row,
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--inset);
+      border: 1px solid var(--border-subtle);
+      font-size: 12px;
+      color: var(--text-default);
+    }
+    .chip.blocked {
+      color: var(--blocked);
+      border-color: rgba(194, 65, 65, 0.24);
+    }
+    .chip.allowed {
+      color: var(--trusted);
+      border-color: rgba(5, 150, 105, 0.24);
+    }
+    .mono {
+      font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+    }
+    .lower-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 16px;
+    }
+    .table-panel {
+      padding: 16px;
+    }
+    .table-list {
+      display: grid;
+      gap: 10px;
+      max-height: 340px;
+      overflow: auto;
+    }
+    .inspector {
+      position: sticky;
+      top: 92px;
+      align-self: start;
+      min-height: 640px;
+      padding: 18px;
+      transition: transform var(--transition-panel), box-shadow var(--transition-panel);
+    }
+    .inspector h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      color: var(--text-strong);
+    }
+    .inspector p {
+      margin: 0 0 10px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .inspector dl {
+      margin: 0;
+      display: grid;
+      gap: 10px;
+    }
+    .inspector dt {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+    .inspector dd {
+      margin: 2px 0 0;
+      color: var(--text-strong);
+      font-size: 14px;
+    }
+    .empty {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    @media (max-width: 1220px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .inspector {
+        position: static;
+      }
+    }
+    @media (max-width: 880px) {
+      .lower-grid {
+        grid-template-columns: 1fr;
+      }
+      .masthead {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="masthead panel">
+      <div class="wordmark">
+        <div class="monogram" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M7 24V8h6l6 10V8h6v16" />
+          </svg>
+        </div>
+        <div>
+          <p class="eyebrow">Runtime_Network_Trust_Atlas</p>
+          <h1 class="headline">Runtime Network Trust Atlas</h1>
+          <p class="subhead">Concrete workload placement, trust-boundary law, and default-deny egress posture for the Phase 0 runtime substrate.</p>
+        </div>
+      </div>
+      <div class="metric-strip">
+        <div class="metric"><strong id="metric-environments">0</strong><span>Active Environments</span></div>
+        <div class="metric"><strong id="metric-stale">0</strong><span>Stale Manifest Flags</span></div>
+        <div class="metric"><strong id="metric-blocked">0</strong><span>Blocked Boundaries</span></div>
+        <div class="metric"><strong id="metric-egress">0</strong><span>Allowlist Drift Alerts</span></div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="panel rail" aria-label="Atlas filters">
+        <p class="section-label">Filters</p>
+        <div class="filter-grid">
+          <div>
+            <label for="filter-environment">Environment</label>
+            <select id="filter-environment" data-testid="filter-environment"></select>
+          </div>
+          <div>
+            <label for="filter-workload-family">Workload family</label>
+            <select id="filter-workload-family" data-testid="filter-workload-family">
+              <option value="all">All families</option>
+            </select>
+          </div>
+          <div>
+            <label for="filter-boundary-state">Boundary state</label>
+            <select id="filter-boundary-state" data-testid="filter-boundary-state">
+              <option value="all">All states</option>
+              <option value="allowed">Allowed</option>
+              <option value="blocked">Blocked</option>
+            </select>
+          </div>
+          <div>
+            <label for="filter-egress-scope">Egress scope</label>
+            <select id="filter-egress-scope" data-testid="filter-egress-scope">
+              <option value="all">All scopes</option>
+              <option value="internal_only">Internal only</option>
+              <option value="no_runtime_egress">No runtime egress</option>
+              <option value="declared_external_dependencies">Declared external dependencies</option>
+            </select>
+          </div>
+        </div>
+
+        <p class="section-label">Atlas Notes</p>
+        <div class="legend">
+          <div class="legend-item">
+            <strong>Browser bridge</strong>
+            <span>Only published gateway paths may cross from browser-facing families into internal compute planes.</span>
+          </div>
+          <div class="legend-item">
+            <strong>Default deny</strong>
+            <span>Every workload family resolves to one explicit allowlist; missing rows mean blocked egress, not operator folklore.</span>
+          </div>
+          <div class="legend-item">
+            <strong>Cutover seams</strong>
+            <span>Object storage, event bus, cache, KMS, and public gateway attachments remain follow-on runtime tasks.</span>
+          </div>
+        </div>
+      </aside>
+
+      <main class="panel center">
+        <section class="visual" data-testid="topology-diagram" aria-labelledby="topology-title">
+          <h2 id="topology-title">Multi-plane topology diagram</h2>
+          <p>Node cards are the realized workload instances for the selected environment. Selection synchronizes the inspector, boundary matrix, egress map, and tables.</p>
+          <div id="topology-zones"></div>
+        </section>
+
+        <section class="visual" data-testid="boundary-matrix" aria-labelledby="boundary-title">
+          <h2 id="boundary-title">Trust-boundary matrix</h2>
+          <p>Allowed boundaries and blocked crossings share one surface so browser overreach and internal-only bridges are visible in the same frame.</p>
+          <div id="boundary-matrix-grid" class="card-grid"></div>
+        </section>
+
+        <section class="visual" data-testid="egress-flow-map" aria-labelledby="egress-title">
+          <h2 id="egress-title">Egress allowlist flow map</h2>
+          <p>Each card is one default-deny allowlist object plus the currently selected environment overlay.</p>
+          <div id="egress-map" class="card-grid"></div>
+        </section>
+
+        <div class="lower-grid">
+          <section class="panel table-panel" data-testid="manifest-table" aria-labelledby="manifest-title">
+            <h2 id="manifest-title">Manifest placements</h2>
+            <p>Tabular fallback for workload placements and their network segment assignments.</p>
+            <div id="manifest-table-list" class="table-list"></div>
+          </section>
+          <section class="panel table-panel" data-testid="boundary-table" aria-labelledby="boundary-table-title">
+            <h2 id="boundary-table-title">Boundary and egress table</h2>
+            <p>Tabular fallback for legal and blocked crossings under the selected filter set.</p>
+            <div id="boundary-table-list" class="table-list"></div>
+          </section>
+        </div>
+      </main>
+
+      <aside class="panel inspector" data-testid="inspector" aria-live="polite">
+        <h2>Inspector</h2>
+        <p id="inspector-summary">Select a workload, boundary, or allowlist card to inspect its concrete trust and egress posture.</p>
+        <dl id="inspector-details">
+          <div>
+            <dt>Selection</dt>
+            <dd class="empty">No selection</dd>
+          </div>
+        </dl>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      environment: "local",
+      family: "all",
+      boundaryState: "all",
+      egressScope: "all",
+      selectedType: "node",
+      selectedKey: null,
+    };
+
+    function parseCsv(text) {
+      const rows = [];
+      let field = "";
+      let row = [];
+      let inQuotes = false;
+      for (let i = 0; i < text.length; i += 1) {
+        const char = text[i];
+        const next = text[i + 1];
+        if (char === "\"") {
+          if (inQuotes && next === "\"") {
+            field += "\"";
+            i += 1;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === "," && !inQuotes) {
+          row.push(field);
+          field = "";
+        } else if ((char === "\n" || char === "\r") && !inQuotes) {
+          if (char === "\r" && next === "\n") {
+            i += 1;
+          }
+          row.push(field);
+          field = "";
+          if (row.some((value) => value.length > 0)) {
+            rows.push(row);
+          }
+          row = [];
+        } else {
+          field += char;
+        }
+      }
+      if (field.length > 0 || row.length > 0) {
+        row.push(field);
+        rows.push(row);
+      }
+      const [header, ...body] = rows;
+      return body.map((values) => Object.fromEntries(header.map((key, index) => [key, values[index] ?? ""])));
+    }
+
+    const accentByFamily = {
+      public_edge: "accent-edge",
+      shell_delivery: "accent-edge",
+      command: "accent-command",
+      projection: "accent-command",
+      integration: "accent-integration",
+      data: "accent-data",
+      assurance_security: "accent-trusted",
+    };
+
+    let runtimeManifest;
+    let boundaryRows;
+    let allowlistManifest;
+    let allowlistByRef;
+    let familyByRef;
+
+    function scopedNodes() {
+      return runtimeManifest.runtime_workload_families.filter((row) => row.environment_ring === state.environment)
+        .filter((row) => state.family === "all" || row.family_code === state.family)
+        .filter((row) => {
+          if (state.egressScope === "all") return true;
+          const allowlist = allowlistByRef[familyByRef[row.runtime_workload_family_ref].egress_allowlist_ref];
+          return allowlist.scope_class === state.egressScope;
+        });
+    }
+
+    function scopedBoundaries() {
+      return boundaryRows
+        .filter((row) => row.environment_ring === state.environment)
+        .filter((row) => state.boundaryState === "all" || row.boundary_state === state.boundaryState)
+        .filter((row) => {
+          if (state.family === "all") return true;
+          const sourceRefs = row.source_family_refs.split(";").filter(Boolean);
+          const targetRefs = row.target_family_refs.split(";").filter(Boolean);
+          return [...sourceRefs, ...targetRefs].some(
+            (familyRef) => familyByRef[familyRef]?.family_code === state.family,
+          );
+        });
+    }
+
+    function scopedAllowlists() {
+      return allowlistManifest.allowlists
+        .filter((row) => state.egressScope === "all" || row.scope_class === state.egressScope)
+        .filter((row) => {
+          if (state.family === "all") return true;
+          return row.family_refs.some((familyRef) => familyByRef[familyRef].family_code === state.family);
+        });
+    }
+
+    function currentOverlay(allowlistRef) {
+      return allowlistManifest.environment_overlays.find(
+        (row) => row.environment_ring === state.environment && row.egress_allowlist_ref === allowlistRef,
+      );
+    }
+
+    function selectItem(type, key) {
+      state.selectedType = type;
+      state.selectedKey = key;
+      render();
+    }
+
+    function selectedNode() {
+      return scopedNodes().find((row) => row.runtime_workload_family_id === state.selectedKey) ?? null;
+    }
+
+    function selectedBoundary() {
+      return scopedBoundaries().find((row) => row.boundary_ref === state.selectedKey) ?? null;
+    }
+
+    function selectedAllowlist() {
+      return scopedAllowlists().find((row) => row.egress_allowlist_ref === state.selectedKey) ?? null;
+    }
+
+    function relatedBoundary(boundaryRow) {
+      if (state.selectedType === "boundary") {
+        return boundaryRow.boundary_ref === state.selectedKey;
+      }
+      if (state.selectedType === "node") {
+        return boundaryRow.source_family_refs.includes(selectedNode()?.runtime_workload_family_ref ?? "")
+          || boundaryRow.target_family_refs.includes(selectedNode()?.runtime_workload_family_ref ?? "");
+      }
+      if (state.selectedType === "allowlist") {
+        return boundaryRow.egress_allowlist_ref === state.selectedKey;
+      }
+      return false;
+    }
+
+    function renderMetrics() {
+      document.getElementById("metric-environments").textContent = String(
+        runtimeManifest.network_foundation.environment_network_realizations.length,
+      );
+      document.getElementById("metric-stale").textContent = String(
+        runtimeManifest.network_foundation.environment_network_realizations.filter(
+          (row) => row.publication_state !== "declared_internal_contract",
+        ).length,
+      );
+      document.getElementById("metric-blocked").textContent = String(
+        boundaryRows.filter((row) => row.environment_ring === state.environment && row.boundary_state === "blocked").length,
+      );
+      document.getElementById("metric-egress").textContent = "0";
+    }
+
+    function renderTopology() {
+      const host = document.getElementById("topology-zones");
+      const zones = new Map();
+      for (const row of scopedNodes()) {
+        const zone = zones.get(row.trust_zone_ref) ?? [];
+        zone.push(row);
+        zones.set(row.trust_zone_ref, zone);
+      }
+      host.innerHTML = "";
+      for (const [zoneRef, rows] of zones.entries()) {
+        const section = document.createElement("section");
+        section.className = "zone-band";
+        const heading = document.createElement("div");
+        heading.className = "zone-header";
+        heading.innerHTML = `<h3>${zoneRef}</h3><span class="mono">${rows.length} nodes</span>`;
+        section.appendChild(heading);
+
+        const grid = document.createElement("div");
+        grid.className = "node-grid";
+        rows.forEach((row) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = `node ${accentByFamily[row.family_code] ?? "accent-edge"}`;
+          button.dataset.testid = `topology-node-${row.runtime_workload_family_id}`;
+          button.setAttribute("data-testid", `topology-node-${row.runtime_workload_family_id}`);
+          button.setAttribute(
+            "data-selected",
+            String(state.selectedType === "node" && state.selectedKey === row.runtime_workload_family_id),
+          );
+          button.innerHTML = `
+            <strong>${row.display_name}</strong>
+            <div class="meta-row">
+              <span class="chip mono">${row.runtime_workload_family_ref}</span>
+              <span class="chip">${row.region_ref}</span>
+              <span class="chip">${familyByRef[row.runtime_workload_family_ref].egress_allowlist_ref}</span>
+            </div>
+          `;
+          button.addEventListener("click", () => selectItem("node", row.runtime_workload_family_id));
+          grid.appendChild(button);
+        });
+        section.appendChild(grid);
+        host.appendChild(section);
+      }
+    }
+
+    function renderBoundaries() {
+      const grid = document.getElementById("boundary-matrix-grid");
+      const table = document.getElementById("boundary-table-list");
+      grid.innerHTML = "";
+      table.innerHTML = "";
+      scopedBoundaries().forEach((row) => {
+        const classes = row.boundary_state === "blocked" ? "accent-blocked" : "accent-trusted";
+        const markup = `
+          <strong>${row.boundary_ref}</strong>
+          <div class="chip-row">
+            <span class="chip ${row.boundary_state === "blocked" ? "blocked" : "allowed"}">${row.boundary_state}</span>
+            <span class="chip mono">${row.source_trust_zone_ref} -> ${row.target_trust_zone_ref}</span>
+          </div>
+          <p>${row.notes}</p>
+        `;
+        const matrixButton = document.createElement("button");
+        matrixButton.type = "button";
+        matrixButton.className = `matrix-row ${classes}`;
+        matrixButton.setAttribute("data-testid", `boundary-matrix-row-${row.boundary_ref}`);
+        matrixButton.setAttribute("data-selected", String(relatedBoundary(row)));
+        matrixButton.innerHTML = markup;
+        matrixButton.addEventListener("click", () => selectItem("boundary", row.boundary_ref));
+        grid.appendChild(matrixButton);
+
+        const tableButton = document.createElement("button");
+        tableButton.type = "button";
+        tableButton.className = `table-row ${classes}`;
+        tableButton.setAttribute("data-testid", `boundary-row-${row.boundary_ref}`);
+        tableButton.setAttribute("data-selected", String(relatedBoundary(row)));
+        tableButton.innerHTML = markup;
+        tableButton.addEventListener("click", () => selectItem("boundary", row.boundary_ref));
+        table.appendChild(tableButton);
+      });
+    }
+
+    function renderEgress() {
+      const map = document.getElementById("egress-map");
+      map.innerHTML = "";
+      scopedAllowlists().forEach((row) => {
+        const overlay = currentOverlay(row.egress_allowlist_ref);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `egress-card ${row.scope_class === "declared_external_dependencies" ? "accent-integration" : "accent-edge"}`;
+        button.setAttribute("data-testid", `egress-card-${row.egress_allowlist_ref}`);
+        button.setAttribute(
+          "data-selected",
+          String(
+            (state.selectedType === "allowlist" && state.selectedKey === row.egress_allowlist_ref)
+            || (state.selectedType === "node"
+              && row.family_refs.includes(selectedNode()?.runtime_workload_family_ref ?? "")),
+          ),
+        );
+        button.innerHTML = `
+          <strong>${row.egress_allowlist_ref}</strong>
+          <div class="chip-row">
+            <span class="chip">${row.scope_class}</span>
+            <span class="chip mono">${overlay?.mode ?? "n/a"}</span>
+          </div>
+          <p>${row.allowed_internal_target_refs.length} internal targets, ${row.external_destinations.length} external destinations.</p>
+        `;
+        button.addEventListener("click", () => selectItem("allowlist", row.egress_allowlist_ref));
+        map.appendChild(button);
+      });
+    }
+
+    function renderManifestTable() {
+      const list = document.getElementById("manifest-table-list");
+      list.innerHTML = "";
+      scopedNodes().forEach((row) => {
+        const allowlistRef = familyByRef[row.runtime_workload_family_ref].egress_allowlist_ref;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `table-row ${accentByFamily[row.family_code] ?? "accent-edge"}`;
+        button.setAttribute("data-testid", `manifest-row-${row.runtime_workload_family_id}`);
+        button.setAttribute(
+          "data-selected",
+          String(state.selectedType === "node" && state.selectedKey === row.runtime_workload_family_id),
+        );
+        button.innerHTML = `
+          <strong>${row.display_name}</strong>
+          <div class="chip-row">
+            <span class="chip mono">${row.runtime_workload_family_id}</span>
+            <span class="chip">${row.region_ref}</span>
+            <span class="chip">${allowlistRef}</span>
+          </div>
+        `;
+        button.addEventListener("click", () => selectItem("node", row.runtime_workload_family_id));
+        list.appendChild(button);
+      });
+      wireArrowNavigation(list, "[data-testid^='manifest-row-']");
+    }
+
+    function renderInspector() {
+      const summary = document.getElementById("inspector-summary");
+      const details = document.getElementById("inspector-details");
+      let payload;
+      if (state.selectedType === "boundary") {
+        payload = selectedBoundary();
+      } else if (state.selectedType === "allowlist") {
+        payload = selectedAllowlist();
+      } else {
+        payload = selectedNode();
+      }
+      if (!payload) {
+        summary.textContent = "Select a workload, boundary, or allowlist card to inspect its concrete trust and egress posture.";
+        details.innerHTML = `<div><dt>Selection</dt><dd class="empty">No selection</dd></div>`;
+        return;
+      }
+      if (state.selectedType === "boundary") {
+        summary.textContent = "Boundary detail";
+        details.innerHTML = `
+          <div><dt>Boundary</dt><dd class="mono">${payload.boundary_ref}</dd></div>
+          <div><dt>State</dt><dd>${payload.boundary_state}</dd></div>
+          <div><dt>Zones</dt><dd>${payload.source_trust_zone_ref} -> ${payload.target_trust_zone_ref}</dd></div>
+          <div><dt>Families</dt><dd class="mono">${payload.source_family_refs} -> ${payload.target_family_refs}</dd></div>
+          <div><dt>Allowlist</dt><dd class="mono">${payload.egress_allowlist_ref}</dd></div>
+          <div><dt>Enforcement</dt><dd>${payload.enforcement_refs}</dd></div>
+        `;
+        return;
+      }
+      if (state.selectedType === "allowlist") {
+        const overlay = currentOverlay(payload.egress_allowlist_ref);
+        summary.textContent = "Allowlist detail";
+        details.innerHTML = `
+          <div><dt>Allowlist</dt><dd class="mono">${payload.egress_allowlist_ref}</dd></div>
+          <div><dt>Scope</dt><dd>${payload.scope_class}</dd></div>
+          <div><dt>Families</dt><dd class="mono">${payload.family_refs.join(";")}</dd></div>
+          <div><dt>Overlay mode</dt><dd>${overlay?.mode ?? "n/a"}</dd></div>
+          <div><dt>External destinations</dt><dd>${payload.external_destinations.map((item) => item.destination_ref).join(", ") || "none"}</dd></div>
+        `;
+        return;
+      }
+      const family = familyByRef[payload.runtime_workload_family_ref];
+      const allowlist = allowlistByRef[family.egress_allowlist_ref];
+      summary.textContent = "Workload detail";
+      details.innerHTML = `
+        <div><dt>Runtime workload</dt><dd class="mono">${payload.runtime_workload_family_id}</dd></div>
+        <div><dt>Family</dt><dd>${payload.family_code}</dd></div>
+        <div><dt>Trust zone</dt><dd class="mono">${payload.trust_zone_ref}</dd></div>
+        <div><dt>Region</dt><dd>${payload.region_ref} (${payload.uk_region_role})</dd></div>
+        <div><dt>Service identity</dt><dd class="mono">${family.service_identity_ref}</dd></div>
+        <div><dt>Egress allowlist</dt><dd class="mono">${family.egress_allowlist_ref}</dd></div>
+        <div><dt>Egress scope</dt><dd>${allowlist.scope_class}</dd></div>
+      `;
+    }
+
+    function wireArrowNavigation(container, selector) {
+      const items = [...container.querySelectorAll(selector)];
+      items.forEach((item, index) => {
+        item.onkeydown = (event) => {
+          if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+            return;
+          }
+          event.preventDefault();
+          const nextIndex = event.key === "ArrowDown"
+            ? Math.min(items.length - 1, index + 1)
+            : Math.max(0, index - 1);
+          items[nextIndex]?.focus();
+          items[nextIndex]?.click();
+        };
+      });
+    }
+
+    function render() {
+      renderMetrics();
+      renderTopology();
+      renderBoundaries();
+      renderEgress();
+      renderManifestTable();
+      renderInspector();
+      wireArrowNavigation(document.getElementById("boundary-table-list"), "[data-testid^='boundary-row-']");
+    }
+
+    async function boot() {
+      document.body.dataset.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "true" : "false";
+      const [manifestResponse, boundaryResponse, allowlistResponse] = await Promise.all([
+        fetch("../../data/analysis/runtime_topology_manifest.json"),
+        fetch("../../data/analysis/trust_zone_boundary_matrix.csv"),
+        fetch("../../data/analysis/private_egress_allowlist_manifest.json"),
+      ]);
+      runtimeManifest = await manifestResponse.json();
+      boundaryRows = parseCsv(await boundaryResponse.text());
+      allowlistManifest = await allowlistResponse.json();
+      familyByRef = Object.fromEntries(
+        runtimeManifest.workload_family_catalog.map((row) => [row.runtime_workload_family_ref, row]),
+      );
+      allowlistByRef = Object.fromEntries(
+        allowlistManifest.allowlists.map((row) => [row.egress_allowlist_ref, row]),
+      );
+
+      const environmentSelect = document.getElementById("filter-environment");
+      for (const row of runtimeManifest.network_foundation.environment_network_realizations) {
+        environmentSelect.appendChild(new Option(row.environment_ring, row.environment_ring));
+      }
+      environmentSelect.value = state.environment;
+      environmentSelect.addEventListener("change", (event) => {
+        state.environment = event.target.value;
+        state.selectedKey = null;
+        render();
+      });
+
+      const familySelect = document.getElementById("filter-workload-family");
+      const familyCodes = [...new Set(runtimeManifest.workload_family_catalog.map((row) => row.family_code))];
+      familyCodes.forEach((familyCode) => familySelect.appendChild(new Option(familyCode, familyCode)));
+      familySelect.addEventListener("change", (event) => {
+        state.family = event.target.value;
+        state.selectedKey = null;
+        render();
+      });
+
+      document.getElementById("filter-boundary-state").addEventListener("change", (event) => {
+        state.boundaryState = event.target.value;
+        state.selectedKey = null;
+        render();
+      });
+
+      document.getElementById("filter-egress-scope").addEventListener("change", (event) => {
+        state.egressScope = event.target.value;
+        state.selectedKey = null;
+        render();
+      });
+
+      state.selectedKey = runtimeManifest.runtime_workload_families.find((row) => row.environment_ring === "local")?.runtime_workload_family_id ?? null;
+      render();
+    }
+
+    boot();
+  </script>
+</body>
+</html>

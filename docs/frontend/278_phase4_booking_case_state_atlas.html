@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>278 Booking Case State Atlas</title>
+    <style>
+      :root {
+        --canvas: #F7F8FA;
+        --shell: #EEF2F6;
+        --panel: #FFFFFF;
+        --inset: #E8EEF3;
+        --text-strong: #0F1720;
+        --text-default: #24313D;
+        --text-muted: #5E6B78;
+        --accent-lineage: #3158E0;
+        --accent-booking: #0F766E;
+        --accent-pending: #B7791F;
+        --accent-blocked: #B42318;
+        --border: #D6DEE6;
+        --shadow: 0 16px 32px rgba(15, 23, 32, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html, body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--text-default);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        letter-spacing: 0;
+      }
+
+      body {
+        padding: 24px;
+      }
+
+      .atlas-shell {
+        width: 100%;
+        max-width: 1600px;
+        margin: 0 auto;
+        display: grid;
+        gap: 18px;
+      }
+
+      .masthead {
+        height: 72px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.86), rgba(255,255,255,0.7));
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .brand svg {
+        width: 28px;
+        height: 28px;
+      }
+
+      .brand-word {
+        font-size: 0.96rem;
+        font-weight: 700;
+        color: var(--text-strong);
+      }
+
+      .masthead-copy {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .masthead-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text-strong);
+      }
+
+      .masthead-subtitle {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+      }
+
+      .masthead-meta {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        color: var(--text-muted);
+        font-size: 0.86rem;
+      }
+
+      .chip {
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: var(--inset);
+        border: 1px solid var(--border);
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+
+      .shell-grid {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr) 408px;
+        gap: 18px;
+        align-items: start;
+      }
+
+      .shell-grid > *,
+      .diagram-table-pair > * {
+        min-width: 0;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+      }
+
+      .panel-header {
+        padding: 18px 18px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .panel-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-strong);
+        overflow-wrap: anywhere;
+      }
+
+      .panel-subtitle {
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        overflow-wrap: anywhere;
+      }
+
+      .state-rail {
+        padding: 10px 12px 14px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .family-block {
+        background: var(--shell);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 10px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .family-block h3 {
+        margin: 0;
+        font-size: 0.86rem;
+        color: var(--text-strong);
+      }
+
+      .family-block p {
+        margin: 0;
+        font-size: 0.76rem;
+        color: var(--text-muted);
+        line-height: 1.45;
+      }
+
+      .state-button,
+      .route-button {
+        width: 100%;
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 12px;
+        padding: 10px 12px;
+        text-align: left;
+        color: var(--text-default);
+        font: inherit;
+        cursor: pointer;
+        transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+        overflow-wrap: anywhere;
+      }
+
+      .state-button:hover,
+      .route-button:hover {
+        border-color: rgba(49, 88, 224, 0.35);
+      }
+
+      .state-button[aria-pressed="true"],
+      .route-button[aria-pressed="true"] {
+        border-color: var(--accent-lineage);
+        background: rgba(49, 88, 224, 0.08);
+        color: var(--text-strong);
+      }
+
+      .state-button:focus-visible,
+      .route-button:focus-visible,
+      .atlas-region:focus-visible,
+      .table-scroll:focus-visible {
+        outline: 3px solid rgba(49, 88, 224, 0.32);
+        outline-offset: 2px;
+      }
+
+      .button-kicker {
+        display: block;
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        margin-bottom: 3px;
+      }
+
+      .button-title {
+        font-size: 0.86rem;
+        font-weight: 700;
+        color: inherit;
+      }
+
+      .button-summary {
+        font-size: 0.74rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+        line-height: 1.4;
+      }
+
+      .canvas-stack {
+        display: grid;
+        gap: 18px;
+      }
+
+      .atlas-region {
+        padding: 18px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .lattice-grid {
+        position: relative;
+        min-height: 620px;
+        background: linear-gradient(180deg, rgba(238,242,246,0.72), rgba(247,248,250,0.92));
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+      }
+
+      .lattice-grid svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+
+      .state-node {
+        position: absolute;
+        width: 188px;
+        min-height: 84px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: #fff;
+        padding: 12px 14px;
+        box-shadow: 0 10px 22px rgba(15, 23, 32, 0.08);
+        cursor: pointer;
+        transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+        overflow-wrap: anywhere;
+      }
+
+      .state-node.active {
+        border-color: var(--accent-booking);
+        box-shadow: 0 16px 32px rgba(15, 118, 110, 0.18);
+      }
+
+      .state-node.related {
+        border-color: rgba(183, 121, 31, 0.58);
+      }
+
+      .state-node-label {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        margin-bottom: 5px;
+      }
+
+      .state-node-title {
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: var(--text-strong);
+        margin-bottom: 4px;
+      }
+
+      .state-node-summary {
+        font-size: 0.74rem;
+        line-height: 1.45;
+        color: var(--text-muted);
+      }
+
+      .diagram-table-pair {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 14px;
+      }
+
+      .braid-strip,
+      .route-ladder,
+      .projection-map {
+        display: grid;
+        gap: 12px;
+        background: var(--shell);
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        padding: 14px;
+      }
+
+      .braid-row {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .braid-token,
+      .projection-card {
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 12px;
+        padding: 12px;
+        overflow-wrap: anywhere;
+      }
+
+      .braid-token strong,
+      .projection-card strong {
+        display: block;
+        color: var(--text-strong);
+        font-size: 0.82rem;
+        margin-bottom: 4px;
+      }
+
+      .braid-token span,
+      .projection-card span {
+        font-size: 0.74rem;
+        line-height: 1.4;
+        color: var(--text-muted);
+      }
+
+      .route-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .projection-map {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .projection-card.active {
+        border-color: var(--accent-lineage);
+        background: rgba(49, 88, 224, 0.06);
+      }
+
+      .inspector {
+        padding: 18px;
+        display: grid;
+        gap: 16px;
+        position: sticky;
+        top: 24px;
+      }
+
+      .inspector-section {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px;
+        background: var(--shell);
+        min-width: 0;
+      }
+
+      .inspector-section h3 {
+        margin: 0 0 8px;
+        font-size: 0.84rem;
+        color: var(--text-strong);
+      }
+
+      .inspector-section p,
+      .inspector-section li {
+        margin: 0;
+        font-size: 0.76rem;
+        line-height: 1.5;
+        color: var(--text-default);
+        overflow-wrap: anywhere;
+      }
+
+      .inspector-section ul {
+        margin: 0;
+        padding-left: 18px;
+        display: grid;
+        gap: 6px;
+      }
+
+      .lower-grid {
+        display: grid;
+        gap: 18px;
+      }
+
+      .table-shell {
+        display: grid;
+        gap: 12px;
+        padding: 18px;
+      }
+
+      .table-scroll {
+        overflow: auto;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 720px;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--border);
+        padding: 11px 12px;
+        text-align: left;
+        vertical-align: top;
+        font-size: 0.78rem;
+        line-height: 1.45;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        background: #f8fafc;
+        color: var(--text-strong);
+        font-weight: 700;
+      }
+
+      tr.active-row {
+        background: rgba(49, 88, 224, 0.06);
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 0.74rem;
+        color: var(--text-muted);
+      }
+
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .legend i {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        display: inline-block;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation: none !important;
+          transition: none !important;
+          scroll-behavior: auto !important;
+        }
+      }
+
+      @media (max-width: 1220px) {
+        .shell-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .inspector {
+          position: static;
+        }
+
+        .diagram-table-pair {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 760px) {
+        body {
+          padding: 14px;
+        }
+
+        .masthead {
+          height: auto;
+          min-height: 72px;
+          padding: 16px;
+          align-items: start;
+          gap: 12px;
+          flex-direction: column;
+        }
+
+        .projection-map {
+          grid-template-columns: 1fr;
+        }
+
+        .braid-row {
+          grid-template-columns: 1fr;
+        }
+
+        table {
+          min-width: 560px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      class="atlas-shell"
+      data-testid="BookingCaseStateAtlas"
+      data-visual-mode="Booking_Case_State_Atlas"
+      data-reduced-motion="no-preference"
+      data-active-state="handoff_received"
+      data-active-route="/bookings/:bookingCaseId"
+    >
+      <header class="masthead panel" data-testid="BookingCaseAtlasMasthead">
+        <div class="brand">
+          <svg viewBox="0 0 48 48" aria-hidden="true">
+            <defs>
+              <linearGradient id="booking_case_lattice_mark" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0%" stop-color="#3158E0"></stop>
+                <stop offset="100%" stop-color="#0F766E"></stop>
+              </linearGradient>
+            </defs>
+            <rect x="4" y="4" width="40" height="40" rx="12" fill="url(#booking_case_lattice_mark)"></rect>
+            <path d="M14 18h20M14 24h20M14 30h12" stroke="#F7F8FA" stroke-width="3" stroke-linecap="round"></path>
+          </svg>
+          <div class="masthead-copy">
+            <div class="brand-word">Vecells</div>
+            <div class="masthead-title">Booking Case State Atlas</div>
+            <div class="masthead-subtitle">Phase 4 contract freeze for BookingIntent handoff, BookingCase workflow, and patient route continuity.</div>
+          </div>
+        </div>
+        <div class="masthead-meta">
+          <span class="chip">Task seq_278</span>
+          <span class="chip">Contract 278.phase4.booking-case-freeze.v1</span>
+          <span class="chip">Visual mode Booking_Case_State_Atlas</span>
+        </div>
+      </header>
+
+      <div class="shell-grid">
+        <aside class="panel state-rail" data-testid="StateFamilyRail" aria-label="Booking state families">
+          <div class="panel-header">
+            <div class="panel-title">State family rail</div>
+            <div class="panel-subtitle">One top-level workflow vocabulary. Capability, reservation, confirmation, and route publication stay separate.</div>
+          </div>
+        </aside>
+
+        <main class="canvas-stack">
+          <section class="panel atlas-region" data-testid="CaseStateLatticeRegion" aria-labelledby="lattice-title">
+            <div>
+              <div class="panel-title" id="lattice-title">Case-state lattice</div>
+              <div class="panel-subtitle">Select a state or route family to synchronize the lattice, inspector, and evidence tables.</div>
+            </div>
+            <div class="legend" aria-label="State legend">
+              <span><i style="background:#0F766E"></i> active state</span>
+              <span><i style="background:#B7791F"></i> route-related state</span>
+              <span><i style="background:#3158E0"></i> lineage emphasis</span>
+            </div>
+            <div class="lattice-grid atlas-region" tabindex="0" data-testid="CaseStateLattice" aria-label="Booking case state lattice">
+              <svg data-testid="CaseStateLatticeEdges" aria-hidden="true"></svg>
+            </div>
+          </section>
+
+          <section class="diagram-table-pair">
+            <div class="panel atlas-region" data-testid="LineageFenceBraid" tabindex="0" aria-labelledby="braid-title">
+              <div>
+                <div class="panel-title" id="braid-title">Lineage-and-fence braid</div>
+                <div class="panel-subtitle">Late supersession, identity repair, publication drift, and request ownership all stay binding after booking opens.</div>
+              </div>
+              <div class="braid-strip" data-testid="LineageFenceBraidDiagram"></div>
+            </div>
+            <div class="panel table-shell" data-testid="LineageFenceBraidTableShell">
+              <div class="panel-title">Lineage parity table</div>
+              <div class="table-scroll" tabindex="0" data-testid="LineageFenceBraidTable">
+                <table>
+                  <thead>
+                    <tr><th>Binding</th><th>Rule</th></tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="diagram-table-pair">
+            <div class="panel atlas-region" data-testid="RouteFamilyLadder" tabindex="0" aria-labelledby="route-title">
+              <div>
+                <div class="panel-title" id="route-title">Route-family ladder</div>
+                <div class="panel-subtitle">Booking list, choose, confirm, manage, cancel, and reschedule stay inside one patient shell.</div>
+              </div>
+              <div class="route-ladder">
+                <div class="route-list" data-testid="RouteFamilyButtons"></div>
+              </div>
+            </div>
+            <div class="panel table-shell" data-testid="RouteFamilyTableShell">
+              <div class="panel-title">Route ownership parity</div>
+              <div class="table-scroll" tabindex="0" data-testid="RouteFamilyTable">
+                <table>
+                  <thead>
+                    <tr><th>Path</th><th>Projection</th><th>Transition type</th><th>History policy</th></tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="diagram-table-pair">
+            <div class="panel atlas-region" data-testid="PatientProjectionMap" tabindex="0" aria-labelledby="projection-title">
+              <div>
+                <div class="panel-title" id="projection-title">Patient-projection map</div>
+                <div class="panel-subtitle">Projection truth stays explicit so later frontend work cannot improvise booking semantics page by page.</div>
+              </div>
+              <div class="projection-map" data-testid="ProjectionCards"></div>
+            </div>
+            <div class="panel table-shell" data-testid="ProjectionTableShell">
+              <div class="panel-title">Projection parity table</div>
+              <div class="table-scroll" tabindex="0" data-testid="ProjectionTable">
+                <table>
+                  <thead>
+                    <tr><th>Projection</th><th>Routes</th><th>Surface states</th></tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <aside class="panel inspector" data-testid="InspectorPanel" aria-live="polite">
+          <div class="panel-title">Inspector</div>
+          <div class="panel-subtitle">Selected state and route family remain synchronized here.</div>
+          <div class="inspector-section" data-testid="InspectorStateSummary">
+            <h3>State</h3>
+            <p id="inspector-state-label"></p>
+          </div>
+          <div class="inspector-section" data-testid="InspectorStatePredicate">
+            <h3>Governing predicate</h3>
+            <p id="inspector-state-predicate"></p>
+          </div>
+          <div class="inspector-section" data-testid="InspectorRouteSummary">
+            <h3>Route family</h3>
+            <p id="inspector-route-label"></p>
+          </div>
+          <div class="inspector-section" data-testid="InspectorAuthorityAxes">
+            <h3>Authority separation</h3>
+            <ul id="inspector-authority-list"></ul>
+          </div>
+          <div class="inspector-section" data-testid="InspectorLinkedProjections">
+            <h3>Linked projections</h3>
+            <ul id="inspector-projection-list"></ul>
+          </div>
+        </aside>
+      </div>
+
+      <section class="lower-grid">
+        <div class="panel table-shell" data-testid="TransitionTableShell">
+          <div class="panel-title">Transition evidence</div>
+          <div class="panel-subtitle">Filtered by the selected state and visually aligned to the lattice.</div>
+          <div class="table-scroll" tabindex="0" data-testid="TransitionTable">
+            <table>
+              <thead>
+                <tr><th>From</th><th>To</th><th>Predicate</th><th>Controlling object</th><th>Owner</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel table-shell" data-testid="ApiSurfaceTableShell">
+          <div class="panel-title">API and event skeleton</div>
+          <div class="panel-subtitle">Later tasks may implement these seams, but they may not rename them.</div>
+          <div class="table-scroll" tabindex="0" data-testid="ApiSurfaceTable">
+            <table>
+              <thead>
+                <tr><th>Method or event</th><th>Path or contract</th><th>Owner</th><th>Status</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script id="atlas-data" type="application/json">{&quot;taskId&quot;: &quot;seq_278&quot;, &quot;visualMode&quot;: &quot;Booking_Case_State_Atlas&quot;, &quot;contractVersion&quot;: &quot;278.phase4.booking-case-freeze.v1&quot;, &quot;stateFamilies&quot;: [{&quot;familyId&quot;: &quot;intake&quot;, &quot;label&quot;: &quot;Intake&quot;, &quot;summary&quot;: &quot;Phase 3 handoff has been acknowledged but the booking kernel has not yet opened search truth.&quot;, &quot;states&quot;: [&quot;handoff_received&quot;, &quot;capability_checked&quot;]}, {&quot;familyId&quot;: &quot;search&quot;, &quot;label&quot;: &quot;Search&quot;, &quot;summary&quot;: &quot;Local booking is live, the search policy is current, and the shell is moving through offer discovery and slot choice.&quot;, &quot;states&quot;: [&quot;searching_local&quot;, &quot;offers_ready&quot;, &quot;selecting&quot;, &quot;revalidating&quot;]}, {&quot;familyId&quot;: &quot;commit&quot;, &quot;label&quot;: &quot;Commit&quot;, &quot;summary&quot;: &quot;A chosen slot is crossing reservation, confirmation, or reconciliation truth boundaries.&quot;, &quot;states&quot;: [&quot;commit_pending&quot;, &quot;booked&quot;, &quot;confirmation_pending&quot;, &quot;supplier_reconciliation_pending&quot;]}, {&quot;familyId&quot;: &quot;continuation&quot;, &quot;label&quot;: &quot;Continuation&quot;, &quot;summary&quot;: &quot;Local booking could not settle directly and now depends on waitlist, callback, hub, or explicit failure truth.&quot;, &quot;states&quot;: [&quot;waitlisted&quot;, &quot;fallback_to_hub&quot;, &quot;callback_fallback&quot;, &quot;booking_failed&quot;]}, {&quot;familyId&quot;: &quot;managed&quot;, &quot;label&quot;: &quot;Manage and Close&quot;, &quot;summary&quot;: &quot;An authoritative appointment exists or the booking branch is durably finished.&quot;, &quot;states&quot;: [&quot;managed&quot;, &quot;closed&quot;]}], &quot;stateDetails&quot;: {&quot;handoff_received&quot;: {&quot;summary&quot;: &quot;The booking branch exists only as a direct-resolution handoff and proposed lineage child link.&quot;, &quot;dominantAuthority&quot;: &quot;Phase 3 BookingIntent plus the proposed LineageCaseLink.&quot;, &quot;entryPredicate&quot;: &quot;Phase 3 BookingIntent is unsuperseded, ownership fences are current, and the booking link is still the proposed child for the request lineage.&quot;, &quot;routeCue&quot;: &quot;Summary-only booking launch card inside the patient or staff shell.&quot;}, &quot;capability_checked&quot;: {&quot;summary&quot;: &quot;The case has validated current booking capability, route publication, trust, and identity posture but has not opened a live slot search yet.&quot;, &quot;dominantAuthority&quot;: &quot;BookingCapabilityResolution and BookingCapabilityProjection.&quot;, &quot;entryPredicate&quot;: &quot;The bound capability tuple still matches route, publication, trust, and governing-object posture for the active audience.&quot;, &quot;routeCue&quot;: &quot;Capability gate summary with allowed next actions.&quot;}, &quot;searching_local&quot;: {&quot;summary&quot;: &quot;The case is actively running local search under one SearchPolicy and one current capability tuple.&quot;, &quot;dominantAuthority&quot;: &quot;SearchPolicy plus BookingCapabilityResolution plus SlotSetSnapshot.&quot;, &quot;entryPredicate&quot;: &quot;Capability is live for search and the case owns one active SearchPolicy.&quot;, &quot;routeCue&quot;: &quot;Search-first workspace with calm loading, empty, or partial posture inside the same shell.&quot;}, &quot;offers_ready&quot;: {&quot;summary&quot;: &quot;Current snapshot and offer session expose a lawful set of local choices.&quot;, &quot;dominantAuthority&quot;: &quot;OfferSession plus ReservationTruthProjection plus rank proof.&quot;, &quot;entryPredicate&quot;: &quot;A live OfferSession exists and the linked snapshot remains selectable for the active case version and policy bundle.&quot;, &quot;routeCue&quot;: &quot;Offer list or calendar with explicit rank disclosure and truthful hold wording.&quot;}, &quot;selecting&quot;: {&quot;summary&quot;: &quot;The shell holds a chosen slot candidate but not yet a fresh revalidation outcome.&quot;, &quot;dominantAuthority&quot;: &quot;OfferSession selection tuple and the selected anchor tuple hash.&quot;, &quot;entryPredicate&quot;: &quot;One offered slot is selected and its tuple hash still resolves to the same canonical slot identity.&quot;, &quot;routeCue&quot;: &quot;Selection state that preserves the chosen slot anchor across same-shell child routes.&quot;}, &quot;revalidating&quot;: {&quot;summary&quot;: &quot;The selected slot is being checked against supplier truth and the original SearchPolicy before commit can start.&quot;, &quot;dominantAuthority&quot;: &quot;BookingTransaction preflight, SearchPolicy, and current capability tuple.&quot;, &quot;entryPredicate&quot;: &quot;A chosen slot is undergoing the authoritative supplier or local preflight check for the same policy bundle.&quot;, &quot;routeCue&quot;: &quot;Selected slot remains visible while writable mutation is temporarily paused.&quot;}, &quot;commit_pending&quot;: {&quot;summary&quot;: &quot;A commit path is in flight and must not be mistaken for final booking.&quot;, &quot;dominantAuthority&quot;: &quot;BookingTransaction and ReservationTruthProjection.&quot;, &quot;entryPredicate&quot;: &quot;Reservation and request fences are live, dispatch has started, and authoritative outcome is still pending.&quot;, &quot;routeCue&quot;: &quot;Pending confirmation wording stays summary-first and suppresses false calmness.&quot;}, &quot;booked&quot;: {&quot;summary&quot;: &quot;The commit path has authoritative booking proof and can now open management posture.&quot;, &quot;dominantAuthority&quot;: &quot;BookingConfirmationTruthProjection and AppointmentRecord.&quot;, &quot;entryPredicate&quot;: &quot;Confirmation truth is confirmed and an AppointmentRecord exists on the same lineage.&quot;, &quot;routeCue&quot;: &quot;Booked summary transitions into management inside the same shell.&quot;}, &quot;confirmation_pending&quot;: {&quot;summary&quot;: &quot;The supplier has accepted or is processing the booking but durable confirmation truth is still pending.&quot;, &quot;dominantAuthority&quot;: &quot;BookingConfirmationTruthProjection.&quot;, &quot;entryPredicate&quot;: &quot;Confirmation truth state is confirmation_pending and the same transaction chain remains current.&quot;, &quot;routeCue&quot;: &quot;Chosen slot or booked summary stays visible until authoritative settlement lands.&quot;}, &quot;supplier_reconciliation_pending&quot;: {&quot;summary&quot;: &quot;Supplier truth is ambiguous or disputed and the case must preserve provenance while freezing mutation.&quot;, &quot;dominantAuthority&quot;: &quot;ExternalConfirmationGate and BookingConfirmationTruthProjection.&quot;, &quot;entryPredicate&quot;: &quot;Confirmation truth state is reconciliation_required and a reconciliation gate is attached to the same lineage.&quot;, &quot;routeCue&quot;: &quot;Same-shell recovery posture with explicit reconciliation explanation.&quot;}, &quot;waitlisted&quot;: {&quot;summary&quot;: &quot;The case is still lawfully waiting for local supply and has not yet crossed into callback or hub fallback.&quot;, &quot;dominantAuthority&quot;: &quot;WaitlistEntry, WaitlistDeadlineEvaluation, and WaitlistContinuationTruthProjection.&quot;, &quot;entryPredicate&quot;: &quot;Active WaitlistEntry exists, offerabilityState is waitlist_safe or at_risk, and required fallback route remains stay_local_waitlist.&quot;, &quot;routeCue&quot;: &quot;Waitlist truth remains visible with deadline risk and dominant next step.&quot;}, &quot;fallback_to_hub&quot;: {&quot;summary&quot;: &quot;Local booking has durably transferred to the hub path.&quot;, &quot;dominantAuthority&quot;: &quot;WaitlistFallbackObligation and HubCoordinationCase typed seam.&quot;, &quot;entryPredicate&quot;: &quot;Current fallback obligation requires hub and a hub coordination child link exists for the same booking lineage.&quot;, &quot;routeCue&quot;: &quot;Read-only provenance plus governed handoff status.&quot;}, &quot;callback_fallback&quot;: {&quot;summary&quot;: &quot;Local booking has durably transferred to governed callback handling.&quot;, &quot;dominantAuthority&quot;: &quot;WaitlistFallbackObligation and CallbackCase typed seam.&quot;, &quot;entryPredicate&quot;: &quot;Current fallback obligation requires callback and the linked CallbackCase plus CallbackExpectationEnvelope exist on the same fallback fence.&quot;, &quot;routeCue&quot;: &quot;Read-only provenance plus callback expectation summary.&quot;}, &quot;booking_failed&quot;: {&quot;summary&quot;: &quot;The current local booking branch ended without an active waitlist or fallback continuation.&quot;, &quot;dominantAuthority&quot;: &quot;BookingException and continuation truth.&quot;, &quot;entryPredicate&quot;: &quot;No active continuation path remains and the current booking attempt has failed under the authoritative outcome chain.&quot;, &quot;routeCue&quot;: &quot;Recovery-only branch summary with no local writable controls.&quot;}, &quot;managed&quot;: {&quot;summary&quot;: &quot;An authoritative appointment exists and the case has entered its manage lifecycle.&quot;, &quot;dominantAuthority&quot;: &quot;AppointmentRecord, BookingConfirmationTruthProjection, and BookingManageSettlement.&quot;, &quot;entryPredicate&quot;: &quot;Appointment exists with authoritative confirmation proof and manage posture is not hidden.&quot;, &quot;routeCue&quot;: &quot;Appointment summary with manage, cancel, or reschedule child routes.&quot;}, &quot;closed&quot;: {&quot;summary&quot;: &quot;The booking branch is durably finished, but request closure remains a coordinator decision.&quot;, &quot;dominantAuthority&quot;: &quot;BookingCase branch settlement only; not request closure.&quot;, &quot;entryPredicate&quot;: &quot;Case-level work is finished and no further booking mutation is legal for the active lineage branch.&quot;, &quot;routeCue&quot;: &quot;Summary-only review or appointment history view.&quot;}}, &quot;transitions&quot;: [{&quot;transitionId&quot;: &quot;T278_001&quot;, &quot;from&quot;: &quot;handoff_received&quot;, &quot;to&quot;: &quot;capability_checked&quot;, &quot;predicateId&quot;: &quot;P278_HANDOFF_ACKNOWLEDGED&quot;, &quot;predicate&quot;: &quot;Current BookingIntent is unsuperseded, its proposed LineageCaseLink is still current for the request lineage, and request ownership fences are valid for case creation.&quot;, &quot;controllingObject&quot;: &quot;BookingIntent + LineageCaseLink&quot;, &quot;ownerTask&quot;: &quot;seq_278&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}, {&quot;transitionId&quot;: &quot;T278_002&quot;, &quot;from&quot;: &quot;capability_checked&quot;, &quot;to&quot;: &quot;searching_local&quot;, &quot;predicateId&quot;: &quot;P278_CAPABILITY_LIVE_FOR_SEARCH&quot;, &quot;predicate&quot;: &quot;BookingCapabilityResolution.capabilityState is live_self_service or live_staff_assist for the active audience, binding hashes remain current, and route publication plus trust posture still match the capability tuple.&quot;, &quot;controllingObject&quot;: &quot;BookingCapabilityResolution + BookingCapabilityProjection&quot;, &quot;ownerTask&quot;: &quot;seq_279&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}, {&quot;transitionId&quot;: &quot;T278_003&quot;, &quot;from&quot;: &quot;searching_local&quot;, &quot;to&quot;: &quot;offers_ready&quot;, &quot;predicateId&quot;: &quot;P278_OFFERS_DISCLOSED&quot;, &quot;predicate&quot;: &quot;A live OfferSession exists on the active BookingCase version, policy bundle, capability binding, and selectable snapshot.&quot;, &quot;controllingObject&quot;: &quot;OfferSession + SlotSetSnapshot&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}, {&quot;transitionId&quot;: &quot;T278_004&quot;, &quot;from&quot;: &quot;searching_local&quot;, &quot;to&quot;: &quot;waitlisted&quot;, &quot;predicateId&quot;: &quot;P278_WAITLIST_SAFE&quot;, &quot;predicate&quot;: &quot;Active WaitlistEntry exists, WaitlistDeadlineEvaluation.offerabilityState is waitlist_safe or at_risk, and WaitlistFallbackObligation.requiredFallbackRoute remains stay_local_waitlist.&quot;, &quot;controllingObject&quot;: &quot;WaitlistEntry + WaitlistDeadlineEvaluation + WaitlistFallbackObligation&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}, {&quot;transitionId&quot;: &quot;T278_005&quot;, &quot;from&quot;: &quot;searching_local&quot;, &quot;to&quot;: &quot;callback_fallback&quot;, &quot;predicateId&quot;: &quot;P278_CALLBACK_REQUIRED&quot;, &quot;predicate&quot;: &quot;Current WaitlistFallbackObligation.requiredFallbackRoute equals callback and the same fallback fence already owns a linked CallbackCase plus CallbackExpectationEnvelope.&quot;, &quot;controllingObject&quot;: &quot;WaitlistFallbackObligation + CallbackCase seam&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}, {&quot;transitionId&quot;: &quot;T278_006&quot;, &quot;from&quot;: &quot;searching_local&quot;, &quot;to&quot;: &quot;fallback_to_hub&quot;, &quot;predicateId&quot;: &quot;P278_HUB_REQUIRED&quot;, &quot;predicate&quot;: &quot;Current WaitlistFallbackObligation.requiredFallbackRoute equals hub and the same booking lineage already owns a durably created HubCoordinationCase.&quot;, &quot;controllingObject&quot;: &quot;WaitlistFallbackObligation + HubCoordinationCase seam&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}, {&quot;transitionId&quot;: &quot;T278_007&quot;, &quot;from&quot;: &quot;searching_local&quot;, &quot;to&quot;: &quot;booking_failed&quot;, &quot;predicateId&quot;: &quot;P278_SEARCH_FAILED_NO_CONTINUATION&quot;, &quot;predicate&quot;: &quot;The current local booking attempt ended without an active continuation path, waitlist, or durable fallback transfer.&quot;, &quot;controllingObject&quot;: &quot;BookingException + continuation truth&quot;, &quot;ownerTask&quot;: &quot;seq_278&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}, {&quot;transitionId&quot;: &quot;T278_008&quot;, &quot;from&quot;: &quot;offers_ready&quot;, &quot;to&quot;: &quot;selecting&quot;, &quot;predicateId&quot;: &quot;P278_SLOT_CHOSEN&quot;, &quot;predicate&quot;: &quot;One offered slot and its tuple hash have been selected from the current OfferSession.&quot;, &quot;controllingObject&quot;: &quot;OfferSession&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}, {&quot;transitionId&quot;: &quot;T278_009&quot;, &quot;from&quot;: &quot;offers_ready&quot;, &quot;to&quot;: &quot;waitlisted&quot;, &quot;predicateId&quot;: &quot;P278_WAITLIST_CHOSEN_FROM_OFFERS&quot;, &quot;predicate&quot;: &quot;The case elects or is forced into waitlist and an active WaitlistEntry plus safe waitlist truth exist.&quot;, &quot;controllingObject&quot;: &quot;WaitlistEntry + WaitlistContinuationTruthProjection&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}, {&quot;transitionId&quot;: &quot;T278_010&quot;, &quot;from&quot;: &quot;offers_ready&quot;, &quot;to&quot;: &quot;callback_fallback&quot;, &quot;predicateId&quot;: &quot;P278_OFFERS_TO_CALLBACK&quot;, &quot;predicate&quot;: &quot;Fallback obligation now requires callback and no safe local continuation remains.&quot;, &quot;controllingObject&quot;: &quot;WaitlistFallbackObligation&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}, {&quot;transitionId&quot;: &quot;T278_011&quot;, &quot;from&quot;: &quot;offers_ready&quot;, &quot;to&quot;: &quot;fallback_to_hub&quot;, &quot;predicateId&quot;: &quot;P278_OFFERS_TO_HUB&quot;, &quot;predicate&quot;: &quot;Fallback obligation now requires hub and a hub coordination transfer has been durably started.&quot;, &quot;controllingObject&quot;: &quot;WaitlistFallbackObligation&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}, {&quot;transitionId&quot;: &quot;T278_012&quot;, &quot;from&quot;: &quot;offers_ready&quot;, &quot;to&quot;: &quot;booking_failed&quot;, &quot;predicateId&quot;: &quot;P278_OFFERS_EXHAUSTED&quot;, &quot;predicate&quot;: &quot;Current offer generation ended and no lawful local continuation survived.&quot;, &quot;controllingObject&quot;: &quot;OfferSession + BookingException&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}, {&quot;transitionId&quot;: &quot;T278_013&quot;, &quot;from&quot;: &quot;selecting&quot;, &quot;to&quot;: &quot;revalidating&quot;, &quot;predicateId&quot;: &quot;P278_REVALIDATION_STARTED&quot;, &quot;predicate&quot;: &quot;A chosen slot is being checked against supplier state and the original SearchPolicy.&quot;, &quot;controllingObject&quot;: &quot;BookingTransaction preflight&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}, {&quot;transitionId&quot;: &quot;T278_014&quot;, &quot;from&quot;: &quot;selecting&quot;, &quot;to&quot;: &quot;offers_ready&quot;, &quot;predicateId&quot;: &quot;P278_SELECTION_CLEARED&quot;, &quot;predicate&quot;: &quot;Selected slot or anchor was explicitly cleared while the offer session remained live.&quot;, &quot;controllingObject&quot;: &quot;OfferSession&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}, {&quot;transitionId&quot;: &quot;T278_015&quot;, &quot;from&quot;: &quot;selecting&quot;, &quot;to&quot;: &quot;waitlisted&quot;, &quot;predicateId&quot;: &quot;P278_SELECTION_TO_WAITLIST&quot;, &quot;predicate&quot;: &quot;The case joins waitlist from the selection posture and the waitlist truth remains safe.&quot;, &quot;controllingObject&quot;: &quot;WaitlistEntry + WaitlistContinuationTruthProjection&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}, {&quot;transitionId&quot;: &quot;T278_016&quot;, &quot;from&quot;: &quot;selecting&quot;, &quot;to&quot;: &quot;callback_fallback&quot;, &quot;predicateId&quot;: &quot;P278_SELECTION_TO_CALLBACK&quot;, &quot;predicate&quot;: &quot;Selection was invalidated and fallback obligation now requires callback.&quot;, &quot;controllingObject&quot;: &quot;WaitlistFallbackObligation&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}, {&quot;transitionId&quot;: &quot;T278_017&quot;, &quot;from&quot;: &quot;selecting&quot;, &quot;to&quot;: &quot;fallback_to_hub&quot;, &quot;predicateId&quot;: &quot;P278_SELECTION_TO_HUB&quot;, &quot;predicate&quot;: &quot;Selection was invalidated and fallback obligation now requires hub transfer.&quot;, &quot;controllingObject&quot;: &quot;WaitlistFallbackObligation&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}, {&quot;transitionId&quot;: &quot;T278_018&quot;, &quot;from&quot;: &quot;selecting&quot;, &quot;to&quot;: &quot;booking_failed&quot;, &quot;predicateId&quot;: &quot;P278_SELECTION_FAILED&quot;, &quot;predicate&quot;: &quot;Selection is no longer actionable and no safe local continuation survives.&quot;, &quot;controllingObject&quot;: &quot;BookingException&quot;, &quot;ownerTask&quot;: &quot;seq_278&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}, {&quot;transitionId&quot;: &quot;T278_019&quot;, &quot;from&quot;: &quot;revalidating&quot;, &quot;to&quot;: &quot;commit_pending&quot;, &quot;predicateId&quot;: &quot;P278_PREFLIGHT_VALID&quot;, &quot;predicate&quot;: &quot;Current supplier or local preflight passed against the same SearchPolicy, capability tuple, and request ownership fences.&quot;, &quot;controllingObject&quot;: &quot;BookingTransaction&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth&quot;}, {&quot;transitionId&quot;: &quot;T278_020&quot;, &quot;from&quot;: &quot;revalidating&quot;, &quot;to&quot;: &quot;offers_ready&quot;, &quot;predicateId&quot;: &quot;P278_PREFLIGHT_REFRESH_REQUIRED&quot;, &quot;predicate&quot;: &quot;Current slot can no longer be committed but the offer session remains recoverable for the same case version and policy bundle.&quot;, &quot;controllingObject&quot;: &quot;BookingTransaction + OfferSession&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth&quot;}, {&quot;transitionId&quot;: &quot;T278_021&quot;, &quot;from&quot;: &quot;revalidating&quot;, &quot;to&quot;: &quot;waitlisted&quot;, &quot;predicateId&quot;: &quot;P278_PREFLIGHT_TO_WAITLIST&quot;, &quot;predicate&quot;: &quot;Preflight proves no safe immediate local commit and the current waitlist path remains safe.&quot;, &quot;controllingObject&quot;: &quot;WaitlistEntry + WaitlistDeadlineEvaluation&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}, {&quot;transitionId&quot;: &quot;T278_022&quot;, &quot;from&quot;: &quot;revalidating&quot;, &quot;to&quot;: &quot;callback_fallback&quot;, &quot;predicateId&quot;: &quot;P278_PREFLIGHT_TO_CALLBACK&quot;, &quot;predicate&quot;: &quot;Preflight or freshness drift triggered callback fallback obligation on the same lineage.&quot;, &quot;controllingObject&quot;: &quot;WaitlistFallbackObligation&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}, {&quot;transitionId&quot;: &quot;T278_023&quot;, &quot;from&quot;: &quot;revalidating&quot;, &quot;to&quot;: &quot;fallback_to_hub&quot;, &quot;predicateId&quot;: &quot;P278_PREFLIGHT_TO_HUB&quot;, &quot;predicate&quot;: &quot;Preflight or freshness drift triggered hub fallback obligation on the same lineage.&quot;, &quot;controllingObject&quot;: &quot;WaitlistFallbackObligation&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}, {&quot;transitionId&quot;: &quot;T278_024&quot;, &quot;from&quot;: &quot;revalidating&quot;, &quot;to&quot;: &quot;booking_failed&quot;, &quot;predicateId&quot;: &quot;P278_PREFLIGHT_FAILED&quot;, &quot;predicate&quot;: &quot;No safe continuation survived revalidation failure.&quot;, &quot;controllingObject&quot;: &quot;BookingException + continuation truth&quot;, &quot;ownerTask&quot;: &quot;seq_278&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth&quot;}, {&quot;transitionId&quot;: &quot;T278_025&quot;, &quot;from&quot;: &quot;commit_pending&quot;, &quot;to&quot;: &quot;booked&quot;, &quot;predicateId&quot;: &quot;P278_COMMIT_CONFIRMED&quot;, &quot;predicate&quot;: &quot;Authoritative proof exists as durable provider reference or same-commit read-after-write, an AppointmentRecord exists, and confirmation truth is confirmed.&quot;, &quot;controllingObject&quot;: &quot;BookingTransaction + BookingConfirmationTruthProjection + AppointmentRecord&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth&quot;}, {&quot;transitionId&quot;: &quot;T278_026&quot;, &quot;from&quot;: &quot;commit_pending&quot;, &quot;to&quot;: &quot;confirmation_pending&quot;, &quot;predicateId&quot;: &quot;P278_COMMIT_WAITING_CONFIRMATION&quot;, &quot;predicate&quot;: &quot;Commit path is accepted for processing but confirmation truth is still pending.&quot;, &quot;controllingObject&quot;: &quot;BookingTransaction + BookingConfirmationTruthProjection&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth&quot;}, {&quot;transitionId&quot;: &quot;T278_027&quot;, &quot;from&quot;: &quot;commit_pending&quot;, &quot;to&quot;: &quot;supplier_reconciliation_pending&quot;, &quot;predicateId&quot;: &quot;P278_COMMIT_AMBIGUOUS&quot;, &quot;predicate&quot;: &quot;Commit path observed ambiguous or disputed supplier truth and opened an external confirmation gate.&quot;, &quot;controllingObject&quot;: &quot;BookingTransaction + ExternalConfirmationGate&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth&quot;}, {&quot;transitionId&quot;: &quot;T278_028&quot;, &quot;from&quot;: &quot;commit_pending&quot;, &quot;to&quot;: &quot;waitlisted&quot;, &quot;predicateId&quot;: &quot;P278_COMMIT_TO_WAITLIST&quot;, &quot;predicate&quot;: &quot;Commit could not settle immediately and waitlist continuation remains lawful.&quot;, &quot;controllingObject&quot;: &quot;WaitlistEntry + WaitlistContinuationTruthProjection&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth&quot;}, {&quot;transitionId&quot;: &quot;T278_029&quot;, &quot;from&quot;: &quot;commit_pending&quot;, &quot;to&quot;: &quot;callback_fallback&quot;, &quot;predicateId&quot;: &quot;P278_COMMIT_TO_CALLBACK&quot;, &quot;predicate&quot;: &quot;Commit path degraded into callback fallback under the current fallback obligation.&quot;, &quot;controllingObject&quot;: &quot;WaitlistFallbackObligation&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth&quot;}, {&quot;transitionId&quot;: &quot;T278_030&quot;, &quot;from&quot;: &quot;commit_pending&quot;, &quot;to&quot;: &quot;fallback_to_hub&quot;, &quot;predicateId&quot;: &quot;P278_COMMIT_TO_HUB&quot;, &quot;predicate&quot;: &quot;Commit path degraded into hub fallback under the current fallback obligation.&quot;, &quot;controllingObject&quot;: &quot;WaitlistFallbackObligation&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth&quot;}, {&quot;transitionId&quot;: &quot;T278_031&quot;, &quot;from&quot;: &quot;commit_pending&quot;, &quot;to&quot;: &quot;booking_failed&quot;, &quot;predicateId&quot;: &quot;P278_COMMIT_FAILED&quot;, &quot;predicate&quot;: &quot;Commit path failed with no active continuation path.&quot;, &quot;controllingObject&quot;: &quot;BookingTransaction + BookingException&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth&quot;}, {&quot;transitionId&quot;: &quot;T278_032&quot;, &quot;from&quot;: &quot;booked&quot;, &quot;to&quot;: &quot;managed&quot;, &quot;predicateId&quot;: &quot;P278_MANAGE_LIFECYCLE_OPEN&quot;, &quot;predicate&quot;: &quot;AppointmentRecord exists with authoritative confirmation truth and manage posture is now exposed.&quot;, &quot;controllingObject&quot;: &quot;AppointmentRecord + BookingConfirmationTruthProjection&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4F. Appointment management: cancel, reschedule, reminders, and detail updates&quot;}, {&quot;transitionId&quot;: &quot;T278_033&quot;, &quot;from&quot;: &quot;confirmation_pending&quot;, &quot;to&quot;: &quot;managed&quot;, &quot;predicateId&quot;: &quot;P278_PENDING_TO_MANAGED&quot;, &quot;predicate&quot;: &quot;Pending confirmation settled into authoritative confirmed appointment truth.&quot;, &quot;controllingObject&quot;: &quot;BookingConfirmationTruthProjection&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth&quot;}, {&quot;transitionId&quot;: &quot;T278_034&quot;, &quot;from&quot;: &quot;confirmation_pending&quot;, &quot;to&quot;: &quot;supplier_reconciliation_pending&quot;, &quot;predicateId&quot;: &quot;P278_PENDING_TO_RECONCILIATION&quot;, &quot;predicate&quot;: &quot;Pending confirmation degraded into ambiguous or disputed supplier truth.&quot;, &quot;controllingObject&quot;: &quot;ExternalConfirmationGate&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth&quot;}, {&quot;transitionId&quot;: &quot;T278_035&quot;, &quot;from&quot;: &quot;confirmation_pending&quot;, &quot;to&quot;: &quot;booking_failed&quot;, &quot;predicateId&quot;: &quot;P278_PENDING_FAILED&quot;, &quot;predicate&quot;: &quot;Supplier or authoritative read path rejected the booking and no continuation survives.&quot;, &quot;controllingObject&quot;: &quot;BookingConfirmationTruthProjection&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth&quot;}, {&quot;transitionId&quot;: &quot;T278_036&quot;, &quot;from&quot;: &quot;confirmation_pending&quot;, &quot;to&quot;: &quot;callback_fallback&quot;, &quot;predicateId&quot;: &quot;P278_PENDING_TO_CALLBACK&quot;, &quot;predicate&quot;: &quot;Pending confirmation crossed into callback fallback under current continuation truth.&quot;, &quot;controllingObject&quot;: &quot;WaitlistFallbackObligation&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth&quot;}, {&quot;transitionId&quot;: &quot;T278_037&quot;, &quot;from&quot;: &quot;confirmation_pending&quot;, &quot;to&quot;: &quot;fallback_to_hub&quot;, &quot;predicateId&quot;: &quot;P278_PENDING_TO_HUB&quot;, &quot;predicate&quot;: &quot;Pending confirmation crossed into hub fallback under current continuation truth.&quot;, &quot;controllingObject&quot;: &quot;WaitlistFallbackObligation&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth&quot;}, {&quot;transitionId&quot;: &quot;T278_038&quot;, &quot;from&quot;: &quot;supplier_reconciliation_pending&quot;, &quot;to&quot;: &quot;managed&quot;, &quot;predicateId&quot;: &quot;P278_RECONCILIATION_CONFIRMED&quot;, &quot;predicate&quot;: &quot;Reconciliation produced authoritative confirmed appointment truth on the same lineage.&quot;, &quot;controllingObject&quot;: &quot;ExternalConfirmationGate + BookingConfirmationTruthProjection&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth&quot;}, {&quot;transitionId&quot;: &quot;T278_039&quot;, &quot;from&quot;: &quot;supplier_reconciliation_pending&quot;, &quot;to&quot;: &quot;booking_failed&quot;, &quot;predicateId&quot;: &quot;P278_RECONCILIATION_FAILED&quot;, &quot;predicate&quot;: &quot;Reconciliation closed with authoritative failure and no continuation survives.&quot;, &quot;controllingObject&quot;: &quot;ExternalConfirmationGate + BookingException&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth&quot;}, {&quot;transitionId&quot;: &quot;T278_040&quot;, &quot;from&quot;: &quot;supplier_reconciliation_pending&quot;, &quot;to&quot;: &quot;callback_fallback&quot;, &quot;predicateId&quot;: &quot;P278_RECONCILIATION_TO_CALLBACK&quot;, &quot;predicate&quot;: &quot;Reconciliation requires callback fallback on the same booking lineage.&quot;, &quot;controllingObject&quot;: &quot;WaitlistFallbackObligation&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth&quot;}, {&quot;transitionId&quot;: &quot;T278_041&quot;, &quot;from&quot;: &quot;supplier_reconciliation_pending&quot;, &quot;to&quot;: &quot;fallback_to_hub&quot;, &quot;predicateId&quot;: &quot;P278_RECONCILIATION_TO_HUB&quot;, &quot;predicate&quot;: &quot;Reconciliation requires hub fallback on the same booking lineage.&quot;, &quot;controllingObject&quot;: &quot;WaitlistFallbackObligation&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4D. Offer sessions, slot choice, commit path, and authoritative booking truth&quot;}, {&quot;transitionId&quot;: &quot;T278_042&quot;, &quot;from&quot;: &quot;waitlisted&quot;, &quot;to&quot;: &quot;selecting&quot;, &quot;predicateId&quot;: &quot;P278_WAITLIST_OFFER_VISIBLE&quot;, &quot;predicate&quot;: &quot;WaitlistContinuationTruthProjection.patientVisibleState is offer_available and the active offer still resolves to the same booking case lineage.&quot;, &quot;controllingObject&quot;: &quot;WaitlistContinuationTruthProjection + WaitlistOffer&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4E. Waitlist, fallback, and no-slot truth&quot;}, {&quot;transitionId&quot;: &quot;T278_043&quot;, &quot;from&quot;: &quot;waitlisted&quot;, &quot;to&quot;: &quot;revalidating&quot;, &quot;predicateId&quot;: &quot;P278_WAITLIST_ACCEPTED_PENDING_BOOKING&quot;, &quot;predicate&quot;: &quot;Waitlist offer was accepted and the released slot is being revalidated for booking.&quot;, &quot;controllingObject&quot;: &quot;WaitlistOffer + BookingTransaction&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4E. Waitlist, fallback, and no-slot truth&quot;}, {&quot;transitionId&quot;: &quot;T278_044&quot;, &quot;from&quot;: &quot;waitlisted&quot;, &quot;to&quot;: &quot;callback_fallback&quot;, &quot;predicateId&quot;: &quot;P278_WAITLIST_TO_CALLBACK&quot;, &quot;predicate&quot;: &quot;Current waitlist truth says callback_expected or fallback obligation requires callback.&quot;, &quot;controllingObject&quot;: &quot;WaitlistContinuationTruthProjection + WaitlistFallbackObligation&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4E. Waitlist, fallback, and no-slot truth&quot;}, {&quot;transitionId&quot;: &quot;T278_045&quot;, &quot;from&quot;: &quot;waitlisted&quot;, &quot;to&quot;: &quot;fallback_to_hub&quot;, &quot;predicateId&quot;: &quot;P278_WAITLIST_TO_HUB&quot;, &quot;predicate&quot;: &quot;Current waitlist truth says hub_review_pending or fallback obligation requires hub.&quot;, &quot;controllingObject&quot;: &quot;WaitlistContinuationTruthProjection + WaitlistFallbackObligation&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4E. Waitlist, fallback, and no-slot truth&quot;}, {&quot;transitionId&quot;: &quot;T278_046&quot;, &quot;from&quot;: &quot;waitlisted&quot;, &quot;to&quot;: &quot;booking_failed&quot;, &quot;predicateId&quot;: &quot;P278_WAITLIST_EXPIRED&quot;, &quot;predicate&quot;: &quot;Waitlist continuation truth is expired and no active fallback survives.&quot;, &quot;controllingObject&quot;: &quot;WaitlistContinuationTruthProjection&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4E. Waitlist, fallback, and no-slot truth&quot;}, {&quot;transitionId&quot;: &quot;T278_047&quot;, &quot;from&quot;: &quot;waitlisted&quot;, &quot;to&quot;: &quot;managed&quot;, &quot;predicateId&quot;: &quot;P278_WAITLIST_CONFIRMED&quot;, &quot;predicate&quot;: &quot;Waitlist path produced authoritative appointment truth and the case entered manage posture.&quot;, &quot;controllingObject&quot;: &quot;BookingConfirmationTruthProjection + AppointmentRecord&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4E. Waitlist, fallback, and no-slot truth&quot;}, {&quot;transitionId&quot;: &quot;T278_048&quot;, &quot;from&quot;: &quot;managed&quot;, &quot;to&quot;: &quot;searching_local&quot;, &quot;predicateId&quot;: &quot;P278_MANAGE_REBOOK&quot;, &quot;predicate&quot;: &quot;A reschedule or immediate rebook flow opens replacement search under the same shell and current booking lineage.&quot;, &quot;controllingObject&quot;: &quot;AppointmentManageCommand + BookingCase&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4F. Appointment management: cancel, reschedule, reminders, and detail updates&quot;}, {&quot;transitionId&quot;: &quot;T278_049&quot;, &quot;from&quot;: &quot;managed&quot;, &quot;to&quot;: &quot;supplier_reconciliation_pending&quot;, &quot;predicateId&quot;: &quot;P278_MANAGE_RECONCILIATION&quot;, &quot;predicate&quot;: &quot;Appointment manage mutation is waiting on disputed or ambiguous supplier truth.&quot;, &quot;controllingObject&quot;: &quot;BookingManageSettlement + ExternalConfirmationGate&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4F. Appointment management: cancel, reschedule, reminders, and detail updates&quot;}, {&quot;transitionId&quot;: &quot;T278_050&quot;, &quot;from&quot;: &quot;managed&quot;, &quot;to&quot;: &quot;closed&quot;, &quot;predicateId&quot;: &quot;P278_MANAGE_FINISHED&quot;, &quot;predicate&quot;: &quot;Manage lifecycle is durably finished for the booking branch and no further booking mutation remains.&quot;, &quot;controllingObject&quot;: &quot;BookingManageSettlement&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4F. Appointment management: cancel, reschedule, reminders, and detail updates&quot;}, {&quot;transitionId&quot;: &quot;T278_051&quot;, &quot;from&quot;: &quot;callback_fallback&quot;, &quot;to&quot;: &quot;closed&quot;, &quot;predicateId&quot;: &quot;P278_CALLBACK_BRANCH_CLOSED&quot;, &quot;predicate&quot;: &quot;Callback transfer is durably acknowledged and the booking branch has no remaining local mutation path.&quot;, &quot;controllingObject&quot;: &quot;CallbackCase seam + LineageCaseLink&quot;, &quot;ownerTask&quot;: &quot;seq_278&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4E. Waitlist, fallback, and no-slot truth&quot;}, {&quot;transitionId&quot;: &quot;T278_052&quot;, &quot;from&quot;: &quot;fallback_to_hub&quot;, &quot;to&quot;: &quot;closed&quot;, &quot;predicateId&quot;: &quot;P278_HUB_BRANCH_CLOSED&quot;, &quot;predicate&quot;: &quot;Hub transfer is durably acknowledged and the booking branch has no remaining local mutation path.&quot;, &quot;controllingObject&quot;: &quot;HubCoordinationCase seam + LineageCaseLink&quot;, &quot;ownerTask&quot;: &quot;seq_278&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4E. Waitlist, fallback, and no-slot truth&quot;}, {&quot;transitionId&quot;: &quot;T278_053&quot;, &quot;from&quot;: &quot;booking_failed&quot;, &quot;to&quot;: &quot;closed&quot;, &quot;predicateId&quot;: &quot;P278_FAILURE_BRANCH_CLOSED&quot;, &quot;predicate&quot;: &quot;Failure branch has no active continuation or manage posture and remains booking-branch-local only.&quot;, &quot;controllingObject&quot;: &quot;BookingException&quot;, &quot;ownerTask&quot;: &quot;seq_278&quot;, &quot;sourceRef&quot;: &quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;}], &quot;routes&quot;: [{&quot;routeId&quot;: &quot;patient_appointments_list&quot;, &quot;path&quot;: &quot;/appointments&quot;, &quot;transitionType&quot;: &quot;same_shell_section_switch&quot;, &quot;historyPolicy&quot;: &quot;push&quot;, &quot;projectionRef&quot;: &quot;PatientAppointmentListProjection&quot;, &quot;objectAnchor&quot;: &quot;appointment_list&quot;, &quot;dominantAction&quot;: &quot;review_or_manage&quot;, &quot;supportedStates&quot;: [&quot;managed&quot;, &quot;waitlisted&quot;, &quot;closed&quot;], &quot;sameShell&quot;: true, &quot;sourceRefs&quot;: [&quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;, &quot;blueprint/patient-portal-experience-architecture-blueprint.md#/appointments&quot;]}, {&quot;routeId&quot;: &quot;patient_booking_workspace&quot;, &quot;path&quot;: &quot;/bookings/:bookingCaseId&quot;, &quot;transitionType&quot;: &quot;same_object_child&quot;, &quot;historyPolicy&quot;: &quot;push&quot;, &quot;projectionRef&quot;: &quot;PatientAppointmentWorkspaceProjection&quot;, &quot;objectAnchor&quot;: &quot;booking_case&quot;, &quot;dominantAction&quot;: &quot;search_or_resume&quot;, &quot;supportedStates&quot;: [&quot;handoff_received&quot;, &quot;capability_checked&quot;, &quot;searching_local&quot;, &quot;offers_ready&quot;, &quot;selecting&quot;, &quot;revalidating&quot;, &quot;commit_pending&quot;, &quot;confirmation_pending&quot;, &quot;supplier_reconciliation_pending&quot;, &quot;waitlisted&quot;], &quot;sameShell&quot;: true, &quot;sourceRefs&quot;: [&quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;, &quot;blueprint/patient-portal-experience-architecture-blueprint.md#/bookings/:bookingCaseId&quot;]}, {&quot;routeId&quot;: &quot;patient_booking_select&quot;, &quot;path&quot;: &quot;/bookings/:bookingCaseId/select&quot;, &quot;transitionType&quot;: &quot;same_object_child&quot;, &quot;historyPolicy&quot;: &quot;push&quot;, &quot;projectionRef&quot;: &quot;PatientAppointmentWorkspaceProjection&quot;, &quot;objectAnchor&quot;: &quot;selected_offer_or_slot&quot;, &quot;dominantAction&quot;: &quot;select_slot&quot;, &quot;supportedStates&quot;: [&quot;offers_ready&quot;, &quot;selecting&quot;, &quot;waitlisted&quot;], &quot;sameShell&quot;: true, &quot;sourceRefs&quot;: [&quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;, &quot;blueprint/patient-portal-experience-architecture-blueprint.md#/bookings/:bookingCaseId/select&quot;]}, {&quot;routeId&quot;: &quot;patient_booking_confirm&quot;, &quot;path&quot;: &quot;/bookings/:bookingCaseId/confirm&quot;, &quot;transitionType&quot;: &quot;same_object_child&quot;, &quot;historyPolicy&quot;: &quot;replace&quot;, &quot;projectionRef&quot;: &quot;PatientAppointmentWorkspaceProjection&quot;, &quot;objectAnchor&quot;: &quot;selected_slot_confirmation&quot;, &quot;dominantAction&quot;: &quot;confirm_slot&quot;, &quot;supportedStates&quot;: [&quot;selecting&quot;, &quot;revalidating&quot;, &quot;commit_pending&quot;, &quot;confirmation_pending&quot;, &quot;supplier_reconciliation_pending&quot;], &quot;sameShell&quot;: true, &quot;sourceRefs&quot;: [&quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;, &quot;blueprint/patient-portal-experience-architecture-blueprint.md#/bookings/:bookingCaseId/confirm&quot;]}, {&quot;routeId&quot;: &quot;patient_appointment_summary&quot;, &quot;path&quot;: &quot;/appointments/:appointmentId&quot;, &quot;transitionType&quot;: &quot;same_section_object_switch&quot;, &quot;historyPolicy&quot;: &quot;push&quot;, &quot;projectionRef&quot;: &quot;PatientAppointmentManageProjection&quot;, &quot;objectAnchor&quot;: &quot;appointment_summary&quot;, &quot;dominantAction&quot;: &quot;review_appointment&quot;, &quot;supportedStates&quot;: [&quot;managed&quot;, &quot;closed&quot;, &quot;supplier_reconciliation_pending&quot;], &quot;sameShell&quot;: true, &quot;sourceRefs&quot;: [&quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;, &quot;blueprint/patient-portal-experience-architecture-blueprint.md#/appointments/:appointmentId&quot;]}, {&quot;routeId&quot;: &quot;patient_appointment_manage&quot;, &quot;path&quot;: &quot;/appointments/:appointmentId/manage&quot;, &quot;transitionType&quot;: &quot;same_object_child&quot;, &quot;historyPolicy&quot;: &quot;push&quot;, &quot;projectionRef&quot;: &quot;PatientAppointmentManageProjection&quot;, &quot;objectAnchor&quot;: &quot;appointment_manage&quot;, &quot;dominantAction&quot;: &quot;manage_appointment&quot;, &quot;supportedStates&quot;: [&quot;managed&quot;, &quot;supplier_reconciliation_pending&quot;], &quot;sameShell&quot;: true, &quot;sourceRefs&quot;: [&quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;, &quot;blueprint/patient-portal-experience-architecture-blueprint.md#/appointments/:appointmentId/manage&quot;]}, {&quot;routeId&quot;: &quot;patient_appointment_cancel&quot;, &quot;path&quot;: &quot;/appointments/:appointmentId/cancel&quot;, &quot;transitionType&quot;: &quot;same_object_child&quot;, &quot;historyPolicy&quot;: &quot;push&quot;, &quot;projectionRef&quot;: &quot;PatientAppointmentManageProjection&quot;, &quot;objectAnchor&quot;: &quot;appointment_cancel&quot;, &quot;dominantAction&quot;: &quot;cancel_appointment&quot;, &quot;supportedStates&quot;: [&quot;managed&quot;, &quot;supplier_reconciliation_pending&quot;], &quot;sameShell&quot;: true, &quot;sourceRefs&quot;: [&quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;, &quot;blueprint/patient-portal-experience-architecture-blueprint.md#/appointments/:appointmentId/cancel&quot;]}, {&quot;routeId&quot;: &quot;patient_appointment_reschedule&quot;, &quot;path&quot;: &quot;/appointments/:appointmentId/reschedule&quot;, &quot;transitionType&quot;: &quot;same_object_child&quot;, &quot;historyPolicy&quot;: &quot;push&quot;, &quot;projectionRef&quot;: &quot;PatientAppointmentManageProjection&quot;, &quot;objectAnchor&quot;: &quot;appointment_reschedule&quot;, &quot;dominantAction&quot;: &quot;reschedule_appointment&quot;, &quot;supportedStates&quot;: [&quot;managed&quot;, &quot;searching_local&quot;, &quot;supplier_reconciliation_pending&quot;], &quot;sameShell&quot;: true, &quot;sourceRefs&quot;: [&quot;blueprint/phase-4-the-booking-engine.md#4A. Booking contract, case model, and state machine&quot;, &quot;blueprint/patient-portal-experience-architecture-blueprint.md#/appointments/:appointmentId/reschedule&quot;]}], &quot;projections&quot;: [{&quot;projectionId&quot;: &quot;PatientAppointmentListProjection&quot;, &quot;routes&quot;: [&quot;/appointments&quot;], &quot;surfaceStates&quot;: [&quot;loading&quot;, &quot;empty_actionable&quot;, &quot;ready&quot;, &quot;partial&quot;, &quot;recovery_required&quot;], &quot;dominantTruths&quot;: [&quot;activeWaitlistOfferTruthRefs[]&quot;, &quot;activeWaitlistContinuationTruthRefs[]&quot;, &quot;manageCapabilityDigestRef&quot;], &quot;summary&quot;: &quot;List-shell truth for upcoming appointments, waitlist cards, and manage-entry actions.&quot;}, {&quot;projectionId&quot;: &quot;PatientAppointmentWorkspaceProjection&quot;, &quot;routes&quot;: [&quot;/bookings/:bookingCaseId&quot;, &quot;/bookings/:bookingCaseId/select&quot;, &quot;/bookings/:bookingCaseId/confirm&quot;], &quot;surfaceStates&quot;: [&quot;searching&quot;, &quot;offers_ready&quot;, &quot;selecting&quot;, &quot;revalidating&quot;, &quot;confirmation_pending&quot;, &quot;fallback_required&quot;, &quot;recovery_required&quot;], &quot;dominantTruths&quot;: [&quot;selectedReservationTruthRef&quot;, &quot;selectedConfirmationTruthRef&quot;, &quot;selectedWaitlistContinuationTruthRef&quot;, &quot;capacityRankProofRef&quot;, &quot;rankDisclosurePolicyRef&quot;], &quot;summary&quot;: &quot;Single read model for slot discovery, selection, revalidation, confirm posture, and fallback guidance.&quot;}, {&quot;projectionId&quot;: &quot;PatientAppointmentManageProjection&quot;, &quot;routes&quot;: [&quot;/appointments/:appointmentId&quot;, &quot;/appointments/:appointmentId/manage&quot;, &quot;/appointments/:appointmentId/cancel&quot;, &quot;/appointments/:appointmentId/reschedule&quot;], &quot;surfaceStates&quot;: [&quot;ready&quot;, &quot;supplier_pending&quot;, &quot;reconciliation_required&quot;, &quot;read_only&quot;, &quot;recovery_required&quot;], &quot;dominantTruths&quot;: [&quot;latestManageSettlementRef&quot;, &quot;latestBookingTransactionRef&quot;, &quot;bookingConfirmationTruthRef&quot;], &quot;summary&quot;: &quot;Manage-shell truth for cancel, reschedule, repair, and same-anchor pending states.&quot;}, {&quot;projectionId&quot;: &quot;PatientAppointmentArtifactProjection&quot;, &quot;routes&quot;: [&quot;/appointments/:appointmentId&quot;, &quot;/appointments/:appointmentId/manage&quot;], &quot;surfaceStates&quot;: [&quot;summary_only&quot;, &quot;renderable&quot;, &quot;handoff_ready&quot;, &quot;placeholder_only&quot;, &quot;recovery_required&quot;], &quot;dominantTruths&quot;: [&quot;appointmentPresentationArtifactRef&quot;, &quot;bookingConfirmationTruthRef&quot;, &quot;outboundNavigationGrantRef&quot;], &quot;summary&quot;: &quot;Artifact and attendance-summary projection bound to the same appointment anchor and return contract.&quot;}], &quot;lineageRules&quot;: [{&quot;field&quot;: &quot;sourceDecisionEpochRef&quot;, &quot;summary&quot;: &quot;Mandatory lineage from Phase 3 decision truth into every Phase 4 mutation path.&quot;, &quot;rule&quot;: &quot;Case creation, search, select, confirm, waitlist, callback fallback, and hub fallback must validate the current unsuperseded triage decision epoch before mutating.&quot;}, {&quot;field&quot;: &quot;sourceDecisionSupersessionRef&quot;, &quot;summary&quot;: &quot;Replacement triage epochs freeze booking mutation in place.&quot;, &quot;rule&quot;: &quot;If supersession appears after shell open, selected slot and summary provenance may remain visible but every mutation degrades to governed same-shell recovery.&quot;}, {&quot;field&quot;: &quot;lineageCaseLinkRef&quot;, &quot;summary&quot;: &quot;The only canonical join from request lineage to booking work.&quot;, &quot;rule&quot;: &quot;Case creation moves the booking child link from proposed to acknowledged and later child links must not overwrite it.&quot;}, {&quot;field&quot;: &quot;requestLifecycleLeaseRef&quot;, &quot;summary&quot;: &quot;Booking mutation remains lease-bound to the request lifecycle.&quot;, &quot;rule&quot;: &quot;Confirm, waitlist, hub fallback, callback fallback, cancel, reschedule, reminder, and staff-assisted actions must present the current request lifecycle lease.&quot;}, {&quot;field&quot;: &quot;ownershipEpoch&quot;, &quot;summary&quot;: &quot;One active request ownership epoch fences booking mutation.&quot;, &quot;rule&quot;: &quot;Ownership drift creates or reuses stale-owner recovery and freezes mutation until reacquire.&quot;}, {&quot;field&quot;: &quot;identityRepairBranchDispositionRef&quot;, &quot;summary&quot;: &quot;Wrong-patient correction can quarantine live booking posture without erasing provenance.&quot;, &quot;rule&quot;: &quot;Pending_freeze, quarantined, and compensation_pending preserve summary provenance only; live booking returns only after released settlement.&quot;}, {&quot;field&quot;: &quot;patientShellConsistencyProjectionRef&quot;, &quot;summary&quot;: &quot;All patient routes stay inside one governed signed-in shell.&quot;, &quot;rule&quot;: &quot;Same-shell booking and appointment routes may mutate only when shell continuity remains current.&quot;}, {&quot;field&quot;: &quot;patientEmbeddedSessionProjectionRef&quot;, &quot;summary&quot;: &quot;Embedded entry is separately validated and can freeze writes.&quot;, &quot;rule&quot;: &quot;Embedded mode without a current embedded-session projection must degrade to route freeze or release recovery.&quot;}, {&quot;field&quot;: &quot;surfaceRouteContractRef&quot;, &quot;summary&quot;: &quot;Booking and appointment routes are explicit route-family contracts, not browser-history conventions.&quot;, &quot;rule&quot;: &quot;Every booking child route remains publication-governed and same-shell.&quot;}, {&quot;field&quot;: &quot;surfacePublicationRef&quot;, &quot;summary&quot;: &quot;Live route publication determines whether mutation remains available.&quot;, &quot;rule&quot;: &quot;Stale, conflict, or withdrawn publication freezes in place rather than silently leaving controls live.&quot;}, {&quot;field&quot;: &quot;runtimePublicationBundleRef&quot;, &quot;summary&quot;: &quot;Runtime publication is part of the same-shell safety boundary.&quot;, &quot;rule&quot;: &quot;Shell writability depends on the live bundle, not only local route state.&quot;}, {&quot;field&quot;: &quot;routeFreezeDispositionRef&quot;, &quot;summary&quot;: &quot;Route-freeze posture explains why the shell became read-only or recovery-only.&quot;, &quot;rule&quot;: &quot;Select, confirm, cancel, and reschedule surfaces must freeze in place with explicit recovery posture.&quot;}, {&quot;field&quot;: &quot;releaseRecoveryDispositionRef&quot;, &quot;summary&quot;: &quot;Release recovery can override calm route posture without changing booking workflow state.&quot;, &quot;rule&quot;: &quot;Release recovery applies to booking routes and appointment manage flows before any local browser heuristics.&quot;}], &quot;authorityAxes&quot;: [{&quot;axisId&quot;: &quot;case_state&quot;, &quot;label&quot;: &quot;Booking case workflow&quot;, &quot;governingField&quot;: &quot;BookingCase.status&quot;, &quot;ownerTask&quot;: &quot;seq_278&quot;, &quot;notes&quot;: &quot;Top-level workflow status only.&quot;}, {&quot;axisId&quot;: &quot;capability_state&quot;, &quot;label&quot;: &quot;Capability truth&quot;, &quot;governingField&quot;: &quot;BookingCapabilityResolution.capabilityState&quot;, &quot;ownerTask&quot;: &quot;seq_279&quot;, &quot;notes&quot;: &quot;Search or manage eligibility must not be inferred from BookingCase.status.&quot;}, {&quot;axisId&quot;: &quot;reservation_truth&quot;, &quot;label&quot;: &quot;Reservation and hold truth&quot;, &quot;governingField&quot;: &quot;ReservationTruthProjection.truthState&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;notes&quot;: &quot;Holds, exclusivity, and offer expiry stay on reservation truth, not case state.&quot;}, {&quot;axisId&quot;: &quot;confirmation_truth&quot;, &quot;label&quot;: &quot;Confirmation truth&quot;, &quot;governingField&quot;: &quot;BookingConfirmationTruthProjection.confirmationTruthState&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;notes&quot;: &quot;Booked wording, manage exposure, and artifact readiness derive from confirmation truth only.&quot;}, {&quot;axisId&quot;: &quot;manage_posture&quot;, &quot;label&quot;: &quot;Manage posture&quot;, &quot;governingField&quot;: &quot;BookingManageSettlement + manage exposure fields&quot;, &quot;ownerTask&quot;: &quot;seq_280&quot;, &quot;notes&quot;: &quot;Cancel, reschedule, and reminder posture are separate from top-level case state.&quot;}, {&quot;axisId&quot;: &quot;route_publication_posture&quot;, &quot;label&quot;: &quot;Route publication and recovery&quot;, &quot;governingField&quot;: &quot;SurfacePublication + RuntimePublicationBundle + RouteFreezeDisposition + ReleaseRecoveryDisposition&quot;, &quot;ownerTask&quot;: &quot;seq_278&quot;, &quot;notes&quot;: &quot;Same-shell writability is publication-governed and can degrade without changing the booking workflow state.&quot;}], &quot;apiSurface&quot;: [{&quot;method&quot;: &quot;POST&quot;, &quot;path&quot;: &quot;/v1/bookings/cases&quot;, &quot;purpose&quot;: &quot;Create one BookingCase from one current BookingIntent handoff and acknowledge lineage ownership.&quot;, &quot;ownerTask&quot;: &quot;par_282&quot;}, {&quot;method&quot;: &quot;GET&quot;, &quot;path&quot;: &quot;/v1/bookings/cases/{bookingCaseId}&quot;, &quot;purpose&quot;: &quot;Read the current BookingCase and authoritative same-shell route posture.&quot;, &quot;ownerTask&quot;: &quot;par_282&quot;}, {&quot;method&quot;: &quot;POST&quot;, &quot;path&quot;: &quot;/v1/bookings/cases/{bookingCaseId}:search&quot;, &quot;purpose&quot;: &quot;Resolve current SearchPolicy and start or refresh local slot search against the active capability tuple.&quot;, &quot;ownerTask&quot;: &quot;par_282&quot;}, {&quot;method&quot;: &quot;POST&quot;, &quot;path&quot;: &quot;/v1/bookings/cases/{bookingCaseId}:select-slot&quot;, &quot;purpose&quot;: &quot;Select one offered slot under the current OfferSession and selected-anchor tuple hash.&quot;, &quot;ownerTask&quot;: &quot;par_282&quot;}, {&quot;method&quot;: &quot;POST&quot;, &quot;path&quot;: &quot;/v1/bookings/cases/{bookingCaseId}:confirm&quot;, &quot;purpose&quot;: &quot;Start the BookingTransaction commit path under request and reservation fences.&quot;, &quot;ownerTask&quot;: &quot;par_282&quot;}, {&quot;method&quot;: &quot;GET&quot;, &quot;path&quot;: &quot;/v1/appointments/{appointmentId}&quot;, &quot;purpose&quot;: &quot;Read one authoritative AppointmentRecord plus manage posture projection.&quot;, &quot;ownerTask&quot;: &quot;par_282&quot;}, {&quot;method&quot;: &quot;POST&quot;, &quot;path&quot;: &quot;/v1/appointments/{appointmentId}:cancel&quot;, &quot;purpose&quot;: &quot;Run managed appointment cancellation under current fences and capability truth.&quot;, &quot;ownerTask&quot;: &quot;par_282&quot;}, {&quot;method&quot;: &quot;POST&quot;, &quot;path&quot;: &quot;/v1/appointments/{appointmentId}:reschedule&quot;, &quot;purpose&quot;: &quot;Start replacement search under the governing BookingCase and current manage posture.&quot;, &quot;ownerTask&quot;: &quot;par_282&quot;}, {&quot;method&quot;: &quot;POST&quot;, &quot;path&quot;: &quot;/v1/bookings/cases/{bookingCaseId}:join-waitlist&quot;, &quot;purpose&quot;: &quot;Join or refresh waitlist continuation under current local-booking truth.&quot;, &quot;ownerTask&quot;: &quot;par_282&quot;}, {&quot;method&quot;: &quot;POST&quot;, &quot;path&quot;: &quot;/v1/bookings/cases/{bookingCaseId}:fallback-callback&quot;, &quot;purpose&quot;: &quot;Transfer current booking lineage into callback fallback when required fallback route is callback.&quot;, &quot;ownerTask&quot;: &quot;par_282&quot;}, {&quot;method&quot;: &quot;POST&quot;, &quot;path&quot;: &quot;/v1/bookings/cases/{bookingCaseId}:fallback-hub&quot;, &quot;purpose&quot;: &quot;Transfer current booking lineage into hub fallback when required fallback route is hub.&quot;, &quot;ownerTask&quot;: &quot;par_282&quot;}], &quot;events&quot;: [{&quot;eventName&quot;: &quot;booking.case.created&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_CASE_CREATED&quot;, &quot;schemaPath&quot;: null, &quot;governingAggregate&quot;: &quot;BookingCase&quot;, &quot;stateAxis&quot;: &quot;case_state&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Missing concrete event schema today; frozen here so downstream tasks may implement without renaming.&quot;}, {&quot;eventName&quot;: &quot;booking.capability.resolved&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_CAPABILITY_RESOLVED&quot;, &quot;schemaPath&quot;: &quot;/Users/test/Code/V/packages/event-contracts/schemas/booking/booking.capability.resolved.v1.schema.json&quot;, &quot;governingAggregate&quot;: &quot;BookingCase&quot;, &quot;stateAxis&quot;: &quot;capability_state&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_283&quot;, &quot;notes&quot;: &quot;Concrete schema already exists and remains part of the canonical catalog.&quot;}, {&quot;eventName&quot;: &quot;booking.slots.fetched&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_SLOTS_FETCHED&quot;, &quot;schemaPath&quot;: &quot;/Users/test/Code/V/packages/event-contracts/schemas/booking/booking.slots.fetched.v1.schema.json&quot;, &quot;governingAggregate&quot;: &quot;BookingCase&quot;, &quot;stateAxis&quot;: &quot;case_state&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Concrete schema already exists and names slot-fetch lifecycle truth.&quot;}, {&quot;eventName&quot;: &quot;booking.offers.created&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_OFFERS_CREATED&quot;, &quot;schemaPath&quot;: &quot;/Users/test/Code/V/packages/event-contracts/schemas/booking/booking.offers.created.v1.schema.json&quot;, &quot;governingAggregate&quot;: &quot;BookingCase&quot;, &quot;stateAxis&quot;: &quot;case_state&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Concrete schema already exists and remains canonical.&quot;}, {&quot;eventName&quot;: &quot;booking.slot.selected&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_SLOT_SELECTED&quot;, &quot;schemaPath&quot;: &quot;/Users/test/Code/V/packages/event-contracts/schemas/booking/booking.slot.selected.v1.schema.json&quot;, &quot;governingAggregate&quot;: &quot;BookingCase&quot;, &quot;stateAxis&quot;: &quot;case_state&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Concrete schema already exists and remains canonical.&quot;}, {&quot;eventName&quot;: &quot;booking.slot.revalidated&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_SLOT_REVALIDATED&quot;, &quot;schemaPath&quot;: &quot;/Users/test/Code/V/packages/event-contracts/schemas/booking/booking.slot.revalidated.v1.schema.json&quot;, &quot;governingAggregate&quot;: &quot;BookingCase&quot;, &quot;stateAxis&quot;: &quot;case_state&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Concrete schema already exists and remains canonical.&quot;}, {&quot;eventName&quot;: &quot;booking.slot.revalidation.failed&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_SLOT_REVALIDATION_FAILED&quot;, &quot;schemaPath&quot;: &quot;/Users/test/Code/V/packages/event-contracts/schemas/booking/booking.slot.revalidation.failed.v1.schema.json&quot;, &quot;governingAggregate&quot;: &quot;BookingCase&quot;, &quot;stateAxis&quot;: &quot;case_state&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Concrete schema already exists and remains canonical.&quot;}, {&quot;eventName&quot;: &quot;booking.commit.started&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_COMMIT_STARTED&quot;, &quot;schemaPath&quot;: &quot;/Users/test/Code/V/packages/event-contracts/schemas/booking/booking.commit.started.v1.schema.json&quot;, &quot;governingAggregate&quot;: &quot;BookingTransaction&quot;, &quot;stateAxis&quot;: &quot;case_state&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Concrete schema already exists and remains canonical.&quot;}, {&quot;eventName&quot;: &quot;booking.commit.confirmation_pending&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_COMMIT_CONFIRMATION_PENDING&quot;, &quot;schemaPath&quot;: &quot;/Users/test/Code/V/packages/event-contracts/schemas/booking/booking.commit.confirmation_pending.v1.schema.json&quot;, &quot;governingAggregate&quot;: &quot;BookingTransaction&quot;, &quot;stateAxis&quot;: &quot;confirmation_truth&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Concrete schema already exists and remains canonical.&quot;}, {&quot;eventName&quot;: &quot;booking.commit.reconciliation_pending&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_COMMIT_RECONCILIATION_PENDING&quot;, &quot;schemaPath&quot;: &quot;/Users/test/Code/V/packages/event-contracts/schemas/booking/booking.commit.reconciliation_pending.v1.schema.json&quot;, &quot;governingAggregate&quot;: &quot;BookingTransaction&quot;, &quot;stateAxis&quot;: &quot;confirmation_truth&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Concrete schema already exists and remains canonical.&quot;}, {&quot;eventName&quot;: &quot;booking.commit.confirmed&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_COMMIT_CONFIRMED&quot;, &quot;schemaPath&quot;: &quot;/Users/test/Code/V/packages/event-contracts/schemas/booking/booking.commit.confirmed.v1.schema.json&quot;, &quot;governingAggregate&quot;: &quot;BookingTransaction&quot;, &quot;stateAxis&quot;: &quot;confirmation_truth&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Concrete schema already exists and remains canonical.&quot;}, {&quot;eventName&quot;: &quot;booking.commit.ambiguous&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_COMMIT_AMBIGUOUS&quot;, &quot;schemaPath&quot;: &quot;/Users/test/Code/V/packages/event-contracts/schemas/booking/booking.commit.ambiguous.v1.schema.json&quot;, &quot;governingAggregate&quot;: &quot;BookingTransaction&quot;, &quot;stateAxis&quot;: &quot;confirmation_truth&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Concrete schema already exists and remains canonical.&quot;}, {&quot;eventName&quot;: &quot;booking.confirmation.truth.updated&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_CONFIRMATION_TRUTH_UPDATED&quot;, &quot;schemaPath&quot;: &quot;/Users/test/Code/V/packages/event-contracts/schemas/booking/booking.confirmation.truth.updated.v1.schema.json&quot;, &quot;governingAggregate&quot;: &quot;BookingConfirmationTruthProjection&quot;, &quot;stateAxis&quot;: &quot;confirmation_truth&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Concrete schema already exists and remains canonical.&quot;}, {&quot;eventName&quot;: &quot;booking.appointment.created&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_APPOINTMENT_CREATED&quot;, &quot;schemaPath&quot;: &quot;/Users/test/Code/V/packages/event-contracts/schemas/booking/booking.appointment.created.v1.schema.json&quot;, &quot;governingAggregate&quot;: &quot;AppointmentRecord&quot;, &quot;stateAxis&quot;: &quot;manage_posture&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Concrete schema already exists and remains canonical.&quot;}, {&quot;eventName&quot;: &quot;booking.reminders.scheduled&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_REMINDERS_SCHEDULED&quot;, &quot;schemaPath&quot;: &quot;/Users/test/Code/V/packages/event-contracts/schemas/booking/booking.reminders.scheduled.v1.schema.json&quot;, &quot;governingAggregate&quot;: &quot;AppointmentRecord&quot;, &quot;stateAxis&quot;: &quot;manage_posture&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Concrete schema already exists and remains canonical.&quot;}, {&quot;eventName&quot;: &quot;booking.cancelled&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_CANCELLED&quot;, &quot;schemaPath&quot;: &quot;/Users/test/Code/V/packages/event-contracts/schemas/booking/booking.cancelled.v1.schema.json&quot;, &quot;governingAggregate&quot;: &quot;AppointmentRecord&quot;, &quot;stateAxis&quot;: &quot;manage_posture&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Concrete schema already exists and remains canonical.&quot;}, {&quot;eventName&quot;: &quot;booking.reschedule.started&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_RESCHEDULE_STARTED&quot;, &quot;schemaPath&quot;: &quot;/Users/test/Code/V/packages/event-contracts/schemas/booking/booking.reschedule.started.v1.schema.json&quot;, &quot;governingAggregate&quot;: &quot;AppointmentRecord&quot;, &quot;stateAxis&quot;: &quot;manage_posture&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Concrete schema already exists and remains canonical.&quot;}, {&quot;eventName&quot;: &quot;booking.waitlist.joined&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_WAITLIST_JOINED&quot;, &quot;schemaPath&quot;: null, &quot;governingAggregate&quot;: &quot;WaitlistEntry&quot;, &quot;stateAxis&quot;: &quot;case_state&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Waitlist contracts are frozen here, but concrete event schema is still a later implementation seam.&quot;}, {&quot;eventName&quot;: &quot;booking.waitlist.deadline_evaluated&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_WAITLIST_DEADLINE_EVALUATED&quot;, &quot;schemaPath&quot;: null, &quot;governingAggregate&quot;: &quot;WaitlistDeadlineEvaluation&quot;, &quot;stateAxis&quot;: &quot;case_state&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Waitlist contracts are frozen here, but concrete event schema is still a later implementation seam.&quot;}, {&quot;eventName&quot;: &quot;booking.waitlist.offer.sent&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_WAITLIST_OFFER_SENT&quot;, &quot;schemaPath&quot;: null, &quot;governingAggregate&quot;: &quot;WaitlistOffer&quot;, &quot;stateAxis&quot;: &quot;case_state&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Waitlist contracts are frozen here, but concrete event schema is still a later implementation seam.&quot;}, {&quot;eventName&quot;: &quot;booking.waitlist.offer.accepted&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_WAITLIST_OFFER_ACCEPTED&quot;, &quot;schemaPath&quot;: null, &quot;governingAggregate&quot;: &quot;WaitlistOffer&quot;, &quot;stateAxis&quot;: &quot;case_state&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Waitlist contracts are frozen here, but concrete event schema is still a later implementation seam.&quot;}, {&quot;eventName&quot;: &quot;booking.waitlist.offer.expired&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_WAITLIST_OFFER_EXPIRED&quot;, &quot;schemaPath&quot;: null, &quot;governingAggregate&quot;: &quot;WaitlistOffer&quot;, &quot;stateAxis&quot;: &quot;case_state&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Waitlist contracts are frozen here, but concrete event schema is still a later implementation seam.&quot;}, {&quot;eventName&quot;: &quot;booking.waitlist.offer.superseded&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_WAITLIST_OFFER_SUPERSEDED&quot;, &quot;schemaPath&quot;: null, &quot;governingAggregate&quot;: &quot;WaitlistOffer&quot;, &quot;stateAxis&quot;: &quot;case_state&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Waitlist contracts are frozen here, but concrete event schema is still a later implementation seam.&quot;}, {&quot;eventName&quot;: &quot;booking.waitlist.fallback.required&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_WAITLIST_FALLBACK_REQUIRED&quot;, &quot;schemaPath&quot;: null, &quot;governingAggregate&quot;: &quot;WaitlistFallbackObligation&quot;, &quot;stateAxis&quot;: &quot;case_state&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Waitlist contracts are frozen here, but concrete event schema is still a later implementation seam.&quot;}, {&quot;eventName&quot;: &quot;booking.fallback.callback_requested&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_FALLBACK_CALLBACK_REQUESTED&quot;, &quot;schemaPath&quot;: null, &quot;governingAggregate&quot;: &quot;BookingCase&quot;, &quot;stateAxis&quot;: &quot;case_state&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Callback-fallback branch is frozen here; transport implementation stays later-owned.&quot;}, {&quot;eventName&quot;: &quot;booking.fallback.hub_requested&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_FALLBACK_HUB_REQUESTED&quot;, &quot;schemaPath&quot;: null, &quot;governingAggregate&quot;: &quot;BookingCase&quot;, &quot;stateAxis&quot;: &quot;case_state&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Hub-fallback branch is frozen here; downstream hub implementation stays later-owned.&quot;}, {&quot;eventName&quot;: &quot;booking.exception.raised&quot;, &quot;canonicalEventContractRef&quot;: &quot;CEC_BOOKING_EXCEPTION_RAISED&quot;, &quot;schemaPath&quot;: null, &quot;governingAggregate&quot;: &quot;BookingException&quot;, &quot;stateAxis&quot;: &quot;case_state&quot;, &quot;freezeOwnerTask&quot;: &quot;seq_278&quot;, &quot;implementationOwnerTask&quot;: &quot;par_282&quot;, &quot;notes&quot;: &quot;Concrete event schema is still a later implementation seam.&quot;}], &quot;positions&quot;: {&quot;handoff_received&quot;: [50, 52], &quot;capability_checked&quot;: [270, 52], &quot;searching_local&quot;: [510, 52], &quot;offers_ready&quot;: [770, 52], &quot;selecting&quot;: [1020, 52], &quot;revalidating&quot;: [50, 196], &quot;commit_pending&quot;: [300, 196], &quot;booked&quot;: [560, 196], &quot;confirmation_pending&quot;: [820, 196], &quot;supplier_reconciliation_pending&quot;: [1070, 196], &quot;waitlisted&quot;: [120, 340], &quot;callback_fallback&quot;: [380, 340], &quot;fallback_to_hub&quot;: [640, 340], &quot;booking_failed&quot;: [900, 340], &quot;managed&quot;: [380, 484], &quot;closed&quot;: [740, 484]}}</script>
+    <script>
+      const atlasDataNode = document.getElementById("atlas-data");
+      const atlasDataDecoder = document.createElement("textarea");
+      atlasDataDecoder.innerHTML = atlasDataNode.textContent;
+      const data = JSON.parse(atlasDataDecoder.value);
+      const root = document.querySelector("[data-testid='BookingCaseStateAtlas']");
+      root.dataset.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "reduce" : "no-preference";
+
+      const stateRail = document.querySelector("[data-testid='StateFamilyRail']");
+      const lattice = document.querySelector("[data-testid='CaseStateLattice']");
+      const latticeEdges = document.querySelector("[data-testid='CaseStateLatticeEdges']");
+      const braidDiagram = document.querySelector("[data-testid='LineageFenceBraidDiagram']");
+      const braidTableBody = document.querySelector("[data-testid='LineageFenceBraidTable'] tbody");
+      const routeButtons = document.querySelector("[data-testid='RouteFamilyButtons']");
+      const routeTableBody = document.querySelector("[data-testid='RouteFamilyTable'] tbody");
+      const projectionCards = document.querySelector("[data-testid='ProjectionCards']");
+      const projectionTableBody = document.querySelector("[data-testid='ProjectionTable'] tbody");
+      const transitionTableBody = document.querySelector("[data-testid='TransitionTable'] tbody");
+      const apiTableBody = document.querySelector("[data-testid='ApiSurfaceTable'] tbody");
+
+      let activeState = "handoff_received";
+      let activeRoute = "/bookings/:bookingCaseId";
+
+      function titleCase(value) {
+        return value.replaceAll("_", " ");
+      }
+
+      function routeRecord(path) {
+        return data.routes.find((route) => route.path === path);
+      }
+
+      function projectionRecord(id) {
+        return data.projections.find((projection) => projection.projectionId === id);
+      }
+
+      function connectedStatesForRoute(path) {
+        const route = routeRecord(path);
+        return new Set(route ? route.supportedStates : []);
+      }
+
+      function buildRail() {
+        data.stateFamilies.forEach((family, familyIndex) => {
+          const block = document.createElement("section");
+          block.className = "family-block";
+          block.innerHTML = `<h3>${family.label}</h3><p>${family.summary}</p>`;
+          family.states.forEach((state, stateIndex) => {
+            const detail = data.stateDetails[state];
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "state-button";
+            button.dataset.state = state;
+            button.dataset.testid = `StateButton-${state}`;
+            button.setAttribute("data-testid", `StateButton-${state}`);
+            button.setAttribute("aria-pressed", state === activeState ? "true" : "false");
+            button.innerHTML = `
+              <span class="button-kicker">${family.label}</span>
+              <span class="button-title">${titleCase(state)}</span>
+              <span class="button-summary">${detail.summary}</span>
+            `;
+            button.addEventListener("click", () => selectState(state));
+            button.addEventListener("keydown", (event) => {
+              if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+              event.preventDefault();
+              const peers = Array.from(stateRail.querySelectorAll(".state-button"));
+              const index = peers.indexOf(button);
+              const nextIndex = event.key === "ArrowDown" ? Math.min(peers.length - 1, index + 1) : Math.max(0, index - 1);
+              peers[nextIndex].focus();
+            });
+            block.appendChild(button);
+          });
+          stateRail.appendChild(block);
+        });
+      }
+
+      function drawLattice() {
+        const positions = data.positions;
+        const nodes = Object.entries(positions);
+        const lines = data.transitions.map((transition) => {
+          const from = positions[transition.from];
+          const to = positions[transition.to];
+          if (!from || !to) return "";
+          const [fromX, fromY] = from;
+          const [toX, toY] = to;
+          const startX = fromX + 188;
+          const startY = fromY + 42;
+          const endX = toX;
+          const endY = toY + 42;
+          const midX = (startX + endX) / 2;
+          return `<path d="M${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}" stroke="${transition.from === activeState || transition.to === activeState ? '#3158E0' : '#CBD5E1'}" stroke-width="${transition.from === activeState || transition.to === activeState ? 2.6 : 1.4}" fill="none" opacity="${transition.from === activeState || transition.to === activeState ? 1 : 0.8}" />`;
+        }).join("");
+        latticeEdges.setAttribute("viewBox", "0 0 1280 620");
+        latticeEdges.innerHTML = lines;
+        lattice.querySelectorAll(".state-node").forEach((node) => node.remove());
+        const relatedStates = connectedStatesForRoute(activeRoute);
+        nodes.forEach(([state, [x, y]]) => {
+          const detail = data.stateDetails[state];
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "state-node";
+          if (state === activeState) button.classList.add("active");
+          if (relatedStates.has(state) && state !== activeState) button.classList.add("related");
+          button.style.left = `${x}px`;
+          button.style.top = `${y}px`;
+          button.dataset.state = state;
+          button.setAttribute("data-testid", `StateNode-${state}`);
+          button.innerHTML = `
+            <div class="state-node-label">${titleCase(state)}</div>
+            <div class="state-node-title">${detail.dominantAuthority}</div>
+            <div class="state-node-summary">${detail.routeCue}</div>
+          `;
+          button.addEventListener("click", () => selectState(state));
+          lattice.appendChild(button);
+        });
+      }
+
+      function buildBraid() {
+        const rows = [
+          data.lineageRules.slice(0, 4),
+          data.lineageRules.slice(4, 8),
+          data.lineageRules.slice(8),
+        ];
+        braidDiagram.innerHTML = rows.map((row) => `
+          <div class="braid-row">
+            ${row.map((entry) => `
+              <div class="braid-token" data-testid="BraidToken-${entry.field}">
+                <strong>${entry.field}</strong>
+                <span>${entry.summary}</span>
+              </div>
+            `).join("")}
+          </div>
+        `).join("");
+        braidTableBody.innerHTML = data.lineageRules.map((entry) => `
+          <tr><td><strong>${entry.field}</strong><br /><span style="color:#5E6B78">${entry.summary}</span></td><td>${entry.rule}</td></tr>
+        `).join("");
+      }
+
+      function buildRoutes() {
+        routeButtons.innerHTML = "";
+        data.routes.forEach((route) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "route-button";
+          button.dataset.route = route.path;
+          button.setAttribute("data-testid", `RouteButton-${route.routeId}`);
+          button.setAttribute("aria-pressed", route.path === activeRoute ? "true" : "false");
+          button.innerHTML = `
+            <span class="button-kicker">${route.transitionType}</span>
+            <span class="button-title">${route.path}</span>
+            <span class="button-summary">${route.projectionRef} · dominant action: ${route.dominantAction}</span>
+          `;
+          button.addEventListener("click", () => selectRoute(route.path));
+          button.addEventListener("keydown", (event) => {
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+            event.preventDefault();
+            const peers = Array.from(routeButtons.querySelectorAll(".route-button"));
+            const index = peers.indexOf(button);
+            const nextIndex = event.key === "ArrowDown" ? Math.min(peers.length - 1, index + 1) : Math.max(0, index - 1);
+            peers[nextIndex].focus();
+          });
+          routeButtons.appendChild(button);
+        });
+      }
+
+      function renderRouteTable() {
+        routeTableBody.innerHTML = data.routes.map((route) => `
+          <tr class="${route.path === activeRoute ? "active-row" : ""}">
+            <td><strong>${route.path}</strong></td>
+            <td>${route.projectionRef}</td>
+            <td>${route.transitionType}</td>
+            <td>${route.historyPolicy}</td>
+          </tr>
+        `).join("");
+      }
+
+      function renderProjectionMap() {
+        projectionCards.innerHTML = data.projections.map((projection) => `
+          <article class="projection-card ${projection.projectionId === routeRecord(activeRoute).projectionRef ? "active" : ""}" data-testid="ProjectionCard-${projection.projectionId}">
+            <strong>${projection.projectionId}</strong>
+            <span>${projection.summary}</span>
+          </article>
+        `).join("");
+        projectionTableBody.innerHTML = data.projections.map((projection) => `
+          <tr class="${projection.projectionId === routeRecord(activeRoute).projectionRef ? "active-row" : ""}">
+            <td><strong>${projection.projectionId}</strong></td>
+            <td>${projection.routes.join(", ")}</td>
+            <td>${projection.surfaceStates.join(", ")}</td>
+          </tr>
+        `).join("");
+      }
+
+      function renderTransitions() {
+        transitionTableBody.innerHTML = data.transitions
+          .filter((transition) => transition.from === activeState || transition.to === activeState)
+          .map((transition) => `
+            <tr class="active-row">
+              <td>${transition.from}</td>
+              <td>${transition.to}</td>
+              <td><strong>${transition.predicateId}</strong><br /><span style="color:#5E6B78">${transition.predicate}</span></td>
+              <td>${transition.controllingObject}</td>
+              <td>${transition.ownerTask}</td>
+            </tr>
+          `)
+          .join("");
+      }
+
+      function renderApiSurface() {
+        const eventRows = data.events.map((event) => ({
+          label: event.eventName,
+          detail: event.canonicalEventContractRef,
+          owner: event.implementationOwnerTask,
+          status: event.schemaPath ? "schema_present" : "catalog_frozen_only",
+        }));
+        const apiRows = data.apiSurface.map((entry) => ({
+          label: entry.method,
+          detail: entry.path,
+          owner: entry.ownerTask,
+          status: "api_surface_frozen",
+        }));
+        const rows = [...apiRows, ...eventRows];
+        apiTableBody.innerHTML = rows.map((row) => `
+          <tr>
+            <td>${row.label}</td>
+            <td>${row.detail}</td>
+            <td>${row.owner}</td>
+            <td>${row.status}</td>
+          </tr>
+        `).join("");
+      }
+
+      function renderInspector() {
+        const state = data.stateDetails[activeState];
+        const route = routeRecord(activeRoute);
+        const projection = projectionRecord(route.projectionRef);
+        root.dataset.activeState = activeState;
+        root.dataset.activeRoute = activeRoute;
+        document.getElementById("inspector-state-label").innerHTML = `<strong>${activeState}</strong><br />${state.summary}<br /><span style="color:#5E6B78">${state.dominantAuthority}</span>`;
+        document.getElementById("inspector-state-predicate").textContent = state.entryPredicate;
+        document.getElementById("inspector-route-label").innerHTML = `<strong>${route.path}</strong><br />${route.transitionType} · history ${route.historyPolicy} · dominant action ${route.dominantAction}`;
+        document.getElementById("inspector-authority-list").innerHTML = data.authorityAxes.map((axis) => `
+          <li><strong>${axis.label}</strong>: ${axis.governingField}</li>
+        `).join("");
+        document.getElementById("inspector-projection-list").innerHTML = projection.dominantTruths.map((truth) => `
+          <li>${projection.projectionId} uses <strong>${truth}</strong></li>
+        `).join("");
+
+        stateRail.querySelectorAll(".state-button").forEach((button) => {
+          button.setAttribute("aria-pressed", button.dataset.state === activeState ? "true" : "false");
+        });
+        routeButtons.querySelectorAll(".route-button").forEach((button) => {
+          button.setAttribute("aria-pressed", button.dataset.route === activeRoute ? "true" : "false");
+        });
+      }
+
+      function renderAll() {
+        drawLattice();
+        renderRouteTable();
+        renderProjectionMap();
+        renderTransitions();
+        renderApiSurface();
+        renderInspector();
+      }
+
+      function selectState(state) {
+        activeState = state;
+        renderAll();
+      }
+
+      function selectRoute(path) {
+        activeRoute = path;
+        renderAll();
+      }
+
+      buildRail();
+      buildBraid();
+      buildRoutes();
+      renderAll();
+    </script>
+  </body>
+</html>

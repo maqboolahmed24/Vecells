@@ -1,0 +1,96 @@
+{
+  "taskId": "par_211_crosscutting_track_backend_build_request_browsing_detail_and_typed_patient_action_routing_projections",
+  "visualMode": "Request_Lineage_Action_Atlas",
+  "projections": [
+    "PatientRequestsIndexProjection",
+    "PatientRequestLineageProjection",
+    "PatientRequestSummaryProjection",
+    "PatientRequestDetailProjection",
+    "PatientRequestDownstreamProjection",
+    "PatientRequestReturnBundle",
+    "PatientNextActionProjection",
+    "PatientActionRoutingProjection",
+    "PatientActionSettlementProjection",
+    "PatientSafetyInterruptionProjection"
+  ],
+  "routeSurfaces": [
+    {
+      "routeId": "patient_portal_requests_index",
+      "method": "GET",
+      "path": "/v1/me/requests",
+      "contractFamily": "PatientRequestsIndexProjectionContract"
+    },
+    {
+      "routeId": "patient_portal_request_detail",
+      "method": "GET",
+      "path": "/v1/me/requests/{requestRef}",
+      "contractFamily": "PatientRequestDetailProjectionContract"
+    },
+    {
+      "routeId": "patient_portal_request_action_route",
+      "method": "POST",
+      "path": "/v1/me/requests/{requestRef}/actions/{actionType}/route",
+      "contractFamily": "PatientActionRoutingProjectionContract"
+    }
+  ],
+  "settlementStates": [
+    "local_acknowledged",
+    "pending_authoritative_confirmation",
+    "external_observation_received",
+    "authoritative_outcome_settled",
+    "disputed_recovery_required"
+  ],
+  "cases": [
+    {
+      "caseId": "selected_anchor_preserved",
+      "selectedAnchorRef": "request_211_a",
+      "selectedFilterRef": "needs_attention",
+      "returnBundle": "PatientRequestReturnBundle",
+      "expectedState": "same_lineage_return",
+      "reason": "The list row, detail header, and child placeholder share the same lineageTupleHash and selectedAnchorTupleHash."
+    },
+    {
+      "caseId": "typed_route_live",
+      "actionType": "respond_more_info",
+      "routingEnvelope": "PatientActionRoutingProjection",
+      "requiredBindings": [
+        "governingObjectRef",
+        "governingObjectVersionRef",
+        "routeIntentBindingRef",
+        "capabilityLeaseRef",
+        "writableEligibilityFenceRef",
+        "policyBundleRef",
+        "requestReturnBundleRef",
+        "continuityEvidenceRef",
+        "freshnessToken"
+      ],
+      "expectedState": "live"
+    },
+    {
+      "caseId": "pending_settlement",
+      "settlement": "PatientActionSettlementProjection",
+      "authoritativeOutcomeState": "pending_authoritative_confirmation",
+      "sameShellState": "pending",
+      "expectedState": "show_pending_inside_request_shell"
+    },
+    {
+      "caseId": "safety_interruption_blocks",
+      "safetyInterruption": "PatientSafetyInterruptionProjection",
+      "surfaceState": "urgent_required",
+      "suppressedAction": "respond_more_info",
+      "expectedState": "blocked_same_shell"
+    },
+    {
+      "caseId": "identity_hold_degrades",
+      "holdProjection": "PatientIdentityHoldProjection",
+      "returnBundleState": "identity_hold",
+      "expectedState": "placeholder_detail_with_return_context"
+    },
+    {
+      "caseId": "missing_sibling_placeholder",
+      "gapArtifact": "PARALLEL_INTERFACE_GAP_CROSSCUTTING_REQUEST_CONTEXT.json",
+      "expectedOwnerTask": "par_212_crosscutting_track_backend_build_more_info_response_thread_callback_status_and_contact_repair_projections",
+      "expectedState": "governed_placeholder_not_silent_omission"
+    }
+  ]
+}

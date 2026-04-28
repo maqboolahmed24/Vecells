@@ -1,0 +1,2563 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Phase6DirectoryChoiceContracts",
+  "description": "Frozen Phase 6 directory discovery, provider choice, choice truth, consent, and consent-drift contract pack.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "taskId",
+    "contractVersion",
+    "adapterModes",
+    "providerCapabilityStates",
+    "choiceVisibilityStates"
+  ],
+  "properties": {
+    "taskId": {
+      "const": "seq_343_phase6_freeze_directory_discovery_referral_dispatch_and_outcome_reconciliation_contracts"
+    },
+    "contractVersion": {
+      "const": "343.phase6.discovery-dispatch-outcome-freeze.v1"
+    },
+    "adapterModes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "dohs_service_search",
+          "eps_dos_legacy",
+          "local_registry_override",
+          "manual_directory_snapshot"
+        ]
+      }
+    },
+    "providerCapabilityStates": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "direct_supported",
+          "manual_supported",
+          "unsupported"
+        ]
+      }
+    },
+    "choiceVisibilityStates": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "recommended_visible",
+          "visible_with_warning",
+          "suppressed_unsafe",
+          "invalid_hidden"
+        ]
+      }
+    },
+    "noHiddenTopKLaw": {
+      "const": true
+    },
+    "fullChoiceVisibilityLaw": {
+      "const": "recommended_frontier_must_be_subset_of_full_visible_set"
+    }
+  },
+  "$defs": {
+    "PharmacyDirectorySourceSnapshot": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "PharmacyDirectorySourceSnapshot",
+      "description": "One persisted source observation from a directory adapter execution.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "directorySourceSnapshotId",
+        "directorySnapshotRef",
+        "adapterMode",
+        "sourceLabel",
+        "sourceStatus",
+        "queryContextHash",
+        "rawResultCount",
+        "sourceTrustClass",
+        "stalenessMinutes",
+        "capturedAt"
+      ],
+      "properties": {
+        "directorySourceSnapshotId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Directory source snapshot identifier."
+        },
+        "directorySnapshotRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Owning directory snapshot.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyDirectorySnapshot"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "adapterMode": {
+          "type": "string",
+          "enum": [
+            "dohs_service_search",
+            "eps_dos_legacy",
+            "local_registry_override",
+            "manual_directory_snapshot"
+          ],
+          "description": "Discovery adapter mode used for this source snapshot."
+        },
+        "sourceLabel": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable source label."
+        },
+        "sourceStatus": {
+          "type": "string",
+          "enum": [
+            "success",
+            "partial",
+            "failed",
+            "superseded"
+          ],
+          "description": "Source execution result."
+        },
+        "queryContextHash": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable hash of the lookup inputs."
+        },
+        "rawResultCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Raw result count from the source."
+        },
+        "sourceTrustClass": {
+          "type": "string",
+          "enum": [
+            "authoritative",
+            "strategic",
+            "legacy",
+            "manual_override"
+          ],
+          "description": "Source trust class."
+        },
+        "stalenessMinutes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Observed staleness in minutes at normalization time."
+        },
+        "capturedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Capture timestamp."
+        }
+      }
+    },
+    "PharmacyDirectorySnapshot": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "PharmacyDirectorySnapshot",
+      "description": "Normalized directory snapshot for one pharmacy choice refresh.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "directorySnapshotId",
+        "pharmacyCaseRef",
+        "serviceType",
+        "pathwayOrLane",
+        "timingGuardrailRef",
+        "sourceSnapshotRefs",
+        "providerRefs",
+        "visibleProviderRefs",
+        "recommendedProviderRefs",
+        "directoryTupleHash",
+        "snapshotState",
+        "capturedAt"
+      ],
+      "properties": {
+        "directorySnapshotId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Directory snapshot identifier."
+        },
+        "pharmacyCaseRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Owning pharmacy case.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyCase"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_342"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "serviceType": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resolved service type or lane."
+        },
+        "pathwayOrLane": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Chosen pathway or fallback lane."
+        },
+        "timingGuardrailRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Governing timing guardrail.",
+          "properties": {
+            "targetFamily": {
+              "const": "PathwayTimingGuardrail"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_342"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "sourceSnapshotRefs": {
+          "type": "array",
+          "description": "Bound source snapshot references.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Bound source snapshot references. item",
+            "properties": {
+              "targetFamily": {
+                "const": "PharmacyDirectorySourceSnapshot"
+              },
+              "refId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "ownerTask": {
+                "const": "seq_343"
+              }
+            },
+            "required": [
+              "targetFamily",
+              "refId",
+              "ownerTask"
+            ]
+          }
+        },
+        "providerRefs": {
+          "type": "array",
+          "description": "Normalized provider references.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Normalized provider references. item",
+            "properties": {
+              "targetFamily": {
+                "const": "PharmacyProvider"
+              },
+              "refId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "ownerTask": {
+                "const": "seq_343"
+              }
+            },
+            "required": [
+              "targetFamily",
+              "refId",
+              "ownerTask"
+            ]
+          }
+        },
+        "visibleProviderRefs": {
+          "type": "array",
+          "description": "Visible provider references.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Visible provider references. item",
+            "properties": {
+              "targetFamily": {
+                "const": "PharmacyProvider"
+              },
+              "refId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "ownerTask": {
+                "const": "seq_343"
+              }
+            },
+            "required": [
+              "targetFamily",
+              "refId",
+              "ownerTask"
+            ]
+          }
+        },
+        "recommendedProviderRefs": {
+          "type": "array",
+          "description": "Recommended frontier references.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Recommended frontier references. item",
+            "properties": {
+              "targetFamily": {
+                "const": "PharmacyProvider"
+              },
+              "refId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "ownerTask": {
+                "const": "seq_343"
+              }
+            },
+            "required": [
+              "targetFamily",
+              "refId",
+              "ownerTask"
+            ]
+          }
+        },
+        "directoryTupleHash": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Hash of the normalized directory tuple."
+        },
+        "snapshotState": {
+          "type": "string",
+          "enum": [
+            "active",
+            "superseded",
+            "recovery_required"
+          ],
+          "description": "Current snapshot state."
+        },
+        "capturedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Capture timestamp."
+        }
+      }
+    },
+    "PharmacyProviderCapabilitySnapshot": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "PharmacyProviderCapabilitySnapshot",
+      "description": "Provider capability snapshot used by discovery and dispatch planning.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "providerCapabilitySnapshotId",
+        "directorySnapshotRef",
+        "providerRef",
+        "supportedTransportModes",
+        "manualFallbackState",
+        "capabilityEvidenceRefs",
+        "capabilityState",
+        "capabilityTupleHash",
+        "capturedAt"
+      ],
+      "properties": {
+        "providerCapabilitySnapshotId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Capability snapshot identifier."
+        },
+        "directorySnapshotRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Directory snapshot reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyDirectorySnapshot"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "providerRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Provider reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyProvider"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "supportedTransportModes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "bars_fhir",
+              "supplier_interop",
+              "nhsmail_shared_mailbox",
+              "mesh",
+              "manual_assisted_dispatch"
+            ]
+          },
+          "description": "Transport modes supported by the provider in this snapshot."
+        },
+        "manualFallbackState": {
+          "type": "string",
+          "enum": [
+            "not_needed",
+            "allowed",
+            "required",
+            "unavailable"
+          ],
+          "description": "Manual fallback posture."
+        },
+        "capabilityEvidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Capability evidence reference."
+          },
+          "description": "Capability evidence references."
+        },
+        "capabilityState": {
+          "type": "string",
+          "enum": [
+            "direct_supported",
+            "manual_supported",
+            "unsupported"
+          ],
+          "description": "Capability state."
+        },
+        "capabilityTupleHash": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Capability tuple hash."
+        },
+        "capturedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Capture timestamp."
+        }
+      }
+    },
+    "PharmacyProvider": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "PharmacyProvider",
+      "description": "Normalized provider abstraction for patient and staff choice surfaces.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "providerId",
+        "providerCapabilitySnapshotRef",
+        "odsCode",
+        "displayName",
+        "openingState",
+        "nextSafeContactWindow",
+        "pathwaySuitability",
+        "minorIllnessSuitability",
+        "dispatchCapabilityState",
+        "accessibilityTags",
+        "contactEndpoints",
+        "consultationModeHints",
+        "localityAndTravelInputs",
+        "timingBand",
+        "warningState",
+        "serviceFitClass",
+        "recommendationScore",
+        "choiceVisibilityState",
+        "choiceExplanationRef",
+        "overrideRequirementState"
+      ],
+      "properties": {
+        "providerId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Provider identifier."
+        },
+        "providerCapabilitySnapshotRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Current capability snapshot reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyProviderCapabilitySnapshot"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "odsCode": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ODS code."
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Display name."
+        },
+        "openingState": {
+          "type": "string",
+          "enum": [
+            "open_now",
+            "opens_later_today",
+            "closed",
+            "unknown"
+          ],
+          "description": "Opening state."
+        },
+        "nextSafeContactWindow": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "windowStart",
+            "windowEnd"
+          ],
+          "properties": {
+            "windowStart": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Window start."
+            },
+            "windowEnd": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Window end."
+            }
+          },
+          "description": "Next safe contact window."
+        },
+        "pathwaySuitability": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Pathway suitability code."
+          },
+          "description": "Pathway suitability codes."
+        },
+        "minorIllnessSuitability": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "manual_only",
+            "unsupported"
+          ],
+          "description": "Minor illness suitability."
+        },
+        "dispatchCapabilityState": {
+          "type": "string",
+          "enum": [
+            "direct_supported",
+            "manual_supported",
+            "unsupported"
+          ],
+          "description": "Dispatch capability state for explanation posture."
+        },
+        "accessibilityTags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Accessibility tag."
+          },
+          "description": "Accessibility tags."
+        },
+        "contactEndpoints": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Referral contact endpoint."
+          },
+          "description": "Referral contact endpoints."
+        },
+        "consultationModeHints": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Consultation mode hint."
+          },
+          "description": "Consultation mode hints."
+        },
+        "localityAndTravelInputs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "travelMinutes",
+            "travelBand"
+          ],
+          "properties": {
+            "travelMinutes": {
+              "type": "number",
+              "minimum": 0
+            },
+            "travelBand": {
+              "type": "string",
+              "enum": [
+                "local",
+                "nearby",
+                "far"
+              ]
+            }
+          },
+          "description": "Locality and travel inputs."
+        },
+        "timingBand": {
+          "type": "integer",
+          "enum": [
+            0,
+            1,
+            2
+          ],
+          "description": "Current timing band derived from the guardrail."
+        },
+        "warningState": {
+          "type": "string",
+          "enum": [
+            "none",
+            "manual_route_warning",
+            "late_option_warning",
+            "policy_override_required"
+          ],
+          "description": "Warning posture for the provider."
+        },
+        "serviceFitClass": {
+          "type": "integer",
+          "enum": [
+            0,
+            1,
+            2
+          ],
+          "description": "Service fit class."
+        },
+        "recommendationScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Recommendation score."
+        },
+        "choiceVisibilityState": {
+          "type": "string",
+          "enum": [
+            "recommended_visible",
+            "visible_with_warning",
+            "suppressed_unsafe",
+            "invalid_hidden"
+          ],
+          "description": "Choice visibility state."
+        },
+        "choiceExplanationRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Choice explanation reference.",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyChoiceExplanation"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_343"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Choice explanation reference."
+        },
+        "overrideRequirementState": {
+          "type": "string",
+          "enum": [
+            "none",
+            "warned_choice_ack_required",
+            "policy_override_required"
+          ],
+          "description": "Override requirement state."
+        }
+      }
+    },
+    "PharmacyChoiceProof": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "PharmacyChoiceProof",
+      "description": "Auditable visible frontier and recommended frontier proof.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pharmacyChoiceProofId",
+        "directorySnapshotRef",
+        "visibleProviderRefs",
+        "recommendedProviderRefs",
+        "warningVisibleProviderRefs",
+        "suppressedUnsafeProviderRefs",
+        "fullVisibleProviderCount",
+        "frontierToleranceRatio",
+        "rankingFormula",
+        "visibleChoiceSetHash",
+        "calculatedAt"
+      ],
+      "properties": {
+        "pharmacyChoiceProofId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Choice proof identifier."
+        },
+        "directorySnapshotRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Directory snapshot reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyDirectorySnapshot"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "visibleProviderRefs": {
+          "type": "array",
+          "description": "Visible provider references.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Visible provider references. item",
+            "properties": {
+              "targetFamily": {
+                "const": "PharmacyProvider"
+              },
+              "refId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "ownerTask": {
+                "const": "seq_343"
+              }
+            },
+            "required": [
+              "targetFamily",
+              "refId",
+              "ownerTask"
+            ]
+          }
+        },
+        "recommendedProviderRefs": {
+          "type": "array",
+          "description": "Recommended frontier references.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Recommended frontier references. item",
+            "properties": {
+              "targetFamily": {
+                "const": "PharmacyProvider"
+              },
+              "refId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "ownerTask": {
+                "const": "seq_343"
+              }
+            },
+            "required": [
+              "targetFamily",
+              "refId",
+              "ownerTask"
+            ]
+          }
+        },
+        "warningVisibleProviderRefs": {
+          "type": "array",
+          "description": "Visible warned provider references.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Visible warned provider references. item",
+            "properties": {
+              "targetFamily": {
+                "const": "PharmacyProvider"
+              },
+              "refId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "ownerTask": {
+                "const": "seq_343"
+              }
+            },
+            "required": [
+              "targetFamily",
+              "refId",
+              "ownerTask"
+            ]
+          }
+        },
+        "suppressedUnsafeProviderRefs": {
+          "type": "array",
+          "description": "Suppressed unsafe provider references.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Suppressed unsafe provider references. item",
+            "properties": {
+              "targetFamily": {
+                "const": "PharmacyProvider"
+              },
+              "refId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "ownerTask": {
+                "const": "seq_343"
+              }
+            },
+            "required": [
+              "targetFamily",
+              "refId",
+              "ownerTask"
+            ]
+          }
+        },
+        "fullVisibleProviderCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of the full visible provider set."
+        },
+        "frontierToleranceRatio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Recommended frontier tolerance relative to the best score."
+        },
+        "rankingFormula": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Ranking formula identifier."
+        },
+        "visibleChoiceSetHash": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Hash of the visible choice set."
+        },
+        "calculatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Calculation timestamp."
+        }
+      }
+    },
+    "PharmacyChoiceExplanation": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "PharmacyChoiceExplanation",
+      "description": "Provider-specific explanation bundle tied to the current proof and disclosure policy.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pharmacyChoiceExplanationId",
+        "pharmacyChoiceProofRef",
+        "providerRef",
+        "rankOrdinal",
+        "serviceFitClass",
+        "timingBand",
+        "recommendationScore",
+        "visibilityDisposition",
+        "reasonCodeRefs",
+        "patientReasonCueRefs",
+        "staffExplanationRefs",
+        "warningCopyRef",
+        "suppressionReasonCodeRef",
+        "overrideRequirementState",
+        "disclosureTupleHash",
+        "generatedAt"
+      ],
+      "properties": {
+        "pharmacyChoiceExplanationId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Choice explanation identifier."
+        },
+        "pharmacyChoiceProofRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Choice proof reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyChoiceProof"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "providerRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Provider reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyProvider"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "rankOrdinal": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Ordinal rank within the visible frontier."
+        },
+        "serviceFitClass": {
+          "type": "integer",
+          "enum": [
+            0,
+            1,
+            2
+          ],
+          "description": "Service fit class."
+        },
+        "timingBand": {
+          "type": "integer",
+          "enum": [
+            0,
+            1,
+            2
+          ],
+          "description": "Timing band."
+        },
+        "recommendationScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Recommendation score."
+        },
+        "visibilityDisposition": {
+          "type": "string",
+          "enum": [
+            "recommended_visible",
+            "visible_with_warning",
+            "suppressed_unsafe",
+            "invalid_hidden"
+          ],
+          "description": "Visibility disposition."
+        },
+        "reasonCodeRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Reason code reference."
+          },
+          "description": "Reason code references."
+        },
+        "patientReasonCueRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Patient-facing cue reference."
+          },
+          "description": "Patient-facing cue references."
+        },
+        "staffExplanationRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Staff explanation reference."
+          },
+          "description": "Staff explanation references."
+        },
+        "warningCopyRef": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Warning copy reference."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Warning copy reference."
+        },
+        "suppressionReasonCodeRef": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Suppression reason code reference."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Suppression reason code reference."
+        },
+        "overrideRequirementState": {
+          "type": "string",
+          "enum": [
+            "none",
+            "warned_choice_ack_required",
+            "policy_override_required"
+          ],
+          "description": "Override requirement state."
+        },
+        "disclosureTupleHash": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Disclosure tuple hash."
+        },
+        "generatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Generation timestamp."
+        }
+      }
+    },
+    "PharmacyChoiceDisclosurePolicy": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "PharmacyChoiceDisclosurePolicy",
+      "description": "Policy describing what is visible, warned, or suppressed from the same proof.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pharmacyChoiceDisclosurePolicyId",
+        "choiceProofRef",
+        "suppressedUnsafeSummaryRef",
+        "warnedChoicePolicyRef",
+        "hiddenStatePolicyRef",
+        "generatedAt"
+      ],
+      "properties": {
+        "pharmacyChoiceDisclosurePolicyId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Disclosure policy identifier."
+        },
+        "choiceProofRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Choice proof reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyChoiceProof"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "suppressedUnsafeSummaryRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Suppressed unsafe summary reference."
+        },
+        "warnedChoicePolicyRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Warned choice policy reference."
+        },
+        "hiddenStatePolicyRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Hidden state policy reference."
+        },
+        "generatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Generation timestamp."
+        }
+      }
+    },
+    "PharmacyChoiceOverrideAcknowledgement": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "PharmacyChoiceOverrideAcknowledgement",
+      "description": "Recorded acknowledgement for warned or policy-overridden provider choice.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pharmacyChoiceOverrideAcknowledgementId",
+        "choiceSessionRef",
+        "providerRef",
+        "overrideRequirementState",
+        "acknowledgementScriptRef",
+        "actorRef",
+        "actorRole",
+        "acknowledgedAt"
+      ],
+      "properties": {
+        "pharmacyChoiceOverrideAcknowledgementId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Override acknowledgement identifier."
+        },
+        "choiceSessionRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Choice session reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyChoiceSession"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "providerRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Provider reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyProvider"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "overrideRequirementState": {
+          "type": "string",
+          "enum": [
+            "warned_choice_ack_required",
+            "policy_override_required"
+          ],
+          "description": "Override requirement being acknowledged."
+        },
+        "acknowledgementScriptRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Acknowledgement script reference."
+        },
+        "actorRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Actor reference."
+        },
+        "actorRole": {
+          "type": "string",
+          "enum": [
+            "patient",
+            "staff"
+          ],
+          "description": "Actor role."
+        },
+        "acknowledgedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Acknowledgement timestamp."
+        }
+      }
+    },
+    "PharmacyChoiceSession": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "PharmacyChoiceSession",
+      "description": "Durable choice session with the full visible provider set and current selection provenance.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pharmacyChoiceSessionId",
+        "pharmacyCaseRef",
+        "directorySnapshotRef",
+        "choiceProofRef",
+        "choiceDisclosurePolicyRef",
+        "visibleProviderRefs",
+        "recommendedProviderRefs",
+        "selectedProviderRef",
+        "selectedProviderExplanationRef",
+        "selectedProviderCapabilitySnapshotRef",
+        "overrideAcknowledgementRef",
+        "patientOverrideRequired",
+        "selectionBindingHash",
+        "visibleChoiceSetHash",
+        "sessionState",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "pharmacyChoiceSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Choice session identifier."
+        },
+        "pharmacyCaseRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Owning pharmacy case.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyCase"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_342"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "directorySnapshotRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Directory snapshot reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyDirectorySnapshot"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "choiceProofRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Choice proof reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyChoiceProof"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "choiceDisclosurePolicyRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Disclosure policy reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyChoiceDisclosurePolicy"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "visibleProviderRefs": {
+          "type": "array",
+          "description": "Visible provider references.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Visible provider references. item",
+            "properties": {
+              "targetFamily": {
+                "const": "PharmacyProvider"
+              },
+              "refId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "ownerTask": {
+                "const": "seq_343"
+              }
+            },
+            "required": [
+              "targetFamily",
+              "refId",
+              "ownerTask"
+            ]
+          }
+        },
+        "recommendedProviderRefs": {
+          "type": "array",
+          "description": "Recommended frontier references.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Recommended frontier references. item",
+            "properties": {
+              "targetFamily": {
+                "const": "PharmacyProvider"
+              },
+              "refId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "ownerTask": {
+                "const": "seq_343"
+              }
+            },
+            "required": [
+              "targetFamily",
+              "refId",
+              "ownerTask"
+            ]
+          }
+        },
+        "selectedProviderRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Selected provider reference.",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyProvider"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_343"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Selected provider reference."
+        },
+        "selectedProviderExplanationRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Selected provider explanation reference.",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyChoiceExplanation"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_343"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Selected provider explanation reference."
+        },
+        "selectedProviderCapabilitySnapshotRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Selected provider capability snapshot reference.",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyProviderCapabilitySnapshot"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_343"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Selected provider capability snapshot reference."
+        },
+        "overrideAcknowledgementRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Override acknowledgement reference.",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyChoiceOverrideAcknowledgement"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_343"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Override acknowledgement reference."
+        },
+        "patientOverrideRequired": {
+          "type": "boolean",
+          "description": "Whether warned-choice acknowledgement is still required."
+        },
+        "selectionBindingHash": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Selection binding hash."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Selection binding hash."
+        },
+        "visibleChoiceSetHash": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Visible choice set hash."
+        },
+        "sessionState": {
+          "type": "string",
+          "enum": [
+            "choosing",
+            "selected_waiting_consent",
+            "consent_pending",
+            "superseded",
+            "recovery_required",
+            "completed"
+          ],
+          "description": "Choice session state."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Update timestamp."
+        }
+      }
+    },
+    "PharmacyChoiceTruthProjection": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "PharmacyChoiceTruthProjection",
+      "description": "Audience-safe choice truth projection derived from the same proof, disclosure policy, and current selection provenance.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pharmacyChoiceTruthProjectionId",
+        "pharmacyCaseId",
+        "choiceSessionRef",
+        "directorySnapshotRef",
+        "choiceProofRef",
+        "choiceDisclosurePolicyRef",
+        "directoryTupleHash",
+        "visibleProviderRefs",
+        "recommendedProviderRefs",
+        "warningVisibleProviderRefs",
+        "suppressedUnsafeSummaryRef",
+        "selectedProviderRef",
+        "selectedProviderExplanationRef",
+        "selectedProviderCapabilitySnapshotRef",
+        "patientOverrideRequired",
+        "overrideAcknowledgementRef",
+        "selectionBindingHash",
+        "visibleChoiceSetHash",
+        "projectionState",
+        "computedAt"
+      ],
+      "properties": {
+        "pharmacyChoiceTruthProjectionId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Choice truth projection identifier."
+        },
+        "pharmacyCaseId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Owning pharmacy case identifier."
+        },
+        "choiceSessionRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Choice session reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyChoiceSession"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "directorySnapshotRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Directory snapshot reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyDirectorySnapshot"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "choiceProofRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Choice proof reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyChoiceProof"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "choiceDisclosurePolicyRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Choice disclosure policy reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyChoiceDisclosurePolicy"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "directoryTupleHash": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Directory tuple hash."
+        },
+        "visibleProviderRefs": {
+          "type": "array",
+          "description": "Visible provider references.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Visible provider references. item",
+            "properties": {
+              "targetFamily": {
+                "const": "PharmacyProvider"
+              },
+              "refId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "ownerTask": {
+                "const": "seq_343"
+              }
+            },
+            "required": [
+              "targetFamily",
+              "refId",
+              "ownerTask"
+            ]
+          }
+        },
+        "recommendedProviderRefs": {
+          "type": "array",
+          "description": "Recommended frontier references.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Recommended frontier references. item",
+            "properties": {
+              "targetFamily": {
+                "const": "PharmacyProvider"
+              },
+              "refId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "ownerTask": {
+                "const": "seq_343"
+              }
+            },
+            "required": [
+              "targetFamily",
+              "refId",
+              "ownerTask"
+            ]
+          }
+        },
+        "warningVisibleProviderRefs": {
+          "type": "array",
+          "description": "Visible warned provider references.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Visible warned provider references. item",
+            "properties": {
+              "targetFamily": {
+                "const": "PharmacyProvider"
+              },
+              "refId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "ownerTask": {
+                "const": "seq_343"
+              }
+            },
+            "required": [
+              "targetFamily",
+              "refId",
+              "ownerTask"
+            ]
+          }
+        },
+        "suppressedUnsafeSummaryRef": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Suppressed unsafe summary reference."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Suppressed unsafe summary reference."
+        },
+        "selectedProviderRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Selected provider reference.",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyProvider"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_343"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Selected provider reference."
+        },
+        "selectedProviderExplanationRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Selected provider explanation reference.",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyChoiceExplanation"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_343"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Selected provider explanation reference."
+        },
+        "selectedProviderCapabilitySnapshotRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Selected provider capability snapshot reference.",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyProviderCapabilitySnapshot"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_343"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Selected provider capability snapshot reference."
+        },
+        "patientOverrideRequired": {
+          "type": "boolean",
+          "description": "Whether warned-choice acknowledgement is still required."
+        },
+        "overrideAcknowledgementRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Override acknowledgement reference.",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyChoiceOverrideAcknowledgement"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_343"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Override acknowledgement reference."
+        },
+        "selectionBindingHash": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Selection binding hash."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Selection binding hash."
+        },
+        "visibleChoiceSetHash": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Visible choice set hash."
+        },
+        "projectionState": {
+          "type": "string",
+          "enum": [
+            "choosing",
+            "selected_waiting_consent",
+            "read_only_provenance",
+            "recovery_required"
+          ],
+          "description": "Choice truth projection state."
+        },
+        "computedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Computation timestamp."
+        }
+      }
+    },
+    "PharmacyConsentRecord": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "PharmacyConsentRecord",
+      "description": "Explicit consent record bound to provider, proof, explanation, and scope.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pharmacyConsentRecordId",
+        "pharmacyCaseRef",
+        "providerRef",
+        "pathwayOrLane",
+        "referralScope",
+        "choiceSessionRef",
+        "choiceProofRef",
+        "selectedExplanationRef",
+        "overrideAcknowledgementRef",
+        "selectionBindingHash",
+        "channel",
+        "consentScriptVersionRef",
+        "patientAwarenessOfGpVisibility",
+        "state",
+        "grantedAt",
+        "supersededAt"
+      ],
+      "properties": {
+        "pharmacyConsentRecordId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Consent record identifier."
+        },
+        "pharmacyCaseRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Owning pharmacy case.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyCase"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_342"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "providerRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Bound provider reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyProvider"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "pathwayOrLane": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Bound pathway or lane."
+        },
+        "referralScope": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Bound referral scope."
+        },
+        "choiceSessionRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Choice session reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyChoiceSession"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "choiceProofRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Choice proof reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyChoiceProof"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "selectedExplanationRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Selected explanation reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyChoiceExplanation"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "overrideAcknowledgementRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Override acknowledgement reference.",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyChoiceOverrideAcknowledgement"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_343"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Override acknowledgement reference."
+        },
+        "selectionBindingHash": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Selection binding hash."
+        },
+        "channel": {
+          "type": "string",
+          "enum": [
+            "patient_direct",
+            "staff_assisted",
+            "proxy_confirmed"
+          ],
+          "description": "Consent capture channel."
+        },
+        "consentScriptVersionRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Consent script version reference."
+        },
+        "patientAwarenessOfGpVisibility": {
+          "type": "boolean",
+          "description": "Whether GP visibility implications were disclosed."
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "granted",
+            "withdrawn",
+            "expired",
+            "superseded"
+          ],
+          "description": "Consent state."
+        },
+        "grantedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Grant timestamp."
+        },
+        "supersededAt": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "description": "Supersede timestamp."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Supersede timestamp when applicable."
+        }
+      }
+    },
+    "PharmacyConsentCheckpoint": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "PharmacyConsentCheckpoint",
+      "description": "Single authority for whether dispatch and reassurance may proceed.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pharmacyConsentCheckpointId",
+        "pharmacyCaseRef",
+        "providerRef",
+        "pathwayOrLane",
+        "referralScope",
+        "choiceProofRef",
+        "selectedExplanationRef",
+        "consentRecordRef",
+        "latestRevocationRef",
+        "selectionBindingHash",
+        "packageFingerprint",
+        "checkpointState",
+        "continuityState",
+        "evaluatedAt"
+      ],
+      "properties": {
+        "pharmacyConsentCheckpointId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Consent checkpoint identifier."
+        },
+        "pharmacyCaseRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Owning pharmacy case.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyCase"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_342"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "providerRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Bound provider reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyProvider"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "pathwayOrLane": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Bound pathway or lane."
+        },
+        "referralScope": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Bound referral scope."
+        },
+        "choiceProofRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Choice proof reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyChoiceProof"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "selectedExplanationRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Selected explanation reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyChoiceExplanation"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "consentRecordRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Current consent record reference.",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyConsentRecord"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_343"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Current consent record reference."
+        },
+        "latestRevocationRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Latest revocation reference.",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyConsentRevocationRecord"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_343"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Latest revocation reference."
+        },
+        "selectionBindingHash": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Selection binding hash."
+        },
+        "packageFingerprint": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Package fingerprint."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Package fingerprint."
+        },
+        "checkpointState": {
+          "type": "string",
+          "enum": [
+            "satisfied",
+            "missing",
+            "refused",
+            "expired",
+            "withdrawn",
+            "superseded",
+            "revoked_post_dispatch",
+            "withdrawal_reconciliation"
+          ],
+          "description": "Checkpoint state."
+        },
+        "continuityState": {
+          "type": "string",
+          "enum": [
+            "current",
+            "stale",
+            "blocked"
+          ],
+          "description": "Continuity state."
+        },
+        "evaluatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Evaluation timestamp."
+        }
+      }
+    },
+    "PharmacyConsentRevocationRecord": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "PharmacyConsentRevocationRecord",
+      "description": "Revocation or drift record that invalidates prior calm use of consent.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pharmacyConsentRevocationRecordId",
+        "pharmacyCaseRef",
+        "consentRecordRef",
+        "reasonClass",
+        "revocationState",
+        "recordedAt"
+      ],
+      "properties": {
+        "pharmacyConsentRevocationRecordId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Consent revocation record identifier."
+        },
+        "pharmacyCaseRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Owning pharmacy case.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyCase"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_342"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "consentRecordRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Consent record reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyConsentRecord"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "reasonClass": {
+          "type": "string",
+          "enum": [
+            "withdrawn_by_patient",
+            "pathway_drift",
+            "provider_drift",
+            "scope_drift",
+            "proof_superseded",
+            "post_dispatch_withdrawal"
+          ],
+          "description": "Revocation reason class."
+        },
+        "revocationState": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "recorded",
+            "downstream_reconciliation",
+            "resolved"
+          ],
+          "description": "Revocation workflow state."
+        },
+        "recordedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Record timestamp."
+        }
+      }
+    }
+  },
+  "x-vecells-task-id": "seq_343_phase6_freeze_directory_discovery_referral_dispatch_and_outcome_reconciliation_contracts",
+  "x-vecells-contract-version": "343.phase6.discovery-dispatch-outcome-freeze.v1"
+}

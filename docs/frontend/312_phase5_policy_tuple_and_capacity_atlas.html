@@ -1,0 +1,782 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>312 Phase 5 Policy Tuple And Capacity Atlas</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f7f8fa;
+        --panel: #ffffff;
+        --inset: #e8eef3;
+        --text-strong: #0f172a;
+        --text-default: #334155;
+        --text-muted: #64748b;
+        --policy-accent: #3158e0;
+        --trusted-accent: #0f766e;
+        --degraded-accent: #b7791f;
+        --quarantined-accent: #b42318;
+        --ranking-accent: #5b61f6;
+        --line: #d8e0e7;
+        --shadow: 0 20px 42px rgba(15, 23, 42, 0.08);
+        --radius: 12px;
+        --transition: 180ms ease;
+        font-family: "IBM Plex Sans", "Avenir Next", "Segoe UI", sans-serif;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        :root {
+          --transition: 0ms linear;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--text-default);
+        background:
+          radial-gradient(circle at top right, rgba(49, 88, 224, 0.08), transparent 26%),
+          linear-gradient(180deg, #f5f7fb 0%, var(--canvas) 42%, #eef3f8 100%);
+      }
+
+      .skip-link {
+        position: absolute;
+        left: 16px;
+        top: -44px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: var(--text-strong);
+        color: white;
+        z-index: 10;
+      }
+
+      .skip-link:focus {
+        top: 12px;
+      }
+
+      .page {
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .atlas {
+        max-width: 1740px;
+        margin: 0 auto;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.76);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .masthead {
+        min-height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--line);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.82));
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-family: "Iowan Old Style", Georgia, serif;
+        font-size: 24px;
+        line-height: 1.1;
+        color: var(--text-strong);
+      }
+
+      .brand p {
+        margin: 4px 0 0;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 11px;
+        border-radius: 999px;
+        font-size: 12px;
+        background: var(--inset);
+        color: var(--text-default);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr) 440px;
+        min-height: 980px;
+      }
+
+      .rail,
+      .canvas,
+      .inspector {
+        min-width: 0;
+      }
+
+      .rail,
+      .inspector {
+        background: rgba(255, 255, 255, 0.86);
+      }
+
+      .rail {
+        border-right: 1px solid var(--line);
+        padding: 20px;
+      }
+
+      .canvas {
+        padding: 20px;
+      }
+
+      .inspector {
+        border-left: 1px solid var(--line);
+        padding: 20px;
+      }
+
+      .section-label {
+        margin: 0 0 12px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .family-list,
+      .candidate-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .family-button,
+      .candidate-button {
+        width: 100%;
+        padding: 12px 13px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        color: inherit;
+        text-align: left;
+        font: inherit;
+        cursor: pointer;
+        transition:
+          border-color var(--transition),
+          box-shadow var(--transition),
+          background var(--transition),
+          transform var(--transition);
+      }
+
+      .family-button:hover,
+      .family-button:focus-visible,
+      .candidate-button:hover,
+      .candidate-button:focus-visible,
+      .candidate-row-button:hover,
+      .candidate-row-button:focus-visible {
+        outline: none;
+        border-color: var(--policy-accent);
+        box-shadow: 0 0 0 3px rgba(49, 88, 224, 0.12);
+      }
+
+      .family-button[data-active="true"] {
+        border-color: var(--policy-accent);
+        background: rgba(49, 88, 224, 0.08);
+        transform: translateX(2px);
+      }
+
+      .candidate-button[data-active="true"],
+      .candidate-row-button[data-active="true"] {
+        border-color: var(--ranking-accent);
+        background: rgba(91, 97, 246, 0.08);
+      }
+
+      .button-title {
+        display: block;
+        font-weight: 600;
+        color: var(--text-strong);
+      }
+
+      .button-note {
+        display: block;
+        margin-top: 3px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      .stack {
+        display: grid;
+        gap: 16px;
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+        padding: 16px;
+        min-width: 0;
+      }
+
+      .card h2,
+      .card h3 {
+        margin: 0 0 8px;
+        color: var(--text-strong);
+      }
+
+      .card h2 {
+        font-size: 18px;
+      }
+
+      .card h3 {
+        font-size: 15px;
+      }
+
+      .card p,
+      .card li,
+      .card td,
+      .card th {
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .tuple-strip {
+        display: grid;
+        gap: 10px;
+      }
+
+      .tuple-row {
+        display: grid;
+        grid-template-columns: 210px minmax(0, 1fr);
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: var(--inset);
+      }
+
+      .tuple-row strong {
+        color: var(--text-strong);
+      }
+
+      .horizon {
+        display: grid;
+        gap: 10px;
+      }
+
+      .horizon-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 12px;
+        align-items: center;
+        padding: 12px;
+        border-radius: 10px;
+        background: linear-gradient(90deg, rgba(232, 238, 243, 0.9), rgba(255, 255, 255, 0.9));
+      }
+
+      .site-name {
+        font-weight: 600;
+        color: var(--text-strong);
+      }
+
+      .trust-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        color: white;
+      }
+
+      .trust-chip[data-state="trusted"] {
+        background: var(--trusted-accent);
+      }
+
+      .trust-chip[data-state="degraded"] {
+        background: var(--degraded-accent);
+      }
+
+      .trust-chip[data-state="quarantined"] {
+        background: var(--quarantined-accent);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      caption {
+        text-align: left;
+        margin-bottom: 10px;
+        color: var(--text-strong);
+        font-weight: 600;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 10px 8px;
+        vertical-align: top;
+        text-align: left;
+      }
+
+      th {
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .candidate-row-button {
+        display: block;
+        width: 100%;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: transparent;
+        padding: 0;
+        text-align: left;
+        font: inherit;
+        cursor: pointer;
+        transition:
+          border-color var(--transition),
+          background var(--transition),
+          box-shadow var(--transition);
+      }
+
+      .candidate-table {
+        overflow-x: auto;
+      }
+
+      .formula-list,
+      .effects-list,
+      .reason-list {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .parity-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .subdued {
+        color: var(--text-muted);
+      }
+
+      @media (max-width: 1240px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .rail,
+        .inspector {
+          border: 0;
+          border-top: 1px solid var(--line);
+        }
+
+        .parity-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .page {
+          padding: 12px;
+        }
+
+        .masthead {
+          padding: 16px;
+        }
+
+        .tuple-row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#atlas-main">Skip to atlas</a>
+    <div class="page">
+      <div
+        class="atlas"
+        data-testid="Phase5PolicyCapacityAtlas"
+        data-visual-mode="Phase5_Policy_Tuple_And_Capacity_Atlas"
+        data-active-family="routing"
+        data-active-candidate="candidate_trusted_required_001"
+      >
+        <header class="masthead">
+          <div class="brand">
+            <h1>Policy tuple and capacity atlas</h1>
+            <p>312 freeze pack: policy families, source trust, and proof-bearing candidate ranking.</p>
+          </div>
+          <div class="meta">
+            <span class="pill">Policy tuple hash <strong>da962f0a42ab</strong></span>
+            <span class="pill">Rank plan <strong>312.rank-plan.network-candidate.v1</strong></span>
+            <span class="pill">Uncertainty <strong>312.uncertainty-model.network-candidate.v1</strong></span>
+          </div>
+        </header>
+        <div class="layout">
+          <aside class="rail">
+            <div class="stack">
+              <section>
+                <p class="section-label">Policy families</p>
+                <div class="family-list" id="family-list"></div>
+              </section>
+              <section>
+                <p class="section-label">Candidate focus</p>
+                <div class="candidate-list" id="candidate-list"></div>
+              </section>
+            </div>
+          </aside>
+          <main class="canvas" id="atlas-main">
+            <div class="stack">
+              <section class="card">
+                <p class="section-label">Policy tuple strip</p>
+                <div class="tuple-strip" id="tuple-strip"></div>
+              </section>
+              <section class="card">
+                <p class="section-label">Site capacity horizon</p>
+                <div class="horizon" id="horizon"></div>
+              </section>
+              <section class="card candidate-table">
+                <table data-testid="CandidateTable">
+                  <caption>Dense candidate table</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Rank</th>
+                      <th scope="col">Candidate</th>
+                      <th scope="col">Window</th>
+                      <th scope="col">Trust</th>
+                      <th scope="col">Offerability</th>
+                      <th scope="col">Robust fit</th>
+                    </tr>
+                  </thead>
+                  <tbody id="candidate-table-body"></tbody>
+                </table>
+              </section>
+              <section class="parity-grid">
+                <div class="card">
+                  <table data-testid="FormulaParityTable">
+                    <caption>Formula parity</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Formula</th>
+                        <th scope="col">Units</th>
+                        <th scope="col">Range</th>
+                      </tr>
+                    </thead>
+                    <tbody id="formula-parity-body"></tbody>
+                  </table>
+                </div>
+                <div class="card">
+                  <table data-testid="SourceAdmissionParityTable">
+                    <caption>Source-admission parity</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Trust</th>
+                        <th scope="col">Patient-offerable</th>
+                        <th scope="col">Direct commit</th>
+                      </tr>
+                    </thead>
+                    <tbody id="source-parity-body"></tbody>
+                  </table>
+                </div>
+                <div class="card">
+                  <table data-testid="LedgerParityTable">
+                    <caption>Ledger parity</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Ledger</th>
+                        <th scope="col">Affects rank?</th>
+                        <th scope="col">Ack debt?</th>
+                      </tr>
+                    </thead>
+                    <tbody id="ledger-parity-body"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          </main>
+          <aside class="inspector">
+            <div class="stack">
+              <section class="card">
+                <p class="section-label">Active family</p>
+                <h2 id="family-title"></h2>
+                <p id="family-summary"></p>
+                <h3 id="active-formula-tab" tabindex="0">Affected formulas</h3>
+                <ul class="formula-list" id="family-formulas"></ul>
+                <h3>Blocked candidate effects</h3>
+                <ul class="effects-list" id="family-effects"></ul>
+              </section>
+              <section class="card">
+                <p class="section-label">Candidate explanation</p>
+                <h2 id="candidate-title"></h2>
+                <p id="candidate-summary"></p>
+                <table>
+                  <tbody id="candidate-metrics"></tbody>
+                </table>
+                <h3 id="active-candidate-tab" tabindex="0">Reason cues</h3>
+                <ul class="reason-list" id="candidate-reasons"></ul>
+              </section>
+              <section class="card">
+                <p class="section-label">Trust posture</p>
+                <div id="candidate-trust-posture"></div>
+              </section>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+    <script>
+      const atlasData = {"visualMode":"Phase5_Policy_Tuple_And_Capacity_Atlas","policyTupleHash":"da962f0a42ab7d63c0ea7b4a45e849a7e3979ac16e88507e3f71c4aec233e896","rankPlanVersionRef":"312.rank-plan.network-candidate.v1","uncertaintyModelVersionRef":"312.uncertainty-model.network-candidate.v1","families":[{"familyId":"routing","label":"Routing pack","accent":"#3158E0","tupleFields":[{"fieldId":"routingPolicyPackRef","value":"routing_pack_312_default"},{"fieldId":"eligibleSiteRefs[]","value":"Riverside | Northway | Central | Southbank | West"},{"fieldId":"serviceFamilyRefs[]","value":"enhanced_access_routine | vaccination | screening"},{"fieldId":"routeReasonCode","value":"local_unavailable_network_fallback"}],"permittedOutputs":["routingDisposition","eligibleSiteRefs[]","serviceFamilyRefs[]","routeReasonCode"],"blockedEffects":["Must not re-score candidates inside the same admissible frontier.","Must not hide candidates for practice-visibility reasons."],"formulaRefs":["windowClass","dominance_frontier","lexicographic_order"],"lawSummary":"Routing chooses whether the case belongs in the network horizon and which sites or service families enter candidate construction. It may gate frontier membership, but it may not rewrite utility math."},{"familyId":"variance","label":"Variance window pack","accent":"#3158E0","tupleFields":[{"fieldId":"requiredWindowRule","value":"case_clinical_window"},{"fieldId":"approvedVarianceBeforeMinutes","value":"0"},{"fieldId":"approvedVarianceAfterMinutes","value":"120"},{"fieldId":"outsideWindowVisibleByPolicy","value":"true"}],"permittedOutputs":["varianceDisposition","requiredWindowStartAt","requiredWindowEndAt","approvedVarianceStartAt","approvedVarianceEndAt"],"blockedEffects":["Window fit is a hard band, not a hidden term inside `baseUtility`.","Window fit may not be counted twice through convenience scoring."],"formulaRefs":["windowClass","lexicographic_order"],"lawSummary":"Variance resolves the clinical band boundary. It defines `windowClass(c,s)` and the approved outer limits, but it does not modify source trust or practice visibility."},{"familyId":"service_obligation","label":"Service obligation pack","accent":"#3158E0","tupleFields":[{"fieldId":"weeklyMinutesPer1000AdjustedPopulation","value":"60"},{"fieldId":"bankHolidayMakeUpRule","value":"replace_within_2_weeks_unless_commissioner_agrees_otherwise"},{"fieldId":"comparableOfferRule","value":"all_pcn_patients_comparable_offer"},{"fieldId":"ledgerMode","value":"minutes_ledger_required"}],"permittedOutputs":["serviceObligationDisposition","minutesLedgerRequired","cancellationMakeUpRequired","exceptionDebtState"],"blockedEffects":["May create ledgers or exception records only.","May not quietly hide, demote, or reorder candidates."],"formulaRefs":[],"lawSummary":"Service-obligation rules track capacity promises such as minutes-per-1,000 and cancellation make-up. They govern operational debt, never the candidate order or frontier math."},{"familyId":"practice_visibility","label":"Practice visibility pack","accent":"#3158E0","tupleFields":[{"fieldId":"originPracticeVisibleFieldRefs[]","value":"macro_booking_status | latest_continuity_delta | ack_generation_state"},{"fieldId":"visibilityDeltaRule","value":"emit_delta_on_truth_or_generation_change"},{"fieldId":"ackGenerationMode","value":"generation_bound"},{"fieldId":"minimumNecessaryContractRef","value":"min_necessary_origin_practice_v1"}],"permittedOutputs":["practiceVisibilityDisposition","visibilityDeltaRequired","ackGenerationRequired","minimumNecessaryFieldRefs[]"],"blockedEffects":["May mint acknowledgement debt or visibility deltas only.","May not suppress patient-offerable or direct-commit candidates."],"formulaRefs":[],"lawSummary":"Practice-visibility rules define minimum-necessary origin-practice disclosure and acknowledgement debt. They never participate in candidate ordering or source admission."},{"familyId":"capacity_ingestion","label":"Capacity ingestion pack","accent":"#3158E0","tupleFields":[{"fieldId":"freshnessThresholdMinutes","value":"15"},{"fieldId":"quarantineTriggers[]","value":"critical_adapter_drift | missing_assurance_slice | unresolved_collision"},{"fieldId":"degradedVisibilityModes[]","value":"callback_only_reasoning | diagnostic_only"},{"fieldId":"patientOfferableTrustStates[]","value":"trusted"}],"permittedOutputs":["capacityAdmissionDisposition","sourceTrustState","sourceTrustTier","freshnessBand"],"blockedEffects":["Quarantined supply may never become bookable or patient-offerable.","Degraded supply may remain visible only for diagnostic or callback reasoning."],"formulaRefs":["u_fresh","uncertaintyRadius","robustFit","lexicographic_order"],"lawSummary":"Capacity ingestion is the only policy family that can convert live source trust and freshness into admission posture. It governs whether a candidate is trusted, degraded, or quarantined before ranking is surfaced."}],"siteCapacity":[{"siteId":"hub_site_riverside","label":"Riverside Hub","trustState":"trusted","freshness":"8m","availableMinutes":120,"capacityNote":"Required-window supply is live and directly commitable."},{"siteId":"hub_site_northway","label":"Northway Clinic","trustState":"degraded","freshness":"48m","availableMinutes":80,"capacityNote":"Visible only for callback reasoning while trust remains degraded."},{"siteId":"hub_site_central","label":"Central Hub","trustState":"trusted","freshness":"6m","availableMinutes":90,"capacityNote":"Variance-window alternative remains patient-offerable."},{"siteId":"hub_site_southbank","label":"Southbank Outreach","trustState":"quarantined","freshness":"180m","availableMinutes":40,"capacityNote":"Quarantined feed retained for diagnostics only."}],"candidates":[{"candidateId":"candidate_trusted_required_001","label":"18:45 Riverside Hub (video capable)","siteId":"hub_site_riverside","siteLabel":"Riverside Hub","sourceRef":"source_gp_connect_riverside","sourceTrustRef":"trust_slice_riverside_trusted","sourceTrustState":"trusted","sourceTrustTier":2,"sourceFreshnessState":"fresh","startAt":"2026-04-22T17:45:00Z","endAt":"2026-04-22T18:05:00Z","timezone":"Europe/London","modality":"video","clinicianType":"gp","capacityUnitRef":"capacity_unit_riverside_video_1845","manageCapabilityState":"network_manage_ready","accessibilityFitScore":0.93,"travelMinutes":18,"waitMinutes":45,"stalenessMinutes":8,"requiredWindowFit":2,"offerabilityState":"direct_commit","baseUtility":0.89,"uncertaintyRadius":0.04,"robustFit":0.85,"patientOfferable":true,"directCommitEligible":true,"rank":1,"explanationRef":"rank_explanation_candidate_trusted_required_001","patientReasonCueRefs":["cue_inside_required_window","cue_trusted_fastest_fit"],"staffReasonRefs":["required_window=true","trusted_source=true","travel_minutes=18","staleness_minutes=8"],"blockedBy":[],"formulaValues":{"u_modality":1,"u_access":0.93,"u_travel":0.74,"u_wait":0.86,"u_fresh":0.88}},{"candidateId":"candidate_degraded_required_002","label":"18:35 Northway Clinic (phone only)","siteId":"hub_site_northway","siteLabel":"Northway Clinic","sourceRef":"source_partner_feed_northway","sourceTrustRef":"trust_slice_northway_degraded","sourceTrustState":"degraded","sourceTrustTier":1,"sourceFreshnessState":"aging","startAt":"2026-04-22T17:35:00Z","endAt":"2026-04-22T17:55:00Z","timezone":"Europe/London","modality":"phone","clinicianType":"gp","capacityUnitRef":"capacity_unit_northway_phone_1835","manageCapabilityState":"read_only","accessibilityFitScore":0.82,"travelMinutes":22,"waitMinutes":35,"stalenessMinutes":48,"requiredWindowFit":2,"offerabilityState":"callback_only_reasoning","baseUtility":0.77,"uncertaintyRadius":0.19,"robustFit":0.64,"patientOfferable":false,"directCommitEligible":false,"rank":2,"explanationRef":"rank_explanation_candidate_degraded_required_002","patientReasonCueRefs":["cue_visible_for_callback_only"],"staffReasonRefs":["required_window=true","trust_state=degraded","direct_commit=false","callback_reasoning_only=true"],"blockedBy":["degraded_source_not_normal_booking_truth"],"formulaValues":{"u_modality":0,"u_access":0.82,"u_travel":0.69,"u_wait":0.89,"u_fresh":0.45}},{"candidateId":"candidate_trusted_variance_003","label":"19:40 Central Hub (face to face)","siteId":"hub_site_central","siteLabel":"Central Hub","sourceRef":"source_gp_connect_central","sourceTrustRef":"trust_slice_central_trusted","sourceTrustState":"trusted","sourceTrustTier":2,"sourceFreshnessState":"fresh","startAt":"2026-04-22T18:40:00Z","endAt":"2026-04-22T19:00:00Z","timezone":"Europe/London","modality":"face_to_face","clinicianType":"advanced_practice_clinician","capacityUnitRef":"capacity_unit_central_f2f_1940","manageCapabilityState":"network_manage_ready","accessibilityFitScore":0.88,"travelMinutes":31,"waitMinutes":100,"stalenessMinutes":6,"requiredWindowFit":1,"offerabilityState":"patient_offerable","baseUtility":0.81,"uncertaintyRadius":0.05,"robustFit":0.76,"patientOfferable":true,"directCommitEligible":true,"rank":3,"explanationRef":"rank_explanation_candidate_trusted_variance_003","patientReasonCueRefs":["cue_inside_approved_variance","cue_trusted_alternative"],"staffReasonRefs":["approved_variance_window=true","trusted_source=true","travel_minutes=31","staleness_minutes=6"],"blockedBy":[],"formulaValues":{"u_modality":1,"u_access":0.88,"u_travel":0.6,"u_wait":0.66,"u_fresh":0.9}},{"candidateId":"candidate_quarantined_required_004","label":"18:50 Southbank Outreach (frozen feed)","siteId":"hub_site_southbank","siteLabel":"Southbank Outreach","sourceRef":"source_partner_feed_southbank","sourceTrustRef":"trust_slice_southbank_quarantined","sourceTrustState":"quarantined","sourceTrustTier":0,"sourceFreshnessState":"stale","startAt":"2026-04-22T17:50:00Z","endAt":"2026-04-22T18:10:00Z","timezone":"Europe/London","modality":"face_to_face","clinicianType":"gp","capacityUnitRef":"capacity_unit_southbank_f2f_1850","manageCapabilityState":"blocked","accessibilityFitScore":0.84,"travelMinutes":16,"waitMinutes":50,"stalenessMinutes":180,"requiredWindowFit":2,"offerabilityState":"diagnostic_only","baseUtility":0.8,"uncertaintyRadius":0.41,"robustFit":0.39,"patientOfferable":false,"directCommitEligible":false,"rank":4,"explanationRef":"rank_explanation_candidate_quarantined_required_004","patientReasonCueRefs":[],"staffReasonRefs":["quarantined_source=true","bookable=false","patient_offerable=false","diagnostic_visibility_only=true"],"blockedBy":["quarantined_source_excluded_from_frontier"],"formulaValues":{"u_modality":1,"u_access":0.84,"u_travel":0.77,"u_wait":0.85,"u_fresh":0.05}},{"candidateId":"candidate_trusted_outside_window_005","label":"20:30 West Hub (explanation only)","siteId":"hub_site_west","siteLabel":"West Hub","sourceRef":"source_gp_connect_west","sourceTrustRef":"trust_slice_west_trusted","sourceTrustState":"trusted","sourceTrustTier":2,"sourceFreshnessState":"fresh","startAt":"2026-04-22T19:30:00Z","endAt":"2026-04-22T19:50:00Z","timezone":"Europe/London","modality":"video","clinicianType":"gp","capacityUnitRef":"capacity_unit_west_video_2030","manageCapabilityState":"read_only","accessibilityFitScore":0.79,"travelMinutes":12,"waitMinutes":150,"stalenessMinutes":10,"requiredWindowFit":0,"offerabilityState":"callback_only_reasoning","baseUtility":0.71,"uncertaintyRadius":0.07,"robustFit":0.64,"patientOfferable":false,"directCommitEligible":false,"rank":5,"explanationRef":"rank_explanation_candidate_trusted_outside_window_005","patientReasonCueRefs":[],"staffReasonRefs":["outside_window_but_visible_by_policy=true","trusted_source=true","explanation_only=true"],"blockedBy":["outside_required_and_variance_windows"],"formulaValues":{"u_modality":1,"u_access":0.79,"u_travel":0.82,"u_wait":0.53,"u_fresh":0.85}}],"formulas":[{"formulaId":"windowClass","name":"windowClass(c,s)","expression":"requiredWindowFit(c,s)","units":"ordinal band","range":"{2,1,0}","variables":[{"name":"requiredWindowFit(c,s)","units":"ordinal band","description":"Resolved window fit where 2 = inside required window, 1 = inside approved variance window, 0 = outside window but still visible by policy."}],"notes":["This band is ordered before all convenience terms.","It must not be reintroduced into `baseUtility(c,s)`."]},{"formulaId":"u_modality","name":"u_modality(c,s)","expression":"1 when modality is compatible, otherwise 0","units":"unitless","range":"{0,1}","variables":[{"name":"modalityCompatibility","units":"binary","description":"Whether the candidate modality is clinically and operationally compatible."}],"notes":["The compatibility check is explicit, not inferred from route-local copy."]},{"formulaId":"u_access","name":"u_access(c,s)","expression":"accessibilityFit(c,s)","units":"unitless","range":"[0,1]","variables":[{"name":"accessibilityFit(c,s)","units":"unitless","description":"Normalized patient accessibility and burden fit under the current case constraints."}],"notes":["Accessibility fit is a normalized feature and remains visible in the explanation tuple."]},{"formulaId":"u_travel","name":"u_travel(c,s)","expression":"exp(-travelMinutes(c,s) / tau_travel)","units":"unitless","range":"(0,1]","variables":[{"name":"travelMinutes(c,s)","units":"minutes","description":"Estimated travel burden for the patient."},{"name":"tau_travel","units":"minutes","description":"Travel-time decay constant versioned in the rank plan."}],"notes":["Travel convenience cannot outrank the window class band."]},{"formulaId":"u_wait","name":"u_wait(c,s)","expression":"exp(-waitMinutes(s) / tau_wait)","units":"unitless","range":"(0,1]","variables":[{"name":"waitMinutes(s)","units":"minutes","description":"Time from current evaluation to the candidate start time."},{"name":"tau_wait","units":"minutes","description":"Wait-time decay constant versioned in the rank plan."}],"notes":["Wait fit is within-band only and does not replace the required-window rule."]},{"formulaId":"u_fresh","name":"u_fresh(c,s)","expression":"exp(-stalenessMinutes(s) / tau_fresh)","units":"unitless","range":"(0,1]","variables":[{"name":"stalenessMinutes(s)","units":"minutes","description":"Age of the source snapshot at evaluation time."},{"name":"tau_fresh","units":"minutes","description":"Freshness decay constant versioned in the rank plan."}],"notes":["Freshness contributes to utility and separately informs source admission and uncertainty."]},{"formulaId":"baseUtility","name":"baseUtility(c,s)","expression":"w_modality * u_modality(c,s) + w_access * u_access(c,s) + w_travel * u_travel(c,s) + w_wait * u_wait(c,s) + w_fresh * u_fresh(c,s)","units":"unitless","range":"[0,1]","variables":[{"name":"w_modality,w_access,w_travel,w_wait,w_fresh","units":"unitless","description":"Rank-plan weights with `sum w_* = 1`."}],"notes":["Window fit is deliberately excluded to prevent double-counting.","Weights version with the persisted rank plan."]},{"formulaId":"uncertaintyRadius","name":"uncertaintyRadius(c,s)","expression":"epsilon_alpha(c,s)","units":"unitless risk radius","range":"[0,+inf)","variables":[{"name":"epsilon_alpha(c,s)","units":"unitless risk radius","description":"Calibrated uncertainty from trust class, staleness, duplicate-capacity collision risk, and recent adapter drift."}],"notes":["Uncertainty is persisted as proof, not hidden in copy.","The uncertainty model versions separately from the rank plan."]},{"formulaId":"robustFit","name":"robustFit(c,s)","expression":"baseUtility(c,s) - lambda_uncertainty * uncertaintyRadius(c,s)","units":"unitless","range":"(-inf,1]","variables":[{"name":"lambda_uncertainty","units":"unitless","description":"Penalty multiplier versioned in the same rank plan."}],"notes":["Robust fit is the within-band score used after window class and trust tier."]}],"formulaParityRows":[{"formulaId":"windowClass","label":"windowClass(c,s)","expression":"requiredWindowFit(c,s)","units":"ordinal band","range":"{2,1,0}"},{"formulaId":"u_modality","label":"u_modality(c,s)","expression":"1 when modality is compatible, otherwise 0","units":"unitless","range":"{0,1}"},{"formulaId":"u_access","label":"u_access(c,s)","expression":"accessibilityFit(c,s)","units":"unitless","range":"[0,1]"},{"formulaId":"u_travel","label":"u_travel(c,s)","expression":"exp(-travelMinutes(c,s) / tau_travel)","units":"unitless","range":"(0,1]"},{"formulaId":"u_wait","label":"u_wait(c,s)","expression":"exp(-waitMinutes(s) / tau_wait)","units":"unitless","range":"(0,1]"},{"formulaId":"u_fresh","label":"u_fresh(c,s)","expression":"exp(-stalenessMinutes(s) / tau_fresh)","units":"unitless","range":"(0,1]"},{"formulaId":"baseUtility","label":"baseUtility(c,s)","expression":"w_modality * u_modality(c,s) + w_access * u_access(c,s) + w_travel * u_travel(c,s) + w_wait * u_wait(c,s) + w_fresh * u_fresh(c,s)","units":"unitless","range":"[0,1]"},{"formulaId":"uncertaintyRadius","label":"uncertaintyRadius(c,s)","expression":"epsilon_alpha(c,s)","units":"unitless risk radius","range":"[0,+inf)"},{"formulaId":"robustFit","label":"robustFit(c,s)","expression":"baseUtility(c,s) - lambda_uncertainty * uncertaintyRadius(c,s)","units":"unitless","range":"(-inf,1]"}],"sourceAdmissionRows":[{"sourceTrustState":"trusted","sourceTrustTier":2,"patientOfferable":"yes","directCommit":"yes","diagnosticVisible":"yes","notes":"Trusted supply may join patient-offerable and direct-commit frontiers when routing and variance also allow it."},{"sourceTrustState":"degraded","sourceTrustTier":1,"patientOfferable":"no","directCommit":"no","diagnosticVisible":"callback_only_or_diagnostic_only","notes":"Degraded supply may remain visible only for diagnostic or callback-fallback reasoning. It is never ordinary direct-booking truth."},{"sourceTrustState":"quarantined","sourceTrustTier":0,"patientOfferable":"no","directCommit":"no","diagnosticVisible":"ops_only_diagnostic","notes":"Quarantined supply is excluded from bookable and patient-offerable frontiers. It survives only as diagnostic evidence or a typed policy exception."}],"ledgerRows":[{"ledgerId":"EnhancedAccessMinutesLedger","purpose":"Tracks delivered, available, cancelled, and make-up minutes against minutes-per-1,000.","mayAffectRank":"No","mayCreateAckDebt":"No"},{"ledgerId":"CancellationMakeUpLedger","purpose":"Tracks cancelled network time and replacement capacity windows.","mayAffectRank":"No","mayCreateAckDebt":"No"},{"ledgerId":"Practice visibility debt","purpose":"Generated by practice-visibility rules when current acknowledgement or delta evidence is missing.","mayAffectRank":"No","mayCreateAckDebt":"Yes"}]};
+      const root = document.querySelector("[data-testid='Phase5PolicyCapacityAtlas']");
+      const familyMap = new Map(atlasData.families.map((entry) => [entry.familyId, entry]));
+      const candidateMap = new Map(atlasData.candidates.map((entry) => [entry.candidateId, entry]));
+      let activeFamilyId = atlasData.families[0].familyId;
+      let activeCandidateId = atlasData.candidates[0].candidateId;
+
+      function create(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
+      }
+
+      function renderFamilyButtons() {
+        const container = document.getElementById("family-list");
+        container.innerHTML = "";
+        atlasData.families.forEach((family) => {
+          const button = create("button", "family-button");
+          button.type = "button";
+          button.dataset.id = family.familyId;
+          button.dataset.active = String(family.familyId === activeFamilyId);
+          button.setAttribute("aria-pressed", String(family.familyId === activeFamilyId));
+          button.appendChild(create("span", "button-title", family.label));
+          button.appendChild(create("span", "button-note", family.lawSummary));
+          button.addEventListener("click", () => {
+            activeFamilyId = family.familyId;
+            sync();
+          });
+          container.appendChild(button);
+        });
+      }
+
+      function renderCandidateButtons() {
+        const container = document.getElementById("candidate-list");
+        container.innerHTML = "";
+        atlasData.candidates.forEach((candidate) => {
+          const button = create("button", "candidate-button");
+          button.type = "button";
+          button.dataset.id = candidate.candidateId;
+          button.dataset.active = String(candidate.candidateId === activeCandidateId);
+          button.setAttribute("aria-pressed", String(candidate.candidateId === activeCandidateId));
+          button.appendChild(create("span", "button-title", candidate.label));
+          button.appendChild(
+            create(
+              "span",
+              "button-note",
+              "window " + candidate.requiredWindowFit + " | trust " + candidate.sourceTrustState,
+            ),
+          );
+          button.addEventListener("click", () => {
+            activeCandidateId = candidate.candidateId;
+            sync();
+          });
+          container.appendChild(button);
+        });
+      }
+
+      function renderTupleStrip() {
+        const family = familyMap.get(activeFamilyId);
+        const container = document.getElementById("tuple-strip");
+        container.innerHTML = "";
+        family.tupleFields.forEach((field) => {
+          const row = create("div", "tuple-row");
+          row.appendChild(create("strong", "", field.fieldId));
+          row.appendChild(create("div", "", field.value));
+          container.appendChild(row);
+        });
+      }
+
+      function renderHorizon() {
+        const container = document.getElementById("horizon");
+        container.innerHTML = "";
+        atlasData.siteCapacity.forEach((site) => {
+          const row = create("div", "horizon-row");
+          const info = create("div", "");
+          info.appendChild(create("div", "site-name", site.label));
+          info.appendChild(create("div", "subdued", site.capacityNote));
+          row.appendChild(info);
+          const chip = create("span", "trust-chip", site.trustState);
+          chip.dataset.state = site.trustState;
+          row.appendChild(chip);
+          row.appendChild(create("div", "", site.availableMinutes + " min | " + site.freshness));
+          container.appendChild(row);
+        });
+      }
+
+      function renderCandidateTable() {
+        const tbody = document.getElementById("candidate-table-body");
+        tbody.innerHTML = "";
+        atlasData.candidates.forEach((candidate) => {
+          const tr = document.createElement("tr");
+          const button = create("button", "candidate-row-button");
+          button.type = "button";
+          button.dataset.id = candidate.candidateId;
+          button.dataset.active = String(candidate.candidateId === activeCandidateId);
+          button.setAttribute("aria-pressed", String(candidate.candidateId === activeCandidateId));
+          button.addEventListener("click", () => {
+            activeCandidateId = candidate.candidateId;
+            sync();
+          });
+          const rowTable = document.createElement("table");
+          rowTable.innerHTML =
+            "<tbody><tr>" +
+            "<td>" + candidate.rank + "</td>" +
+            "<td>" + candidate.label + "</td>" +
+            "<td>" + candidate.requiredWindowFit + "</td>" +
+            "<td>" + candidate.sourceTrustState + "</td>" +
+            "<td>" + candidate.offerabilityState + "</td>" +
+            "<td>" + candidate.robustFit.toFixed(2) + "</td>" +
+            "</tr></tbody>";
+          button.appendChild(rowTable);
+          const td = document.createElement("td");
+          td.colSpan = 6;
+          td.style.padding = "0";
+          td.appendChild(button);
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+        });
+      }
+
+      function renderParityTables() {
+        const formulaBody = document.getElementById("formula-parity-body");
+        formulaBody.innerHTML = "";
+        atlasData.formulaParityRows.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML =
+            "<td>" + row.label + "</td>" +
+            "<td>" + row.units + "</td>" +
+            "<td>" + row.range + "</td>";
+          formulaBody.appendChild(tr);
+        });
+
+        const sourceBody = document.getElementById("source-parity-body");
+        sourceBody.innerHTML = "";
+        atlasData.sourceAdmissionRows.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML =
+            "<td>" + row.sourceTrustState + "</td>" +
+            "<td>" + row.patientOfferable + "</td>" +
+            "<td>" + row.directCommit + "</td>";
+          sourceBody.appendChild(tr);
+        });
+
+        const ledgerBody = document.getElementById("ledger-parity-body");
+        ledgerBody.innerHTML = "";
+        atlasData.ledgerRows.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML =
+            "<td>" + row.ledgerId + "</td>" +
+            "<td>" + row.mayAffectRank + "</td>" +
+            "<td>" + row.mayCreateAckDebt + "</td>";
+          ledgerBody.appendChild(tr);
+        });
+      }
+
+      function renderInspector() {
+        const family = familyMap.get(activeFamilyId);
+        const candidate = candidateMap.get(activeCandidateId);
+        document.getElementById("family-title").textContent = family.label;
+        document.getElementById("family-summary").textContent = family.lawSummary;
+        const familyFormulas = document.getElementById("family-formulas");
+        familyFormulas.innerHTML = "";
+        if (family.formulaRefs.length === 0) {
+          familyFormulas.appendChild(create("li", "", "No ranking formula ownership; this family must not rescore candidates."));
+        } else {
+          family.formulaRefs.forEach((formulaId) => {
+            const formula = atlasData.formulas.find((entry) => entry.formulaId === formulaId);
+            familyFormulas.appendChild(create("li", "", formula ? formula.name : formulaId));
+          });
+        }
+
+        const familyEffects = document.getElementById("family-effects");
+        familyEffects.innerHTML = "";
+        family.blockedEffects.forEach((effect) => familyEffects.appendChild(create("li", "", effect)));
+
+        document.getElementById("candidate-title").textContent = candidate.label;
+        document.getElementById("candidate-summary").textContent =
+          candidate.siteLabel + " | " + candidate.modality + " | " + candidate.clinicianType;
+
+        const metrics = document.getElementById("candidate-metrics");
+        metrics.innerHTML = "";
+        [
+          ["Window class", String(candidate.requiredWindowFit)],
+          ["Trust posture", candidate.sourceTrustState + " (" + candidate.sourceTrustTier + ")"],
+          ["Offerability", candidate.offerabilityState],
+          ["Base utility", candidate.baseUtility.toFixed(2)],
+          ["Uncertainty radius", candidate.uncertaintyRadius.toFixed(2)],
+          ["Robust fit", candidate.robustFit.toFixed(2)],
+        ].forEach(([label, value]) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = "<th scope='row'>" + label + "</th><td>" + value + "</td>";
+          metrics.appendChild(tr);
+        });
+
+        const reasons = document.getElementById("candidate-reasons");
+        reasons.innerHTML = "";
+        const reasonItems = candidate.staffReasonRefs.length
+          ? candidate.staffReasonRefs
+          : ["No patient-safe explanation cues: candidate is blocked from offerable frontiers."];
+        reasonItems.forEach((reason) => reasons.appendChild(create("li", "", reason)));
+
+        const posture = document.getElementById("candidate-trust-posture");
+        posture.innerHTML = "";
+        const paragraph = create(
+          "p",
+          "",
+          "Patient-offerable frontier: " +
+            (candidate.patientOfferable ? "yes" : "no") +
+            " | Direct commit: " +
+            (candidate.directCommitEligible ? "yes" : "no"),
+        );
+        posture.appendChild(paragraph);
+        if (candidate.blockedBy.length > 0) {
+          const list = create("ul", "effects-list");
+          candidate.blockedBy.forEach((reason) => list.appendChild(create("li", "", reason)));
+          posture.appendChild(list);
+        }
+      }
+
+      function sync() {
+        root.setAttribute("data-active-family", activeFamilyId);
+        root.setAttribute("data-active-candidate", activeCandidateId);
+        renderFamilyButtons();
+        renderCandidateButtons();
+        renderTupleStrip();
+        renderHorizon();
+        renderCandidateTable();
+        renderParityTables();
+        renderInspector();
+      }
+
+      sync();
+      window.__phase5PolicyCapacityAtlasData = { loaded: true, ...atlasData };
+    </script>
+  </body>
+</html>

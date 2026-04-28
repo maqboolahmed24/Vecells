@@ -1,0 +1,390 @@
+{
+  "task_id": "par_083",
+  "generated_at": "2026-04-12T18:20:00Z",
+  "visual_mode": "Simulator_Backplane_Control_Deck",
+  "mission": "Publish the authoritative Phase 0 simulator backplane inventory so NHS-login-like auth, IM1 booking, MESH transport, telephony, and notification flows can prove MVP behavior locally without flattening replay, ambiguity, callback timing, or evidence semantics.",
+  "source_precedence": [
+    "prompt/083.md",
+    "prompt/shared_operating_contract_076_to_085.md",
+    "data/analysis/adapter_simulator_contract_manifest.json",
+    "data/analysis/simulator_contract_catalog.json",
+    "data/analysis/nhs_login_capture_pack.json",
+    "data/analysis/im1_pairing_pack.json",
+    "data/analysis/mesh_execution_pack.json",
+    "data/analysis/32_telephony_lab_pack.json",
+    "data/analysis/33_notification_studio_pack.json",
+    "docs/external/25_nhs_login_mock_service_spec.md",
+    "docs/external/26_im1_pairing_rehearsal_strategy.md",
+    "docs/external/28_mesh_mock_mailroom_spec.md",
+    "docs/external/32_local_telephony_lab_spec.md",
+    "docs/external/33_local_notification_studio_spec.md"
+  ],
+  "parallel_interface_gaps": [
+    {
+      "gap_id": "PARALLEL_INTERFACE_GAP_IM1_RECORD_LOOKUP_BOUNDARY",
+      "title": "IM1 record lookup and update remain bounded to booking-adjacent seams only",
+      "bounded_fallback": "The simulator proves capability, slot, hold, commit, reschedule, and cancel semantics now. Broader patient-record update seams stay outside par_083 until a canonical shared adapter profile is published."
+    }
+  ],
+  "summary": {
+    "family_count": 5,
+    "scenario_seed_count": 6,
+    "control_endpoint_count": 23,
+    "delivery_modes": [
+      "browser_redirect",
+      "api_dispatch",
+      "callback_webhook",
+      "delayed_receipt",
+      "duplicate_replay",
+      "repair_observation"
+    ]
+  },
+  "orchestration": {
+    "compose_manifest": "services/adapter-simulators/manifests/docker-compose.yaml",
+    "service_entrypoint": "services/adapter-simulators/src/index.ts",
+    "default_host": "127.0.0.1",
+    "default_port": 7104,
+    "determinism_rule": "reset and reseed always rebuild from the same upstream analysis packs plus local deterministic IDs and clock offsets."
+  },
+  "control_plane_endpoints": [
+    "/health",
+    "/simulators",
+    "/api/control/deck",
+    "/api/control/start",
+    "/api/control/stop",
+    "/api/control/reset",
+    "/api/control/reseed",
+    "/api/control/failure-mode",
+    "/api/nhs-login/begin",
+    "/api/nhs-login/callback",
+    "/api/nhs-login/replay",
+    "/api/nhs-login/token",
+    "/api/im1/search",
+    "/api/im1/hold",
+    "/api/im1/commit",
+    "/api/im1/manage",
+    "/api/mesh/dispatch",
+    "/api/mesh/poll",
+    "/api/mesh/ack",
+    "/api/telephony/start",
+    "/api/telephony/advance",
+    "/api/telephony/webhook",
+    "/api/telephony/retry-webhook",
+    "/api/notifications/send",
+    "/api/notifications/webhook",
+    "/api/notifications/repair",
+    "/api/notifications/settle"
+  ],
+  "scenario_seeds": [
+    {
+      "seed_id": "seed_web_auth_uplift",
+      "family": "nhs_login",
+      "label": "Web intake auth uplift",
+      "route_family_refs": [
+        "rf_intake_self_service",
+        "rf_patient_requests"
+      ],
+      "replay_class": "exact_replay",
+      "failure_mode": "healthy"
+    },
+    {
+      "seed_id": "seed_callback_replay",
+      "family": "nhs_login",
+      "label": "OIDC callback replay fence",
+      "route_family_refs": [
+        "rf_patient_secure_link_recovery"
+      ],
+      "replay_class": "exact_replay",
+      "failure_mode": "duplicate"
+    },
+    {
+      "seed_id": "seed_im1_booking_ambiguity",
+      "family": "im1_gp",
+      "label": "IM1 ambiguous booking commit",
+      "route_family_refs": [
+        "rf_patient_appointments"
+      ],
+      "replay_class": "timeout_resume",
+      "failure_mode": "weak_confirmation"
+    },
+    {
+      "seed_id": "seed_mesh_duplicate_receipt",
+      "family": "mesh",
+      "label": "MESH delayed acknowledgement and duplicate receipt",
+      "route_family_refs": [
+        "rf_hub_case_management",
+        "rf_pharmacy_console"
+      ],
+      "replay_class": "duplicate_delivery",
+      "failure_mode": "delay"
+    },
+    {
+      "seed_id": "seed_phone_continuation",
+      "family": "telephony",
+      "label": "Phone continuation with webhook drift",
+      "route_family_refs": [
+        "rf_intake_telephony_capture"
+      ],
+      "replay_class": "stale_callback",
+      "failure_mode": "drift"
+    },
+    {
+      "seed_id": "seed_reachability_repair",
+      "family": "notifications",
+      "label": "Notification reachability repair",
+      "route_family_refs": [
+        "rf_patient_messages",
+        "rf_support_ticket_workspace"
+      ],
+      "replay_class": "exact_replay",
+      "failure_mode": "blocked"
+    }
+  ],
+  "families": [
+    {
+      "family": "nhs_login",
+      "label": "NHS login-like redirect",
+      "accent": "#2563EB",
+      "adapter_contract_profile_ref": "ACP_083_NHS_LOGIN_REDIRECT_V1",
+      "simulator_contract_ref": "sim_nhs_login_auth_session_twin",
+      "route_family_refs": [
+        "rf_intake_self_service",
+        "rf_patient_requests",
+        "rf_patient_secure_link_recovery"
+      ],
+      "replay_classes": [
+        "exact_replay",
+        "stale_callback"
+      ],
+      "callback_timing_classes": [
+        "inline",
+        "delayed_short",
+        "expired"
+      ],
+      "evidence_shapes": [
+        "AdapterDispatchAttempt",
+        "AdapterReceiptCheckpoint",
+        "SessionEstablishmentDecision",
+        "IdentityBinding"
+      ],
+      "degraded_semantics": [
+        "consent_declined",
+        "subject_mismatch",
+        "callback_expired",
+        "auth_read_only"
+      ],
+      "actual_provider_strategy_later": {
+        "swap_boundary": "replace redirect inventory, client credentials, and partner-environment evidence only",
+        "secret_classes": [
+          "oidc_client_id",
+          "oidc_private_key",
+          "redirect_uri_inventory"
+        ],
+        "semantic_preservation_rules": [
+          "state, nonce, PKCE, and callback replay stay exact",
+          "auth success never bypasses canonical identity or grant law"
+        ]
+      },
+      "source_refs": [
+        "data/analysis/nhs_login_capture_pack.json",
+        "docs/external/25_nhs_login_mock_service_spec.md"
+      ]
+    },
+    {
+      "family": "im1_gp",
+      "label": "IM1 / GP integration",
+      "accent": "#0EA5A4",
+      "adapter_contract_profile_ref": "ACP_083_IM1_GP_PROVIDER_V1",
+      "simulator_contract_ref": "sim_im1_principal_system_emis_twin",
+      "route_family_refs": [
+        "rf_patient_appointments",
+        "rf_staff_workspace"
+      ],
+      "replay_classes": [
+        "exact_replay",
+        "timeout_resume"
+      ],
+      "callback_timing_classes": [
+        "inline",
+        "delayed_short",
+        "delayed_long"
+      ],
+      "evidence_shapes": [
+        "AdapterDispatchAttempt",
+        "AdapterReceiptCheckpoint",
+        "BookingConfirmationTruthProjection",
+        "ExternalConfirmationGate"
+      ],
+      "degraded_semantics": [
+        "stale_read",
+        "hold_expiry",
+        "accepted_not_confirmed",
+        "provider_timeout"
+      ],
+      "actual_provider_strategy_later": {
+        "swap_boundary": "replace supplier-specific endpoint bindings, licences, and environment evidence only",
+        "secret_classes": [
+          "im1_client_credentials",
+          "supplier_endpoint_roster",
+          "pairing_environment_evidence"
+        ],
+        "semantic_preservation_rules": [
+          "search, hold, commit, reschedule, and cancel keep the same confirmation law",
+          "weak confirmation remains explicit through ExternalConfirmationGate"
+        ]
+      },
+      "source_refs": [
+        "data/analysis/im1_pairing_pack.json",
+        "docs/external/26_im1_pairing_rehearsal_strategy.md"
+      ]
+    },
+    {
+      "family": "mesh",
+      "label": "MESH-style mailbox transport",
+      "accent": "#7C3AED",
+      "adapter_contract_profile_ref": "ACP_083_MESH_MAILBOX_TRANSPORT_V1",
+      "simulator_contract_ref": "sim_mesh_message_path_twin",
+      "route_family_refs": [
+        "rf_hub_case_management",
+        "rf_pharmacy_console",
+        "rf_support_replay_observe"
+      ],
+      "replay_classes": [
+        "exact_replay",
+        "duplicate_delivery"
+      ],
+      "callback_timing_classes": [
+        "inline",
+        "delayed_short",
+        "delayed_long",
+        "out_of_order"
+      ],
+      "evidence_shapes": [
+        "AdapterDispatchAttempt",
+        "AdapterReceiptCheckpoint",
+        "TransportReceipt",
+        "ReplayFence"
+      ],
+      "degraded_semantics": [
+        "delayed_ack",
+        "duplicate_delivery",
+        "expired_pickup",
+        "dead_letter"
+      ],
+      "actual_provider_strategy_later": {
+        "swap_boundary": "replace mailbox ownership, message transport credentials, and routing approvals only",
+        "secret_classes": [
+          "mailbox_credentials",
+          "workflow_mapping_inventory",
+          "message_transport_certificate"
+        ],
+        "semantic_preservation_rules": [
+          "correlation digests and message hashes remain first-class proof",
+          "transport acceptance never stands in for downstream acknowledgement"
+        ]
+      },
+      "source_refs": [
+        "data/analysis/mesh_execution_pack.json",
+        "docs/external/28_mesh_mock_mailroom_spec.md"
+      ]
+    },
+    {
+      "family": "telephony",
+      "label": "Telephony / IVR / transcript",
+      "accent": "#D97706",
+      "adapter_contract_profile_ref": "ACP_083_TELEPHONY_INGRESS_CALLBACK_V1",
+      "simulator_contract_ref": "sim_telephony_ivr_twin",
+      "route_family_refs": [
+        "rf_intake_telephony_capture",
+        "rf_patient_secure_link_recovery"
+      ],
+      "replay_classes": [
+        "exact_replay",
+        "stale_callback",
+        "duplicate_delivery"
+      ],
+      "callback_timing_classes": [
+        "inline",
+        "delayed_short",
+        "out_of_order"
+      ],
+      "evidence_shapes": [
+        "AdapterDispatchAttempt",
+        "AdapterReceiptCheckpoint",
+        "CallSessionRecord",
+        "TelephonyContinuationContext",
+        "TelephonyEvidenceReadinessAssessment"
+      ],
+      "degraded_semantics": [
+        "urgent_live_only",
+        "recording_missing",
+        "webhook_signature_failed",
+        "continuation_eligible"
+      ],
+      "actual_provider_strategy_later": {
+        "swap_boundary": "replace number inventory, webhook security material, and recording vendor credentials only",
+        "secret_classes": [
+          "telephony_api_key",
+          "recording_bucket_binding",
+          "webhook_signature_secret"
+        ],
+        "semantic_preservation_rules": [
+          "urgent-live preemption and continuation law remain canonical",
+          "callback replay and timing skew stay explicit"
+        ]
+      },
+      "source_refs": [
+        "data/analysis/32_telephony_lab_pack.json",
+        "docs/external/32_local_telephony_lab_spec.md"
+      ]
+    },
+    {
+      "family": "notifications",
+      "label": "SMS / email delivery",
+      "accent": "#059669",
+      "adapter_contract_profile_ref": "ACP_083_NOTIFICATION_DELIVERY_V1",
+      "simulator_contract_ref": "sim_sms_delivery_twin",
+      "route_family_refs": [
+        "rf_patient_messages",
+        "rf_support_ticket_workspace"
+      ],
+      "replay_classes": [
+        "exact_replay",
+        "duplicate_delivery"
+      ],
+      "callback_timing_classes": [
+        "inline",
+        "delayed_short",
+        "delayed_long"
+      ],
+      "evidence_shapes": [
+        "AdapterDispatchAttempt",
+        "AdapterReceiptCheckpoint",
+        "MessageDeliveryEvidenceBundle",
+        "ReachabilityObservation"
+      ],
+      "degraded_semantics": [
+        "delayed_delivery",
+        "bounce_repair_required",
+        "wrong_recipient_suspected",
+        "opt_out_suppressed"
+      ],
+      "actual_provider_strategy_later": {
+        "swap_boundary": "replace channel project IDs, sender identities, and delivery-webhook credentials only",
+        "secret_classes": [
+          "sms_project_token",
+          "email_domain_secret",
+          "delivery_webhook_secret"
+        ],
+        "semantic_preservation_rules": [
+          "delivery evidence still feeds canonical reachability and repair flows",
+          "provider accepted never implies patient-safe settlement"
+        ]
+      },
+      "source_refs": [
+        "data/analysis/33_notification_studio_pack.json",
+        "docs/external/33_local_notification_studio_spec.md"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,251 @@
+{
+  "taskId": "seq_227",
+  "registryVersion": "227.queue-more-info.v1",
+  "queueRankPlan": {
+    "queueRankPlanId": "queue_rank_plan::phase3_v1",
+    "queueFamilyRef": "staff_review_routine",
+    "eligibilityRuleSetRef": "queue_eligibility_rules::phase3_v1",
+    "withinTierFormula": "u_i = 1 - exp(-(w_sla * slaPressure_i + w_age * ageLift_i + w_residual * residual_i + w_contact * contactRisk_i + w_return * returnLift_i + w_carry * urgencyCarry_i + w_vulnerability * vulnerability_i))",
+    "sortOrder": [
+      "escalated_i desc",
+      "slaClass_i desc",
+      "priority_i desc",
+      "max(residualBand_i, contactRiskBand_i) desc",
+      "duplicateReview_i desc",
+      "urgencyCarry_i desc",
+      "u_i desc",
+      "queueEnteredAt asc",
+      "canonicalTieBreakKey_i asc"
+    ],
+    "weights": {
+      "w_sla": 0.28,
+      "w_age": 0.12,
+      "w_residual": 0.22,
+      "w_contact": 0.16,
+      "w_return": 0.12,
+      "w_carry": 0.07,
+      "w_vulnerability": 0.03,
+      "beta_warn": 0.4,
+      "beta_late": 0.6
+    },
+    "thresholds": {
+      "s_min_minutes": 5,
+      "theta_sla_critical_minutes": 120,
+      "theta_sla_warn_minutes": 480,
+      "tau_sla_minutes": 90,
+      "tau_late_minutes": 60,
+      "H_late_minutes": 480,
+      "tau_age_minutes": 240,
+      "A_cap_minutes": 1440,
+      "r_base": 0.35,
+      "r_delta": 0.4,
+      "r_wait": 0.25,
+      "tau_return_minutes": 120,
+      "H_return_minutes": 720
+    },
+    "fairnessMergePolicy": {
+      "algorithm": "deterministic_service_cost_aware_deficit_round_robin",
+      "bands": [
+        {
+          "fairnessBandRef": "band_returned_review",
+          "fixedBandOrder": 1,
+          "q_b": 1.25,
+          "gamma_age": 0.4,
+          "A_b_minutes": 120,
+          "H_b_minutes": 360,
+          "s_quantum_minutes": 15,
+          "eligibilitySummary": "returned_i = 1 and escalated_i = 0 and slaClass_i < 3"
+        },
+        {
+          "fairnessBandRef": "band_risk_attention",
+          "fixedBandOrder": 2,
+          "q_b": 1.0,
+          "gamma_age": 0.35,
+          "A_b_minutes": 180,
+          "H_b_minutes": 480,
+          "s_quantum_minutes": 18,
+          "eligibilitySummary": "non-critical work with residualBand_i >= 2 or contactRiskBand_i >= 2"
+        },
+        {
+          "fairnessBandRef": "band_routine",
+          "fixedBandOrder": 3,
+          "q_b": 0.85,
+          "gamma_age": 0.3,
+          "A_b_minutes": 240,
+          "H_b_minutes": 600,
+          "s_quantum_minutes": 20,
+          "eligibilitySummary": "non-critical routine review work"
+        },
+        {
+          "fairnessBandRef": "band_low_intensity",
+          "fixedBandOrder": 4,
+          "q_b": 0.7,
+          "gamma_age": 0.25,
+          "A_b_minutes": 300,
+          "H_b_minutes": 720,
+          "s_quantum_minutes": 12,
+          "eligibilitySummary": "low-intensity non-critical work that still needs starvation protection"
+        }
+      ],
+      "C_max": 4.0
+    },
+    "overloadGuardPolicy": {
+      "formula": "rho_crit = lambdaHat_crit * mean(expectedService_i | escalated_i = 1 or slaClass_i = 3) / (m * muHat)",
+      "rho_guard": 0.85,
+      "overloadEventId": "triage.queue.overload_critical",
+      "suppressedPromises": [
+        "starvation_free_copy",
+        "routine_eta_promises",
+        "fairness_floor_reassurance"
+      ],
+      "triggeredResponses": [
+        "staffing",
+        "diversion",
+        "sla_rebasing"
+      ]
+    },
+    "assignmentSuggestionPolicy": {
+      "formula": "assignScore(i,r) = lambda_skill * skill_{i,r} + lambda_cont * continuity_{i,r} + lambda_load * loadHeadroom_r + lambda_sticky * sameContext_{i,r} - lambda_ctx * contextSwitchCost_{i,r} - lambda_focus * focusPenalty_{i,r}",
+      "candidateWindowSize": 12,
+      "epsilon_assign": 0.08,
+      "softWipCapRatio": 0.9,
+      "weights": {
+        "lambda_skill": 0.38,
+        "lambda_cont": 0.22,
+        "lambda_load": 0.18,
+        "lambda_sticky": 0.1,
+        "lambda_ctx": 0.07,
+        "lambda_focus": 0.05
+      },
+      "mayRewriteCanonicalOrder": false
+    },
+    "explanationPayloadFields": [
+      "ageMinutes",
+      "returnAgeMinutes",
+      "expectedServiceMinutes",
+      "d_sla_minutes",
+      "laxity_minutes",
+      "slaClass",
+      "slaWarn",
+      "slaLate",
+      "slaPressure",
+      "priorityOrdinal",
+      "residual",
+      "residualBand",
+      "contactRisk",
+      "contactRiskBand",
+      "returnedFlag",
+      "evidenceDeltaSeverity",
+      "returnLift",
+      "urgencyCarry",
+      "vulnerability",
+      "coverageFit",
+      "routingGap",
+      "duplicateReviewFlag",
+      "fairnessCreditBefore",
+      "fairnessCreditAfter"
+    ],
+    "canonicalTieBreakPolicy": "H(queueKey || queueEnteredAt_i || taskId_i)",
+    "planHash": "queue_rank_plan_phase3_v1_hash_2026_04_16",
+    "effectiveAt": "2026-04-16T00:00:00Z"
+  },
+  "duplicateAuthorityBridge": {
+    "phase0CanonicalAuthority": "DuplicateCluster",
+    "reviewProjection": "DuplicateReviewSnapshot",
+    "authoritySeparation": [
+      {
+        "authority": "IdempotencyRecord",
+        "owns": [
+          "exact_replay",
+          "semantic_replay"
+        ],
+        "mayNotOwn": [
+          "same_request_attach",
+          "duplicate_review"
+        ]
+      },
+      {
+        "authority": "DuplicateResolutionDecision",
+        "owns": [
+          "same_request_attach",
+          "same_episode_link",
+          "related_episode_link",
+          "separate_request"
+        ],
+        "mayNotOwn": [
+          "exact_replay"
+        ]
+      },
+      {
+        "authority": "DuplicateCluster",
+        "owns": [
+          "review_safe_ambiguity",
+          "closure_blocking_duplicate_review"
+        ],
+        "mayNotOwn": [
+          "attach_finality"
+        ]
+      },
+      {
+        "authority": "ReplayCollisionReview",
+        "owns": [
+          "same_fence_divergence",
+          "idempotency_collision"
+        ],
+        "mayNotOwn": [
+          "duplicate_cluster_resolution"
+        ]
+      }
+    ],
+    "thresholdPolicy": {
+      "policyRef": "duplicate_threshold_policy::2026-04-12",
+      "autoRetryMinPi": 0.95,
+      "sameRequestAttachMinPi": 0.6,
+      "sameRequestAttachClassMarginMin": 0.2,
+      "sameRequestAttachCandidateMarginMin": 0.25,
+      "sameRequestAttachRequiresContinuityWitness": true,
+      "reviewRequiredCandidateMarginMax": 0.05,
+      "reviewRequiredUncertaintyMin": 0.2,
+      "separateRequestMinPiNewEpisode": 0.7,
+      "separateRequestClassMarginMin": 0.3
+    }
+  },
+  "moreInfoPolicies": {
+    "checkpointAuthority": "MoreInfoReplyWindowCheckpoint",
+    "responseDispositionAuthority": "MoreInfoResponseDisposition",
+    "replyWindowPolicies": [
+      {
+        "policyId": "more_info_policy::routine_clinical_followup_v1",
+        "dueAfterHours": 72,
+        "lateReviewGraceHours": 48,
+        "reminderOffsetsHoursBeforeDue": [
+          24,
+          4
+        ],
+        "quietHoursLocal": {
+          "start": "21:00",
+          "end": "08:00"
+        },
+        "maxReminderCount": 2
+      },
+      {
+        "policyId": "more_info_policy::urgent_clarification_v1",
+        "dueAfterHours": 24,
+        "lateReviewGraceHours": 12,
+        "reminderOffsetsHoursBeforeDue": [
+          8,
+          1
+        ],
+        "quietHoursLocal": {
+          "start": "21:00",
+          "end": "08:00"
+        },
+        "maxReminderCount": 2
+      }
+    ],
+    "reopenGuard": {
+      "N_reopen_max": 3,
+      "W_reopen_hours": 24
+    }
+  }
+}

@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Build Provenance Cockpit</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f3f1ec;
+        --panel: rgba(255, 252, 247, 0.92);
+        --ink: #172226;
+        --muted: #5a676b;
+        --line: rgba(23, 34, 38, 0.14);
+        --accent: #184b45;
+        --warn: #8a5a12;
+        --block: #8e2d2d;
+        --shadow: 0 20px 48px rgba(23, 34, 38, 0.08);
+        --radius: 18px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(24, 75, 69, 0.1), transparent 32%),
+          linear-gradient(180deg, #f8f5ef 0%, var(--bg) 100%);
+      }
+
+      main {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 32px 20px 48px;
+      }
+
+      .masthead {
+        display: grid;
+        gap: 16px;
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-radius: calc(var(--radius) + 4px);
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(245, 241, 234, 0.92));
+        box-shadow: var(--shadow);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 3.2rem);
+        line-height: 1.04;
+        max-width: 12ch;
+      }
+
+      .masthead-grid,
+      .workspace {
+        display: grid;
+        gap: 20px;
+      }
+
+      .masthead-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .workspace {
+        margin-top: 24px;
+        grid-template-columns: 1.4fr 1fr;
+        align-items: start;
+      }
+
+      .column,
+      .panel {
+        display: grid;
+        gap: 16px;
+      }
+
+      .panel {
+        padding: 20px;
+        border-radius: var(--radius);
+        border: 1px solid var(--line);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+
+      .summary-grid,
+      .filter-row {
+        display: grid;
+        gap: 12px;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .metric {
+        padding: 14px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 1.6rem;
+        line-height: 1;
+      }
+
+      .metric span {
+        display: block;
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 0.94rem;
+      }
+
+      .filter-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      label {
+        display: grid;
+        gap: 8px;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      select {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.92);
+        color: var(--ink);
+      }
+
+      .scenario-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .scenario-card {
+        text-align: left;
+        padding: 16px;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.82);
+        cursor: pointer;
+        transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+      }
+
+      .scenario-card:hover,
+      .scenario-card:focus-visible,
+      .scenario-card.is-active {
+        transform: translateY(-1px);
+        border-color: rgba(24, 75, 69, 0.4);
+        background: rgba(255, 255, 255, 0.96);
+        outline: none;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+      }
+
+      .pill.approved {
+        color: var(--accent);
+        background: rgba(24, 75, 69, 0.12);
+      }
+
+      .pill.quarantined {
+        color: var(--warn);
+        background: rgba(138, 90, 18, 0.12);
+      }
+
+      .pill.revoked,
+      .pill.superseded {
+        color: var(--block);
+        background: rgba(142, 45, 45, 0.12);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 12px 10px;
+        text-align: left;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--muted);
+        font-size: 0.84rem;
+        font-weight: 600;
+      }
+
+      .scenario-row {
+        cursor: pointer;
+      }
+
+      .scenario-row.is-active {
+        background: rgba(24, 75, 69, 0.08);
+      }
+
+      .stack {
+        display: grid;
+        gap: 10px;
+      }
+
+      .kv {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .kv div {
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.7);
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      @media (max-width: 1080px) {
+        .masthead-grid,
+        .summary-grid,
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+
+        .scenario-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          scroll-behavior: auto !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="masthead" data-testid="cockpit-masthead" aria-labelledby="page-title">
+        <div class="eyebrow">Build_Provenance_Cockpit</div>
+        <h1 id="page-title">Release supply-chain integrity stays tuple-bound or it stays blocked.</h1>
+        <div class="masthead-grid" data-testid="current-snapshot"></div>
+      </section>
+
+      <section class="workspace">
+        <div class="column">
+          <section class="panel">
+            <div class="filter-row">
+              <label>
+                Environment ring
+                <select data-testid="filter-ring" aria-label="Environment ring"></select>
+              </label>
+              <label>
+                Decision state
+                <select data-testid="filter-decision" aria-label="Decision state"></select>
+              </label>
+            </div>
+          </section>
+
+          <section class="panel">
+            <header>
+              <h2>Scenarios</h2>
+              <p class="muted">Card and table views render the same provenance dataset.</p>
+            </header>
+            <div class="scenario-grid" data-testid="scenario-grid"></div>
+            <table data-testid="scenario-table">
+              <thead>
+                <tr>
+                  <th>Scenario</th>
+                  <th>Ring</th>
+                  <th>Decision</th>
+                  <th>Consumption</th>
+                </tr>
+              </thead>
+              <tbody data-testid="scenario-table-body"></tbody>
+            </table>
+          </section>
+
+          <section class="panel">
+            <header>
+              <h2>Policy matrix</h2>
+              <p class="muted">Canonical trigger-to-outcome rules.</p>
+            </header>
+            <table data-testid="policy-table">
+              <thead>
+                <tr>
+                  <th>Trigger</th>
+                  <th>Decision</th>
+                  <th>Runtime</th>
+                  <th>Operator action</th>
+                </tr>
+              </thead>
+              <tbody data-testid="policy-table-body"></tbody>
+            </table>
+          </section>
+
+          <section class="panel">
+            <header>
+              <h2>SBOM scopes</h2>
+              <p class="muted">Deterministic scope envelopes for each build family.</p>
+            </header>
+            <table data-testid="scope-table">
+              <thead>
+                <tr>
+                  <th>Build family</th>
+                  <th>Format</th>
+                  <th>Workloads</th>
+                  <th>Gateway surfaces</th>
+                </tr>
+              </thead>
+              <tbody data-testid="scope-table-body"></tbody>
+            </table>
+          </section>
+        </div>
+
+        <aside class="panel" data-testid="inspector" aria-live="polite">
+          <header>
+            <h2>Inspector</h2>
+            <p class="muted">Select a scenario to inspect runtime scope, blockers, and lineage.</p>
+          </header>
+          <div class="stack" data-testid="inspector-body"></div>
+        </aside>
+      </section>
+    </main>
+
+    <script>
+      const state = {
+        catalog: null,
+        scopeCatalog: null,
+        policyRows: [],
+        filteredScenarios: [],
+        selectedScenarioId: null,
+      };
+
+      async function loadCsv(url) {
+        const raw = await fetch(url).then((response) => response.text());
+        const [header, ...lines] = raw.trim().split(/\r?\n/);
+        const keys = header.split(",");
+        return lines.map((line) => {
+          const values = line.split(",");
+          return Object.fromEntries(keys.map((key, index) => [key, values[index] ?? ""]));
+        });
+      }
+
+      function byTestId(id) {
+        return document.querySelector(`[data-testid="${id}"]`);
+      }
+
+      function pillClass(decisionState) {
+        return `pill ${decisionState}`;
+      }
+
+      function renderSnapshot() {
+        const snapshot = state.catalog.currentSnapshot;
+        byTestId("current-snapshot").innerHTML = `
+          <div class="metric"><strong>${snapshot.buildFamilyCount}</strong><span>Build families</span></div>
+          <div class="metric"><strong>${snapshot.runtimePublicationBundleCount}</strong><span>Runtime bundles</span></div>
+          <div class="metric"><strong>${snapshot.gatewaySurfaceCount}</strong><span>Gateway surfaces</span></div>
+          <div class="metric"><strong>${snapshot.activeBlockedScenarioCount}</strong><span>Blocked or withdrawn scenarios</span></div>
+        `;
+      }
+
+      function currentFilters() {
+        return {
+          ring: byTestId("filter-ring").value,
+          decision: byTestId("filter-decision").value,
+        };
+      }
+
+      function applyFilters() {
+        const { ring, decision } = currentFilters();
+        state.filteredScenarios = state.catalog.provenanceScenarios.filter((scenario) => {
+          const ringMatch = ring === "all" || scenario.environmentRing === ring;
+          const decisionMatch = decision === "all" || scenario.decisionState === decision;
+          return ringMatch && decisionMatch;
+        });
+        if (!state.filteredScenarios.some((scenario) => scenario.scenarioId === state.selectedScenarioId)) {
+          state.selectedScenarioId = state.filteredScenarios[0]?.scenarioId ?? null;
+        }
+        renderScenarioGrid();
+        renderScenarioTable();
+        renderInspector();
+      }
+
+      function renderFilters() {
+        const rings = ["all", ...new Set(state.catalog.provenanceScenarios.map((scenario) => scenario.environmentRing))];
+        const decisions = ["all", ...new Set(state.catalog.provenanceScenarios.map((scenario) => scenario.decisionState))];
+        byTestId("filter-ring").innerHTML = rings
+          .map((ring) => `<option value="${ring}">${ring}</option>`)
+          .join("");
+        byTestId("filter-decision").innerHTML = decisions
+          .map((decision) => `<option value="${decision}">${decision}</option>`)
+          .join("");
+      }
+
+      function scenarioCardMarkup(scenario) {
+        const blockers = scenario.blockerRefs.length > 0 ? scenario.blockerRefs.join(", ") : "None";
+        const active = scenario.scenarioId === state.selectedScenarioId ? "is-active" : "";
+        return `
+          <button
+            type="button"
+            class="scenario-card ${active}"
+            data-testid="scenario-card-${scenario.scenarioId}"
+            data-scenario-id="${scenario.scenarioId}"
+          >
+            <div class="${pillClass(scenario.decisionState)}">${scenario.decisionState}</div>
+            <h3>${scenario.scenarioId}</h3>
+            <div class="stack">
+              <div><strong>${scenario.environmentRing}</strong><div class="muted">${scenario.buildFamilyRef}</div></div>
+              <div><strong>${scenario.runtimeConsumptionState}</strong><div class="muted">${scenario.publicationEligibilityState}</div></div>
+              <div class="muted">Blockers: ${blockers}</div>
+            </div>
+          </button>
+        `;
+      }
+
+      function renderScenarioGrid() {
+        byTestId("scenario-grid").innerHTML = state.filteredScenarios.map(scenarioCardMarkup).join("");
+        document.querySelectorAll("[data-scenario-id]").forEach((node) => {
+          node.addEventListener("click", () => selectScenario(node.dataset.scenarioId));
+        });
+      }
+
+      function renderScenarioTable() {
+        byTestId("scenario-table-body").innerHTML = state.filteredScenarios
+          .map((scenario) => {
+            const active = scenario.scenarioId === state.selectedScenarioId ? "is-active" : "";
+            return `
+              <tr
+                class="scenario-row ${active}"
+                data-testid="scenario-row-${scenario.scenarioId}"
+                data-scenario-id="${scenario.scenarioId}"
+                tabindex="0"
+              >
+                <td>${scenario.scenarioId}<div class="muted">${scenario.buildFamilyRef}</div></td>
+                <td>${scenario.environmentRing}</td>
+                <td><span class="${pillClass(scenario.decisionState)}">${scenario.decisionState}</span></td>
+                <td>${scenario.runtimeConsumptionState}</td>
+              </tr>
+            `;
+          })
+          .join("");
+        document.querySelectorAll(".scenario-row").forEach((node) => {
+          node.addEventListener("click", () => selectScenario(node.dataset.scenarioId));
+          node.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              selectScenario(node.dataset.scenarioId);
+            }
+          });
+        });
+      }
+
+      function renderPolicyTable() {
+        byTestId("policy-table-body").innerHTML = state.policyRows
+          .map(
+            (row) => `
+              <tr data-testid="policy-row-${row.trigger_ref}">
+                <td>${row.trigger_ref}</td>
+                <td>${row.decision_state}</td>
+                <td>${row.runtime_consumption_state}</td>
+                <td>${row.operator_action}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function renderScopeTable() {
+        byTestId("scope-table-body").innerHTML = state.scopeCatalog.buildFamilies
+          .map(
+            (row) => `
+              <tr data-testid="scope-row-${row.buildFamilyRef}">
+                <td>${row.buildFamilyRef}</td>
+                <td>${row.format}</td>
+                <td>${row.targetWorkloadFamilyRefs.join(", ")}</td>
+                <td>${row.targetGatewaySurfaceRefs.join(", ") || "none"}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function selectScenario(scenarioId) {
+        state.selectedScenarioId = scenarioId;
+        renderScenarioGrid();
+        renderScenarioTable();
+        renderInspector();
+      }
+
+      function renderInspector() {
+        const scenario = state.catalog.provenanceScenarios.find(
+          (row) => row.scenarioId === state.selectedScenarioId,
+        );
+        if (!scenario) {
+          byTestId("inspector-body").innerHTML = "<p class='muted'>No scenario matches the current filters.</p>";
+          return;
+        }
+        byTestId("inspector-body").innerHTML = `
+          <div class="kv">
+            <div><strong>Scenario</strong><div>${scenario.scenarioId}</div></div>
+            <div><strong>Decision</strong><div>${scenario.decisionState}</div></div>
+            <div><strong>Runtime publication</strong><div>${scenario.runtimePublicationBundleRef}</div></div>
+            <div><strong>Parity record</strong><div>${scenario.releasePublicationParityRef}</div></div>
+            <div><strong>Verification</strong><div>${scenario.verificationState}</div></div>
+            <div><strong>Consumption</strong><div>${scenario.runtimeConsumptionState}</div></div>
+          </div>
+          <div>
+            <strong>Runtime scope</strong>
+            <ul>
+              <li>Surface schema set: ${scenario.targetSurfaceSchemaSetRef}</li>
+              <li>Workload families: ${scenario.targetWorkloadFamilyRefs.join(", ")}</li>
+              <li>Gateway surfaces: ${scenario.targetGatewaySurfaceRefs.join(", ") || "none"}</li>
+              <li>Trust boundaries: ${scenario.targetTrustZoneBoundaryRefs.join(", ")}</li>
+            </ul>
+          </div>
+          <div>
+            <strong>Blockers</strong>
+            <ul>${(scenario.blockerRefs.length ? scenario.blockerRefs : ["None"]).map((entry) => `<li>${entry}</li>`).join("")}</ul>
+          </div>
+          <div>
+            <strong>Lineage</strong>
+            <ul>
+              <li>Revoked by: ${scenario.lineage.revokedBy || "none"}</li>
+              <li>Superseded by: ${scenario.lineage.supersededBy || "none"}</li>
+              <li>Binding digest: ${scenario.bindingDigest}</li>
+            </ul>
+          </div>
+        `;
+      }
+
+      async function boot() {
+        const [catalog, scopeCatalog, policyRows] = await Promise.all([
+          fetch("/data/analysis/build_provenance_integrity_catalog.json").then((response) => response.json()),
+          fetch("/data/analysis/sbom_scope_catalog.json").then((response) => response.json()),
+          loadCsv("/data/analysis/provenance_policy_matrix.csv"),
+        ]);
+        state.catalog = catalog;
+        state.scopeCatalog = scopeCatalog;
+        state.policyRows = policyRows;
+        state.selectedScenarioId = catalog.selectedScenarioId;
+        renderSnapshot();
+        renderFilters();
+        renderPolicyTable();
+        renderScopeTable();
+        byTestId("filter-ring").addEventListener("change", applyFilters);
+        byTestId("filter-decision").addEventListener("change", applyFilters);
+        applyFilters();
+      }
+
+      boot().catch((error) => {
+        byTestId("inspector-body").innerHTML = `<p>${error.message}</p>`;
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1001 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>114 UI Telemetry Diagnostics Console</title>
+    <link rel="stylesheet" href="../../packages/design-system/src/foundation.css" />
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at top right, color-mix(in oklab, var(--sys-state-info-soft) 44%, transparent), transparent 32%),
+          linear-gradient(
+            180deg,
+            color-mix(in oklab, var(--sys-surface-canvas) 92%, white),
+            var(--sys-surface-canvas)
+          );
+        color: var(--sys-text-default);
+      }
+
+      body[data-reduced-motion="true"] * {
+        animation-duration: 0ms !important;
+        transition-duration: 0ms !important;
+        scroll-behavior: auto !important;
+      }
+
+      .console {
+        max-width: 1760px;
+        margin: 0 auto;
+        padding: 24px;
+        display: grid;
+        gap: 24px;
+      }
+
+      .panel,
+      .masthead,
+      .timeline {
+        border-radius: 24px;
+        border: 1px solid var(--sys-border-subtle);
+        background: color-mix(in oklab, var(--sys-surface-panel) 94%, white);
+        box-shadow: var(--shadow-z1);
+      }
+
+      .masthead {
+        padding: 24px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .chip-row,
+      .button-row,
+      .meta-row,
+      .timeline-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .chip,
+      .timeline-chip,
+      .event-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid var(--sys-border-default);
+        background: var(--sys-surface-shell);
+        color: var(--sys-text-default);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr) minmax(360px, 400px);
+        gap: 24px;
+        align-items: start;
+      }
+
+      .rail,
+      .stage,
+      .inspector {
+        display: grid;
+        gap: 16px;
+      }
+
+      .rail {
+        position: sticky;
+        top: 24px;
+      }
+
+      .panel {
+        padding: 20px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .panel h1,
+      .panel h2,
+      .panel h3,
+      .panel h4,
+      .panel p,
+      .masthead h1,
+      .masthead p {
+        margin: 0;
+      }
+
+      .kicker {
+        font: var(--type-label);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--sys-text-muted);
+      }
+
+      .title {
+        font: var(--type-title);
+        color: var(--sys-text-strong);
+      }
+
+      .body {
+        font: var(--type-body-sm);
+        color: var(--sys-text-muted);
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+        font: var(--type-label);
+        color: var(--sys-text-muted);
+      }
+
+      select,
+      button {
+        font: inherit;
+      }
+
+      select {
+        width: 100%;
+        min-height: 44px;
+        padding: 0 12px;
+        border-radius: 16px;
+        border: 1px solid var(--sys-border-default);
+        background: var(--sys-surface-shell);
+        color: var(--sys-text-default);
+      }
+
+      .scenario-list,
+      .marker-list,
+      .event-list,
+      .tuple-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .scenario-card,
+      .marker-card,
+      .event-card,
+      .tuple-card,
+      .stage-card {
+        border-radius: 18px;
+        border: 1px solid var(--sys-border-subtle);
+        background: var(--sys-surface-shell);
+        padding: 14px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .scenario-card {
+        cursor: pointer;
+        transition:
+          border-color 140ms ease,
+          background-color 140ms ease,
+          transform 140ms ease;
+      }
+
+      .scenario-card[data-active="true"] {
+        border-color: var(--sys-state-info-border);
+        background: color-mix(in oklab, var(--sys-state-info-soft) 42%, var(--sys-surface-shell));
+        transform: translateY(-1px);
+      }
+
+      .scenario-card strong,
+      .marker-card strong,
+      .event-card strong,
+      .tuple-card strong {
+        color: var(--sys-text-strong);
+      }
+
+      .specimen-wrap {
+        display: grid;
+        gap: 16px;
+      }
+
+      .specimen-root {
+        border-radius: 22px;
+        border: 1px solid var(--sys-border-subtle);
+        background:
+          linear-gradient(
+            180deg,
+            color-mix(in oklab, var(--sys-surface-panel) 92%, white),
+            var(--sys-surface-shell)
+          );
+        padding: 18px;
+        display: grid;
+        gap: 14px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .specimen-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(240px, 0.8fr);
+        gap: 14px;
+      }
+
+      .specimen-node {
+        position: relative;
+        border-radius: 18px;
+        border: 1px solid var(--sys-border-subtle);
+        background: color-mix(in oklab, var(--sys-surface-shell) 92%, white);
+        padding: 14px;
+        display: grid;
+        gap: 8px;
+        transition:
+          border-color 140ms ease,
+          box-shadow 140ms ease,
+          transform 140ms ease;
+      }
+
+      .specimen-node[data-node-tone="accent"] {
+        border-color: var(--sys-state-info-border);
+      }
+
+      .specimen-node:focus-visible {
+        outline: 2px solid var(--sys-state-info-border);
+        outline-offset: 3px;
+      }
+
+      .overlay-label {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: color-mix(in oklab, var(--sys-surface-inset) 86%, white);
+        border: 1px solid var(--sys-border-subtle);
+        color: var(--sys-text-muted);
+        font: var(--type-label);
+        opacity: 0;
+        transform: translateY(-4px);
+        transition:
+          opacity 140ms ease,
+          transform 140ms ease;
+        pointer-events: none;
+      }
+
+      .specimen-root[data-overlay-visible="true"] .overlay-label {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .specimen-action {
+        width: 100%;
+        min-height: 44px;
+        padding: 0 14px;
+        border-radius: 14px;
+        border: 1px solid var(--sys-border-default);
+        background: var(--sys-surface-shell);
+        color: var(--sys-text-default);
+        text-align: left;
+        cursor: pointer;
+        transition:
+          border-color 140ms ease,
+          transform 140ms ease,
+          background-color 140ms ease;
+      }
+
+      .specimen-action:hover,
+      .console-toggle:hover {
+        border-color: var(--sys-state-info-border);
+      }
+
+      .console-toggle {
+        min-height: 40px;
+        padding: 0 12px;
+        border-radius: 14px;
+        border: 1px solid var(--sys-border-default);
+        background: var(--sys-surface-shell);
+        color: var(--sys-text-default);
+        cursor: pointer;
+      }
+
+      .console-toggle[data-active="true"] {
+        border-color: var(--sys-state-info-border);
+        background: color-mix(in oklab, var(--sys-state-info-soft) 42%, var(--sys-surface-shell));
+      }
+
+      .timeline {
+        padding: 20px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .timeline-stream {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+      }
+
+      .event-card code,
+      .marker-card code,
+      .tuple-card code {
+        font: var(--type-label);
+        color: var(--sys-text-muted);
+      }
+
+      @media (max-width: 1320px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .rail {
+          position: static;
+        }
+
+        .specimen-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation-duration: 0ms !important;
+          transition-duration: 0ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="console" data-testid="ui-telemetry-console" data-loaded="false">
+      <section class="masthead">
+        <div class="kicker">Par 114</div>
+        <h1 class="title">UI Telemetry Console</h1>
+        <p class="body">
+          Shared automation markers and PHI-safe event envelopes for shell, status, posture,
+          route-guard, and patient-seed specimens.
+        </p>
+        <div class="chip-row" data-testid="masthead-summary"></div>
+      </section>
+
+      <div class="layout">
+        <aside class="rail">
+          <section class="panel" data-testid="scenario-rail">
+            <div class="kicker">Selector</div>
+            <label>
+              Shell
+              <select data-testid="shell-filter"></select>
+            </label>
+            <label>
+              Route
+              <select data-testid="route-filter"></select>
+            </label>
+            <div class="scenario-list" data-testid="scenario-list"></div>
+          </section>
+        </aside>
+
+        <main class="stage">
+          <section class="panel" data-testid="specimen-pane">
+            <div class="meta-row">
+              <button class="console-toggle" type="button" data-testid="marker-overlay-toggle">
+                Marker overlay
+              </button>
+              <button class="console-toggle" type="button" data-testid="reduced-motion-toggle">
+                Reduced motion
+              </button>
+            </div>
+            <div class="specimen-wrap">
+              <div class="specimen-root" data-testid="specimen-surface" tabindex="-1"></div>
+            </div>
+          </section>
+        </main>
+
+        <aside class="inspector">
+          <section class="panel" data-testid="selected-anchor-tuple"></section>
+          <section class="panel" data-testid="focus-restore-state"></section>
+          <section class="panel" data-testid="marker-tree"></section>
+          <section class="panel" data-testid="recent-events"></section>
+        </aside>
+      </div>
+
+      <section class="timeline" data-testid="event-timeline">
+        <div class="kicker">Event timeline</div>
+        <div class="timeline-row" data-testid="event-summary"></div>
+        <div class="timeline-stream" data-testid="timeline-stream"></div>
+      </section>
+    </div>
+
+    <script type="module">
+      const PATHS = {
+        profiles: "../../data/analysis/automation_anchor_profile_examples.json",
+        vocabulary: "../../data/analysis/ui_telemetry_vocabulary.json",
+        envelopes: "../../data/analysis/ui_event_envelope_examples.json",
+      };
+
+      const root = document.querySelector("[data-testid='ui-telemetry-console']");
+      const shellFilter = document.querySelector("[data-testid='shell-filter']");
+      const routeFilter = document.querySelector("[data-testid='route-filter']");
+      const scenarioList = document.querySelector("[data-testid='scenario-list']");
+      const mastheadSummary = document.querySelector("[data-testid='masthead-summary']");
+      const specimenSurface = document.querySelector("[data-testid='specimen-surface']");
+      const markerTree = document.querySelector("[data-testid='marker-tree']");
+      const recentEvents = document.querySelector("[data-testid='recent-events']");
+      const selectedAnchorTuple = document.querySelector("[data-testid='selected-anchor-tuple']");
+      const focusRestoreState = document.querySelector("[data-testid='focus-restore-state']");
+      const timelineStream = document.querySelector("[data-testid='timeline-stream']");
+      const eventSummary = document.querySelector("[data-testid='event-summary']");
+      const overlayToggle = document.querySelector("[data-testid='marker-overlay-toggle']");
+      const reducedMotionToggle = document.querySelector("[data-testid='reduced-motion-toggle']");
+
+      const state = {
+        profiles: [],
+        scenarios: [],
+        envelopes: [],
+        shellFilter: "all",
+        routeFilter: "all",
+        selectedScenarioId: null,
+        overlayVisible: false,
+        reducedMotion: false,
+        eventStream: [],
+        runtimeState: {},
+      };
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function findScenario(id) {
+        return state.scenarios.find((scenario) => scenario.scenarioId === id);
+      }
+
+      function findProfile(routeFamilyRef) {
+        return state.profiles.find((profile) => profile.routeFamilyRef === routeFamilyRef);
+      }
+
+      function envelopesForScenario(scenarioId) {
+        return state.envelopes.filter((envelope) => envelope.scenarioId === scenarioId);
+      }
+
+      function envelopeForClass(scenarioId, eventClass) {
+        return envelopesForScenario(scenarioId).find((envelope) => envelope.eventClass === eventClass);
+      }
+
+      function setFilters() {
+        const shells = ["all", ...new Set(state.profiles.map((profile) => profile.shellSlug))];
+        const routes = ["all", ...state.profiles.map((profile) => profile.routeFamilyRef)];
+        shellFilter.innerHTML = shells
+          .map((shell) => `<option value="${escapeHtml(shell)}">${escapeHtml(shell)}</option>`)
+          .join("");
+        routeFilter.innerHTML = routes
+          .map((route) => `<option value="${escapeHtml(route)}">${escapeHtml(route)}</option>`)
+          .join("");
+        shellFilter.value = state.shellFilter;
+        routeFilter.value = state.routeFilter;
+      }
+
+      function filteredScenarios() {
+        return state.scenarios.filter((scenario) => {
+          if (state.shellFilter !== "all" && scenario.shellSlug !== state.shellFilter) {
+            return false;
+          }
+          if (state.routeFilter !== "all" && scenario.routeFamilyRef !== state.routeFilter) {
+            return false;
+          }
+          return true;
+        });
+      }
+
+      function appendEnvelope(eventClass) {
+        const scenario = findScenario(state.selectedScenarioId);
+        if (!scenario) {
+          return;
+        }
+        const envelope = envelopeForClass(scenario.scenarioId, eventClass);
+        if (!envelope) {
+          return;
+        }
+        state.eventStream = [...state.eventStream, envelope];
+      }
+
+      function updateRuntimeState(actionKey, scenario) {
+        switch (actionKey) {
+          case "selected_anchor":
+            state.runtimeState = {
+              ...state.runtimeState,
+              selectedAnchorRef: scenario.selectedAnchorRef,
+            };
+            appendEnvelope("selected_anchor_changed");
+            break;
+          case "dominant_action":
+            state.runtimeState = {
+              ...state.runtimeState,
+              dominantActionRef: scenario.dominantActionRef,
+            };
+            appendEnvelope("dominant_action_changed");
+            break;
+          case "artifact_mode":
+            state.runtimeState = {
+              ...state.runtimeState,
+              artifactModeState:
+                state.runtimeState.artifactModeState === "summary_only"
+                  ? "preview_verified"
+                  : "summary_only",
+            };
+            appendEnvelope("artifact_mode_changed");
+            break;
+          case "recovery_posture":
+            state.runtimeState = {
+              ...state.runtimeState,
+              recoveryPosture:
+                state.runtimeState.recoveryPosture === "blocked"
+                  ? "recovery_only"
+                  : "blocked",
+              routeShellPosture:
+                state.runtimeState.routeShellPosture === "shell_blocked"
+                  ? "shell_recovery_only"
+                  : "shell_blocked",
+            };
+            appendEnvelope("recovery_posture_changed");
+            break;
+          case "visibility_downgrade":
+            state.runtimeState = {
+              ...state.runtimeState,
+              visualizationAuthority:
+                state.runtimeState.visualizationAuthority === "visual_table_summary"
+                  ? "table_only"
+                  : "summary_only",
+            };
+            appendEnvelope("visibility_freshness_downgrade");
+            break;
+          case "focus_restore":
+            state.runtimeState = {
+              ...state.runtimeState,
+              focusRestoreRef: scenario.focusRestoreRef,
+              selectedAnchorRef: scenario.selectedAnchorRef,
+            };
+            appendEnvelope("selected_anchor_changed");
+            requestAnimationFrame(() => {
+              const target = specimenSurface.querySelector(
+                "[data-automation-anchor-class='selected_anchor']",
+              );
+              target?.focus();
+            });
+            break;
+        }
+      }
+
+      function renderMasthead() {
+        mastheadSummary.innerHTML = [
+          `<span class="chip">Profiles ${state.profiles.length}</span>`,
+          `<span class="chip">Scenarios ${state.scenarios.length}</span>`,
+          `<span class="chip">Event bindings ${state.envelopes.length}</span>`,
+        ].join("");
+      }
+
+      function renderScenarioList() {
+        const scenarios = filteredScenarios();
+        scenarioList.innerHTML = scenarios
+          .map(
+            (scenario) => `
+              <button
+                type="button"
+                class="scenario-card"
+                data-scenario-id="${escapeHtml(scenario.scenarioId)}"
+                data-active="${scenario.scenarioId === state.selectedScenarioId}"
+              >
+                <span class="kicker">${escapeHtml(scenario.sourceSurface)}</span>
+                <strong>${escapeHtml(scenario.title)}</strong>
+                <span class="body">${escapeHtml(scenario.routeFamilyRef)}</span>
+              </button>
+            `,
+          )
+          .join("");
+      }
+
+      function renderSpecimen() {
+        const scenario = findScenario(state.selectedScenarioId);
+        if (!scenario) {
+          return;
+        }
+        const profile = findProfile(scenario.routeFamilyRef);
+        if (!profile) {
+          return;
+        }
+        const runtimeState = {
+          selectedAnchorRef: state.runtimeState.selectedAnchorRef ?? scenario.selectedAnchorRef,
+          dominantActionRef: state.runtimeState.dominantActionRef ?? scenario.dominantActionRef,
+          focusRestoreRef: state.runtimeState.focusRestoreRef ?? scenario.focusRestoreRef,
+          artifactModeState: state.runtimeState.artifactModeState ?? scenario.artifactModeState,
+          recoveryPosture: state.runtimeState.recoveryPosture ?? scenario.recoveryPosture,
+          visualizationAuthority:
+            state.runtimeState.visualizationAuthority ?? scenario.visualizationAuthority,
+          routeShellPosture: state.runtimeState.routeShellPosture ?? scenario.routeShellPosture,
+        };
+
+        specimenSurface.setAttribute("data-automation-surface", scenario.routeFamilyRef);
+        specimenSurface.setAttribute("data-route-family", scenario.routeFamilyRef);
+        specimenSurface.setAttribute("data-shell-slug", scenario.shellSlug);
+        specimenSurface.setAttribute("data-automation-anchor-map-ref", profile.automationAnchorMapRef);
+        specimenSurface.setAttribute(
+          "data-telemetry-binding-profile-ref",
+          profile.telemetryBindingProfileRef,
+        );
+        specimenSurface.setAttribute(
+          "data-accessibility-profile-ref",
+          profile.accessibilitySemanticCoverageProfileRef,
+        );
+        specimenSurface.setAttribute(
+          "data-design-contract-vocabulary-tuple-ref",
+          profile.designContractVocabularyTupleRef,
+        );
+        specimenSurface.setAttribute("data-selected-anchor-ref", runtimeState.selectedAnchorRef);
+        specimenSurface.setAttribute("data-focus-restore-ref", runtimeState.focusRestoreRef);
+        specimenSurface.setAttribute("data-dominant-action-ref", runtimeState.dominantActionRef);
+        specimenSurface.setAttribute("data-artifact-mode", runtimeState.artifactModeState);
+        specimenSurface.setAttribute("data-recovery-posture", runtimeState.recoveryPosture);
+        specimenSurface.setAttribute(
+          "data-visualization-authority",
+          runtimeState.visualizationAuthority,
+        );
+        specimenSurface.setAttribute("data-route-shell-posture", runtimeState.routeShellPosture);
+        specimenSurface.setAttribute("data-overlay-visible", String(state.overlayVisible));
+
+        specimenSurface.innerHTML = `
+          <div class="meta-row">
+            <span class="chip">${escapeHtml(scenario.sourceSurface)}</span>
+            <span class="chip">${escapeHtml(runtimeState.recoveryPosture)}</span>
+            <span class="chip">${escapeHtml(runtimeState.visualizationAuthority)}</span>
+            <span class="chip">${escapeHtml(runtimeState.artifactModeState)}</span>
+          </div>
+          <div class="specimen-grid">
+            <section class="specimen-node" data-node-tone="accent">
+              <span class="overlay-label">${escapeHtml(profile.markerBindings.find((binding) => binding.markerClass === "state_summary").markerRef)}</span>
+              <span class="kicker">State summary</span>
+              <h2 class="title">${escapeHtml(scenario.routeLabel)}</h2>
+              <p class="body">${escapeHtml(scenario.summary)}</p>
+              <button
+                type="button"
+                tabindex="0"
+                class="specimen-action"
+                data-automation-anchor-class="state_summary"
+                data-automation-anchor-ref="${escapeHtml(profile.markerBindings.find((binding) => binding.markerClass === "state_summary").markerRef)}"
+                data-dom-marker="surface-state"
+                data-testid="state-summary-node"
+              >
+                ${escapeHtml(scenario.statusSentence)}
+              </button>
+            </section>
+            <section class="specimen-node" tabindex="0">
+              <span class="overlay-label">${escapeHtml(scenario.selectedAnchorRef)}</span>
+              <span class="kicker">Selected anchor</span>
+              <strong>${escapeHtml(scenario.selectedAnchorLabel)}</strong>
+              <p class="body">${escapeHtml(scenario.stateSummary)}</p>
+              <button
+                type="button"
+                tabindex="0"
+                class="specimen-action"
+                data-automation-anchor-class="selected_anchor"
+                data-automation-anchor-ref="${escapeHtml(scenario.selectedAnchorRef)}"
+                data-dom-marker="selected-anchor"
+                data-testid="selected-anchor-node"
+              >
+                Focus selected anchor
+              </button>
+            </section>
+          </div>
+          <div class="specimen-grid">
+            <section class="specimen-node">
+              <span class="overlay-label">${escapeHtml(scenario.dominantActionRef)}</span>
+              <span class="kicker">Dominant action</span>
+              <strong>${escapeHtml(scenario.dominantActionLabel)}</strong>
+              <p class="body">Shared action ref remains stable across shell, route guard, and telemetry sinks.</p>
+              <button
+                type="button"
+                tabindex="0"
+                class="specimen-action"
+                data-automation-anchor-class="dominant_action"
+                data-automation-anchor-ref="${escapeHtml(scenario.dominantActionRef)}"
+                data-dom-marker="dominant-action"
+                data-testid="dominant-action-node"
+              >
+                Emit dominant-action change
+              </button>
+            </section>
+            <section class="specimen-node">
+              <span class="overlay-label">${escapeHtml(runtimeState.focusRestoreRef)}</span>
+              <span class="kicker">Focus restore</span>
+              <strong>${escapeHtml(scenario.focusRestoreLabel)}</strong>
+              <p class="body">Restore stays explicit instead of relying on history heuristics.</p>
+              <button
+                type="button"
+                tabindex="0"
+                class="specimen-action"
+                data-automation-anchor-class="focus_restore"
+                data-automation-anchor-ref="marker.${escapeHtml(scenario.routeFamilyRef)}.focus_restore"
+                data-focus-restore-ref="${escapeHtml(runtimeState.focusRestoreRef)}"
+                data-testid="focus-restore-node"
+              >
+                Apply focus restore
+              </button>
+            </section>
+          </div>
+          <div class="specimen-grid">
+            <section class="specimen-node">
+              <span class="overlay-label">artifact</span>
+              <span class="kicker">Artifact posture</span>
+              <strong>${escapeHtml(runtimeState.artifactModeState)}</strong>
+              <p class="body">Preview, summary, and handoff remain one governed class of change.</p>
+              <button
+                type="button"
+                class="specimen-action"
+                data-automation-anchor-class="artifact_posture"
+                data-automation-anchor-ref="${escapeHtml(profile.markerBindings.find((binding) => binding.markerClass === "artifact_posture").markerRef)}"
+                data-testid="artifact-posture-node"
+              >
+                Toggle artifact posture
+              </button>
+            </section>
+            <section class="specimen-node">
+              <span class="overlay-label">recovery</span>
+              <span class="kicker">Recovery posture</span>
+              <strong>${escapeHtml(runtimeState.recoveryPosture)}</strong>
+              <p class="body">Read-only, recovery-only, and blocked are all browser-visible states.</p>
+              <button
+                type="button"
+                class="specimen-action"
+                data-automation-anchor-class="recovery_posture"
+                data-automation-anchor-ref="${escapeHtml(profile.markerBindings.find((binding) => binding.markerClass === "recovery_posture").markerRef)}"
+                data-testid="recovery-posture-node"
+              >
+                Toggle recovery posture
+              </button>
+            </section>
+          </div>
+          <div class="specimen-grid">
+            <section class="specimen-node">
+              <span class="overlay-label">visualization</span>
+              <span class="kicker">Visualization authority</span>
+              <strong>${escapeHtml(runtimeState.visualizationAuthority)}</strong>
+              <p class="body">Chart, table, and summary parity stay on one explicit vocabulary token.</p>
+              <button
+                type="button"
+                class="specimen-action"
+                data-automation-anchor-class="visualization_authority"
+                data-automation-anchor-ref="${escapeHtml(profile.markerBindings.find((binding) => binding.markerClass === "visualization_authority").markerRef)}"
+                data-testid="visualization-authority-node"
+              >
+                Downgrade visibility
+              </button>
+            </section>
+            <section class="specimen-node">
+              <span class="overlay-label">route shell</span>
+              <span class="kicker">Route and shell posture</span>
+              <strong>${escapeHtml(runtimeState.routeShellPosture)}</strong>
+              <p class="body">One root contract keeps shell continuity, channel posture, and route mode aligned.</p>
+              <div class="body">Source: ${escapeHtml(scenario.sourceArtifactRef)}</div>
+            </section>
+          </div>
+        `;
+      }
+
+      function renderTupleInspector() {
+        const scenario = findScenario(state.selectedScenarioId);
+        const profile = scenario ? findProfile(scenario.routeFamilyRef) : null;
+        if (!scenario || !profile) {
+          return;
+        }
+        selectedAnchorTuple.innerHTML = `
+          <div class="kicker">Selected anchor tuple</div>
+          <div class="tuple-list">
+            <article class="tuple-card">
+              <strong>${escapeHtml(scenario.selectedAnchorLabel)}</strong>
+              <code>${escapeHtml(scenario.selectedAnchorRef)}</code>
+              <span class="body">${escapeHtml(profile.designContractVocabularyTupleRef)}</span>
+            </article>
+            <article class="tuple-card">
+              <strong>${escapeHtml(scenario.dominantActionLabel)}</strong>
+              <code>${escapeHtml(scenario.dominantActionRef)}</code>
+              <span class="body">${escapeHtml(profile.telemetryBindingProfileRef)}</span>
+            </article>
+          </div>
+        `;
+      }
+
+      function renderFocusInspector() {
+        const scenario = findScenario(state.selectedScenarioId);
+        if (!scenario) {
+          return;
+        }
+        const runtimeState = {
+          focusRestoreRef: state.runtimeState.focusRestoreRef ?? scenario.focusRestoreRef,
+          recoveryPosture: state.runtimeState.recoveryPosture ?? scenario.recoveryPosture,
+        };
+        focusRestoreState.innerHTML = `
+          <div class="kicker">Focus restore</div>
+          <article class="tuple-card">
+            <strong>${escapeHtml(scenario.focusRestoreLabel)}</strong>
+            <code>${escapeHtml(runtimeState.focusRestoreRef)}</code>
+            <span class="body">Recovery posture: ${escapeHtml(runtimeState.recoveryPosture)}</span>
+          </article>
+        `;
+      }
+
+      function renderMarkerTree() {
+        const scenario = findScenario(state.selectedScenarioId);
+        const profile = scenario ? findProfile(scenario.routeFamilyRef) : null;
+        if (!scenario || !profile) {
+          return;
+        }
+        markerTree.innerHTML = `
+          <div class="kicker">Marker tree</div>
+          <div class="marker-list">
+            ${profile.markerBindings
+              .map(
+                (binding) => `
+                  <article class="marker-card">
+                    <strong>${escapeHtml(binding.markerClass)}</strong>
+                    <code>${escapeHtml(binding.markerRef)}</code>
+                    <span class="body">${escapeHtml(binding.selector)}</span>
+                  </article>
+                `,
+              )
+              .join("")}
+          </div>
+        `;
+      }
+
+      function renderEvents() {
+        const events = state.eventStream.slice(-5).reverse();
+        recentEvents.innerHTML = `
+          <div class="kicker">Recent envelopes</div>
+          <div class="event-list">
+            ${events
+              .map(
+                (event) => `
+                  <article class="event-card" data-event-code="${escapeHtml(event.eventCode)}">
+                    <strong>${escapeHtml(event.eventClass)}</strong>
+                    <code>${escapeHtml(event.eventCode)}</code>
+                    <span class="body">${escapeHtml(event.eventName)}</span>
+                    <span class="event-chip">${escapeHtml(event.disclosureFenceState)}</span>
+                  </article>
+                `,
+              )
+              .join("")}
+          </div>
+        `;
+
+        const fullTimeline = state.eventStream;
+        eventSummary.innerHTML = [
+          `<span class="timeline-chip">Events ${fullTimeline.length}</span>`,
+          `<span class="timeline-chip">Reduced motion ${state.reducedMotion ? "on" : "off"}</span>`,
+        ].join("");
+        timelineStream.innerHTML = fullTimeline
+          .map(
+            (event) => `
+              <article class="event-card" data-event-code="${escapeHtml(event.eventCode)}">
+                <div class="meta-row">
+                  <strong>${escapeHtml(event.eventClass)}</strong>
+                  <span class="event-chip">${escapeHtml(event.disclosureFenceState)}</span>
+                </div>
+                <code>${escapeHtml(event.eventCode)}</code>
+                <div class="body">${escapeHtml(event.eventName)}</div>
+                <div class="body">${escapeHtml(JSON.stringify(event.payload))}</div>
+              </article>
+            `,
+          )
+          .join("");
+      }
+
+      function render() {
+        renderMasthead();
+        renderScenarioList();
+        renderSpecimen();
+        renderTupleInspector();
+        renderFocusInspector();
+        renderMarkerTree();
+        renderEvents();
+        root.dataset.loaded = "true";
+      }
+
+      function selectScenario(scenarioId) {
+        const scenario = findScenario(scenarioId);
+        if (!scenario) {
+          return;
+        }
+        state.selectedScenarioId = scenarioId;
+        state.runtimeState = {};
+        state.eventStream = envelopesForScenario(scenarioId);
+        render();
+      }
+
+      shellFilter.addEventListener("change", (event) => {
+        state.shellFilter = event.target.value;
+        const available = filteredScenarios();
+        if (!available.find((scenario) => scenario.scenarioId === state.selectedScenarioId)) {
+          state.selectedScenarioId = available[0]?.scenarioId ?? null;
+        }
+        if (state.selectedScenarioId) {
+          selectScenario(state.selectedScenarioId);
+        } else {
+          render();
+        }
+      });
+
+      routeFilter.addEventListener("change", (event) => {
+        state.routeFilter = event.target.value;
+        const available = filteredScenarios();
+        if (!available.find((scenario) => scenario.scenarioId === state.selectedScenarioId)) {
+          state.selectedScenarioId = available[0]?.scenarioId ?? null;
+        }
+        if (state.selectedScenarioId) {
+          selectScenario(state.selectedScenarioId);
+        } else {
+          render();
+        }
+      });
+
+      scenarioList.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-scenario-id]");
+        if (button) {
+          selectScenario(button.dataset.scenarioId);
+        }
+      });
+
+      overlayToggle.addEventListener("click", () => {
+        state.overlayVisible = !state.overlayVisible;
+        overlayToggle.dataset.active = String(state.overlayVisible);
+        render();
+      });
+
+      reducedMotionToggle.addEventListener("click", () => {
+        state.reducedMotion = !state.reducedMotion;
+        reducedMotionToggle.dataset.active = String(state.reducedMotion);
+        document.body.dataset.reducedMotion = String(state.reducedMotion);
+        renderEvents();
+      });
+
+      document.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-testid]");
+        const scenario = findScenario(state.selectedScenarioId);
+        if (!button || !scenario) {
+          return;
+        }
+        switch (button.dataset.testid) {
+          case "selected-anchor-node":
+            updateRuntimeState("selected_anchor", scenario);
+            break;
+          case "dominant-action-node":
+            updateRuntimeState("dominant_action", scenario);
+            break;
+          case "artifact-posture-node":
+            updateRuntimeState("artifact_mode", scenario);
+            break;
+          case "recovery-posture-node":
+            updateRuntimeState("recovery_posture", scenario);
+            break;
+          case "visualization-authority-node":
+            updateRuntimeState("visibility_downgrade", scenario);
+            break;
+          case "focus-restore-node":
+            updateRuntimeState("focus_restore", scenario);
+            break;
+        }
+        render();
+      });
+
+      const loaded = await Promise.all(
+        Object.values(PATHS).map((resource) => fetch(resource).then((response) => response.json())),
+      );
+      state.profiles = loaded[0].routeProfiles;
+      state.scenarios = loaded[0].diagnosticScenarios;
+      state.envelopes = loaded[2].eventEnvelopes;
+      state.selectedScenarioId = state.scenarios[0]?.scenarioId ?? null;
+      setFilters();
+      selectScenario(state.selectedScenarioId);
+    </script>
+  </body>
+</html>

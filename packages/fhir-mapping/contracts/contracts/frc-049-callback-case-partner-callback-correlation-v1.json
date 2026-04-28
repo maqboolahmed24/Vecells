@@ -1,0 +1,144 @@
+{
+  "task_id": "seq_049",
+  "artifact_type": "fhir_representation_contract",
+  "generated_at": "2026-04-13T14:51:08+00:00",
+  "contract": {
+    "fhirRepresentationContractId": "FRC_049_CALLBACK_CASE_PARTNER_CALLBACK_CORRELATION_V1",
+    "owningBoundedContextRef": "communications",
+    "governingAggregateType": "CallbackCase",
+    "representationPurpose": "partner_callback_correlation",
+    "triggerMilestoneTypes": [
+      "communication.callback.outcome.recorded",
+      "confirmation.gate.created",
+      "confirmation.gate.confirmed",
+      "confirmation.gate.disputed"
+    ],
+    "requiredEvidenceRefs": [
+      "CallbackCase",
+      "CallbackAttemptRecord",
+      "CallbackOutcomeEvidenceBundle",
+      "ExternalConfirmationGate"
+    ],
+    "allowedResourceTypes": ["Communication", "Provenance"],
+    "requiredProfileCanonicalUrls": [
+      "https://vecells.example/fhir/StructureDefinition/vecells-callback-communication",
+      "https://vecells.example/fhir/StructureDefinition/vecells-callback-provenance"
+    ],
+    "identifierPolicyRef": "IDPOL_049_TRANSPORT_CORRELATION_RECORD",
+    "statusMappingPolicyRef": "STPOL_049_MESSAGE_COMMUNICATION",
+    "cardinalityPolicyRef": "CARDPOL_049_SINGLE_COMMUNICATION_PER_DISPATCH",
+    "redactionPolicyRef": "REDPOL_049_CALLBACK_CORRELATION_MINIMAL",
+    "companionArtifactPolicyRef": "COMPPOL_049_CALLBACK_RECEIPT_REFS",
+    "replayPolicyRef": "REPLAYPOL_049_TRANSPORT_CORRELATION_STABLE_CALLBACK_SET",
+    "supersessionPolicyRef": "SUPPOL_049_CALLBACK_SUPERSESSION_ON_GATE_ROTATION",
+    "callbackCorrelationPolicyRef": "CALLPOL_049_EXTERNAL_CONFIRMATION_GATE",
+    "declaredBundlePolicyRefs": ["FXBP_049_PARTNER_CALLBACK_INBOUND_COLLECTION"],
+    "contractVersionRef": "FRCV_049_CALLBACK_CASE_PARTNER_CALLBACK_CORRELATION_V1",
+    "contractState": "active",
+    "publishedAt": "2026-04-13T14:51:08+00:00",
+    "resourceProfiles": [
+      {
+        "resourceType": "Communication",
+        "profileCanonicalUrl": "https://vecells.example/fhir/StructureDefinition/vecells-callback-communication"
+      },
+      {
+        "resourceType": "Provenance",
+        "profileCanonicalUrl": "https://vecells.example/fhir/StructureDefinition/vecells-callback-provenance"
+      }
+    ],
+    "defectState": "active",
+    "source_refs": [
+      "blueprint/phase-0-the-foundation-protocol.md#FhirRepresentationContract",
+      "blueprint/callback-and-clinician-messaging-loop.md#Callback domain / Core object / CallbackCase",
+      "blueprint/platform-runtime-and-release-blueprint.md#AdapterContractProfile"
+    ],
+    "rationale": "Partner callback correlation remains explicit and replay-safe instead of living inside ad hoc webhook handlers."
+  },
+  "resolvedPolicies": {
+    "identifierPolicy": {
+      "policyId": "IDPOL_049_TRANSPORT_CORRELATION_RECORD",
+      "label": "Transport correlation key",
+      "description": "Communication identifiers bind dispatch or callback correlation tokens to the governing case and attempt.",
+      "stableInputs": ["governingCaseId", "transportCorrelationKey", "dispatchAttemptId"],
+      "versionRule": "Duplicate transport receipts update the same logical id; semantic drift opens replay collision review."
+    },
+    "statusMappingPolicy": {
+      "policyId": "STPOL_049_MESSAGE_COMMUNICATION",
+      "label": "Message and callback communication mapping",
+      "resourceType": "Communication",
+      "mappings": {
+        "queued": "preparation",
+        "delivery_recorded": "in-progress",
+        "outcome_recorded": "completed",
+        "disputed": "stopped"
+      }
+    },
+    "cardinalityPolicy": {
+      "policyId": "CARDPOL_049_SINGLE_COMMUNICATION_PER_DISPATCH",
+      "label": "Single communication per dispatch or callback epoch",
+      "description": "Each dispatch or callback epoch emits at most one current Communication companion at a time."
+    },
+    "redactionPolicy": {
+      "policyId": "REDPOL_049_CALLBACK_CORRELATION_MINIMAL",
+      "label": "Callback correlation minimal disclosure",
+      "description": "Inbound callback correlation exposes only partner correlation tokens, declared identifiers, and checkpoint posture."
+    },
+    "companionArtifactPolicy": {
+      "policyId": "COMPPOL_049_CALLBACK_RECEIPT_REFS",
+      "label": "Callback receipt refs",
+      "description": "Callback bundles must join to receipt checkpoints and replay-collision evidence instead of local receipt booleans."
+    },
+    "replayPolicy": {
+      "policyId": "REPLAYPOL_049_TRANSPORT_CORRELATION_STABLE_CALLBACK_SET",
+      "label": "Stable callback set by transport correlation",
+      "stableMembershipOnReplay": true,
+      "description": "Duplicate or reordered callbacks target the same representation set until semantic drift forces collision review."
+    },
+    "supersessionPolicy": {
+      "policyId": "SUPPOL_049_CALLBACK_SUPERSESSION_ON_GATE_ROTATION",
+      "label": "Callback supersession on gate rotation",
+      "description": "Callback correlation representations supersede only when a new confirmation gate or correlation epoch replaces the old one."
+    },
+    "callbackCorrelationPolicy": {
+      "policyId": "CALLPOL_049_EXTERNAL_CONFIRMATION_GATE",
+      "label": "External confirmation gate correlation",
+      "description": "Callback representations bind to one current ExternalConfirmationGate and may not infer final success from transport acceptance alone."
+    },
+    "exchangeBundlePolicies": [
+      {
+        "policyId": "FXBP_049_PARTNER_CALLBACK_INBOUND_COLLECTION",
+        "representationContractRefs": [
+          "FRC_049_CALLBACK_CASE_PARTNER_CALLBACK_CORRELATION_V1",
+          "FRC_049_BOOKING_CASE_PARTNER_CALLBACK_CORRELATION_V1",
+          "FRC_049_HUB_CASE_PARTNER_CALLBACK_CORRELATION_V1",
+          "FRC_049_PHARMACY_DISPATCH_PARTNER_CALLBACK_CORRELATION_V1"
+        ],
+        "direction": "inbound",
+        "legalBundleTypes": ["collection", "message"],
+        "adapterProfileRefs": ["ACP_049_PARTNER_CALLBACK_INGRESS"],
+        "boundDependencyRefs": ["dep_gp_system_supplier_paths", "dep_pharmacy_outcome_observation"],
+        "correlationKeyFields": [
+          "partnerCorrelationKey",
+          "dispatchAttemptId",
+          "confirmationGateId",
+          "bundleHash"
+        ],
+        "receiptCheckpointRefs": [
+          "AdapterReceiptCheckpoint",
+          "ExternalConfirmationGate",
+          "ReplayCollisionReview"
+        ],
+        "authoritativeSuccess": "A callback is authoritative only when it binds to the current gate or dispatch epoch and survives ordering and collision policy.",
+        "supersessionBehavior": "New confirmation or dispatch epochs supersede older callback collections explicitly.",
+        "invalidationBehavior": "Unknown correlation, reordered semantic drift, or contradictory same-key evidence invalidates the callback bundle.",
+        "mandatoryProofRefs": ["ExternalConfirmationGate", "ReplayCollisionReview"],
+        "exchangeStates": ["staged", "accepted", "replayed", "failed", "superseded"],
+        "source_refs": [
+          "blueprint/platform-runtime-and-release-blueprint.md#AdapterContractProfile",
+          "blueprint/forensic-audit-findings.md#Finding 40 - External outcomes were not modelled as adapter-side event producers"
+        ]
+      }
+    ]
+  },
+  "artifactHash": "3004558e3f35e2cc72ea0b869ebd16bcbb768d19d72cccca1d81b209abb40e9c"
+}

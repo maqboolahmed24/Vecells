@@ -1,0 +1,1515 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Queue Fairness Recovery Lab</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4f6fa;
+        --panel: #ffffff;
+        --panel-muted: #eef2f8;
+        --line: #cfd7e6;
+        --line-strong: #9ca8be;
+        --text: #132033;
+        --text-muted: #55637b;
+        --accent: #2457d6;
+        --accent-soft: rgba(36, 87, 214, 0.12);
+        --critical: #b42318;
+        --warning: #b54708;
+        --success: #107a47;
+        --recovery: #7a2eab;
+        --focus: #0f6cbd;
+        --shadow: 0 12px 32px rgba(18, 32, 51, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      button:focus-visible,
+      [role="option"]:focus-visible,
+      [role="listbox"]:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 2px;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+      }
+
+      .lab-shell {
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .lab-frame {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1.45fr) minmax(300px, 0.95fr);
+        gap: 16px;
+        align-items: start;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        min-width: 0;
+      }
+
+      .panel-header {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 18px 0;
+      }
+
+      .panel-body {
+        padding: 16px 18px 18px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        font-size: 0.76rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
+      }
+
+      .title-block h1,
+      .title-block h2,
+      .title-block h3,
+      .title-block p {
+        margin: 0;
+      }
+
+      .title-block p {
+        margin-top: 6px;
+        color: var(--text-muted);
+        line-height: 1.45;
+      }
+
+      .lab-hero {
+        margin-bottom: 16px;
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.9fr);
+        gap: 16px;
+      }
+
+      .hero-summary {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .hero-card {
+        padding: 14px 16px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: linear-gradient(180deg, #fff 0%, #f7f9fd 100%);
+        min-width: 0;
+      }
+
+      .hero-card strong {
+        display: block;
+        margin-top: 10px;
+        font-size: 1.05rem;
+      }
+
+      .hero-card span {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+      }
+
+      .scenario-family-rail,
+      .defect-panel {
+        position: sticky;
+        top: 20px;
+      }
+
+      .family-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .scenario-button {
+        display: grid;
+        gap: 4px;
+        width: 100%;
+        text-align: left;
+        padding: 12px 14px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: var(--panel-muted);
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      .scenario-button[data-active="true"] {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+      }
+
+      .scenario-button small {
+        color: var(--text-muted);
+      }
+
+      .scenario-button strong {
+        font-size: 0.98rem;
+      }
+
+      .scenario-chip-row,
+      .note-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #fff;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+
+      .pill[data-tone="critical"] {
+        border-color: rgba(180, 35, 24, 0.28);
+        color: var(--critical);
+        background: rgba(180, 35, 24, 0.08);
+      }
+
+      .pill[data-tone="warning"] {
+        border-color: rgba(181, 71, 8, 0.28);
+        color: var(--warning);
+        background: rgba(181, 71, 8, 0.08);
+      }
+
+      .pill[data-tone="success"] {
+        border-color: rgba(16, 122, 71, 0.28);
+        color: var(--success);
+        background: rgba(16, 122, 71, 0.08);
+      }
+
+      .pill[data-tone="recovery"] {
+        border-color: rgba(122, 46, 171, 0.28);
+        color: var(--recovery);
+        background: rgba(122, 46, 171, 0.08);
+      }
+
+      .workbench-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 16px;
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .summary-card {
+        padding: 14px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: var(--panel-muted);
+        min-width: 0;
+      }
+
+      .summary-card strong,
+      .summary-card code {
+        display: block;
+        margin-top: 8px;
+        overflow-wrap: anywhere;
+      }
+
+      .summary-card code {
+        word-break: break-all;
+        font-family:
+          "SF Mono",
+          "Roboto Mono",
+          Consolas,
+          monospace;
+        color: var(--text);
+      }
+
+      .listbox {
+        margin-top: 14px;
+        display: grid;
+        gap: 8px;
+        padding: 8px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: #fbfcfe;
+      }
+
+      .queue-option {
+        display: grid;
+        gap: 6px;
+        padding: 12px 14px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: #fff;
+        min-width: 0;
+      }
+
+      .queue-option[aria-selected="true"] {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+      }
+
+      .queue-option-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: baseline;
+      }
+
+      .queue-option-top strong {
+        font-size: 0.98rem;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .queue-option-meta,
+      .queue-option-factors {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        color: var(--text-muted);
+        font-size: 0.82rem;
+        overflow-wrap: anywhere;
+      }
+
+      .fairness-board,
+      .duplicate-compare-grid,
+      .ownership-ladder {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+      }
+
+      .meter-row,
+      .sequence-row {
+        display: grid;
+        gap: 8px;
+      }
+
+      .meter-label-row,
+      .ownership-step {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: baseline;
+      }
+
+      .meter-bar {
+        position: relative;
+        height: 12px;
+        border-radius: 999px;
+        background: #dde4f0;
+        overflow: hidden;
+      }
+
+      .meter-fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #2f6df6 0%, #70a3ff 100%);
+      }
+
+      .meter-fill[data-tone="critical"] {
+        background: linear-gradient(90deg, #d92d20 0%, #f97066 100%);
+      }
+
+      .meter-fill[data-tone="warning"] {
+        background: linear-gradient(90deg, #f79009 0%, #fdb022 100%);
+      }
+
+      .meter-fill[data-tone="success"] {
+        background: linear-gradient(90deg, #12b76a 0%, #31d0aa 100%);
+      }
+
+      .compare-card,
+      .ownership-card,
+      .defect-card {
+        padding: 14px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: var(--panel-muted);
+        min-width: 0;
+      }
+
+      .compare-card[data-winner="true"] {
+        border-color: var(--accent);
+        background: rgba(36, 87, 214, 0.08);
+      }
+
+      .compare-card h3,
+      .ownership-card h3,
+      .defect-card h3 {
+        margin: 0;
+        font-size: 0.98rem;
+      }
+
+      .compare-card p,
+      .ownership-card p,
+      .defect-card p {
+        margin: 8px 0 0;
+        color: var(--text-muted);
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+      }
+
+      .ownership-step {
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .ownership-step[data-step-state="rejected"] {
+        border-color: rgba(180, 35, 24, 0.32);
+      }
+
+      .ownership-step[data-step-state="recovered"] {
+        border-color: rgba(122, 46, 171, 0.3);
+      }
+
+      .defect-panel .defect-card + .defect-card {
+        margin-top: 12px;
+      }
+
+      .defect-card ul,
+      .ownership-card ul {
+        margin: 10px 0 0;
+        padding-left: 18px;
+        color: var(--text-muted);
+        overflow-wrap: anywhere;
+      }
+
+      .defect-card li,
+      .ownership-card li {
+        overflow-wrap: anywhere;
+      }
+
+      .visual-note {
+        margin-top: 16px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+        color: var(--text-muted);
+        font-size: 0.82rem;
+      }
+
+      @media (max-width: 1180px) {
+        .lab-frame,
+        .hero-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .scenario-family-rail,
+        .defect-panel {
+          position: static;
+        }
+
+        .hero-summary,
+        .summary-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 720px) {
+        .lab-shell {
+          padding: 14px;
+        }
+
+        .hero-summary,
+        .summary-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .meter-label-row,
+        .ownership-step {
+          display: grid;
+          justify-content: stretch;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      window.__queueFairnessRecoveryLabData = {
+        visualMode: "Queue_Fairness_Recovery_Lab",
+        scenarioFamilies: [
+          {
+            familyId: "queue_replay",
+            label: "Queue replay and determinism",
+            scenarioId: "queue_calm_replay",
+            notes: ["Same fact cut, same rowOrderHash", "Held preemption excluded"],
+          },
+          {
+            familyId: "fairness_overload",
+            label: "Fairness and overload",
+            scenarioId: "queue_overload_guard",
+            notes: ["Critical overload stays honest", "Assignment stays downstream only"],
+          },
+          {
+            familyId: "duplicate_review",
+            label: "Duplicate cluster and resolution",
+            scenarioId: "duplicate_review_authority",
+            notes: ["DuplicateReviewSnapshot authority", "Supersession preserves audit history"],
+          },
+          {
+            familyId: "claim_race",
+            label: "Claim race serialization",
+            scenarioId: "claim_race",
+            notes: ["One winner", "Second write fenced out"],
+          },
+          {
+            familyId: "stale_owner",
+            label: "Stale-owner recovery and next task",
+            scenarioId: "stale_owner_recovery",
+            notes: ["Supervisor takeover", "Return anchor preserved"],
+          },
+        ],
+        scenarios: {
+          queue_calm_replay: {
+            scenarioId: "queue_calm_replay",
+            family: "queue_replay",
+            title: "Calm deterministic queue replay",
+            summary:
+              "The same fact cut replays to the same rank hash, explanations remain stable, and preemptionPending work is held outside the routine queue.",
+            statusChips: [
+              { label: "Nominal overload posture", tone: "success" },
+              { label: "Replay hash stable", tone: "success" },
+              { label: "Preemption excluded", tone: "warning" },
+            ],
+            replay: {
+              caseIds: ["QFR272_001", "QFR272_002", "QFR272_003"],
+              rankSnapshotId: "command_api_phase3_queue_engine_queueRankSnapshot_0001",
+              sourceFactCutRef: "fact_cut_exact_formula_sort_precedence",
+              rowOrderHash: "queue-row-order::a7c693fab31003ee88552ef1b04771eb",
+              overloadState: "nominal",
+              fairnessPromise: "active",
+              rows: [
+                {
+                  taskRef: "task_queue_escalated",
+                  label: "Escalated callback concern",
+                  ordinal: 1,
+                  tieBreak: "escalated:1|sla:2|priority:5|risk:3|duplicate:0|carry:0.44|rho:na",
+                  fairnessBandRef: "band_routine",
+                  fairnessTransition: "critical_bypass",
+                  note: "Critical bypass is lawful because the row stays above the fairness merge bands.",
+                },
+                {
+                  taskRef: "task_queue_duplicate",
+                  label: "Returned duplicate watch",
+                  ordinal: 2,
+                  tieBreak: "escalated:0|sla:2|priority:4|risk:2|duplicate:1|carry:0|rho:na",
+                  fairnessBandRef: "band_returned_review",
+                  fairnessTransition: "band_credit_applied",
+                  note: "Explicit duplicate-review pressure stays visible in the explanation ladder.",
+                },
+                {
+                  taskRef: "task_queue_risk_attention",
+                  label: "Risk attention follow-up",
+                  ordinal: 3,
+                  tieBreak: "escalated:0|sla:1|priority:3|risk:2|duplicate:0|carry:0|rho:na",
+                  fairnessBandRef: "band_risk_attention",
+                  fairnessTransition: "band_credit_applied",
+                  note: "Within-tier urgency never rewrites the lexicographic factors.",
+                },
+                {
+                  taskRef: "task_queue_low_intensity",
+                  label: "Low intensity review",
+                  ordinal: 4,
+                  tieBreak: "escalated:0|sla:0|priority:2|risk:1|duplicate:0|carry:0|rho:na",
+                  fairnessBandRef: "band_low_intensity",
+                  fairnessTransition: "band_credit_applied",
+                  note: "Low intensity work remains visible without displacing higher-risk rows.",
+                },
+                {
+                  taskRef: "task_preemption_pending",
+                  label: "Preemption pending hold",
+                  ordinal: "held",
+                  tieBreak: "held_preemption",
+                  fairnessBandRef: "band_routine",
+                  fairnessTransition: "hold_preemption",
+                  note: "preemptionPending = 1 keeps this row outside the routine ordering set.",
+                },
+              ],
+            },
+            fairnessBoard: {
+              rhoCritical: 0.42,
+              rhoGuard: 0.85,
+              admission: "Fairness floors are active because rho_crit stays below the guardrail.",
+              bands: [
+                { fairnessBandRef: "band_returned_review", before: 0.42, after: 0.1, tone: "success" },
+                { fairnessBandRef: "band_risk_attention", before: 0.33, after: 0.12, tone: "success" },
+                { fairnessBandRef: "band_routine", before: 0.18, after: 0, tone: "success" },
+              ],
+              suggestionNote:
+                "Assignment suggestions remain absent here because this scenario proves canonical row replay before reviewer-fit advice is added.",
+            },
+            duplicateCompare: {
+              mode: "summary_only",
+              title: "No active duplicate compare in the calm replay cut",
+              summary:
+                "The replay board stays summary-first until duplicate evidence is explicitly in view. Calm routing does not invent a duplicate compare just because later cases need one.",
+              cards: [],
+              decisionChain: [],
+            },
+            ownershipLadder: {
+              mode: "ready",
+              nextTaskState: "ready",
+              summary:
+                "No stale-owner recovery is active. Queue preview, task launch, and next-task continuity all bind to the same committed snapshot.",
+              steps: [
+                {
+                  stepId: "ownership-ready-1",
+                  label: "Committed queue snapshot",
+                  state: "active",
+                  detail: "Rows, preview, and next-task candidate all point at queue_rank_snapshot_0001.",
+                },
+                {
+                  stepId: "ownership-ready-2",
+                  label: "Next-task preview remains summary-only",
+                  state: "ready",
+                  detail: "Warm preview stays text-first and does not hydrate attachment media.",
+                },
+              ],
+            },
+            defects: [],
+          },
+          queue_overload_guard: {
+            scenarioId: "queue_overload_guard",
+            family: "fairness_overload",
+            title: "Critical overload stays honest",
+            summary:
+              "The queue admits overload explicitly when rho_crit breaches the guardrail. Critical work bypasses fairness merge only while the overload event is surfaced.",
+            statusChips: [
+              { label: "overload_critical", tone: "critical" },
+              { label: "Fairness promises suppressed", tone: "warning" },
+              { label: "Assignment suggestions downstream only", tone: "success" },
+            ],
+            replay: {
+              caseIds: ["QFR272_004", "QFR272_005", "QFR272_006"],
+              rankSnapshotId: "command_api_phase3_queue_engine_queueRankSnapshot_0001",
+              sourceFactCutRef: "fact_cut_overload_critical_posture",
+              rowOrderHash: "queue-row-order::dc548765637ca546ce440856c19698c8",
+              overloadState: "overload_critical",
+              fairnessPromise: "suppressed_overload",
+              rows: [
+                {
+                  taskRef: "task_overload_escalated",
+                  label: "Escalated symptom regression",
+                  ordinal: 1,
+                  tieBreak: "escalated:1|sla:2|priority:5|risk:3|duplicate:0|carry:0.52|rho:6.86",
+                  fairnessBandRef: "band_routine",
+                  fairnessTransition: "critical_bypass",
+                  note: "Critical work still leads, but the board no longer claims starvation freedom for routine bands.",
+                },
+                {
+                  taskRef: "task_overload_returned",
+                  label: "Returned clinician callback",
+                  ordinal: 2,
+                  tieBreak: "escalated:0|sla:2|priority:4|risk:2|duplicate:0|carry:0.16|rho:6.86",
+                  fairnessBandRef: "band_returned_review",
+                  fairnessTransition: "suppressed_overload",
+                  note: "Fairness credits are visible but not promised while overload stays critical.",
+                },
+                {
+                  taskRef: "task_overload_routine",
+                  label: "Routine queue carry-over",
+                  ordinal: 3,
+                  tieBreak: "escalated:0|sla:1|priority:2|risk:1|duplicate:0|carry:0|rho:6.86",
+                  fairnessBandRef: "band_routine",
+                  fairnessTransition: "suppressed_overload",
+                  note: "Routine work is not hidden. The board simply stops making a false fairness guarantee.",
+                },
+              ],
+            },
+            fairnessBoard: {
+              rhoCritical: 6.857143,
+              rhoGuard: 0.85,
+              admission: "Fairness promises suppressed during critical overload. triage.queue.overload_critical is surfaced instead of pretending starvation freedom still holds.",
+              bands: [
+                { fairnessBandRef: "band_returned_review", before: 0.73, after: 0.73, tone: "warning" },
+                { fairnessBandRef: "band_routine", before: 0.58, after: 0.58, tone: "warning" },
+                { fairnessBandRef: "band_low_intensity", before: 0.41, after: 0.41, tone: "warning" },
+              ],
+              suggestionNote:
+                "Reviewer-fit advice remains downstream of canonical order. Suggestions must never rewrite row ordinals or tie-break keys.",
+            },
+            duplicateCompare: {
+              mode: "summary_only",
+              title: "Duplicate review is not the dominant fence in this cut",
+              summary:
+                "The overload case focuses on fairness honesty. Duplicate authority remains available, but it is not the reason the queue is frozen here.",
+              cards: [],
+              decisionChain: [],
+            },
+            ownershipLadder: {
+              mode: "overload",
+              nextTaskState: "gated",
+              summary:
+                "Overload keeps next-task posture gated. The queue still exposes the latest committed snapshot, but fast-follow launch is explicitly not calm.",
+              steps: [
+                {
+                  stepId: "overload-1",
+                  label: "Pressure ratio breaches guardrail",
+                  state: "recovered",
+                  detail: "rho_crit = 6.857143, rho_guard = 0.85",
+                },
+                {
+                  stepId: "overload-2",
+                  label: "Fairness promise suppressed",
+                  state: "rejected",
+                  detail: "Queue surfaces carry the overload event instead of promising routine fairness.",
+                },
+              ],
+            },
+            defects: [],
+          },
+          duplicate_review_authority: {
+            scenarioId: "duplicate_review_authority",
+            family: "duplicate_review",
+            title: "Duplicate review stays bound to canonical evidence",
+            summary:
+              "Similar-but-not-identical requests require human confirmation from DuplicateReviewSnapshot and DuplicatePairEvidence. Reversal supersedes downstream assumptions without rewriting audit history.",
+            statusChips: [
+              { label: "explicit_review_required", tone: "warning" },
+              { label: "Canonical evidence only", tone: "success" },
+              { label: "Supersession recorded", tone: "recovery" },
+            ],
+            replay: {
+              caseIds: ["QFR272_007", "QFR272_008", "QFR272_009", "QFR272_010"],
+              rankSnapshotId: "duplicate_review_snapshot_surface",
+              sourceFactCutRef: "duplicate_review_snapshot::phase3_duplicate_review_task_234_primary",
+              rowOrderHash: "queue-row-order::f9011dc3da77d857333bba46794880f8",
+              overloadState: "nominal",
+              fairnessPromise: "active",
+              rows: [
+                {
+                  taskRef: "phase3_duplicate_review_task_234_primary",
+                  label: "Pharmacy line duplicate watch",
+                  ordinal: 1,
+                  tieBreak: "duplicate_review_flag = 1",
+                  fairnessBandRef: "band_returned_review",
+                  fairnessTransition: "explicit_review_required",
+                  note: "The queue row remains open until authoritative duplicate review resolves the lineage.",
+                },
+              ],
+            },
+            fairnessBoard: {
+              rhoCritical: 0.31,
+              rhoGuard: 0.85,
+              admission: "Fairness is not the blocking issue here; the queue is frozen by duplicate authority instead.",
+              bands: [
+                { fairnessBandRef: "band_returned_review", before: 0.39, after: 0.17, tone: "success" },
+              ],
+              suggestionNote:
+                "Human confirmation is required because the competing pair evidences remain too close to auto-resolve safely.",
+            },
+            duplicateCompare: {
+              mode: "authority_review",
+              title: "DuplicateReviewSnapshot and DuplicatePairEvidence",
+              summary:
+                "The winning pair evidence stays explicit. Corrected decisions supersede endpoint, approval, booking, pharmacy, analytics, workspace, and handoff assumptions without deleting history.",
+              cards: [
+                {
+                  requestRef: "request_234_candidate_primary",
+                  episodeRef: "episode_234_primary",
+                  dominantDecisionClass: "same_request_attach",
+                  dominantScore: 0.67,
+                  uncertaintyScore: 0.08,
+                  winner: true,
+                  note: "Workflow-return witness makes same-request attach lawful once a human confirms it.",
+                },
+                {
+                  requestRef: "request_234_candidate_competing",
+                  episodeRef: "episode_234_primary",
+                  dominantDecisionClass: "same_episode_link",
+                  dominantScore: 0.39,
+                  uncertaintyScore: 0.18,
+                  winner: false,
+                  note: "Competing evidence remains visible instead of being hidden as reviewer memory.",
+                },
+              ],
+              decisionChain: [
+                "review_required -> same_request_attach",
+                "same_request_attach -> separate_request",
+                "Invalidations: approval_checkpoint, endpoint_outcome_preview, booking_intent, pharmacy_intent, analytics_join, workspace_assumption, reopen_assumption, handoff_seed",
+              ],
+            },
+            ownershipLadder: {
+              mode: "duplicate_review",
+              nextTaskState: "blocked_duplicate_review",
+              summary:
+                "Safe closure remains blocked while duplicate ambiguity stays live. Quiet return cannot resume until duplicate lineage is reconciled.",
+              steps: [
+                {
+                  stepId: "duplicate-1",
+                  label: "Duplicate review snapshot published",
+                  state: "active",
+                  detail: "Authority boundary: DuplicateCluster, DuplicateResolutionDecision, IdempotencyRecord.",
+                },
+                {
+                  stepId: "duplicate-2",
+                  label: "Superseded duplicate decisions emit downstream invalidations",
+                  state: "recovered",
+                  detail: "Audit history is preserved, but old consequences are fenced out.",
+                },
+              ],
+            },
+            defects: [],
+          },
+          claim_race: {
+            scenarioId: "claim_race",
+            family: "claim_race",
+            title: "Concurrent claim race reuses the lease fence",
+            summary:
+              "Two reviewers hit the same queue row at once. One claim commits, the second is rejected through the active ownership epoch and fencing token.",
+            statusChips: [
+              { label: "soft claim race serialized", tone: "success" },
+              { label: "blocked stale write", tone: "warning" },
+            ],
+            replay: {
+              caseIds: ["QFR272_011"],
+              rankSnapshotId: "command_api_phase3_queue_engine_queueRankSnapshot_0001",
+              sourceFactCutRef: "fact_cut_soft_claim_race",
+              rowOrderHash: "queue-row-order::f9011dc3da77d857333bba46794880f8",
+              overloadState: "nominal",
+              fairnessPromise: "active",
+              rows: [
+                {
+                  taskRef: "task_claim_race_target",
+                  label: "Claim race target",
+                  ordinal: 1,
+                  tieBreak: "canonical queue row",
+                  fairnessBandRef: "band_routine",
+                  fairnessTransition: "claim_serialized",
+                  note: "Both reviewers saw the same row, but only one lease tuple could commit.",
+                },
+                {
+                  taskRef: "task_claim_race_followup",
+                  label: "Follow-up row",
+                  ordinal: 2,
+                  tieBreak: "routine follow-up",
+                  fairnessBandRef: "band_returned_review",
+                  fairnessTransition: "unaffected",
+                  note: "Other rows remain stable while the race is resolved.",
+                },
+              ],
+            },
+            fairnessBoard: {
+              rhoCritical: 0.29,
+              rhoGuard: 0.85,
+              admission: "Canonical order is unchanged by assignment pressure. The race is resolved in ownership, not in queue rank.",
+              bands: [
+                { fairnessBandRef: "band_routine", before: 0.28, after: 0.12, tone: "success" },
+              ],
+              suggestionNote:
+                "The winning reviewer can proceed, but the canonical order stays unchanged for everyone else.",
+            },
+            duplicateCompare: {
+              mode: "summary_only",
+              title: "No duplicate authority drift in the claim race",
+              summary: "This case proves fence serialization, not duplicate ambiguity.",
+              cards: [],
+              decisionChain: [],
+            },
+            ownershipLadder: {
+              mode: "claim_race",
+              nextTaskState: "claimed",
+              summary:
+                "One reviewer commits the claim. The second attempt is rejected with the stale queue fence rather than silently overwriting the winner.",
+              steps: [
+                {
+                  stepId: "claim-race-1",
+                  label: "Reviewer one acquires ownership epoch 4",
+                  state: "active",
+                  detail: "The first soft claim publishes the new fence token and lease tuple.",
+                },
+                {
+                  stepId: "claim-race-2",
+                  label: "Second claim rejected with the stale queue fence",
+                  state: "rejected",
+                  detail: "blocked_race proves that the queue launch cannot double-claim the same task.",
+                },
+              ],
+            },
+            defects: [],
+          },
+          stale_owner_recovery: {
+            scenarioId: "stale_owner_recovery",
+            family: "stale_owner",
+            title: "Stale-owner recovery preserves continuity",
+            summary:
+              "Lock expiry, stale-owner recovery, supervisor takeover, and next-task gating stay explicit. Continuity survives, but next-task launch stays blocked until the recovery chain calms.",
+            statusChips: [
+              { label: "stale_owner_recovery_required", tone: "recovery" },
+              { label: "Supervisor takeover committed", tone: "recovery" },
+              { label: "Next task blocked", tone: "warning" },
+            ],
+            replay: {
+              caseIds: ["QFR272_012", "QFR272_013", "QFR272_014", "QFR272_015"],
+              rankSnapshotId: "command_api_reservation_queue_control_simulation_queueRankSnapshot_0005",
+              sourceFactCutRef: "queue_snapshot_for_stale_owner_recovery",
+              rowOrderHash: "queue-row-order::stale-owner-bridge",
+              overloadState: "nominal",
+              fairnessPromise: "active",
+              rows: [
+                {
+                  taskRef: "task_241_stale_owner",
+                  label: "Recovered review session",
+                  ordinal: 1,
+                  tieBreak: "continuity return before next-task launch",
+                  fairnessBandRef: "band_returned_review",
+                  fairnessTransition: "stale_owner_recovery_required",
+                  note: "The row stays selected because the return anchor remains lawful through recovery.",
+                },
+                {
+                  taskRef: "task_241_stale_owner_candidate",
+                  label: "Next task candidate",
+                  ordinal: "gated",
+                  tieBreak: "blocked_stale_owner",
+                  fairnessBandRef: "band_routine",
+                  fairnessTransition: "summary_only_prefetch",
+                  note: "Prefetch remains summary-only and does not hydrate heavy media while launch is blocked.",
+                },
+              ],
+            },
+            fairnessBoard: {
+              rhoCritical: 0.34,
+              rhoGuard: 0.85,
+              admission:
+                "Queue fairness remains nominal. The blocking reason is ownership drift and recovery, not capacity pressure.",
+              bands: [
+                { fairnessBandRef: "band_returned_review", before: 0.44, after: 0.24, tone: "recovery" },
+              ],
+              suggestionNote:
+                "Next-task advice is explicitly blocked_stale_owner until the recovered task returns to calm authority.",
+            },
+            duplicateCompare: {
+              mode: "summary_only",
+              title: "Duplicate authority stays unchanged during stale-owner recovery",
+              summary:
+                "Recovery does not silently rewrite duplicate posture. The same duplicate chain remains visible if it was already blocking downstream work.",
+              cards: [],
+              decisionChain: [],
+            },
+            ownershipLadder: {
+              mode: "stale_owner_recovery",
+              nextTaskState: "blocked_stale_owner",
+              summary:
+                "Stale-owner recovery preserves the launch context, queue anchor, and draft continuity. Supervisor takeover advances the epoch without losing the same-shell return path.",
+              steps: [
+                {
+                  stepId: "recovery-1",
+                  label: "Ownership epoch 7 expires in place",
+                  state: "rejected",
+                  detail: "The active task is still selected, but the old fence may no longer mutate state.",
+                },
+                {
+                  stepId: "recovery-2",
+                  label: "Stale-owner recovery record opened",
+                  state: "recovered",
+                  detail: "stale_ownership_recovery_ref::272_takeover keeps the same launch context and selected anchor.",
+                },
+                {
+                  stepId: "recovery-3",
+                  label: "Supervisor takeover committed with epoch 8",
+                  state: "recovered",
+                  detail: "The replacement reviewer receives the new fence token and lineage fence epoch.",
+                },
+                {
+                  stepId: "recovery-4",
+                  label: "Return anchor preserved",
+                  state: "active",
+                  detail: "Queue row anchor and departure stub remain visible until recovery calms.",
+                },
+                {
+                  stepId: "recovery-5",
+                  label: "Next-task launch remains blocked_stale_owner",
+                  state: "rejected",
+                  detail: "Prefetch stays summary-only; no attachment media is hydrated ahead of a blocked launch.",
+                },
+              ],
+            },
+            defects: [],
+          },
+        },
+        defectPanel: {
+          defects: [],
+          remediationNotes: [
+            "No repository-owned queue-governance defects remained after the 272 assurance suites were wired and rerun.",
+            "Machine-readable replay evidence is published in data/test/272_expected_rank_snapshots_and_hashes.json and data/test/272_suite_results.json.",
+          ],
+        },
+      };
+    </script>
+    <div
+      class="lab-shell"
+      data-testid="QueueFairnessRecoveryLab"
+      data-visual-mode="Queue_Fairness_Recovery_Lab"
+      data-selected-scenario-id=""
+    >
+      <div class="lab-hero panel">
+        <div class="panel-header">
+          <div class="title-block">
+            <span class="eyebrow">Queue_Fairness_Recovery_Lab</span>
+            <h1>Deterministic queue replay, duplicate authority, and stale-owner recovery</h1>
+            <p>
+              This premium replay board proves the Phase 3 queue governance contract against actual repository
+              algorithms and explicit machine-readable evidence.
+            </p>
+          </div>
+          <div class="note-row" id="hero-notes"></div>
+        </div>
+        <div class="panel-body hero-grid">
+          <section class="hero-summary" aria-label="Assurance summary">
+            <article class="hero-card">
+              <span>Replay families</span>
+              <strong>5</strong>
+            </article>
+            <article class="hero-card">
+              <span>Case coverage</span>
+              <strong>15 queue-governance cases</strong>
+            </article>
+            <article class="hero-card">
+              <span>Browser states</span>
+              <strong>calm / overload / duplicate / stale</strong>
+            </article>
+            <article class="hero-card">
+              <span>Output posture</span>
+              <strong>Machine-readable and replayable</strong>
+            </article>
+          </section>
+          <article class="panel">
+            <div class="panel-header">
+              <div class="title-block">
+                <span class="eyebrow">Active scenario</span>
+                <h2 id="scenario-title">Loading...</h2>
+                <p id="scenario-summary"></p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="scenario-chip-row" id="scenario-status-chips"></div>
+              <div class="visual-note">
+                Rows, fairness credits, duplicate authority, and ownership epochs are shown exactly because they are
+                needed to debug and replay the queue. Decorative telemetry is intentionally absent.
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <div class="lab-frame">
+        <aside class="panel scenario-family-rail" data-testid="ScenarioFamilyRail" aria-labelledby="scenario-family-heading">
+          <div class="panel-header">
+            <div class="title-block">
+              <span class="eyebrow">ScenarioFamilyRail</span>
+              <h2 id="scenario-family-heading">Scenario families</h2>
+              <p>Replay one governing cut at a time. Each family preserves the same evidence chain and case ids.</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="family-list" id="family-list"></div>
+          </div>
+        </aside>
+
+        <main class="workbench-grid">
+          <section class="panel" data-testid="RankReplayWorkbench" aria-labelledby="rank-replay-heading">
+            <div class="panel-header">
+              <div class="title-block">
+                <span class="eyebrow">RankReplayWorkbench</span>
+                <h2 id="rank-replay-heading">Rank replay and explanation ladder</h2>
+                <p>Canonical order, row hash, source fact cut, and rank explanation stay visible together.</p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="summary-grid" data-testid="ReplaySummaryCard">
+                <article class="summary-card">
+                  <span class="eyebrow">Rank snapshot</span>
+                  <strong id="rank-snapshot-id"></strong>
+                  <code id="row-order-hash"></code>
+                </article>
+                <article class="summary-card">
+                  <span class="eyebrow">Fact cut</span>
+                  <strong id="source-fact-cut-ref"></strong>
+                  <code id="replay-case-ids"></code>
+                </article>
+                <article class="summary-card">
+                  <span class="eyebrow">Queue posture</span>
+                  <strong id="queue-overload-state"></strong>
+                  <code id="queue-fairness-promise"></code>
+                </article>
+              </div>
+
+              <div
+                class="listbox"
+                data-testid="RankReplayList"
+                role="listbox"
+                tabindex="0"
+                aria-label="Rank replay queue rows"
+                aria-activedescendant=""
+              ></div>
+            </div>
+          </section>
+
+          <section class="panel" data-testid="FairnessCreditBoard" aria-labelledby="fairness-board-heading">
+            <div class="panel-header">
+              <div class="title-block">
+                <span class="eyebrow">FairnessCreditBoard</span>
+                <h2 id="fairness-board-heading">Fairness credits and overload admission</h2>
+                <p>Credits are shown only because they explain lawful rotation and lawful overload suppression.</p>
+              </div>
+            </div>
+            <div class="panel-body fairness-board">
+              <article class="summary-card">
+                <span class="eyebrow">Admission statement</span>
+                <strong id="fairness-admission"></strong>
+                <code id="fairness-rho-line"></code>
+              </article>
+              <div id="fairness-band-list"></div>
+              <article class="summary-card">
+                <span class="eyebrow">Assignment suggestion boundary</span>
+                <strong id="suggestion-boundary-note"></strong>
+              </article>
+            </div>
+          </section>
+        </main>
+
+        <aside class="workbench-grid">
+          <section
+            class="panel"
+            data-testid="DuplicateEvidenceCompare"
+            data-duplicate-mode=""
+            aria-labelledby="duplicate-compare-heading"
+          >
+            <div class="panel-header">
+              <div class="title-block">
+                <span class="eyebrow">DuplicateEvidenceCompare</span>
+                <h2 id="duplicate-compare-heading">Duplicate authority and evidence compare</h2>
+                <p>Duplicate review stays bound to canonical pair evidence and supersession history.</p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <article class="summary-card">
+                <span class="eyebrow">Duplicate posture</span>
+                <strong id="duplicate-title"></strong>
+                <p id="duplicate-summary"></p>
+              </article>
+              <div class="duplicate-compare-grid" id="duplicate-card-list"></div>
+              <article class="ownership-card">
+                <h3>Decision chain</h3>
+                <ul id="duplicate-decision-chain"></ul>
+              </article>
+            </div>
+          </section>
+
+          <section
+            class="panel"
+            data-testid="OwnershipEpochLadder"
+            data-ownership-mode=""
+            data-next-task-state=""
+            aria-labelledby="ownership-ladder-heading"
+          >
+            <div class="panel-header">
+              <div class="title-block">
+                <span class="eyebrow">OwnershipEpochLadder</span>
+                <h2 id="ownership-ladder-heading">Claim, stale-owner, takeover, and next-task continuity</h2>
+                <p>Ownership epochs and next-task posture stay visible together so recovery never looks magically calm.</p>
+              </div>
+            </div>
+            <div class="panel-body ownership-ladder">
+              <article class="summary-card">
+                <span class="eyebrow">Recovery summary</span>
+                <strong id="ownership-summary"></strong>
+                <p id="ownership-detail"></p>
+              </article>
+              <div id="ownership-step-list"></div>
+            </div>
+          </section>
+
+          <section class="panel defect-panel" data-testid="DefectAndRemediationPanel" aria-labelledby="defect-panel-heading">
+            <div class="panel-header">
+              <div class="title-block">
+                <span class="eyebrow">DefectAndRemediationPanel</span>
+                <h2 id="defect-panel-heading">Defects and remediation</h2>
+                <p>Repository-owned defects would stay visible here instead of being hidden behind narrative status.</p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div id="defect-card-list"></div>
+              <article class="defect-card">
+                <h3>Current remediation posture</h3>
+                <ul id="remediation-note-list"></ul>
+              </article>
+            </div>
+          </section>
+        </aside>
+      </div>
+      <div class="sr-only" aria-live="polite" id="queue-lab-live-announcer"></div>
+    </div>
+
+    <script>
+      (function () {
+        const data = window.__queueFairnessRecoveryLabData;
+        const root = document.querySelector("[data-testid='QueueFairnessRecoveryLab']");
+        const familyList = document.getElementById("family-list");
+        const heroNotes = document.getElementById("hero-notes");
+        const scenarioTitle = document.getElementById("scenario-title");
+        const scenarioSummary = document.getElementById("scenario-summary");
+        const scenarioStatusChips = document.getElementById("scenario-status-chips");
+        const rankSnapshotId = document.getElementById("rank-snapshot-id");
+        const rowOrderHash = document.getElementById("row-order-hash");
+        const sourceFactCutRef = document.getElementById("source-fact-cut-ref");
+        const replayCaseIds = document.getElementById("replay-case-ids");
+        const replaySummaryCard = document.querySelector("[data-testid='ReplaySummaryCard']");
+        const queueOverloadState = document.getElementById("queue-overload-state");
+        const queueFairnessPromise = document.getElementById("queue-fairness-promise");
+        const listbox = document.querySelector("[data-testid='RankReplayList']");
+        const fairnessAdmission = document.getElementById("fairness-admission");
+        const fairnessRhoLine = document.getElementById("fairness-rho-line");
+        const fairnessBandList = document.getElementById("fairness-band-list");
+        const suggestionBoundaryNote = document.getElementById("suggestion-boundary-note");
+        const duplicateCompare = document.querySelector("[data-testid='DuplicateEvidenceCompare']");
+        const duplicateTitle = document.getElementById("duplicate-title");
+        const duplicateSummary = document.getElementById("duplicate-summary");
+        const duplicateCardList = document.getElementById("duplicate-card-list");
+        const duplicateDecisionChain = document.getElementById("duplicate-decision-chain");
+        const ownershipLadder = document.querySelector("[data-testid='OwnershipEpochLadder']");
+        const ownershipSummary = document.getElementById("ownership-summary");
+        const ownershipDetail = document.getElementById("ownership-detail");
+        const ownershipStepList = document.getElementById("ownership-step-list");
+        const defectCardList = document.getElementById("defect-card-list");
+        const remediationNoteList = document.getElementById("remediation-note-list");
+        const announcer = document.getElementById("queue-lab-live-announcer");
+
+        const state = {
+          scenarioId: new URL(window.location.href).searchParams.get("scenario") || data.scenarioFamilies[0].scenarioId,
+          selectedTaskRef: null,
+        };
+
+        function scenario() {
+          return data.scenarios[state.scenarioId] || data.scenarios[data.scenarioFamilies[0].scenarioId];
+        }
+
+        function selectedTaskFallback(rows) {
+          if (!rows.length) {
+            return null;
+          }
+          const existing = rows.find((row) => row.taskRef === state.selectedTaskRef);
+          return existing ? existing.taskRef : rows[0].taskRef;
+        }
+
+        function setScenario(nextScenarioId) {
+          state.scenarioId = nextScenarioId;
+          const next = scenario();
+          state.selectedTaskRef = selectedTaskFallback(next.replay.rows.filter((row) => row.ordinal !== "held"));
+          const url = new URL(window.location.href);
+          url.searchParams.set("scenario", nextScenarioId);
+          window.history.replaceState({}, "", url);
+          render();
+          announcer.textContent = next.title + " selected";
+        }
+
+        function renderFamilies() {
+          familyList.innerHTML = "";
+          heroNotes.innerHTML = "";
+          data.scenarioFamilies.forEach((family) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "scenario-button";
+            button.dataset.scenarioId = family.scenarioId;
+            button.dataset.active = String(family.scenarioId === state.scenarioId);
+            button.setAttribute("aria-pressed", String(family.scenarioId === state.scenarioId));
+            button.innerHTML =
+              "<span class='eyebrow'>" +
+              family.familyId +
+              "</span><strong>" +
+              family.label +
+              "</strong><small>" +
+              family.notes.join(" · ") +
+              "</small>";
+            button.addEventListener("click", () => setScenario(family.scenarioId));
+            familyList.appendChild(button);
+
+            const pill = document.createElement("span");
+            pill.className = "pill";
+            pill.textContent = family.label;
+            heroNotes.appendChild(pill);
+          });
+        }
+
+        function renderScenarioSummary(active) {
+          root.dataset.selectedScenarioId = active.scenarioId;
+          scenarioTitle.textContent = active.title;
+          scenarioSummary.textContent = active.summary;
+          scenarioStatusChips.innerHTML = "";
+          active.statusChips.forEach((chip) => {
+            const span = document.createElement("span");
+            span.className = "pill";
+            span.dataset.tone = chip.tone;
+            span.textContent = chip.label;
+            scenarioStatusChips.appendChild(span);
+          });
+        }
+
+        function renderReplay(active) {
+          rankSnapshotId.textContent = active.replay.rankSnapshotId;
+          rowOrderHash.textContent = active.replay.rowOrderHash;
+          sourceFactCutRef.textContent = active.replay.sourceFactCutRef;
+          replayCaseIds.textContent = active.replay.caseIds.join(" · ");
+          queueOverloadState.textContent = active.replay.overloadState;
+          queueFairnessPromise.textContent = active.replay.fairnessPromise;
+          replaySummaryCard.dataset.overloadState = active.replay.overloadState;
+
+          listbox.innerHTML = "";
+          const selectableRows = active.replay.rows.filter((row) => row.ordinal !== "held");
+          state.selectedTaskRef = selectedTaskFallback(selectableRows);
+
+          active.replay.rows.forEach((row, index) => {
+            const option = document.createElement("article");
+            option.className = "queue-option";
+            option.id = "queue-option-" + row.taskRef;
+            option.dataset.taskRef = row.taskRef;
+            option.setAttribute("role", "option");
+            option.setAttribute("tabindex", "-1");
+            option.setAttribute("aria-selected", String(row.taskRef === state.selectedTaskRef));
+            option.innerHTML =
+              "<div class='queue-option-top'><strong>" +
+              row.label +
+              "</strong><span>" +
+              row.ordinal +
+              "</span></div>" +
+              "<div class='queue-option-meta'><span>" +
+              row.taskRef +
+              "</span><span>" +
+              row.fairnessBandRef +
+              "</span><span>" +
+              row.fairnessTransition +
+              "</span></div>" +
+              "<div class='queue-option-factors'><span>" +
+              row.tieBreak +
+              "</span></div>" +
+              "<p>" +
+              row.note +
+              "</p>";
+            option.addEventListener("click", () => {
+              state.selectedTaskRef = row.taskRef;
+              renderReplay(active);
+            });
+            option.addEventListener("focus", () => {
+              state.selectedTaskRef = row.taskRef;
+              renderReplay(active);
+            });
+            listbox.appendChild(option);
+            if (row.taskRef === state.selectedTaskRef) {
+              listbox.setAttribute("aria-activedescendant", option.id);
+            }
+            option.dataset.index = String(index);
+          });
+        }
+
+        function moveSelection(delta) {
+          const active = scenario();
+          const selectableRows = active.replay.rows.filter((row) => row.ordinal !== "held");
+          const currentIndex = Math.max(
+            0,
+            selectableRows.findIndex((row) => row.taskRef === state.selectedTaskRef),
+          );
+          const nextIndex = Math.max(0, Math.min(selectableRows.length - 1, currentIndex + delta));
+          state.selectedTaskRef = selectableRows[nextIndex].taskRef;
+          renderReplay(active);
+          const option = document.getElementById("queue-option-" + state.selectedTaskRef);
+          if (option) {
+            option.focus();
+          }
+        }
+
+        function renderFairnessBoard(active) {
+          fairnessAdmission.textContent = active.fairnessBoard.admission;
+          fairnessRhoLine.textContent =
+            "rho_crit = " + active.fairnessBoard.rhoCritical + " / rho_guard = " + active.fairnessBoard.rhoGuard;
+          suggestionBoundaryNote.textContent = active.fairnessBoard.suggestionNote;
+          fairnessBandList.innerHTML = "";
+          active.fairnessBoard.bands.forEach((band) => {
+            const wrapper = document.createElement("article");
+            wrapper.className = "compare-card";
+            const width = Math.max(8, Math.min(100, band.after * 100));
+            wrapper.innerHTML =
+              "<div class='meter-row'><div class='meter-label-row'><strong>" +
+              band.fairnessBandRef +
+              "</strong><span>" +
+              band.before.toFixed(2) +
+              " -> " +
+              band.after.toFixed(2) +
+              "</span></div><div class='meter-bar'><span class='meter-fill' data-tone='" +
+              band.tone +
+              "' style='width:" +
+              width +
+              "%'></span></div></div>";
+            fairnessBandList.appendChild(wrapper);
+          });
+        }
+
+        function renderDuplicateCompare(active) {
+          duplicateCompare.dataset.duplicateMode = active.duplicateCompare.mode;
+          duplicateTitle.textContent = active.duplicateCompare.title;
+          duplicateSummary.textContent = active.duplicateCompare.summary;
+          duplicateCardList.innerHTML = "";
+          duplicateDecisionChain.innerHTML = "";
+          active.duplicateCompare.cards.forEach((card) => {
+            const article = document.createElement("article");
+            article.className = "compare-card";
+            article.dataset.winner = String(card.winner);
+            article.innerHTML =
+              "<h3>" +
+              card.requestRef +
+              "</h3><p>" +
+              card.episodeRef +
+              "</p><div class='note-row'><span class='pill'>" +
+              card.dominantDecisionClass +
+              "</span><span class='pill'>score " +
+              card.dominantScore +
+              "</span><span class='pill'>uncertainty " +
+              card.uncertaintyScore +
+              "</span></div><p>" +
+              card.note +
+              "</p>";
+            duplicateCardList.appendChild(article);
+          });
+          active.duplicateCompare.decisionChain.forEach((item) => {
+            const li = document.createElement("li");
+            li.textContent = item;
+            duplicateDecisionChain.appendChild(li);
+          });
+        }
+
+        function renderOwnership(active) {
+          ownershipLadder.dataset.ownershipMode = active.ownershipLadder.mode;
+          ownershipLadder.dataset.nextTaskState = active.ownershipLadder.nextTaskState;
+          ownershipSummary.textContent = active.ownershipLadder.summary;
+          ownershipDetail.textContent = "Next-task posture: " + active.ownershipLadder.nextTaskState;
+          ownershipStepList.innerHTML = "";
+          active.ownershipLadder.steps.forEach((step) => {
+            const article = document.createElement("article");
+            article.className = "ownership-step";
+            article.dataset.stepState = step.state;
+            article.innerHTML =
+              "<div class='ownership-step'><strong>" +
+              step.label +
+              "</strong><span>" +
+              step.state.replaceAll("_", " ") +
+              "</span></div><p>" +
+              step.detail +
+              "</p>";
+            ownershipStepList.appendChild(article);
+          });
+        }
+
+        function renderDefects(active) {
+          defectCardList.innerHTML = "";
+          if (!active.defects.length) {
+            const article = document.createElement("article");
+            article.className = "defect-card";
+            article.innerHTML =
+              "<h3>No unresolved repository-owned defects</h3><p>The 272 suite passed without leaving a queue-governance defect hidden behind summary prose.</p>";
+            defectCardList.appendChild(article);
+          }
+          remediationNoteList.innerHTML = "";
+          data.defectPanel.remediationNotes.forEach((note) => {
+            const li = document.createElement("li");
+            li.textContent = note;
+            remediationNoteList.appendChild(li);
+          });
+        }
+
+        function render() {
+          const active = scenario();
+          renderFamilies();
+          renderScenarioSummary(active);
+          renderReplay(active);
+          renderFairnessBoard(active);
+          renderDuplicateCompare(active);
+          renderOwnership(active);
+          renderDefects(active);
+        }
+
+        listbox.addEventListener("keydown", (event) => {
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            moveSelection(1);
+          } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            moveSelection(-1);
+          } else if (event.key === "Home") {
+            event.preventDefault();
+            moveSelection(-100);
+          } else if (event.key === "End") {
+            event.preventDefault();
+            moveSelection(100);
+          }
+        });
+
+        render();
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,234 @@
+{
+  "taskId": "par_405",
+  "schemaVersion": "405.rollback-assurance-freeze-contracts.v1",
+  "contractFamily": "assistive_release_regulatory_change_control",
+  "sourceReleaseCandidateContractRef": "data/contracts/405_assistive_release_candidate_contracts.json",
+  "sourceApprovalGraphContractRef": "data/contracts/405_release_approval_graph_contract.json",
+  "ownedBy": "assistive_rollback_and_freeze_control",
+  "objectContracts": [
+    {
+      "objectName": "RollbackReadinessBundle",
+      "objectRole": "first-class rollback proof required before promotion",
+      "requiredFields": [
+        "rollbackBundleId",
+        "releaseCandidateRef",
+        "candidateHash",
+        "rollbackTargetRef",
+        "dataCompatibilityState",
+        "policyCompatibilityState",
+        "runtimePublicationCompatibilityState",
+        "schemaCompatibilityState",
+        "killSwitchPlanRef",
+        "operatorRunbookRef",
+        "verificationEvidenceRefs",
+        "bundleState"
+      ],
+      "states": ["draft", "ready", "blocked", "invalidated", "superseded", "revoked"],
+      "dependencyRules": [
+        "ready is required before promotion",
+        "ready requires data, policy, runtime publication, and schema compatibility to pass",
+        "invalidated or blocked forces AssuranceFreezeState"
+      ]
+    },
+    {
+      "objectName": "RollbackCompatibilityAssessment",
+      "objectRole": "repeatable compatibility derivation behind a rollback bundle",
+      "requiredFields": [
+        "rollbackCompatibilityAssessmentId",
+        "rollbackBundleRef",
+        "rollbackTargetRef",
+        "candidateHash",
+        "dataCompatibilityState",
+        "policyCompatibilityState",
+        "runtimePublicationCompatibilityState",
+        "schemaCompatibilityState",
+        "killSwitchCompatibilityState",
+        "assessmentState",
+        "blockingReasonCodes",
+        "evaluatedAt"
+      ],
+      "states": ["pending", "passed", "blocked", "superseded"],
+      "dependencyRules": [
+        "passed requires every compatibility state to be compatible",
+        "blocked emits promotion_blocked",
+        "superseded requires a newer assessment for the same candidateHash"
+      ]
+    },
+    {
+      "objectName": "AssuranceFreezeState",
+      "objectRole": "release and rollout freeze gate for assurance, regulatory, supplier, safety, and publication drift",
+      "requiredFields": [
+        "assuranceFreezeStateId",
+        "scopeRef",
+        "releaseCandidateRef",
+        "candidateHash",
+        "freezeReasonCode",
+        "triggerRef",
+        "activatedBy",
+        "activatedAt",
+        "liftCriteria",
+        "freezeState",
+        "releaseRecoveryDispositionRef"
+      ],
+      "states": ["clear", "monitoring", "promotion_blocked", "rollout_frozen", "rollback_required", "lift_pending", "lifted", "superseded"],
+      "dependencyRules": [
+        "promotion_blocked stops approve-to-promote even when candidate syntax is valid",
+        "rollout_frozen requires a recovery disposition and same-shell freeze posture",
+        "lifted requires AssuranceFreezeLiftRecord and authoritative settlement"
+      ]
+    },
+    {
+      "objectName": "AssuranceFreezeLiftRecord",
+      "objectRole": "append-only proof that freeze lift criteria were satisfied",
+      "requiredFields": [
+        "assuranceFreezeLiftRecordId",
+        "assuranceFreezeStateRef",
+        "liftCriteriaEvidenceRefs",
+        "approvalGraphRef",
+        "actionSettlementRef",
+        "liftDecision",
+        "decidedByRole",
+        "decidedAt"
+      ],
+      "states": ["draft", "approved", "rejected", "superseded"],
+      "dependencyRules": [
+        "approved lift requires actionSettlementRef",
+        "rejected lift leaves freezeState unchanged",
+        "approved lift may route to promotion_ready only after baseline, supplier, rollback, publication, and regulatory checks are current"
+      ]
+    },
+    {
+      "objectName": "SupplierDriftGate",
+      "objectRole": "derived supplier and subprocessor freshness gate for a release candidate",
+      "requiredFields": [
+        "supplierDriftGateId",
+        "releaseCandidateRef",
+        "candidateHash",
+        "subprocessorAssuranceRefs",
+        "freshnessState",
+        "driftState",
+        "suspensionState",
+        "blockingReasonCodes",
+        "evaluatedAt"
+      ],
+      "states": ["clear", "stale", "drifted", "suspended", "withdrawn", "blocked"],
+      "dependencyRules": [
+        "clear requires every SubprocessorAssuranceRef to be current",
+        "stale, drifted, suspended, withdrawn, or blocked prevents promotion",
+        "supplier drift after approval activates AssuranceFreezeState"
+      ]
+    },
+    {
+      "objectName": "AssuranceFreshnessGate",
+      "objectRole": "derived freshness gate for assurance baseline and release proof",
+      "requiredFields": [
+        "assuranceFreshnessGateId",
+        "releaseCandidateRef",
+        "candidateHash",
+        "assuranceBaselineSnapshotRef",
+        "freshnessState",
+        "freshUntil",
+        "requiredRefreshRefs",
+        "blockingReasonCodes",
+        "evaluatedAt"
+      ],
+      "states": ["current", "stale", "superseded", "withdrawn", "blocked"],
+      "dependencyRules": [
+        "current is required for promotion",
+        "stale, superseded, withdrawn, or blocked activates AssuranceFreezeState",
+        "requiredRefreshRefs must be resolved before unfreeze"
+      ]
+    }
+  ],
+  "rollbackProofRequirements": [
+    "rollbackTargetRef points to an approved or previously promoted candidate compatible with the active route family",
+    "dataCompatibilityState is compatible",
+    "policyCompatibilityState is compatible",
+    "runtimePublicationCompatibilityState is compatible",
+    "schemaCompatibilityState is compatible",
+    "killSwitchPlanRef is verified",
+    "operatorRunbookRef is current",
+    "verificationEvidenceRefs include at least one rehearsal or deterministic compatibility check"
+  ],
+  "freezeTriggers": [
+    {
+      "freezeReasonCode": "assurance_baseline_stale",
+      "defaultFreezeState": "promotion_blocked"
+    },
+    {
+      "freezeReasonCode": "supplier_assurance_stale",
+      "defaultFreezeState": "promotion_blocked"
+    },
+    {
+      "freezeReasonCode": "supplier_suspended_or_withdrawn",
+      "defaultFreezeState": "rollback_required"
+    },
+    {
+      "freezeReasonCode": "runtime_publication_drift",
+      "defaultFreezeState": "rollout_frozen"
+    },
+    {
+      "freezeReasonCode": "surface_publication_drift",
+      "defaultFreezeState": "rollout_frozen"
+    },
+    {
+      "freezeReasonCode": "disclosure_baseline_missing",
+      "defaultFreezeState": "promotion_blocked"
+    },
+    {
+      "freezeReasonCode": "rollback_bundle_not_ready",
+      "defaultFreezeState": "promotion_blocked"
+    },
+    {
+      "freezeReasonCode": "approval_graph_invalidated",
+      "defaultFreezeState": "promotion_blocked"
+    },
+    {
+      "freezeReasonCode": "regulatory_blocker",
+      "defaultFreezeState": "promotion_blocked"
+    },
+    {
+      "freezeReasonCode": "safety_case_delta_unsigned",
+      "defaultFreezeState": "promotion_blocked"
+    },
+    {
+      "freezeReasonCode": "incident_spike_or_threshold_breach",
+      "defaultFreezeState": "rollout_frozen"
+    },
+    {
+      "freezeReasonCode": "trust_degraded_or_quarantined",
+      "defaultFreezeState": "rollout_frozen"
+    }
+  ],
+  "freezeScopes": ["candidate", "capability", "rollout_slice", "tenant", "route_family", "environment", "supplier"],
+  "liftCriteriaDefaults": [
+    "assurance baseline current",
+    "supplier drift gate clear",
+    "regulatory decision resolved",
+    "safety case delta signed or not_required",
+    "rollback bundle ready",
+    "runtime publication current",
+    "surface publication current",
+    "disclosure baseline current",
+    "approval graph approved or reapproved after drift",
+    "release action settlement authoritative"
+  ],
+  "invariants": [
+    {
+      "invariantId": "INV405_ROLLBACK_001",
+      "statement": "Rollback readiness is a required promotion artifact, not an operational promise."
+    },
+    {
+      "invariantId": "INV405_ROLLBACK_002",
+      "statement": "Supplier drift after approval activates a freeze before promotion or rollout can continue."
+    },
+    {
+      "invariantId": "INV405_FREEZE_001",
+      "statement": "Assurance freeze state can block promotion even when candidate syntax and approval graph are valid."
+    },
+    {
+      "invariantId": "INV405_FREEZE_002",
+      "statement": "Freeze lift requires explicit evidence and authoritative action settlement."
+    }
+  ]
+}

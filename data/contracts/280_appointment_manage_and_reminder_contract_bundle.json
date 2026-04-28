@@ -1,0 +1,177 @@
+{
+  "taskId": "seq_280",
+  "contractVersion": "280.phase4.booking-flow-freeze.v1",
+  "commandDefinitions": {
+    "AppointmentManageCommand": {
+      "requiredFields": [
+        "commandId",
+        "appointmentId",
+        "bookingCaseId",
+        "actionScope",
+        "routeIntentBindingRef",
+        "canonicalObjectDescriptorRef",
+        "governingObjectVersionRef",
+        "routeContractDigestRef",
+        "routeIntentTupleHash",
+        "routeProfileRef",
+        "policyBundleRef",
+        "capabilityResolutionRef",
+        "providerAdapterBindingRef",
+        "providerAdapterBindingHash",
+        "adapterContractProfileRef",
+        "capabilityTupleHash",
+        "freshnessToken",
+        "governingFenceEpoch",
+        "surfaceRouteContractRef",
+        "surfacePublicationRef",
+        "runtimePublicationBundleRef",
+        "releaseRecoveryDispositionRef",
+        "idempotencyKey",
+        "submittedByMode",
+        "submittedAt"
+      ],
+      "actionScopeEnum": [
+        "appointment_cancel",
+        "appointment_reschedule",
+        "appointment_detail_update",
+        "reminder_change"
+      ]
+    },
+    "BookingManageSettlement": {
+      "requiredFields": [
+        "settlementId",
+        "bookingCaseId",
+        "appointmentId",
+        "actionScope",
+        "routeIntentBindingRef",
+        "canonicalObjectDescriptorRef",
+        "governingObjectVersionRef",
+        "routeIntentTupleHash",
+        "capabilityResolutionRef",
+        "capabilityTupleHash",
+        "result",
+        "receiptTextRef",
+        "experienceContinuityEvidenceRef",
+        "causalToken",
+        "transitionEnvelopeRef",
+        "surfacePublicationRef",
+        "runtimePublicationBundleRef",
+        "releaseRecoveryDispositionRef",
+        "routeFreezeDispositionRef",
+        "recoveryRouteRef",
+        "presentationArtifactRef",
+        "recordedAt"
+      ],
+      "resultEnum": [
+        "applied",
+        "supplier_pending",
+        "stale_recoverable",
+        "unsupported_capability",
+        "safety_preempted",
+        "reconciliation_required"
+      ]
+    },
+    "BookingContinuityEvidenceProjection": {
+      "requiredFields": [
+        "bookingContinuityEvidenceProjectionId",
+        "bookingCaseId",
+        "appointmentId",
+        "controlCode",
+        "routeFamilyRef",
+        "routeContinuityEvidenceContractRef",
+        "selectedAnchorRef",
+        "selectedAnchorTupleHashRef",
+        "surfacePublicationRef",
+        "runtimePublicationBundleRef",
+        "latestManageSettlementRef",
+        "latestRecoveryRouteRef",
+        "experienceContinuityEvidenceRef",
+        "continuityTupleHash",
+        "validationState",
+        "blockingRefs",
+        "capturedAt"
+      ],
+      "validationStateEnum": [
+        "trusted",
+        "degraded",
+        "stale",
+        "blocked"
+      ]
+    },
+    "ReminderPlan": {
+      "requiredFields": [
+        "reminderPlanId",
+        "appointmentId",
+        "bookingCaseId",
+        "templateVersionRef",
+        "channelContractRefs",
+        "scheduleState",
+        "nextPlannedSendAt",
+        "latestReceiptCheckpointRef"
+      ],
+      "scheduleStates": [
+        "blocked",
+        "pending_schedule",
+        "scheduled",
+        "cancelled",
+        "failed"
+      ]
+    },
+    "AppointmentPresentationArtifact": {
+      "requiredFields": [
+        "appointmentPresentationArtifactId",
+        "appointmentId",
+        "artifactPresentationContractRef",
+        "artifactExposureState",
+        "summaryRef",
+        "handoffChannelRefs",
+        "generatedAt"
+      ]
+    }
+  },
+  "predicates": {
+    "Cancelable": {
+      "name": "Cancelable(a,t)",
+      "expression": "Cancelable(a,t) = 1[a.status = booked and startAt(a) - t >= cancelCutoff(a) and no live AppointmentManageCommand fence exists for a]",
+      "machineFields": [
+        "appointmentStatus",
+        "startAt",
+        "cancelCutoff",
+        "liveCommandFence"
+      ]
+    },
+    "Reschedulable": {
+      "name": "Reschedulable(a,t)",
+      "expression": "Reschedulable(a,t) = 1[a.status = booked and startAt(a) - t >= amendCutoff(a) and no live AppointmentManageCommand fence exists for a]",
+      "machineFields": [
+        "appointmentStatus",
+        "startAt",
+        "amendCutoff",
+        "liveCommandFence"
+      ]
+    },
+    "RouteWritable": {
+      "name": "RouteWritable(tx,t)",
+      "expression": "RouteWritable(tx,t) = 1[AudienceSurfaceRouteContract live and surface publication current and RuntimePublicationBundle live and PatientShellConsistencyProjection valid and, when embedded, PatientEmbeddedSessionProjection valid]",
+      "machineFields": [
+        "surfaceRouteContractRef",
+        "surfacePublicationRef",
+        "runtimePublicationBundleRef",
+        "patientShellConsistencyProjectionRef",
+        "patientEmbeddedSessionProjectionRef"
+      ],
+      "failClosedOutcome": "confirm may not proceed if route publication is stale or withdrawn, if shell consistency no longer matches the booking lineage, or if embedded session posture has drifted"
+    }
+  },
+  "routeRules": [
+    "Cancel, reschedule, reminder, and detail-update child states stay inside the same booking shell and can show supplier pending, stale or changed availability, safety review required, and controlled recovery or support fallback without route reset.",
+    "Manage exposure remains live only while BookingCapabilityProjection, PatientShellConsistencyProjection, surface publication, and, when embedded, PatientEmbeddedSessionProjection remain valid for the same appointment lineage.",
+    "Calendar, reminder, attendance, and browser-handoff actions stay summary-first through AppointmentPresentationArtifact under ArtifactPresentationContract."
+  ],
+  "safetyPreemptionRule": "If the submitted payload includes symptom change, worsening condition, or other clinically meaningful free text, do not mutate the appointment directly. First settle EvidenceAssimilationRecord, MaterialDeltaAssessment, EvidenceClassificationDecision, SafetyPreemptionRecord, and SafetyDecisionRecord, then return BookingManageSettlement.result = safety_preempted.",
+  "x-sourceRefs": [
+    "blueprint/phase-4-the-booking-engine.md",
+    "blueprint/phase-0-the-foundation-protocol.md",
+    "blueprint/patient-portal-experience-architecture-blueprint.md"
+  ]
+}

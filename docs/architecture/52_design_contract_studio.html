@@ -1,0 +1,999 @@
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vecells Design Contract Studio</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #F7F8FC;
+        --rail: #EFF2F8;
+        --panel: #FFFFFF;
+        --inset: #F3F5FA;
+        --text-strong: #0F172A;
+        --text: #1E293B;
+        --muted: #667085;
+        --border-subtle: #E2E8F0;
+        --border: #CBD5E1;
+        --primary: #3559E6;
+        --design: #7C3AED;
+        --semantic: #0EA5A4;
+        --lint: #0F9D58;
+        --warning: #C98900;
+        --blocked: #C24141;
+        --shadow: 0 24px 64px rgba(15, 23, 42, 0.08);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 8% 12%, rgba(124, 58, 237, 0.10), transparent 26%),
+          radial-gradient(circle at 88% 12%, rgba(53, 89, 230, 0.12), transparent 30%),
+          linear-gradient(180deg, rgba(255,255,255,0.84), rgba(247,248,252,0.96)),
+          var(--canvas);
+      }
+      body[data-reduced-motion="true"] * {
+        transition-duration: 0ms !important;
+        animation: none !important;
+        scroll-behavior: auto !important;
+      }
+      .app {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 18px;
+      }
+      .masthead {
+        position: sticky;
+        top: 0;
+        z-index: 24;
+        min-height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 14px 18px;
+        border-radius: 28px;
+        border: 1px solid rgba(255,255,255,0.72);
+        background: rgba(247,248,252,0.88);
+        backdrop-filter: blur(18px);
+        box-shadow: var(--shadow);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 320px;
+      }
+      .mark {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, rgba(53,89,230,0.12), rgba(124,58,237,0.18));
+        color: var(--design);
+        box-shadow: inset 0 0 0 1px rgba(124,58,237,0.12);
+      }
+      .brand small,
+      .metric span,
+      .eyebrow,
+      .label {
+        display: block;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      .brand strong {
+        display: block;
+        color: var(--text-strong);
+        font-size: 16px;
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(120px, 1fr));
+        gap: 12px;
+        flex: 1;
+      }
+      .metric {
+        padding: 12px 14px;
+        border-radius: 18px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255,255,255,0.84);
+      }
+      .metric strong {
+        display: block;
+        color: var(--text-strong);
+        font-size: 22px;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 296px minmax(0, 1fr) 396px;
+        gap: 18px;
+        margin-top: 18px;
+        align-items: start;
+      }
+      .rail,
+      .center,
+      .inspector {
+        border-radius: 28px;
+        border: 1px solid var(--border-subtle);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+      .rail {
+        padding: 18px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.96), var(--rail));
+      }
+      .filters {
+        display: grid;
+        gap: 12px;
+      }
+      label {
+        display: grid;
+        gap: 6px;
+        font-size: 13px;
+        color: var(--text-strong);
+      }
+      select {
+        height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text);
+        padding: 0 12px;
+      }
+      .bundle-list {
+        display: grid;
+        gap: 12px;
+        margin-top: 18px;
+      }
+      .bundle-card {
+        min-height: 160px;
+        display: grid;
+        gap: 10px;
+        padding: 16px;
+        border-radius: 22px;
+        border: 1px solid var(--border-subtle);
+        background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(243,245,250,0.94));
+        cursor: pointer;
+        transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+      }
+      .bundle-card:hover,
+      .bundle-card:focus-visible,
+      .bundle-card[data-selected="true"] {
+        transform: translateY(-1px);
+        border-color: rgba(53, 89, 230, 0.28);
+        box-shadow: 0 18px 32px rgba(53, 89, 230, 0.10);
+        background: linear-gradient(180deg, rgba(255,255,255,1), rgba(238,242,255,0.96));
+        outline: none;
+      }
+      .bundle-card h3,
+      .panel h2,
+      .panel h3,
+      .inspector h2,
+      .inspector h3 {
+        margin: 0;
+        color: var(--text-strong);
+      }
+      .chips,
+      .route-chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(15,23,42,0.08);
+        background: rgba(15,23,42,0.04);
+        color: var(--text);
+        font-size: 12px;
+      }
+      .chip.pass { background: rgba(15,157,88,0.12); color: var(--lint); }
+      .chip.published { background: rgba(53,89,230,0.10); color: var(--primary); }
+      .chip.watch { background: rgba(201,137,0,0.16); color: var(--warning); }
+      .chip.clean { background: rgba(15,23,42,0.05); color: var(--muted); }
+      .mono {
+        font-family: ui-monospace, "SFMono-Regular", "SF Mono", Consolas, monospace;
+        font-size: 12px;
+      }
+      .center {
+        padding: 18px;
+        display: grid;
+        gap: 18px;
+      }
+      .panel {
+        border-radius: 24px;
+        border: 1px solid var(--border-subtle);
+        background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(243,245,250,0.92));
+        padding: 18px;
+      }
+      .constellation-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 280px;
+        gap: 16px;
+        min-height: 600px;
+      }
+      .constellation {
+        position: relative;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 20% 16%, rgba(53,89,230,0.09), transparent 24%),
+          radial-gradient(circle at 78% 22%, rgba(14,165,164,0.09), transparent 26%),
+          radial-gradient(circle at 62% 72%, rgba(124,58,237,0.10), transparent 26%),
+          var(--panel);
+      }
+      .constellation svg {
+        width: 100%;
+        height: 100%;
+        min-height: 420px;
+      }
+      .node-circle {
+        fill: rgba(255,255,255,0.96);
+        stroke: rgba(203,213,225,0.96);
+        stroke-width: 1.2;
+      }
+      .node-circle.core { stroke: rgba(53,89,230,0.72); fill: rgba(238,242,255,0.96); }
+      .node-circle.design { stroke: rgba(124,58,237,0.70); fill: rgba(245,243,255,0.96); }
+      .node-circle.semantic { stroke: rgba(14,165,164,0.72); fill: rgba(240,253,250,0.96); }
+      .edge {
+        stroke: rgba(148,163,184,0.92);
+        stroke-width: 1.4;
+      }
+      .constellation-label {
+        fill: var(--text-strong);
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .constellation-sub {
+        fill: var(--muted);
+        font-size: 11px;
+      }
+      .lint-rail {
+        display: grid;
+        gap: 10px;
+        align-content: start;
+      }
+      .lint-item {
+        padding: 14px;
+        border-radius: 18px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255,255,255,0.92);
+        transition: background 120ms ease, border-color 120ms ease;
+      }
+      .lint-item:focus-visible {
+        outline: 2px solid rgba(53,89,230,0.35);
+        outline-offset: 2px;
+      }
+      .digest-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+      .digest-box {
+        padding: 14px;
+        border-radius: 16px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255,255,255,0.88);
+      }
+      .bundle-gallery {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .gallery-card {
+        min-height: 160px;
+        padding: 16px;
+        border-radius: 20px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255,255,255,0.88);
+        transition: transform 180ms ease, border-color 180ms ease;
+      }
+      .gallery-card[data-active="true"] {
+        border-color: rgba(124,58,237,0.28);
+        transform: translateY(-1px);
+      }
+      .inspector {
+        padding: 18px;
+        position: sticky;
+        top: 94px;
+        display: grid;
+        gap: 18px;
+      }
+      .inspector-section {
+        display: grid;
+        gap: 10px;
+        padding-bottom: 18px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+      .inspector-section:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+      }
+      .lower-region {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+        gap: 18px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th, td {
+        text-align: left;
+        padding: 12px 10px;
+        border-bottom: 1px solid var(--border-subtle);
+        vertical-align: top;
+        font-size: 13px;
+      }
+      th {
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      tr:focus-visible {
+        outline: 2px solid rgba(53,89,230,0.34);
+        outline-offset: -2px;
+      }
+      .defect-strip {
+        display: grid;
+        gap: 10px;
+      }
+      .defect-card {
+        padding: 14px;
+        border-radius: 18px;
+        background: var(--inset);
+        border: 1px solid var(--border-subtle);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition-duration: 0ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+      @media (max-width: 1260px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        .inspector {
+          position: static;
+        }
+      }
+      @media (max-width: 980px) {
+        .constellation-grid,
+        .lower-region,
+        .bundle-gallery {
+          grid-template-columns: 1fr;
+        }
+        .digest-strip,
+        .metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 640px) {
+        .metrics {
+          grid-template-columns: 1fr 1fr;
+        }
+        .digest-strip {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="masthead" data-testid="studio-masthead">
+        <div class="brand">
+          <div class="mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none">
+              <path d="M6 24V8h5.5c4.8 0 7.8 2.2 7.8 6.6S16.3 21 11.4 21H9.8" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M18 24V8h4.5c2.7 0 4.8 1.8 4.8 4.2 0 1.9-1.2 3.2-3.1 3.8 2.5.5 4.2 2.1 4.2 4.6 0 2.6-2.3 4.4-5.2 4.4H18Z" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div>
+            <small>Vecells</small>
+            <strong>Design Contract Studio</strong>
+          </div>
+        </div>
+        <div class="metrics" id="metrics"></div>
+      </header>
+      <div class="layout">
+        <aside class="rail" data-testid="bundle-rail">
+          <div class="filters">
+            <label>
+              <span class="label">Audience Surface</span>
+              <select id="filter-audience" data-testid="filter-audience"></select>
+            </label>
+            <label>
+              <span class="label">Shell Type</span>
+              <select id="filter-shell" data-testid="filter-shell"></select>
+            </label>
+            <label>
+              <span class="label">Lint Result</span>
+              <select id="filter-lint" data-testid="filter-lint"></select>
+            </label>
+            <label>
+              <span class="label">Publication State</span>
+              <select id="filter-publication" data-testid="filter-publication"></select>
+            </label>
+            <label>
+              <span class="label">Defect State</span>
+              <select id="filter-defect" data-testid="filter-defect"></select>
+            </label>
+          </div>
+          <div class="bundle-list" id="bundle-list"></div>
+        </aside>
+        <main class="center">
+          <section class="panel constellation-grid">
+            <section class="constellation" data-testid="constellation-canvas">
+              <div class="eyebrow">Token to surface constellation</div>
+              <div id="constellation"></div>
+              <div class="digest-strip" id="digest-strip"></div>
+            </section>
+            <section class="lint-rail" data-testid="lint-rail" id="lint-rail"></section>
+          </section>
+          <section class="panel">
+            <div class="eyebrow">Curated bundle cards</div>
+            <div class="bundle-gallery" id="gallery"></div>
+          </section>
+          <div class="lower-region">
+            <section class="panel" data-testid="vocabulary-matrix">
+              <div class="eyebrow">Vocabulary matrix</div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Route</th>
+                    <th>Markers</th>
+                    <th>Telemetry</th>
+                    <th>Artifact modes</th>
+                  </tr>
+                </thead>
+                <tbody id="vocabulary-body"></tbody>
+              </table>
+            </section>
+            <section class="panel">
+              <div class="eyebrow">Lint rule table</div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Rule</th>
+                    <th>Field</th>
+                    <th>Effect</th>
+                  </tr>
+                </thead>
+                <tbody id="lint-body"></tbody>
+              </table>
+            </section>
+          </div>
+          <section class="panel">
+            <div class="eyebrow">Defect strip</div>
+            <div class="defect-strip" id="defect-body"></div>
+          </section>
+        </main>
+        <aside class="inspector" data-testid="inspector" id="inspector"></aside>
+      </div>
+    </div>
+    <script type="module">
+      const DATA_PATHS = {
+        bundles: "../../data/analysis/design_contract_publication_bundles.json",
+        tokens: "../../data/analysis/design_token_export_artifacts.json",
+        vocabulary: "../../data/analysis/design_contract_vocabulary_tuples.csv",
+        lint: "../../data/analysis/design_contract_lint_rules.json",
+        structural: "../../data/analysis/design_contract_structural_evidence_matrix.csv",
+      };
+
+      const state = {
+        selectedBundleId: null,
+        audience: "all",
+        shell: "all",
+        lint: "all",
+        publication: "all",
+        defect: "all",
+      };
+
+      const ids = {
+        metrics: document.getElementById("metrics"),
+        bundleList: document.getElementById("bundle-list"),
+        gallery: document.getElementById("gallery"),
+        constellation: document.getElementById("constellation"),
+        digestStrip: document.getElementById("digest-strip"),
+        lintRail: document.getElementById("lint-rail"),
+        vocabularyBody: document.getElementById("vocabulary-body"),
+        lintBody: document.getElementById("lint-body"),
+        defectBody: document.getElementById("defect-body"),
+        inspector: document.getElementById("inspector"),
+        filterAudience: document.getElementById("filter-audience"),
+        filterShell: document.getElementById("filter-shell"),
+        filterLint: document.getElementById("filter-lint"),
+        filterPublication: document.getElementById("filter-publication"),
+        filterDefect: document.getElementById("filter-defect"),
+      };
+
+      const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+      document.body.dataset.reducedMotion = motionQuery.matches ? "true" : "false";
+      motionQuery.addEventListener("change", (event) => {
+        document.body.dataset.reducedMotion = event.matches ? "true" : "false";
+      });
+
+      function parseCsv(text) {
+        const rows = [];
+        let row = [];
+        let cell = "";
+        let quoted = false;
+        for (let index = 0; index < text.length; index += 1) {
+          const char = text[index];
+          if (quoted) {
+            if (char === '"' && text[index + 1] === '"') {
+              cell += '"';
+              index += 1;
+            } else if (char === '"') {
+              quoted = false;
+            } else {
+              cell += char;
+            }
+            continue;
+          }
+          if (char === '"') {
+            quoted = true;
+          } else if (char === ",") {
+            row.push(cell);
+            cell = "";
+          } else if (char === "\n") {
+            row.push(cell);
+            rows.push(row);
+            row = [];
+            cell = "";
+          } else if (char !== "\r") {
+            cell += char;
+          }
+        }
+        if (cell.length || row.length) {
+          row.push(cell);
+          rows.push(row);
+        }
+        const [header, ...dataRows] = rows.filter((entry) => entry.length > 0);
+        return dataRows.map((entry) =>
+          Object.fromEntries(header.map((key, index) => [key, entry[index] ?? ""])),
+        );
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function toTestId(value) {
+        return String(value).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      }
+
+      function chipClass(value) {
+        return `chip ${value}`;
+      }
+
+      function filteredBundles(data) {
+        return data.bundles.designContractPublicationBundles.filter((bundle) => {
+          const verdict = data.lint.designContractLintVerdicts.find(
+            (row) => row.designContractLintVerdictId === bundle.lintVerdictRef,
+          );
+          return (
+            (state.audience === "all" || bundle.audienceSurface === state.audience) &&
+            (state.shell === "all" || bundle.shellType === state.shell) &&
+            (state.lint === "all" || verdict.result === state.lint) &&
+            (state.publication === "all" || bundle.publicationState === state.publication) &&
+            (state.defect === "all" || bundle.defectState === state.defect)
+          );
+        });
+      }
+
+      function selectedBundle(data) {
+        const bundles = filteredBundles(data);
+        if (!bundles.length) {
+          return null;
+        }
+        if (!state.selectedBundleId || !bundles.some((bundle) => bundle.designContractPublicationBundleId === state.selectedBundleId)) {
+          state.selectedBundleId = bundles[0].designContractPublicationBundleId;
+        }
+        return bundles.find((bundle) => bundle.designContractPublicationBundleId === state.selectedBundleId) ?? bundles[0];
+      }
+
+      function selectedVerdict(data) {
+        const bundle = selectedBundle(data);
+        if (!bundle) {
+          return null;
+        }
+        return data.lint.designContractLintVerdicts.find(
+          (row) => row.designContractLintVerdictId === bundle.lintVerdictRef,
+        );
+      }
+
+      function populateFilters(data) {
+        const bundles = data.bundles.designContractPublicationBundles;
+        const fill = (element, values, current, label) => {
+          const options = ["all", ...values];
+          element.innerHTML = options
+            .map(
+              (value) =>
+                `<option value="${escapeHtml(value)}" ${value === current ? "selected" : ""}>${
+                  value === "all" ? `All ${label}` : escapeHtml(value)
+                }</option>`,
+            )
+            .join("");
+        };
+        fill(ids.filterAudience, [...new Set(bundles.map((row) => row.audienceSurface))], state.audience, "audiences");
+        fill(ids.filterShell, [...new Set(bundles.map((row) => row.shellType))], state.shell, "shells");
+        fill(ids.filterPublication, [...new Set(bundles.map((row) => row.publicationState))], state.publication, "states");
+        fill(ids.filterDefect, [...new Set(bundles.map((row) => row.defectState))], state.defect, "defect states");
+        fill(
+          ids.filterLint,
+          [...new Set(data.lint.designContractLintVerdicts.map((row) => row.result))],
+          state.lint,
+          "lint results",
+        );
+      }
+
+      function renderMetrics(data) {
+        ids.metrics.innerHTML = [
+          ["Active bundles", data.bundles.summary.bundle_count],
+          ["Lint pass", data.lint.summary.lint_pass_count],
+          ["Blocked bundles", data.bundles.summary.blocked_bundle_count],
+          ["Vocabulary tuples", data.vocabulary.length],
+        ]
+          .map(
+            ([label, value]) => `
+              <div class="metric">
+                <span>${label}</span>
+                <strong>${value}</strong>
+              </div>`,
+          )
+          .join("");
+      }
+
+      function renderBundleCards(data) {
+        const bundles = filteredBundles(data);
+        const template = (bundle) => {
+          const verdict = data.lint.designContractLintVerdicts.find(
+            (row) => row.designContractLintVerdictId === bundle.lintVerdictRef,
+          );
+          return `
+            <article
+              class="bundle-card"
+              tabindex="0"
+              data-testid="bundle-card-${toTestId(bundle.designContractPublicationBundleId)}"
+              data-bundle-id="${escapeHtml(bundle.designContractPublicationBundleId)}"
+              data-contract-digest="${escapeHtml(bundle.designContractDigestRef)}"
+              data-selected="${bundle.designContractPublicationBundleId === state.selectedBundleId}"
+            >
+              <div>
+                <div class="eyebrow">${escapeHtml(bundle.audienceSurfaceLabel)}</div>
+                <h3>${escapeHtml(bundle.designContractPublicationBundleId)}</h3>
+              </div>
+              <div class="chips">
+                <span class="${chipClass(verdict.result)}">${escapeHtml(verdict.result)}</span>
+                <span class="${chipClass(bundle.publicationState)}">${escapeHtml(bundle.publicationState)}</span>
+                <span class="${chipClass(bundle.defectState)}">${escapeHtml(bundle.defectState)}</span>
+              </div>
+              <div class="route-chip-row">${bundle.routeFamilyRefs
+                .map((routeRef) => `<span class="chip mono">${escapeHtml(routeRef)}</span>`)
+                .join("")}</div>
+              <div class="mono">${escapeHtml(bundle.designContractDigestRef)}</div>
+            </article>`;
+        };
+        ids.bundleList.innerHTML = bundles.map(template).join("");
+        ids.gallery.innerHTML = bundles
+          .map(
+            (bundle) => `
+              <article class="gallery-card" data-active="${bundle.designContractPublicationBundleId === state.selectedBundleId}">
+                <div class="eyebrow">${escapeHtml(bundle.shellType)}</div>
+                <h3>${escapeHtml(bundle.audienceSurfaceLabel)}</h3>
+                <p>${escapeHtml(bundle.rationale)}</p>
+              </article>`,
+          )
+          .join("");
+        ids.bundleList.querySelectorAll(".bundle-card").forEach((node) => {
+          node.addEventListener("click", () => {
+            state.selectedBundleId = node.dataset.bundleId;
+            renderAll(data);
+          });
+          node.addEventListener("keydown", (event) => {
+            const nodes = [...ids.bundleList.querySelectorAll(".bundle-card")];
+            const index = nodes.indexOf(node);
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+              const nextIndex = event.key === "ArrowDown"
+                ? Math.min(nodes.length - 1, index + 1)
+                : Math.max(0, index - 1);
+              state.selectedBundleId = nodes[nextIndex].dataset.bundleId;
+              renderAll(data);
+              ids.bundleList.querySelectorAll(".bundle-card")[nextIndex]?.focus();
+            }
+          });
+        });
+      }
+
+      function renderConstellation(data) {
+        const bundle = selectedBundle(data);
+        if (!bundle) {
+          ids.constellation.innerHTML = "";
+          ids.digestStrip.innerHTML = "";
+          return;
+        }
+        const token = data.tokens.designTokenExportArtifacts.find(
+          (row) => row.designTokenExportArtifactId === bundle.designTokenExportArtifactRef,
+        );
+        const verdict = selectedVerdict(data);
+        const nodes = [
+          { x: 160, y: 120, label: "Token export", sub: token.designTokenExportArtifactId, className: "design" },
+          { x: 360, y: 92, label: "Visual profiles", sub: `${bundle.visualTokenProfileRefs.length} profiles`, className: "design" },
+          { x: 540, y: 152, label: "Semantics", sub: `${bundle.surfaceStateSemanticsProfileRefs.length} refs`, className: "semantic" },
+          { x: 508, y: 322, label: "Automation", sub: `${bundle.automationAnchorMapRefs.length} maps`, className: "semantic" },
+          { x: 314, y: 368, label: "Vocabulary", sub: `${bundle.designContractVocabularyTupleRefs.length} tuples`, className: "core" },
+          { x: 130, y: 298, label: "Structural evidence", sub: `${bundle.structuralSnapshotRefs.length} snapshots`, className: "core" },
+          { x: 330, y: 228, label: "Bundle", sub: bundle.designContractPublicationBundleId, className: "core" },
+          { x: 666, y: 250, label: "Lint verdict", sub: verdict.result, className: "semantic" },
+        ];
+        const edges = [
+          [0, 1], [1, 2], [2, 6], [3, 6], [4, 6], [5, 6], [6, 7], [4, 3], [1, 4], [0, 5],
+        ];
+        ids.constellation.innerHTML = `
+          <svg viewBox="0 0 760 460" role="img" aria-label="Selected design bundle constellation">
+            ${edges
+              .map(([from, to]) => {
+                const start = nodes[from];
+                const end = nodes[to];
+                return `<line class="edge" x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}" />`;
+              })
+              .join("")}
+            ${nodes
+              .map(
+                (node) => `
+                  <g>
+                    <circle class="node-circle ${node.className}" cx="${node.x}" cy="${node.y}" r="52"></circle>
+                    <text class="constellation-label" x="${node.x}" y="${node.y - 4}" text-anchor="middle">${escapeHtml(node.label)}</text>
+                    <text class="constellation-sub" x="${node.x}" y="${node.y + 15}" text-anchor="middle">${escapeHtml(node.sub)}</text>
+                  </g>`,
+              )
+              .join("")}
+          </svg>`;
+        ids.digestStrip.innerHTML = [
+          ["Bundle digest", bundle.designContractDigestRef],
+          ["Token digest", token.tokenValueDigestRef],
+          ["Verdict", verdict.designContractLintVerdictId],
+        ]
+          .map(
+            ([label, value]) => `
+              <div class="digest-box">
+                <span class="eyebrow">${label}</span>
+                <div class="mono" data-contract-digest="${escapeHtml(value)}">${escapeHtml(value)}</div>
+              </div>`,
+          )
+          .join("");
+      }
+
+      function renderLintRail(data) {
+        const verdict = selectedVerdict(data);
+        if (!verdict) {
+          ids.lintRail.innerHTML = "";
+          return;
+        }
+        const rows = [
+          ["Token lattice", verdict.tokenLatticeState],
+          ["Mode resolution", verdict.modeResolutionState],
+          ["Surface semantics", verdict.surfaceSemanticsState],
+          ["Automation / telemetry", verdict.automationTelemetryParityState],
+          ["Artifact posture", verdict.artifactModeParityState],
+          ["Surface role", verdict.surfaceRoleUsageState],
+          ["Structural evidence", verdict.structuralSnapshotState],
+        ];
+        ids.lintRail.innerHTML = `
+          <div class="eyebrow">Compact lint rail</div>
+          ${rows
+            .map(
+              ([label, value], index) => `
+                <article class="lint-item" tabindex="0" data-testid="lint-item-${index}">
+                  <div class="eyebrow">${escapeHtml(label)}</div>
+                  <strong>${escapeHtml(value)}</strong>
+                </article>`,
+            )
+            .join("")}
+          <article class="lint-item">
+            <div class="eyebrow">Result</div>
+            <strong>${escapeHtml(verdict.result)}</strong>
+            <div class="mono">${escapeHtml(verdict.designContractLintVerdictId)}</div>
+          </article>`;
+      }
+
+      function renderVocabulary(data) {
+        const bundle = selectedBundle(data);
+        if (!bundle) {
+          ids.vocabularyBody.innerHTML = "";
+          return;
+        }
+        const rows = data.vocabulary.filter(
+          (row) => row.publication_bundle_id === bundle.designContractPublicationBundleId,
+        );
+        ids.vocabularyBody.innerHTML = rows
+          .map(
+            (row, index) => `
+              <tr tabindex="0" data-testid="vocabulary-row-${toTestId(row.route_family_ref)}" data-vocabulary-index="${index}">
+                <td class="mono">${escapeHtml(row.route_family_ref)}</td>
+                <td class="mono">${escapeHtml(row.automation_marker_keys)}</td>
+                <td class="mono">${escapeHtml(row.telemetry_event_keys)}</td>
+                <td class="mono">${escapeHtml(row.artifact_mode_keys)}</td>
+              </tr>`,
+          )
+          .join("");
+        ids.vocabularyBody.querySelectorAll("tr").forEach((node) => {
+          node.addEventListener("keydown", (event) => {
+            const rows = [...ids.vocabularyBody.querySelectorAll("tr")];
+            const index = rows.indexOf(node);
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+              const nextIndex = event.key === "ArrowDown"
+                ? Math.min(rows.length - 1, index + 1)
+                : Math.max(0, index - 1);
+              rows[nextIndex]?.focus();
+            }
+          });
+        });
+      }
+
+      function renderLintTable(data) {
+        ids.lintBody.innerHTML = data.lint.lintRules
+          .map(
+            (rule, index) => `
+              <tr tabindex="0" data-testid="lint-row-${toTestId(rule.ruleId)}" data-lint-index="${index}">
+                <td class="mono">${escapeHtml(rule.ruleId)}</td>
+                <td class="mono">${escapeHtml(rule.stateField)}</td>
+                <td>${escapeHtml(rule.blockingEffect)}</td>
+              </tr>`,
+          )
+          .join("");
+        ids.lintBody.querySelectorAll("tr").forEach((node) => {
+          node.addEventListener("keydown", (event) => {
+            const rows = [...ids.lintBody.querySelectorAll("tr")];
+            const index = rows.indexOf(node);
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+              const nextIndex = event.key === "ArrowDown"
+                ? Math.min(rows.length - 1, index + 1)
+                : Math.max(0, index - 1);
+              rows[nextIndex]?.focus();
+            }
+          });
+        });
+      }
+
+      function renderInspector(data) {
+        const bundle = selectedBundle(data);
+        if (!bundle) {
+          ids.inspector.innerHTML = "<h2>No bundle selected</h2>";
+          return;
+        }
+        const token = data.tokens.designTokenExportArtifacts.find(
+          (row) => row.designTokenExportArtifactId === bundle.designTokenExportArtifactRef,
+        );
+        const structural = data.structural.filter(
+          (row) => row.design_contract_publication_bundle_id === bundle.designContractPublicationBundleId,
+        );
+        ids.inspector.innerHTML = `
+          <section class="inspector-section">
+            <div class="eyebrow">Selected bundle</div>
+            <h2>${escapeHtml(bundle.audienceSurfaceLabel)}</h2>
+            <div>${escapeHtml(bundle.rationale)}</div>
+            <div class="chips">
+              <span class="${chipClass(bundle.publicationState)}">${escapeHtml(bundle.publicationState)}</span>
+              <span class="${chipClass(bundle.defectState)}">${escapeHtml(bundle.defectState)}</span>
+            </div>
+          </section>
+          <section class="inspector-section">
+            <div class="eyebrow">Linked publication</div>
+            <div><strong>Token export</strong><div class="mono">${escapeHtml(bundle.designTokenExportArtifactRef)}</div></div>
+            <div><strong>Visual profiles</strong><div class="mono">${escapeHtml(bundle.visualTokenProfileRefs.join("<br />"))}</div></div>
+            <div><strong>Vocabulary tuples</strong><div class="mono">${escapeHtml(bundle.designContractVocabularyTupleRefs.join("<br />"))}</div></div>
+            <div><strong>Telemetry bindings</strong><div class="mono">${escapeHtml(bundle.telemetryBindingProfileRefs.join("<br />"))}</div></div>
+            <div><strong>Artifact profiles</strong><div class="mono">${escapeHtml(bundle.artifactModePresentationProfileRefs.join("<br />"))}</div></div>
+          </section>
+          <section class="inspector-section">
+            <div class="eyebrow">Structural evidence</div>
+            <div><strong>Snapshots</strong><div class="mono">${escapeHtml(bundle.structuralSnapshotRefs.join("<br />"))}</div></div>
+            <div><strong>Evidence summary</strong><div>${structural
+              .map((row) => `${row.evidence_label} • ${row.breakpoint_coverage_ref} • ${row.artifact_mode_ref}`)
+              .join("<br />")}</div></div>
+          </section>
+          <section class="inspector-section">
+            <div class="eyebrow">Digest markers</div>
+            <div class="mono" data-contract-digest="${escapeHtml(bundle.designContractDigestRef)}">${escapeHtml(bundle.designContractDigestRef)}</div>
+            <div class="mono">${escapeHtml(token.tokenValueDigestRef)}</div>
+            <div class="mono">${escapeHtml(bundle.lintVerdictRef)}</div>
+          </section>`;
+      }
+
+      function renderDefects(data) {
+        const bundle = selectedBundle(data);
+        const rows = [
+          ...data.bundles.defects,
+          {
+            defectId: `BUNDLE_${bundle.designContractPublicationBundleId}`,
+            state: bundle.defectState,
+            severity: bundle.defectState === "watch" ? "medium" : "low",
+            statement: `Bundle currently resolves to ${bundle.defectState} while runtime posture remains ${
+              bundle.defectState === "watch" ? "guarded by recovery/read-only ceilings" : "ready for runtime consumption once seq_051 parity allows it"
+            }.`,
+          },
+        ];
+        ids.defectBody.innerHTML = rows
+          .map(
+            (row) => `
+              <article class="defect-card" data-testid="defect-card-${toTestId(row.defectId)}">
+                <div class="eyebrow">${escapeHtml(row.severity)} • ${escapeHtml(row.state)}</div>
+                <strong>${escapeHtml(row.defectId)}</strong>
+                <div>${escapeHtml(row.statement)}</div>
+              </article>`,
+          )
+          .join("");
+      }
+
+      function renderAll(data) {
+        populateFilters(data);
+        renderMetrics(data);
+        renderBundleCards(data);
+        renderConstellation(data);
+        renderLintRail(data);
+        renderVocabulary(data);
+        renderLintTable(data);
+        renderInspector(data);
+        renderDefects(data);
+      }
+
+      for (const control of [
+        ids.filterAudience,
+        ids.filterShell,
+        ids.filterLint,
+        ids.filterPublication,
+        ids.filterDefect,
+      ]) {
+        control.addEventListener("change", () => {
+          state.audience = ids.filterAudience.value;
+          state.shell = ids.filterShell.value;
+          state.lint = ids.filterLint.value;
+          state.publication = ids.filterPublication.value;
+          state.defect = ids.filterDefect.value;
+          renderAll(window.__designContractData);
+        });
+      }
+
+      Promise.all([
+        fetch(DATA_PATHS.bundles).then((response) => response.json()),
+        fetch(DATA_PATHS.tokens).then((response) => response.json()),
+        fetch(DATA_PATHS.vocabulary).then((response) => response.text()),
+        fetch(DATA_PATHS.lint).then((response) => response.json()),
+        fetch(DATA_PATHS.structural).then((response) => response.text()),
+      ]).then(([bundles, tokens, vocabularyText, lint, structuralText]) => {
+        window.__designContractData = {
+          bundles,
+          tokens,
+          vocabulary: parseCsv(vocabularyText),
+          lint,
+          structural: parseCsv(structuralText),
+        };
+        renderAll(window.__designContractData);
+      });
+    </script>
+  </body>
+</html>
+

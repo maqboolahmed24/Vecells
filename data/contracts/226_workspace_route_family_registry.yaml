@@ -1,0 +1,237 @@
+{
+  "taskId": "seq_226",
+  "visualMode": "Triage_Workspace_State_Atlas",
+  "routeFamilyId": "rf_workspace_phase3_triage",
+  "shellFamily": "staff_workspace_same_shell",
+  "workspaceShellContinuityKey": "workspace + roleProfile + channelProfile + workspaceManifestVersion",
+  "entityContinuityKey": "staff_task + requestId + practice_lineage",
+  "routes": [
+    {
+      "routeKey": "workspace-home",
+      "pathPattern": "/workspace",
+      "routeClass": "shell_root",
+      "adjacencyType": "same_shell_queue_switch",
+      "historyPolicy": "replace",
+      "selectedAnchorPolicy": "recommended-queue-first",
+      "requiresTaskLaunchContext": false,
+      "taskChildState": false,
+      "writableSurface": false,
+      "focusWorkflowStates": [
+        "triage_ready",
+        "queued"
+      ],
+      "focusEventRefs": [
+        "triage.task.created",
+        "triage.queue_change.applied"
+      ],
+      "notes": "Role-specific start surface from WorkspaceHomeProjection."
+    },
+    {
+      "routeKey": "workspace-queue",
+      "pathPattern": "/workspace/queue/:queueKey",
+      "routeClass": "same_shell_peer",
+      "adjacencyType": "same_shell_queue_switch",
+      "historyPolicy": "push",
+      "selectedAnchorPolicy": "selected-queue-persists",
+      "requiresTaskLaunchContext": false,
+      "taskChildState": false,
+      "writableSurface": false,
+      "focusWorkflowStates": [
+        "queued",
+        "claimed"
+      ],
+      "focusEventRefs": [
+        "triage.task.created",
+        "triage.task.claimed",
+        "triage.queue_change.buffered",
+        "triage.queue_change.applied",
+        "triage.queue.overload_critical"
+      ],
+      "notes": "Queue selection and preview remain summary-first until a task is explicitly opened."
+    },
+    {
+      "routeKey": "workspace-task",
+      "pathPattern": "/workspace/task/:taskId",
+      "routeClass": "same_shell_task_root",
+      "adjacencyType": "same_shell_task_switch",
+      "historyPolicy": "push",
+      "selectedAnchorPolicy": "task-anchor-persists",
+      "requiresTaskLaunchContext": true,
+      "taskChildState": false,
+      "writableSurface": true,
+      "focusWorkflowStates": [
+        "claimed",
+        "in_review",
+        "review_resumed",
+        "reopened"
+      ],
+      "focusEventRefs": [
+        "triage.task.claimed",
+        "triage.review.started",
+        "triage.review.snapshot.refreshed",
+        "triage.review.invalidated",
+        "triage.task.stale_owner.detected",
+        "triage.task.reopened"
+      ],
+      "notes": "Canonical task root for active review."
+    },
+    {
+      "routeKey": "workspace-task-more-info",
+      "pathPattern": "/workspace/task/:taskId/more-info",
+      "routeClass": "same_task_child",
+      "parentRouteKey": "workspace-task",
+      "adjacencyType": "same_task_child",
+      "historyPolicy": "push",
+      "selectedAnchorPolicy": "selected-anchor-persists",
+      "requiresTaskLaunchContext": true,
+      "taskChildState": true,
+      "writableSurface": true,
+      "focusWorkflowStates": [
+        "in_review",
+        "awaiting_patient_info",
+        "review_resumed"
+      ],
+      "focusEventRefs": [
+        "triage.more_info.requested",
+        "triage.more_info.response.linked",
+        "triage.task.resumed",
+        "triage.review.invalidated"
+      ],
+      "notes": "Soft child route in the same PersistentShell. Draft recovery and stale handling stay in place."
+    },
+    {
+      "routeKey": "workspace-task-decision",
+      "pathPattern": "/workspace/task/:taskId/decision",
+      "routeClass": "same_task_child",
+      "parentRouteKey": "workspace-task",
+      "adjacencyType": "same_task_child",
+      "historyPolicy": "push",
+      "selectedAnchorPolicy": "selected-anchor-persists",
+      "requiresTaskLaunchContext": true,
+      "taskChildState": true,
+      "writableSurface": true,
+      "focusWorkflowStates": [
+        "in_review",
+        "endpoint_selected",
+        "escalated",
+        "resolved_without_appointment",
+        "handoff_pending"
+      ],
+      "focusEventRefs": [
+        "triage.endpoint.selected",
+        "triage.approval.required",
+        "triage.approval.recorded",
+        "triage.escalated",
+        "triage.decision.epoch_superseded",
+        "triage.task.resolved_without_appointment",
+        "triage.task.handoff_pending"
+      ],
+      "notes": "Soft child route in the same PersistentShell. Decision epochs and supersession stay anchored to the task root."
+    },
+    {
+      "routeKey": "workspace-approvals",
+      "pathPattern": "/workspace/approvals",
+      "routeClass": "same_shell_peer",
+      "adjacencyType": "same_shell_queue_switch",
+      "historyPolicy": "push",
+      "selectedAnchorPolicy": "approval-anchor-persists",
+      "requiresTaskLaunchContext": false,
+      "taskChildState": false,
+      "writableSurface": false,
+      "focusWorkflowStates": [
+        "endpoint_selected",
+        "escalated"
+      ],
+      "focusEventRefs": [
+        "triage.approval.required",
+        "triage.approval.recorded",
+        "triage.decision.epoch_superseded"
+      ],
+      "notes": "List route. If a task is already open, approval context resolves into the current shell as a bounded side stage."
+    },
+    {
+      "routeKey": "workspace-escalations",
+      "pathPattern": "/workspace/escalations",
+      "routeClass": "same_shell_peer",
+      "adjacencyType": "same_shell_queue_switch",
+      "historyPolicy": "push",
+      "selectedAnchorPolicy": "escalation-anchor-persists",
+      "requiresTaskLaunchContext": false,
+      "taskChildState": false,
+      "writableSurface": false,
+      "focusWorkflowStates": [
+        "escalated",
+        "handoff_pending",
+        "reopened"
+      ],
+      "focusEventRefs": [
+        "triage.escalated",
+        "triage.task.handoff_pending",
+        "triage.task.reopened"
+      ],
+      "notes": "List route. If a task is already open, escalation context resolves into the current shell as a bounded side stage."
+    },
+    {
+      "routeKey": "workspace-changed",
+      "pathPattern": "/workspace/changed",
+      "routeClass": "same_shell_peer",
+      "adjacencyType": "same_shell_queue_switch",
+      "historyPolicy": "push",
+      "selectedAnchorPolicy": "changed-since-seen-anchor-persists",
+      "requiresTaskLaunchContext": false,
+      "taskChildState": false,
+      "writableSurface": false,
+      "focusWorkflowStates": [
+        "claimed",
+        "in_review",
+        "review_resumed",
+        "reopened"
+      ],
+      "focusEventRefs": [
+        "triage.review.invalidated",
+        "triage.more_info.response.linked",
+        "triage.queue_change.buffered",
+        "triage.queue_change.applied"
+      ],
+      "notes": "Change-focused worklist that preserves queue context and selected-anchor restore rules."
+    },
+    {
+      "routeKey": "workspace-search",
+      "pathPattern": "/workspace/search",
+      "routeClass": "same_shell_peer",
+      "adjacencyType": "same_shell_queue_switch",
+      "historyPolicy": "push",
+      "selectedAnchorPolicy": "search-result-anchor-persists",
+      "requiresTaskLaunchContext": false,
+      "taskChildState": false,
+      "writableSurface": false,
+      "placeholderState": "phase3_placeholder_not_implemented",
+      "focusWorkflowStates": [
+        "queued",
+        "claimed"
+      ],
+      "focusEventRefs": [
+        "triage.review.snapshot.refreshed"
+      ],
+      "notes": "Explicit placeholder row to close registry gaps without widening writable semantics before later search implementation."
+    }
+  ],
+  "laws": [
+    {
+      "lawId": "task_children_are_same_shell",
+      "statement": "/workspace/task/:taskId/more-info and /workspace/task/:taskId/decision are same-shell child states, not separate mini-apps."
+    },
+    {
+      "lawId": "queue_to_task_restores_through_launch_context",
+      "statement": "Queue preview, task open, browser-back restore, and next-task movement must rehydrate through TaskLaunchContext and WorkspaceNavigationLedger, not ambient browser history."
+    },
+    {
+      "lawId": "approvals_and_escalations_stay_in_family",
+      "statement": "Approvals, escalations, changed, and search remain inside the same shell continuity key whenever the active workspace family is still valid."
+    },
+    {
+      "lawId": "selected_anchor_is_explicit",
+      "statement": "Every route family row publishes a selected-anchor policy so anchor restoration and invalidation are machine-readable."
+    }
+  ]
+}

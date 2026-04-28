@@ -1,0 +1,1167 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Patient Linkage Confidence Board</title>
+    <style>
+      :root {
+        --masthead-height: 72px;
+        --left-rail-width: 280px;
+        --right-inspector-width: 408px;
+        --max-width: 1600px;
+        --canvas: #f7f8fa;
+        --shell: #eef2f6;
+        --panel: #ffffff;
+        --inset: #e8eef3;
+        --text-strong: #0f1720;
+        --text: #24313d;
+        --text-muted: #5e6b78;
+        --accent-verified: #117a55;
+        --accent-provisional: #2f6fed;
+        --accent-ambiguous: #b7791f;
+        --accent-recovery: #5b61f6;
+        --accent-blocked: #b42318;
+        --accent-pds: #0e7490;
+        --line: rgba(15, 23, 32, 0.12);
+        --shadow: 0 24px 70px rgba(15, 23, 32, 0.12);
+        color: var(--text);
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        background: var(--canvas);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 20% 8%, rgba(14, 116, 144, 0.12), transparent 28rem),
+          radial-gradient(circle at 78% 0%, rgba(47, 111, 237, 0.11), transparent 30rem),
+          linear-gradient(180deg, var(--shell), var(--canvas) 46%);
+      }
+
+      button,
+      select {
+        font: inherit;
+      }
+
+      [data-testid="Patient_Linkage_Confidence_Board"] {
+        max-width: var(--max-width);
+        margin: 0 auto;
+        padding: 0 24px 44px;
+      }
+
+      .masthead {
+        min-height: var(--masthead-height);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+      }
+
+      .wordmark {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--text-strong);
+        font-weight: 760;
+        letter-spacing: -0.02em;
+      }
+
+      .mark {
+        width: 36px;
+        height: 36px;
+      }
+
+      .masthead h1 {
+        margin: 0;
+        color: var(--text-strong);
+        font-size: 36px;
+        line-height: 44px;
+        letter-spacing: -0.04em;
+      }
+
+      .masthead p {
+        margin: 4px 0 0;
+        max-width: 680px;
+        color: var(--text-muted);
+        font-size: 15px;
+        line-height: 24px;
+      }
+
+      .board-grid {
+        display: grid;
+        grid-template-columns: var(--left-rail-width) minmax(0, 1fr) var(--right-inspector-width);
+        gap: 20px;
+        align-items: start;
+      }
+
+      .panel,
+      .rail,
+      .inspector-card {
+        min-width: 0;
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        box-shadow: var(--shadow);
+      }
+
+      .rail,
+      .inspector-card {
+        position: sticky;
+        top: 16px;
+        padding: 20px;
+      }
+
+      .rail h2,
+      .panel h2,
+      .inspector-card h2 {
+        margin: 0 0 10px;
+        color: var(--text-strong);
+        font-size: 20px;
+        line-height: 28px;
+        letter-spacing: -0.02em;
+      }
+
+      .rail label {
+        display: grid;
+        gap: 8px;
+        margin-top: 16px;
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 20px;
+      }
+
+      select {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 10px 12px;
+        color: var(--text-strong);
+        background: var(--panel);
+      }
+
+      .rail-metric {
+        margin-top: 16px;
+        padding: 14px;
+        border-radius: 18px;
+        background: var(--inset);
+      }
+
+      .rail-metric strong {
+        display: block;
+        color: var(--text-strong);
+        font-size: 28px;
+        line-height: 32px;
+      }
+
+      .canvas {
+        display: grid;
+        gap: 20px;
+        min-width: 0;
+      }
+
+      .panel {
+        overflow-x: auto;
+        padding: 22px;
+      }
+
+      .section-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: start;
+        margin-bottom: 18px;
+      }
+
+      .section-head p,
+      .inspector-card p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 15px;
+        line-height: 24px;
+      }
+
+      .ridge {
+        display: grid;
+        gap: 12px;
+      }
+
+      .candidate-node,
+      .state-card {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 16px;
+        text-align: left;
+        color: var(--text);
+        background: linear-gradient(135deg, #ffffff, #f8fafc);
+        cursor: pointer;
+        transition:
+          transform 180ms ease,
+          border-color 180ms ease,
+          box-shadow 180ms ease;
+      }
+
+      .candidate-node:hover,
+      .candidate-node:focus-visible,
+      .state-card:hover,
+      .state-card:focus-visible,
+      tr[tabindex]:focus-visible {
+        outline: 3px solid rgba(47, 111, 237, 0.24);
+        outline-offset: 2px;
+      }
+
+      .candidate-node[aria-pressed="true"],
+      .state-card[aria-pressed="true"] {
+        border-color: rgba(47, 111, 237, 0.52);
+        box-shadow: 0 16px 42px rgba(47, 111, 237, 0.15);
+        transform: translateY(-1px);
+      }
+
+      .node-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        align-items: center;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 5px 9px;
+        color: #ffffff;
+        font-size: 12px;
+        line-height: 18px;
+        font-weight: 720;
+      }
+
+      .verified {
+        background: var(--accent-verified);
+      }
+
+      .provisional {
+        background: var(--accent-provisional);
+      }
+
+      .ambiguous {
+        background: var(--accent-ambiguous);
+      }
+
+      .blocked {
+        background: var(--accent-blocked);
+      }
+
+      .recovery {
+        background: var(--accent-recovery);
+      }
+
+      .none {
+        background: var(--text-muted);
+      }
+
+      .ridge-track {
+        height: 12px;
+        margin-top: 14px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: var(--inset);
+      }
+
+      .ridge-fill {
+        display: block;
+        height: 100%;
+        width: var(--ridge-width);
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--accent-provisional), var(--accent-verified));
+        transition: width 180ms ease;
+      }
+
+      .braid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .braid-step,
+      .threshold-step {
+        border-radius: 20px;
+        padding: 16px;
+        background: var(--inset);
+      }
+
+      .braid-step strong,
+      .threshold-step strong {
+        display: block;
+        color: var(--text-strong);
+        font-size: 16px;
+        line-height: 24px;
+      }
+
+      .thresholds {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .threshold-step {
+        min-height: 116px;
+      }
+
+      .state-atlas {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 14px;
+      }
+
+      .state-card {
+        min-width: 320px;
+        padding: 24px;
+        border-radius: 20px;
+      }
+
+      .state-card h3,
+      .candidate-node h3 {
+        margin: 0;
+        color: var(--text-strong);
+        font-size: 16px;
+        line-height: 24px;
+      }
+
+      .state-card p,
+      .candidate-node p,
+      .braid-step p,
+      .threshold-step p {
+        margin: 8px 0 0;
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 20px;
+      }
+
+      .tables {
+        display: grid;
+        gap: 20px;
+        margin-top: 20px;
+      }
+
+      table {
+        width: 100%;
+        max-width: 100%;
+        table-layout: fixed;
+        border-collapse: collapse;
+        overflow: hidden;
+        border-radius: 18px;
+        font-size: 13px;
+        line-height: 20px;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 10px 12px;
+        text-align: left;
+        vertical-align: top;
+        overflow-wrap: anywhere;
+      }
+
+      th {
+        color: var(--text-strong);
+        background: var(--inset);
+        font-weight: 760;
+      }
+
+      td.mono,
+      th.mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        line-height: 18px;
+      }
+
+      tr[tabindex] {
+        cursor: pointer;
+      }
+
+      .inspector-card {
+        transition:
+          transform 220ms ease,
+          opacity 220ms ease;
+      }
+
+      .inspector-card dl {
+        display: grid;
+        grid-template-columns: minmax(120px, 0.8fr) 1fr;
+        gap: 10px 14px;
+        margin: 18px 0 0;
+      }
+
+      .inspector-card dt {
+        color: var(--text-muted);
+      }
+
+      .inspector-card dd {
+        margin: 0;
+        color: var(--text-strong);
+        overflow-wrap: anywhere;
+      }
+
+      .pds-chip {
+        display: inline-flex;
+        border-radius: 999px;
+        padding: 5px 10px;
+        background: rgba(14, 116, 144, 0.12);
+        color: var(--accent-pds);
+        font-weight: 720;
+      }
+
+      .skip-link {
+        position: absolute;
+        left: 16px;
+        top: -80px;
+        z-index: 10;
+        background: var(--text-strong);
+        color: white;
+        padding: 10px 12px;
+        border-radius: 12px;
+      }
+
+      .skip-link:focus {
+        top: 12px;
+      }
+
+      @media (max-width: 1180px) {
+        .board-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .rail,
+        .inspector-card {
+          position: static;
+        }
+
+        .braid,
+        .thresholds {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        [data-testid="Patient_Linkage_Confidence_Board"] {
+          padding: 0 14px 28px;
+        }
+
+        .masthead {
+          align-items: flex-start;
+          flex-direction: column;
+          padding: 16px 0;
+        }
+
+        .masthead h1 {
+          font-size: 30px;
+          line-height: 36px;
+        }
+
+        .state-atlas {
+          grid-template-columns: 1fr;
+        }
+
+        .state-card {
+          min-width: 0;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+          transition-duration: 0.001ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#link-main">Skip to patient linkage board</a>
+    <div data-testid="Patient_Linkage_Confidence_Board">
+      <header class="masthead" data-testid="board-masthead">
+        <div>
+          <div class="wordmark">
+            <svg
+              class="mark"
+              data-testid="identity_constellation_mark"
+              viewBox="0 0 48 48"
+              aria-hidden="true"
+            >
+              <circle cx="24" cy="24" r="20" fill="#E8EEF3" />
+              <circle cx="14" cy="17" r="4" fill="#2F6FED" />
+              <circle cx="31" cy="14" r="3.5" fill="#0E7490" />
+              <circle cx="34" cy="31" r="4" fill="#117A55" />
+              <path
+                d="M17 18.5 28 15.5M17 19.5 31 29M31 17.5 34 27"
+                stroke="#0F1720"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+            <span>Vecells</span>
+          </div>
+          <h1>Patient linkage confidence board</h1>
+          <p>
+            Calibrated linkage, runner-up separation, PDS seam posture, and patient-facing account
+            states from one contract pack.
+          </p>
+        </div>
+        <span class="pds-chip">PDS optional enrichment seam</span>
+      </header>
+
+      <main id="link-main" class="board-grid" tabindex="-1">
+        <aside class="rail" data-testid="state-rail" aria-label="Patient linkage filters">
+          <h2>Filters</h2>
+          <label>
+            Route sensitivity
+            <select data-testid="route-filter"></select>
+          </label>
+          <label>
+            Link state
+            <select data-testid="link-state-filter"></select>
+          </label>
+          <label>
+            Model state
+            <select data-testid="model-state-filter"></select>
+          </label>
+          <div class="rail-metric">
+            <span>Visible candidates</span>
+            <strong data-testid="visible-candidate-count">0</strong>
+          </div>
+          <div class="rail-metric">
+            <span>Threshold families</span>
+            <strong data-testid="threshold-family-count">0</strong>
+          </div>
+          <div class="rail-metric">
+            <span>Patient states</span>
+            <strong data-testid="patient-state-count">0</strong>
+          </div>
+        </aside>
+
+        <section class="canvas" aria-label="Patient linkage contract atlas">
+          <section class="panel" aria-labelledby="ridge-heading">
+            <div class="section-head">
+              <div>
+                <h2 id="ridge-heading">Candidate-confidence ridge</h2>
+                <p>Winner probability, lower bound, runner-up ceiling, and model posture.</p>
+              </div>
+              <span class="pds-chip">calibrated posterior</span>
+            </div>
+            <div class="ridge" data-testid="candidate-confidence-ridge"></div>
+          </section>
+
+          <section class="panel" aria-labelledby="proof-heading">
+            <div class="section-head">
+              <div>
+                <h2 id="proof-heading">Subject-to-patient proof braid</h2>
+                <p>
+                  Every proof strand must survive confidence interval, separation, and drift checks.
+                </p>
+              </div>
+            </div>
+            <div class="braid" data-testid="subject-proof-braid"></div>
+          </section>
+
+          <section class="panel" aria-labelledby="threshold-heading">
+            <div class="section-head">
+              <div>
+                <h2 id="threshold-heading">Threshold ladder</h2>
+                <p>
+                  Route sensitivity decides whether auto-link is allowed, provisional, or manual
+                  only.
+                </p>
+              </div>
+            </div>
+            <div class="thresholds" data-testid="threshold-ladder"></div>
+          </section>
+
+          <section class="panel" aria-labelledby="atlas-heading">
+            <div class="section-head">
+              <div>
+                <h2 id="atlas-heading">Patient-facing state atlas</h2>
+                <p>
+                  Same-shell account-linking states without exposing candidate ranks or model
+                  jargon.
+                </p>
+              </div>
+            </div>
+            <div class="state-atlas" data-testid="patient-state-atlas"></div>
+          </section>
+        </section>
+
+        <aside class="inspector-card" data-testid="inspector" aria-live="polite"></aside>
+      </main>
+
+      <section class="tables" aria-label="Parity tables">
+        <section class="panel">
+          <h2>Candidate table</h2>
+          <table data-testid="candidate-confidence-table">
+            <thead>
+              <tr>
+                <th>Example</th>
+                <th>Route</th>
+                <th>Link state</th>
+                <th class="mono">P_link</th>
+                <th class="mono">LCB</th>
+                <th class="mono">Runner-up UCB</th>
+                <th class="mono">Gap logit</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+
+        <section class="panel">
+          <h2>Proof braid table</h2>
+          <table data-testid="subject-proof-table">
+            <thead>
+              <tr>
+                <th>Example</th>
+                <th class="mono">P_subject</th>
+                <th class="mono">LCB_subject</th>
+                <th>Model state</th>
+                <th>Authority intent</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+
+        <section class="panel">
+          <h2>Threshold table</h2>
+          <table data-testid="threshold-table">
+            <thead>
+              <tr>
+                <th>Route sensitivity</th>
+                <th>Auto</th>
+                <th class="mono">Auto LCB</th>
+                <th class="mono">Runner UCB</th>
+                <th class="mono">Subject LCB</th>
+                <th class="mono">Gap</th>
+                <th>Drift posture</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+
+        <section class="panel">
+          <h2>Patient-state table</h2>
+          <table data-testid="patient-state-table">
+            <thead>
+              <tr>
+                <th>State</th>
+                <th>Link state</th>
+                <th>Dominant action</th>
+                <th>Safe reveal</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+
+        <section class="panel">
+          <h2>Copy-state registry</h2>
+          <table data-testid="copy-state-registry">
+            <thead>
+              <tr>
+                <th>Copy key</th>
+                <th>Patient state</th>
+                <th>Safe reveal</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+
+        <section class="panel">
+          <h2>Diagram/table parity</h2>
+          <table data-testid="parity-table">
+            <thead>
+              <tr>
+                <th>Visual</th>
+                <th>Parity source</th>
+                <th>Meaning boundary</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>candidate-confidence-ridge</td>
+                <td>candidate-confidence-table</td>
+                <td>Candidate probability and state only.</td>
+              </tr>
+              <tr>
+                <td>subject-proof-braid</td>
+                <td>subject-proof-table</td>
+                <td>Subject proof and authority intent only.</td>
+              </tr>
+              <tr>
+                <td>threshold-ladder</td>
+                <td>threshold-table</td>
+                <td>Route thresholds and fail-closed posture only.</td>
+              </tr>
+              <tr>
+                <td>patient-state-atlas</td>
+                <td>patient-state-table</td>
+                <td>Patient-facing copy state and safe reveal only.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </section>
+    </div>
+
+    <script>
+      const sources = {
+        examples: "../../data/analysis/172_candidate_competition_examples.json",
+        thresholds: "../../data/analysis/172_link_threshold_matrix.csv",
+        rules: "../../data/contracts/172_contact_claim_and_preference_separation_rules.json",
+        gaps: "../../data/analysis/172_patient_link_gap_log.json",
+      };
+
+      const state = {
+        examples: [],
+        states: [],
+        thresholds: [],
+        rules: {},
+        gaps: {},
+        routeFilter: "all",
+        linkStateFilter: "all",
+        modelStateFilter: "all",
+        selectedExampleId: "",
+        selectedPatientState: "",
+      };
+
+      function parseCsv(text) {
+        const [headerLine, ...lines] = text.trim().split(/\r?\n/);
+        const headers = headerLine.split(",");
+        return lines.map((line) => {
+          const values = [];
+          let current = "";
+          let inQuotes = false;
+          for (let index = 0; index < line.length; index += 1) {
+            const char = line[index];
+            if (char === '"' && line[index + 1] === '"') {
+              current += '"';
+              index += 1;
+            } else if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === "," && !inQuotes) {
+              values.push(current);
+              current = "";
+            } else {
+              current += char;
+            }
+          }
+          values.push(current);
+          return Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""]));
+        });
+      }
+
+      function cls(linkState, modelState) {
+        if (modelState === "out_of_domain" || linkState === "correction_pending") return "blocked";
+        if (linkState === "verified_patient") return "verified";
+        if (linkState === "provisional_verified") return "provisional";
+        if (linkState === "ambiguous") return "ambiguous";
+        if (linkState === "none") return "none";
+        return "recovery";
+      }
+
+      function visibleExamples() {
+        return state.examples.filter((item) => {
+          const routeOk =
+            state.routeFilter === "all" || item.routeSensitivityFamily === state.routeFilter;
+          const linkOk =
+            state.linkStateFilter === "all" || item.linkState === state.linkStateFilter;
+          const modelOk =
+            state.modelStateFilter === "all" ||
+            item.confidenceModelState === state.modelStateFilter;
+          return routeOk && linkOk && modelOk;
+        });
+      }
+
+      function selectedExample(rows = visibleExamples()) {
+        return (
+          rows.find((item) => item.exampleId === state.selectedExampleId) ||
+          state.examples.find((item) => item.exampleId === state.selectedExampleId) ||
+          rows[0] ||
+          state.examples[0]
+        );
+      }
+
+      function stateForExample(example) {
+        return state.states.find((item) => item.state === example?.patientFacingState);
+      }
+
+      function thresholdForRoute(route) {
+        return state.thresholds.find((item) => item.route_sensitivity_family === route);
+      }
+
+      function fillSelect(testId, values, current) {
+        const select = document.querySelector(`[data-testid='${testId}']`);
+        select.innerHTML = [
+          `<option value="all">All</option>`,
+          ...values.map((value) => `<option value="${value}">${value}</option>`),
+        ].join("");
+        select.value = current;
+      }
+
+      function renderFilters() {
+        fillSelect(
+          "route-filter",
+          [...new Set(state.examples.map((item) => item.routeSensitivityFamily))],
+          state.routeFilter,
+        );
+        fillSelect(
+          "link-state-filter",
+          [...new Set(state.examples.map((item) => item.linkState))],
+          state.linkStateFilter,
+        );
+        fillSelect(
+          "model-state-filter",
+          [...new Set(state.examples.map((item) => item.confidenceModelState))],
+          state.modelStateFilter,
+        );
+      }
+
+      function renderRidge(rows) {
+        const ridge = document.querySelector("[data-testid='candidate-confidence-ridge']");
+        ridge.innerHTML = "";
+        rows.forEach((item, index) => {
+          const button = document.createElement("button");
+          button.className = "candidate-node";
+          button.type = "button";
+          button.dataset.testid = `candidate-node-${item.exampleId}`;
+          button.dataset.exampleId = item.exampleId;
+          button.setAttribute("aria-pressed", String(item.exampleId === state.selectedExampleId));
+          button.style.setProperty("--ridge-width", `${Math.round(item.LCB_link_alpha * 100)}%`);
+          button.innerHTML = `
+            <div class="node-top">
+              <div>
+                <h3>${item.candidateLabel}</h3>
+                <p>${item.routeSensitivityFamily}</p>
+              </div>
+              <span class="badge ${cls(item.linkState, item.confidenceModelState)}">${item.linkState}</span>
+            </div>
+            <div class="ridge-track" aria-hidden="true"><span class="ridge-fill"></span></div>
+            <p>LCB ${item.LCB_link_alpha.toFixed(3)}; runner-up UCB ${item.runnerUpProbabilityUpperBound.toFixed(3)}; gap ${item.gap_logit.toFixed(2)}</p>
+          `;
+          button.addEventListener("click", () => setSelectedExample(item.exampleId));
+          button.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+              event.preventDefault();
+              const next =
+                ridge.querySelectorAll("button")[index + 1] || ridge.querySelector("button");
+              next?.focus();
+            }
+            if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+              event.preventDefault();
+              const buttons = ridge.querySelectorAll("button");
+              const previous = buttons[index - 1] || buttons[buttons.length - 1];
+              previous?.focus();
+            }
+          });
+          ridge.append(button);
+        });
+      }
+
+      function renderBraid(example) {
+        const braid = document.querySelector("[data-testid='subject-proof-braid']");
+        if (!example) {
+          braid.innerHTML = "";
+          return;
+        }
+        const threshold = thresholdForRoute(example.routeSensitivityFamily);
+        const steps = [
+          [
+            "Winner lower bound",
+            `${example.LCB_link_alpha.toFixed(3)} / ${threshold?.auto_link_lcb_min ?? "n/a"}`,
+          ],
+          [
+            "Runner-up separation",
+            `${example.runnerUpProbabilityUpperBound.toFixed(3)} <= ${threshold?.runner_up_ucb_max ?? "n/a"}`,
+          ],
+          [
+            "Subject proof",
+            `${example.LCB_subject_alpha.toFixed(3)} / ${threshold?.subject_lcb_min ?? "n/a"}`,
+          ],
+        ];
+        braid.innerHTML = steps
+          .map(
+            ([title, value]) => `
+              <div class="braid-step">
+                <strong>${title}</strong>
+                <p>${value}</p>
+              </div>
+            `,
+          )
+          .join("");
+      }
+
+      function renderThresholds(example) {
+        const holder = document.querySelector("[data-testid='threshold-ladder']");
+        const threshold =
+          thresholdForRoute(example?.routeSensitivityFamily ?? "") || state.thresholds[0];
+        holder.innerHTML = [
+          ["Auto-link", threshold.auto_link_allowed === "true" ? "allowed" : "blocked"],
+          ["Auto LCB", threshold.auto_link_lcb_min],
+          ["Runner-up ceiling", threshold.runner_up_ucb_max],
+          ["Drift posture", threshold.drift_fail_closed_posture],
+        ]
+          .map(
+            ([title, value]) => `
+              <div class="threshold-step">
+                <strong>${title}</strong>
+                <p>${value}</p>
+              </div>
+            `,
+          )
+          .join("");
+      }
+
+      function renderStateAtlas(example) {
+        const atlas = document.querySelector("[data-testid='patient-state-atlas']");
+        atlas.innerHTML = "";
+        state.states.forEach((item, index) => {
+          const selected =
+            item.state === state.selectedPatientState || item.state === example?.patientFacingState;
+          const button = document.createElement("button");
+          button.className = "state-card";
+          button.type = "button";
+          button.dataset.testid = `patient-state-card-${item.state}`;
+          button.dataset.patientState = item.state;
+          button.setAttribute("aria-pressed", String(selected));
+          button.innerHTML = `
+            <span class="badge ${cls(item.linkState, "")}">${item.linkState}</span>
+            <h3>${item.state.replaceAll("_", " ")}</h3>
+            <p>${item.dominantAction}</p>
+            <p>${item.safeReveal}</p>
+          `;
+          button.addEventListener("click", () => {
+            state.selectedPatientState = item.state;
+            const linked = state.examples.find((row) => row.patientFacingState === item.state);
+            if (linked) state.selectedExampleId = linked.exampleId;
+            render();
+          });
+          button.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+              event.preventDefault();
+              const next =
+                atlas.querySelectorAll("button")[index + 1] || atlas.querySelector("button");
+              next?.focus();
+            }
+          });
+          atlas.append(button);
+        });
+      }
+
+      function renderCandidateTable(rows) {
+        const tbody = document.querySelector("[data-testid='candidate-confidence-table'] tbody");
+        tbody.innerHTML = rows
+          .map(
+            (item) => `
+              <tr tabindex="0" data-testid="candidate-row-${item.exampleId}" data-example-id="${item.exampleId}">
+                <td>${item.exampleId}</td>
+                <td>${item.routeSensitivityFamily}</td>
+                <td>${item.linkState}</td>
+                <td class="mono">${item.P_link.toFixed(3)}</td>
+                <td class="mono">${item.LCB_link_alpha.toFixed(3)}</td>
+                <td class="mono">${item.runnerUpProbabilityUpperBound.toFixed(3)}</td>
+                <td class="mono">${item.gap_logit.toFixed(2)}</td>
+              </tr>
+            `,
+          )
+          .join("");
+        tbody.querySelectorAll("tr").forEach((row) => {
+          row.addEventListener("click", () => setSelectedExample(row.dataset.exampleId));
+          row.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setSelectedExample(row.dataset.exampleId);
+            }
+          });
+        });
+      }
+
+      function renderProofTable(rows) {
+        document.querySelector("[data-testid='subject-proof-table'] tbody").innerHTML = rows
+          .map(
+            (item) => `
+              <tr>
+                <td>${item.exampleId}</td>
+                <td class="mono">${item.P_subject.toFixed(3)}</td>
+                <td class="mono">${item.LCB_subject_alpha.toFixed(3)}</td>
+                <td>${item.confidenceModelState}</td>
+                <td>${item.identityBindingAuthorityIntent}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function renderThresholdTable() {
+        document.querySelector("[data-testid='threshold-table'] tbody").innerHTML = state.thresholds
+          .map(
+            (item) => `
+              <tr>
+                <td>${item.route_sensitivity_family}</td>
+                <td>${item.auto_link_allowed}</td>
+                <td class="mono">${item.auto_link_lcb_min}</td>
+                <td class="mono">${item.runner_up_ucb_max}</td>
+                <td class="mono">${item.subject_lcb_min}</td>
+                <td class="mono">${item.gap_logit_min}</td>
+                <td>${item.drift_fail_closed_posture}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function renderStateTables() {
+        document.querySelector("[data-testid='patient-state-table'] tbody").innerHTML = state.states
+          .map(
+            (item) => `
+              <tr>
+                <td>${item.state}</td>
+                <td>${item.linkState}</td>
+                <td>${item.dominantAction}</td>
+                <td>${item.safeReveal}</td>
+              </tr>
+            `,
+          )
+          .join("");
+        document.querySelector("[data-testid='copy-state-registry'] tbody").innerHTML = state.states
+          .map(
+            (item) => `
+              <tr>
+                <td>${item.copyKey}</td>
+                <td>${item.state}</td>
+                <td>${item.safeReveal}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function renderInspector(example) {
+        const inspector = document.querySelector("[data-testid='inspector']");
+        const patientState = stateForExample(example);
+        const threshold = thresholdForRoute(example?.routeSensitivityFamily ?? "");
+        inspector.innerHTML = `
+          <h2>${example?.exampleId ?? "No candidate selected"}</h2>
+          <p>${patientState?.dominantAction ?? "Select a candidate or patient state to inspect the contract."}</p>
+          <dl>
+            <dt>Route</dt>
+            <dd>${example?.routeSensitivityFamily ?? "n/a"}</dd>
+            <dt>Link state</dt>
+            <dd>${example?.linkState ?? "n/a"}</dd>
+            <dt>Patient state</dt>
+            <dd>${example?.patientFacingState ?? "n/a"}</dd>
+            <dt>Model state</dt>
+            <dd>${example?.confidenceModelState ?? "n/a"}</dd>
+            <dt>Authority intent</dt>
+            <dd>${example?.identityBindingAuthorityIntent ?? "n/a"}</dd>
+            <dt>PDS posture</dt>
+            <dd>${example?.pdsPosture ?? "n/a"}</dd>
+            <dt>Contact rule</dt>
+            <dd>${example?.contactPreferencePosture ?? "n/a"}</dd>
+            <dt>Auto-link allowed</dt>
+            <dd>${threshold?.auto_link_allowed ?? "n/a"}</dd>
+            <dt>Reason codes</dt>
+            <dd>${example?.reasonCodes?.join(", ") ?? "n/a"}</dd>
+          </dl>
+        `;
+      }
+
+      function setSelectedExample(exampleId) {
+        state.selectedExampleId = exampleId;
+        const example = state.examples.find((item) => item.exampleId === exampleId);
+        state.selectedPatientState = example?.patientFacingState ?? state.selectedPatientState;
+        render();
+      }
+
+      function render() {
+        const rows = visibleExamples();
+        if (!rows.some((item) => item.exampleId === state.selectedExampleId)) {
+          state.selectedExampleId = rows[0]?.exampleId ?? state.examples[0]?.exampleId ?? "";
+        }
+        const example = selectedExample(rows);
+        state.selectedPatientState =
+          state.selectedPatientState || example?.patientFacingState || "";
+        document.querySelector("[data-testid='visible-candidate-count']").textContent = String(
+          rows.length,
+        );
+        document.querySelector("[data-testid='threshold-family-count']").textContent = String(
+          state.thresholds.length,
+        );
+        document.querySelector("[data-testid='patient-state-count']").textContent = String(
+          state.states.length,
+        );
+        renderFilters();
+        renderRidge(rows);
+        renderBraid(example);
+        renderThresholds(example);
+        renderStateAtlas(example);
+        renderCandidateTable(rows);
+        renderProofTable(rows);
+        renderThresholdTable();
+        renderStateTables();
+        renderInspector(example);
+      }
+
+      async function load() {
+        const [examplesResponse, thresholdsResponse, rulesResponse, gapsResponse] =
+          await Promise.all([
+            fetch(sources.examples),
+            fetch(sources.thresholds),
+            fetch(sources.rules),
+            fetch(sources.gaps),
+          ]);
+        const examplePayload = await examplesResponse.json();
+        state.examples = examplePayload.examples;
+        state.states = examplePayload.patientStateRegistry;
+        state.thresholds = parseCsv(await thresholdsResponse.text());
+        state.rules = await rulesResponse.json();
+        state.gaps = await gapsResponse.json();
+        state.selectedExampleId = state.examples[0]?.exampleId ?? "";
+        state.selectedPatientState = state.examples[0]?.patientFacingState ?? "";
+        render();
+        for (const [testId, field] of [
+          ["route-filter", "routeFilter"],
+          ["link-state-filter", "linkStateFilter"],
+          ["model-state-filter", "modelStateFilter"],
+        ]) {
+          document
+            .querySelector(`[data-testid='${testId}']`)
+            .addEventListener("change", (event) => {
+              state[field] = event.target.value;
+              render();
+            });
+        }
+        document.documentElement.dataset.ready = "true";
+      }
+
+      load().catch((error) => {
+        document.body.innerHTML = `<pre>${error.stack || error.message}</pre>`;
+        throw error;
+      });
+    </script>
+  </body>
+</html>

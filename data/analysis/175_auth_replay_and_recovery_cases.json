@@ -1,0 +1,149 @@
+{
+  "taskId": "par_175",
+  "artifact": "175_auth_replay_and_recovery_cases",
+  "contractRefs": [
+    "data/contracts/171_auth_transaction.schema.json",
+    "data/contracts/171_auth_scope_bundle.schema.json",
+    "data/contracts/171_post_auth_return_intent.schema.json",
+    "data/analysis/171_callback_outcome_matrix.csv",
+    "data/analysis/175_callback_state_matrix.csv"
+  ],
+  "serviceRefs": [
+    "services/command-api/src/auth-bridge.ts",
+    "services/command-api/tests/auth-bridge.integration.test.js",
+    "services/command-api/migrations/090_phase2_auth_bridge.sql"
+  ],
+  "parallelInterfaceGaps": [
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_AUTH_BRIDGE_ISOLATED_OIDC_V1",
+      "closure": "NHS login simulator discovery, authorize URL creation, code exchange, and JWKS-style validation sit behind NhsLoginOidcAdapter."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_AUTH_TRANSACTION_FENCE_CAS_V1",
+      "closure": "AuthTransaction stores state digest, nonce digest, PKCE digest, exact redirect URI, callback outcome, consumption state, and CAS version."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_AUTH_RETURN_INTENT_ONLY_V1",
+      "closure": "PostAuthReturnIntent is frozen before redirect and uses redirectMode route_intent_binding_only; arbitrary return targets are not accepted."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_AUTH_SESSION_GOVERNOR_PORT_V1",
+      "closure": "Successful callbacks call SessionGovernorPort and do not create local session state."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_AUTH_EVIDENCE_VAULT_ONLY_V1",
+      "closure": "Raw claims and raw token envelope are passed only to IdentityEvidenceVaultPort with vault_reference_only."
+    },
+    {
+      "gapId": "PARALLEL_INTERFACE_GAP_PHASE2_AUTH_REPLAY_EXACT_ONCE_V1",
+      "closure": "Duplicate and stale callbacks return replayed_callback and do not repeat downstream port writes."
+    }
+  ],
+  "cases": [
+    {
+      "caseId": "AUTH175_SUCCESS_EXACT_ONCE",
+      "input": "fresh state, exact redirect URI, valid code, valid token envelope",
+      "expectedOutcome": "success",
+      "transactionFence": "CAS unconsumed version to consumed before code exchange",
+      "sideEffects": {
+        "evidenceVaultWrites": 1,
+        "bindingIntentWrites": 1,
+        "capabilityIntentWrites": 1,
+        "sessionGovernorCalls": 1,
+        "directSessionWrites": 0,
+        "patientReferenceWrites": 0
+      },
+      "recoverySurface": "PostAuthReturnIntent.routeIntentBindingRef"
+    },
+    {
+      "caseId": "AUTH175_DUPLICATE_CALLBACK_REPLAY",
+      "input": "same state and code submitted after a success settlement",
+      "expectedOutcome": "replayed_callback",
+      "transactionFence": "existing settlement returned as replay context",
+      "sideEffects": {
+        "evidenceVaultWrites": 0,
+        "bindingIntentWrites": 0,
+        "capabilityIntentWrites": 0,
+        "sessionGovernorCalls": 0,
+        "directSessionWrites": 0,
+        "patientReferenceWrites": 0
+      },
+      "recoverySurface": "existing AuthCallbackSettlement"
+    },
+    {
+      "caseId": "AUTH175_STALE_CALLBACK_AFTER_EXPIRY",
+      "input": "state exists but observedAt is after AuthTransaction.expiresAt",
+      "expectedOutcome": "expired_transaction",
+      "transactionFence": "CAS unconsumed to expired",
+      "sideEffects": {
+        "evidenceVaultWrites": 0,
+        "bindingIntentWrites": 0,
+        "capabilityIntentWrites": 0,
+        "sessionGovernorCalls": 0,
+        "directSessionWrites": 0,
+        "patientReferenceWrites": 0
+      },
+      "recoverySurface": "PostAuthReturnIntent.staleDisposition"
+    },
+    {
+      "caseId": "AUTH175_ARBITRARY_REDIRECT_DENIED",
+      "input": "state exists but callback redirect URI differs from AuthTransaction.redirectUri",
+      "expectedOutcome": "token_validation_failure",
+      "transactionFence": "CAS unconsumed to invalid",
+      "sideEffects": {
+        "evidenceVaultWrites": 0,
+        "bindingIntentWrites": 0,
+        "capabilityIntentWrites": 0,
+        "sessionGovernorCalls": 0,
+        "directSessionWrites": 0,
+        "patientReferenceWrites": 0
+      },
+      "recoverySurface": "deny and restart through route-intent-bound recovery"
+    },
+    {
+      "caseId": "AUTH175_INVALID_TOKEN_REJECTED",
+      "input": "fresh state and code return token envelope with invalid kid, issuer, audience, nonce, expiry, or signature",
+      "expectedOutcome": "token_validation_failure",
+      "transactionFence": "callback already consumed; settlement moves to failed_validation without downstream writes",
+      "sideEffects": {
+        "evidenceVaultWrites": 0,
+        "bindingIntentWrites": 0,
+        "capabilityIntentWrites": 0,
+        "sessionGovernorCalls": 0,
+        "directSessionWrites": 0,
+        "patientReferenceWrites": 0
+      },
+      "recoverySurface": "PostAuthReturnIntent.routeIntentBindingRef"
+    },
+    {
+      "caseId": "AUTH175_CONSENT_DECLINED",
+      "input": "provider returns access_denied",
+      "expectedOutcome": "consent_declined",
+      "transactionFence": "CAS unconsumed to consumed and terminal denied",
+      "sideEffects": {
+        "evidenceVaultWrites": 0,
+        "bindingIntentWrites": 0,
+        "capabilityIntentWrites": 0,
+        "sessionGovernorCalls": 0,
+        "directSessionWrites": 0,
+        "patientReferenceWrites": 0
+      },
+      "recoverySurface": "anonymous_return or identity_repair route family"
+    },
+    {
+      "caseId": "AUTH175_EVIDENCE_VAULT_ONLY_RAW_CLAIMS",
+      "input": "successful token validation with raw claims",
+      "expectedOutcome": "success",
+      "transactionFence": "token evidence ref is stored after vault write",
+      "sideEffects": {
+        "evidenceVaultWrites": 1,
+        "bindingIntentWrites": 1,
+        "capabilityIntentWrites": 1,
+        "sessionGovernorCalls": 1,
+        "directSessionWrites": 0,
+        "patientReferenceWrites": 0
+      },
+      "recoverySurface": "evidence vault ref only outside vault boundary"
+    }
+  ]
+}

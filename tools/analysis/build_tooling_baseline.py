@@ -1,0 +1,3942 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import csv
+import json
+import textwrap
+from pathlib import Path
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[2]
+DATA_DIR = ROOT / "data" / "analysis"
+DOCS_DIR = ROOT / "docs" / "architecture"
+
+REQUIREMENT_REGISTRY_PATH = DATA_DIR / "requirement_registry.jsonl"
+SUMMARY_RECONCILIATION_PATH = DATA_DIR / "summary_reconciliation_matrix.csv"
+PRODUCT_SCOPE_PATH = DATA_DIR / "product_scope_matrix.csv"
+AUDIENCE_SURFACE_PATH = DATA_DIR / "audience_surface_inventory.csv"
+ROUTE_FAMILY_PATH = DATA_DIR / "route_family_inventory.csv"
+ENDPOINT_MATRIX_PATH = DATA_DIR / "endpoint_matrix.csv"
+OBJECT_CATALOG_PATH = DATA_DIR / "object_catalog.json"
+STATE_MACHINE_PATH = DATA_DIR / "state_machines.json"
+EXTERNAL_DEPENDENCY_PATH = DATA_DIR / "external_dependencies.json"
+REGULATORY_WORKSTREAM_PATH = DATA_DIR / "regulatory_workstreams.json"
+DATA_CLASSIFICATION_PATH = DATA_DIR / "data_classification_matrix.csv"
+AUDIT_DISCLOSURE_PATH = DATA_DIR / "audit_event_disclosure_matrix.csv"
+RUNTIME_TOPOLOGY_PATH = DATA_DIR / "runtime_workload_families.json"
+GATEWAY_MATRIX_PATH = DATA_DIR / "gateway_surface_matrix.csv"
+WORKSPACE_GRAPH_PATH = DATA_DIR / "workspace_package_graph.json"
+SERVICE_RUNTIME_PATH = DATA_DIR / "service_runtime_matrix.csv"
+FRONTEND_STACK_PATH = DATA_DIR / "frontend_stack_scorecard.csv"
+UI_CONTRACT_PATH = DATA_DIR / "ui_contract_publication_matrix.csv"
+FRAMEWORK_CONTROL_PATH = DATA_DIR / "framework_control_mapping.csv"
+EVIDENCE_SCHEDULE_PATH = DATA_DIR / "evidence_artifact_schedule.csv"
+CHANGE_TRIGGER_PATH = DATA_DIR / "change_control_trigger_matrix.csv"
+
+TOOLING_SCORECARD_PATH = DATA_DIR / "tooling_scorecard.csv"
+OBSERVABILITY_SIGNAL_PATH = DATA_DIR / "observability_signal_matrix.csv"
+SECURITY_CONTROL_PATH = DATA_DIR / "security_control_matrix.csv"
+RELEASE_GATE_PATH = DATA_DIR / "release_gate_matrix.csv"
+SUPPLY_CHAIN_PATH = DATA_DIR / "supply_chain_and_provenance_matrix.json"
+ESSENTIAL_FUNCTION_PATH = DATA_DIR / "essential_function_slo_matrix.csv"
+INCIDENT_ALERT_PATH = DATA_DIR / "incident_and_alert_routing_matrix.csv"
+
+OBSERVABILITY_DOC_PATH = DOCS_DIR / "15_observability_baseline.md"
+SECURITY_DOC_PATH = DOCS_DIR / "15_security_control_and_secret_management_baseline.md"
+RELEASE_DOC_PATH = DOCS_DIR / "15_release_and_supply_chain_tooling_baseline.md"
+VERIFICATION_DOC_PATH = DOCS_DIR / "15_verification_ladder_and_quality_gate_strategy.md"
+READINESS_DOC_PATH = DOCS_DIR / "15_operational_readiness_and_resilience_tooling.md"
+INCIDENT_DOC_PATH = DOCS_DIR / "15_incident_audit_and_assurance_tooling.md"
+COCKPIT_HTML_PATH = DOCS_DIR / "15_release_evidence_cockpit_atlas.html"
+
+MISSION = (
+    "Choose one explicit Vecells tooling baseline for observability, security, release "
+    "control, verification, operational readiness, incidents, and resilience without "
+    "creating hidden CI authority, PHI-unsafe telemetry, or stale recovery truth."
+)
+
+SOURCE_PRECEDENCE = [
+    "phase-0-the-foundation-protocol.md",
+    "phase-9-the-assurance-ledger.md",
+    "platform-runtime-and-release-blueprint.md",
+    "platform-admin-and-config-blueprint.md",
+    "operations-console-frontend-blueprint.md",
+    "governance-admin-console-frontend-blueprint.md",
+    "forensic-audit-findings.md",
+    "10_data_classification_model.md",
+    "11_gateway_surface_and_runtime_topology_baseline.md",
+    "13_backend_runtime_service_baseline.md",
+    "14_frontend_testing_and_Playwright_or_other_appropriate_tooling_baseline.md",
+]
+
+ATLAS_MARKERS = [
+    'data-testid="cockpit-shell"',
+    'data-testid="left-rail"',
+    'data-testid="rail-toggle"',
+    'data-testid="hero-strip"',
+    'data-testid="filter-gate"',
+    'data-testid="filter-tooling-family"',
+    'data-testid="filter-essential-function"',
+    'data-testid="filter-tenant-scope"',
+    'data-testid="filter-trust-slice"',
+    'data-testid="filter-gap"',
+    'data-testid="gate-matrix"',
+    'data-testid="watch-tuple-inspector"',
+    'data-testid="essential-function-panel"',
+    'data-testid="provenance-panel"',
+    'data-testid="incident-panel"',
+    'data-testid="selection-state"',
+    "data-selected-gate",
+    "data-watch-tuple-hash",
+    "data-selected-essential-function",
+    "data-alert-state",
+    "data-provenance-state",
+    "data-breakpoint-class",
+]
+
+ASSUMPTIONS = [
+    {
+        "assumption_id": "ASSUMPTION_015_PROVIDER_NEUTRAL_BASELINE",
+        "summary": (
+            "Use protocol-level and standards-level tooling names rather than vendor names, "
+            "because prompts 011-015 explicitly forbid provisioning and the corpus does not "
+            "pin a commercial stack."
+        ),
+    },
+    {
+        "assumption_id": "ASSUMPTION_015_UK_HOSTED_OPERATIONS_FABRIC",
+        "summary": (
+            "All chosen families must run inside the UK-hosted dual-region posture from task "
+            "011, with only bounded external message or partner adapters remaining outside "
+            "that residency envelope."
+        ),
+    },
+]
+
+RISKS = [
+    {
+        "issue_id": "RISK_015_TELEMETRY_SCHEMA_DRIFT",
+        "issue_type": "risk",
+        "severity": "medium",
+        "title": "New route families can drift outside the PHI-safe signal vocabulary",
+        "summary": (
+            "Any new audience surface or route family must extend the disclosure allow-list "
+            "before telemetry or alert rules can publish live."
+        ),
+        "linked_family_refs": [
+            "FAM_SIGNAL_PIPELINE",
+            "FAM_ALERTING_EVIDENCE_BOARDS",
+            "FAM_RELEASE_TUPLE_ORCHESTRATION",
+        ],
+        "linked_gate_refs": ["GATE_0_STATIC_AND_UNIT", "GATE_1_CONTRACT_AND_COMPONENT"],
+        "linked_essential_function_refs": [],
+    }
+]
+
+GAPS = [
+    {
+        "issue_id": "GAP_015_HSM_SIGNING_KEY_PROVISIONING",
+        "issue_type": "gap",
+        "severity": "medium",
+        "title": "HSM-backed signing keys are not provisioned yet",
+        "summary": (
+            "The baseline requires hardware-backed or KMS-backed signing with short-lived "
+            "workload identity, but tasks 011-015 stop at the seam and do not create the "
+            "live key hierarchy."
+        ),
+        "linked_family_refs": [
+            "FAM_PROVENANCE_SIGNING_SBOM",
+            "FAM_SECURITY_POLICY_GATE",
+            "FAM_RELEASE_TUPLE_ORCHESTRATION",
+        ],
+        "linked_gate_refs": ["GATE_0_STATIC_AND_UNIT", "GATE_5_LIVE_WAVE_PROOF"],
+        "linked_essential_function_refs": ["EF_RELEASE_GOVERNANCE_RUNTIME_CONTROL"],
+    },
+    {
+        "issue_id": "GAP_015_ALERT_DESTINATION_BINDING",
+        "issue_type": "gap",
+        "severity": "medium",
+        "title": "Concrete on-call destinations still need tenant and service-owner binding",
+        "summary": (
+            "The matrix fixes alert classes, escalation law, and evidence routing, but final "
+            "rotation identifiers and destination endpoints remain a provisioning-time concern."
+        ),
+        "linked_family_refs": [
+            "FAM_ALERTING_EVIDENCE_BOARDS",
+            "FAM_INCIDENT_CAPA_WORKFLOW",
+            "FAM_RESILIENCE_RECOVERY_EVIDENCE",
+        ],
+        "linked_gate_refs": ["GATE_4_RESILIENCE_AND_RECOVERY", "GATE_5_LIVE_WAVE_PROOF"],
+        "linked_essential_function_refs": [
+            "EF_PATIENT_ENTRY_AND_RECOVERY",
+            "EF_WORKSPACE_TRIAGE_AND_SETTLEMENT",
+            "EF_RESILIENCE_RECOVERY_CONTROL",
+        ],
+    },
+]
+
+SAFE_IDENTIFIER_FIELDS = {
+    "eventId",
+    "edgeCorrelationId",
+    "causalToken",
+    "routeFamilyCode",
+    "shellDecisionClass",
+    "selectedAnchorChangeClass",
+    "bridgeCapabilityClass",
+    "artifactModeClass",
+    "taskRef",
+    "lineageRef",
+    "maskScopeClass",
+    "restoreState",
+    "adminActionRef",
+    "governancePackageHash",
+    "releaseTupleHash",
+    "watchTupleHash",
+    "reviewState",
+    "auditQueryHash",
+    "breakGlassReasonClass",
+    "exportArtifactClass",
+    "controlObjectiveId",
+    "graphHash",
+    "packState",
+    "restoreTupleHash",
+    "failoverTupleHash",
+    "chaosTupleHash",
+    "recoveryPostureClass",
+    "safeDescriptorHash",
+    "safeRouteScopeHash",
+    "tenantScopeClass",
+    "trustSliceCode",
+    "boardTupleHash",
+    "releaseContractMatrixHash",
+    "artifactDigestRef",
+    "serviceClass",
+    "sliCode",
+    "channelFreezeClass",
+    "parityState",
+}
+
+TOOLING_FAMILIES = [
+    {
+        "tooling_family_id": "FAM_SIGNAL_PIPELINE",
+        "tooling_family_name": "OpenTelemetry-compatible signal pipeline",
+        "chosen_baseline_id": "BASELINE_OTEL_PHI_SAFE",
+        "chosen_baseline_label": (
+            "OpenTelemetry collectors, PHI-safe telemetry gateway, append-only metrics or "
+            "log or trace warehouse, and immutable audit-export mirror"
+        ),
+        "baseline_role": (
+            "Correlates traces, metrics, logs, and UI telemetry through `edgeCorrelationId` "
+            "and `causalToken` while forcing every PHI-bearing route through "
+            "`UITelemetryDisclosureFence`."
+        ),
+        "emits_object_refs": [
+            "UITelemetryDisclosureFence",
+            "AssuranceSliceTrustRecord",
+            "ReleasePublicationParityRecord",
+            "EssentialFunctionHealthEnvelope",
+        ],
+        "consumes_object_refs": [
+            "RuntimePublicationBundle",
+            "ReleaseWatchTuple",
+            "OperationalReadinessSnapshot",
+        ],
+        "source_refs": [
+            "platform-runtime-and-release-blueprint.md#Security baseline contract",
+            "phase-0-the-foundation-protocol.md#UITelemetryDisclosureFence",
+            "phase-9-the-assurance-ledger.md#9A. Assurance ledger, evidence graph, and operational state contracts",
+        ],
+        "chosen_note": (
+            "Chosen because it keeps telemetry provider-neutral, route-aware, trust-slice-aware, "
+            "and exportable into the assurance graph without letting dashboards become hidden truth."
+        ),
+        "vendor_rejection": (
+            "Rejected because a unified vendor-only stack obscures tuple publication state, can "
+            "push PHI disclosure policy into opaque product settings, and weakens UK-hosting portability."
+        ),
+        "cloud_rejection": (
+            "Rejected because provider-native telemetry would split operations, governance, and "
+            "release proof across cloud-specific surfaces instead of one published tuple."
+        ),
+    },
+    {
+        "tooling_family_id": "FAM_ALERTING_EVIDENCE_BOARDS",
+        "tooling_family_name": "Tuple-aware dashboards and alert routing",
+        "chosen_baseline_id": "BASELINE_TUPLE_AWARE_BOARDS",
+        "chosen_baseline_label": (
+            "Machine-readable alert rule registry, role-scoped board projections, and "
+            "evidence-aware alert routing that reads the published runtime tuple"
+        ),
+        "baseline_role": (
+            "Materializes alert rules, board cells, watch surfaces, and stable-service digests "
+            "from `EssentialFunctionHealthEnvelope`, `ReleaseTrustFreezeVerdict`, and "
+            "`ReleaseWatchEvidenceCockpit` rather than from detached dashboard heuristics."
+        ),
+        "emits_object_refs": [
+            "EssentialFunctionHealthEnvelope",
+            "ReleaseWatchEvidenceCockpit",
+            "OperationalReadinessSnapshot",
+        ],
+        "consumes_object_refs": [
+            "ReleasePublicationParityRecord",
+            "ReleaseWatchTuple",
+            "RecoveryControlPosture",
+        ],
+        "source_refs": [
+            "operations-console-frontend-blueprint.md#4.4 ServiceHealthGrid",
+            "phase-0-the-foundation-protocol.md#1.24C ReleaseWatchEvidenceCockpit",
+            "forensic-audit-findings.md#Finding 95 - The audit still omitted governance watch-tuple parity and recovery posture from release oversight",
+        ],
+        "chosen_note": (
+            "Chosen because boards and alerts remain machine-readable, scope-aware, and unable "
+            "to look greener than the current release, trust, or recovery tuple."
+        ),
+        "vendor_rejection": (
+            "Rejected because vendor dashboard state can become the de facto release watch "
+            "authority, which the corpus explicitly forbids."
+        ),
+        "cloud_rejection": (
+            "Rejected because cloud-provider alarm surfaces do not naturally publish the same "
+            "tuple to governance, operations, and shell consumers."
+        ),
+    },
+    {
+        "tooling_family_id": "FAM_RELEASE_TUPLE_ORCHESTRATION",
+        "tooling_family_name": "Release tuple orchestration and runtime publication",
+        "chosen_baseline_id": "BASELINE_IMMUTABLE_STAGE_LEDGER",
+        "chosen_baseline_label": (
+            "Immutable pipeline execution ledger, stage settlements, runtime publication "
+            "publisher, release-watch tuple publisher, and emergency-exception register"
+        ),
+        "baseline_role": (
+            "Publishes every posture-changing stage through authoritative stage settlement and "
+            "forbids hidden CI-only release truth."
+        ),
+        "emits_object_refs": [
+            "PipelineExecutionRecord",
+            "PipelineStageSettlement",
+            "RuntimePublicationBundle",
+            "ReleasePublicationParityRecord",
+            "ReleaseWatchTuple",
+        ],
+        "consumes_object_refs": [
+            "VerificationScenario",
+            "ReleaseContractVerificationMatrix",
+            "BuildProvenanceRecord",
+            "OperationalReadinessSnapshot",
+        ],
+        "source_refs": [
+            "platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract",
+            "platform-admin-and-config-blueprint.md#Release governance contract",
+            "platform-admin-and-config-blueprint.md#Production promotion gate",
+        ],
+        "chosen_note": (
+            "Chosen because it closes the hidden-state gap, binds policy compile, publication, "
+            "watch tuple, and emergency movement into one machine-readable control seam, and "
+            "makes governance and operations read the same promoted tuple."
+        ),
+        "vendor_rejection": (
+            "Rejected because a CI vendor pipeline alone does not publish runtime tuples or "
+            "governed watch-state as first-class platform objects."
+        ),
+        "cloud_rejection": (
+            "Rejected because provider deployment services would still need a second publication "
+            "ledger to satisfy the corpus, so they do not simplify the architecture truth."
+        ),
+    },
+    {
+        "tooling_family_id": "FAM_SYNTHETIC_CANARY_PROOF",
+        "tooling_family_name": "Synthetic monitoring and canary proof runner",
+        "chosen_baseline_id": "BASELINE_ROUTE_CONTRACT_SYNTHETICS",
+        "chosen_baseline_label": (
+            "Route-contract-aware synthetic runner, wave-observation policy evaluator, and "
+            "guardrail probe pack for ordinary and degraded journeys"
+        ),
+        "baseline_role": (
+            "Runs synthetic journeys against exact route, continuity, recovery, and watch-tuple "
+            "contracts before canary and during live wave proof."
+        ),
+        "emits_object_refs": [
+            "AssuranceSliceProbe",
+            "WaveVerificationRecord",
+            "SyntheticRecoveryCoverageRecord",
+        ],
+        "consumes_object_refs": [
+            "ReleaseWatchTuple",
+            "WaveGuardrailSnapshot",
+            "ReleaseRecoveryDisposition",
+            "ReleaseContractVerificationMatrix",
+        ],
+        "source_refs": [
+            "platform-runtime-and-release-blueprint.md#Verification ladder contract",
+            "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+            "phase-9-the-assurance-ledger.md#9F. Resilience architecture, restore orchestration, and chaos programme",
+        ],
+        "chosen_note": (
+            "Chosen because canary, constrained recovery, and slice-bounded assurance degradation "
+            "all need route-aware probes instead of generic uptime checks."
+        ),
+        "vendor_rejection": (
+            "Rejected because black-box SaaS checks cannot prove `VerificationScenario`, "
+            "`ReleaseContractVerificationMatrix`, and continuity contracts stayed exact."
+        ),
+        "cloud_rejection": (
+            "Rejected because provider-native probes do not naturally cover browser, callback, "
+            "embedded, resilience, and release-watch tuple law in one test model."
+        ),
+    },
+    {
+        "tooling_family_id": "FAM_PROVENANCE_SIGNING_SBOM",
+        "tooling_family_name": "Provenance, signing, and SBOM attestation lane",
+        "chosen_baseline_id": "BASELINE_SIGNED_ARTIFACT_CHAIN",
+        "chosen_baseline_label": (
+            "SLSA or in-toto-compatible provenance attester, DSSE-style signature envelope, "
+            "SPDX or CycloneDX SBOM publication, and immutable artifact registry"
+        ),
+        "baseline_role": (
+            "Makes provenance, SBOM, and signature verification mandatory release objects "
+            "instead of optional attachments."
+        ),
+        "emits_object_refs": [
+            "BuildProvenanceRecord",
+            "ReleaseCandidate",
+            "PipelineStageSettlement",
+        ],
+        "consumes_object_refs": [
+            "VerificationScenario",
+            "RuntimePublicationBundle",
+            "ReleasePublicationParityRecord",
+            "ReleaseWatchTuple",
+        ],
+        "source_refs": [
+            "platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract",
+            "platform-runtime-and-release-blueprint.md#Security baseline contract",
+            "forensic-audit-findings.md#Finding 118 - Token export and design-contract conformance could still drift outside the published runtime tuple",
+        ],
+        "chosen_note": (
+            "Chosen because build identity, SBOM, signature, design-contract publication, and "
+            "runtime consumption must remain part of one exact candidate tuple."
+        ),
+        "vendor_rejection": (
+            "Rejected because proprietary signing metadata formats can make runtime consumption "
+            "and later assurance export depend on one vendor's portal."
+        ),
+        "cloud_rejection": (
+            "Rejected because provider-only registry attestation makes the release tuple harder "
+            "to export across UK regions, tenants, and future environments."
+        ),
+    },
+    {
+        "tooling_family_id": "FAM_SECURITY_POLICY_GATE",
+        "tooling_family_name": "Security control, secret management, and policy gate",
+        "chosen_baseline_id": "BASELINE_KMS_AND_POLICY_AS_CODE",
+        "chosen_baseline_label": (
+            "Managed secret store or KMS, short-lived workload identity, multi-mode scanner "
+            "suite, and policy-as-code gate wired into stage settlement"
+        ),
+        "baseline_role": (
+            "Enforces secret handling, dependency hygiene, IaC and image policy, egress "
+            "allowlists, and emergency exceptions without bypassing audit or promotion law."
+        ),
+        "emits_object_refs": [
+            "PipelineEmergencyException",
+            "StandardsDependencyWatchlist",
+            "PipelineStageSettlement",
+            "SecurityIncident",
+        ],
+        "consumes_object_refs": [
+            "BuildProvenanceRecord",
+            "ReleaseContractVerificationMatrix",
+            "ReleaseWatchTuple",
+        ],
+        "source_refs": [
+            "platform-runtime-and-release-blueprint.md#Security baseline contract",
+            "platform-admin-and-config-blueprint.md#Dependency and standards hygiene",
+            "phase-9-the-assurance-ledger.md#9H. Tenant governance, config immutability, and dependency hygiene",
+        ],
+        "chosen_note": (
+            "Chosen because secret custody, short-lived identity, scanner coverage, and policy "
+            "exceptions all need stage-bound evidence, not local CI variables or dashboard badges."
+        ),
+        "vendor_rejection": (
+            "Rejected because monolithic security suites often keep exception state and secret "
+            "material in product-specific control planes rather than published platform records."
+        ),
+        "cloud_rejection": (
+            "Rejected because provider-native controls alone would not cover multi-tool policy "
+            "evaluation, external partner seams, or UK-hosted portability."
+        ),
+    },
+    {
+        "tooling_family_id": "FAM_INCIDENT_CAPA_WORKFLOW",
+        "tooling_family_name": "Incident, near-miss, and CAPA workflow",
+        "chosen_baseline_id": "BASELINE_JUST_CULTURE_LEDGER",
+        "chosen_baseline_label": (
+            "Incident desk, near-miss intake, reportability assessment, containment timeline, "
+            "post-incident review, and assurance-ledger writeback"
+        ),
+        "baseline_role": (
+            "Treats reportable incidents and near misses as first-class workflow objects, with "
+            "immutable audit, CAPA linkage, and standards evidence writeback."
+        ),
+        "emits_object_refs": [
+            "SecurityIncident",
+            "NearMissReport",
+            "ReportabilityAssessment",
+            "PostIncidentReview",
+        ],
+        "consumes_object_refs": [
+            "AssuranceEvidenceGraphSnapshot",
+            "ControlStatusSnapshot",
+            "OperationalReadinessSnapshot",
+        ],
+        "source_refs": [
+            "phase-9-the-assurance-ledger.md#9G. Security operations, incident workflow, and just-culture reporting",
+            "phase-9-the-assurance-ledger.md#9D. Assurance pack factory and standards evidence pipeline",
+            "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+        ],
+        "chosen_note": (
+            "Chosen because security incidents, break-glass review, support replay, and release "
+            "follow-up all need the same evidence-preserving workflow instead of siloed tickets."
+        ),
+        "vendor_rejection": (
+            "Rejected because generic ticketing does not guarantee reportability assessment, "
+            "evidence preservation, or assurance writeback."
+        ),
+        "cloud_rejection": (
+            "Rejected because cloud incident tools do not naturally join near misses, CAPA, "
+            "break-glass review, and healthcare reportability obligations."
+        ),
+    },
+    {
+        "tooling_family_id": "FAM_RESILIENCE_RECOVERY_EVIDENCE",
+        "tooling_family_name": "Operational readiness and recovery evidence orchestration",
+        "chosen_baseline_id": "BASELINE_TUPLE_BOUND_RESILIENCE",
+        "chosen_baseline_label": (
+            "Resilience orchestrator, runbook binding registry, backup manifest registry, "
+            "restore or failover or chaos evidence lane, and readiness snapshot publisher"
+        ),
+        "baseline_role": (
+            "Makes current readiness, rehearsal freshness, restore authority, and recovery "
+            "posture explicit and tuple-bound."
+        ),
+        "emits_object_refs": [
+            "OperationalReadinessSnapshot",
+            "RunbookBindingRecord",
+            "RecoveryControlPosture",
+            "RestoreRun",
+            "FailoverRun",
+            "ChaosRun",
+        ],
+        "consumes_object_refs": [
+            "ReleaseWatchTuple",
+            "ReleasePublicationParityRecord",
+            "ReleaseTrustFreezeVerdict",
+            "EssentialFunctionHealthEnvelope",
+        ],
+        "source_refs": [
+            "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+            "phase-0-the-foundation-protocol.md#1.40G OperationalReadinessSnapshot",
+            "forensic-audit-findings.md#Finding 112 - Resilience restore authority still depended on loose runbooks and dashboards",
+        ],
+        "chosen_note": (
+            "Chosen because restore, failover, chaos, and recovery activation must read one "
+            "current readiness tuple rather than stitched dashboard links and historic drills."
+        ),
+        "vendor_rejection": (
+            "Rejected because wiki-centric DR tooling leaves stale runbooks and historic reports "
+            "looking authoritative after tuple drift."
+        ),
+        "cloud_rejection": (
+            "Rejected because provider DR features alone do not prove journey recovery, board "
+            "authority, or runbook binding for Vecells essential functions."
+        ),
+    },
+]
+
+
+def load_json(path: Path) -> Any:
+    return json.loads(path.read_text())
+
+
+def load_csv(path: Path) -> list[dict[str, str]]:
+    with path.open() as handle:
+        return list(csv.DictReader(handle))
+
+
+def count_jsonl(path: Path) -> int:
+    return sum(1 for line in path.read_text().splitlines() if line.strip())
+
+
+def write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content.rstrip() + "\n")
+
+
+def write_json(path: Path, payload: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2) + "\n")
+
+
+def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not rows:
+        raise SystemExit(f"Cannot write empty CSV: {path}")
+    fieldnames: list[str] = []
+    for row in rows:
+        for key in row:
+            if key not in fieldnames:
+                fieldnames.append(key)
+    with path.open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def join_items(values: list[str] | tuple[str, ...]) -> str:
+    return "; ".join(values)
+
+
+def csv_ready(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    converted: list[dict[str, Any]] = []
+    for row in rows:
+        converted.append(
+            {
+                key: join_items(value) if isinstance(value, list) else value
+                for key, value in row.items()
+            }
+        )
+    return converted
+
+
+def render_table(headers: list[str], rows: list[list[Any]]) -> str:
+    def clean(value: Any) -> str:
+        text = "" if value is None else str(value)
+        return text.replace("|", "\\|").replace("\n", "<br>")
+
+    head = "| " + " | ".join(headers) + " |"
+    sep = "| " + " | ".join(["---"] * len(headers)) + " |"
+    body = ["| " + " | ".join(clean(value) for value in row) + " |" for row in rows]
+    return "\n".join([head, sep, *body])
+
+
+def ensure_prerequisites() -> dict[str, Any]:
+    required = {
+        REQUIREMENT_REGISTRY_PATH: "task 001 requirement registry",
+        SUMMARY_RECONCILIATION_PATH: "task 002 summary reconciliation",
+        PRODUCT_SCOPE_PATH: "task 003 product scope matrix",
+        AUDIENCE_SURFACE_PATH: "task 004 audience surface inventory",
+        ROUTE_FAMILY_PATH: "task 004 route family inventory",
+        ENDPOINT_MATRIX_PATH: "task 005 endpoint matrix",
+        OBJECT_CATALOG_PATH: "task 006 object catalog",
+        STATE_MACHINE_PATH: "task 007 state machine atlas",
+        EXTERNAL_DEPENDENCY_PATH: "task 008 external dependencies",
+        REGULATORY_WORKSTREAM_PATH: "task 009 regulatory workstreams",
+        DATA_CLASSIFICATION_PATH: "task 010 data classification matrix",
+        AUDIT_DISCLOSURE_PATH: "task 010 audit disclosure matrix",
+        RUNTIME_TOPOLOGY_PATH: "task 011 runtime topology baseline",
+        GATEWAY_MATRIX_PATH: "task 011 gateway surface matrix",
+        WORKSPACE_GRAPH_PATH: "task 012 workspace graph",
+        SERVICE_RUNTIME_PATH: "task 013 service runtime matrix",
+        FRONTEND_STACK_PATH: "task 014 frontend stack scorecard",
+        UI_CONTRACT_PATH: "task 014 UI contract publication matrix",
+    }
+    missing = [
+        f"PREREQUISITE_GAP_SEQ_015 missing {label}: {path}"
+        for path, label in required.items()
+        if not path.exists()
+    ]
+    if missing:
+        raise SystemExit("\n".join(missing))
+
+    summary_rows = load_csv(SUMMARY_RECONCILIATION_PATH)
+    scope_rows = load_csv(PRODUCT_SCOPE_PATH)
+    surface_rows = load_csv(AUDIENCE_SURFACE_PATH)
+    route_rows = load_csv(ROUTE_FAMILY_PATH)
+    endpoint_rows = load_csv(ENDPOINT_MATRIX_PATH)
+    object_payload = load_json(OBJECT_CATALOG_PATH)
+    machine_payload = load_json(STATE_MACHINE_PATH)
+    dependency_payload = load_json(EXTERNAL_DEPENDENCY_PATH)
+    regulatory_payload = load_json(REGULATORY_WORKSTREAM_PATH)
+    classification_rows = load_csv(DATA_CLASSIFICATION_PATH)
+    disclosure_rows = load_csv(AUDIT_DISCLOSURE_PATH)
+    topology_payload = load_json(RUNTIME_TOPOLOGY_PATH)
+    gateway_rows = load_csv(GATEWAY_MATRIX_PATH)
+    workspace_payload = load_json(WORKSPACE_GRAPH_PATH)
+    service_rows = load_csv(SERVICE_RUNTIME_PATH)
+    frontend_rows = load_csv(FRONTEND_STACK_PATH)
+    contract_rows = load_csv(UI_CONTRACT_PATH)
+
+    checks = [
+        (len(summary_rows) >= 25, "PREREQUISITE_GAP_SEQ_015 summary reconciliation looks incomplete."),
+        (len(scope_rows) >= 30, "PREREQUISITE_GAP_SEQ_015 scope matrix looks incomplete."),
+        (len(surface_rows) == 22, "PREREQUISITE_GAP_SEQ_015 audience surface row count drifted."),
+        (len(route_rows) == 20, "PREREQUISITE_GAP_SEQ_015 route family count drifted."),
+        (len(endpoint_rows) == 15, "PREREQUISITE_GAP_SEQ_015 endpoint matrix row count drifted."),
+        (
+            object_payload.get("summary", {}).get("object_count", 0) >= 900,
+            "PREREQUISITE_GAP_SEQ_015 object catalog looks incomplete.",
+        ),
+        (
+            machine_payload.get("summary", {}).get("machine_count", 0) >= 40,
+            "PREREQUISITE_GAP_SEQ_015 state machine atlas looks incomplete.",
+        ),
+        (
+            dependency_payload.get("summary", {}).get("dependency_count", 0) == 20,
+            "PREREQUISITE_GAP_SEQ_015 external dependency count drifted.",
+        ),
+        (
+            regulatory_payload.get("summary", {}).get("workstream_count", 0) >= 13,
+            "PREREQUISITE_GAP_SEQ_015 regulatory workstreams look incomplete.",
+        ),
+        (len(classification_rows) >= 70, "PREREQUISITE_GAP_SEQ_015 data classification looks incomplete."),
+        (len(disclosure_rows) >= 10, "PREREQUISITE_GAP_SEQ_015 audit disclosure matrix looks incomplete."),
+        (
+            topology_payload.get("summary", {}).get("gateway_surface_count", 0) == 22,
+            "PREREQUISITE_GAP_SEQ_015 runtime topology gateway count drifted.",
+        ),
+        (
+            workspace_payload.get("summary", {}).get("node_count", 0) >= 50,
+            "PREREQUISITE_GAP_SEQ_015 workspace graph looks incomplete.",
+        ),
+        (len(service_rows) == 21, "PREREQUISITE_GAP_SEQ_015 service runtime count drifted."),
+        (len(frontend_rows) == 3, "PREREQUISITE_GAP_SEQ_015 frontend stack scorecard drifted."),
+        (len(contract_rows) == 8, "PREREQUISITE_GAP_SEQ_015 UI contract publication matrix drifted."),
+    ]
+    for condition, message in checks:
+        if not condition:
+            raise SystemExit(message)
+
+    return {
+        "requirement_registry_rows": count_jsonl(REQUIREMENT_REGISTRY_PATH),
+        "summary_reconciliation_rows": len(summary_rows),
+        "scope_rows": len(scope_rows),
+        "audience_surface_count": len(surface_rows),
+        "route_family_count": len(route_rows),
+        "endpoint_count": len(endpoint_rows),
+        "object_count": object_payload["summary"]["object_count"],
+        "state_machine_count": machine_payload["summary"]["machine_count"],
+        "dependency_count": dependency_payload["summary"]["dependency_count"],
+        "workstream_count": regulatory_payload["summary"]["workstream_count"],
+        "classification_row_count": len(classification_rows),
+        "audit_disclosure_count": len(disclosure_rows),
+        "runtime_gateway_count": topology_payload["summary"]["gateway_surface_count"],
+        "workspace_node_count": workspace_payload["summary"]["node_count"],
+        "service_runtime_count": len(service_rows),
+        "frontend_stack_option_count": len(frontend_rows),
+    }
+
+
+def build_tooling_scorecard() -> list[dict[str, Any]]:
+    protocol_scores = {
+        "FAM_SIGNAL_PIPELINE": (5, 5, 5, 5, 5, 5, 5),
+        "FAM_ALERTING_EVIDENCE_BOARDS": (4, 5, 5, 5, 5, 5, 5),
+        "FAM_RELEASE_TUPLE_ORCHESTRATION": (5, 5, 4, 5, 5, 5, 5),
+        "FAM_SYNTHETIC_CANARY_PROOF": (4, 5, 5, 5, 5, 5, 4),
+        "FAM_PROVENANCE_SIGNING_SBOM": (5, 5, 4, 5, 5, 5, 5),
+        "FAM_SECURITY_POLICY_GATE": (4, 5, 5, 5, 5, 5, 5),
+        "FAM_INCIDENT_CAPA_WORKFLOW": (4, 5, 4, 5, 5, 5, 5),
+        "FAM_RESILIENCE_RECOVERY_EVIDENCE": (4, 5, 4, 5, 5, 5, 5),
+    }
+    vendor_scores = {
+        "FAM_SIGNAL_PIPELINE": (3, 2, 2, 2, 3, 3, 1),
+        "FAM_ALERTING_EVIDENCE_BOARDS": (2, 2, 3, 2, 3, 3, 1),
+        "FAM_RELEASE_TUPLE_ORCHESTRATION": (2, 1, 3, 2, 2, 2, 1),
+        "FAM_SYNTHETIC_CANARY_PROOF": (2, 2, 3, 2, 2, 3, 1),
+        "FAM_PROVENANCE_SIGNING_SBOM": (2, 2, 3, 2, 3, 3, 1),
+        "FAM_SECURITY_POLICY_GATE": (2, 2, 2, 2, 3, 3, 1),
+        "FAM_INCIDENT_CAPA_WORKFLOW": (2, 2, 2, 2, 3, 2, 1),
+        "FAM_RESILIENCE_RECOVERY_EVIDENCE": (2, 2, 2, 2, 3, 2, 1),
+    }
+    cloud_scores = {
+        "FAM_SIGNAL_PIPELINE": (3, 2, 3, 2, 2, 3, 2),
+        "FAM_ALERTING_EVIDENCE_BOARDS": (3, 2, 3, 2, 2, 3, 2),
+        "FAM_RELEASE_TUPLE_ORCHESTRATION": (3, 2, 3, 2, 2, 3, 2),
+        "FAM_SYNTHETIC_CANARY_PROOF": (3, 2, 3, 2, 2, 3, 2),
+        "FAM_PROVENANCE_SIGNING_SBOM": (3, 2, 3, 2, 2, 3, 2),
+        "FAM_SECURITY_POLICY_GATE": (3, 3, 3, 2, 3, 3, 2),
+        "FAM_INCIDENT_CAPA_WORKFLOW": (2, 2, 2, 2, 2, 2, 2),
+        "FAM_RESILIENCE_RECOVERY_EVIDENCE": (2, 2, 2, 2, 2, 3, 2),
+    }
+    rows: list[dict[str, Any]] = []
+    for family in TOOLING_FAMILIES:
+        family_id = family["tooling_family_id"]
+        chosen_scores = protocol_scores[family_id]
+        vendor = vendor_scores[family_id]
+        cloud = cloud_scores[family_id]
+        options = [
+            (
+                "OPT_PROTOCOL_FIRST_PUBLISHED_TUPLE",
+                "Protocol-first published tuple baseline",
+                chosen_scores,
+                "chosen",
+                family["chosen_baseline_label"],
+                "",
+            ),
+            (
+                "OPT_UNIFIED_VENDOR_SAAS",
+                "Unified vendor SaaS control plane",
+                vendor,
+                "rejected",
+                "",
+                family["vendor_rejection"],
+            ),
+            (
+                "OPT_CLOUD_PROVIDER_NATIVE",
+                "Cloud-provider-native control plane",
+                cloud,
+                "rejected",
+                "",
+                family["cloud_rejection"],
+            ),
+        ]
+        for option_id, label, scores, decision, chosen_components, rejection_reason in options:
+            standards_fit, tuple_fit, phi_fit, hosting_fit, assurance_fit, proof_fit, hidden_fit = scores
+            rows.append(
+                {
+                    "scorecard_row_id": f"{family_id}_{option_id}",
+                    "tooling_family_id": family_id,
+                    "tooling_family_name": family["tooling_family_name"],
+                    "option_id": option_id,
+                    "option_label": label,
+                    "open_standard_fit": standards_fit,
+                    "tuple_authority_fit": tuple_fit,
+                    "phi_safe_disclosure_fit": phi_fit,
+                    "uk_hosting_fit": hosting_fit,
+                    "assurance_export_fit": assurance_fit,
+                    "operational_proof_fit": proof_fit,
+                    "hidden_state_control": hidden_fit,
+                    "total_score": sum(scores),
+                    "decision": decision,
+                    "chosen_components": chosen_components,
+                    "decision_summary": family["chosen_note"] if decision == "chosen" else rejection_reason,
+                    "source_refs": family["source_refs"],
+                }
+            )
+    return rows
+
+
+def build_observability_signal_matrix() -> list[dict[str, Any]]:
+    return [
+        {
+            "signal_id": "SIG_TRACE_GATEWAY_EDGE",
+            "signal_name": "Gateway ingress and route-intent traces",
+            "signal_family": "trace",
+            "tooling_family_ref": "FAM_SIGNAL_PIPELINE",
+            "producer_scope": "svc_api_gateway",
+            "tenant_scope_class": "tenantScopeClass",
+            "trust_slice_code": "release_publication",
+            "correlation_keys": ["edgeCorrelationId", "causalToken", "routeFamilyCode"],
+            "allowed_identifier_fields": ["edgeCorrelationId", "causalToken", "routeFamilyCode", "safeRouteScopeHash"],
+            "allowed_payload_class": "descriptor_and_hash_only",
+            "telemetry_ceiling": "descriptor_and_hash_only",
+            "log_ceiling": "diagnostic_refs_only",
+            "authoritative_lane": "diagnostic_trace_then_audit_link",
+            "retention_posture": "short_hot_then_governed_export",
+            "required_object_refs": ["RouteIntentBinding", "RuntimePublicationBundle"],
+            "alert_route_ref": "",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Security baseline contract",
+                "phase-0-the-foundation-protocol.md#UITelemetryDisclosureFence",
+            ],
+            "notes": "No request payload, subject identifier, or raw route params may enter the span envelope.",
+        },
+        {
+            "signal_id": "SIG_TRACE_COMMAND_SETTLEMENT",
+            "signal_name": "Command settlement and transition traces",
+            "signal_family": "trace",
+            "tooling_family_ref": "FAM_SIGNAL_PIPELINE",
+            "producer_scope": "svc_command_api",
+            "tenant_scope_class": "tenantScopeClass",
+            "trust_slice_code": "continuity_proof",
+            "correlation_keys": ["edgeCorrelationId", "causalToken", "routeFamilyCode"],
+            "allowed_identifier_fields": ["edgeCorrelationId", "causalToken", "routeFamilyCode", "lineageRef"],
+            "allowed_payload_class": "masked_scope_and_refs_only",
+            "telemetry_ceiling": "masked_scope_and_refs_only",
+            "log_ceiling": "masked_scope_and_refs_only",
+            "authoritative_lane": "command_settlement_audit_join",
+            "retention_posture": "short_hot_then_audit_reference",
+            "required_object_refs": ["CommandSettlementRecord", "UITransitionSettlementRecord"],
+            "alert_route_ref": "",
+            "source_refs": [
+                "phase-0-the-foundation-protocol.md#2.8 ScopedMutationGate",
+                "platform-runtime-and-release-blueprint.md#Verification ladder contract",
+            ],
+            "notes": "Trace correlation is mandatory, but authoritative completion still comes from settlements.",
+        },
+        {
+            "signal_id": "SIG_UI_PATIENT_DISCLOSURE",
+            "signal_name": "Patient and public UI telemetry fence events",
+            "signal_family": "ui_telemetry",
+            "tooling_family_ref": "FAM_SIGNAL_PIPELINE",
+            "producer_scope": "patient_shells",
+            "tenant_scope_class": "tenantScopeClass",
+            "trust_slice_code": "continuity_proof",
+            "correlation_keys": ["edgeCorrelationId", "causalToken"],
+            "allowed_identifier_fields": [
+                "eventId",
+                "edgeCorrelationId",
+                "causalToken",
+                "routeFamilyCode",
+                "shellDecisionClass",
+                "selectedAnchorChangeClass",
+            ],
+            "allowed_payload_class": "descriptor_and_hash_only",
+            "telemetry_ceiling": "descriptor_and_hash_only",
+            "log_ceiling": "diagnostic_refs_only",
+            "authoritative_lane": "ui_event_to_projection_visibility_receipt",
+            "retention_posture": "product_diagnostics_then_audit_reference",
+            "required_object_refs": ["UITelemetryDisclosureFence", "UIProjectionVisibilityReceipt"],
+            "alert_route_ref": "ALERT_DISCLOSURE_FENCE_BLOCKED",
+            "source_refs": [
+                "10_audit_posture_and_event_disclosure.md",
+                "phase-0-the-foundation-protocol.md#UITelemetryDisclosureFence",
+            ],
+            "notes": "Directly enforces the task-010 ceiling for patient and public telemetry.",
+        },
+        {
+            "signal_id": "SIG_UI_WORKSPACE_DISCLOSURE",
+            "signal_name": "Workspace, hub, pharmacy, support, and assistive UI telemetry fence events",
+            "signal_family": "ui_telemetry",
+            "tooling_family_ref": "FAM_SIGNAL_PIPELINE",
+            "producer_scope": "staff_shells",
+            "tenant_scope_class": "tenantScopeClass",
+            "trust_slice_code": "continuity_proof",
+            "correlation_keys": ["edgeCorrelationId", "causalToken"],
+            "allowed_identifier_fields": [
+                "eventId",
+                "taskRef",
+                "lineageRef",
+                "maskScopeClass",
+                "restoreState",
+                "edgeCorrelationId",
+            ],
+            "allowed_payload_class": "masked_scope_and_refs_only",
+            "telemetry_ceiling": "masked_scope_and_refs_only",
+            "log_ceiling": "masked_scope_and_refs_only",
+            "authoritative_lane": "ui_event_to_audit_reference",
+            "retention_posture": "hot_diagnostics_then_governed_export",
+            "required_object_refs": ["UITelemetryDisclosureFence", "AuditRecord"],
+            "alert_route_ref": "ALERT_DISCLOSURE_FENCE_BLOCKED",
+            "source_refs": [
+                "10_audit_posture_and_event_disclosure.md",
+                "phase-9-the-assurance-ledger.md#9G. Security operations, incident workflow, and just-culture reporting",
+            ],
+            "notes": "Break-glass, support replay, and investigation routes emit heightened telemetry fences and audit.",
+        },
+        {
+            "signal_id": "SIG_LOG_PIPELINE_STAGE",
+            "signal_name": "Pipeline stage settlement logs",
+            "signal_family": "log",
+            "tooling_family_ref": "FAM_RELEASE_TUPLE_ORCHESTRATION",
+            "producer_scope": "release_pipeline",
+            "tenant_scope_class": "tenantScopeClass",
+            "trust_slice_code": "release_publication",
+            "correlation_keys": ["edgeCorrelationId", "releaseTupleHash"],
+            "allowed_identifier_fields": ["edgeCorrelationId", "releaseTupleHash", "releaseContractMatrixHash", "artifactDigestRef"],
+            "allowed_payload_class": "diagnostic_refs_only",
+            "telemetry_ceiling": "descriptor_only",
+            "log_ceiling": "diagnostic_refs_only",
+            "authoritative_lane": "pipeline_stage_settlement",
+            "retention_posture": "governed_release_history",
+            "required_object_refs": ["PipelineStageSettlement", "VerificationScenario"],
+            "alert_route_ref": "ALERT_STAGE_SETTLEMENT_DRIFT",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract",
+                "platform-admin-and-config-blueprint.md#Release governance contract",
+            ],
+            "notes": "These logs may never stand in for the settlement record they reference.",
+        },
+        {
+            "signal_id": "SIG_LOG_PROVENANCE_VERDICT",
+            "signal_name": "Build provenance and signature verification logs",
+            "signal_family": "log",
+            "tooling_family_ref": "FAM_PROVENANCE_SIGNING_SBOM",
+            "producer_scope": "artifact_attestation_lane",
+            "tenant_scope_class": "tenantScopeClass",
+            "trust_slice_code": "security_assurance",
+            "correlation_keys": ["edgeCorrelationId", "releaseTupleHash"],
+            "allowed_identifier_fields": ["edgeCorrelationId", "releaseTupleHash", "artifactDigestRef", "watchTupleHash"],
+            "allowed_payload_class": "diagnostic_refs_only",
+            "telemetry_ceiling": "descriptor_only",
+            "log_ceiling": "audit_reference_only",
+            "authoritative_lane": "provenance_verification_then_audit_export",
+            "retention_posture": "release_history_and_assurance_archive",
+            "required_object_refs": ["BuildProvenanceRecord", "ReleasePublicationParityRecord"],
+            "alert_route_ref": "ALERT_PROVENANCE_OR_SBOM_BLOCKED",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract",
+                "platform-runtime-and-release-blueprint.md#Security baseline contract",
+            ],
+            "notes": "No secret material, raw environment config, or long-lived credential detail may appear here.",
+        },
+        {
+            "signal_id": "SIG_METRIC_ASSURANCE_SLICE",
+            "signal_name": "Assurance slice trust and completeness metrics",
+            "signal_family": "metric",
+            "tooling_family_ref": "FAM_SIGNAL_PIPELINE",
+            "producer_scope": "assurance_supervisor",
+            "tenant_scope_class": "tenantScopeClass",
+            "trust_slice_code": "assurance_ingest",
+            "correlation_keys": ["edgeCorrelationId"],
+            "allowed_identifier_fields": ["edgeCorrelationId", "trustSliceCode", "graphHash"],
+            "allowed_payload_class": "descriptor_only",
+            "telemetry_ceiling": "descriptor_only",
+            "log_ceiling": "diagnostic_refs_only",
+            "authoritative_lane": "assurance_slice_metric_and_export",
+            "retention_posture": "operational_control_then_assurance_archive",
+            "required_object_refs": ["AssuranceSliceTrustRecord", "AssuranceGraphCompletenessVerdict"],
+            "alert_route_ref": "ALERT_ASSURANCE_SLICE_QUARANTINED",
+            "source_refs": [
+                "phase-9-the-assurance-ledger.md#9A. Assurance ledger, evidence graph, and operational state contracts",
+                "phase-0-the-foundation-protocol.md#2.7 AssuranceSupervisor",
+            ],
+            "notes": "One bad producer degrades only its slice and its dependants, not the whole platform.",
+        },
+        {
+            "signal_id": "SIG_METRIC_RELEASE_PARITY",
+            "signal_name": "Release publication parity and watch tuple metrics",
+            "signal_family": "metric",
+            "tooling_family_ref": "FAM_ALERTING_EVIDENCE_BOARDS",
+            "producer_scope": "runtime_contract_publisher",
+            "tenant_scope_class": "tenantScopeClass",
+            "trust_slice_code": "release_publication",
+            "correlation_keys": ["edgeCorrelationId", "releaseTupleHash"],
+            "allowed_identifier_fields": ["edgeCorrelationId", "releaseTupleHash", "watchTupleHash", "parityState"],
+            "allowed_payload_class": "descriptor_only",
+            "telemetry_ceiling": "descriptor_only",
+            "log_ceiling": "diagnostic_refs_only",
+            "authoritative_lane": "release_watch_and_ops_board",
+            "retention_posture": "hot_watch_then_release_archive",
+            "required_object_refs": ["RuntimePublicationBundle", "ReleasePublicationParityRecord", "ReleaseWatchTuple"],
+            "alert_route_ref": "ALERT_WATCH_TUPLE_OR_PARITY_DRIFT",
+            "source_refs": [
+                "forensic-audit-findings.md#Finding 95 - The audit still omitted governance watch-tuple parity and recovery posture from release oversight",
+                "phase-0-the-foundation-protocol.md#1.24C ReleaseWatchEvidenceCockpit",
+            ],
+            "notes": "Governance, operations, and the release cockpit consume the same parity facts.",
+        },
+        {
+            "signal_id": "SIG_METRIC_CANARY_GUARDRAIL",
+            "signal_name": "Canary and wave guardrail metrics",
+            "signal_family": "metric",
+            "tooling_family_ref": "FAM_SYNTHETIC_CANARY_PROOF",
+            "producer_scope": "wave_observation_policy",
+            "tenant_scope_class": "tenantScopeClass",
+            "trust_slice_code": "release_publication",
+            "correlation_keys": ["edgeCorrelationId", "watchTupleHash"],
+            "allowed_identifier_fields": ["edgeCorrelationId", "watchTupleHash", "releaseTupleHash", "serviceClass"],
+            "allowed_payload_class": "descriptor_only",
+            "telemetry_ceiling": "descriptor_only",
+            "log_ceiling": "diagnostic_refs_only",
+            "authoritative_lane": "guardrail_snapshot_then_wave_verification",
+            "retention_posture": "wave_history_archive",
+            "required_object_refs": ["WaveGuardrailSnapshot", "WaveVerificationRecord"],
+            "alert_route_ref": "ALERT_WAVE_GUARDRAIL_BREACH",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Verification ladder contract",
+                "platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract",
+            ],
+            "notes": "Canary widen and rollback decisions must reference this guardrail lane explicitly.",
+        },
+        {
+            "signal_id": "SIG_METRIC_PATIENT_ENTRY_SLO",
+            "signal_name": "Patient entry and recovery SLO metrics",
+            "signal_family": "metric",
+            "tooling_family_ref": "FAM_ALERTING_EVIDENCE_BOARDS",
+            "producer_scope": "essential_function_health",
+            "tenant_scope_class": "tenantScopeClass",
+            "trust_slice_code": "continuity_proof",
+            "correlation_keys": ["edgeCorrelationId", "releaseTupleHash"],
+            "allowed_identifier_fields": ["edgeCorrelationId", "releaseTupleHash", "sliCode", "routeFamilyCode"],
+            "allowed_payload_class": "descriptor_only",
+            "telemetry_ceiling": "descriptor_only",
+            "log_ceiling": "diagnostic_refs_only",
+            "authoritative_lane": "essential_function_board",
+            "retention_posture": "ops_hot_then_assurance_export",
+            "required_object_refs": ["EssentialFunctionHealthEnvelope", "OperationalReadinessSnapshot"],
+            "alert_route_ref": "ALERT_PATIENT_ENTRY_SLO",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+                "operations-console-frontend-blueprint.md#4.4 ServiceHealthGrid",
+            ],
+            "notes": "Patient entry includes public intake, secure-link recovery, and telephony continuation posture.",
+        },
+        {
+            "signal_id": "SIG_METRIC_WORKSPACE_SLO",
+            "signal_name": "Workspace triage and settlement SLO metrics",
+            "signal_family": "metric",
+            "tooling_family_ref": "FAM_ALERTING_EVIDENCE_BOARDS",
+            "producer_scope": "essential_function_health",
+            "tenant_scope_class": "tenantScopeClass",
+            "trust_slice_code": "continuity_proof",
+            "correlation_keys": ["edgeCorrelationId", "releaseTupleHash"],
+            "allowed_identifier_fields": ["edgeCorrelationId", "releaseTupleHash", "sliCode", "routeFamilyCode"],
+            "allowed_payload_class": "descriptor_only",
+            "telemetry_ceiling": "descriptor_only",
+            "log_ceiling": "diagnostic_refs_only",
+            "authoritative_lane": "essential_function_board",
+            "retention_posture": "ops_hot_then_assurance_export",
+            "required_object_refs": ["EssentialFunctionHealthEnvelope", "OperationalReadinessSnapshot"],
+            "alert_route_ref": "ALERT_WORKSPACE_SETTLEMENT_SLO",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+                "phase-9-the-assurance-ledger.md#9B. Live operational projections, service levels, and breach-risk engine",
+            ],
+            "notes": "This stays command-settlement-first, not queue-heartbeat-first.",
+        },
+        {
+            "signal_id": "SIG_METRIC_BOOKING_PHARMACY_SLO",
+            "signal_name": "Booking, hub, pharmacy, and callback delivery SLO metrics",
+            "signal_family": "metric",
+            "tooling_family_ref": "FAM_ALERTING_EVIDENCE_BOARDS",
+            "producer_scope": "essential_function_health",
+            "tenant_scope_class": "tenantScopeClass",
+            "trust_slice_code": "continuity_proof",
+            "correlation_keys": ["edgeCorrelationId", "releaseTupleHash"],
+            "allowed_identifier_fields": ["edgeCorrelationId", "releaseTupleHash", "sliCode", "routeFamilyCode"],
+            "allowed_payload_class": "descriptor_only",
+            "telemetry_ceiling": "descriptor_only",
+            "log_ceiling": "diagnostic_refs_only",
+            "authoritative_lane": "essential_function_board",
+            "retention_posture": "ops_hot_then_assurance_export",
+            "required_object_refs": ["EssentialFunctionHealthEnvelope", "ReleaseTrustFreezeVerdict"],
+            "alert_route_ref": "ALERT_BOOKING_AND_PARTNER_FLOW_SLO",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+                "phase-0-the-foundation-protocol.md#1.40BA EssentialFunctionHealthEnvelope",
+            ],
+            "notes": "Local booking, network hub, pharmacy loop, and callback delivery all report through exact fallback and recovery posture.",
+        },
+        {
+            "signal_id": "SIG_AUDIT_BREAK_GLASS",
+            "signal_name": "Break-glass, tenant switch, and support replay audit events",
+            "signal_family": "audit",
+            "tooling_family_ref": "FAM_INCIDENT_CAPA_WORKFLOW",
+            "producer_scope": "audit_and_support",
+            "tenant_scope_class": "tenantScopeClass",
+            "trust_slice_code": "security_assurance",
+            "correlation_keys": ["edgeCorrelationId", "causalToken"],
+            "allowed_identifier_fields": ["edgeCorrelationId", "causalToken", "breakGlassReasonClass", "auditQueryHash"],
+            "allowed_payload_class": "bounded_detail_with_scope",
+            "telemetry_ceiling": "descriptor_only",
+            "log_ceiling": "audit_reference_only",
+            "authoritative_lane": "immutable_audit_and_incident_timeline",
+            "retention_posture": "governed_investigation_archive",
+            "required_object_refs": ["AuditRecord", "BreakGlassReviewRecord", "NearMissReport"],
+            "alert_route_ref": "ALERT_BREAK_GLASS_OR_TENANT_SWITCH",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Security baseline contract",
+                "phase-9-the-assurance-ledger.md#9C. Audit explorer, break-glass review, and support replay",
+            ],
+            "notes": "These are intentionally heightened signals and always route to immutable audit as well as alerts.",
+        },
+        {
+            "signal_id": "SIG_EVIDENCE_RECOVERY_POSTURE",
+            "signal_name": "Recovery posture, restore, failover, and chaos evidence events",
+            "signal_family": "evidence",
+            "tooling_family_ref": "FAM_RESILIENCE_RECOVERY_EVIDENCE",
+            "producer_scope": "resilience_orchestrator",
+            "tenant_scope_class": "tenantScopeClass",
+            "trust_slice_code": "resilience_readiness",
+            "correlation_keys": ["edgeCorrelationId", "restoreTupleHash"],
+            "allowed_identifier_fields": ["edgeCorrelationId", "restoreTupleHash", "failoverTupleHash", "chaosTupleHash", "recoveryPostureClass"],
+            "allowed_payload_class": "bounded_detail_with_scope",
+            "telemetry_ceiling": "descriptor_only",
+            "log_ceiling": "audit_reference_only",
+            "authoritative_lane": "recovery_evidence_artifact",
+            "retention_posture": "governed_recovery_archive",
+            "required_object_refs": ["OperationalReadinessSnapshot", "RecoveryControlPosture", "RestoreRun", "FailoverRun", "ChaosRun"],
+            "alert_route_ref": "ALERT_READINESS_OR_REHEARSAL_STALE",
+            "source_refs": [
+                "phase-0-the-foundation-protocol.md#1.40G OperationalReadinessSnapshot",
+                "forensic-audit-findings.md#Finding 112 - Resilience restore authority still depended on loose runbooks and dashboards",
+            ],
+            "notes": "Stale rehearsal evidence downgrades live authority immediately rather than remaining green history.",
+        },
+        {
+            "signal_id": "SIG_INCIDENT_NEAR_MISS",
+            "signal_name": "Incident and near-miss evidence writeback",
+            "signal_family": "evidence",
+            "tooling_family_ref": "FAM_INCIDENT_CAPA_WORKFLOW",
+            "producer_scope": "incident_desk",
+            "tenant_scope_class": "tenantScopeClass",
+            "trust_slice_code": "security_assurance",
+            "correlation_keys": ["edgeCorrelationId", "graphHash"],
+            "allowed_identifier_fields": ["edgeCorrelationId", "graphHash", "controlObjectiveId", "reviewState"],
+            "allowed_payload_class": "bounded_detail_with_scope",
+            "telemetry_ceiling": "descriptor_only",
+            "log_ceiling": "audit_reference_only",
+            "authoritative_lane": "assurance_graph_snapshot",
+            "retention_posture": "governed_incident_archive",
+            "required_object_refs": ["SecurityIncident", "NearMissReport", "ReportabilityAssessment", "PostIncidentReview"],
+            "alert_route_ref": "ALERT_SECURITY_INCIDENT_OR_NEAR_MISS",
+            "source_refs": [
+                "phase-9-the-assurance-ledger.md#9G. Security operations, incident workflow, and just-culture reporting",
+                "phase-9-the-assurance-ledger.md#9A. Assurance ledger, evidence graph, and operational state contracts",
+            ],
+            "notes": "Near miss stays first-class and writes back into the assurance ledger and CAPA lanes.",
+        },
+    ]
+
+
+def build_security_control_matrix() -> list[dict[str, Any]]:
+    return [
+        {
+            "control_id": "SEC_PUBLIC_EDGE_FILTERING",
+            "control_domain": "ingress_hardening",
+            "requirement_summary": "Public ingress enforces rate limit, origin policy, TLS, and attack-surface filtering before the gateway.",
+            "baseline_tooling_family_ref": "FAM_SECURITY_POLICY_GATE",
+            "enforcement_point": "public edge and published gateway",
+            "control_type": "preventive",
+            "authoritative_object_refs": ["GatewayBffSurface", "PipelineStageSettlement"],
+            "evidence_refs": ["ingress policy bundle", "edge policy conformance suite"],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Security baseline contract",
+                "11_gateway_surface_and_runtime_topology_baseline.md",
+            ],
+            "notes": "No public traffic reaches application workloads without this filter chain.",
+        },
+        {
+            "control_id": "SEC_SESSION_SPLIT",
+            "control_domain": "session_security",
+            "requirement_summary": "Patient and staff sessions use separate secure cookie scopes, CSRF posture, and expiry behavior.",
+            "baseline_tooling_family_ref": "FAM_SECURITY_POLICY_GATE",
+            "enforcement_point": "gateway and auth policy",
+            "control_type": "preventive",
+            "authoritative_object_refs": ["SessionPolicyRef", "RouteIntentBinding"],
+            "evidence_refs": ["session policy compile proof", "identity and session regression suites"],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Security baseline contract",
+                "phase-2-the-identity-and-echoes.md",
+            ],
+            "notes": "Prevents cross-scope cookie reuse and patient or staff session confusion.",
+        },
+        {
+            "control_id": "SEC_BROWSER_POLICY_HEADERS",
+            "control_domain": "browser_hardening",
+            "requirement_summary": "Browser-delivered surfaces publish CSP, frame-ancestor, referrer, and download handling policy explicitly.",
+            "baseline_tooling_family_ref": "FAM_SECURITY_POLICY_GATE",
+            "enforcement_point": "runtime publication and browser surface build",
+            "control_type": "preventive",
+            "authoritative_object_refs": ["FrontendContractManifest", "RuntimePublicationBundle"],
+            "evidence_refs": ["browser header conformance pack", "embedded and artifact route posture proof"],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Security baseline contract",
+                "platform-frontend-blueprint.md",
+            ],
+            "notes": "Includes embedded and artifact handoff posture, not only ordinary browser pages.",
+        },
+        {
+            "control_id": "SEC_SECRET_STORE_AND_KMS",
+            "control_domain": "secret_management",
+            "requirement_summary": "Secrets come only from managed secret store or KMS-backed custody, never from source control or long-lived CI variables.",
+            "baseline_tooling_family_ref": "FAM_SECURITY_POLICY_GATE",
+            "enforcement_point": "build, deploy, runtime, and operator actions",
+            "control_type": "preventive",
+            "authoritative_object_refs": ["PipelineStageSettlement", "PipelineEmergencyException"],
+            "evidence_refs": ["secret access policy bundle", "credential sourcing attestations"],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Security baseline contract",
+                "prompt/015.md",
+            ],
+            "notes": "This is the baseline secret law and is intentionally linked to the unresolved HSM provisioning gap.",
+        },
+        {
+            "control_id": "SEC_ENCRYPTION_AT_REST",
+            "control_domain": "data_protection",
+            "requirement_summary": "Transactional stores, backups, object storage, queue persistence, and audit exports are encrypted at rest.",
+            "baseline_tooling_family_ref": "FAM_SECURITY_POLICY_GATE",
+            "enforcement_point": "data and backup stores",
+            "control_type": "preventive",
+            "authoritative_object_refs": ["BackupSetManifest", "RecoveryEvidenceArtifact"],
+            "evidence_refs": ["storage encryption conformance suite", "backup manifest encryption attestations"],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Security baseline contract",
+                "phase-9-the-assurance-ledger.md#9F. Resilience architecture, restore orchestration, and chaos programme",
+            ],
+            "notes": "Applies to audit exports and recovery artifacts, not only application databases.",
+        },
+        {
+            "control_id": "SEC_PHI_SAFE_SIGNALING",
+            "control_domain": "telemetry_redaction",
+            "requirement_summary": "Logs, traces, metrics, and UI telemetry carry correlation IDs but never raw PHI beyond the task-010 disclosure ceiling.",
+            "baseline_tooling_family_ref": "FAM_SIGNAL_PIPELINE",
+            "enforcement_point": "collector, UI telemetry fence, and alert exporter",
+            "control_type": "preventive_and_detective",
+            "authoritative_object_refs": ["UITelemetryDisclosureFence", "AuditEventDisclosureMatrix"],
+            "evidence_refs": ["telemetry schema allow-list", "redaction regression suite"],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Security baseline contract",
+                "10_audit_posture_and_event_disclosure.md",
+            ],
+            "notes": "This directly closes the PHI-leak telemetry gap called out in prompt 015.",
+        },
+        {
+            "control_id": "SEC_SERVICE_IDENTITY_EGRESS",
+            "control_domain": "service_identity",
+            "requirement_summary": "Service identities follow least privilege and egress is allow-listed per workload family.",
+            "baseline_tooling_family_ref": "FAM_SECURITY_POLICY_GATE",
+            "enforcement_point": "workload identity and network policy",
+            "control_type": "preventive",
+            "authoritative_object_refs": ["RuntimeWorkloadFamily", "TrustZoneBoundary"],
+            "evidence_refs": ["egress policy pack", "trust-zone conformance suite"],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Security baseline contract",
+                "11_trust_zone_and_workload_family_strategy.md",
+            ],
+            "notes": "Provider-specific adapter egress remains explicit and narrow.",
+        },
+        {
+            "control_id": "SEC_SIGNING_AND_SBOM",
+            "control_domain": "supply_chain",
+            "requirement_summary": "Artifact signing, provenance, and SBOM generation are mandatory rather than optional release attachments.",
+            "baseline_tooling_family_ref": "FAM_PROVENANCE_SIGNING_SBOM",
+            "enforcement_point": "sbom_sign pipeline stage and runtime publication gate",
+            "control_type": "preventive",
+            "authoritative_object_refs": ["BuildProvenanceRecord", "ReleaseCandidate", "PipelineStageSettlement"],
+            "evidence_refs": ["signed artifact digest set", "SBOM publication bundle", "provenance verification verdict"],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract",
+                "prompt/015.md",
+            ],
+            "notes": "Live runtime consumption is blocked unless provenance remains publishable.",
+        },
+        {
+            "control_id": "SEC_SCANNER_SUITE",
+            "control_domain": "scanner_coverage",
+            "requirement_summary": "Run SAST, dependency, IaC, container, and secret scanning with policy gate enforcement.",
+            "baseline_tooling_family_ref": "FAM_SECURITY_POLICY_GATE",
+            "enforcement_point": "static_gate, sbom_sign, and preprod security gate",
+            "control_type": "preventive_and_detective",
+            "authoritative_object_refs": ["StandardsDependencyWatchlist", "PipelineStageSettlement"],
+            "evidence_refs": ["scanner decision record", "watchlist hash", "exception approval bundle"],
+            "source_refs": [
+                "prompt/015.md",
+                "platform-runtime-and-release-blueprint.md#Verification ladder contract",
+                "platform-admin-and-config-blueprint.md#Dependency and standards hygiene",
+            ],
+            "notes": "Exceptions remain candidate-bound and immutable.",
+        },
+        {
+            "control_id": "SEC_POLICY_ENFORCED_RELEASE",
+            "control_domain": "policy_gate",
+            "requirement_summary": "Every posture-changing pipeline stage settles through an authoritative stage record and policy gate.",
+            "baseline_tooling_family_ref": "FAM_RELEASE_TUPLE_ORCHESTRATION",
+            "enforcement_point": "every live posture changing stage",
+            "control_type": "preventive",
+            "authoritative_object_refs": ["PipelineExecutionRecord", "PipelineStageSettlement", "VerificationScenario"],
+            "evidence_refs": ["stage settlement chain", "policy decision bundle", "release tuple digest"],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract",
+                "platform-admin-and-config-blueprint.md#Change control rules",
+            ],
+            "notes": "Hidden CI-only progress is explicitly non-authoritative.",
+        },
+        {
+            "control_id": "SEC_EMERGENCY_EXCEPTION_CAPTURE",
+            "control_domain": "exception_governance",
+            "requirement_summary": "No hotfix or emergency movement may bypass release recording, rollback evidence, runtime publication, or emergency-exception capture.",
+            "baseline_tooling_family_ref": "FAM_SECURITY_POLICY_GATE",
+            "enforcement_point": "publish, canary, widen, rollback, and recovery activation",
+            "control_type": "preventive",
+            "authoritative_object_refs": ["PipelineEmergencyException", "ReleaseApprovalFreeze", "ReleaseWatchTuple"],
+            "evidence_refs": ["exception approval bundle", "follow-up record", "permitted recovery disposition list"],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract",
+                "prompt/015.md",
+            ],
+            "notes": "Emergency movement is bounded, expiring, and still fully recorded.",
+        },
+        {
+            "control_id": "SEC_BREAK_GLASS_AUDIT",
+            "control_domain": "heightened_audit",
+            "requirement_summary": "Break-glass, support replay, and tenant-switch actions emit heightened audit and alerting signals.",
+            "baseline_tooling_family_ref": "FAM_INCIDENT_CAPA_WORKFLOW",
+            "enforcement_point": "audit and incident workflows",
+            "control_type": "detective",
+            "authoritative_object_refs": ["AuditRecord", "BreakGlassReviewRecord", "NearMissReport"],
+            "evidence_refs": ["audit timeline", "alert routing", "review adequacy pack"],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Security baseline contract",
+                "phase-9-the-assurance-ledger.md#9C. Audit explorer, break-glass review, and support replay",
+            ],
+            "notes": "Heightened audit applies even when the user-facing shell stays same-shell calm.",
+        },
+        {
+            "control_id": "SEC_REPORTABILITY_AND_CAPA",
+            "control_domain": "incident_governance",
+            "requirement_summary": "Security incidents and near misses require reportability assessment, evidence preservation, and CAPA linkage.",
+            "baseline_tooling_family_ref": "FAM_INCIDENT_CAPA_WORKFLOW",
+            "enforcement_point": "incident desk and assurance ledger writeback",
+            "control_type": "detective_and_corrective",
+            "authoritative_object_refs": ["SecurityIncident", "ReportabilityAssessment", "PostIncidentReview"],
+            "evidence_refs": ["incident timeline", "reportability checklist", "CAPA action set"],
+            "source_refs": [
+                "phase-9-the-assurance-ledger.md#9G. Security operations, incident workflow, and just-culture reporting",
+                "09_framework_control_mapping.md",
+            ],
+            "notes": "Near miss remains first-class, not a comment on an incident ticket.",
+        },
+        {
+            "control_id": "SEC_REHEARSAL_AUTHORITY",
+            "control_domain": "resilience_authority",
+            "requirement_summary": "Stale rehearsal evidence never counts as live recovery authority.",
+            "baseline_tooling_family_ref": "FAM_RESILIENCE_RECOVERY_EVIDENCE",
+            "enforcement_point": "readiness snapshot and recovery control posture evaluation",
+            "control_type": "preventive",
+            "authoritative_object_refs": ["OperationalReadinessSnapshot", "RunbookBindingRecord", "RecoveryControlPosture"],
+            "evidence_refs": ["restore run", "failover run", "chaos run", "recovery evidence pack"],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+                "forensic-audit-findings.md#Finding 112 - Resilience restore authority still depended on loose runbooks and dashboards",
+            ],
+            "notes": "This is the direct control that closes Finding 112.",
+        },
+    ]
+
+
+def build_release_gate_matrix() -> list[dict[str, Any]]:
+    rows = [
+        {
+            "gate_id": "GATE_0_STATIC_AND_UNIT",
+            "gate_name": "Gate 0 - static and unit",
+            "environment_ring": "local; ci-preview",
+            "candidate_scope": "candidate_tuple_assembly",
+            "verification_scenario_binding": "exact_required",
+            "contract_matrix_binding": "exact_required",
+            "linked_watch_tuple_state": "not_yet_required",
+            "primary_tooling_family_refs": [
+                "FAM_RELEASE_TUPLE_ORCHESTRATION",
+                "FAM_PROVENANCE_SIGNING_SBOM",
+                "FAM_SECURITY_POLICY_GATE",
+            ],
+            "must_publish_object_refs": [
+                "VerificationScenario",
+                "ReleaseContractVerificationMatrix",
+                "StandardsDependencyWatchlist",
+                "DesignContractPublicationBundle",
+                "DesignContractLintVerdict",
+            ],
+            "evidence_refs": [
+                "ConfigCompilationRecord",
+                "ConfigSimulationEnvelope",
+                "dependency decision record",
+                "SBOM publication bundle",
+                "design contract lint verdict",
+            ],
+            "continuity_rule": "affected continuity controls must already be pinned into the candidate tuple",
+            "essential_function_rule": "no live proof yet, but essential-function dependency map must exist",
+            "blocking_condition": "any tuple drift, missing design contract bundle, missing watchlist evidence, or unsigned artifact blocks the ladder",
+            "tenant_scope_mode": "platform_candidate",
+            "trust_slice_code": "security_assurance",
+            "linked_gap_refs": ["GAP_015_HSM_SIGNING_KEY_PROVISIONING"],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Verification ladder contract",
+                "platform-admin-and-config-blueprint.md#Production promotion gate",
+            ],
+        },
+        {
+            "gate_id": "GATE_1_CONTRACT_AND_COMPONENT",
+            "gate_name": "Gate 1 - contract and component",
+            "environment_ring": "ci-preview; integration",
+            "candidate_scope": "contract_and_component_parity",
+            "verification_scenario_binding": "exact_required",
+            "contract_matrix_binding": "exact_required",
+            "linked_watch_tuple_state": "not_yet_required",
+            "primary_tooling_family_refs": [
+                "FAM_RELEASE_TUPLE_ORCHESTRATION",
+                "FAM_SIGNAL_PIPELINE",
+                "FAM_ALERTING_EVIDENCE_BOARDS",
+            ],
+            "must_publish_object_refs": [
+                "RuntimePublicationBundle",
+                "ReleasePublicationParityRecord",
+                "WritableRouteContractCoverageRecord",
+                "EmbeddedSurfaceContractCoverageRecord",
+                "ContinuityContractCoverageRecord",
+            ],
+            "evidence_refs": [
+                "runtime publication bundle",
+                "route coverage proof",
+                "embedded compatibility proof",
+                "accessibility semantic coverage profile",
+            ],
+            "continuity_rule": "all affected continuity families require exact coverage, including newer families from findings 104-111",
+            "essential_function_rule": "board and alert wiring for the affected essential functions must compile in the same tuple",
+            "blocking_condition": "route, continuity, or embedded coverage may not be stale or inferred from adjacent contracts",
+            "tenant_scope_mode": "tenant_surface_tuple",
+            "trust_slice_code": "release_publication",
+            "linked_gap_refs": [],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Verification ladder contract",
+                "forensic-audit-findings.md#Finding 104 - The admin control plane still treated continuity proof as optional release commentary",
+            ],
+        },
+        {
+            "gate_id": "GATE_2_INTEGRATION_AND_E2E",
+            "gate_name": "Gate 2 - integration and end-to-end",
+            "environment_ring": "integration",
+            "candidate_scope": "browser_and_adapter_journeys",
+            "verification_scenario_binding": "exact_required",
+            "contract_matrix_binding": "exact_required",
+            "linked_watch_tuple_state": "draft_only",
+            "primary_tooling_family_refs": [
+                "FAM_SYNTHETIC_CANARY_PROOF",
+                "FAM_SIGNAL_PIPELINE",
+                "FAM_RELEASE_TUPLE_ORCHESTRATION",
+            ],
+            "must_publish_object_refs": [
+                "VerificationScenario",
+                "ReleaseContractVerificationMatrix",
+                "RouteIntentBinding",
+                "CommandSettlementRecord",
+                "ReleaseRecoveryDisposition",
+            ],
+            "evidence_refs": [
+                "browser end-to-end evidence",
+                "callback replay proof",
+                "projection freshness recovery proof",
+                "freeze-blocked mutation recovery proof",
+            ],
+            "continuity_rule": "same-shell recovery and route-intent law must be proven end to end",
+            "essential_function_rule": "patient and staff journeys in scope must each pass at least one reference case",
+            "blocking_condition": "generic browser success is insufficient if recovery disposition or settlement proof drifts",
+            "tenant_scope_mode": "tenant_route_and_partner_scope",
+            "trust_slice_code": "continuity_proof",
+            "linked_gap_refs": [],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Verification ladder contract",
+                "14_frontend_testing_and_Playwright_or_other_appropriate_tooling_baseline.md",
+            ],
+        },
+        {
+            "gate_id": "GATE_3_PERFORMANCE_AND_SECURITY",
+            "gate_name": "Gate 3 - performance and security",
+            "environment_ring": "preprod",
+            "candidate_scope": "security_and_performance_evidence",
+            "verification_scenario_binding": "exact_required",
+            "contract_matrix_binding": "exact_required",
+            "linked_watch_tuple_state": "draft_only",
+            "primary_tooling_family_refs": [
+                "FAM_SECURITY_POLICY_GATE",
+                "FAM_PROVENANCE_SIGNING_SBOM",
+                "FAM_SIGNAL_PIPELINE",
+            ],
+            "must_publish_object_refs": [
+                "StandardsDependencyWatchlist",
+                "BuildProvenanceRecord",
+                "PipelineStageSettlement",
+            ],
+            "evidence_refs": [
+                "load and soak report",
+                "scanner decision record",
+                "session hardening suite",
+                "egress allow-list conformance",
+            ],
+            "continuity_rule": "disclosure-safe telemetry and route continuity remain in force during security tests",
+            "essential_function_rule": "critical-path SLI and alert thresholds must have preprod evidence",
+            "blocking_condition": "unreviewed security findings, missing provenance, or unsafe telemetry schemas block promotion",
+            "tenant_scope_mode": "platform_candidate",
+            "trust_slice_code": "security_assurance",
+            "linked_gap_refs": ["GAP_015_HSM_SIGNING_KEY_PROVISIONING"],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Security baseline contract",
+                "platform-runtime-and-release-blueprint.md#Verification ladder contract",
+            ],
+        },
+        {
+            "gate_id": "GATE_4_RESILIENCE_AND_RECOVERY",
+            "gate_name": "Gate 4 - resilience and recovery",
+            "environment_ring": "preprod",
+            "candidate_scope": "readiness_and_recovery_authority",
+            "verification_scenario_binding": "exact_required",
+            "contract_matrix_binding": "exact_required",
+            "linked_watch_tuple_state": "draft_only",
+            "primary_tooling_family_refs": [
+                "FAM_RESILIENCE_RECOVERY_EVIDENCE",
+                "FAM_SYNTHETIC_CANARY_PROOF",
+                "FAM_ALERTING_EVIDENCE_BOARDS",
+            ],
+            "must_publish_object_refs": [
+                "OperationalReadinessSnapshot",
+                "RunbookBindingRecord",
+                "SyntheticRecoveryCoverageRecord",
+                "RecoveryControlPosture",
+                "MigrationVerificationRecord",
+            ],
+            "evidence_refs": [
+                "restore run",
+                "failover run",
+                "chaos run",
+                "backup manifest coverage",
+                "journey recovery proof",
+            ],
+            "continuity_rule": "constrained and frozen journeys must be proven on the same tuple as ordinary-live posture",
+            "essential_function_rule": "every essential function needs restore, failover, chaos, and runbook freshness references",
+            "blocking_condition": "stale rehearsal evidence or tuple drift downgrades readiness and blocks canary",
+            "tenant_scope_mode": "platform_release_control",
+            "trust_slice_code": "resilience_readiness",
+            "linked_gap_refs": ["GAP_015_ALERT_DESTINATION_BINDING"],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+                "forensic-audit-findings.md#Finding 112 - Resilience restore authority still depended on loose runbooks and dashboards",
+            ],
+        },
+        {
+            "gate_id": "GATE_5_LIVE_WAVE_PROOF",
+            "gate_name": "Gate 5 - live wave proof",
+            "environment_ring": "production",
+            "candidate_scope": "watch_tuple_and_wave_control",
+            "verification_scenario_binding": "exact_required",
+            "contract_matrix_binding": "exact_required",
+            "linked_watch_tuple_state": "exact_required",
+            "primary_tooling_family_refs": [
+                "FAM_RELEASE_TUPLE_ORCHESTRATION",
+                "FAM_ALERTING_EVIDENCE_BOARDS",
+                "FAM_SYNTHETIC_CANARY_PROOF",
+                "FAM_RESILIENCE_RECOVERY_EVIDENCE",
+                "FAM_PROVENANCE_SIGNING_SBOM",
+            ],
+            "must_publish_object_refs": [
+                "ReleaseWatchTuple",
+                "ReleaseWatchEvidenceCockpit",
+                "WaveGuardrailSnapshot",
+                "WaveVerificationRecord",
+                "OperationalReadinessSnapshot",
+                "ReleasePublicationParityRecord",
+            ],
+            "evidence_refs": [
+                "synthetic production probe pack",
+                "guardrail snapshot",
+                "watch tuple cockpit",
+                "rollback readiness pack",
+                "essential function board tuple",
+            ],
+            "continuity_rule": "watch, governance, operations, and recovery surfaces all read the same continuity and release proof",
+            "essential_function_rule": "widening is legal only when affected essential functions have exact live proof and fresh recovery authority",
+            "blocking_condition": "parity drift, watch tuple drift, stale readiness, unresolved continuity proof, or missing provenance blocks widen or resume",
+            "tenant_scope_mode": "platform_release_control",
+            "trust_slice_code": "release_publication",
+            "linked_gap_refs": [
+                "GAP_015_HSM_SIGNING_KEY_PROVISIONING",
+                "GAP_015_ALERT_DESTINATION_BINDING",
+            ],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Verification ladder contract",
+                "platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract",
+                "forensic-audit-findings.md#Finding 95 - The audit still omitted governance watch-tuple parity and recovery posture from release oversight",
+            ],
+        },
+    ]
+    return rows
+
+
+def build_supply_chain_and_provenance_matrix(release_gates: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "matrix_id": "vecells_supply_chain_and_provenance_v1",
+        "mission": (
+            "Describe the immutable release and supply-chain chain so future implementation "
+            "cannot treat provenance, runtime publication, watch tuples, or recovery posture "
+            "as optional sidecars."
+        ),
+        "chosen_release_baseline_id": "BASELINE_IMMUTABLE_STAGE_LEDGER",
+        "hidden_ci_only_state_forbidden": True,
+        "stale_rehearsal_blocks_live_authority": True,
+        "logical_tooling_family_refs": [family["tooling_family_id"] for family in TOOLING_FAMILIES],
+        "pipeline_stage_chain": [
+            {
+                "stage_code": "dependency_resolve",
+                "settlement_required": True,
+                "family_refs": ["FAM_SECURITY_POLICY_GATE", "FAM_RELEASE_TUPLE_ORCHESTRATION"],
+                "produced_object_refs": ["StandardsDependencyWatchlist", "PipelineStageSettlement"],
+                "state_rule": "no dependency resolution result is authoritative until stage settlement is recorded",
+            },
+            {
+                "stage_code": "static_gate",
+                "settlement_required": True,
+                "family_refs": ["FAM_SECURITY_POLICY_GATE", "FAM_RELEASE_TUPLE_ORCHESTRATION"],
+                "produced_object_refs": ["VerificationScenario", "ReleaseContractVerificationMatrix", "PipelineStageSettlement"],
+                "state_rule": "all Gate 0 evidence binds to the same verification scenario and contract matrix",
+            },
+            {
+                "stage_code": "sbom_sign",
+                "settlement_required": True,
+                "family_refs": ["FAM_PROVENANCE_SIGNING_SBOM", "FAM_RELEASE_TUPLE_ORCHESTRATION"],
+                "produced_object_refs": ["BuildProvenanceRecord", "ReleaseCandidate", "PipelineStageSettlement"],
+                "state_rule": "signing, provenance, and SBOM are mandatory and candidate-bound",
+            },
+            {
+                "stage_code": "runtime_publish",
+                "settlement_required": True,
+                "family_refs": ["FAM_RELEASE_TUPLE_ORCHESTRATION", "FAM_ALERTING_EVIDENCE_BOARDS"],
+                "produced_object_refs": ["RuntimePublicationBundle", "ReleasePublicationParityRecord", "PipelineStageSettlement"],
+                "state_rule": "runtime publication becomes live only when parity remains exact and provenance is publishable",
+            },
+            {
+                "stage_code": "preview_validate",
+                "settlement_required": True,
+                "family_refs": ["FAM_SYNTHETIC_CANARY_PROOF", "FAM_SIGNAL_PIPELINE"],
+                "produced_object_refs": ["WritableRouteContractCoverageRecord", "EmbeddedSurfaceContractCoverageRecord", "PipelineStageSettlement"],
+                "state_rule": "preview validation proves route and embedded coverage, not just endpoint reachability",
+            },
+            {
+                "stage_code": "integration_validate",
+                "settlement_required": True,
+                "family_refs": ["FAM_SYNTHETIC_CANARY_PROOF", "FAM_SIGNAL_PIPELINE"],
+                "produced_object_refs": ["ContinuityContractCoverageRecord", "PipelineStageSettlement"],
+                "state_rule": "browser, callback, and recovery tests stay bound to the candidate tuple",
+            },
+            {
+                "stage_code": "preprod_validate",
+                "settlement_required": True,
+                "family_refs": ["FAM_SECURITY_POLICY_GATE", "FAM_RESILIENCE_RECOVERY_EVIDENCE"],
+                "produced_object_refs": ["OperationalReadinessSnapshot", "RunbookBindingRecord", "RecoveryControlPosture", "PipelineStageSettlement"],
+                "state_rule": "security, readiness, and rehearsal freshness are evaluated before canary",
+            },
+            {
+                "stage_code": "canary_promote",
+                "settlement_required": True,
+                "family_refs": ["FAM_RELEASE_TUPLE_ORCHESTRATION", "FAM_SYNTHETIC_CANARY_PROOF"],
+                "produced_object_refs": ["ReleaseWatchTuple", "WaveGuardrailSnapshot", "PipelineStageSettlement"],
+                "state_rule": "canary start publishes the exact watch tuple and guardrail snapshot for the promoted slice",
+            },
+            {
+                "stage_code": "wave_control",
+                "settlement_required": True,
+                "family_refs": ["FAM_RELEASE_TUPLE_ORCHESTRATION", "FAM_ALERTING_EVIDENCE_BOARDS", "FAM_RESILIENCE_RECOVERY_EVIDENCE"],
+                "produced_object_refs": ["WaveVerificationRecord", "ReleaseWatchEvidenceCockpit", "PipelineStageSettlement"],
+                "state_rule": "widen, pause, rollback, kill-switch, and rollforward must settle against the current tuple and cockpit hash",
+            },
+            {
+                "stage_code": "history_append",
+                "settlement_required": True,
+                "family_refs": ["FAM_RELEASE_TUPLE_ORCHESTRATION", "FAM_INCIDENT_CAPA_WORKFLOW"],
+                "produced_object_refs": ["PipelineStageSettlement", "immutable release history append"],
+                "state_rule": "post-deploy history append preserves operator attribution, evidence links, and exception lineage",
+            },
+        ],
+        "required_object_bindings": [
+            {
+                "object_ref": "BuildProvenanceRecord",
+                "produced_by": ["FAM_PROVENANCE_SIGNING_SBOM"],
+                "consumed_by": ["FAM_RELEASE_TUPLE_ORCHESTRATION", "FAM_ALERTING_EVIDENCE_BOARDS"],
+                "state_rule": "runtime consumption must be publishable before any live authority is advertised",
+            },
+            {
+                "object_ref": "RuntimePublicationBundle",
+                "produced_by": ["FAM_RELEASE_TUPLE_ORCHESTRATION"],
+                "consumed_by": ["FAM_SIGNAL_PIPELINE", "FAM_ALERTING_EVIDENCE_BOARDS", "FAM_RESILIENCE_RECOVERY_EVIDENCE"],
+                "state_rule": "all route, design, and recovery consumers read the same published bundle",
+            },
+            {
+                "object_ref": "ReleasePublicationParityRecord",
+                "produced_by": ["FAM_RELEASE_TUPLE_ORCHESTRATION"],
+                "consumed_by": ["FAM_ALERTING_EVIDENCE_BOARDS", "FAM_RESILIENCE_RECOVERY_EVIDENCE", "FAM_SYNTHETIC_CANARY_PROOF"],
+                "state_rule": "parity drift degrades boards, recovery posture, and wave proof immediately",
+            },
+            {
+                "object_ref": "VerificationScenario",
+                "produced_by": ["FAM_RELEASE_TUPLE_ORCHESTRATION"],
+                "consumed_by": ["FAM_SECURITY_POLICY_GATE", "FAM_SYNTHETIC_CANARY_PROOF", "FAM_PROVENANCE_SIGNING_SBOM"],
+                "state_rule": "every gate restarts if the pinned scenario drifts",
+            },
+            {
+                "object_ref": "ReleaseContractVerificationMatrix",
+                "produced_by": ["FAM_RELEASE_TUPLE_ORCHESTRATION"],
+                "consumed_by": ["FAM_SECURITY_POLICY_GATE", "FAM_SYNTHETIC_CANARY_PROOF", "FAM_ALERTING_EVIDENCE_BOARDS"],
+                "state_rule": "route, continuity, embedded, design, and recovery proof remain one tuple",
+            },
+            {
+                "object_ref": "ReleaseWatchTuple",
+                "produced_by": ["FAM_RELEASE_TUPLE_ORCHESTRATION"],
+                "consumed_by": ["FAM_ALERTING_EVIDENCE_BOARDS", "FAM_SYNTHETIC_CANARY_PROOF", "FAM_RESILIENCE_RECOVERY_EVIDENCE"],
+                "state_rule": "governance and operations must consume the same active watch tuple",
+            },
+            {
+                "object_ref": "OperationalReadinessSnapshot",
+                "produced_by": ["FAM_RESILIENCE_RECOVERY_EVIDENCE"],
+                "consumed_by": ["FAM_ALERTING_EVIDENCE_BOARDS", "FAM_RELEASE_TUPLE_ORCHESTRATION"],
+                "state_rule": "stale readiness or stale rehearsal evidence blocks canary, widen, resume, and recovery activation",
+            },
+            {
+                "object_ref": "EssentialFunctionHealthEnvelope",
+                "produced_by": ["FAM_ALERTING_EVIDENCE_BOARDS"],
+                "consumed_by": ["FAM_RESILIENCE_RECOVERY_EVIDENCE", "FAM_SYNTHETIC_CANARY_PROOF"],
+                "state_rule": "essential-function health is the only operator-facing join of trust, fallback, release, and resilience posture",
+            },
+        ],
+        "release_gate_refs": [row["gate_id"] for row in release_gates],
+        "emergency_exception_law": [
+            "manual hotfixes require PipelineEmergencyException with expiry and compensating controls",
+            "exceptions may not bypass release recording, migration posture, or runtime publication",
+            "rollforward_only posture blocks binary rollback inheritance",
+        ],
+        "source_refs": [
+            "platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract",
+            "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+            "platform-admin-and-config-blueprint.md#Release governance contract",
+        ],
+    }
+
+
+def build_essential_function_slo_matrix() -> list[dict[str, Any]]:
+    return [
+        {
+            "essential_function_id": "EF_PATIENT_ENTRY_AND_RECOVERY",
+            "essential_function_name": "Patient entry, intake, and secure-link recovery",
+            "route_family_refs": [
+                "rf_intake_self_service",
+                "rf_intake_telephony_capture",
+                "rf_patient_secure_link_recovery",
+            ],
+            "tenant_scope_mode": "patient_subject_and_public",
+            "trust_slice_code": "continuity_proof",
+            "sli_name": "fresh receipt or recovery posture within 2 minutes",
+            "slo_target": "99.90% over 30 days",
+            "alert_threshold": "burn-rate > 5% or degraded receipt backlog > 10 minutes",
+            "alert_route_ref": "ALERT_PATIENT_ENTRY_SLO",
+            "dashboard_pack_ref": "DASH_PATIENT_ENTRY_AND_RECOVERY",
+            "synthetic_journey_ref": "SYN_PATIENT_ENTRY_AND_RECOVERY",
+            "fallback_sufficiency_state": "degraded receipt and secure-link recovery remain truthful",
+            "required_release_trust_verdict_refs": ["ReleaseTrustFreezeVerdict(patient entry surfaces)"],
+            "required_channel_freeze_refs": ["ChannelReleaseFreezeRecord(web)", "ChannelReleaseFreezeRecord(telephony)"],
+            "required_assurance_slice_refs": ["slice_intake_capture", "slice_identity_recovery"],
+            "required_recovery_control_refs": ["RecoveryControlPosture(patient public recovery scope)"],
+            "required_restore_evidence_refs": ["RestoreRun(patient entry journey)"],
+            "required_failover_evidence_refs": ["FailoverRun(patient entry path)"],
+            "required_chaos_evidence_refs": ["ChaosRun(public edge and intake continuity)"],
+            "watch_tuple_ref": "RWT_PROD_CANARY_A",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+                "phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm",
+            ],
+            "notes": "Covers web intake, telephony capture, and secure-link continuation in one essential function.",
+        },
+        {
+            "essential_function_id": "EF_PATIENT_SELF_SERVICE_CONTINUITY",
+            "essential_function_name": "Patient home, requests, messages, appointments, and record continuity",
+            "route_family_refs": [
+                "rf_patient_home",
+                "rf_patient_requests",
+                "rf_patient_appointments",
+                "rf_patient_messages",
+                "rf_patient_health_record",
+            ],
+            "tenant_scope_mode": "tenant_subject_self_service",
+            "trust_slice_code": "continuity_proof",
+            "sli_name": "same-shell request and message continuity on current tuple",
+            "slo_target": "99.50% over 30 days",
+            "alert_threshold": "continuity evidence drift or stale publication on any live writable patient route",
+            "alert_route_ref": "ALERT_PATIENT_SELF_SERVICE_CONTINUITY",
+            "dashboard_pack_ref": "DASH_PATIENT_SELF_SERVICE",
+            "synthetic_journey_ref": "SYN_PATIENT_SELF_SERVICE_CONTINUITY",
+            "fallback_sufficiency_state": "read-only or placeholder recovery remains same-shell and non-misleading",
+            "required_release_trust_verdict_refs": ["ReleaseTrustFreezeVerdict(patient authenticated shell)"],
+            "required_channel_freeze_refs": ["ChannelReleaseFreezeRecord(web)", "ChannelReleaseFreezeRecord(embedded if enabled)"],
+            "required_assurance_slice_refs": ["slice_patient_projection", "slice_communication_delivery", "slice_continuity_evidence"],
+            "required_recovery_control_refs": ["RecoveryControlPosture(patient authenticated scope)"],
+            "required_restore_evidence_refs": ["RestoreRun(patient self-service journey)"],
+            "required_failover_evidence_refs": ["FailoverRun(patient continuity path)"],
+            "required_chaos_evidence_refs": ["ChaosRun(patient shell and message delivery path)"],
+            "watch_tuple_ref": "RWT_PROD_CANARY_A",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+                "forensic-audit-findings.md#Finding 120 - Patient-facing degraded mode could still fragment across entry, section, recovery, embedded, and artifact shells",
+            ],
+            "notes": "Explicitly closes the degraded-mode fragmentation gap from Finding 120.",
+        },
+        {
+            "essential_function_id": "EF_WORKSPACE_TRIAGE_AND_SETTLEMENT",
+            "essential_function_name": "Workspace triage, clinician decision, and settlement",
+            "route_family_refs": ["rf_staff_workspace", "rf_staff_workspace_child"],
+            "tenant_scope_mode": "tenant_staff_scope",
+            "trust_slice_code": "continuity_proof",
+            "sli_name": "authoritative command settlement under current workspace tuple",
+            "slo_target": "99.50% over 30 days",
+            "alert_threshold": "settlement lag > 3 minutes or workspace continuity proof stale",
+            "alert_route_ref": "ALERT_WORKSPACE_SETTLEMENT_SLO",
+            "dashboard_pack_ref": "DASH_WORKSPACE_SETTLEMENT",
+            "synthetic_journey_ref": "SYN_WORKSPACE_TRIAGE_AND_SETTLEMENT",
+            "fallback_sufficiency_state": "observe-only or governed recovery workbench remains truthful",
+            "required_release_trust_verdict_refs": ["ReleaseTrustFreezeVerdict(workspace shell)"],
+            "required_channel_freeze_refs": ["ChannelReleaseFreezeRecord(workspace web)"],
+            "required_assurance_slice_refs": ["slice_workspace_projection", "slice_command_settlement"],
+            "required_recovery_control_refs": ["RecoveryControlPosture(workspace mutation scope)"],
+            "required_restore_evidence_refs": ["RestoreRun(workspace task completion journey)"],
+            "required_failover_evidence_refs": ["FailoverRun(workspace command path)"],
+            "required_chaos_evidence_refs": ["ChaosRun(workspace and command orchestration)"],
+            "watch_tuple_ref": "RWT_PROD_CANARY_A",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+                "phase-0-the-foundation-protocol.md#2.8 ScopedMutationGate",
+            ],
+            "notes": "Treats workspace completion continuity as a first-class control family, not route-local UI state.",
+        },
+        {
+            "essential_function_id": "EF_BOOKING_AND_CAPACITY_COMMIT",
+            "essential_function_name": "Booking confirmation, waitlist, and capacity commit",
+            "route_family_refs": ["rf_patient_appointments"],
+            "tenant_scope_mode": "tenant_subject_and_org_scope",
+            "trust_slice_code": "release_publication",
+            "sli_name": "confirmed or truthfully pending booking outcome within the declared confirmation window",
+            "slo_target": "99.00% over 30 days",
+            "alert_threshold": "confirmation ambiguity or waitlist fallback debt exceeds declared policy window",
+            "alert_route_ref": "ALERT_BOOKING_AND_PARTNER_FLOW_SLO",
+            "dashboard_pack_ref": "DASH_BOOKING_AND_CAPACITY",
+            "synthetic_journey_ref": "SYN_BOOKING_AND_CAPACITY_COMMIT",
+            "fallback_sufficiency_state": "pending-confirmation, callback fallback, or recovery-only posture remains truthful",
+            "required_release_trust_verdict_refs": ["ReleaseTrustFreezeVerdict(booking routes)"],
+            "required_channel_freeze_refs": ["ChannelReleaseFreezeRecord(web)"],
+            "required_assurance_slice_refs": ["slice_booking_confirmation", "slice_external_confirmation_gate"],
+            "required_recovery_control_refs": ["RecoveryControlPosture(booking management scope)"],
+            "required_restore_evidence_refs": ["RestoreRun(booking and manage journey)"],
+            "required_failover_evidence_refs": ["FailoverRun(booking and waitlist flow)"],
+            "required_chaos_evidence_refs": ["ChaosRun(capacity adapter and waitlist path)"],
+            "watch_tuple_ref": "RWT_PROD_CANARY_A",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+                "05_request_lineage_model.md",
+            ],
+            "notes": "Covers local booking, waitlist, confirmation ambiguity, and callback fallback posture.",
+        },
+        {
+            "essential_function_id": "EF_NETWORK_HUB_COORDINATION",
+            "essential_function_name": "Network hub queue, acknowledgement, and cross-organisation coordination",
+            "route_family_refs": ["rf_hub_queue", "rf_hub_case_management"],
+            "tenant_scope_mode": "cross_org_hub_scope",
+            "trust_slice_code": "continuity_proof",
+            "sli_name": "hub queue and practice visibility state fresh within 5 minutes",
+            "slo_target": "99.00% over 30 days",
+            "alert_threshold": "acknowledgement debt or patient-choice expiry drift beyond policy window",
+            "alert_route_ref": "ALERT_HUB_COORDINATION_HEALTH",
+            "dashboard_pack_ref": "DASH_NETWORK_HUB",
+            "synthetic_journey_ref": "SYN_NETWORK_HUB_COORDINATION",
+            "fallback_sufficiency_state": "read-only queue and explicit acknowledgement debt remain visible",
+            "required_release_trust_verdict_refs": ["ReleaseTrustFreezeVerdict(hub routes)"],
+            "required_channel_freeze_refs": ["ChannelReleaseFreezeRecord(web)"],
+            "required_assurance_slice_refs": ["slice_hub_capacity", "slice_hub_visibility", "slice_continuity_evidence"],
+            "required_recovery_control_refs": ["RecoveryControlPosture(hub coordination scope)"],
+            "required_restore_evidence_refs": ["RestoreRun(hub queue journey)"],
+            "required_failover_evidence_refs": ["FailoverRun(hub coordination path)"],
+            "required_chaos_evidence_refs": ["ChaosRun(hub partner dependency path)"],
+            "watch_tuple_ref": "RWT_PROD_CANARY_A",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+                "phase-5-the-network-horizon.md",
+            ],
+            "notes": "Cross-organisation scope and acknowledgement debt stay explicit in the essential-function view.",
+        },
+        {
+            "essential_function_id": "EF_PHARMACY_REFERRAL_AND_OUTCOME",
+            "essential_function_name": "Pharmacy referral dispatch, consent, and outcome reconciliation",
+            "route_family_refs": ["rf_pharmacy_console"],
+            "tenant_scope_mode": "servicing_site_scope",
+            "trust_slice_code": "continuity_proof",
+            "sli_name": "dispatch proof or safe recovery posture within the dispatch SLA",
+            "slo_target": "99.00% over 30 days",
+            "alert_threshold": "dispatch proof gap, consent drift, or weak-outcome reconciliation exceeds policy",
+            "alert_route_ref": "ALERT_PHARMACY_REFERRAL_HEALTH",
+            "dashboard_pack_ref": "DASH_PHARMACY_LOOP",
+            "synthetic_journey_ref": "SYN_PHARMACY_REFERRAL_AND_OUTCOME",
+            "fallback_sufficiency_state": "read-only or reconcile-required pharmacy console remains truthful",
+            "required_release_trust_verdict_refs": ["ReleaseTrustFreezeVerdict(pharmacy routes)"],
+            "required_channel_freeze_refs": ["ChannelReleaseFreezeRecord(web)"],
+            "required_assurance_slice_refs": ["slice_pharmacy_dispatch", "slice_pharmacy_outcome", "slice_continuity_evidence"],
+            "required_recovery_control_refs": ["RecoveryControlPosture(pharmacy console scope)"],
+            "required_restore_evidence_refs": ["RestoreRun(pharmacy dispatch journey)"],
+            "required_failover_evidence_refs": ["FailoverRun(pharmacy console path)"],
+            "required_chaos_evidence_refs": ["ChaosRun(pharmacy transport and outcome path)"],
+            "watch_tuple_ref": "RWT_PROD_CANARY_A",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+                "phase-6-the-pharmacy-loop.md",
+            ],
+            "notes": "Includes consent and dispatch proof separation rather than generic message delivery health.",
+        },
+        {
+            "essential_function_id": "EF_COMMUNICATION_AND_CALLBACK",
+            "essential_function_name": "Patient communication, callback, and reachability repair",
+            "route_family_refs": ["rf_patient_messages", "rf_support_ticket_workspace"],
+            "tenant_scope_mode": "tenant_subject_and_support_scope",
+            "trust_slice_code": "continuity_proof",
+            "sli_name": "delivery or safe callback repair state within the declared communication window",
+            "slo_target": "99.50% over 30 days",
+            "alert_threshold": "receipt drift, bounce escalation debt, or callback repair backlog > 15 minutes",
+            "alert_route_ref": "ALERT_COMMUNICATION_AND_CALLBACK_HEALTH",
+            "dashboard_pack_ref": "DASH_COMMUNICATION_AND_CALLBACK",
+            "synthetic_journey_ref": "SYN_COMMUNICATION_AND_CALLBACK",
+            "fallback_sufficiency_state": "awaiting-external or read-only recovery remains same-shell and explicit",
+            "required_release_trust_verdict_refs": ["ReleaseTrustFreezeVerdict(patient and support communication routes)"],
+            "required_channel_freeze_refs": ["ChannelReleaseFreezeRecord(email)", "ChannelReleaseFreezeRecord(sms)"],
+            "required_assurance_slice_refs": ["slice_message_delivery", "slice_callback_repair", "slice_support_replay"],
+            "required_recovery_control_refs": ["RecoveryControlPosture(communication scope)"],
+            "required_restore_evidence_refs": ["RestoreRun(communication and callback journey)"],
+            "required_failover_evidence_refs": ["FailoverRun(message transport and callback path)"],
+            "required_chaos_evidence_refs": ["ChaosRun(delivery rail and callback path)"],
+            "watch_tuple_ref": "RWT_PROD_CANARY_A",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+                "callback-and-clinician-messaging-loop.md",
+            ],
+            "notes": "Covers transport proof, receipt truth, callback repair, and replay restore posture together.",
+        },
+        {
+            "essential_function_id": "EF_RELEASE_GOVERNANCE_RUNTIME_CONTROL",
+            "essential_function_name": "Release governance, tuple parity, and live wave control",
+            "route_family_refs": ["rf_operations_board", "rf_governance_shell"],
+            "tenant_scope_mode": "platform_release_control",
+            "trust_slice_code": "release_publication",
+            "sli_name": "watch tuple and parity state fresh for the active production wave",
+            "slo_target": "100% exact for active waves",
+            "alert_threshold": "any parity drift, watch tuple drift, or hidden-state mismatch is page-worthy",
+            "alert_route_ref": "ALERT_WATCH_TUPLE_OR_PARITY_DRIFT",
+            "dashboard_pack_ref": "DASH_RELEASE_EVIDENCE_COCKPIT",
+            "synthetic_journey_ref": "SYN_RELEASE_CONTROL_AND_GOVERNANCE",
+            "fallback_sufficiency_state": "diagnostic-only or governed recovery posture remains publishable",
+            "required_release_trust_verdict_refs": ["ReleaseTrustFreezeVerdict(ops and governance release routes)"],
+            "required_channel_freeze_refs": ["ChannelReleaseFreezeRecord(web)"],
+            "required_assurance_slice_refs": ["slice_release_publication", "slice_assurance_governance"],
+            "required_recovery_control_refs": ["RecoveryControlPosture(release control scope)"],
+            "required_restore_evidence_refs": ["RestoreRun(release control supporting services)"],
+            "required_failover_evidence_refs": ["FailoverRun(release watch and publication services)"],
+            "required_chaos_evidence_refs": ["ChaosRun(release control and publication path)"],
+            "watch_tuple_ref": "RWT_PROD_CANARY_A",
+            "source_refs": [
+                "forensic-audit-findings.md#Finding 95 - The audit still omitted governance watch-tuple parity and recovery posture from release oversight",
+                "platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract",
+            ],
+            "notes": "This is the essential function that explicitly closes the governance-watch tuple gap.",
+        },
+        {
+            "essential_function_id": "EF_RESILIENCE_RECOVERY_CONTROL",
+            "essential_function_name": "Operational readiness, restore authority, and recovery activation",
+            "route_family_refs": ["rf_operations_board", "rf_operations_drilldown"],
+            "tenant_scope_mode": "platform_release_control",
+            "trust_slice_code": "resilience_readiness",
+            "sli_name": "current readiness tuple and recovery control posture fresh for every critical domain",
+            "slo_target": "100% current for active release tuple",
+            "alert_threshold": "stale rehearsal evidence, stale runbook binding, or blocked journey recovery proof is page-worthy",
+            "alert_route_ref": "ALERT_READINESS_OR_REHEARSAL_STALE",
+            "dashboard_pack_ref": "DASH_RESILIENCE_AND_RECOVERY",
+            "synthetic_journey_ref": "SYN_RESILIENCE_RECOVERY_CONTROL",
+            "fallback_sufficiency_state": "diagnostic-only or recovery-only posture remains same-shell and explicit",
+            "required_release_trust_verdict_refs": ["ReleaseTrustFreezeVerdict(ops resilience routes)"],
+            "required_channel_freeze_refs": ["ChannelReleaseFreezeRecord(web)"],
+            "required_assurance_slice_refs": ["slice_resilience_readiness", "slice_assurance_recovery"],
+            "required_recovery_control_refs": ["RecoveryControlPosture(platform recovery scope)"],
+            "required_restore_evidence_refs": ["RestoreRun(patient and staff reference journeys)"],
+            "required_failover_evidence_refs": ["FailoverRun(platform recovery scope)"],
+            "required_chaos_evidence_refs": ["ChaosRun(platform recovery scope)"],
+            "watch_tuple_ref": "RWT_PROD_CANARY_A",
+            "source_refs": [
+                "forensic-audit-findings.md#Finding 112 - Resilience restore authority still depended on loose runbooks and dashboards",
+                "phase-0-the-foundation-protocol.md#1.40G OperationalReadinessSnapshot",
+            ],
+            "notes": "This function remains blocked if stale rehearsal evidence is being reused as live authority.",
+        },
+    ]
+
+
+def build_incident_and_alert_routing_matrix() -> list[dict[str, Any]]:
+    return [
+        {
+            "routing_id": "ALERT_PATIENT_ENTRY_SLO",
+            "signal_source": "SIG_METRIC_PATIENT_ENTRY_SLO",
+            "incident_family": "service_level_breach",
+            "severity": "high",
+            "essential_function_id": "EF_PATIENT_ENTRY_AND_RECOVERY",
+            "near_miss_allowed": "yes",
+            "immutable_audit_required": "yes",
+            "reportability_assessment_required": "conditional",
+            "containment_playbook_ref": "PB_PATIENT_ENTRY_RECOVERY",
+            "capa_workstream_ref": "WS_CLINICAL_DEPLOYMENT_USE",
+            "on_call_route": "ROLE_OPERATIONS_LEAD -> ROLE_RELEASE_GUARDRAIL_OWNER",
+            "dashboard_ref": "DASH_PATIENT_ENTRY_AND_RECOVERY",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+                "phase-9-the-assurance-ledger.md#9G. Security operations, incident workflow, and just-culture reporting",
+            ],
+            "notes": "Near miss is allowed because degraded receipt may remain truthful without being a reportable incident.",
+        },
+        {
+            "routing_id": "ALERT_PATIENT_SELF_SERVICE_CONTINUITY",
+            "signal_source": "SIG_METRIC_PATIENT_ENTRY_SLO",
+            "incident_family": "continuity_drift",
+            "severity": "high",
+            "essential_function_id": "EF_PATIENT_SELF_SERVICE_CONTINUITY",
+            "near_miss_allowed": "yes",
+            "immutable_audit_required": "yes",
+            "reportability_assessment_required": "conditional",
+            "containment_playbook_ref": "PB_PATIENT_CONTINUITY_RECOVERY",
+            "capa_workstream_ref": "WS_SERVICE_OPERATIONS_AND_BAU",
+            "on_call_route": "ROLE_OPERATIONS_LEAD -> ROLE_SUPPORT_LEAD",
+            "dashboard_ref": "DASH_PATIENT_SELF_SERVICE",
+            "source_refs": [
+                "forensic-audit-findings.md#Finding 120 - Patient-facing degraded mode could still fragment across entry, section, recovery, embedded, and artifact shells",
+            ],
+            "notes": "Carries continuity-evidence questions and last-safe summary posture into incident handling.",
+        },
+        {
+            "routing_id": "ALERT_WORKSPACE_SETTLEMENT_SLO",
+            "signal_source": "SIG_METRIC_WORKSPACE_SLO",
+            "incident_family": "settlement_lag",
+            "severity": "high",
+            "essential_function_id": "EF_WORKSPACE_TRIAGE_AND_SETTLEMENT",
+            "near_miss_allowed": "yes",
+            "immutable_audit_required": "yes",
+            "reportability_assessment_required": "conditional",
+            "containment_playbook_ref": "PB_WORKSPACE_SETTLEMENT",
+            "capa_workstream_ref": "WS_CLINICAL_DEPLOYMENT_USE",
+            "on_call_route": "ROLE_OPERATIONS_LEAD -> ROLE_SERVICE_OWNER",
+            "dashboard_ref": "DASH_WORKSPACE_SETTLEMENT",
+            "source_refs": [
+                "phase-9-the-assurance-ledger.md#9B. Live operational projections, service levels, and breach-risk engine",
+            ],
+            "notes": "Settlement lag is operationally critical even without a reportable security event.",
+        },
+        {
+            "routing_id": "ALERT_BOOKING_AND_PARTNER_FLOW_SLO",
+            "signal_source": "SIG_METRIC_BOOKING_PHARMACY_SLO",
+            "incident_family": "partner_flow_drift",
+            "severity": "high",
+            "essential_function_id": "EF_BOOKING_AND_CAPACITY_COMMIT",
+            "near_miss_allowed": "yes",
+            "immutable_audit_required": "yes",
+            "reportability_assessment_required": "conditional",
+            "containment_playbook_ref": "PB_BOOKING_AND_PARTNER",
+            "capa_workstream_ref": "WS_INTEROPERABILITY_EVIDENCE",
+            "on_call_route": "ROLE_OPERATIONS_LEAD -> ROLE_PARTNER_ONBOARDING_LEAD",
+            "dashboard_ref": "DASH_BOOKING_AND_CAPACITY",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+                "08_assurance_obligations_matrix.md",
+            ],
+            "notes": "Covers booking, hub, and pharmacy partner flow drift at the alert routing layer.",
+        },
+        {
+            "routing_id": "ALERT_HUB_COORDINATION_HEALTH",
+            "signal_source": "SIG_METRIC_BOOKING_PHARMACY_SLO",
+            "incident_family": "cross_org_coordination_drift",
+            "severity": "high",
+            "essential_function_id": "EF_NETWORK_HUB_COORDINATION",
+            "near_miss_allowed": "yes",
+            "immutable_audit_required": "yes",
+            "reportability_assessment_required": "conditional",
+            "containment_playbook_ref": "PB_HUB_COORDINATION",
+            "capa_workstream_ref": "WS_INTEROPERABILITY_EVIDENCE",
+            "on_call_route": "ROLE_OPERATIONS_LEAD -> ROLE_NETWORK_COORDINATION_OWNER",
+            "dashboard_ref": "DASH_NETWORK_HUB",
+            "source_refs": [
+                "phase-5-the-network-horizon.md",
+                "phase-9-the-assurance-ledger.md#9B. Live operational projections, service levels, and breach-risk engine",
+            ],
+            "notes": "Hub acknowledgement debt and practice visibility are operationally explicit.",
+        },
+        {
+            "routing_id": "ALERT_PHARMACY_REFERRAL_HEALTH",
+            "signal_source": "SIG_METRIC_BOOKING_PHARMACY_SLO",
+            "incident_family": "pharmacy_dispatch_or_outcome_drift",
+            "severity": "high",
+            "essential_function_id": "EF_PHARMACY_REFERRAL_AND_OUTCOME",
+            "near_miss_allowed": "yes",
+            "immutable_audit_required": "yes",
+            "reportability_assessment_required": "conditional",
+            "containment_playbook_ref": "PB_PHARMACY_LOOP",
+            "capa_workstream_ref": "WS_INTEROPERABILITY_EVIDENCE",
+            "on_call_route": "ROLE_OPERATIONS_LEAD -> ROLE_PHARMACY_PARTNER_OWNER",
+            "dashboard_ref": "DASH_PHARMACY_LOOP",
+            "source_refs": [
+                "phase-6-the-pharmacy-loop.md",
+                "08_assurance_obligations_matrix.md",
+            ],
+            "notes": "Separates dispatch proof, consent scope, and outcome reconciliation alerts.",
+        },
+        {
+            "routing_id": "ALERT_COMMUNICATION_AND_CALLBACK_HEALTH",
+            "signal_source": "SIG_METRIC_BOOKING_PHARMACY_SLO",
+            "incident_family": "communication_and_callback_drift",
+            "severity": "high",
+            "essential_function_id": "EF_COMMUNICATION_AND_CALLBACK",
+            "near_miss_allowed": "yes",
+            "immutable_audit_required": "yes",
+            "reportability_assessment_required": "conditional",
+            "containment_playbook_ref": "PB_COMMUNICATION_CALLBACK",
+            "capa_workstream_ref": "WS_SERVICE_OPERATIONS_AND_BAU",
+            "on_call_route": "ROLE_OPERATIONS_LEAD -> ROLE_SUPPORT_LEAD",
+            "dashboard_ref": "DASH_COMMUNICATION_AND_CALLBACK",
+            "source_refs": [
+                "callback-and-clinician-messaging-loop.md",
+                "phase-9-the-assurance-ledger.md#9C. Audit explorer, break-glass review, and support replay",
+            ],
+            "notes": "Communication failures can become safety or privacy incidents depending on disclosure scope.",
+        },
+        {
+            "routing_id": "ALERT_WATCH_TUPLE_OR_PARITY_DRIFT",
+            "signal_source": "SIG_METRIC_RELEASE_PARITY",
+            "incident_family": "release_tuple_drift",
+            "severity": "critical",
+            "essential_function_id": "EF_RELEASE_GOVERNANCE_RUNTIME_CONTROL",
+            "near_miss_allowed": "no",
+            "immutable_audit_required": "yes",
+            "reportability_assessment_required": "conditional",
+            "containment_playbook_ref": "PB_RELEASE_TUPLE_DRIFT",
+            "capa_workstream_ref": "WS_TECHNICAL_SECURITY_ASSURANCE",
+            "on_call_route": "ROLE_RELEASE_MANAGER -> ROLE_RELEASE_GUARDRAIL_OWNER -> ROLE_SERVICE_OWNER",
+            "dashboard_ref": "DASH_RELEASE_EVIDENCE_COCKPIT",
+            "source_refs": [
+                "forensic-audit-findings.md#Finding 95 - The audit still omitted governance watch-tuple parity and recovery posture from release oversight",
+                "platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract",
+            ],
+            "notes": "Direct closure of the healthier-than-runtime governance watch gap.",
+        },
+        {
+            "routing_id": "ALERT_WAVE_GUARDRAIL_BREACH",
+            "signal_source": "SIG_METRIC_CANARY_GUARDRAIL",
+            "incident_family": "wave_guardrail_breach",
+            "severity": "critical",
+            "essential_function_id": "EF_RELEASE_GOVERNANCE_RUNTIME_CONTROL",
+            "near_miss_allowed": "no",
+            "immutable_audit_required": "yes",
+            "reportability_assessment_required": "conditional",
+            "containment_playbook_ref": "PB_WAVE_GUARDRAIL_BREACH",
+            "capa_workstream_ref": "WS_SERVICE_OPERATIONS_AND_BAU",
+            "on_call_route": "ROLE_RELEASE_GUARDRAIL_OWNER -> ROLE_RELEASE_MANAGER",
+            "dashboard_ref": "DASH_RELEASE_EVIDENCE_COCKPIT",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Verification ladder contract",
+            ],
+            "notes": "Critical because widening or rollback decisions are live-control actions.",
+        },
+        {
+            "routing_id": "ALERT_PROVENANCE_OR_SBOM_BLOCKED",
+            "signal_source": "SIG_LOG_PROVENANCE_VERDICT",
+            "incident_family": "supply_chain_integrity",
+            "severity": "critical",
+            "essential_function_id": "EF_RELEASE_GOVERNANCE_RUNTIME_CONTROL",
+            "near_miss_allowed": "no",
+            "immutable_audit_required": "yes",
+            "reportability_assessment_required": "conditional",
+            "containment_playbook_ref": "PB_PROVENANCE_INTEGRITY",
+            "capa_workstream_ref": "WS_TECHNICAL_SECURITY_ASSURANCE",
+            "on_call_route": "ROLE_SECURITY_LEAD -> ROLE_RELEASE_MANAGER",
+            "dashboard_ref": "DASH_RELEASE_EVIDENCE_COCKPIT",
+            "source_refs": [
+                "prompt/015.md",
+                "platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract",
+            ],
+            "notes": "A blocked provenance chain is release-critical and may also become a reportable security incident.",
+        },
+        {
+            "routing_id": "ALERT_DISCLOSURE_FENCE_BLOCKED",
+            "signal_source": "SIG_UI_PATIENT_DISCLOSURE",
+            "incident_family": "telemetry_disclosure_violation",
+            "severity": "critical",
+            "essential_function_id": "EF_PATIENT_SELF_SERVICE_CONTINUITY",
+            "near_miss_allowed": "yes",
+            "immutable_audit_required": "yes",
+            "reportability_assessment_required": "yes",
+            "containment_playbook_ref": "PB_DISCLOSURE_FENCE",
+            "capa_workstream_ref": "WS_DATA_PROTECTION_PRIVACY",
+            "on_call_route": "ROLE_SECURITY_LEAD -> ROLE_DPO -> ROLE_RELEASE_MANAGER",
+            "dashboard_ref": "DASH_RELEASE_EVIDENCE_COCKPIT",
+            "source_refs": [
+                "10_audit_posture_and_event_disclosure.md",
+                "phase-0-the-foundation-protocol.md#UITelemetryDisclosureFence",
+            ],
+            "notes": "This is one of the few alert classes that always requires reportability review.",
+        },
+        {
+            "routing_id": "ALERT_ASSURANCE_SLICE_QUARANTINED",
+            "signal_source": "SIG_METRIC_ASSURANCE_SLICE",
+            "incident_family": "assurance_slice_quarantine",
+            "severity": "critical",
+            "essential_function_id": "EF_RELEASE_GOVERNANCE_RUNTIME_CONTROL",
+            "near_miss_allowed": "no",
+            "immutable_audit_required": "yes",
+            "reportability_assessment_required": "conditional",
+            "containment_playbook_ref": "PB_ASSURANCE_SLICE_QUARANTINE",
+            "capa_workstream_ref": "WS_SERVICE_OPERATIONS_AND_BAU",
+            "on_call_route": "ROLE_OPERATIONS_LEAD -> ROLE_SECURITY_LEAD -> ROLE_RELEASE_MANAGER",
+            "dashboard_ref": "DASH_RELEASE_EVIDENCE_COCKPIT",
+            "source_refs": [
+                "phase-9-the-assurance-ledger.md#9A. Assurance ledger, evidence graph, and operational state contracts",
+                "prompt/015.md",
+            ],
+            "notes": "Explicitly keeps one bad producer from blacking out every trust surface.",
+        },
+        {
+            "routing_id": "ALERT_BREAK_GLASS_OR_TENANT_SWITCH",
+            "signal_source": "SIG_AUDIT_BREAK_GLASS",
+            "incident_family": "heightened_access_event",
+            "severity": "critical",
+            "essential_function_id": "EF_RELEASE_GOVERNANCE_RUNTIME_CONTROL",
+            "near_miss_allowed": "yes",
+            "immutable_audit_required": "yes",
+            "reportability_assessment_required": "yes",
+            "containment_playbook_ref": "PB_BREAK_GLASS_AND_SCOPE",
+            "capa_workstream_ref": "WS_DATA_PROTECTION_PRIVACY",
+            "on_call_route": "ROLE_SECURITY_LEAD -> ROLE_DPO -> ROLE_SUPPORT_LEAD",
+            "dashboard_ref": "DASH_RELEASE_EVIDENCE_COCKPIT",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Security baseline contract",
+                "phase-9-the-assurance-ledger.md#9C. Audit explorer, break-glass review, and support replay",
+            ],
+            "notes": "Break-glass, tenant switch, and replay remain heightened access events even when user actions were legitimate.",
+        },
+        {
+            "routing_id": "ALERT_READINESS_OR_REHEARSAL_STALE",
+            "signal_source": "SIG_EVIDENCE_RECOVERY_POSTURE",
+            "incident_family": "stale_recovery_authority",
+            "severity": "critical",
+            "essential_function_id": "EF_RESILIENCE_RECOVERY_CONTROL",
+            "near_miss_allowed": "no",
+            "immutable_audit_required": "yes",
+            "reportability_assessment_required": "conditional",
+            "containment_playbook_ref": "PB_STALE_RECOVERY_AUTHORITY",
+            "capa_workstream_ref": "WS_SERVICE_OPERATIONS_AND_BAU",
+            "on_call_route": "ROLE_RELEASE_GUARDRAIL_OWNER -> ROLE_SERVICE_OWNER -> ROLE_OPERATIONS_LEAD",
+            "dashboard_ref": "DASH_RESILIENCE_AND_RECOVERY",
+            "source_refs": [
+                "forensic-audit-findings.md#Finding 112 - Resilience restore authority still depended on loose runbooks and dashboards",
+                "phase-0-the-foundation-protocol.md#1.40G OperationalReadinessSnapshot",
+            ],
+            "notes": "Stale rehearsal evidence is an immediate control issue, not an advisory note.",
+        },
+        {
+            "routing_id": "ALERT_SECURITY_INCIDENT_OR_NEAR_MISS",
+            "signal_source": "SIG_INCIDENT_NEAR_MISS",
+            "incident_family": "security_incident_or_near_miss",
+            "severity": "critical",
+            "essential_function_id": "EF_RELEASE_GOVERNANCE_RUNTIME_CONTROL",
+            "near_miss_allowed": "yes",
+            "immutable_audit_required": "yes",
+            "reportability_assessment_required": "yes",
+            "containment_playbook_ref": "PB_SECURITY_INCIDENT",
+            "capa_workstream_ref": "WS_TECHNICAL_SECURITY_ASSURANCE",
+            "on_call_route": "ROLE_SECURITY_LEAD -> ROLE_DPO -> ROLE_SERVICE_OWNER",
+            "dashboard_ref": "DASH_SECURITY_INCIDENT_DESK",
+            "source_refs": [
+                "phase-9-the-assurance-ledger.md#9G. Security operations, incident workflow, and just-culture reporting",
+            ],
+            "notes": "The same workflow covers reportable incidents and just-culture near misses.",
+        },
+    ]
+
+
+def build_watch_tuples() -> list[dict[str, Any]]:
+    return [
+        {
+            "watch_tuple_id": "RWT_PREPROD_DRY_RUN_A",
+            "tuple_hash": "wth_preprod_dry_run_a",
+            "release_ref": "RC_VECELLS_BASELINE_A",
+            "environment_ring": "preprod",
+            "tuple_state": "active",
+            "publication_parity_state": "exact",
+            "provenance_state": "publishable",
+            "guardrail_state": "green",
+            "observation_policy_ref": "WOP_PREPROD_30M",
+            "recovery_disposition_refs": ["RRD_DIAGNOSTIC_ONLY_IF_DRIFT"],
+            "tenant_scope_mode": "platform_release_control",
+            "trust_slice_code": "release_publication",
+            "linked_gate_refs": ["GATE_4_RESILIENCE_AND_RECOVERY"],
+            "linked_essential_function_refs": [
+                "EF_RELEASE_GOVERNANCE_RUNTIME_CONTROL",
+                "EF_RESILIENCE_RECOVERY_CONTROL",
+            ],
+            "linked_gap_refs": [],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#CI/CD and supply-chain pipeline contract",
+            ],
+            "notes": "Preprod tuple used to refresh readiness and rollback evidence before canary.",
+        },
+        {
+            "watch_tuple_id": "RWT_PROD_CANARY_A",
+            "tuple_hash": "wth_prod_canary_a",
+            "release_ref": "RC_VECELLS_BASELINE_A",
+            "environment_ring": "production",
+            "tuple_state": "active",
+            "publication_parity_state": "exact",
+            "provenance_state": "publishable",
+            "guardrail_state": "constrained",
+            "observation_policy_ref": "WOP_PROD_CANARY_15M",
+            "recovery_disposition_refs": ["RRD_GOVERNED_RECOVERY", "RRD_READ_ONLY_IF_PARITY_DRIFT"],
+            "tenant_scope_mode": "platform_release_control",
+            "trust_slice_code": "release_publication",
+            "linked_gate_refs": ["GATE_5_LIVE_WAVE_PROOF"],
+            "linked_essential_function_refs": [
+                "EF_PATIENT_ENTRY_AND_RECOVERY",
+                "EF_BOOKING_AND_CAPACITY_COMMIT",
+                "EF_RELEASE_GOVERNANCE_RUNTIME_CONTROL",
+                "EF_RESILIENCE_RECOVERY_CONTROL",
+            ],
+            "linked_gap_refs": [
+                "GAP_015_HSM_SIGNING_KEY_PROVISIONING",
+                "GAP_015_ALERT_DESTINATION_BINDING",
+            ],
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Verification ladder contract",
+                "forensic-audit-findings.md#Finding 95 - The audit still omitted governance watch-tuple parity and recovery posture from release oversight",
+            ],
+            "notes": "Selected default tuple for the cockpit because it is the live canary posture with explicit bounded recovery and open provisioning gaps.",
+        },
+        {
+            "watch_tuple_id": "RWT_PROD_STABILIZED_PREVIOUS",
+            "tuple_hash": "wth_prod_stabilized_previous",
+            "release_ref": "RC_VECELLS_PREVIOUS",
+            "environment_ring": "production",
+            "tuple_state": "superseded",
+            "publication_parity_state": "exact",
+            "provenance_state": "publishable",
+            "guardrail_state": "green",
+            "observation_policy_ref": "WOP_PROD_STEADY_2H",
+            "recovery_disposition_refs": ["RRD_NORMAL_LIVE"],
+            "tenant_scope_mode": "platform_release_control",
+            "trust_slice_code": "release_publication",
+            "linked_gate_refs": ["GATE_5_LIVE_WAVE_PROOF"],
+            "linked_essential_function_refs": ["EF_RELEASE_GOVERNANCE_RUNTIME_CONTROL"],
+            "linked_gap_refs": [],
+            "source_refs": [
+                "phase-0-the-foundation-protocol.md#1.24C ReleaseWatchEvidenceCockpit",
+            ],
+            "notes": "Retained only as history; it is not the active watch authority for the current candidate.",
+        },
+    ]
+
+
+def build_readiness_snapshots() -> list[dict[str, Any]]:
+    return [
+        {
+            "snapshot_id": "ORS_PREPROD_A",
+            "environment_ring": "preprod",
+            "readiness_state": "ready",
+            "freshness_state": "fresh",
+            "rehearsal_freshness_state": "fresh",
+            "tuple_hash": "res_preprod_tuple_a",
+            "linked_watch_tuple_ref": "RWT_PREPROD_DRY_RUN_A",
+            "latest_restore_run_ref": "RESTORE_PREPROD_A",
+            "latest_failover_run_ref": "FAILOVER_PREPROD_A",
+            "latest_chaos_run_ref": "CHAOS_PREPROD_A",
+            "source_refs": [
+                "platform-runtime-and-release-blueprint.md#Operational readiness contract",
+            ],
+        },
+        {
+            "snapshot_id": "ORS_PROD_CANARY_A",
+            "environment_ring": "production",
+            "readiness_state": "constrained",
+            "freshness_state": "fresh",
+            "rehearsal_freshness_state": "fresh",
+            "tuple_hash": "res_prod_canary_tuple_a",
+            "linked_watch_tuple_ref": "RWT_PROD_CANARY_A",
+            "latest_restore_run_ref": "RESTORE_PROD_A",
+            "latest_failover_run_ref": "FAILOVER_PROD_A",
+            "latest_chaos_run_ref": "CHAOS_PROD_A",
+            "source_refs": [
+                "forensic-audit-findings.md#Finding 112 - Resilience restore authority still depended on loose runbooks and dashboards",
+            ],
+        },
+    ]
+
+
+def build_bundle() -> dict[str, Any]:
+    upstream_inputs = ensure_prerequisites()
+    scorecard_rows = build_tooling_scorecard()
+    signal_rows = build_observability_signal_matrix()
+    security_rows = build_security_control_matrix()
+    gate_rows = build_release_gate_matrix()
+    essential_rows = build_essential_function_slo_matrix()
+    incident_rows = build_incident_and_alert_routing_matrix()
+    watch_tuples = build_watch_tuples()
+    readiness_snapshots = build_readiness_snapshots()
+    issue_rows = [*GAPS, *RISKS]
+    supply_chain = build_supply_chain_and_provenance_matrix(gate_rows)
+    evidence_schedule_rows = load_csv(EVIDENCE_SCHEDULE_PATH)
+
+    return {
+        "tooling_baseline_id": "vecells_tooling_baseline_v1",
+        "mission": MISSION,
+        "source_precedence": SOURCE_PRECEDENCE,
+        "upstream_inputs": upstream_inputs,
+        "summary": {
+            "tooling_family_count": len(TOOLING_FAMILIES),
+            "tooling_option_count": len(scorecard_rows),
+            "observability_signal_count": len(signal_rows),
+            "security_control_count": len(security_rows),
+            "release_gate_count": len(gate_rows),
+            "essential_function_count": len(essential_rows),
+            "alert_route_count": len(incident_rows),
+            "active_watch_tuple_count": sum(1 for row in watch_tuples if row["tuple_state"] == "active"),
+            "evidence_artifact_count": len(evidence_schedule_rows),
+            "unresolved_gap_count": len(GAPS),
+            "unresolved_risk_count": len(issue_rows),
+        },
+        "tooling_families": TOOLING_FAMILIES,
+        "tooling_scorecard": scorecard_rows,
+        "observability_signals": signal_rows,
+        "security_controls": security_rows,
+        "release_gates": gate_rows,
+        "supply_chain_and_provenance": supply_chain,
+        "essential_functions": essential_rows,
+        "incident_and_alert_routes": incident_rows,
+        "watch_tuples": watch_tuples,
+        "readiness_snapshots": readiness_snapshots,
+        "assumptions": ASSUMPTIONS,
+        "gaps": GAPS,
+        "risks": RISKS,
+    }
+
+
+def render_observability_doc(payload: dict[str, Any]) -> str:
+    chosen_rows = [row for row in payload["tooling_scorecard"] if row["decision"] == "chosen"]
+    scorecard = render_table(
+        [
+            "Family",
+            "Chosen baseline",
+            "Standards",
+            "Tuple authority",
+            "PHI-safe",
+            "Hidden state control",
+            "Total",
+        ],
+        [
+            [
+                row["tooling_family_name"],
+                row["chosen_components"],
+                row["open_standard_fit"],
+                row["tuple_authority_fit"],
+                row["phi_safe_disclosure_fit"],
+                row["hidden_state_control"],
+                row["total_score"],
+            ]
+            for row in chosen_rows
+            if row["tooling_family_id"] in {
+                "FAM_SIGNAL_PIPELINE",
+                "FAM_ALERTING_EVIDENCE_BOARDS",
+                "FAM_SYNTHETIC_CANARY_PROOF",
+            }
+        ],
+    )
+    signals = render_table(
+        ["Signal", "Family", "Ceiling", "Allowed identifiers", "Authoritative lane", "Alert route"],
+        [
+            [
+                row["signal_name"],
+                row["signal_family"],
+                row["telemetry_ceiling"],
+                join_items(row["allowed_identifier_fields"]),
+                row["authoritative_lane"],
+                row["alert_route_ref"] or "n/a",
+            ]
+            for row in payload["observability_signals"]
+        ],
+    )
+    return textwrap.dedent(
+        f"""
+        # 15 Observability Baseline
+
+        Vecells should use a standards-based signal pipeline plus tuple-aware alerting and route-aware synthetic probes. The chosen baseline keeps traces, metrics, logs, UI telemetry, audit, and recovery evidence correlated without letting any of those surfaces become hidden runtime truth.
+
+        ## Chosen Baselines
+
+        {scorecard}
+
+        ## PHI-Safe Signal Law
+
+        - Correlation is mandatory through `edgeCorrelationId`, `causalToken`, and route or tuple hashes.
+        - `UITelemetryDisclosureFence` stays authoritative for browser telemetry; patient, staff, embedded, replay, and recovery routes all remain bound to task 010 ceilings.
+        - Logs and traces may carry diagnostic references and hashes, but raw patient identifiers, clinical narrative, route params, and artifact fragments remain forbidden.
+        - Audit and evidence lanes carry the richer masked scope needed for replay, investigation, or assurance, but only through governed export posture.
+        - Slice-bounded trust degradation remains explicit. One bad producer degrades only the affected assurance slices and the essential functions that depend on them.
+
+        ## Signal Matrix
+
+        {signals}
+
+        ## Decision Notes
+
+        - Dashboard and alert surfaces consume `EssentialFunctionHealthEnvelope`, `ReleaseTrustFreezeVerdict`, `ReleaseWatchEvidenceCockpit`, and `OperationalReadinessSnapshot` rather than reconstructing health from raw metrics.
+        - Synthetic monitoring is route-contract-aware and recovery-aware. Generic uptime checks are not sufficient for Gate 4 or Gate 5 proof.
+        - This baseline directly closes the PHI telemetry leak gap, the governance-watch parity gap, and the slice-blackout gap called out in prompt 015.
+        """
+    ).strip()
+
+
+def render_security_doc(payload: dict[str, Any]) -> str:
+    scorecard = render_table(
+        ["Family", "Chosen baseline", "UK hosting", "Proof", "Decision"],
+        [
+            [
+                row["tooling_family_name"],
+                row["chosen_components"],
+                row["uk_hosting_fit"],
+                row["operational_proof_fit"],
+                row["decision_summary"],
+            ]
+            for row in payload["tooling_scorecard"]
+            if row["decision"] == "chosen"
+            and row["tooling_family_id"] in {"FAM_SECURITY_POLICY_GATE", "FAM_PROVENANCE_SIGNING_SBOM"}
+        ],
+    )
+    controls = render_table(
+        ["Control", "Domain", "Family", "Enforcement point", "Evidence"],
+        [
+            [
+                row["requirement_summary"],
+                row["control_domain"],
+                row["baseline_tooling_family_ref"],
+                row["enforcement_point"],
+                join_items(row["evidence_refs"]),
+            ]
+            for row in payload["security_controls"]
+        ],
+    )
+    return textwrap.dedent(
+        f"""
+        # 15 Security Control And Secret Management Baseline
+
+        The baseline is KMS-backed secret custody plus a policy-gated scanner suite, with provenance and SBOM publication treated as live security controls rather than compliance attachments.
+
+        ## Chosen Baselines
+
+        {scorecard}
+
+        ## Control Matrix
+
+        {controls}
+
+        ## Control Law
+
+        - No secret material enters source control, build output, logs, artifacts, or long-lived CI variables.
+        - Public ingress, browser policy headers, session separation, least-privilege workload identity, and egress allow-lists are all enforced before live publication.
+        - Scanner findings, watchlist exceptions, and emergency release exceptions stay candidate-bound and immutable.
+        - Break-glass, tenant switch, and support replay are heightened audit classes and route into both incident handling and assurance export.
+        - The unresolved HSM provisioning seam is explicit and remains a provisioning blocker, not an architectural omission.
+        """
+    ).strip()
+
+
+def render_release_doc(payload: dict[str, Any]) -> str:
+    stages = render_table(
+        ["Stage", "Families", "Produced objects", "State rule"],
+        [
+            [
+                row["stage_code"],
+                join_items(row["family_refs"]),
+                join_items(row["produced_object_refs"]),
+                row["state_rule"],
+            ]
+            for row in payload["supply_chain_and_provenance"]["pipeline_stage_chain"]
+        ],
+    )
+    bindings = render_table(
+        ["Object", "Produced by", "Consumed by", "Rule"],
+        [
+            [
+                row["object_ref"],
+                join_items(row["produced_by"]),
+                join_items(row["consumed_by"]),
+                row["state_rule"],
+            ]
+            for row in payload["supply_chain_and_provenance"]["required_object_bindings"]
+        ],
+    )
+    return textwrap.dedent(
+        f"""
+        # 15 Release And Supply Chain Tooling Baseline
+
+        The release baseline is an immutable stage-settlement ledger with mandatory provenance, SBOM, signing, runtime publication, parity publication, and watch-tuple publication. This closes the hidden CI-only state gap directly.
+
+        ## Pipeline Stage Chain
+
+        {stages}
+
+        ## Required Object Bindings
+
+        {bindings}
+
+        ## Supply Chain Law
+
+        - `BuildProvenanceRecord`, `RuntimePublicationBundle`, `ReleasePublicationParityRecord`, `VerificationScenario`, `ReleaseContractVerificationMatrix`, and `ReleaseWatchTuple` are all mandatory machine-readable release objects.
+        - Stage settlement, not job completion, is the authoritative delivery state.
+        - Emergency movement requires one bounded `PipelineEmergencyException` with expiry, compensating controls, and declared recovery scope.
+        - Design-contract publication remains inside the promoted runtime tuple and cannot drift into snapshot-only evidence.
+        """
+    ).strip()
+
+
+def render_verification_doc(payload: dict[str, Any]) -> str:
+    gates = render_table(
+        [
+            "Gate",
+            "Ring",
+            "Exact scenario",
+            "Exact matrix",
+            "Objects",
+            "Continuity rule",
+            "Blocking condition",
+        ],
+        [
+            [
+                row["gate_name"],
+                row["environment_ring"],
+                row["verification_scenario_binding"],
+                row["contract_matrix_binding"],
+                join_items(row["must_publish_object_refs"]),
+                row["continuity_rule"],
+                row["blocking_condition"],
+            ]
+            for row in payload["release_gates"]
+        ],
+    )
+    return textwrap.dedent(
+        f"""
+        # 15 Verification Ladder And Quality Gate Strategy
+
+        Vecells keeps the runtime blueprint's Gate 0-5 ladder intact. Every gate binds to one exact `VerificationScenario` and one exact `ReleaseContractVerificationMatrix`; any tuple drift restarts the ladder.
+
+        ## Gate Matrix
+
+        {gates}
+
+        ## Gate Law
+
+        - Gate 0 proves compile, watchlist, design-contract, and provenance inputs for the exact candidate tuple.
+        - Gate 1 proves route, embedded, continuity, design, and runtime-publication parity for the same tuple.
+        - Gate 2 proves browser, callback, replay, and recovery posture on the exact tuple.
+        - Gate 3 proves performance, scanner coverage, secret handling, session hardening, and dependency hygiene.
+        - Gate 4 proves restore, failover, chaos, and rehearsal freshness on the same tuple the release will widen.
+        - Gate 5 proves the live watch tuple, cockpit, guardrail, parity, provenance, readiness, and rollback posture for the active production wave.
+        """
+    ).strip()
+
+
+def render_readiness_doc(payload: dict[str, Any]) -> str:
+    functions = render_table(
+        ["Essential function", "SLO", "Alert route", "Dashboard", "Synthetic", "Recovery refs"],
+        [
+            [
+                row["essential_function_name"],
+                row["slo_target"],
+                row["alert_route_ref"],
+                row["dashboard_pack_ref"],
+                row["synthetic_journey_ref"],
+                join_items(row["required_recovery_control_refs"]),
+            ]
+            for row in payload["essential_functions"]
+        ],
+    )
+    return textwrap.dedent(
+        f"""
+        # 15 Operational Readiness And Resilience Tooling
+
+        The readiness baseline is tuple-bound. `OperationalReadinessSnapshot`, `RunbookBindingRecord`, `RecoveryControlPosture`, `RestoreRun`, `FailoverRun`, and `ChaosRun` are the only live authorities for recovery posture.
+
+        ## Essential Function Matrix
+
+        {functions}
+
+        ## Readiness Law
+
+        - Every essential function has one SLO, one alert route, one dashboard, one synthetic journey, and restore or failover or chaos evidence requirements.
+        - `readinessState = ready` is impossible on stale rehearsal evidence or stale runbook bindings.
+        - The same release tuple feeds operations boards, governed handoff, release watch, and recovery activation.
+        - This is the direct closure for Finding 112: no loose dashboard, wiki runbook, or remembered drill remains live authority once the readiness tuple drifts.
+        """
+    ).strip()
+
+
+def render_incident_doc(payload: dict[str, Any]) -> str:
+    routes = render_table(
+        ["Route", "Family", "Severity", "Audit", "Reportability", "CAPA", "On-call route"],
+        [
+            [
+                row["routing_id"],
+                row["incident_family"],
+                row["severity"],
+                row["immutable_audit_required"],
+                row["reportability_assessment_required"],
+                row["capa_workstream_ref"],
+                row["on_call_route"],
+            ]
+            for row in payload["incident_and_alert_routes"]
+        ],
+    )
+    return textwrap.dedent(
+        f"""
+        # 15 Incident Audit And Assurance Tooling
+
+        The incident baseline is a just-culture incident desk with near-miss intake, immutable audit, evidence preservation, reportability assessment, post-incident review, and assurance-ledger writeback.
+
+        ## Alert And Incident Routing Matrix
+
+        {routes}
+
+        ## Incident Law
+
+        - Near miss is first-class and may open CAPA without waiting for a major breach.
+        - Break-glass, tenant switch, support replay, and telemetry disclosure violations are always immutable audit classes.
+        - Incident, replay, governance export, and release follow-up all consume the same assurance graph and evidence lineage.
+        - Any path lacking immutable audit, reportability review, and CAPA linkage is invalid by design.
+        """
+    ).strip()
+
+
+def render_cockpit_html(payload: dict[str, Any]) -> str:
+    json_payload = json.dumps(payload, separators=(",", ":")).replace("</", "<\\/")
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vecells Release Evidence Cockpit</title>
+  <link rel="icon" href="data:," />
+  <style>
+    :root {{
+      color-scheme: light;
+      --canvas: #f4f6f8;
+      --shell: #ffffff;
+      --panel: rgba(255, 255, 255, 0.96);
+      --panel-strong: #eef2f6;
+      --ink: #11202f;
+      --ink-muted: #435466;
+      --border: #d2dae3;
+      --border-strong: #b7c2cf;
+      --signal: #0b69c7;
+      --trust: #0c8c74;
+      --warning: #b27305;
+      --critical: #b42318;
+      --focus: 2px solid var(--signal);
+      --focus-offset: 2px;
+      --shadow: 0 18px 46px rgba(17, 32, 47, 0.08);
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 10px;
+      --rail: 280px;
+      --rail-collapsed: 72px;
+      --max: 1440px;
+      --motion-fast: 120ms;
+      --motion-base: 180ms;
+      --motion-slow: 240ms;
+    }}
+    * {{ box-sizing: border-box; }}
+    html, body {{
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top left, rgba(11, 105, 199, 0.08), transparent 24%),
+        radial-gradient(circle at top right, rgba(12, 140, 116, 0.07), transparent 24%),
+        linear-gradient(180deg, #fbfcfd 0%, var(--canvas) 100%);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }}
+    body {{
+      transition: background var(--motion-base) ease;
+    }}
+    a {{ color: inherit; }}
+    button, input, select {{
+      font: inherit;
+      color: inherit;
+    }}
+    button {{
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--shell);
+    }}
+    :focus-visible {{
+      outline: var(--focus);
+      outline-offset: var(--focus-offset);
+    }}
+    .app {{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: var(--rail) minmax(0, 1fr);
+      gap: 24px;
+    }}
+    body[data-rail-state="collapsed"] .app {{
+      grid-template-columns: var(--rail-collapsed) minmax(0, 1fr);
+    }}
+    .panel {{
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }}
+    aside {{
+      position: sticky;
+      top: 20px;
+      align-self: start;
+      padding: 20px;
+      display: grid;
+      gap: 18px;
+      min-height: calc(100vh - 48px);
+    }}
+    body[data-rail-state="collapsed"] aside {{
+      padding: 20px 12px;
+    }}
+    .brand {{
+      display: grid;
+      grid-template-columns: 52px minmax(0, 1fr);
+      gap: 14px;
+      align-items: center;
+    }}
+    body[data-rail-state="collapsed"] .brand {{
+      grid-template-columns: 1fr;
+      justify-items: center;
+    }}
+    .brand-mark {{
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background:
+        linear-gradient(180deg, rgba(11,105,199,0.14), rgba(12,140,116,0.12)),
+        var(--shell);
+      border: 1px solid rgba(11, 105, 199, 0.16);
+      display: grid;
+      place-items: center;
+      color: var(--signal);
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      font-size: 15px;
+    }}
+    .brand-copy h1 {{
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }}
+    .brand-copy p {{
+      margin: 6px 0 0;
+      font-size: 13px;
+      color: var(--ink-muted);
+      line-height: 1.45;
+    }}
+    body[data-rail-state="collapsed"] .brand-copy {{
+      display: none;
+    }}
+    .rail-toggle {{
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-radius: 12px;
+      padding: 10px 12px;
+    }}
+    .rail-toggle span:last-child {{
+      color: var(--ink-muted);
+      font-size: 12px;
+    }}
+    body[data-rail-state="collapsed"] .rail-toggle {{
+      justify-content: center;
+      padding: 10px;
+    }}
+    body[data-rail-state="collapsed"] .rail-toggle span:last-child {{
+      display: none;
+    }}
+    .filter-stack {{
+      display: grid;
+      gap: 12px;
+    }}
+    .filter-block {{
+      display: grid;
+      gap: 6px;
+    }}
+    .filter-block label {{
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+    }}
+    .filter-block select {{
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      background: var(--shell);
+    }}
+    body[data-rail-state="collapsed"] .filter-stack {{
+      display: none;
+    }}
+    .rail-notes {{
+      display: grid;
+      gap: 10px;
+      padding-top: 4px;
+      border-top: 1px solid var(--border);
+    }}
+    .rail-note {{
+      display: grid;
+      gap: 4px;
+    }}
+    .rail-note strong {{
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+    }}
+    .rail-note span {{
+      font-size: 13px;
+      line-height: 1.45;
+    }}
+    body[data-rail-state="collapsed"] .rail-notes {{
+      display: none;
+    }}
+    main {{
+      display: grid;
+      gap: 24px;
+    }}
+    .hero {{
+      padding: 24px;
+      display: grid;
+      gap: 20px;
+    }}
+    .hero-top {{
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: start;
+    }}
+    .hero-copy {{
+      display: grid;
+      gap: 8px;
+      max-width: 820px;
+    }}
+    .hero-copy p {{
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.55;
+      color: var(--ink-muted);
+    }}
+    .hero-copy h2 {{
+      margin: 0;
+      font-size: 34px;
+      line-height: 1.08;
+    }}
+    .hero-chip {{
+      border: 1px solid rgba(11, 105, 199, 0.18);
+      background: rgba(11, 105, 199, 0.06);
+      color: var(--signal);
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }}
+    .hero-grid {{
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }}
+    .stat {{
+      padding: 16px;
+      border-radius: var(--radius-md);
+      background: var(--panel-strong);
+      border: 1px solid var(--border);
+      display: grid;
+      gap: 6px;
+      min-height: 96px;
+    }}
+    .stat strong {{
+      font-size: 28px;
+      line-height: 1;
+    }}
+    .stat span {{
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+    }}
+    .grid-two {{
+      display: grid;
+      gap: 24px;
+      grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+    }}
+    .matrix-panel, .inspector-panel, .bottom-grid > section {{
+      padding: 20px;
+      display: grid;
+      gap: 16px;
+    }}
+    .section-head {{
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 12px;
+    }}
+    .section-head h3 {{
+      margin: 0;
+      font-size: 18px;
+    }}
+    .section-head p {{
+      margin: 6px 0 0;
+      color: var(--ink-muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }}
+    .matrix-table, .mini-table {{
+      width: 100%;
+      border-collapse: collapse;
+    }}
+    .matrix-table th, .matrix-table td,
+    .mini-table th, .mini-table td {{
+      text-align: left;
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      font-size: 14px;
+    }}
+    .matrix-table th, .mini-table th {{
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+    }}
+    .row-button {{
+      width: 100%;
+      text-align: left;
+      display: grid;
+      gap: 4px;
+      border: 0;
+      background: transparent;
+      padding: 0;
+    }}
+    .row-button strong {{
+      font-size: 14px;
+    }}
+    .badge {{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+      background: var(--shell);
+      font-size: 12px;
+      color: var(--ink-muted);
+      white-space: nowrap;
+    }}
+    .badge.live {{
+      border-color: rgba(12, 140, 116, 0.22);
+      color: var(--trust);
+      background: rgba(12, 140, 116, 0.08);
+    }}
+    .badge.warn {{
+      border-color: rgba(178, 115, 5, 0.22);
+      color: var(--warning);
+      background: rgba(178, 115, 5, 0.08);
+    }}
+    .badge.critical {{
+      border-color: rgba(180, 35, 24, 0.22);
+      color: var(--critical);
+      background: rgba(180, 35, 24, 0.08);
+    }}
+    .tuple-list {{
+      display: grid;
+      gap: 10px;
+    }}
+    .tuple-card {{
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+      background: rgba(255,255,255,0.88);
+    }}
+    .tuple-card button {{
+      border: 0;
+      background: transparent;
+      padding: 0;
+      text-align: left;
+      display: grid;
+      gap: 4px;
+    }}
+    .tuple-card small, .muted {{
+      color: var(--ink-muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }}
+    .kv {{
+      display: grid;
+      gap: 10px;
+    }}
+    .kv-row {{
+      display: grid;
+      gap: 4px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }}
+    .kv-row:last-child {{
+      border-bottom: 0;
+      padding-bottom: 0;
+    }}
+    .kv-row strong {{
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+    }}
+    .bottom-grid {{
+      display: grid;
+      gap: 24px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }}
+    .issue-list {{
+      display: grid;
+      gap: 10px;
+    }}
+    .issue-card {{
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      display: grid;
+      gap: 6px;
+      background: rgba(255,255,255,0.88);
+    }}
+    .selection-state {{
+      padding: 14px 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background: rgba(17, 32, 47, 0.04);
+      font-size: 13px;
+      color: var(--ink-muted);
+    }}
+    .selection-state code {{
+      color: var(--ink);
+      background: rgba(17, 32, 47, 0.06);
+      padding: 3px 6px;
+      border-radius: 8px;
+    }}
+    .empty {{
+      padding: 16px;
+      border-radius: var(--radius-md);
+      border: 1px dashed var(--border-strong);
+      color: var(--ink-muted);
+      background: rgba(255,255,255,0.72);
+      font-size: 14px;
+      line-height: 1.5;
+    }}
+    @media (max-width: 1200px) {{
+      .hero-grid {{
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }}
+      .bottom-grid {{
+        grid-template-columns: 1fr;
+      }}
+    }}
+    @media (max-width: 980px) {{
+      .app {{
+        grid-template-columns: 1fr;
+      }}
+      body[data-rail-state="collapsed"] .app {{
+        grid-template-columns: 1fr;
+      }}
+      aside {{
+        position: static;
+        min-height: auto;
+      }}
+      .grid-two {{
+        grid-template-columns: 1fr;
+      }}
+    }}
+    @media (max-width: 720px) {{
+      .app {{
+        padding: 16px;
+      }}
+      .hero {{
+        padding: 18px;
+      }}
+      .hero-top {{
+        flex-direction: column;
+      }}
+      .hero-grid {{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }}
+      .matrix-panel, .inspector-panel, .bottom-grid > section {{
+        padding: 16px;
+      }}
+    }}
+    @media (max-width: 480px) {{
+      .hero-grid {{
+        grid-template-columns: 1fr 1fr;
+      }}
+      .brand {{
+        grid-template-columns: 44px minmax(0, 1fr);
+      }}
+      .brand-mark {{
+        width: 44px;
+        height: 44px;
+      }}
+    }}
+    @media (prefers-reduced-motion: reduce) {{
+      *, *::before, *::after {{
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+        scroll-behavior: auto !important;
+      }}
+    }}
+  </style>
+</head>
+<body data-rail-state="expanded" data-breakpoint-class="desktop">
+  <script id="cockpit-data" type="application/json">{json_payload}</script>
+  <div class="app" data-testid="cockpit-shell">
+    <aside class="panel" aria-label="Cockpit filters" data-testid="left-rail">
+      <div class="brand">
+        <div class="brand-mark">VX</div>
+        <div class="brand-copy">
+          <h1>Release Evidence</h1>
+          <p>One cockpit for gates, tuples, recovery authority, and PHI-safe release proof.</p>
+        </div>
+      </div>
+      <button type="button" class="rail-toggle" id="rail-toggle" data-testid="rail-toggle" aria-expanded="true">
+        <span>Collapse rail</span>
+        <span>280 / 72</span>
+      </button>
+      <div class="filter-stack" role="form" aria-label="Cockpit filters">
+        <div class="filter-block">
+          <label for="filter-gate">Gate</label>
+          <select id="filter-gate" data-testid="filter-gate"></select>
+        </div>
+        <div class="filter-block">
+          <label for="filter-tooling-family">Tooling family</label>
+          <select id="filter-tooling-family" data-testid="filter-tooling-family"></select>
+        </div>
+        <div class="filter-block">
+          <label for="filter-essential-function">Essential function</label>
+          <select id="filter-essential-function" data-testid="filter-essential-function"></select>
+        </div>
+        <div class="filter-block">
+          <label for="filter-tenant-scope">Tenant scope</label>
+          <select id="filter-tenant-scope" data-testid="filter-tenant-scope"></select>
+        </div>
+        <div class="filter-block">
+          <label for="filter-trust-slice">Trust slice</label>
+          <select id="filter-trust-slice" data-testid="filter-trust-slice"></select>
+        </div>
+        <div class="filter-block">
+          <label for="filter-gap">Unresolved gap</label>
+          <select id="filter-gap" data-testid="filter-gap"></select>
+        </div>
+      </div>
+      <div class="rail-notes">
+        <div class="rail-note">
+          <strong>Authority law</strong>
+          <span>Stage settlement, runtime publication, watch tuple, and readiness snapshot stay machine-readable.</span>
+        </div>
+        <div class="rail-note">
+          <strong>Disclosure law</strong>
+          <span>Correlation is mandatory. Raw PHI in telemetry is forbidden.</span>
+        </div>
+      </div>
+    </aside>
+    <main>
+      <section class="panel hero">
+        <div class="hero-top">
+          <div class="hero-copy">
+            <div class="hero-chip">Quiet Clarity Release Evidence Cockpit</div>
+            <h2>Published tuple authority for release, readiness, and recovery.</h2>
+            <p>{MISSION}</p>
+          </div>
+          <div class="hero-chip">Local-first, no hidden CI truth</div>
+        </div>
+        <div class="hero-grid" data-testid="hero-strip" id="hero-strip"></div>
+      </section>
+
+      <div class="selection-state" id="selection-state" data-testid="selection-state" data-selected-gate="" data-watch-tuple-hash="" data-selected-essential-function="" data-alert-state="" data-provenance-state="">
+        <span>Selected gate <code id="selected-gate-code"></code></span>
+        <span>Watch tuple <code id="selected-watch-code"></code></span>
+        <span>Essential function <code id="selected-function-code"></code></span>
+        <span>Alert state <code id="selected-alert-code"></code></span>
+        <span>Provenance <code id="selected-provenance-code"></code></span>
+      </div>
+
+      <div class="grid-two">
+        <section class="panel matrix-panel">
+          <div class="section-head">
+            <div>
+              <h3>Gate Matrix</h3>
+              <p>Gate 0-5 coverage stays bound to exact scenario and contract matrix tuples.</p>
+            </div>
+            <span class="badge live" id="gate-count-badge"></span>
+          </div>
+          <table class="matrix-table" data-testid="gate-matrix">
+            <thead>
+              <tr>
+                <th>Gate</th>
+                <th>Ring</th>
+                <th>Tuple</th>
+                <th>Objects</th>
+                <th>State</th>
+              </tr>
+            </thead>
+            <tbody id="gate-matrix-body"></tbody>
+          </table>
+          <div class="empty" id="gate-empty" hidden>No gate rows match the current filters.</div>
+        </section>
+
+        <section class="panel inspector-panel" data-testid="watch-tuple-inspector">
+          <div class="section-head">
+            <div>
+              <h3>Watch Tuple Inspector</h3>
+              <p>Promotion, parity, guardrails, and recovery posture stay on one exact watch tuple.</p>
+            </div>
+          </div>
+          <div class="tuple-list" id="tuple-list"></div>
+          <div class="kv" id="tuple-inspector"></div>
+        </section>
+      </div>
+
+      <div class="bottom-grid">
+        <section class="panel" data-testid="essential-function-panel">
+          <div class="section-head">
+            <div>
+              <h3>Essential Functions</h3>
+              <p>SLOs, alert posture, fallback sufficiency, synthetic coverage, and recovery proof stay joined.</p>
+            </div>
+          </div>
+          <table class="mini-table">
+            <thead>
+              <tr>
+                <th>Function</th>
+                <th>SLO</th>
+                <th>Alert</th>
+              </tr>
+            </thead>
+            <tbody id="essential-body"></tbody>
+          </table>
+          <div class="empty" id="essential-empty" hidden>No essential-function rows match the current filters.</div>
+          <div class="kv" id="essential-inspector"></div>
+        </section>
+
+        <section class="panel" data-testid="provenance-panel">
+          <div class="section-head">
+            <div>
+              <h3>Provenance And Security</h3>
+              <p>Signing, SBOM, scanner posture, and policy exceptions remain live tuple members.</p>
+            </div>
+          </div>
+          <div class="kv" id="provenance-inspector"></div>
+        </section>
+
+        <section class="panel" data-testid="incident-panel">
+          <div class="section-head">
+            <div>
+              <h3>Incident And Resilience</h3>
+              <p>Readiness freshness, restore evidence, near misses, and open gaps stay operationally visible.</p>
+            </div>
+          </div>
+          <div class="kv" id="incident-inspector"></div>
+          <div class="issue-list" id="issue-list"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script>
+    const payload = JSON.parse(document.getElementById("cockpit-data").textContent);
+    const state = {{
+      filters: {{
+        gateId: "all",
+        toolingFamilyId: "all",
+        essentialFunctionId: "all",
+        tenantScope: "all",
+        trustSlice: "all",
+        gapMode: "all",
+      }},
+      selectedGateId: "GATE_5_LIVE_WAVE_PROOF",
+      selectedWatchTupleId: "RWT_PROD_CANARY_A",
+      selectedEssentialFunctionId: "EF_BOOKING_AND_CAPACITY_COMMIT",
+    }};
+
+    const elements = {{
+      filterGate: document.getElementById("filter-gate"),
+      filterFamily: document.getElementById("filter-tooling-family"),
+      filterFunction: document.getElementById("filter-essential-function"),
+      filterTenant: document.getElementById("filter-tenant-scope"),
+      filterTrust: document.getElementById("filter-trust-slice"),
+      filterGap: document.getElementById("filter-gap"),
+      gateBody: document.getElementById("gate-matrix-body"),
+      gateEmpty: document.getElementById("gate-empty"),
+      gateCountBadge: document.getElementById("gate-count-badge"),
+      tupleList: document.getElementById("tuple-list"),
+      tupleInspector: document.getElementById("tuple-inspector"),
+      essentialBody: document.getElementById("essential-body"),
+      essentialEmpty: document.getElementById("essential-empty"),
+      essentialInspector: document.getElementById("essential-inspector"),
+      provenanceInspector: document.getElementById("provenance-inspector"),
+      incidentInspector: document.getElementById("incident-inspector"),
+      issueList: document.getElementById("issue-list"),
+      heroStrip: document.getElementById("hero-strip"),
+      selectionState: document.getElementById("selection-state"),
+      selectedGateCode: document.getElementById("selected-gate-code"),
+      selectedWatchCode: document.getElementById("selected-watch-code"),
+      selectedFunctionCode: document.getElementById("selected-function-code"),
+      selectedAlertCode: document.getElementById("selected-alert-code"),
+      selectedProvenanceCode: document.getElementById("selected-provenance-code"),
+      railToggle: document.getElementById("rail-toggle"),
+    }};
+
+    function splitValues(value) {{
+      if (!value) return [];
+      if (Array.isArray(value)) return value;
+      return String(value)
+        .split(";")
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }}
+
+    function unique(values) {{
+      return Array.from(new Set(values));
+    }}
+
+    function issueMap() {{
+      const rows = [...payload.gaps, ...payload.risks];
+      return new Map(rows.map((row) => [row.issue_id, row]));
+    }}
+
+    function getSelectedGate() {{
+      return payload.release_gates.find((row) => row.gate_id === state.selectedGateId) || payload.release_gates[0];
+    }}
+
+    function getSelectedTuple() {{
+      return payload.watch_tuples.find((row) => row.watch_tuple_id === state.selectedWatchTupleId) || payload.watch_tuples[0];
+    }}
+
+    function getSelectedFunction() {{
+      return payload.essential_functions.find((row) => row.essential_function_id === state.selectedEssentialFunctionId) || payload.essential_functions[0];
+    }}
+
+    function statusClass(value) {{
+      if (!value) return "";
+      const text = String(value).toLowerCase();
+      if (text.includes("green") || text.includes("exact") || text.includes("ready") || text.includes("live") || text.includes("publishable")) return "live";
+      if (text.includes("constrained") || text.includes("warn") || text.includes("stale") || text.includes("degraded")) return "warn";
+      if (text.includes("blocked") || text.includes("critical") || text.includes("quarantined")) return "critical";
+      return "";
+    }}
+
+    function matchesGapFilter(linkedGapRefs) {{
+      const refs = splitValues(linkedGapRefs);
+      if (state.filters.gapMode === "all") return true;
+      if (state.filters.gapMode === "open_only") return refs.length > 0;
+      return refs.length === 0;
+    }}
+
+    function matchesCommonFilters(row) {{
+      const familyValues = splitValues(row.primary_tooling_family_refs || row.baseline_tooling_family_ref || row.linked_family_refs || []);
+      const functionValues = splitValues(row.linked_essential_function_refs || row.essential_function_id || []);
+      const tenantValue = row.tenant_scope_mode || row.tenant_scope_class || "unknown";
+      const trustValue = row.trust_slice_code || "unknown";
+      if (state.filters.gateId !== "all" && row.gate_id && row.gate_id !== state.filters.gateId) return false;
+      if (state.filters.toolingFamilyId !== "all" && !familyValues.includes(state.filters.toolingFamilyId)) return false;
+      if (state.filters.essentialFunctionId !== "all" && !functionValues.includes(state.filters.essentialFunctionId)) return false;
+      if (state.filters.tenantScope !== "all" && tenantValue !== state.filters.tenantScope) return false;
+      if (state.filters.trustSlice !== "all" && trustValue !== state.filters.trustSlice) return false;
+      if (!matchesGapFilter(row.linked_gap_refs || row.linkedGapRefs || [])) return false;
+      return true;
+    }}
+
+    function fillSelect(select, options, selectedValue) {{
+      select.innerHTML = options
+        .map((option) => `<option value="${{option.value}}">${{option.label}}</option>`)
+        .join("");
+      select.value = selectedValue;
+    }}
+
+    function initFilters() {{
+      fillSelect(
+        elements.filterGate,
+        [
+          {{ value: "all", label: "All gates" }},
+          ...payload.release_gates.map((row) => ({{ value: row.gate_id, label: row.gate_name }})),
+        ],
+        state.filters.gateId
+      );
+      fillSelect(
+        elements.filterFamily,
+        [
+          {{ value: "all", label: "All tooling families" }},
+          ...payload.tooling_families.map((row) => ({{ value: row.tooling_family_id, label: row.tooling_family_name }})),
+        ],
+        state.filters.toolingFamilyId
+      );
+      fillSelect(
+        elements.filterFunction,
+        [
+          {{ value: "all", label: "All essential functions" }},
+          ...payload.essential_functions.map((row) => ({{ value: row.essential_function_id, label: row.essential_function_name }})),
+        ],
+        state.filters.essentialFunctionId
+      );
+      fillSelect(
+        elements.filterTenant,
+        [
+          {{ value: "all", label: "All tenant scopes" }},
+          ...unique([
+            ...payload.release_gates.map((row) => row.tenant_scope_mode),
+            ...payload.essential_functions.map((row) => row.tenant_scope_mode),
+            ...payload.watch_tuples.map((row) => row.tenant_scope_mode),
+          ]).map((value) => ({{ value, label: value }})),
+        ],
+        state.filters.tenantScope
+      );
+      fillSelect(
+        elements.filterTrust,
+        [
+          {{ value: "all", label: "All trust slices" }},
+          ...unique([
+            ...payload.release_gates.map((row) => row.trust_slice_code),
+            ...payload.essential_functions.map((row) => row.trust_slice_code),
+            ...payload.watch_tuples.map((row) => row.trust_slice_code),
+          ]).map((value) => ({{ value, label: value }})),
+        ],
+        state.filters.trustSlice
+      );
+      fillSelect(
+        elements.filterGap,
+        [
+          {{ value: "all", label: "All rows" }},
+          {{ value: "open_only", label: "Rows with open gaps" }},
+          {{ value: "no_gap", label: "Rows without open gaps" }},
+        ],
+        state.filters.gapMode
+      );
+    }}
+
+    function attachFilterHandlers() {{
+      elements.filterGate.addEventListener("change", (event) => {{
+        state.filters.gateId = event.target.value;
+        if (state.filters.gateId !== "all") {{
+          state.selectedGateId = state.filters.gateId;
+        }}
+        render();
+      }});
+      elements.filterFamily.addEventListener("change", (event) => {{
+        state.filters.toolingFamilyId = event.target.value;
+        render();
+      }});
+      elements.filterFunction.addEventListener("change", (event) => {{
+        state.filters.essentialFunctionId = event.target.value;
+        if (state.filters.essentialFunctionId !== "all") {{
+          state.selectedEssentialFunctionId = state.filters.essentialFunctionId;
+        }}
+        render();
+      }});
+      elements.filterTenant.addEventListener("change", (event) => {{
+        state.filters.tenantScope = event.target.value;
+        render();
+      }});
+      elements.filterTrust.addEventListener("change", (event) => {{
+        state.filters.trustSlice = event.target.value;
+        render();
+      }});
+      elements.filterGap.addEventListener("change", (event) => {{
+        state.filters.gapMode = event.target.value;
+        render();
+      }});
+      elements.railToggle.addEventListener("click", () => {{
+        const next = document.body.dataset.railState === "collapsed" ? "expanded" : "collapsed";
+        document.body.dataset.railState = next;
+        elements.railToggle.setAttribute("aria-expanded", String(next === "expanded"));
+        elements.railToggle.querySelector("span").textContent = next === "expanded" ? "Collapse rail" : "Expand rail";
+      }});
+      window.addEventListener("resize", updateBreakpointClass);
+    }}
+
+    function updateBreakpointClass() {{
+      const width = window.innerWidth;
+      let next = "desktop";
+      if (width < 480) next = "mobile";
+      else if (width < 900) next = "tablet";
+      else if (width < 1200) next = "laptop";
+      document.body.dataset.breakpointClass = next;
+    }}
+
+    function renderHero() {{
+      const summary = payload.summary;
+      const stats = [
+        {{ value: summary.release_gate_count, label: "Gates" }},
+        {{ value: summary.evidence_artifact_count, label: "Evidence artifacts" }},
+        {{ value: summary.active_watch_tuple_count, label: "Active watch tuples" }},
+        {{ value: summary.essential_function_count, label: "Essential functions" }},
+        {{ value: summary.alert_route_count, label: "Alert routes" }},
+        {{ value: summary.unresolved_risk_count, label: "Unresolved risks" }},
+      ];
+      elements.heroStrip.innerHTML = stats
+        .map((item) => `<div class="stat"><strong>${{item.value}}</strong><span>${{item.label}}</span></div>`)
+        .join("");
+    }}
+
+    function renderGateMatrix() {{
+      const filtered = payload.release_gates.filter((row) => matchesCommonFilters(row));
+      if (!filtered.find((row) => row.gate_id === state.selectedGateId) && filtered[0]) {{
+        state.selectedGateId = filtered[0].gate_id;
+      }}
+      elements.gateCountBadge.textContent = `${{filtered.length}} visible`;
+      elements.gateBody.innerHTML = filtered
+        .map((row) => {{
+          const selected = row.gate_id === state.selectedGateId;
+          return `
+            <tr data-gate-id="${{row.gate_id}}" data-tenant-scope="${{row.tenant_scope_mode}}" data-trust-slice="${{row.trust_slice_code}}">
+              <td>
+                <button type="button" class="row-button" data-gate-button="${{row.gate_id}}" aria-pressed="${{selected ? "true" : "false"}}">
+                  <strong>${{row.gate_name}}</strong>
+                  <span class="muted">${{row.candidate_scope}}</span>
+                </button>
+              </td>
+              <td>${{row.environment_ring}}</td>
+              <td><span class="badge ${{statusClass(row.contract_matrix_binding)}}">${{row.contract_matrix_binding}}</span></td>
+              <td>${{splitValues(row.must_publish_object_refs).slice(0, 3).join(", ")}}</td>
+              <td><span class="badge ${{statusClass(row.linked_watch_tuple_state)}}">${{row.linked_watch_tuple_state}}</span></td>
+            </tr>
+          `;
+        }})
+        .join("");
+      elements.gateEmpty.hidden = filtered.length > 0;
+      elements.gateBody.querySelectorAll("[data-gate-button]").forEach((button) => {{
+        button.addEventListener("click", () => {{
+          state.selectedGateId = button.dataset.gateButton;
+          const selectedGate = getSelectedGate();
+          const tuple = payload.watch_tuples.find((row) => splitValues(row.linked_gate_refs).includes(selectedGate.gate_id));
+          if (tuple) state.selectedWatchTupleId = tuple.watch_tuple_id;
+          render();
+        }});
+      }});
+    }}
+
+    function renderWatchTuples() {{
+      const filtered = payload.watch_tuples.filter((row) => matchesCommonFilters(row));
+      if (!filtered.find((row) => row.watch_tuple_id === state.selectedWatchTupleId) && filtered[0]) {{
+        state.selectedWatchTupleId = filtered[0].watch_tuple_id;
+      }}
+      elements.tupleList.innerHTML = filtered
+        .map((row) => {{
+          const selected = row.watch_tuple_id === state.selectedWatchTupleId;
+          return `
+            <div class="tuple-card" data-watch-tuple-id="${{row.watch_tuple_id}}" data-watch-tuple-hash="${{row.tuple_hash}}">
+              <button type="button" data-watch-button="${{row.watch_tuple_id}}" aria-pressed="${{selected ? "true" : "false"}}">
+                <strong>${{row.watch_tuple_id}}</strong>
+                <small>${{row.environment_ring}} • ${{
+                  row.publication_parity_state
+                }} parity • ${{
+                  row.guardrail_state
+                }} guardrail</small>
+              </button>
+              <div>
+                <span class="badge ${{statusClass(row.provenance_state)}}">${{row.provenance_state}}</span>
+                <span class="badge ${{statusClass(row.guardrail_state)}}">${{row.guardrail_state}}</span>
+              </div>
+            </div>
+          `;
+        }})
+        .join("");
+      elements.tupleList.querySelectorAll("[data-watch-button]").forEach((button) => {{
+        button.addEventListener("click", () => {{
+          state.selectedWatchTupleId = button.dataset.watchButton;
+          render();
+        }});
+      }});
+
+      const tuple = getSelectedTuple();
+      const linkedGate = payload.release_gates.find((row) => splitValues(tuple.linked_gate_refs).includes(row.gate_id));
+      elements.tupleInspector.innerHTML = `
+        <div class="kv-row"><strong>Tuple hash</strong><span>${{tuple.tuple_hash}}</span></div>
+        <div class="kv-row"><strong>Release</strong><span>${{tuple.release_ref}}</span></div>
+        <div class="kv-row"><strong>Observation policy</strong><span>${{tuple.observation_policy_ref}}</span></div>
+        <div class="kv-row"><strong>Guardrail and parity</strong><span>${{tuple.guardrail_state}} guardrail • ${{tuple.publication_parity_state}} parity • ${{tuple.provenance_state}} provenance</span></div>
+        <div class="kv-row"><strong>Recovery dispositions</strong><span>${{splitValues(tuple.recovery_disposition_refs).join(", ") || "None"}}</span></div>
+        <div class="kv-row"><strong>Gate binding</strong><span>${{linkedGate ? linkedGate.gate_name : "History only"}}</span></div>
+      `;
+    }}
+
+    function renderEssentialFunctions() {{
+      const filtered = payload.essential_functions.filter((row) => matchesCommonFilters(row));
+      if (!filtered.find((row) => row.essential_function_id === state.selectedEssentialFunctionId) && filtered[0]) {{
+        state.selectedEssentialFunctionId = filtered[0].essential_function_id;
+      }}
+      elements.essentialBody.innerHTML = filtered
+        .map((row) => {{
+          const selected = row.essential_function_id === state.selectedEssentialFunctionId;
+          return `
+            <tr data-essential-function="${{row.essential_function_id}}">
+              <td>
+                <button type="button" class="row-button" data-function-button="${{row.essential_function_id}}" aria-pressed="${{selected ? "true" : "false"}}">
+                  <strong>${{row.essential_function_name}}</strong>
+                  <span class="muted">${{splitValues(row.route_family_refs).join(", ")}}</span>
+                </button>
+              </td>
+              <td>${{row.slo_target}}</td>
+              <td><span class="badge warn">${{row.alert_route_ref}}</span></td>
+            </tr>
+          `;
+        }})
+        .join("");
+      elements.essentialEmpty.hidden = filtered.length > 0;
+      elements.essentialBody.querySelectorAll("[data-function-button]").forEach((button) => {{
+        button.addEventListener("click", () => {{
+          state.selectedEssentialFunctionId = button.dataset.functionButton;
+          render();
+        }});
+      }});
+
+      const fn = getSelectedFunction();
+      elements.essentialInspector.innerHTML = `
+        <div class="kv-row"><strong>Primary SLI</strong><span>${{fn.sli_name}}</span></div>
+        <div class="kv-row"><strong>Alert threshold</strong><span>${{fn.alert_threshold}}</span></div>
+        <div class="kv-row"><strong>Dashboard and synthetic</strong><span>${{fn.dashboard_pack_ref}} • ${{fn.synthetic_journey_ref}}</span></div>
+        <div class="kv-row"><strong>Fallback sufficiency</strong><span>${{fn.fallback_sufficiency_state}}</span></div>
+        <div class="kv-row"><strong>Recovery evidence</strong><span>${{splitValues(fn.required_restore_evidence_refs).join(", ")}} • ${{splitValues(fn.required_failover_evidence_refs).join(", ")}} • ${{splitValues(fn.required_chaos_evidence_refs).join(", ")}}</span></div>
+      `;
+    }}
+
+    function renderProvenancePanel() {{
+      const selectedGate = getSelectedGate();
+      const selectedTuple = getSelectedTuple();
+      const stageRows = payload.supply_chain_and_provenance.pipeline_stage_chain
+        .filter((row) => splitValues(selectedGate.primary_tooling_family_refs).some((ref) => splitValues(row.family_refs).includes(ref)))
+        .slice(0, 4);
+      const openGapCount = payload.gaps.filter((gap) => splitValues(gap.linked_gate_refs).includes(selectedGate.gate_id)).length;
+      elements.provenanceInspector.innerHTML = `
+        <div class="kv-row"><strong>Selected gate families</strong><span>${{splitValues(selectedGate.primary_tooling_family_refs).join(", ")}}</span></div>
+        <div class="kv-row"><strong>Mandatory published objects</strong><span>${{splitValues(selectedGate.must_publish_object_refs).join(", ")}}</span></div>
+        <div class="kv-row"><strong>Stage chain focus</strong><span>${{stageRows.map((row) => row.stage_code).join(", ")}}</span></div>
+        <div class="kv-row"><strong>Current tuple integrity</strong><span>${{selectedTuple.provenance_state}} provenance • ${{selectedTuple.publication_parity_state}} parity • ${{payload.supply_chain_and_provenance.hidden_ci_only_state_forbidden ? "hidden CI state forbidden" : "invalid"}}</span></div>
+        <div class="kv-row"><strong>Open supply-chain gaps</strong><span>${{openGapCount}}</span></div>
+      `;
+    }}
+
+    function renderIncidentPanel() {{
+      const fn = getSelectedFunction();
+      const selectedTuple = getSelectedTuple();
+      const linkedRoutes = payload.incident_and_alert_routes.filter((row) => row.essential_function_id === fn.essential_function_id);
+      const readiness = payload.readiness_snapshots.find((row) => row.linked_watch_tuple_ref === selectedTuple.watch_tuple_id) || payload.readiness_snapshots[0];
+      elements.incidentInspector.innerHTML = `
+        <div class="kv-row"><strong>Readiness snapshot</strong><span>${{readiness.snapshot_id}} • ${{readiness.readiness_state}} • rehearsal ${{readiness.rehearsal_freshness_state}}</span></div>
+        <div class="kv-row"><strong>Latest recovery evidence</strong><span>${{readiness.latest_restore_run_ref}} • ${{readiness.latest_failover_run_ref}} • ${{readiness.latest_chaos_run_ref}}</span></div>
+        <div class="kv-row"><strong>Alert routes in scope</strong><span>${{linkedRoutes.map((row) => row.routing_id).join(", ") || "No direct routes in scope"}}</span></div>
+        <div class="kv-row"><strong>Near-miss and CAPA law</strong><span>Near miss stays first-class; immutable audit, reportability review, and CAPA writeback remain mandatory where configured.</span></div>
+      `;
+
+      const issues = [...payload.gaps, ...payload.risks].filter((row) => {{
+        const families = splitValues(row.linked_family_refs);
+        const functions = splitValues(row.linked_essential_function_refs);
+        const gates = splitValues(row.linked_gate_refs);
+        if (state.filters.gapMode === "open_only" && row.issue_type !== "gap") return false;
+        if (state.filters.gapMode === "no_gap" && row.issue_type === "gap") return false;
+        if (state.filters.toolingFamilyId !== "all" && !families.includes(state.filters.toolingFamilyId)) return false;
+        if (state.filters.essentialFunctionId !== "all" && !functions.includes(state.filters.essentialFunctionId)) return false;
+        if (state.filters.gateId !== "all" && !gates.includes(state.filters.gateId)) return false;
+        return true;
+      }});
+      elements.issueList.innerHTML = issues
+        .map((row) => `
+          <div class="issue-card" data-issue-id="${{row.issue_id}}">
+            <span class="badge ${{row.issue_type === "gap" ? "warn" : "critical"}}">${{row.issue_type}}</span>
+            <strong>${{row.title}}</strong>
+            <span class="muted">${{row.summary}}</span>
+          </div>
+        `)
+        .join("");
+      if (!issues.length) {{
+        elements.issueList.innerHTML = `<div class="empty">No unresolved issues match the current filters.</div>`;
+      }}
+    }}
+
+    function renderSelectionState() {{
+      const gate = getSelectedGate();
+      const tuple = getSelectedTuple();
+      const fn = getSelectedFunction();
+      const alertState = tuple.guardrail_state === "green" ? "stable" : "guarded";
+      const provenanceState = tuple.provenance_state;
+      elements.selectionState.dataset.selectedGate = gate.gate_id;
+      elements.selectionState.dataset.watchTupleHash = tuple.tuple_hash;
+      elements.selectionState.dataset.selectedEssentialFunction = fn.essential_function_id;
+      elements.selectionState.dataset.alertState = alertState;
+      elements.selectionState.dataset.provenanceState = provenanceState;
+      elements.selectedGateCode.textContent = gate.gate_id;
+      elements.selectedWatchCode.textContent = tuple.tuple_hash;
+      elements.selectedFunctionCode.textContent = fn.essential_function_id;
+      elements.selectedAlertCode.textContent = alertState;
+      elements.selectedProvenanceCode.textContent = provenanceState;
+    }}
+
+    function render() {{
+      renderHero();
+      renderGateMatrix();
+      renderWatchTuples();
+      renderEssentialFunctions();
+      renderProvenancePanel();
+      renderIncidentPanel();
+      renderSelectionState();
+      updateBreakpointClass();
+    }}
+
+    initFilters();
+    attachFilterHandlers();
+    render();
+  </script>
+</body>
+</html>
+"""
+
+
+def write_outputs(payload: dict[str, Any]) -> None:
+    write_csv(TOOLING_SCORECARD_PATH, csv_ready(payload["tooling_scorecard"]))
+    write_csv(OBSERVABILITY_SIGNAL_PATH, csv_ready(payload["observability_signals"]))
+    write_csv(SECURITY_CONTROL_PATH, csv_ready(payload["security_controls"]))
+    write_csv(RELEASE_GATE_PATH, csv_ready(payload["release_gates"]))
+    write_json(SUPPLY_CHAIN_PATH, payload["supply_chain_and_provenance"])
+    write_csv(ESSENTIAL_FUNCTION_PATH, csv_ready(payload["essential_functions"]))
+    write_csv(INCIDENT_ALERT_PATH, csv_ready(payload["incident_and_alert_routes"]))
+
+    write_text(OBSERVABILITY_DOC_PATH, render_observability_doc(payload))
+    write_text(SECURITY_DOC_PATH, render_security_doc(payload))
+    write_text(RELEASE_DOC_PATH, render_release_doc(payload))
+    write_text(VERIFICATION_DOC_PATH, render_verification_doc(payload))
+    write_text(READINESS_DOC_PATH, render_readiness_doc(payload))
+    write_text(INCIDENT_DOC_PATH, render_incident_doc(payload))
+    write_text(COCKPIT_HTML_PATH, render_cockpit_html(payload))
+
+
+def main() -> None:
+    payload = build_bundle()
+    write_outputs(payload)
+    print(
+        json.dumps(
+            {
+                "tooling_baseline_id": payload["tooling_baseline_id"],
+                "summary": payload["summary"],
+                "deliverables": {
+                    "docs": [
+                        str(OBSERVABILITY_DOC_PATH),
+                        str(SECURITY_DOC_PATH),
+                        str(RELEASE_DOC_PATH),
+                        str(VERIFICATION_DOC_PATH),
+                        str(READINESS_DOC_PATH),
+                        str(INCIDENT_DOC_PATH),
+                        str(COCKPIT_HTML_PATH),
+                    ],
+                    "data": [
+                        str(TOOLING_SCORECARD_PATH),
+                        str(OBSERVABILITY_SIGNAL_PATH),
+                        str(SECURITY_CONTROL_PATH),
+                        str(RELEASE_GATE_PATH),
+                        str(SUPPLY_CHAIN_PATH),
+                        str(ESSENTIAL_FUNCTION_PATH),
+                        str(INCIDENT_ALERT_PATH),
+                    ],
+                },
+            },
+            indent=2,
+        )
+    )
+
+
+if __name__ == "__main__":
+    main()

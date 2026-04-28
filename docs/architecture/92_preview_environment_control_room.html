@@ -1,0 +1,1094 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Preview Environment Control Room</title>
+    <style>
+      :root {
+        --canvas: #f7f9fc;
+        --panel: #ffffff;
+        --rail: #eef2f7;
+        --inset: #f4f7fb;
+        --text-strong: #0f172a;
+        --text-default: #1e293b;
+        --text-muted: #64748b;
+        --border-subtle: #e2e8f0;
+        --preview: #2563eb;
+        --seed: #0ea5a4;
+        --reset: #7c3aed;
+        --ttl: #d97706;
+        --expired: #c24141;
+        --ready: #059669;
+        --shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 24%),
+          linear-gradient(180deg, #f9fbfd 0%, var(--canvas) 100%);
+        color: var(--text-default);
+      }
+
+      body[data-reduced-motion="true"] * {
+        transition: none !important;
+        animation: none !important;
+        scroll-behavior: auto !important;
+      }
+
+      .masthead {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        height: 76px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 16px 28px;
+        background: rgba(247, 249, 252, 0.92);
+        backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .brand svg {
+        width: 34px;
+        height: 34px;
+      }
+
+      .brand-copy small,
+      .stat-label,
+      .eyebrow {
+        display: block;
+        color: var(--text-muted);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .brand-copy strong {
+        display: block;
+        font-size: 18px;
+        color: var(--text-strong);
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        min-width: 520px;
+      }
+
+      .stat {
+        padding: 10px 14px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.76);
+      }
+
+      .stat strong {
+        display: block;
+        font-size: 20px;
+        color: var(--text-strong);
+      }
+
+      .shell {
+        max-width: 1580px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 324px minmax(0, 1fr) 420px;
+        gap: 18px;
+        align-items: start;
+      }
+
+      .rail,
+      .panel,
+      .inspector {
+        background: var(--panel);
+        border: 1px solid var(--border-subtle);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+      }
+
+      .rail {
+        position: sticky;
+        top: 92px;
+        padding: 18px;
+        background: linear-gradient(180deg, var(--rail), #f9fbff);
+      }
+
+      .filter-stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .field label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+        color: var(--text-muted);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .field select {
+        width: 100%;
+        height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--border-subtle);
+        background: #fff;
+        padding: 0 12px;
+        color: var(--text-default);
+      }
+
+      main {
+        display: grid;
+        gap: 18px;
+        min-width: 0;
+      }
+
+      .panel {
+        padding: 18px;
+        min-height: 320px;
+        min-width: 0;
+        transition: transform 180ms ease, border-color 180ms ease;
+      }
+
+      .panel-heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .panel-heading h2,
+      .panel-heading h3,
+      .inspector h2 {
+        margin: 0;
+        color: var(--text-strong);
+      }
+
+      .panel-heading p,
+      .inspector p,
+      .muted {
+        margin: 0;
+        color: var(--text-muted);
+      }
+
+      .environment-card-grid,
+      .timeline-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .environment-card-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+
+      .node,
+      .timeline-node {
+        width: 100%;
+        text-align: left;
+        border: 1px solid var(--border-subtle);
+        border-radius: 18px;
+        background: linear-gradient(180deg, #fff, #f8fbff);
+        padding: 14px;
+        color: inherit;
+        cursor: pointer;
+        transition:
+          transform 120ms ease,
+          border-color 120ms ease,
+          box-shadow 120ms ease;
+        scroll-margin-top: 96px;
+      }
+
+      .node:hover,
+      .node:focus-visible,
+      .timeline-node:hover,
+      .timeline-node:focus-visible,
+      .table-button:hover,
+      .table-button:focus-visible {
+        transform: translateY(-1px);
+        border-color: rgba(37, 99, 235, 0.45);
+        box-shadow: 0 12px 24px rgba(37, 99, 235, 0.12);
+        outline: none;
+      }
+
+      .node[data-selected="true"],
+      .timeline-node[data-selected="true"],
+      .table-button[data-selected="true"] {
+        border-color: rgba(37, 99, 235, 0.58);
+        box-shadow: 0 14px 26px rgba(37, 99, 235, 0.15);
+        background: linear-gradient(180deg, #ffffff, #eef5ff);
+      }
+
+      .node-header,
+      .chip-row,
+      .inspector-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .node-header {
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .mono,
+      code {
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 12px;
+        border: 1px solid var(--border-subtle);
+        background: var(--inset);
+      }
+
+      .state-ready {
+        background: rgba(5, 150, 105, 0.1);
+        color: var(--ready);
+        border-color: rgba(5, 150, 105, 0.24);
+      }
+
+      .state-drifted,
+      .state-expiring {
+        background: rgba(217, 119, 6, 0.11);
+        color: var(--ttl);
+        border-color: rgba(217, 119, 6, 0.24);
+      }
+
+      .state-expired,
+      .state-failed {
+        background: rgba(194, 65, 65, 0.11);
+        color: var(--expired);
+        border-color: rgba(194, 65, 65, 0.24);
+      }
+
+      .state-completed {
+        background: rgba(5, 150, 105, 0.1);
+        color: var(--ready);
+        border-color: rgba(5, 150, 105, 0.24);
+      }
+
+      .state-pending {
+        background: rgba(124, 58, 237, 0.1);
+        color: var(--reset);
+        border-color: rgba(124, 58, 237, 0.24);
+      }
+
+      .accent-preview {
+        color: var(--preview);
+      }
+
+      .accent-seed {
+        color: var(--seed);
+      }
+
+      .accent-reset {
+        color: var(--reset);
+      }
+
+      .matrix-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .matrix-table th {
+        text-align: left;
+        font-size: 12px;
+        color: var(--text-muted);
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .matrix-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-subtle);
+        vertical-align: top;
+      }
+
+      .table-button {
+        width: 100%;
+        text-align: left;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 14px;
+        padding: 0;
+        cursor: pointer;
+        color: inherit;
+        transition:
+          transform 120ms ease,
+          border-color 120ms ease,
+          box-shadow 120ms ease;
+        scroll-margin-top: 96px;
+      }
+
+      .lower-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .inspector {
+        position: sticky;
+        top: 92px;
+        padding: 20px;
+        min-height: 420px;
+      }
+
+      .inspector-block {
+        display: grid;
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .key-value {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 6px;
+        padding: 12px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 16px;
+        background: var(--inset);
+      }
+
+      .timeline-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      @media (max-width: 1260px) {
+        .layout {
+          grid-template-columns: 300px minmax(0, 1fr);
+        }
+
+        .inspector {
+          grid-column: 1 / -1;
+          position: static;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .stats {
+          min-width: 0;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .layout,
+        .lower-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .rail {
+          position: static;
+        }
+      }
+    </style>
+  </head>
+  <body data-reduced-motion="false">
+    <header class="masthead">
+      <div class="brand">
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <rect x="2" y="2" width="44" height="44" rx="14" fill="#0F172A"></rect>
+          <path d="M14 15h11.5c4.3 0 7.1 2.4 7.1 6.4 0 4.2-2.8 6.6-7.1 6.6h-6.8V33H14V15Zm4.7 3.9v5.2h6.1c1.8 0 3-.9 3-2.6 0-1.7-1.2-2.6-3-2.6h-6.1Z" fill="#F7F9FC"></path>
+          <path d="M36.5 15H31v18h5.5c4.8 0 7.5-3.2 7.5-9 0-5.8-2.7-9-7.5-9Z" fill="#2563EB"></path>
+        </svg>
+        <div class="brand-copy">
+          <small>Vecells</small>
+          <strong>Preview Environment Control Room</strong>
+          <span class="muted mono">Preview_Environment_Control_Room</span>
+        </div>
+      </div>
+      <div class="stats" data-testid="masthead-stats">
+        <div class="stat">
+          <span class="stat-label">Active Previews</span>
+          <strong id="stat-active">0</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Expiring</span>
+          <strong id="stat-expiring">0</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Reset Failures</span>
+          <strong id="stat-failures">0</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Drift Alerts</span>
+          <strong id="stat-drift">0</strong>
+        </div>
+      </div>
+    </header>
+    <div class="shell">
+      <div class="layout">
+        <aside class="rail" aria-label="Filters">
+          <div class="filter-stack">
+            <div class="field">
+              <label for="filter-owner">Owner</label>
+              <select id="filter-owner" data-testid="filter-owner"></select>
+            </div>
+            <div class="field">
+              <label for="filter-env-state">Environment State</label>
+              <select id="filter-env-state" data-testid="filter-env-state"></select>
+            </div>
+            <div class="field">
+              <label for="filter-seed-pack">Seed Pack</label>
+              <select id="filter-seed-pack" data-testid="filter-seed-pack"></select>
+            </div>
+            <div class="field">
+              <label for="filter-drift-state">Drift State</label>
+              <select id="filter-drift-state" data-testid="filter-drift-state"></select>
+            </div>
+            <div class="field">
+              <label for="filter-expiry-window">Expiry Window</label>
+              <select id="filter-expiry-window" data-testid="filter-expiry-window"></select>
+            </div>
+          </div>
+          <div class="inspector-block">
+            <div class="key-value">
+              <span class="eyebrow">Preview Law</span>
+              <strong>One preview tuple, one seed pack, one synthetic-only banner posture</strong>
+            </div>
+            <div class="key-value">
+              <span class="eyebrow">Fail-Closed</span>
+              <span>TTL expiry, tuple drift, or missing banner markers downgrade or expire the preview.</span>
+            </div>
+          </div>
+        </aside>
+
+        <main>
+          <section class="panel" data-testid="environment-grid" aria-labelledby="environment-title">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Environment Card Grid</p>
+                <h2 id="environment-title">Preview Environment Grid</h2>
+              </div>
+              <p id="environment-summary" class="muted"></p>
+            </div>
+            <div id="environment-card-grid" class="environment-card-grid"></div>
+          </section>
+
+          <section class="panel" data-testid="seed-matrix" aria-labelledby="seed-title">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Seed-Pack Scenario Matrix</p>
+                <h2 id="seed-title">Seed Pack Matrix</h2>
+              </div>
+              <p id="seed-summary" class="muted"></p>
+            </div>
+            <table class="matrix-table">
+              <thead>
+                <tr>
+                  <th>Seed Pack</th>
+                  <th>Coverage</th>
+                  <th>Scenarios</th>
+                  <th>State</th>
+                </tr>
+              </thead>
+              <tbody id="seed-body"></tbody>
+            </table>
+          </section>
+
+          <section class="panel" data-testid="ttl-timeline" aria-labelledby="timeline-title">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Reset And TTL Timeline Ribbon</p>
+                <h2 id="timeline-title">Reset / TTL Timeline</h2>
+              </div>
+              <p id="timeline-summary" class="muted"></p>
+            </div>
+            <div id="timeline-grid" class="timeline-grid"></div>
+          </section>
+
+          <div class="lower-grid">
+            <section class="panel" data-testid="manifest-table" aria-labelledby="manifest-title">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Manifest Table</p>
+                  <h3 id="manifest-title">Preview Environments</h3>
+                </div>
+              </div>
+              <table class="matrix-table">
+                <thead>
+                  <tr>
+                    <th>Environment</th>
+                    <th>Owner</th>
+                    <th>Seed Pack</th>
+                    <th>State</th>
+                  </tr>
+                </thead>
+                <tbody id="manifest-body"></tbody>
+              </table>
+            </section>
+
+            <section class="panel" data-testid="reset-table" aria-labelledby="reset-title">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Reset / Drift Table</p>
+                  <h3 id="reset-title">Reset Events</h3>
+                </div>
+              </div>
+              <table class="matrix-table">
+                <thead>
+                  <tr>
+                    <th>Event</th>
+                    <th>Environment</th>
+                    <th>Occurred</th>
+                    <th>State</th>
+                  </tr>
+                </thead>
+                <tbody id="reset-body"></tbody>
+              </table>
+            </section>
+          </div>
+        </main>
+
+        <aside class="inspector" data-testid="inspector" aria-live="polite">
+          <p class="eyebrow">Selection Inspector</p>
+          <h2 id="inspector-title">Choose an environment, seed pack, or reset event</h2>
+          <p id="inspector-subtitle">
+            Selection synchronizes the environment grid, seed matrix, timeline, and tables.
+          </p>
+          <div id="inspector-content" class="inspector-block"></div>
+        </aside>
+      </div>
+    </div>
+
+    <script>
+      const PREVIEW_MANIFEST_URL = "../../data/analysis/preview_environment_manifest.json";
+      const SEED_PACK_URL = "../../data/analysis/preview_seed_pack_manifest.json";
+      const state = {
+        manifest: null,
+        seedManifest: null,
+        filters: {
+          ownerRef: "all",
+          envState: "all",
+          seedPackRef: "all",
+          driftState: "all",
+          expiryWindow: "all",
+        },
+        selection: {
+          kind: "environment",
+          id: null,
+        },
+      };
+
+      function byId(id) {
+        return document.getElementById(id);
+      }
+
+      function normalize(value) {
+        return value === "all" ? null : value;
+      }
+
+      function optionMarkup(value, label) {
+        return `<option value="${value}">${label}</option>`;
+      }
+
+      function unique(values) {
+        return [...new Set(values.filter(Boolean))];
+      }
+
+      function pillClass(value) {
+        if (value === "ready" || value === "completed" || value === "clean") return "state-ready";
+        if (value === "expiring" || value === "drifted" || value === "publication_drift") return "state-drifted";
+        if (value === "expired" || value === "reset_required" || value === "failed") return "state-expired";
+        if (value === "pending") return "state-pending";
+        return "state-ready";
+      }
+
+      function filteredEnvironments() {
+        return state.manifest.preview_environments.filter((row) => {
+          const ownerRef = normalize(state.filters.ownerRef);
+          const envState = normalize(state.filters.envState);
+          const seedPackRef = normalize(state.filters.seedPackRef);
+          const driftState = normalize(state.filters.driftState);
+          const expiryWindow = normalize(state.filters.expiryWindow);
+          if (ownerRef && row.ownerRef !== ownerRef) return false;
+          if (envState && row.state !== envState) return false;
+          if (seedPackRef && row.seedPackRef !== seedPackRef) return false;
+          if (driftState && row.driftState !== driftState) return false;
+          if (expiryWindow && row.expiryWindow !== expiryWindow) return false;
+          return true;
+        });
+      }
+
+      function filteredSeedPacks(environments) {
+        const visibleSeedPackRefs = new Set(environments.map((row) => row.seedPackRef));
+        return state.seedManifest.seed_packs.filter((row) => visibleSeedPackRefs.has(row.seedPackRef));
+      }
+
+      function filteredResetEvents(environments) {
+        const visibleEnvironments = new Set(environments.map((row) => row.previewEnvironmentRef));
+        return state.manifest.reset_events.filter((row) => visibleEnvironments.has(row.previewEnvironmentRef));
+      }
+
+      function ensureSelection(environments, seedPacks, resetEvents) {
+        const validIds = new Set([
+          ...environments.map((row) => `environment:${row.previewEnvironmentRef}`),
+          ...seedPacks.map((row) => `seed:${row.seedPackRef}`),
+          ...resetEvents.map((row) => `reset:${row.resetEventRef}`),
+        ]);
+        const current = `${state.selection.kind}:${state.selection.id}`;
+        if (validIds.has(current)) return;
+        if (environments[0]) {
+          state.selection = { kind: "environment", id: environments[0].previewEnvironmentRef };
+          return;
+        }
+        if (seedPacks[0]) {
+          state.selection = { kind: "seed", id: seedPacks[0].seedPackRef };
+          return;
+        }
+        if (resetEvents[0]) {
+          state.selection = { kind: "reset", id: resetEvents[0].resetEventRef };
+          return;
+        }
+        state.selection = { kind: "environment", id: null };
+      }
+
+      function wireArrowNavigation(items, selectionKind, idAccessor) {
+        items.forEach((item, index) => {
+          item.addEventListener("keydown", (event) => {
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+            event.preventDefault();
+            const delta = event.key === "ArrowDown" ? 1 : -1;
+            const target = items[index + delta];
+            if (!target) return;
+            target.focus();
+            state.selection = { kind: selectionKind, id: idAccessor(target) };
+            render();
+          });
+        });
+      }
+
+      function renderStats(environments, resetEvents) {
+        byId("stat-active").textContent = environments.filter((row) => row.state !== "expired").length;
+        byId("stat-expiring").textContent = environments.filter((row) => row.expiryWindow === "under_6h").length;
+        byId("stat-failures").textContent = resetEvents.filter((row) => row.eventState === "failed").length;
+        byId("stat-drift").textContent = environments.filter((row) => row.driftState !== "clean").length;
+      }
+
+      function renderEnvironmentGrid(environments) {
+        const container = byId("environment-card-grid");
+        container.innerHTML = environments
+          .map((row) => {
+            const selected = state.selection.kind === "environment" && state.selection.id === row.previewEnvironmentRef;
+            return `
+              <button
+                type="button"
+                class="node"
+                data-testid="environment-card-${row.previewEnvironmentRef}"
+                data-selected="${selected}"
+                data-environment-ref="${row.previewEnvironmentRef}"
+              >
+                <div class="node-header">
+                  <strong class="accent-preview">${row.displayName}</strong>
+                  <span class="pill ${pillClass(row.state)}">${row.state}</span>
+                </div>
+                <div class="chip-row">
+                  <span class="pill mono">${row.previewEnvironmentRef}</span>
+                  <span class="pill">${row.ownerLabel}</span>
+                  <span class="pill">${row.environmentRing}</span>
+                </div>
+                <div class="chip-row" style="margin-top:8px;">
+                  <span class="pill ${pillClass(row.driftState)}">${row.driftState}</span>
+                  <span class="pill ${pillClass(row.expiryWindow === "expired" ? "expired" : row.expiryWindow === "under_6h" ? "expiring" : "ready")}">${row.expiryWindow}</span>
+                </div>
+                <p class="muted" style="margin-top:10px;">${row.browserBannerText}</p>
+              </button>
+            `;
+          })
+          .join("");
+        const items = [...container.querySelectorAll("[data-environment-ref]")];
+        items.forEach((item) => {
+          item.addEventListener("click", () => {
+            state.selection = { kind: "environment", id: item.getAttribute("data-environment-ref") };
+            render();
+          });
+        });
+        wireArrowNavigation(items, "environment", (item) => item.getAttribute("data-environment-ref"));
+        byId("environment-summary").textContent = `${environments.length} visible preview environments`;
+      }
+
+      function renderSeedMatrix(seedPacks) {
+        const body = byId("seed-body");
+        body.innerHTML = seedPacks
+          .map((row) => {
+            const selected = state.selection.kind === "seed" && state.selection.id === row.seedPackRef;
+            const stateValue = row.parallelInterfaceGapRefs.length ? "drifted" : "ready";
+            return `
+              <tr>
+                <td>
+                  <button
+                    type="button"
+                    class="table-button"
+                    data-testid="seed-row-${row.seedPackRef}"
+                    data-seed-pack-ref="${row.seedPackRef}"
+                    data-selected="${selected}"
+                  >
+                    <strong class="accent-seed">${row.label}</strong>
+                    <div class="muted mono">${row.seedPackRef}</div>
+                  </button>
+                </td>
+                <td>${row.seededDomainRefs.join(", ")}</td>
+                <td>${row.scenarioRefs.length}</td>
+                <td><span class="pill ${pillClass(stateValue)}">${stateValue}</span></td>
+              </tr>
+            `;
+          })
+          .join("");
+        const items = [...body.querySelectorAll("[data-seed-pack-ref]")];
+        items.forEach((item) => {
+          item.addEventListener("click", () => {
+            state.selection = { kind: "seed", id: item.getAttribute("data-seed-pack-ref") };
+            renderInspector();
+            renderManifestTable(filteredEnvironments());
+            renderResetTable(filteredResetEvents(filteredEnvironments()));
+          });
+        });
+        wireArrowNavigation(items, "seed", (item) => item.getAttribute("data-seed-pack-ref"));
+        byId("seed-summary").textContent = `${seedPacks.length} seed packs match the current preview filters`;
+      }
+
+      function renderTimeline(resetEvents) {
+        const container = byId("timeline-grid");
+        container.innerHTML = resetEvents
+          .map((row) => {
+            const selected = state.selection.kind === "reset" && state.selection.id === row.resetEventRef;
+            return `
+              <button
+                type="button"
+                class="timeline-node"
+                data-testid="timeline-event-${row.resetEventRef}"
+                data-reset-event-ref="${row.resetEventRef}"
+                data-selected="${selected}"
+              >
+                <div class="node-header">
+                  <strong class="accent-reset">${row.eventKind}</strong>
+                  <span class="pill ${pillClass(row.eventState)}">${row.eventState}</span>
+                </div>
+                <div class="chip-row">
+                  <span class="pill mono">${row.previewEnvironmentRef}</span>
+                  <span class="pill">${row.occurredAt.slice(11, 16)} UTC</span>
+                </div>
+                <p class="muted" style="margin-top:10px;">${row.notes}</p>
+              </button>
+            `;
+          })
+          .join("");
+        const items = [...container.querySelectorAll("[data-reset-event-ref]")];
+        items.forEach((item) => {
+          item.addEventListener("click", () => {
+            state.selection = { kind: "reset", id: item.getAttribute("data-reset-event-ref") };
+            render();
+          });
+        });
+        wireArrowNavigation(items, "reset", (item) => item.getAttribute("data-reset-event-ref"));
+        byId("timeline-summary").textContent = `${resetEvents.length} reset, drift, TTL, or teardown events remain visible`;
+      }
+
+      function renderManifestTable(environments) {
+        byId("manifest-body").innerHTML = environments
+          .map((row) => {
+            const selected = state.selection.kind === "environment" && state.selection.id === row.previewEnvironmentRef;
+            return `
+              <tr>
+                <td>
+                  <button
+                    type="button"
+                    class="table-button"
+                    data-testid="manifest-row-${row.previewEnvironmentRef}"
+                    data-environment-ref="${row.previewEnvironmentRef}"
+                    data-selected="${selected}"
+                  >
+                    <strong>${row.displayName}</strong>
+                    <div class="muted mono">${row.runtimeTupleHash}</div>
+                  </button>
+                </td>
+                <td>${row.ownerLabel}</td>
+                <td>${row.seedPackRef}</td>
+                <td><span class="pill ${pillClass(row.state)}">${row.state}</span></td>
+              </tr>
+            `;
+          })
+          .join("");
+        const items = [...document.querySelectorAll("#manifest-body [data-environment-ref]")];
+        items.forEach((item) => {
+          item.addEventListener("click", () => {
+            state.selection = { kind: "environment", id: item.getAttribute("data-environment-ref") };
+            render();
+          });
+        });
+        wireArrowNavigation(items, "environment", (item) => item.getAttribute("data-environment-ref"));
+      }
+
+      function renderResetTable(resetEvents) {
+        byId("reset-body").innerHTML = resetEvents
+          .map((row) => {
+            const selected = state.selection.kind === "reset" && state.selection.id === row.resetEventRef;
+            return `
+              <tr>
+                <td>
+                  <button
+                    type="button"
+                    class="table-button"
+                    data-testid="reset-row-${row.resetEventRef}"
+                    data-reset-event-ref="${row.resetEventRef}"
+                    data-selected="${selected}"
+                  >
+                    <strong>${row.eventKind}</strong>
+                    <div class="muted mono">${row.resetEventRef}</div>
+                  </button>
+                </td>
+                <td>${row.previewEnvironmentRef}</td>
+                <td>${row.occurredAt.replace("T", " ").slice(0, 16)} UTC</td>
+                <td><span class="pill ${pillClass(row.eventState)}">${row.eventState}</span></td>
+              </tr>
+            `;
+          })
+          .join("");
+        const items = [...document.querySelectorAll("#reset-body [data-reset-event-ref]")];
+        items.forEach((item) => {
+          item.addEventListener("click", () => {
+            state.selection = { kind: "reset", id: item.getAttribute("data-reset-event-ref") };
+            render();
+          });
+        });
+        wireArrowNavigation(items, "reset", (item) => item.getAttribute("data-reset-event-ref"));
+      }
+
+      function renderInspector() {
+        const content = byId("inspector-content");
+        const title = byId("inspector-title");
+        const subtitle = byId("inspector-subtitle");
+        content.innerHTML = "";
+
+        if (state.selection.kind === "environment") {
+          const row = state.manifest.preview_environments.find(
+            (item) => item.previewEnvironmentRef === state.selection.id,
+          );
+          if (!row) return;
+          title.textContent = row.displayName;
+          subtitle.textContent = `${row.ownerLabel} owns this governed preview tuple.`;
+          content.innerHTML = `
+            <div class="key-value">
+              <span class="eyebrow">Environment Ref</span>
+              <strong class="mono">${row.previewEnvironmentRef}</strong>
+              <span>${row.browserBannerText}</span>
+            </div>
+            <div class="key-value">
+              <span class="eyebrow">State</span>
+              <div class="inspector-list">
+                <span class="pill ${pillClass(row.state)}">${row.state}</span>
+                <span class="pill ${pillClass(row.driftState)}">${row.driftState}</span>
+                <span class="pill ${pillClass(row.expiryWindow === "expired" ? "expired" : row.expiryWindow === "under_6h" ? "expiring" : "ready")}">${row.expiryWindow}</span>
+              </div>
+            </div>
+            <div class="key-value">
+              <span class="eyebrow">Tuple</span>
+              <strong class="mono">${row.runtimeTupleHash}</strong>
+              <span class="muted mono">${row.topologyTupleHash}</span>
+            </div>
+            <div class="key-value">
+              <span class="eyebrow">Surfaces</span>
+              <div class="inspector-list">${row.gatewayServiceRefs
+                .map((value) => `<span class="pill mono">${value}</span>`)
+                .join("")}</div>
+            </div>
+            <div class="key-value">
+              <span class="eyebrow">Gaps / Follow-On</span>
+              <div class="inspector-list">${[...row.parallelInterfaceGapRefs, ...row.followOnDependencyRefs]
+                .map((value) => `<span class="pill mono">${value}</span>`)
+                .join("") || "<span class='muted'>No bounded gaps.</span>"}</div>
+            </div>
+          `;
+          return;
+        }
+
+        if (state.selection.kind === "seed") {
+          const row = state.seedManifest.seed_packs.find((item) => item.seedPackRef === state.selection.id);
+          if (!row) return;
+          title.textContent = row.label;
+          subtitle.textContent = "Seed-pack coverage, degraded scenarios, and substrate fixture hashes.";
+          content.innerHTML = `
+            <div class="key-value">
+              <span class="eyebrow">Seed Pack</span>
+              <strong class="mono">${row.seedPackRef}</strong>
+              <span>${row.notes}</span>
+            </div>
+            <div class="key-value">
+              <span class="eyebrow">Coverage</span>
+              <div class="inspector-list">${row.seededDomainRefs
+                .map((value) => `<span class="pill">${value}</span>`)
+                .join("")}</div>
+            </div>
+            <div class="key-value">
+              <span class="eyebrow">Scenario Refs</span>
+              <div class="inspector-list">${row.scenarioRefs
+                .map((value) => `<span class="pill mono">${value}</span>`)
+                .join("")}</div>
+            </div>
+            <div class="key-value">
+              <span class="eyebrow">Tuple Hash</span>
+              <strong class="mono">${row.canonicalSeedTupleHash}</strong>
+            </div>
+          `;
+          return;
+        }
+
+        if (state.selection.kind === "reset") {
+          const row = state.manifest.reset_events.find((item) => item.resetEventRef === state.selection.id);
+          if (!row) return;
+          title.textContent = row.resetEventRef;
+          subtitle.textContent = `${row.eventKind} for ${row.previewEnvironmentRef}`;
+          content.innerHTML = `
+            <div class="key-value">
+              <span class="eyebrow">Reset Event</span>
+              <strong>${row.eventKind}</strong>
+              <span class="pill ${pillClass(row.eventState)}">${row.eventState}</span>
+            </div>
+            <div class="key-value">
+              <span class="eyebrow">Occurred</span>
+              <strong class="mono">${row.occurredAt}</strong>
+              <span>${row.notes}</span>
+            </div>
+            <div class="key-value">
+              <span class="eyebrow">State After Event</span>
+              <div class="inspector-list">
+                <span class="pill ${pillClass(row.driftStateAfterEvent)}">${row.driftStateAfterEvent}</span>
+                <span class="pill mono">${row.seedPackRef}</span>
+              </div>
+            </div>
+            <div class="key-value">
+              <span class="eyebrow">Dependencies</span>
+              <div class="inspector-list">${row.followOnDependencyRefs
+                .map((value) => `<span class="pill mono">${value}</span>`)
+                .join("") || "<span class='muted'>No outstanding dependencies.</span>"}</div>
+            </div>
+          `;
+        }
+      }
+
+      function populateFilters() {
+        const environments = state.manifest.preview_environments;
+        const seedPacks = state.seedManifest.seed_packs;
+        byId("filter-owner").innerHTML = [
+          optionMarkup("all", "All owners"),
+          ...unique(environments.map((row) => row.ownerRef)).map((value) => {
+            const label = environments.find((row) => row.ownerRef === value).ownerLabel;
+            return optionMarkup(value, label);
+          }),
+        ].join("");
+        byId("filter-env-state").innerHTML = [
+          optionMarkup("all", "All states"),
+          ...unique(environments.map((row) => row.state)).map((value) => optionMarkup(value, value)),
+        ].join("");
+        byId("filter-seed-pack").innerHTML = [
+          optionMarkup("all", "All seed packs"),
+          ...seedPacks.map((row) => optionMarkup(row.seedPackRef, row.label)),
+        ].join("");
+        byId("filter-drift-state").innerHTML = [
+          optionMarkup("all", "All drift states"),
+          ...unique(environments.map((row) => row.driftState)).map((value) => optionMarkup(value, value)),
+        ].join("");
+        byId("filter-expiry-window").innerHTML = [
+          optionMarkup("all", "All expiry windows"),
+          ...unique(environments.map((row) => row.expiryWindow)).map((value) => optionMarkup(value, value)),
+        ].join("");
+      }
+
+      function render() {
+        const environments = filteredEnvironments();
+        const seedPacks = filteredSeedPacks(environments);
+        const resetEvents = filteredResetEvents(environments);
+        ensureSelection(environments, seedPacks, resetEvents);
+        renderStats(environments, resetEvents);
+        renderEnvironmentGrid(environments);
+        renderSeedMatrix(seedPacks);
+        renderTimeline(resetEvents);
+        renderManifestTable(environments);
+        renderResetTable(resetEvents);
+        renderInspector();
+      }
+
+      async function loadData() {
+        const [previewResponse, seedResponse] = await Promise.all([
+          fetch(PREVIEW_MANIFEST_URL),
+          fetch(SEED_PACK_URL),
+        ]);
+        if (!previewResponse.ok || !seedResponse.ok) {
+          throw new Error("Unable to load preview control-room data.");
+        }
+        state.manifest = await previewResponse.json();
+        state.seedManifest = await seedResponse.json();
+        populateFilters();
+        [
+          ["filter-owner", "ownerRef"],
+          ["filter-env-state", "envState"],
+          ["filter-seed-pack", "seedPackRef"],
+          ["filter-drift-state", "driftState"],
+          ["filter-expiry-window", "expiryWindow"],
+        ].forEach(([elementId, key]) => {
+          byId(elementId).addEventListener("change", (event) => {
+            state.filters[key] = event.target.value;
+            render();
+          });
+        });
+        state.selection = {
+          kind: "environment",
+          id: state.manifest.preview_environments[0]?.previewEnvironmentRef ?? null,
+        };
+        render();
+      }
+
+      window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", (event) => {
+        document.body.setAttribute("data-reduced-motion", event.matches ? "true" : "false");
+      });
+      document.body.setAttribute(
+        "data-reduced-motion",
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "true" : "false",
+      );
+
+      loadData().catch((error) => {
+        byId("inspector-title").textContent = "Control room failed to load";
+        byId("inspector-subtitle").textContent = String(error);
+      });
+    </script>
+  </body>
+</html>

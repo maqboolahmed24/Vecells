@@ -1,0 +1,135 @@
+{
+  "task_id": "seq_049",
+  "artifact_type": "fhir_representation_contract",
+  "generated_at": "2026-04-13T14:51:08+00:00",
+  "contract": {
+    "fhirRepresentationContractId": "FRC_049_MESSAGE_DISPATCH_EXTERNAL_INTERCHANGE_V1",
+    "owningBoundedContextRef": "communications",
+    "governingAggregateType": "MessageDispatchEnvelope",
+    "representationPurpose": "external_interchange",
+    "triggerMilestoneTypes": [
+      "communication.queued",
+      "communication.delivery.evidence.recorded",
+      "communication.command.settled"
+    ],
+    "requiredEvidenceRefs": [
+      "MessageDispatchEnvelope",
+      "MessageDeliveryEvidenceBundle",
+      "ConversationCommandSettlement"
+    ],
+    "allowedResourceTypes": ["Communication", "Provenance"],
+    "requiredProfileCanonicalUrls": [
+      "https://vecells.example/fhir/StructureDefinition/vecells-message-communication",
+      "https://vecells.example/fhir/StructureDefinition/vecells-message-provenance"
+    ],
+    "identifierPolicyRef": "IDPOL_049_TRANSPORT_CORRELATION_RECORD",
+    "statusMappingPolicyRef": "STPOL_049_MESSAGE_COMMUNICATION",
+    "cardinalityPolicyRef": "CARDPOL_049_SINGLE_COMMUNICATION_PER_DISPATCH",
+    "redactionPolicyRef": "REDPOL_049_MINIMAL_PARTNER_INTERCHANGE",
+    "companionArtifactPolicyRef": "COMPPOL_049_PARTNER_EXCHANGE_MANIFEST",
+    "replayPolicyRef": "REPLAYPOL_049_TRANSPORT_CORRELATION_STABLE_CALLBACK_SET",
+    "supersessionPolicyRef": "SUPPOL_049_COMMUNICATION_SUPERSESSION_ON_SETTLEMENT_REVISION",
+    "callbackCorrelationPolicyRef": "CALLPOL_049_TRANSPORT_CORRELATION_KEYS",
+    "declaredBundlePolicyRefs": ["FXBP_049_SECURE_MESSAGE_OUTBOUND_MESSAGE"],
+    "contractVersionRef": "FRCV_049_MESSAGE_DISPATCH_EXTERNAL_INTERCHANGE_V1",
+    "contractState": "active",
+    "publishedAt": "2026-04-13T14:51:08+00:00",
+    "resourceProfiles": [
+      {
+        "resourceType": "Communication",
+        "profileCanonicalUrl": "https://vecells.example/fhir/StructureDefinition/vecells-message-communication"
+      },
+      {
+        "resourceType": "Provenance",
+        "profileCanonicalUrl": "https://vecells.example/fhir/StructureDefinition/vecells-message-provenance"
+      }
+    ],
+    "defectState": "active",
+    "source_refs": [
+      "blueprint/phase-0-the-foundation-protocol.md#FhirRepresentationContract",
+      "blueprint/callback-and-clinician-messaging-loop.md#Clinician message domain / MessageDispatchEnvelope",
+      "blueprint/platform-runtime-and-release-blueprint.md#AdapterContractProfile"
+    ],
+    "rationale": "Cross-organisation messaging uses a published Communication companion so callback and delivery proofs stay deterministic."
+  },
+  "resolvedPolicies": {
+    "identifierPolicy": {
+      "policyId": "IDPOL_049_TRANSPORT_CORRELATION_RECORD",
+      "label": "Transport correlation key",
+      "description": "Communication identifiers bind dispatch or callback correlation tokens to the governing case and attempt.",
+      "stableInputs": ["governingCaseId", "transportCorrelationKey", "dispatchAttemptId"],
+      "versionRule": "Duplicate transport receipts update the same logical id; semantic drift opens replay collision review."
+    },
+    "statusMappingPolicy": {
+      "policyId": "STPOL_049_MESSAGE_COMMUNICATION",
+      "label": "Message and callback communication mapping",
+      "resourceType": "Communication",
+      "mappings": {
+        "queued": "preparation",
+        "delivery_recorded": "in-progress",
+        "outcome_recorded": "completed",
+        "disputed": "stopped"
+      }
+    },
+    "cardinalityPolicy": {
+      "policyId": "CARDPOL_049_SINGLE_COMMUNICATION_PER_DISPATCH",
+      "label": "Single communication per dispatch or callback epoch",
+      "description": "Each dispatch or callback epoch emits at most one current Communication companion at a time."
+    },
+    "redactionPolicy": {
+      "policyId": "REDPOL_049_MINIMAL_PARTNER_INTERCHANGE",
+      "label": "Minimal partner interchange",
+      "description": "Only partner-required structured fields and declared profile elements may cross the boundary."
+    },
+    "companionArtifactPolicy": {
+      "policyId": "COMPPOL_049_PARTNER_EXCHANGE_MANIFEST",
+      "label": "Partner exchange manifest",
+      "description": "External bundles may carry an omission/redaction manifest that traces every excluded artifact or field to policy."
+    },
+    "replayPolicy": {
+      "policyId": "REPLAYPOL_049_TRANSPORT_CORRELATION_STABLE_CALLBACK_SET",
+      "label": "Stable callback set by transport correlation",
+      "stableMembershipOnReplay": true,
+      "description": "Duplicate or reordered callbacks target the same representation set until semantic drift forces collision review."
+    },
+    "supersessionPolicy": {
+      "policyId": "SUPPOL_049_COMMUNICATION_SUPERSESSION_ON_SETTLEMENT_REVISION",
+      "label": "Communication supersession on settlement revision",
+      "description": "Communication companions supersede only when the same dispatch or callback epoch receives a stronger settlement or contradiction."
+    },
+    "callbackCorrelationPolicy": {
+      "policyId": "CALLPOL_049_TRANSPORT_CORRELATION_KEYS",
+      "label": "Transport correlation keys",
+      "description": "Message or callback companions correlate via declared transport tokens and durable receipt checkpoints only."
+    },
+    "exchangeBundlePolicies": [
+      {
+        "policyId": "FXBP_049_SECURE_MESSAGE_OUTBOUND_MESSAGE",
+        "representationContractRefs": ["FRC_049_MESSAGE_DISPATCH_EXTERNAL_INTERCHANGE_V1"],
+        "direction": "outbound",
+        "legalBundleTypes": ["message"],
+        "adapterProfileRefs": ["ACP_049_SECURE_MESSAGE_DISPATCH"],
+        "boundDependencyRefs": [
+          "dep_cross_org_secure_messaging_mesh",
+          "dep_origin_practice_ack_rail"
+        ],
+        "correlationKeyFields": [
+          "messageDispatchEnvelopeId",
+          "transportCorrelationKey",
+          "bundleHash"
+        ],
+        "receiptCheckpointRefs": ["AdapterReceiptCheckpoint", "MessageDeliveryEvidenceBundle"],
+        "authoritativeSuccess": "Transport acceptance and delivery evidence must both settle on the same dispatch envelope and correlation key.",
+        "supersessionBehavior": "Settlement upgrades supersede earlier pending companions without rewriting the dispatch envelope.",
+        "invalidationBehavior": "Semantic drift or correlation reuse opens replay collision review and invalidates current confirmation.",
+        "mandatoryProofRefs": ["ConversationCommandSettlement", "MessageDeliveryEvidenceBundle"],
+        "exchangeStates": ["staged", "dispatched", "accepted", "replayed", "failed", "superseded"],
+        "source_refs": [
+          "blueprint/platform-runtime-and-release-blueprint.md#AdapterContractProfile",
+          "blueprint/callback-and-clinician-messaging-loop.md#Clinician message domain / MessageDispatchEnvelope"
+        ]
+      }
+    ]
+  },
+  "artifactHash": "9f476ad52bce2f4d33a8c6d7ad5c824ac15f08f0113cc57e577f67e6faa2d050"
+}

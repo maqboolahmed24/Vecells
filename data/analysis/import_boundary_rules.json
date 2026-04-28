@@ -1,0 +1,328 @@
+{
+  "baseline_id": "vecells_workspace_boundary_rules_v1",
+  "enforcement_stack": [
+    {
+      "layer": "workspace_graph",
+      "tooling": "Nx project graph + project tags",
+      "purpose": "Defines allowed project-to-project edges and affected-target execution."
+    },
+    {
+      "layer": "lint",
+      "tooling": "ESLint boundary rules + export-map restrictions",
+      "purpose": "Prevents deep imports into /src, /internal, /workers, /repositories, or /adapters subpaths."
+    },
+    {
+      "layer": "graph_parity",
+      "tooling": "dependency graph parity checker",
+      "purpose": "Stops TS path aliases or relative paths from bypassing the declared workspace graph."
+    },
+    {
+      "layer": "ownership",
+      "tooling": "generated CODEOWNERS from codeowners_matrix.csv",
+      "purpose": "Makes package ownership machine-checkable in review."
+    },
+    {
+      "layer": "validation",
+      "tooling": "validate_workspace_baseline.py",
+      "purpose": "Fails any owner drift, illegal edges, codegen traceability loss, or language sprawl."
+    }
+  ],
+  "rules": [
+    {
+      "rule_id": "RULE_ONE_OWNER_DOMAIN",
+      "description": "Every package, app, service, tool, infra path, and generated package resolves to exactly one owner domain and one package-tag class.",
+      "applies_to_tag_classes": [
+        "app_shell",
+        "service_gateway",
+        "service_runtime",
+        "domain_context",
+        "contract_package",
+        "design_contract_package",
+        "platform_shared_package",
+        "generated_contract_package",
+        "tooling_package",
+        "delivery_control_artifact"
+      ],
+      "forbidden_subpaths": [],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture"
+      ]
+    },
+    {
+      "rule_id": "RULE_APP_SHELL_CONSUMES_PUBLISHED_CONTRACTS_ONLY",
+      "description": "Apps may import only shared contracts, design contracts, generated client bindings, and platform shared publication packages.",
+      "from_tag_classes": [
+        "app_shell"
+      ],
+      "allow_to_tag_classes": [
+        "contract_package",
+        "design_contract_package",
+        "platform_shared_package",
+        "generated_contract_package"
+      ],
+      "forbid_to_tag_classes": [
+        "domain_context",
+        "service_gateway",
+        "service_runtime",
+        "tooling_package",
+        "delivery_control_artifact"
+      ],
+      "forbidden_subpaths": [
+        "/src/",
+        "/internal/",
+        "/workers/",
+        "/repositories/",
+        "/adapters/"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+        "platform-frontend-blueprint.md#4101"
+      ]
+    },
+    {
+      "rule_id": "RULE_GATEWAY_USES_CONTRACTS_NOT_DOMAIN_INTERNALS",
+      "description": "Gateway code publishes routes from contract packages and runtime publication bindings, never by importing domain internals.",
+      "from_tag_classes": [
+        "service_gateway"
+      ],
+      "allow_to_tag_classes": [
+        "contract_package",
+        "platform_shared_package",
+        "generated_contract_package"
+      ],
+      "forbid_to_tag_classes": [
+        "domain_context",
+        "app_shell"
+      ],
+      "forbidden_subpaths": [
+        "/src/",
+        "/internal/",
+        "/workers/",
+        "/repositories/"
+      ],
+      "source_refs": [
+        "platform-runtime-and-release-blueprint.md#Frontend and backend integration contract"
+      ]
+    },
+    {
+      "rule_id": "RULE_RUNTIME_SERVICES_COMPOSE_PUBLISHED_DOMAINS_ONLY",
+      "description": "Runtime services may compose multiple domain packages, but only through their published entrypoints and shared contracts.",
+      "from_tag_classes": [
+        "service_runtime"
+      ],
+      "allow_to_tag_classes": [
+        "domain_context",
+        "contract_package",
+        "platform_shared_package",
+        "generated_contract_package"
+      ],
+      "forbid_to_tag_classes": [
+        "app_shell"
+      ],
+      "forbidden_subpaths": [
+        "/src/",
+        "/internal/",
+        "/workers/",
+        "/repositories/"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture"
+      ]
+    },
+    {
+      "rule_id": "RULE_DOMAIN_CONTEXTS_DO_NOT_IMPORT_SIBLING_DOMAIN_INTERNALS",
+      "description": "A domain package may depend on the shared kernel and published contracts, but not on sibling domain packages.",
+      "from_tag_classes": [
+        "domain_context"
+      ],
+      "allow_to_tag_classes": [
+        "platform_shared_package",
+        "contract_package"
+      ],
+      "forbid_to_tag_classes": [
+        "domain_context",
+        "app_shell"
+      ],
+      "forbidden_subpaths": [
+        "/src/",
+        "/internal/",
+        "/workers/",
+        "/repositories/",
+        "/projections/"
+      ],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+        "forensic-audit-findings.md#Finding 57"
+      ]
+    },
+    {
+      "rule_id": "RULE_CONTRACT_PACKAGES_DEFINE_PUBLISHED_TRUTH",
+      "description": "Contract packages are the canonical source for route, live-channel, and event publication inputs; apps and ad hoc DTO files may not replace them.",
+      "from_tag_classes": [
+        "contract_package"
+      ],
+      "allow_to_tag_classes": [
+        "platform_shared_package",
+        "contract_package"
+      ],
+      "forbid_to_tag_classes": [
+        "app_shell",
+        "service_runtime"
+      ],
+      "forbidden_subpaths": [],
+      "source_refs": [
+        "platform-runtime-and-release-blueprint.md#Frontend and backend integration contract",
+        "phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture"
+      ]
+    },
+    {
+      "rule_id": "RULE_RUNTIME_PUBLICATION_BINDS_ROUTE_EVENT_DESIGN_AND_RELEASE_TRUTH",
+      "description": "Runtime publication binds route, event, design-contract, topology, and release-control digests into one bundle; no consumer may restitch them independently.",
+      "from_tag_classes": [
+        "platform_shared_package"
+      ],
+      "allow_to_tag_classes": [
+        "contract_package",
+        "design_contract_package",
+        "platform_shared_package"
+      ],
+      "forbid_to_tag_classes": [],
+      "forbidden_subpaths": [],
+      "source_refs": [
+        "platform-runtime-and-release-blueprint.md#RuntimePublicationBundle",
+        "platform-runtime-and-release-blueprint.md#ReleasePublicationParityRecord"
+      ]
+    },
+    {
+      "rule_id": "RULE_FHIR_MAPPING_IS_DERIVED_ONLY",
+      "description": "FHIR mapping code may consume domain packages, but it remains a one-way derived representation boundary and never canonical truth.",
+      "from_tag_classes": [
+        "platform_shared_package"
+      ],
+      "allow_to_tag_classes": [
+        "domain_context",
+        "platform_shared_package"
+      ],
+      "forbid_to_tag_classes": [
+        "app_shell"
+      ],
+      "forbidden_subpaths": [],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine"
+      ]
+    },
+    {
+      "rule_id": "RULE_GENERATED_ARTIFACTS_TRACE_TO_SOURCE_CONTRACTS",
+      "description": "Generated artifacts live only in packages/generated or dist/publication and must carry source contract digests and generator manifests.",
+      "from_tag_classes": [
+        "generated_contract_package",
+        "tooling_package"
+      ],
+      "allow_to_tag_classes": [
+        "contract_package",
+        "design_contract_package",
+        "platform_shared_package"
+      ],
+      "forbid_to_tag_classes": [
+        "app_shell",
+        "service_runtime",
+        "service_gateway"
+      ],
+      "forbidden_subpaths": [],
+      "source_refs": [
+        "platform-runtime-and-release-blueprint.md#1632",
+        "forensic-audit-findings.md#Finding 118 - Token export and design-contract conformance could still drift outside the published runtime tuple"
+      ]
+    },
+    {
+      "rule_id": "RULE_GENERATED_PACKAGES_ARE_DERIVATIVE_ONLY",
+      "description": "Generated packages never import or own consumer shells or services; they are reviewed outputs, not upstream truth owners.",
+      "from_tag_classes": [
+        "generated_contract_package"
+      ],
+      "allow_to_tag_classes": [
+        "contract_package",
+        "design_contract_package",
+        "platform_shared_package"
+      ],
+      "forbid_to_tag_classes": [
+        "app_shell",
+        "service_gateway",
+        "service_runtime"
+      ],
+      "forbidden_subpaths": [],
+      "source_refs": [
+        "prompt/012.md",
+        "phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture"
+      ]
+    },
+    {
+      "rule_id": "RULE_DESIGN_AND_ACCESSIBILITY_ARE_FIRST_CLASS",
+      "description": "Design-system, design-contract, and accessibility-contract packages are first-class workspace citizens and may not be relegated to docs or test snapshots.",
+      "applies_to_tag_classes": [
+        "design_contract_package"
+      ],
+      "forbidden_subpaths": [],
+      "source_refs": [
+        "platform-frontend-blueprint.md#2.15B DesignContractRegistry",
+        "accessibility-and-content-system-contract.md#AccessibilitySemanticCoverageProfile"
+      ]
+    },
+    {
+      "rule_id": "RULE_TOOLING_LANGUAGES_ARE_BOUNDED_AND_NON_AUTHORITATIVE",
+      "description": "Python is allowed only in tools/analysis and tools/validators; it may inspect, validate, and synthesize but never own canonical runtime truth.",
+      "applies_to_tag_classes": [
+        "tooling_package"
+      ],
+      "forbidden_subpaths": [],
+      "source_refs": [
+        "prompt/012.md",
+        "prompt/shared_operating_contract_011_to_015.md"
+      ]
+    },
+    {
+      "rule_id": "RULE_ONE_COMMAND_LOCAL_STARTUP",
+      "description": "The workspace must support one-command local startup, preview boot, CI builds, contract tests, and Playwright runs from the same graph.",
+      "applies_to_tag_classes": [
+        "tooling_package",
+        "delivery_control_artifact"
+      ],
+      "forbidden_subpaths": [],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture"
+      ]
+    },
+    {
+      "rule_id": "RULE_RELEASE_AND_RECOVERY_EVIDENCE_STAY_BOUND",
+      "description": "Infra definitions, runbooks, and operational artifacts must stay bound to release controls and runtime publication tuples rather than drifting into detached documentation.",
+      "applies_to_tag_classes": [
+        "delivery_control_artifact"
+      ],
+      "forbidden_subpaths": [],
+      "source_refs": [
+        "phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+        "platform-runtime-and-release-blueprint.md#OperationalReadinessSnapshot"
+      ]
+    },
+    {
+      "rule_id": "RULE_NO_REMOTE_ASSETS_OR_SOURCE_SECRETS",
+      "description": "No remote CDN assets, fonts, or browser scripts are allowed in baseline outputs, and secrets may not appear in committed source or generated artifacts.",
+      "applies_to_tag_classes": [
+        "app_shell",
+        "service_gateway",
+        "service_runtime",
+        "contract_package",
+        "design_contract_package",
+        "platform_shared_package",
+        "generated_contract_package",
+        "tooling_package",
+        "delivery_control_artifact"
+      ],
+      "forbidden_subpaths": [],
+      "source_refs": [
+        "prompt/012.md",
+        "phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture"
+      ]
+    }
+  ]
+}

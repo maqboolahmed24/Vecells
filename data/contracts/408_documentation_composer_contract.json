@@ -1,0 +1,135 @@
+{
+  "taskId": "par_408",
+  "schemaVersion": "408.documentation-composer-contract.v1",
+  "contractFamily": "assistive_structured_documentation_composer",
+  "sourceGateRef": "data/contracts/403_phase8_track_readiness_registry.json",
+  "launchPacketRef": "data/launchpacks/403_track_launch_packet_408.json",
+  "upstreamContractRefs": [
+    "data/contracts/404_assistive_evaluation_contracts.json",
+    "data/contracts/405_assistive_release_candidate_contracts.json",
+    "data/contracts/406_evaluation_runtime_contract.json",
+    "data/contracts/407_transcript_runtime_contract.json"
+  ],
+  "runtimePackage": {
+    "packageName": "@vecells/domain-assistive-documentation",
+    "sourceRoot": "packages/domains/assistive_documentation/src",
+    "separationLaw": "The composer persists frozen refs, support posture, immutable evidence maps, contradiction checks, and presentation state. It does not persist raw generated clinical text, decoder probabilities, or direct final-record writeback targets."
+  },
+  "services": [
+    {
+      "serviceName": "DocumentationContextSnapshotService",
+      "ownedApis": ["createContextSnapshot"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "DraftComposerOrchestrator",
+      "ownedApis": ["composeDraftNote"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "DraftTemplateResolver",
+      "ownedApis": ["registerTemplate", "resolveTemplate"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "DraftNoteArtifactService",
+      "ownedApis": ["getDraftNote", "getDraftSections", "assertDraftEvidenceMapBinding", "generatePresentationArtifact"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "MessageDraftArtifactService",
+      "ownedApis": ["composeMessageDraft", "getMessageDraft"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "EvidenceMapService",
+      "ownedApis": ["createEvidenceMapSet", "getEvidenceMapsForSet", "assertEvidenceMapSetMatchesArtifact"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "ContradictionCheckEngine",
+      "ownedApis": ["recordContradictionCheck"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "DocumentationCalibrationResolver",
+      "ownedApis": ["registerCalibrationBundle", "resolveCalibration"],
+      "requiresActorContext": true
+    }
+  ],
+  "supportedDraftFamilies": [
+    "triage_summary",
+    "clinician_note_draft",
+    "patient_message_draft",
+    "callback_summary",
+    "pharmacy_or_booking_handoff_summary"
+  ],
+  "persistedObjects": [
+    "DocumentationContextSnapshot",
+    "DraftTemplate",
+    "DocumentationCalibrationBundle",
+    "EvidenceMapSet",
+    "EvidenceMap",
+    "ContradictionCheckResult",
+    "DraftSection",
+    "DraftNoteArtifact",
+    "MessageDraftArtifact",
+    "DocumentationPresentationArtifact",
+    "DocumentationAuditRecord"
+  ],
+  "migrationRef": "services/command-api/migrations/408_phase8_documentation_composer.sql",
+  "contextSnapshotPolicy": {
+    "requiresFrozenRefs": true,
+    "requiredRefs": ["requestRef", "taskRef", "reviewBundleRef", "transcriptRefs", "templateRef", "reviewVersionRef", "decisionEpochRef", "policyBundleRef"],
+    "forbiddenInputs": ["raw context text", "mutable current refs", "latest pointers"]
+  },
+  "supportComputation": {
+    "source": "calibrated verifier outputs only",
+    "forbiddenInputs": ["decoder probabilities", "raw generated text"],
+    "coverageFormula": "cov = supportWeight / max(1e-6, requiredWeight), clipped to [0,1]",
+    "unsupportedRiskFormula": "U = 1 - p_sup + lambda_conflict*contradiction + lambda_unsup*unsupportedAssertionRate + lambda_miss*(1-cov)",
+    "minimumSectionSupport": "minimum evidenceCoverage over required rendered sections only"
+  },
+  "calibrationPolicy": {
+    "noLocalDefaults": true,
+    "activeBundlePins": ["releaseCohortRef", "watchTupleRef", "calibrationVersion"],
+    "confidenceSuppressedWhen": ["validatedWindowState is missing, expired, or invalid", "release cohort mismatch", "watch tuple mismatch"],
+    "thresholdRefs": ["cDocRender", "thetaDocRender", "lambdaConflict", "lambdaUnsupported", "lambdaMissing", "buckets"]
+  },
+  "presentationPolicy": {
+    "defaultArtifactState": "summary_only",
+    "forbiddenDefaults": ["raw external URL", "direct final-record writeback", "external handoff without outbound navigation grant"],
+    "humanReviewRequired": true
+  },
+  "invariants": [
+    {
+      "invariantId": "INV408_001",
+      "statement": "Every draft starts from a frozen DocumentationContextSnapshot with request, task, review bundle, transcript, template, policy, release, and surface refs."
+    },
+    {
+      "invariantId": "INV408_002",
+      "statement": "Only approved structured templates for the five supported draft families can be resolved for composition."
+    },
+    {
+      "invariantId": "INV408_003",
+      "statement": "EvidenceMapSet rows are immutable and must bind to the same artifact ref, artifact revision, and context snapshot as the draft that claims support."
+    },
+    {
+      "invariantId": "INV408_004",
+      "statement": "Section support and confidence descriptors are computed from verifier outputs and calibration bundles, never from decoder probabilities."
+    },
+    {
+      "invariantId": "INV408_005",
+      "statement": "Unsupported or contradictory sections abstain or carry missing-info flags instead of rendering unsupported claims."
+    },
+    {
+      "invariantId": "INV408_006",
+      "statement": "Visible confidence is suppressed and visible presentation is blocked when the active release cohort or watch tuple lacks a validated calibration window."
+    },
+    {
+      "invariantId": "INV408_007",
+      "statement": "Draft artifacts remain pending human review and cannot directly commit generated content to final clinical records."
+    }
+  ],
+  "downstreamConsumers": ["par_409", "par_410", "par_411", "par_412", "par_413", "par_414", "par_415"]
+}

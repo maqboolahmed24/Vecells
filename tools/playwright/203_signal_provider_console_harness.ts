@@ -1,0 +1,284 @@
+import fs from "node:fs";
+import http from "node:http";
+import net from "node:net";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import type { Browser, Page } from "playwright";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const ROOT = path.resolve(__dirname, "..", "..");
+const CONTROL_BOARD = path.join(ROOT, "docs", "frontend", "203_signal_edge_control_board.html");
+const MANIFEST_PATH = path.join(ROOT, "data", "contracts", "203_signal_provider_manifest.json");
+const SELECTORS_PATH = path.join(
+  ROOT,
+  "data",
+  "contracts",
+  "203_signal_provider_selector_manifests.json",
+);
+const OUTPUT_DIR = path.join(ROOT, "output", "playwright");
+
+type Manifest = {
+  readonly manifestVersion: string;
+  readonly liveMutationGate: {
+    readonly allowLiveMutationFlag: string;
+    readonly liveMutationAllowedByDefault: boolean;
+    readonly requiredPreconditions: readonly string[];
+  };
+  readonly environmentSet: readonly {
+    readonly environmentId: string;
+    readonly providerMutationAllowed: boolean;
+  }[];
+  readonly providerFamilies: readonly {
+    readonly family: string;
+    readonly callbackTargets: readonly {
+      readonly endpointId: string;
+      readonly callbackUrlPath: string;
+      readonly endpointScope: string;
+    }[];
+  }[];
+};
+
+interface StaticServer {
+  readonly server: http.Server;
+  readonly url: string;
+}
+
+function assertCondition(condition: unknown, message: string): asserts condition {
+  if (!condition) {
+    throw new Error(message);
+  }
+}
+
+function readJson<T>(filePath: string): T {
+  return JSON.parse(fs.readFileSync(filePath, "utf8")) as T;
+}
+
+function redact(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(redact);
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, redact(item)]),
+    );
+  }
+  if (typeof value !== "string") {
+    return value;
+  }
+  return value
+    .replace(/credential:\/\/[^"'\s]+/g, "credential://[REDACTED]")
+    .replace(/https:\/\/[A-Za-z0-9_.-]+/g, "https://[REDACTED-HOST]")
+    .replace(/Bearer\s+[^"'\s]+/gi, "Bearer [REDACTED]")
+    .replace(/api[_-]?key[^"'\s]*/gi, "[PROVIDER-CREDENTIAL-REDACTED]")
+    .replace(/auth[_-]?token[^"'\s]*/gi, "[PROVIDER-CREDENTIAL-REDACTED]")
+    .replace(/private[_-]?key[^"'\s]*/gi, "[PROVIDER-CREDENTIAL-REDACTED]");
+}
+
+async function importPlaywright() {
+  try {
+    return await import("playwright");
+  } catch (error) {
+    if (!process.argv.includes("--run")) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+async function allocatePort(): Promise<number> {
+  return await new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      if (!address || typeof address === "string") {
+        reject(new Error("Unable to allocate port."));
+        return;
+      }
+      server.close((error) => (error ? reject(error) : resolve(address.port)));
+    });
+  });
+}
+
+async function startStaticServer(): Promise<StaticServer> {
+  const port = await allocatePort();
+  const server = http.createServer((request, response) => {
+    const requestUrl = new URL(request.url || "/", "http://127.0.0.1");
+    let pathname = decodeURIComponent(requestUrl.pathname);
+    if (pathname === "/") {
+      pathname = "/docs/frontend/203_signal_edge_control_board.html";
+    }
+    const filePath = path.join(ROOT, pathname);
+    if (!filePath.startsWith(ROOT) || !fs.existsSync(filePath)) {
+      response.writeHead(404);
+      response.end("not found");
+      return;
+    }
+    const extension = path.extname(filePath);
+    const contentType =
+      extension === ".html"
+        ? "text/html; charset=utf-8"
+        : extension === ".json"
+          ? "application/json; charset=utf-8"
+          : extension === ".csv"
+            ? "text/csv; charset=utf-8"
+            : "text/plain; charset=utf-8";
+    response.writeHead(200, { "Content-Type": contentType });
+    response.end(fs.readFileSync(filePath));
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(port, "127.0.0.1", () => resolve());
+  });
+
+  return {
+    server,
+    url: `http://127.0.0.1:${port}/docs/frontend/203_signal_edge_control_board.html`,
+  };
+}
+
+async function closeServer(server: http.Server): Promise<void> {
+  await new Promise<void>((resolve, reject) =>
+    server.close((error) => (error ? reject(error) : resolve())),
+  );
+}
+
+async function openBoard(page: Page, url: string): Promise<void> {
+  await page.goto(url, { waitUntil: "networkidle" });
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+  await page.locator("[data-testid='Signal_Edge_Control_Board']").waitFor();
+}
+
+async function captureSelectorSnapshot(page: Page): Promise<Record<string, string>> {
+  const selectors = readJson<{ localTwinSelectors: Record<string, string> }>(SELECTORS_PATH);
+  const snapshot: Record<string, string> = {};
+  for (const [name, selector] of Object.entries(selectors.localTwinSelectors)) {
+    snapshot[name] = String(await page.locator(selector).count());
+  }
+  return snapshot;
+}
+
+function providerMutationAllowed(manifest: Manifest, targetEnvironment: string): boolean {
+  const target = manifest.environmentSet.find((env) => env.environmentId === targetEnvironment);
+  return Boolean(target?.providerMutationAllowed);
+}
+
+function assertManifestSafe(manifest: Manifest): void {
+  assertCondition(
+    manifest.liveMutationGate.liveMutationAllowedByDefault === false,
+    "Live mutation must default to false.",
+  );
+  for (const family of manifest.providerFamilies) {
+    for (const target of family.callbackTargets) {
+      assertCondition(target.endpointScope === "edge", `${target.endpointId} is not edge scoped.`);
+      assertCondition(
+        target.callbackUrlPath.startsWith("/edge/signal/"),
+        `${target.endpointId} is not an edge signal callback.`,
+      );
+    }
+  }
+}
+
+async function runDryRun(browser: Browser): Promise<void> {
+  const manifest = readJson<Manifest>(MANIFEST_PATH);
+  assertManifestSafe(manifest);
+  assertCondition(
+    !providerMutationAllowed(manifest, "live_candidate"),
+    "live_candidate providerMutationAllowed must remain false by default.",
+  );
+
+  const staticServer = await startStaticServer();
+  const page = await browser.newPage({ viewport: { width: 1280, height: 920 } });
+  try {
+    await openBoard(page, staticServer.url);
+    await page.getByRole("tab", { name: "Telephony" }).click();
+    await page.locator("[data-testid='endpoint-provider-family-matrix']").waitFor();
+    await page.getByRole("tab", { name: "SMS" }).click();
+    await page.getByRole("tab", { name: "Email" }).click();
+    await page.getByRole("tab", { name: "Replay" }).click();
+    await page.locator("[data-testid='signature-replay-guard-board']").waitFor();
+    await page.getByRole("button", { name: "Probe duplicate endpoint" }).click();
+    await page.locator("[data-testid='duplicate-endpoint-warning'][data-visible='true']").waitFor();
+    await page.getByRole("tab", { name: "Evidence" }).click();
+    await page.locator("[data-testid='redacted-screenshot-list']").waitFor();
+
+    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+    await page.screenshot({
+      path: path.join(OUTPUT_DIR, "203-signal-provider-console-harness.png"),
+      fullPage: true,
+    });
+
+    const selectorSnapshot = await captureSelectorSnapshot(page);
+    fs.writeFileSync(
+      path.join(OUTPUT_DIR, "203-signal-provider-selector-snapshot.json"),
+      `${JSON.stringify(redact(selectorSnapshot), null, 2)}\n`,
+      "utf8",
+    );
+
+    const evidence = redact({
+      taskId: "seq_203",
+      mode: "dry_run",
+      manifestVersion: manifest.manifestVersion,
+      liveMutationFlag: manifest.liveMutationGate.allowLiveMutationFlag,
+      liveMutationObserved: process.env.ALLOW_SIGNAL_PROVIDER_MUTATION === "true",
+      liveMutationPerformed: false,
+      providerMutationAllowed: false,
+      checkedTabs: ["Telephony", "SMS", "Email", "Replay", "Evidence"],
+      duplicateEndpointWarningObserved: true,
+      rollback: {
+        snapshotRequiredBeforeMutation: true,
+        realProviderRollbackRequiresApproval: true,
+      },
+      selectorSnapshot,
+    });
+    fs.writeFileSync(
+      path.join(OUTPUT_DIR, "203-signal-provider-console-harness-evidence.json"),
+      `${JSON.stringify(evidence, null, 2)}\n`,
+      "utf8",
+    );
+  } finally {
+    await page.close();
+    await closeServer(staticServer.server);
+  }
+}
+
+async function main(): Promise<void> {
+  const manifest = readJson<Manifest>(MANIFEST_PATH);
+  const targetEnvironment =
+    process.argv.find((arg) => arg.startsWith("--target-environment="))?.split("=")[1] ?? "local";
+  const wantsProvider = process.argv.includes("--provider-console");
+  const liveFlag = process.env.ALLOW_SIGNAL_PROVIDER_MUTATION === "true";
+
+  assertManifestSafe(manifest);
+
+  if (wantsProvider) {
+    const allowed = liveFlag && providerMutationAllowed(manifest, targetEnvironment);
+    assertCondition(
+      !allowed,
+      "Real provider console mutation is intentionally unavailable in seq_203 dry-run harness.",
+    );
+    console.log("203 signal provider provider-console path blocked by live gate");
+    return;
+  }
+
+  const playwright = await importPlaywright();
+  if (!process.argv.includes("--run")) {
+    console.log(
+      "203 signal provider harness structural checks passed; use --run for browser proof",
+    );
+    return;
+  }
+  assertCondition(playwright, "Playwright import failed.");
+
+  const browser = await playwright.chromium.launch();
+  try {
+    await runDryRun(browser);
+  } finally {
+    await browser.close();
+  }
+  console.log("203 signal provider harness dry run passed");
+}
+
+await main();

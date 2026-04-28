@@ -1,0 +1,1050 @@
+{
+  "taskId": "seq_311",
+  "contractVersion": "311.phase5.hub-core-freeze.v1",
+  "visualMode": "Phase5_Hub_State_And_Scope_Atlas",
+  "aggregate": "HubCoordinationCase",
+  "closureAuthority": "LifecycleCoordinator",
+  "stateFamilies": [
+    {
+      "familyId": "intake",
+      "label": "Intake and Queue",
+      "summary": "The network request is being validated, policy-scoped, and admitted into the hub queue under preserved booking lineage.",
+      "accent": "lineage",
+      "states": [
+        "hub_requested",
+        "intake_validated",
+        "queued"
+      ]
+    },
+    {
+      "familyId": "coordination",
+      "label": "Coordination",
+      "summary": "Ownership, candidate discovery, and coordinator decision-making are active inside the hub shell.",
+      "accent": "current",
+      "states": [
+        "claimed",
+        "candidate_searching",
+        "candidates_ready",
+        "coordinator_selecting"
+      ]
+    },
+    {
+      "familyId": "choice",
+      "label": "Patient Choice",
+      "summary": "A governed offer pack exists, the full open-choice set is visible, and stale mutations are blocked by tuple drift.",
+      "accent": "visibility",
+      "states": [
+        "alternatives_offered",
+        "patient_choice_pending"
+      ]
+    },
+    {
+      "familyId": "commit",
+      "label": "Commit and Truth",
+      "summary": "A selected candidate is revalidated, committed, and then held in acknowledgement debt until origin-practice visibility is satisfied.",
+      "accent": "current",
+      "states": [
+        "candidate_revalidating",
+        "native_booking_pending",
+        "confirmation_pending",
+        "booked_pending_practice_ack",
+        "booked"
+      ]
+    },
+    {
+      "familyId": "fallback",
+      "label": "Fallback and Return",
+      "summary": "The hub has switched from direct coordination to callback or return-to-practice continuity, but the case stays supervised until linkage is durable.",
+      "accent": "warning",
+      "states": [
+        "callback_transfer_pending",
+        "callback_offered",
+        "escalated_back"
+      ]
+    },
+    {
+      "familyId": "completion",
+      "label": "Completion",
+      "summary": "Closure is permitted only after ownership, truth, fallback, and acknowledgement blockers are all clear.",
+      "accent": "blocked",
+      "states": [
+        "closed"
+      ]
+    }
+  ],
+  "states": [
+    {
+      "stateId": "hub_requested",
+      "label": "Hub requested",
+      "familyId": "intake",
+      "familyLabel": "Intake and Queue",
+      "summary": "The booking branch has asked for hub coordination, but the network request has not yet been validated into a queue-admissible child lineage.",
+      "dominantAuthority": "NetworkBookingRequest + LineageCaseLink(parent = booking)",
+      "entryPredicateSummary": "A NetworkBookingRequest exists for the same requestLineageRef, origin booking refs are preserved, and the hub child link has not yet been admitted into active queue posture.",
+      "routeCue": "Read-only provenance in the same shell with a lineage mini-diagram and no live coordination actions.",
+      "allowedCommandIds": [
+        "create_hub_request"
+      ],
+      "activeBlockerIds": [
+        "lineage_child_link_missing",
+        "policy_tuple_stale"
+      ],
+      "truthNotes": [
+        "Operational state only; no patient or practice reassurance may be inferred.",
+        "Hub entry cannot overwrite BookingCase.lineageCaseLinkRef."
+      ]
+    },
+    {
+      "stateId": "intake_validated",
+      "label": "Intake validated",
+      "familyId": "intake",
+      "familyLabel": "Intake and Queue",
+      "summary": "The hub handoff has passed lineage, origin-practice, and policy admission checks and is ready to join the queue.",
+      "dominantAuthority": "NetworkBookingRequest + NetworkCoordinationPolicyEvaluation(evaluationScope = candidate_snapshot)",
+      "entryPredicateSummary": "Lineage, origin booking, patient constraints, and reason-for-routing fields are complete, and the current policy evaluation admits the case to hub coordination.",
+      "routeCue": "Queue-ready card inside the hub shell with explicit origin practice and routing summary.",
+      "allowedCommandIds": [
+        "claim_case"
+      ],
+      "activeBlockerIds": [
+        "ownership_lease_live",
+        "policy_tuple_stale"
+      ],
+      "truthNotes": [
+        "Still not patient-visible booked truth.",
+        "Queue posture is independent from future offer and confirmation truth."
+      ]
+    },
+    {
+      "stateId": "queued",
+      "label": "Queued",
+      "familyId": "intake",
+      "familyLabel": "Intake and Queue",
+      "summary": "The case is in the hub work queue but not yet actively claimed by one coordinator lease.",
+      "dominantAuthority": "HubCoordinationCase.ownerState + RequestLifecycleLease",
+      "entryPredicateSummary": "Queue entry time is recorded, ownership is unclaimed, and the same-shell queue family is the authoritative view of the active work item.",
+      "routeCue": "Queue lane row with claim, monitor, or supervised return controls.",
+      "allowedCommandIds": [
+        "claim_case",
+        "return_to_practice"
+      ],
+      "activeBlockerIds": [
+        "ownership_lease_live",
+        "policy_tuple_stale"
+      ],
+      "truthNotes": [
+        "Queue admission does not imply candidate search has started.",
+        "Escalated return remains legal directly from queue if policy or urgency requires it."
+      ]
+    },
+    {
+      "stateId": "claimed",
+      "label": "Claimed",
+      "familyId": "coordination",
+      "familyLabel": "Coordination",
+      "summary": "One coordinator holds the current ownership fence and may advance the case under the active acting context.",
+      "dominantAuthority": "CoordinationOwnership + ActingContext + RequestLifecycleLease",
+      "entryPredicateSummary": "Claim succeeded under the current acting scope, ownership fence token, and visibility contract, and the case is now writable by exactly one active lease.",
+      "routeCue": "Case console with live DecisionDock and coordination timers.",
+      "allowedCommandIds": [
+        "transfer_ownership",
+        "refresh_candidates",
+        "return_to_practice"
+      ],
+      "activeBlockerIds": [
+        "ownership_lease_live",
+        "ownership_transition_open",
+        "cross_org_visibility_stale"
+      ],
+      "truthNotes": [
+        "Claimed status is operational ownership only.",
+        "No candidate or offer truth is implied yet."
+      ]
+    },
+    {
+      "stateId": "candidate_searching",
+      "label": "Candidate searching",
+      "familyId": "coordination",
+      "familyLabel": "Coordination",
+      "summary": "The coordinator is resolving or refreshing the clinically acceptable, trusted frontier under the current policy tuple.",
+      "dominantAuthority": "NetworkCandidateSnapshot + CrossSiteDecisionPlan",
+      "entryPredicateSummary": "One active ownership fence exists and the current policy evaluation allows candidate discovery against trusted capacity sources.",
+      "routeCue": "Case console with candidate refresh in progress and stale tuple guardrails visible.",
+      "allowedCommandIds": [
+        "refresh_candidates",
+        "return_to_practice"
+      ],
+      "activeBlockerIds": [
+        "ownership_lease_live",
+        "policy_tuple_stale",
+        "continuity_evidence_degraded"
+      ],
+      "truthNotes": [
+        "Candidate search is not patient-choice posture.",
+        "Degraded or quarantined sources may inform diagnostics only, never patient offerability."
+      ]
+    },
+    {
+      "stateId": "candidates_ready",
+      "label": "Candidates ready",
+      "familyId": "coordination",
+      "familyLabel": "Coordination",
+      "summary": "The current candidate snapshot and ranked plan are stable enough for coordinator review or alternative packaging.",
+      "dominantAuthority": "NetworkCandidateSnapshot + CrossSiteDecisionPlan + policyTupleHash",
+      "entryPredicateSummary": "A fresh candidate snapshot, rank proof, and current policy tuple all agree on the same offerable frontier for this case version.",
+      "routeCue": "Case console with ranked candidates and explicit choose-offer-or-return posture.",
+      "allowedCommandIds": [
+        "offer_alternatives",
+        "refresh_candidates",
+        "return_to_practice"
+      ],
+      "activeBlockerIds": [
+        "ownership_lease_live",
+        "policy_tuple_stale",
+        "continuity_evidence_degraded"
+      ],
+      "truthNotes": [
+        "Candidates-ready remains pre-selection.",
+        "Any future patient-choice route must bind the same offer set hash and truth tuple."
+      ]
+    },
+    {
+      "stateId": "coordinator_selecting",
+      "label": "Coordinator selecting",
+      "familyId": "coordination",
+      "familyLabel": "Coordination",
+      "summary": "A coordinator is choosing a direct candidate or moving the case into a governed alternative-offer flow.",
+      "dominantAuthority": "HubCoordinationCase.selectedCandidateRef + current CrossSiteDecisionPlan",
+      "entryPredicateSummary": "Exactly one governing case, one active acting context, one policy tuple, and one candidate plan are current for the selection action.",
+      "routeCue": "DecisionDock prioritizes commit, offer, callback, or return while keeping the case pulse fixed.",
+      "allowedCommandIds": [
+        "offer_alternatives",
+        "commit_native_booking",
+        "return_to_practice",
+        "transfer_ownership"
+      ],
+      "activeBlockerIds": [
+        "ownership_lease_live",
+        "policy_tuple_stale",
+        "cross_org_visibility_stale"
+      ],
+      "truthNotes": [
+        "Selection is not commit.",
+        "Callback and return transitions are first-class legal exits, not exception-only side paths."
+      ]
+    },
+    {
+      "stateId": "alternatives_offered",
+      "label": "Alternatives offered",
+      "familyId": "choice",
+      "familyLabel": "Patient Choice",
+      "summary": "A real AlternativeOfferSession exists and the full patient-offerable set is packaged under one offerSetHash.",
+      "dominantAuthority": "AlternativeOfferSession + AlternativeOfferOptimisationPlan + HubOfferToConfirmationTruthProjection",
+      "entryPredicateSummary": "A governed offer pack exists, callback remains a separate fallback card, and the active truth projection blocks close by offer.",
+      "routeCue": "Alternative-offer child route inside the same hub shell with pinned provenance and no hidden top-K funnel.",
+      "allowedCommandIds": [
+        "offer_alternatives",
+        "return_to_practice"
+      ],
+      "activeBlockerIds": [
+        "offer_truth_blocks_close",
+        "continuity_evidence_degraded",
+        "policy_tuple_stale"
+      ],
+      "truthNotes": [
+        "Offer recommendation is advisory only.",
+        "Offer availability does not imply booking confirmation or practice visibility."
+      ]
+    },
+    {
+      "stateId": "patient_choice_pending",
+      "label": "Patient choice pending",
+      "familyId": "choice",
+      "familyLabel": "Patient Choice",
+      "summary": "At least one live alternative has been delivered and the case is now waiting for patient choice, decline, callback, expiry, or regeneration.",
+      "dominantAuthority": "AlternativeOfferSession.patientChoiceState + HubOfferToConfirmationTruthProjection.offerState",
+      "entryPredicateSummary": "Offer delivery or phone read-back has started, patient-visible choice state is live, and callback is still modeled outside the ranked options.",
+      "routeCue": "Same-shell offer route with live patient-choice posture and stale mutation blocking.",
+      "allowedCommandIds": [
+        "offer_alternatives",
+        "return_to_practice"
+      ],
+      "activeBlockerIds": [
+        "offer_truth_blocks_close",
+        "continuity_evidence_degraded",
+        "policy_tuple_stale"
+      ],
+      "truthNotes": [
+        "Choice pending is still open-choice, not commit.",
+        "Expiry, embedded drift, or subject drift must preserve provenance but disable stale accept and callback actions."
+      ]
+    },
+    {
+      "stateId": "candidate_revalidating",
+      "label": "Candidate revalidating",
+      "familyId": "commit",
+      "familyLabel": "Commit and Truth",
+      "summary": "The chosen candidate is being rechecked against live capacity, source version, reservation fence, and current policy outputs.",
+      "dominantAuthority": "HubCommitAttempt preflight + reservation fence + current policy evaluation",
+      "entryPredicateSummary": "A chosen candidate exists, current tuples still match, and the system is executing the last safe check before any native side effect occurs.",
+      "routeCue": "Case console or commit route with selected candidate pinned and fresh revalidation blockers visible.",
+      "allowedCommandIds": [
+        "commit_native_booking",
+        "offer_alternatives",
+        "return_to_practice"
+      ],
+      "activeBlockerIds": [
+        "selected_candidate_not_revalidated",
+        "policy_tuple_stale",
+        "continuity_evidence_degraded"
+      ],
+      "truthNotes": [
+        "Revalidation failure returns the case to search or choice, not quiet failure.",
+        "No booked or calm manage posture is legal here."
+      ]
+    },
+    {
+      "stateId": "native_booking_pending",
+      "label": "Native booking pending",
+      "familyId": "commit",
+      "familyLabel": "Commit and Truth",
+      "summary": "A fenced HubCommitAttempt is in flight and may be the only object allowed to talk to the native booking surface.",
+      "dominantAuthority": "HubCommitAttempt + CommandActionRecord + reservation fence",
+      "entryPredicateSummary": "Revalidation passed, a commit intent was durably journaled, and any external side effect is bound to one idempotent attempt.",
+      "routeCue": "Commit route with authoritative pending wording and no false exclusivity claims.",
+      "allowedCommandIds": [
+        "commit_native_booking",
+        "return_to_practice"
+      ],
+      "activeBlockerIds": [
+        "confirmation_truth_pending",
+        "ownership_lease_live",
+        "continuity_evidence_degraded"
+      ],
+      "truthNotes": [
+        "Pending native booking is not confirmation.",
+        "Partial failure must route to reconciliation, not a second parallel attempt."
+      ]
+    },
+    {
+      "stateId": "confirmation_pending",
+      "label": "Confirmation pending",
+      "familyId": "commit",
+      "familyLabel": "Commit and Truth",
+      "summary": "Some booking proof exists, but the monotone confirmation gate has not yet cleared final booked truth.",
+      "dominantAuthority": "ExternalConfirmationGate + HubOfferToConfirmationTruthProjection.confirmationTruthState",
+      "entryPredicateSummary": "The active commit attempt has not yet met hard-match and confidence thresholds, so only pending confirmation posture is legal.",
+      "routeCue": "Pending confirmation strip with explicit proof status, not calm appointment reassurance.",
+      "allowedCommandIds": [
+        "commit_native_booking",
+        "return_to_practice"
+      ],
+      "activeBlockerIds": [
+        "confirmation_truth_pending",
+        "continuity_evidence_degraded",
+        "ownership_lease_live"
+      ],
+      "truthNotes": [
+        "Patient confirmation may be provisional only.",
+        "Practice acknowledgement cannot start from stale or disputed truth."
+      ]
+    },
+    {
+      "stateId": "booked_pending_practice_ack",
+      "label": "Booked pending practice acknowledgement",
+      "familyId": "commit",
+      "familyLabel": "Commit and Truth",
+      "summary": "Authoritative hub confirmation exists, but the origin practice still owes acknowledgement for the current generation.",
+      "dominantAuthority": "HubAppointmentRecord + PracticeAcknowledgementRecord + HubOfferToConfirmationTruthProjection.practiceVisibilityState",
+      "entryPredicateSummary": "The appointment is confirmed for the active tuple, patient-facing confirmation may render, and ackGeneration has been minted but not yet satisfied.",
+      "routeCue": "Case stays in active oversight with current acknowledgement debt, due time, and continuity messaging evidence.",
+      "allowedCommandIds": [
+        "return_to_practice",
+        "close_case"
+      ],
+      "activeBlockerIds": [
+        "practice_ack_debt_open",
+        "ownership_lease_live",
+        "continuity_evidence_degraded"
+      ],
+      "truthNotes": [
+        "Patient confirmation and practice acknowledgement are orthogonal facets.",
+        "Transport acceptance alone may not clear acknowledgement debt."
+      ]
+    },
+    {
+      "stateId": "booked",
+      "label": "Booked",
+      "familyId": "commit",
+      "familyLabel": "Commit and Truth",
+      "summary": "Confirmed hub appointment truth and current-generation practice acknowledgement both exist for the live truth tuple.",
+      "dominantAuthority": "HubOfferToConfirmationTruthProjection.confirmationTruthState = confirmed",
+      "entryPredicateSummary": "Authoritative confirmation, current tuple agreement, and current-generation practice acknowledgement all align.",
+      "routeCue": "Booked case summary with closure eligibility explicitly tied to open blocker emptiness.",
+      "allowedCommandIds": [
+        "close_case"
+      ],
+      "activeBlockerIds": [
+        "ownership_lease_live"
+      ],
+      "truthNotes": [
+        "Booked still is not closed.",
+        "Close remains a LifecycleCoordinator decision gated by empty blocker set."
+      ]
+    },
+    {
+      "stateId": "callback_transfer_pending",
+      "label": "Callback transfer pending",
+      "familyId": "fallback",
+      "familyLabel": "Fallback and Return",
+      "summary": "Callback fallback has been chosen, but the callback case or expectation envelope is not yet durably linked and patient-visible.",
+      "dominantAuthority": "HubFallbackRecord(fallbackType = callback_request) + CallbackExpectationEnvelope linkage",
+      "entryPredicateSummary": "The fallback card or callback path was selected, but callback continuity is not yet durable for the current fence and lineage.",
+      "routeCue": "Same-shell fallback card stays visible as provenance while linkage completes.",
+      "allowedCommandIds": [
+        "return_to_practice"
+      ],
+      "activeBlockerIds": [
+        "callback_linkage_pending",
+        "continuity_evidence_degraded",
+        "ownership_lease_live"
+      ],
+      "truthNotes": [
+        "The prior offer context remains visible as read-only provenance.",
+        "This state exists to prevent silent callback handoff gaps."
+      ]
+    },
+    {
+      "stateId": "callback_offered",
+      "label": "Callback offered",
+      "familyId": "fallback",
+      "familyLabel": "Fallback and Return",
+      "summary": "Callback linkage is durable and the patient-facing CallbackExpectationEnvelope is now the governing continuity object.",
+      "dominantAuthority": "HubFallbackRecord + CallbackCase + CallbackExpectationEnvelope",
+      "entryPredicateSummary": "The linked callback workflow and expectation envelope exist and are current for the same request lineage and fallback fence.",
+      "routeCue": "Read-only callback provenance inside the same shell until the hub branch can legally close.",
+      "allowedCommandIds": [
+        "close_case"
+      ],
+      "activeBlockerIds": [
+        "ownership_lease_live"
+      ],
+      "truthNotes": [
+        "Callback-offered is not a hidden close.",
+        "Hub tooling may observe or repair callback continuity, but may not reinterpret the patient state from stale local waitlist truth."
+      ]
+    },
+    {
+      "stateId": "escalated_back",
+      "label": "Escalated back",
+      "familyId": "fallback",
+      "familyLabel": "Fallback and Return",
+      "summary": "The case has been returned to origin practice or duty-clinician workflow with preserved urgency carry and linked return proof.",
+      "dominantAuthority": "HubFallbackRecord(return_to_practice) + HubReturnToPracticeRecord",
+      "entryPredicateSummary": "No clinically acceptable trusted offer exists, or the lead-time inequality fails, and return workflow linkage has been created or is being finalized.",
+      "routeCue": "Urgent return panel stays in the same case console with rationale and linked practice task preview.",
+      "allowedCommandIds": [
+        "close_case"
+      ],
+      "activeBlockerIds": [
+        "return_linkage_pending",
+        "ownership_lease_live"
+      ],
+      "truthNotes": [
+        "Escalated-back is a durable operational branch state, not an exception note.",
+        "The practice task must be materially linked before close can succeed."
+      ]
+    },
+    {
+      "stateId": "closed",
+      "label": "Closed",
+      "familyId": "completion",
+      "familyLabel": "Completion",
+      "summary": "The hub branch is durably finished and no remaining OpenCaseBlockers(h) keep it in live oversight.",
+      "dominantAuthority": "LifecycleCoordinator close decision + OpenCaseBlockers(h) = empty",
+      "entryPredicateSummary": "LifecycleCoordinator persisted the close decision, fallback linkage is durable, and all ownership, continuity, confirmation, and visibility blockers are clear.",
+      "routeCue": "Audit-first review posture inside the same shell family.",
+      "allowedCommandIds": [],
+      "activeBlockerIds": [],
+      "truthNotes": [
+        "Closed is the only legal finished state for the hub branch.",
+        "Closure may not be inferred from booked, callback, or return states alone."
+      ]
+    }
+  ],
+  "truthAxes": [
+    {
+      "axisId": "hub_operational_state",
+      "label": "Hub workflow state",
+      "governingField": "HubCoordinationCase.status",
+      "notes": "Operational state only. This must not be used as a shortcut for patient reassurance or practice visibility."
+    },
+    {
+      "axisId": "offer_confirmation_truth",
+      "label": "Offer to confirmation truth",
+      "governingField": "HubOfferToConfirmationTruthProjection",
+      "notes": "Patient-visible offer, provisional receipt, booked truth, practice visibility, and closeability all derive here."
+    },
+    {
+      "axisId": "ownership_fence",
+      "label": "Ownership lease and fence",
+      "governingField": "CoordinationOwnership + RequestLifecycleLease",
+      "notes": "All writable commands require the current fence token and epoch."
+    },
+    {
+      "axisId": "acting_scope_and_visibility",
+      "label": "Acting scope and visibility",
+      "governingField": "ActingContext + CrossOrganisationVisibilityEnvelope",
+      "notes": "Cross-org access is a first-class command envelope, not a UI-local role check."
+    }
+  ],
+  "branchStates": [
+    "alternatives_offered",
+    "patient_choice_pending",
+    "callback_transfer_pending",
+    "callback_offered",
+    "escalated_back"
+  ],
+  "transitions": [
+    {
+      "transitionId": "H311_001",
+      "from": "hub_requested",
+      "to": "intake_validated",
+      "predicateId": "P311_REQUEST_LINEAGE_BOUND",
+      "predicate": "NetworkBookingRequest exists, origin booking refs are preserved, and a child hub LineageCaseLink has been created under the origin booking link for the same request lineage.",
+      "controllingObject": "NetworkBookingRequest + LineageCaseLink",
+      "commandScope": "hub.request.create",
+      "truthPredicate": "The booking branch remains the parent lineage owner and the hub branch is admitted as a child, not a replacement.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_002",
+      "from": "intake_validated",
+      "to": "queued",
+      "predicateId": "P311_QUEUE_ADMISSION_CLEAR",
+      "predicate": "Current NetworkCoordinationPolicyEvaluation admits the case to hub workflow and queue entry metadata is persisted.",
+      "controllingObject": "NetworkCoordinationPolicyEvaluation + HubCoordinationCase.queueEnteredAt",
+      "commandScope": "hub.request.create",
+      "truthPredicate": "Queue posture is legal only after lineaged intake validation and policy admission both hold.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_003",
+      "from": "queued",
+      "to": "claimed",
+      "predicateId": "P311_LEASE_CLAIMED",
+      "predicate": "A current ownership lease, fence token, and epoch have been minted for one acting context under the current visibility contract.",
+      "controllingObject": "CoordinationOwnership + RequestLifecycleLease + ActingContext",
+      "commandScope": "hub.case.claim",
+      "truthPredicate": "Only one live claim may hold the writable fence for the hub case.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_004",
+      "from": "queued",
+      "to": "escalated_back",
+      "predicateId": "P311_QUEUE_RETURN_REQUIRED",
+      "predicate": "Policy, urgency carry, or supervisor decision requires direct return before active coordination starts, and the return workflow is being or has been linked.",
+      "controllingObject": "HubFallbackRecord(return_to_practice) + HubReturnToPracticeRecord",
+      "commandScope": "hub.case.return_to_practice",
+      "truthPredicate": "Return is lawful directly from queue when hub coordination itself is not the safe continuation.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_005",
+      "from": "claimed",
+      "to": "candidate_searching",
+      "predicateId": "P311_SEARCH_STARTED",
+      "predicate": "A coordinator with the current ownership fence requests or resumes candidate discovery under the current policy tuple.",
+      "controllingObject": "ActingContext + CoordinationOwnership + NetworkCoordinationPolicyEvaluation",
+      "commandScope": "hub.case.refresh_candidates",
+      "truthPredicate": "Search starts only under one current acting scope and fence pair.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_006",
+      "from": "claimed",
+      "to": "callback_transfer_pending",
+      "predicateId": "P311_CALLBACK_REQUIRED_AT_CLAIM",
+      "predicate": "Policy or patient preference requires callback immediately and the callback continuity objects have not yet been durably linked.",
+      "controllingObject": "HubFallbackRecord(callback_request) + CallbackExpectationEnvelope",
+      "commandScope": "hub.case.return_to_practice",
+      "truthPredicate": "Callback transfer remains open until linkage is durable.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_007",
+      "from": "claimed",
+      "to": "escalated_back",
+      "predicateId": "P311_RETURN_REQUIRED_AT_CLAIM",
+      "predicate": "Direct return to practice or supervised back-escalation is required before discovery proceeds.",
+      "controllingObject": "HubFallbackRecord(return_to_practice)",
+      "commandScope": "hub.case.return_to_practice",
+      "truthPredicate": "Hub coordination may fail safely before candidate search starts.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_008",
+      "from": "candidate_searching",
+      "to": "candidates_ready",
+      "predicateId": "P311_FRESH_SNAPSHOT_READY",
+      "predicate": "One current candidate snapshot and cross-site decision plan agree on a trusted, policy-valid frontier.",
+      "controllingObject": "NetworkCandidateSnapshot + CrossSiteDecisionPlan",
+      "commandScope": "hub.case.refresh_candidates",
+      "truthPredicate": "The active policy tuple and rank proof still name the same candidates.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_009",
+      "from": "candidate_searching",
+      "to": "callback_transfer_pending",
+      "predicateId": "P311_CALLBACK_REQUIRED_AFTER_SEARCH",
+      "predicate": "The search result shows callback is the only safe continuation and callback linkage is not yet durable.",
+      "controllingObject": "HubFallbackRecord(callback_request)",
+      "commandScope": "hub.case.return_to_practice",
+      "truthPredicate": "Degraded or no-slot discovery may choose callback, but only through the governed fallback branch.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_010",
+      "from": "candidate_searching",
+      "to": "escalated_back",
+      "predicateId": "P311_RETURN_REQUIRED_AFTER_SEARCH",
+      "predicate": "No clinically acceptable trusted frontier remains or lead-time policy fails, so return-to-practice linkage must govern.",
+      "controllingObject": "HubFallbackRecord(return_to_practice) + HubReturnToPracticeRecord",
+      "commandScope": "hub.case.return_to_practice",
+      "truthPredicate": "No-slot return is a governed continuation, not an implicit search failure.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_011",
+      "from": "candidates_ready",
+      "to": "coordinator_selecting",
+      "predicateId": "P311_COORDINATOR_SELECTING",
+      "predicate": "A current candidate frontier exists and the coordinator is choosing direct commit versus alternative packaging under one acting scope and tuple.",
+      "controllingObject": "CrossSiteDecisionPlan + ActingContext",
+      "commandScope": "hub.case.refresh_candidates",
+      "truthPredicate": "Selection remains in the case shell and may not infer permission from cached rows or frontend-only state.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_012",
+      "from": "candidates_ready",
+      "to": "alternatives_offered",
+      "predicateId": "P311_ALTERNATIVE_SESSION_CREATED",
+      "predicate": "A real AlternativeOfferSession plus optimisation plan has been persisted from the current clinically acceptable trusted frontier.",
+      "controllingObject": "AlternativeOfferSession + AlternativeOfferOptimisationPlan",
+      "commandScope": "hub.case.offer_alternatives",
+      "truthPredicate": "Patient choice may start only from a governed offer session, not raw top-K rows.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_013",
+      "from": "candidates_ready",
+      "to": "callback_transfer_pending",
+      "predicateId": "P311_CALLBACK_PENDING_FROM_READY",
+      "predicate": "Callback is the selected continuation and the linked callback objects are not yet durable.",
+      "controllingObject": "HubFallbackRecord(callback_request)",
+      "commandScope": "hub.case.return_to_practice",
+      "truthPredicate": "Fallback stays explicit and open until linked.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_014",
+      "from": "candidates_ready",
+      "to": "escalated_back",
+      "predicateId": "P311_RETURN_FROM_READY",
+      "predicate": "Return-to-practice becomes the safe continuation before any selection or offer packaging completes.",
+      "controllingObject": "HubFallbackRecord(return_to_practice)",
+      "commandScope": "hub.case.return_to_practice",
+      "truthPredicate": "Escalation remains a direct governed branch from candidates-ready.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_015",
+      "from": "alternatives_offered",
+      "to": "patient_choice_pending",
+      "predicateId": "P311_OFFER_DELIVERED",
+      "predicate": "The offer set is actually delivered or a structured phone read-back session begins for the current offerSetHash.",
+      "controllingObject": "AlternativeOfferSession.patientChoiceState + HubOfferToConfirmationTruthProjection.offerState",
+      "commandScope": "hub.case.offer_alternatives",
+      "truthPredicate": "Patient choice opens only after deliverable offer posture exists.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_016",
+      "from": "alternatives_offered",
+      "to": "coordinator_selecting",
+      "predicateId": "P311_DIRECT_SELECTION_RESUMED",
+      "predicate": "The offer pack is not delivered as the active branch and the coordinator resumes direct candidate selection under the same current tuple.",
+      "controllingObject": "HubCoordinationCase.selectedCandidateRef + AlternativeOfferRegenerationSettlement",
+      "commandScope": "hub.case.offer_alternatives",
+      "truthPredicate": "Choice packaging may return to coordinator selection without pretending delivery occurred.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_017",
+      "from": "alternatives_offered",
+      "to": "callback_transfer_pending",
+      "predicateId": "P311_CALLBACK_SELECTED_FROM_FALLBACK_CARD",
+      "predicate": "The separate AlternativeOfferFallbackCard was selected and callback linkage is not yet durable.",
+      "controllingObject": "AlternativeOfferFallbackCard + HubFallbackRecord(callback_request)",
+      "commandScope": "hub.case.offer_alternatives",
+      "truthPredicate": "Callback remains outside ranked slot ordinals and becomes its own branch state.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_018",
+      "from": "alternatives_offered",
+      "to": "escalated_back",
+      "predicateId": "P311_RETURN_AFTER_OFFER_GENERATION",
+      "predicate": "Offer generation proves no safe or lawful patient-offerable path remains, so return-to-practice takes over.",
+      "controllingObject": "HubFallbackRecord(return_to_practice)",
+      "commandScope": "hub.case.return_to_practice",
+      "truthPredicate": "Generated offer provenance may remain visible, but active workflow changes to return.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_019",
+      "from": "patient_choice_pending",
+      "to": "coordinator_selecting",
+      "predicateId": "P311_PATIENT_SELECTED_ENTRY",
+      "predicate": "The patient or assisted read-back path explicitly selected one current offer entry and it still matches the active offerSetHash and truthTupleHash.",
+      "controllingObject": "AlternativeOfferEntry + HubOfferToConfirmationTruthProjection",
+      "commandScope": "hub.case.offer_alternatives",
+      "truthPredicate": "Choice acceptance must still re-enter coordinator or commit posture under the same current truth tuple.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_020",
+      "from": "patient_choice_pending",
+      "to": "callback_transfer_pending",
+      "predicateId": "P311_PATIENT_REQUESTED_CALLBACK",
+      "predicate": "The patient explicitly requests callback from the separate fallback card and callback linkage remains pending.",
+      "controllingObject": "HubFallbackRecord(callback_request) + CallbackFallbackRecord",
+      "commandScope": "hub.case.offer_alternatives",
+      "truthPredicate": "Choice does not silently collapse into callback; the fallback link must still be durable.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_021",
+      "from": "patient_choice_pending",
+      "to": "escalated_back",
+      "predicateId": "P311_CHOICE_WINDOW_EXPIRED_TO_RETURN",
+      "predicate": "Offer expiry, regenerated supply, or lead-time exhaustion makes return-to-practice the only safe continuation.",
+      "controllingObject": "AlternativeOfferRegenerationSettlement + HubFallbackRecord(return_to_practice)",
+      "commandScope": "hub.case.return_to_practice",
+      "truthPredicate": "Expired or drifted offer sets preserve provenance only and cannot stay quietly actionable.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_022",
+      "from": "coordinator_selecting",
+      "to": "candidate_revalidating",
+      "predicateId": "P311_SELECTED_CANDIDATE_PRECHECK",
+      "predicate": "Exactly one governing case, selected candidate, acting scope, and policy tuple are current, so revalidation may begin.",
+      "controllingObject": "HubCoordinationCase.selectedCandidateRef + ActingContext + policyTupleHash",
+      "commandScope": "hub.case.commit_native_booking",
+      "truthPredicate": "Commit may start only from a persisted selection, never from UI-local highlight state.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_023",
+      "from": "coordinator_selecting",
+      "to": "callback_transfer_pending",
+      "predicateId": "P311_CALLBACK_CHOSEN_BY_COORDINATOR",
+      "predicate": "The coordinator intentionally chooses callback and linkage is not yet durable.",
+      "controllingObject": "HubFallbackRecord(callback_request)",
+      "commandScope": "hub.case.return_to_practice",
+      "truthPredicate": "Coordinator choice still routes through governed callback continuity.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_024",
+      "from": "coordinator_selecting",
+      "to": "escalated_back",
+      "predicateId": "P311_RETURN_CHOSEN_BY_COORDINATOR",
+      "predicate": "The coordinator or supervisor chooses return-to-practice and the return workflow is being linked.",
+      "controllingObject": "HubFallbackRecord(return_to_practice)",
+      "commandScope": "hub.case.return_to_practice",
+      "truthPredicate": "Return remains a first-class controlled branch from coordinator selection.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_025",
+      "from": "candidate_revalidating",
+      "to": "native_booking_pending",
+      "predicateId": "P311_REVALIDATION_PASSED",
+      "predicate": "Selected candidate, source version, policy tuple, and reservation fence still align, and commit intent has been durably journaled.",
+      "controllingObject": "HubCommitAttempt + reservation fence + current truthTupleHash",
+      "commandScope": "hub.case.commit_native_booking",
+      "truthPredicate": "Native booking begins only after successful revalidation against the current tuple.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_026",
+      "from": "candidate_revalidating",
+      "to": "alternatives_offered",
+      "predicateId": "P311_REVALIDATION_FALLBACK_TO_OFFER",
+      "predicate": "The direct candidate became stale or unavailable, but a fresh governed alternative offer set remains clinically acceptable.",
+      "controllingObject": "AlternativeOfferSession + AlternativeOfferRegenerationSettlement",
+      "commandScope": "hub.case.offer_alternatives",
+      "truthPredicate": "Direct commit failure may reopen governed open choice rather than loose local search.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_027",
+      "from": "candidate_revalidating",
+      "to": "callback_transfer_pending",
+      "predicateId": "P311_REVALIDATION_FALLBACK_TO_CALLBACK",
+      "predicate": "The candidate can no longer be booked safely and callback continuity is now the only lawful continuation, pending durable linkage.",
+      "controllingObject": "HubFallbackRecord(callback_request)",
+      "commandScope": "hub.case.return_to_practice",
+      "truthPredicate": "Revalidation failure may move to callback only through the governed fallback branch.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_028",
+      "from": "candidate_revalidating",
+      "to": "escalated_back",
+      "predicateId": "P311_REVALIDATION_FALLBACK_TO_RETURN",
+      "predicate": "The candidate is stale, unavailable, policy-invalid, or trust-invalid and no governed offer or callback path remains sufficient.",
+      "controllingObject": "HubFallbackRecord(return_to_practice)",
+      "commandScope": "hub.case.return_to_practice",
+      "truthPredicate": "Unsafe revalidation outcomes must route to governed return, not silent retry.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_029",
+      "from": "native_booking_pending",
+      "to": "confirmation_pending",
+      "predicateId": "P311_PENDING_CONFIRMATION_ONLY",
+      "predicate": "The native or manual path produced provisional proof, but the confirmation gate has not yet passed hard-match and confidence thresholds.",
+      "controllingObject": "HubCommitAttempt + ExternalConfirmationGate",
+      "commandScope": "hub.case.commit_native_booking",
+      "truthPredicate": "Pending confirmation is the only legal state when booked truth is not yet authoritative.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_030",
+      "from": "native_booking_pending",
+      "to": "booked_pending_practice_ack",
+      "predicateId": "P311_CONFIRMED_PENDING_ACK",
+      "predicate": "Authoritative hub confirmation exists for the active attempt and current tuple, and the new ackGeneration has been minted for origin-practice visibility.",
+      "controllingObject": "HubAppointmentRecord + PracticeAcknowledgementRecord + HubOfferToConfirmationTruthProjection",
+      "commandScope": "hub.case.commit_native_booking",
+      "truthPredicate": "Booked truth may advance before practice acknowledgement only into the explicit pending-ack state.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_031",
+      "from": "native_booking_pending",
+      "to": "callback_transfer_pending",
+      "predicateId": "P311_COMMIT_MOVED_TO_CALLBACK_RECOVERY",
+      "predicate": "Commit outcome or external uncertainty forces callback continuity and the callback linkage is not yet durable.",
+      "controllingObject": "HubFallbackRecord(callback_request) + HubCommitSettlement",
+      "commandScope": "hub.case.return_to_practice",
+      "truthPredicate": "Commit failure recovery remains same-shell and governed.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_032",
+      "from": "native_booking_pending",
+      "to": "escalated_back",
+      "predicateId": "P311_COMMIT_RETURN_REQUIRED",
+      "predicate": "Commit outcome, policy drift, or unresolved supplier truth requires explicit return-to-practice continuity.",
+      "controllingObject": "HubFallbackRecord(return_to_practice) + HubCommitSettlement",
+      "commandScope": "hub.case.return_to_practice",
+      "truthPredicate": "Commit-side recovery may not bypass governed return linkage.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_033",
+      "from": "confirmation_pending",
+      "to": "booked_pending_practice_ack",
+      "predicateId": "P311_CONFIRMATION_GATE_CLEARED",
+      "predicate": "The active confirmation gate now passes all hard matches for the current tuple and the appointment plus practice continuity message are durably committed.",
+      "controllingObject": "ExternalConfirmationGate + HubAppointmentRecord + PracticeContinuityMessage",
+      "commandScope": "hub.case.commit_native_booking",
+      "truthPredicate": "Pending confirmation becomes booked-pending-ack only after authoritative confirmation and new practice visibility generation exist together.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_034",
+      "from": "confirmation_pending",
+      "to": "callback_transfer_pending",
+      "predicateId": "P311_CONFIRMATION_PENDING_TO_CALLBACK",
+      "predicate": "Confirmation ambiguity or expiry forces callback continuity and callback linkage is still pending.",
+      "controllingObject": "HubFallbackRecord(callback_request) + HubCommitSettlement",
+      "commandScope": "hub.case.return_to_practice",
+      "truthPredicate": "Callback remains explicit recovery from pending confirmation.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_035",
+      "from": "confirmation_pending",
+      "to": "escalated_back",
+      "predicateId": "P311_CONFIRMATION_PENDING_TO_RETURN",
+      "predicate": "Confirmation dispute or expiry requires return-to-practice continuity and the return branch is being or has been linked.",
+      "controllingObject": "HubFallbackRecord(return_to_practice)",
+      "commandScope": "hub.case.return_to_practice",
+      "truthPredicate": "Pending confirmation cannot silently die; it returns through a governed branch.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_036",
+      "from": "booked_pending_practice_ack",
+      "to": "booked",
+      "predicateId": "P311_ACK_GENERATION_SATISFIED",
+      "predicate": "Current-generation acknowledgement evidence or audited no-ack-required policy exception satisfies the live ackGeneration and truth tuple.",
+      "controllingObject": "PracticeAcknowledgementRecord + PracticeVisibilityProjection",
+      "commandScope": "hub.case.commit_native_booking",
+      "truthPredicate": "Only current-generation evidence may clear practice acknowledgement debt.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_037",
+      "from": "booked_pending_practice_ack",
+      "to": "escalated_back",
+      "predicateId": "P311_ACK_FAILURE_ESCALATES",
+      "predicate": "Practice visibility or continuity risk requires governed return or supervised escalation before booked closure can proceed.",
+      "controllingObject": "PracticeAcknowledgementRecord + HubFallbackRecord(return_to_practice)",
+      "commandScope": "hub.case.return_to_practice",
+      "truthPredicate": "Unmet acknowledgement duty may reopen escalation instead of falsely completing the case.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_038",
+      "from": "booked",
+      "to": "closed",
+      "predicateId": "P311_OPEN_BLOCKERS_EMPTY",
+      "predicate": "OpenCaseBlockers(h) is empty and LifecycleCoordinator persisted the governing close decision.",
+      "controllingObject": "LifecycleCoordinator + HubOfferToConfirmationTruthProjection.closureState",
+      "commandScope": "hub.case.close",
+      "truthPredicate": "Booked truth alone never closes the case; close needs empty blockers and coordinator decision proof.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_039",
+      "from": "callback_transfer_pending",
+      "to": "callback_offered",
+      "predicateId": "P311_CALLBACK_LINKED",
+      "predicate": "The active HubFallbackRecord is now linked to the current CallbackCase and a fresh CallbackExpectationEnvelope for the same fallback fence.",
+      "controllingObject": "HubFallbackRecord + CallbackCase + CallbackExpectationEnvelope",
+      "commandScope": "hub.case.return_to_practice",
+      "truthPredicate": "Callback-offered is legal only after durable callback linkage.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_040",
+      "from": "callback_transfer_pending",
+      "to": "escalated_back",
+      "predicateId": "P311_CALLBACK_LINKAGE_ABORTED_TO_RETURN",
+      "predicate": "Callback is no longer sufficient or lawful and return-to-practice becomes the governing continuation.",
+      "controllingObject": "HubFallbackRecord(return_to_practice) + HubReturnToPracticeRecord",
+      "commandScope": "hub.case.return_to_practice",
+      "truthPredicate": "Callback-pending may still switch to governed return without hidden loss of provenance.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_041",
+      "from": "callback_offered",
+      "to": "closed",
+      "predicateId": "P311_CALLBACK_CONTINUATION_DURABLE",
+      "predicate": "Callback continuity is durable, fallback state is transferred or completed, and no other open blocker remains.",
+      "controllingObject": "HubFallbackRecord.state + LifecycleCoordinator close decision",
+      "commandScope": "hub.case.close",
+      "truthPredicate": "Hub close waits for durable callback linkage, not just callback selection.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    },
+    {
+      "transitionId": "H311_042",
+      "from": "escalated_back",
+      "to": "closed",
+      "predicateId": "P311_RETURN_CONTINUATION_DURABLE",
+      "predicate": "Return-to-practice workflow is durably linked on the request lineage, fallback state is transferred or completed, and open blockers are empty.",
+      "controllingObject": "HubReturnToPracticeRecord + LifecycleCoordinator close decision",
+      "commandScope": "hub.case.close",
+      "truthPredicate": "Escalated-back remains open until the linked return workflow is real and current.",
+      "ownerTask": "seq_311",
+      "sourceRef": "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine"
+    }
+  ],
+  "openCaseBlockersRule": {
+    "definition": "OpenCaseBlockers(h) is the set of active refs among live ownership lease, live HubOwnershipTransition, every blockingRef named by current HubOfferToConfirmationTruthProjection, unresolved supplier drift, unresolved callback expectation publication, continuity-evidence blocks on writable routes, and any active identity repair disposition.",
+    "blockerCatalogRefs": [
+      "lineage_child_link_missing",
+      "ownership_lease_live",
+      "ownership_transition_open",
+      "policy_tuple_stale",
+      "selected_candidate_not_revalidated",
+      "offer_truth_blocks_close",
+      "confirmation_truth_pending",
+      "practice_ack_debt_open",
+      "callback_linkage_pending",
+      "return_linkage_pending",
+      "continuity_evidence_degraded",
+      "identity_repair_active",
+      "cross_org_visibility_stale"
+    ]
+  },
+  "typedSeamRefs": [
+    "/Users/test/Code/V/data/contracts/PHASE5_INTERFACE_GAP_HUB_CORE_POLICY_AND_CAPACITY.json",
+    "/Users/test/Code/V/data/contracts/PHASE5_INTERFACE_GAP_HUB_CORE_CANDIDATE_AND_OFFER.json",
+    "/Users/test/Code/V/data/contracts/PHASE5_INTERFACE_GAP_HUB_CORE_COMMIT_AND_CONFIRMATION.json",
+    "/Users/test/Code/V/data/contracts/PHASE5_INTERFACE_GAP_HUB_CORE_FALLBACK_AND_VISIBILITY.json"
+  ],
+  "sourceRefs": [
+    "blueprint/phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine",
+    "blueprint/phase-5-the-network-horizon.md#5B. Staff identity, organisation boundaries, and acting context",
+    "blueprint/phase-cards.md#Card-6",
+    "blueprint/phase-4-the-booking-engine.md#hub-fallback-and-lineage-carry-forward",
+    "blueprint/phase-0-the-foundation-protocol.md#1.1C LineageCaseLink",
+    "blueprint/phase-0-the-foundation-protocol.md#1.10 RequestLifecycleLease",
+    "blueprint/phase-0-the-foundation-protocol.md#1.22 CommandActionRecord",
+    "blueprint/phase-0-the-foundation-protocol.md#1.23 CommandSettlementRecord",
+    "blueprint/patient-portal-experience-architecture-blueprint.md#Portal-shell-family-ownership-is-explicit",
+    "blueprint/staff-workspace-interface-architecture.md#route-family-and-shell-ownership-contracts"
+  ]
+}

@@ -1,0 +1,644 @@
+{
+  "task_id": "par_085",
+  "generated_at": "2026-04-13T14:51:06+00:00",
+  "captured_on": "2026-04-13",
+  "visual_mode": "Data_Storage_Topology_Atlas",
+  "mission": "Provision the Phase 0 data-plane split that keeps Vecells-first transactional domain truth separate from derived FHIR representation truth, while binding both stores to the runtime topology, trust-zone, encryption, and workload-identity law already frozen in Phase 0.",
+  "runtime_topology_manifest_ref": "data/analysis/runtime_topology_manifest.json",
+  "domain_store_manifest_ref": "data/analysis/domain_store_manifest.json",
+  "source_precedence": [
+    "prompt/085.md",
+    "prompt/shared_operating_contract_076_to_085.md",
+    "prompt/AGENT.md",
+    "prompt/checklist.md",
+    "docs/architecture/13_storage_and_persistence_baseline.md",
+    "docs/architecture/13_fhir_representation_and_projection_boundary.md",
+    "docs/architecture/11_region_resilience_and_failover_posture.md",
+    "data/analysis/runtime_topology_manifest.json",
+    "data/analysis/fhir_representation_contract_manifest.json",
+    "blueprint/phase-0-the-foundation-protocol.md#FhirRepresentationContract",
+    "blueprint/phase-0-the-foundation-protocol.md#FhirRepresentationSet",
+    "blueprint/phase-0-the-foundation-protocol.md#FhirResourceRecord",
+    "blueprint/phase-0-the-foundation-protocol.md#FhirExchangeBundle",
+    "blueprint/platform-runtime-and-release-blueprint.md#Data persistence and migration contract",
+    "blueprint/platform-runtime-and-release-blueprint.md#Runtime rules",
+    "blueprint/forensic-audit-findings.md#Findings 43,49,50,51,52,112,113"
+  ],
+  "summary": {
+    "representation_contract_count": 13,
+    "persistence_table_count": 4,
+    "schema_ref_count": 3,
+    "access_policy_count": 4,
+    "environment_realization_count": 5,
+    "store_realization_count": 7,
+    "follow_on_dependency_count": 4,
+    "bootstrap_sql_ref_count": 1
+  },
+  "assumptions": [
+    {
+      "assumption_ref": "ASSUMPTION_085_POSTGRESQL_COMPATIBLE_LOCAL_EMULATION",
+      "value": "dual_postgresql_compatible_relational_instances",
+      "reason": "The storage baseline is relational and provider-neutral; PostgreSQL-compatible local emulation gives realistic schema, transaction, and bootstrap behaviour without locking the repo to a vendor-managed SKU.",
+      "source_refs": [
+        "docs/architecture/13_storage_and_persistence_baseline.md#Store Matrix",
+        "prompt/085.md#Mock_now_execution"
+      ]
+    },
+    {
+      "assumption_ref": "ASSUMPTION_085_FHIR_STORE_REMAINS_RELATIONAL_NOT_VENDOR_FHIR_SERVER",
+      "value": "fhir_rows_in_relational_representation_store",
+      "reason": "Prior tasks froze representation contracts, representation sets, resource records, and exchange bundles as relationally materialized contracts; no ADR requires a vendor FHIR server for Phase 0.",
+      "source_refs": [
+        "data/analysis/fhir_representation_contract_manifest.json",
+        "docs/architecture/13_fhir_representation_and_projection_boundary.md#Rules"
+      ]
+    }
+  ],
+  "follow_on_dependencies": [
+    {
+      "dependency_ref": "FOLLOW_ON_DEPENDENCY_086_OBJECT_STORAGE_ARTIFACT_BYTE_CLASSES",
+      "owning_task_ref": "par_086",
+      "scope": "Artifact bytes, quarantine buckets, and retention classes stay owned by object storage.",
+      "notes": "par_085 provisions only relational domain and FHIR truth layers plus explicit object-store seam refs."
+    },
+    {
+      "dependency_ref": "FOLLOW_ON_DEPENDENCY_087_EVENT_SPINE_PHYSICAL_PERSISTENCE",
+      "owning_task_ref": "par_087",
+      "scope": "Canonical event-log, outbox, inbox, and queue durability remain separate from transactional and FHIR rows.",
+      "notes": "The data-plane split records event-log seams explicitly but does not provision those queues or logs here."
+    },
+    {
+      "dependency_ref": "FOLLOW_ON_DEPENDENCY_095_MIGRATION_RUNNER_AND_PROJECTION_BACKFILL",
+      "owning_task_ref": "par_095",
+      "scope": "Runtime execution of schema migrations and replay/backfill orchestration.",
+      "notes": "par_085 publishes bootstrap SQL and connectivity law; par_095 owns ordered rollout and replay automation."
+    },
+    {
+      "dependency_ref": "FOLLOW_ON_DEPENDENCY_101_BACKUP_RESTORE_JOB_EXECUTION",
+      "owning_task_ref": "par_101",
+      "scope": "Automated PITR, replica verification, and restore drills over these stores.",
+      "notes": "This task makes backup hooks visible but does not execute recurring restore automation."
+    }
+  ],
+  "store_descriptor": {
+    "store_ref": "store_fhir_representation",
+    "data_store_ref": "ds_relational_fhir",
+    "display_name": "FHIR representation store",
+    "store_class": "fhir_representation",
+    "engine_family": "postgresql_compatible_relational",
+    "runtime_workload_family_ref": "wf_data_stateful_plane",
+    "trust_zone_ref": "tz_stateful_data",
+    "identifier_namespace_ref": "ns_vecells_fhir_representation",
+    "tenant_partition_rule": "tenant_tuple_on_every_representation_set",
+    "browser_reachability": "never",
+    "encryption_posture": {
+      "at_rest": "platform_managed_kms_ready",
+      "in_transit": "private_tls_and_workload_identity_ready"
+    },
+    "bootstrap_sql_refs": [
+      "infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"
+    ],
+    "persistence_tables": [
+      "fhir_representation_contracts",
+      "fhir_representation_sets",
+      "fhir_resource_records",
+      "fhir_exchange_bundles"
+    ],
+    "schema_refs": [
+      "packages/fhir-mapping/schemas/fhir-representation-set.schema.json",
+      "packages/fhir-mapping/schemas/fhir-resource-record.schema.json",
+      "packages/fhir-mapping/schemas/fhir-exchange-bundle.schema.json"
+    ],
+    "representation_contract_refs": [
+      "FRC_049_AUDIT_RECORD_AUDIT_COMPANION_V1",
+      "FRC_049_BOOKING_CASE_EXTERNAL_INTERCHANGE_V1",
+      "FRC_049_BOOKING_CASE_PARTNER_CALLBACK_CORRELATION_V1",
+      "FRC_049_CALLBACK_CASE_PARTNER_CALLBACK_CORRELATION_V1",
+      "FRC_049_EVIDENCE_SNAPSHOT_CLINICAL_PERSISTENCE_V1",
+      "FRC_049_HUB_CASE_EXTERNAL_INTERCHANGE_V1",
+      "FRC_049_HUB_CASE_PARTNER_CALLBACK_CORRELATION_V1",
+      "FRC_049_MESSAGE_DISPATCH_EXTERNAL_INTERCHANGE_V1",
+      "FRC_049_PHARMACY_CASE_EXTERNAL_INTERCHANGE_V1",
+      "FRC_049_PHARMACY_CONSENT_CLINICAL_PERSISTENCE_V1",
+      "FRC_049_PHARMACY_DISPATCH_PARTNER_CALLBACK_CORRELATION_V1",
+      "FRC_049_REQUEST_CLINICAL_PERSISTENCE_V1",
+      "FRC_049_REQUEST_EXTERNAL_INTERCHANGE_V1"
+    ],
+    "source_refs": [
+      "data/analysis/fhir_representation_contract_manifest.json",
+      "prompt/085.md#Mission",
+      "docs/architecture/13_fhir_representation_and_projection_boundary.md#One-Way Boundary"
+    ]
+  },
+  "access_policies": [
+    {
+      "policy_ref": "ap_fhir_command_materializer",
+      "access_posture": "mapping_only",
+      "service_identity_ref": "sid_command_api",
+      "access_mode": "read_write",
+      "allowed_operations": [
+        "representation_set_materialize",
+        "resource_record_supersede",
+        "exchange_bundle_stage"
+      ],
+      "notes": "Command-side mapping/compiler flows materialize FHIR only from published contracts and settled domain truth."
+    },
+    {
+      "policy_ref": "ap_fhir_integration_bundle_reader",
+      "access_posture": "mapping_only",
+      "service_identity_ref": "sid_integration_dispatch",
+      "access_mode": "read_only",
+      "allowed_operations": [
+        "exchange_bundle_read",
+        "representation_receipt_review"
+      ],
+      "notes": "Integration workers may read bundle/export artefacts but may not mutate representation rows directly."
+    },
+    {
+      "policy_ref": "ap_fhir_assurance_reader",
+      "access_posture": "assurance_read",
+      "service_identity_ref": "sid_assurance_control",
+      "access_mode": "read_only",
+      "allowed_operations": [
+        "representation_parity_review",
+        "bundle_audit_read"
+      ],
+      "notes": "Assurance reads representation rows for parity proof and restore evidence only."
+    },
+    {
+      "policy_ref": "ap_fhir_projection_blocked",
+      "access_posture": "internal_only",
+      "service_identity_ref": "sid_projection_worker",
+      "access_mode": "blocked",
+      "allowed_operations": [],
+      "notes": "Projection reads remain derived from events and projection contracts, never from raw FHIR tables."
+    }
+  ],
+  "environment_realizations": [
+    {
+      "environment_ring": "local",
+      "environment_label": "Local",
+      "publication_state": "simulator_safe_and_private",
+      "region_placements": [
+        {
+          "region_ref": "local_nonprod",
+          "uk_region_role": "nonprod_local",
+          "store_realization_id": "fhir-local-nonprod_local",
+          "network_ref": "net_local_local_nonprod",
+          "segment_ref": "seg_local_local_nonprod_data_stateful_plane",
+          "subnet_cidr": "10.240.80.0/24",
+          "endpoint_ref": "fhir-local-nonprod_local.internal.vecells",
+          "binding_state": "derived_materialization",
+          "access_posture": "mapping_only",
+          "bootstrap_sql_refs": [
+            "infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"
+          ]
+        }
+      ]
+    },
+    {
+      "environment_ring": "ci-preview",
+      "environment_label": "CI preview",
+      "publication_state": "simulator_safe_and_private",
+      "region_placements": [
+        {
+          "region_ref": "uk_primary_region",
+          "uk_region_role": "primary",
+          "store_realization_id": "fhir-ci-preview-primary",
+          "network_ref": "net_ci-preview_uk_primary_region",
+          "segment_ref": "seg_ci-preview_uk_primary_region_data_stateful_plane",
+          "subnet_cidr": "10.24.80.0/24",
+          "endpoint_ref": "fhir-ci-preview-primary.internal.vecells",
+          "binding_state": "derived_materialization",
+          "access_posture": "mapping_only",
+          "bootstrap_sql_refs": [
+            "infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"
+          ]
+        }
+      ]
+    },
+    {
+      "environment_ring": "integration",
+      "environment_label": "Integration",
+      "publication_state": "simulator_safe_and_private",
+      "region_placements": [
+        {
+          "region_ref": "uk_primary_region",
+          "uk_region_role": "primary",
+          "store_realization_id": "fhir-integration-primary",
+          "network_ref": "net_integration_uk_primary_region",
+          "segment_ref": "seg_integration_uk_primary_region_data_stateful_plane",
+          "subnet_cidr": "10.25.80.0/24",
+          "endpoint_ref": "fhir-integration-primary.internal.vecells",
+          "binding_state": "derived_materialization",
+          "access_posture": "mapping_only",
+          "bootstrap_sql_refs": [
+            "infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"
+          ]
+        }
+      ]
+    },
+    {
+      "environment_ring": "preprod",
+      "environment_label": "Preprod",
+      "publication_state": "simulator_safe_and_private",
+      "region_placements": [
+        {
+          "region_ref": "uk_primary_region",
+          "uk_region_role": "primary",
+          "store_realization_id": "fhir-preprod-primary",
+          "network_ref": "net_preprod_uk_primary_region",
+          "segment_ref": "seg_preprod_uk_primary_region_data_stateful_plane",
+          "subnet_cidr": "10.26.80.0/24",
+          "endpoint_ref": "fhir-preprod-primary.internal.vecells",
+          "binding_state": "derived_materialization",
+          "access_posture": "mapping_only",
+          "bootstrap_sql_refs": [
+            "infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"
+          ]
+        },
+        {
+          "region_ref": "uk_secondary_region",
+          "uk_region_role": "secondary",
+          "store_realization_id": "fhir-preprod-secondary",
+          "network_ref": "net_preprod_uk_secondary_region",
+          "segment_ref": "seg_preprod_uk_secondary_region_data_stateful_plane",
+          "subnet_cidr": "10.27.80.0/24",
+          "endpoint_ref": "fhir-preprod-secondary.internal.vecells",
+          "binding_state": "warm_standby",
+          "access_posture": "internal_only",
+          "bootstrap_sql_refs": [
+            "infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"
+          ]
+        }
+      ]
+    },
+    {
+      "environment_ring": "production",
+      "environment_label": "Production",
+      "publication_state": "simulator_safe_and_private",
+      "region_placements": [
+        {
+          "region_ref": "uk_primary_region",
+          "uk_region_role": "primary",
+          "store_realization_id": "fhir-production-primary",
+          "network_ref": "net_production_uk_primary_region",
+          "segment_ref": "seg_production_uk_primary_region_data_stateful_plane",
+          "subnet_cidr": "10.28.80.0/24",
+          "endpoint_ref": "fhir-production-primary.internal.vecells",
+          "binding_state": "derived_materialization",
+          "access_posture": "mapping_only",
+          "bootstrap_sql_refs": [
+            "infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"
+          ]
+        },
+        {
+          "region_ref": "uk_secondary_region",
+          "uk_region_role": "secondary",
+          "store_realization_id": "fhir-production-secondary",
+          "network_ref": "net_production_uk_secondary_region",
+          "segment_ref": "seg_production_uk_secondary_region_data_stateful_plane",
+          "subnet_cidr": "10.29.80.0/24",
+          "endpoint_ref": "fhir-production-secondary.internal.vecells",
+          "binding_state": "warm_standby",
+          "access_posture": "internal_only",
+          "bootstrap_sql_refs": [
+            "infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"
+          ]
+        }
+      ]
+    }
+  ],
+  "store_realizations": [
+    {
+      "store_realization_id": "fhir-local-nonprod_local",
+      "store_family": "fhir",
+      "environment_ring": "local",
+      "environment_label": "Local",
+      "region_ref": "local_nonprod",
+      "uk_region_role": "nonprod_local",
+      "runtime_workload_family_id": "rwf_local_nonprod_local_data_stateful_plane",
+      "runtime_workload_family_ref": "wf_data_stateful_plane",
+      "trust_zone_ref": "tz_stateful_data",
+      "network_ref": "net_local_local_nonprod",
+      "segment_ref": "seg_local_local_nonprod_data_stateful_plane",
+      "subnet_cidr": "10.240.80.0/24",
+      "network_policy_ref": "np_data_stateful_plane",
+      "route_domain_ref": "rd_stateful_data",
+      "service_identity_ref": "sid_data_plane",
+      "egress_allowlist_ref": "eal_data_internal_only",
+      "binding_state": "derived_materialization",
+      "access_posture": "mapping_only",
+      "display_name": "Local nonprod_local FHIR representation",
+      "endpoint_ref": "fhir-local-nonprod_local.internal.vecells",
+      "bootstrap_sql_refs": [
+        "infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"
+      ],
+      "allowed_policy_refs": [
+        "ap_fhir_command_materializer",
+        "ap_fhir_integration_bundle_reader",
+        "ap_fhir_assurance_reader"
+      ],
+      "blocked_service_identity_refs": [
+        "sid_public_edge_proxy",
+        "sid_published_gateway",
+        "sid_projection_worker",
+        "browser"
+      ],
+      "tenant_isolation_mode": "tenant_tuple_enforced_storage_partition",
+      "encryption_profile_ref": "enc_postgresql_kms_ready_at_rest",
+      "connectivity_mode": "private_identity_ready_tls",
+      "continuity_posture": "derived_materialization_ready",
+      "bootstrap_health": "mapping_bootstrap_ready",
+      "source_refs": [
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings",
+        "blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract",
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families",
+        "blueprint/blueprint-init.md#12. Practical engineering shape"
+      ]
+    },
+    {
+      "store_realization_id": "fhir-ci-preview-primary",
+      "store_family": "fhir",
+      "environment_ring": "ci-preview",
+      "environment_label": "CI preview",
+      "region_ref": "uk_primary_region",
+      "uk_region_role": "primary",
+      "runtime_workload_family_id": "rwf_ci_preview_primary_data_stateful_plane",
+      "runtime_workload_family_ref": "wf_data_stateful_plane",
+      "trust_zone_ref": "tz_stateful_data",
+      "network_ref": "net_ci-preview_uk_primary_region",
+      "segment_ref": "seg_ci-preview_uk_primary_region_data_stateful_plane",
+      "subnet_cidr": "10.24.80.0/24",
+      "network_policy_ref": "np_data_stateful_plane",
+      "route_domain_ref": "rd_stateful_data",
+      "service_identity_ref": "sid_data_plane",
+      "egress_allowlist_ref": "eal_data_internal_only",
+      "binding_state": "derived_materialization",
+      "access_posture": "mapping_only",
+      "display_name": "CI preview primary FHIR representation",
+      "endpoint_ref": "fhir-ci-preview-primary.internal.vecells",
+      "bootstrap_sql_refs": [
+        "infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"
+      ],
+      "allowed_policy_refs": [
+        "ap_fhir_command_materializer",
+        "ap_fhir_integration_bundle_reader",
+        "ap_fhir_assurance_reader"
+      ],
+      "blocked_service_identity_refs": [
+        "sid_public_edge_proxy",
+        "sid_published_gateway",
+        "sid_projection_worker",
+        "browser"
+      ],
+      "tenant_isolation_mode": "tenant_tuple_enforced_storage_partition",
+      "encryption_profile_ref": "enc_postgresql_kms_ready_at_rest",
+      "connectivity_mode": "private_identity_ready_tls",
+      "continuity_posture": "derived_materialization_ready",
+      "bootstrap_health": "mapping_bootstrap_ready",
+      "source_refs": [
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings",
+        "blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract",
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families",
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Pipeline Stage Chain"
+      ]
+    },
+    {
+      "store_realization_id": "fhir-integration-primary",
+      "store_family": "fhir",
+      "environment_ring": "integration",
+      "environment_label": "Integration",
+      "region_ref": "uk_primary_region",
+      "uk_region_role": "primary",
+      "runtime_workload_family_id": "rwf_integration_primary_data_stateful_plane",
+      "runtime_workload_family_ref": "wf_data_stateful_plane",
+      "trust_zone_ref": "tz_stateful_data",
+      "network_ref": "net_integration_uk_primary_region",
+      "segment_ref": "seg_integration_uk_primary_region_data_stateful_plane",
+      "subnet_cidr": "10.25.80.0/24",
+      "network_policy_ref": "np_data_stateful_plane",
+      "route_domain_ref": "rd_stateful_data",
+      "service_identity_ref": "sid_data_plane",
+      "egress_allowlist_ref": "eal_data_internal_only",
+      "binding_state": "derived_materialization",
+      "access_posture": "mapping_only",
+      "display_name": "Integration primary FHIR representation",
+      "endpoint_ref": "fhir-integration-primary.internal.vecells",
+      "bootstrap_sql_refs": [
+        "infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"
+      ],
+      "allowed_policy_refs": [
+        "ap_fhir_command_materializer",
+        "ap_fhir_integration_bundle_reader",
+        "ap_fhir_assurance_reader"
+      ],
+      "blocked_service_identity_refs": [
+        "sid_public_edge_proxy",
+        "sid_published_gateway",
+        "sid_projection_worker",
+        "browser"
+      ],
+      "tenant_isolation_mode": "tenant_tuple_enforced_storage_partition",
+      "encryption_profile_ref": "enc_postgresql_kms_ready_at_rest",
+      "connectivity_mode": "private_identity_ready_tls",
+      "continuity_posture": "derived_materialization_ready",
+      "bootstrap_health": "mapping_bootstrap_ready",
+      "source_refs": [
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings",
+        "blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract",
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families",
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Pipeline Stage Chain"
+      ]
+    },
+    {
+      "store_realization_id": "fhir-preprod-primary",
+      "store_family": "fhir",
+      "environment_ring": "preprod",
+      "environment_label": "Preprod",
+      "region_ref": "uk_primary_region",
+      "uk_region_role": "primary",
+      "runtime_workload_family_id": "rwf_preprod_primary_data_stateful_plane",
+      "runtime_workload_family_ref": "wf_data_stateful_plane",
+      "trust_zone_ref": "tz_stateful_data",
+      "network_ref": "net_preprod_uk_primary_region",
+      "segment_ref": "seg_preprod_uk_primary_region_data_stateful_plane",
+      "subnet_cidr": "10.26.80.0/24",
+      "network_policy_ref": "np_data_stateful_plane",
+      "route_domain_ref": "rd_stateful_data",
+      "service_identity_ref": "sid_data_plane",
+      "egress_allowlist_ref": "eal_data_internal_only",
+      "binding_state": "derived_materialization",
+      "access_posture": "mapping_only",
+      "display_name": "Preprod primary FHIR representation",
+      "endpoint_ref": "fhir-preprod-primary.internal.vecells",
+      "bootstrap_sql_refs": [
+        "infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"
+      ],
+      "allowed_policy_refs": [
+        "ap_fhir_command_materializer",
+        "ap_fhir_integration_bundle_reader",
+        "ap_fhir_assurance_reader"
+      ],
+      "blocked_service_identity_refs": [
+        "sid_public_edge_proxy",
+        "sid_published_gateway",
+        "sid_projection_worker",
+        "browser"
+      ],
+      "tenant_isolation_mode": "tenant_tuple_enforced_storage_partition",
+      "encryption_profile_ref": "enc_postgresql_kms_ready_at_rest",
+      "connectivity_mode": "private_identity_ready_tls",
+      "continuity_posture": "derived_materialization_ready",
+      "bootstrap_health": "mapping_bootstrap_ready",
+      "source_refs": [
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings",
+        "blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract",
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families",
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings"
+      ]
+    },
+    {
+      "store_realization_id": "fhir-preprod-secondary",
+      "store_family": "fhir",
+      "environment_ring": "preprod",
+      "environment_label": "Preprod",
+      "region_ref": "uk_secondary_region",
+      "uk_region_role": "secondary",
+      "runtime_workload_family_id": "rwf_preprod_secondary_data_stateful_plane",
+      "runtime_workload_family_ref": "wf_data_stateful_plane",
+      "trust_zone_ref": "tz_stateful_data",
+      "network_ref": "net_preprod_uk_secondary_region",
+      "segment_ref": "seg_preprod_uk_secondary_region_data_stateful_plane",
+      "subnet_cidr": "10.27.80.0/24",
+      "network_policy_ref": "np_data_stateful_plane",
+      "route_domain_ref": "rd_stateful_data",
+      "service_identity_ref": "sid_data_plane",
+      "egress_allowlist_ref": "eal_data_internal_only",
+      "binding_state": "warm_standby",
+      "access_posture": "internal_only",
+      "display_name": "Preprod secondary FHIR representation",
+      "endpoint_ref": "fhir-preprod-secondary.internal.vecells",
+      "bootstrap_sql_refs": [
+        "infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"
+      ],
+      "allowed_policy_refs": [
+        "ap_fhir_command_materializer",
+        "ap_fhir_integration_bundle_reader",
+        "ap_fhir_assurance_reader"
+      ],
+      "blocked_service_identity_refs": [
+        "sid_public_edge_proxy",
+        "sid_published_gateway",
+        "sid_projection_worker",
+        "browser"
+      ],
+      "tenant_isolation_mode": "tenant_tuple_enforced_storage_partition",
+      "encryption_profile_ref": "enc_postgresql_kms_ready_at_rest",
+      "connectivity_mode": "private_identity_ready_tls",
+      "continuity_posture": "warm_replica_for_bundle_rebuild_only",
+      "bootstrap_health": "mapping_bootstrap_ready",
+      "source_refs": [
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings",
+        "blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract",
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families",
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings"
+      ]
+    },
+    {
+      "store_realization_id": "fhir-production-primary",
+      "store_family": "fhir",
+      "environment_ring": "production",
+      "environment_label": "Production",
+      "region_ref": "uk_primary_region",
+      "uk_region_role": "primary",
+      "runtime_workload_family_id": "rwf_production_primary_data_stateful_plane",
+      "runtime_workload_family_ref": "wf_data_stateful_plane",
+      "trust_zone_ref": "tz_stateful_data",
+      "network_ref": "net_production_uk_primary_region",
+      "segment_ref": "seg_production_uk_primary_region_data_stateful_plane",
+      "subnet_cidr": "10.28.80.0/24",
+      "network_policy_ref": "np_data_stateful_plane",
+      "route_domain_ref": "rd_stateful_data",
+      "service_identity_ref": "sid_data_plane",
+      "egress_allowlist_ref": "eal_data_internal_only",
+      "binding_state": "derived_materialization",
+      "access_posture": "mapping_only",
+      "display_name": "Production primary FHIR representation",
+      "endpoint_ref": "fhir-production-primary.internal.vecells",
+      "bootstrap_sql_refs": [
+        "infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"
+      ],
+      "allowed_policy_refs": [
+        "ap_fhir_command_materializer",
+        "ap_fhir_integration_bundle_reader",
+        "ap_fhir_assurance_reader"
+      ],
+      "blocked_service_identity_refs": [
+        "sid_public_edge_proxy",
+        "sid_published_gateway",
+        "sid_projection_worker",
+        "browser"
+      ],
+      "tenant_isolation_mode": "tenant_tuple_enforced_storage_partition",
+      "encryption_profile_ref": "enc_postgresql_kms_ready_at_rest",
+      "connectivity_mode": "private_identity_ready_tls",
+      "continuity_posture": "derived_materialization_ready",
+      "bootstrap_health": "mapping_bootstrap_ready",
+      "source_refs": [
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings",
+        "blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract",
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families",
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Supply Chain Law"
+      ]
+    },
+    {
+      "store_realization_id": "fhir-production-secondary",
+      "store_family": "fhir",
+      "environment_ring": "production",
+      "environment_label": "Production",
+      "region_ref": "uk_secondary_region",
+      "uk_region_role": "secondary",
+      "runtime_workload_family_id": "rwf_production_secondary_data_stateful_plane",
+      "runtime_workload_family_ref": "wf_data_stateful_plane",
+      "trust_zone_ref": "tz_stateful_data",
+      "network_ref": "net_production_uk_secondary_region",
+      "segment_ref": "seg_production_uk_secondary_region_data_stateful_plane",
+      "subnet_cidr": "10.29.80.0/24",
+      "network_policy_ref": "np_data_stateful_plane",
+      "route_domain_ref": "rd_stateful_data",
+      "service_identity_ref": "sid_data_plane",
+      "egress_allowlist_ref": "eal_data_internal_only",
+      "binding_state": "warm_standby",
+      "access_posture": "internal_only",
+      "display_name": "Production secondary FHIR representation",
+      "endpoint_ref": "fhir-production-secondary.internal.vecells",
+      "bootstrap_sql_refs": [
+        "infra/data-storage/bootstrap/001_fhir_representation_bootstrap.sql"
+      ],
+      "allowed_policy_refs": [
+        "ap_fhir_command_materializer",
+        "ap_fhir_integration_bundle_reader",
+        "ap_fhir_assurance_reader"
+      ],
+      "blocked_service_identity_refs": [
+        "sid_public_edge_proxy",
+        "sid_published_gateway",
+        "sid_projection_worker",
+        "browser"
+      ],
+      "tenant_isolation_mode": "tenant_tuple_enforced_storage_partition",
+      "encryption_profile_ref": "enc_postgresql_kms_ready_at_rest",
+      "connectivity_mode": "private_identity_ready_tls",
+      "continuity_posture": "warm_replica_for_bundle_rebuild_only",
+      "bootstrap_health": "mapping_bootstrap_ready",
+      "source_refs": [
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings",
+        "blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract",
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families",
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Supply Chain Law"
+      ]
+    }
+  ],
+  "store_tuple_hash": "1e84573c4d197f0a"
+}

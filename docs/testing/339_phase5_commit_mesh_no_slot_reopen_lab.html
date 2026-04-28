@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>339 Phase 5 Commit, MESH, No-Slot, and Reopen Lab</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f7f8fa;
+        --shell: #eef2f6;
+        --panel: #ffffff;
+        --inset: #e8eef3;
+        --stroke: #d7dee7;
+        --text-strong: #0f172a;
+        --text: #334155;
+        --text-muted: #64748b;
+        --commit-accent: #3158e0;
+        --confirmation-accent: #0f766e;
+        --mesh-accent: #7c3aed;
+        --warning-accent: #b7791f;
+        --recovery-accent: #b42318;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at top left, rgba(49, 88, 224, 0.09), transparent 30%),
+          linear-gradient(180deg, #fbfcfe 0%, var(--canvas) 32%, #eef3f7 100%);
+        color: var(--text-strong);
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      }
+
+      button,
+      a {
+        color: inherit;
+        font: inherit;
+      }
+
+      main {
+        max-width: 1720px;
+        width: calc(100% - 32px);
+        margin: 0 auto;
+        padding: 20px 0 40px;
+        display: grid;
+        gap: 18px;
+        grid-template-rows: auto auto minmax(280px, auto);
+      }
+
+      .surface {
+        border: 1px solid var(--stroke);
+        border-radius: 26px;
+        background: rgba(255, 255, 255, 0.97);
+        box-shadow: 0 20px 48px rgba(15, 23, 42, 0.08);
+      }
+
+      .masthead {
+        min-height: 72px;
+        padding: 18px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        background:
+          linear-gradient(135deg, rgba(49, 88, 224, 0.12), transparent 34%),
+          linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+      }
+
+      .stack,
+      .panel-head {
+        display: grid;
+        gap: 6px;
+      }
+
+      .eyebrow {
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .masthead-meta {
+        display: grid;
+        gap: 4px;
+        justify-items: end;
+        text-align: right;
+        color: var(--text);
+      }
+
+      .truth-ladder {
+        padding: 18px 24px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .ladder-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+      }
+
+      .ladder-step {
+        border-radius: 18px;
+        background: var(--shell);
+        padding: 12px 14px;
+        display: grid;
+        gap: 4px;
+      }
+
+      .ladder-step[data-tone="commit"] {
+        border-left: 4px solid var(--commit-accent);
+      }
+
+      .ladder-step[data-tone="confirmation"] {
+        border-left: 4px solid var(--confirmation-accent);
+      }
+
+      .ladder-step[data-tone="mesh"] {
+        border-left: 4px solid var(--mesh-accent);
+      }
+
+      .ladder-step[data-tone="warning"] {
+        border-left: 4px solid var(--warning-accent);
+      }
+
+      .ladder-step[data-tone="recovery"] {
+        border-left: 4px solid var(--recovery-accent);
+      }
+
+      .layout {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: 320px minmax(780px, 1fr) 420px;
+      }
+
+      .rail,
+      .canvas,
+      .inspector,
+      .evidence {
+        border: 1px solid var(--stroke);
+        border-radius: 26px;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.07);
+      }
+
+      .rail,
+      .canvas,
+      .inspector {
+        min-height: 780px;
+        padding: 18px;
+      }
+
+      .rail {
+        display: grid;
+        gap: 12px;
+        align-content: start;
+      }
+
+      .scenario-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .scenario-button {
+        width: 100%;
+        text-align: left;
+        border: 1px solid var(--stroke);
+        border-radius: 20px;
+        background: var(--panel);
+        padding: 14px;
+        display: grid;
+        gap: 6px;
+        cursor: pointer;
+      }
+
+      .scenario-button[aria-pressed="true"] {
+        border-color: rgba(49, 88, 224, 0.3);
+        background:
+          linear-gradient(180deg, rgba(49, 88, 224, 0.08), rgba(124, 58, 237, 0.05)),
+          #ffffff;
+        box-shadow: inset 0 0 0 1px rgba(49, 88, 224, 0.08);
+      }
+
+      .scenario-button small,
+      .scenario-button span,
+      .detail-copy,
+      .fact-row p,
+      .evidence td {
+        color: var(--text);
+      }
+
+      .canvas {
+        display: grid;
+        gap: 16px;
+        grid-template-rows: auto 1fr;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(247, 250, 253, 0.92)),
+          var(--panel);
+      }
+
+      .canvas-grid {
+        display: grid;
+        gap: 14px;
+      }
+
+      .canvas-row {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: 1.08fr 0.92fr;
+      }
+
+      .card {
+        border: 1px solid rgba(215, 222, 231, 0.96);
+        border-radius: 22px;
+        background: var(--panel);
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .fact-list,
+      .artifact-links,
+      .canvas-list,
+      .detail-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .fact-row,
+      .list-row,
+      .detail-row {
+        border-radius: 18px;
+        background: var(--shell);
+        padding: 12px 14px;
+        display: grid;
+        gap: 6px;
+      }
+
+      .list-row[data-tone="commit"] {
+        border-left: 4px solid var(--commit-accent);
+      }
+
+      .list-row[data-tone="confirmation"] {
+        border-left: 4px solid var(--confirmation-accent);
+      }
+
+      .list-row[data-tone="mesh"] {
+        border-left: 4px solid var(--mesh-accent);
+      }
+
+      .list-row[data-tone="warning"] {
+        border-left: 4px solid var(--warning-accent);
+      }
+
+      .list-row[data-tone="recovery"] {
+        border-left: 4px solid var(--recovery-accent);
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+
+      .chip.commit {
+        color: var(--commit-accent);
+        background: rgba(49, 88, 224, 0.11);
+      }
+
+      .chip.confirmation {
+        color: var(--confirmation-accent);
+        background: rgba(15, 118, 110, 0.12);
+      }
+
+      .chip.mesh {
+        color: var(--mesh-accent);
+        background: rgba(124, 58, 237, 0.11);
+      }
+
+      .chip.warning {
+        color: var(--warning-accent);
+        background: rgba(183, 121, 31, 0.13);
+      }
+
+      .chip.recovery {
+        color: var(--recovery-accent);
+        background: rgba(180, 35, 24, 0.12);
+      }
+
+      .inspector {
+        display: grid;
+        gap: 14px;
+        align-content: start;
+      }
+
+      .evidence {
+        padding: 18px;
+        display: grid;
+        gap: 12px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 12px 10px;
+        text-align: left;
+        border-top: 1px solid rgba(215, 222, 231, 0.9);
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--text-muted);
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
+
+      a {
+        text-decoration-thickness: 2px;
+        text-underline-offset: 3px;
+      }
+
+      .support-note {
+        color: var(--text-muted);
+        font-size: 0.84rem;
+      }
+
+      .kbd-line {
+        padding: 10px 12px;
+        border-radius: 16px;
+        background: rgba(232, 238, 243, 0.9);
+        color: var(--text);
+      }
+
+      :focus-visible {
+        outline: 3px solid rgba(49, 88, 224, 0.42);
+        outline-offset: 3px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+          scroll-behavior: auto !important;
+        }
+      }
+
+      @media (max-width: 1400px) {
+        .layout {
+          grid-template-columns: 320px minmax(0, 1fr);
+        }
+
+        .inspector {
+          grid-column: 1 / -1;
+          min-height: 0;
+        }
+      }
+
+      @media (max-width: 1120px) {
+        main {
+          width: calc(100% - 20px);
+        }
+
+        .ladder-grid,
+        .layout,
+        .canvas-row {
+          grid-template-columns: 1fr;
+        }
+
+        .rail,
+        .canvas,
+        .inspector {
+          min-height: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell" data-testid="Phase5CommitMeshNoSlotReopenLab">
+      <section class="surface masthead">
+        <div class="stack">
+          <span class="eyebrow">Phase 5 Risk Battery</span>
+          <h1>Commit truth, MESH debt, no-slot fallback, and reopen continuity</h1>
+          <p class="detail-copy">
+            Premium evidence surface for the post-selection half of Phase 5. No hover-only disclosure.
+          </p>
+        </div>
+        <div class="masthead-meta">
+          <strong>Task 339</strong>
+          <span>Browser-first proof spine with trace-backed artifacts</span>
+          <span>Keyboard traversal across rail, canvas, inspector, and evidence table stays explicit.</span>
+        </div>
+      </section>
+
+      <section class="surface truth-ladder" aria-labelledby="truth-ladder-heading">
+        <div class="stack">
+          <span class="eyebrow">Truth Ladder</span>
+          <h2 id="truth-ladder-heading">Prepared to recovery without false calmness</h2>
+        </div>
+        <div class="ladder-grid" id="ladderGrid"></div>
+      </section>
+
+      <section class="layout" aria-label="Evidence layout">
+        <aside class="rail" aria-labelledby="scenario-rail-heading">
+          <div class="panel-head">
+            <span class="eyebrow">Scenario Rail</span>
+            <h2 id="scenario-rail-heading">High-risk review cuts</h2>
+            <p class="detail-copy">Selecting a scenario synchronizes the ladder, canvas, inspector, trace link, and evidence rows.</p>
+          </div>
+          <div class="kbd-line">Arrow keys move within the scenario rail. Tab walks rail, canvas, inspector, and evidence links.</div>
+          <div class="scenario-list" id="scenarioList" role="list"></div>
+        </aside>
+
+        <section class="canvas" aria-labelledby="canvas-heading">
+          <div class="panel-head">
+            <span class="eyebrow">Recovery Canvas</span>
+            <h2 id="canvas-heading">Current truth, continuity, and fallback posture</h2>
+          </div>
+          <div class="canvas-grid">
+            <div class="canvas-row">
+              <article class="card" aria-labelledby="canvas-truth-heading">
+                <div class="panel-head">
+                  <span class="eyebrow">Truth and Continuity</span>
+                  <h3 id="canvas-truth-heading">Current governing state</h3>
+                </div>
+                <div class="chip-row" id="scenarioChips"></div>
+                <div class="canvas-list" id="truthList"></div>
+              </article>
+              <article class="card" aria-labelledby="canvas-recovery-heading">
+                <div class="panel-head">
+                  <span class="eyebrow">Recovery Steps</span>
+                  <h3 id="canvas-recovery-heading">Visible continuity debt and anchor law</h3>
+                </div>
+                <div class="canvas-list" id="recoveryList"></div>
+              </article>
+            </div>
+            <div class="canvas-row">
+              <article class="card" aria-labelledby="canvas-insight-heading">
+                <div class="panel-head">
+                  <span class="eyebrow">Cross-Surface Parity</span>
+                  <h3 id="canvas-insight-heading">Hub, patient, and practice alignment</h3>
+                </div>
+                <div class="canvas-list" id="parityList"></div>
+              </article>
+              <article class="card" aria-labelledby="canvas-artifact-heading">
+                <div class="panel-head">
+                  <span class="eyebrow">Artifact Spine</span>
+                  <h3 id="canvas-artifact-heading">Trace and screenshot handoff</h3>
+                </div>
+                <div class="artifact-links" id="artifactLinks"></div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <aside class="inspector" aria-labelledby="inspector-heading">
+          <div class="panel-head">
+            <span class="eyebrow">Inspector</span>
+            <h2 id="inspector-heading">Projection, receipts, and visibility debt</h2>
+          </div>
+          <div class="detail-list" id="inspectorList"></div>
+          <div class="support-note">
+            Meaning stays available without hover. Reduced-motion parity is mandatory and reflected in the artifact strategy.
+          </div>
+        </aside>
+      </section>
+
+      <section class="evidence" aria-labelledby="evidence-heading">
+        <div class="panel-head">
+          <span class="eyebrow">Evidence Table</span>
+          <h2 id="evidence-heading">Artifacts and verification links</h2>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Artifact</th>
+              <th scope="col">Purpose</th>
+              <th scope="col">Current scenario</th>
+            </tr>
+          </thead>
+          <tbody id="evidenceBody"></tbody>
+        </table>
+      </section>
+    </main>
+
+    <script>
+      const scenarios = [
+        {
+          id: "commit_pending_gate",
+          title: "Commit pending without false calmness",
+          subtitle: "Transport accepted pending remains below final booking truth.",
+          ladder: [
+            { label: "Prepared", value: "Candidate revalidation", tone: "commit" },
+            { label: "Pending", value: "Confirmation pending", tone: "commit" },
+            { label: "Informed", value: "Continuity pending", tone: "mesh" },
+            { label: "Acknowledged", value: "Not yet lawful", tone: "warning" },
+            { label: "Fallback", value: "Blocked by confirmation", tone: "recovery" },
+          ],
+          chips: [
+            { text: "HubOfferToConfirmationTruthProjection", tone: "commit" },
+            { text: "ExternalConfirmationGate", tone: "confirmation" },
+            { text: "No toast-driven calmness", tone: "warning" },
+          ],
+          truth: [
+            { title: "Hub truth", body: "Pending native and weak manual evidence stay at confirmation_pending until corroboration or authoritative proof clears the gate.", tone: "commit" },
+            { title: "Patient view", body: "Patient sees provisional receipt rather than confirmed calmness.", tone: "confirmation" },
+            { title: "Practice view", body: "Practice continuity remains pending; acknowledgement debt is not silently cleared.", tone: "mesh" },
+          ],
+          recovery: [
+            { title: "Closure law", body: "Case remains blocked by confirmation; no closable state is rendered.", tone: "recovery" },
+            { title: "Operator evidence", body: "Manual proof modal stays review-first and explicit about the evidence class.", tone: "warning" },
+          ],
+          parity: [
+            { title: "Hub pane", body: "Hub commit pane renders pending truth label, not a booked headline.", tone: "commit" },
+            { title: "Practice visibility", body: "Acknowledgement label stays pending until a current generation is received.", tone: "mesh" },
+          ],
+          inspector: [
+            { title: "Governing truth", body: "confirmationTruthState=confirmation_pending; closureState=blocked_by_confirmation." },
+            { title: "Receipt posture", body: "Transport accepted_pending is contextual evidence only, never final booking truth." },
+            { title: "Repository fix", body: "Pending native acceptance no longer defaults to moderate assurance or full hard-match refs." },
+          ],
+          artifacts: [
+            { label: "Trace", href: "../../output/playwright/339-hub-commit-confirmation-and-drift-trace.zip", note: "Hub pending/booked/disputed/drift browser proof" },
+            { label: "Screenshot", href: "../../output/playwright/339-hub-commit-confirmation-and-drift.png", note: "Commit ladder and continuity drawer" },
+            { label: "JSON", href: "../../output/playwright/339-hub-commit-confirmation-and-drift.json", note: "Captured labels, markers, and ARIA evidence" },
+          ],
+        },
+        {
+          id: "mesh_ack_debt",
+          title: "Practice informed is not practice acknowledged",
+          subtitle: "Dispatch, delivered, and acknowledged remain distinct end to end.",
+          ladder: [
+            { label: "Prepared", value: "Queued to MESH", tone: "mesh" },
+            { label: "Pending", value: "Accepted for delivery", tone: "mesh" },
+            { label: "Informed", value: "Delivered to practice", tone: "confirmation" },
+            { label: "Acknowledged", value: "Generation pending", tone: "warning" },
+            { label: "Fallback", value: "Reopen if route fails", tone: "recovery" },
+          ],
+          chips: [
+            { text: "PracticeVisibilityProjection", tone: "mesh" },
+            { text: "Current-generation acknowledgement", tone: "confirmation" },
+            { text: "Reminder failure reopens debt", tone: "warning" },
+          ],
+          truth: [
+            { title: "Transport truth", body: "Queued, accepted, delivered, and acknowledged stay separate facts rather than one blended status.", tone: "mesh" },
+            { title: "Practice informed", body: "Delivered continuity evidence upgrades the origin practice to informed, not acknowledged.", tone: "confirmation" },
+            { title: "Acknowledgement debt", body: "Current-generation practice acknowledgement remains open until the explicit ack arrives.", tone: "warning" },
+          ],
+          recovery: [
+            { title: "Reminder failure", body: "Later route failure reopens practice visibility debt and manage calmness immediately.", tone: "recovery" },
+            { title: "Action required", body: "Contact-route repair becomes explicit instead of silently suppressing the reminder chain.", tone: "warning" },
+          ],
+          parity: [
+            { title: "Patient wording", body: "Appointment confirmed, practice informed, and practice acknowledged pending remain distinct rows.", tone: "confirmation" },
+            { title: "Practice panel", body: "Acknowledgement indicator moves from overdue to reopened_by_drift without collapsing the state model.", tone: "mesh" },
+          ],
+          inspector: [
+            { title: "Receipt checkpoints", body: "Dispatch accepted, delivery evidence, and acknowledgement receipt each have their own governing effect." },
+            { title: "Visibility debt", body: "Ack generation remains current until reminder-route failure or drift reopens it." },
+            { title: "NHS wording constraint", body: "Confirmation and interruption guidance informed clear, calm wording under stress without replacing repository truth." },
+          ],
+          artifacts: [
+            { label: "Trace", href: "../../output/playwright/339-practice-visibility-and-acknowledgement-trace.zip", note: "Practice visibility and continuity drawer proof" },
+            { label: "Screenshot", href: "../../output/playwright/339-practice-visibility-and-acknowledgement.png", note: "Acknowledgement rows and minimum-necessary preview" },
+            { label: "JSON", href: "../../output/playwright/339-practice-visibility-and-acknowledgement.json", note: "Acknowledgement labels, rows, and ARIA evidence" },
+          ],
+        },
+        {
+          id: "callback_linkage_debt",
+          title: "Callback transfer pending keeps linkage debt explicit",
+          subtitle: "No-slot fallback remains provenance-preserving until linkage is durable.",
+          ladder: [
+            { label: "Prepared", value: "No trusted slot", tone: "warning" },
+            { label: "Pending", value: "Callback requested", tone: "recovery" },
+            { label: "Informed", value: "Read-only provenance", tone: "mesh" },
+            { label: "Acknowledged", value: "Linkage pending", tone: "warning" },
+            { label: "Fallback", value: "Blocked by fallback linkage", tone: "recovery" },
+          ],
+          chips: [
+            { text: "HubFallbackRecord", tone: "recovery" },
+            { text: "CallbackFallbackRecord", tone: "warning" },
+            { text: "Anchor-preserving recovery", tone: "mesh" },
+          ],
+          truth: [
+            { title: "Fallback truth", body: "Callback fallback remains pending_link until the callback case and expectation envelope are durable.", tone: "recovery" },
+            { title: "Open-choice provenance", body: "Open choice becomes read_only_provenance rather than disappearing.", tone: "warning" },
+          ],
+          recovery: [
+            { title: "Recovery canvas", body: "Hub no-slot panel keeps callback-transfer state and provenance stub visible in one same-shell route.", tone: "recovery" },
+            { title: "Exception entry", body: "Exceptions workspace preserves the selected case anchor before reopen moves back into the case route.", tone: "mesh" },
+          ],
+          parity: [
+            { title: "Hub desk", body: "HubCallbackTransferPendingState remains explicit until linkage settles.", tone: "recovery" },
+            { title: "Patient/manage stance", body: "Patient routes stay read-only and continuity-first until a lawful follow-on exists.", tone: "confirmation" },
+          ],
+          inspector: [
+            { title: "Closure law", body: "fallbackLinkState=callback_pending_link; closureState=blocked_by_fallback_linkage." },
+            { title: "Repository fix", body: "Alternative-offer mutation fences now evaluate expiry against recordedAt, not wall-clock drift." },
+            { title: "Anchor law", body: "The selected case and exception remain stable while the shell moves through exceptions and back to reopen." },
+          ],
+          artifacts: [
+            { label: "Trace", href: "../../output/playwright/339-hub-recovery-and-reopen-trace.zip", note: "Callback, exceptions, urgent bounce-back, and reopen proof" },
+            { label: "Screenshot", href: "../../output/playwright/339-hub-recovery-and-reopen.png", note: "Recovery surfaces and diff strip" },
+            { label: "JSON", href: "../../output/playwright/339-hub-recovery-and-reopen.json", note: "Selected exception, cases, and ARIA diff evidence" },
+          ],
+        },
+        {
+          id: "reopen_diff_first",
+          title: "Diff-first reopen preserves continuity",
+          subtitle: "New evidence and new capacity reopen truth without dropping the current anchor.",
+          ladder: [
+            { label: "Prepared", value: "Booked pending ack", tone: "confirmation" },
+            { label: "Pending", value: "Supplier drift detected", tone: "warning" },
+            { label: "Informed", value: "Acknowledgement reopened", tone: "mesh" },
+            { label: "Acknowledged", value: "No longer lawful", tone: "warning" },
+            { label: "Fallback", value: "Diff-first reopen", tone: "recovery" },
+          ],
+          chips: [
+            { text: "Supplier drift review", tone: "warning" },
+            { text: "Reopen diff strip", tone: "recovery" },
+            { text: "Practice acknowledgement reopened", tone: "mesh" },
+          ],
+          truth: [
+            { title: "Drift posture", body: "Supplier drift changes confirmationTruthState to blocked_by_drift and reopens patient and practice recovery.", tone: "warning" },
+            { title: "Reopen framing", body: "The shell shows changed manage posture, trusted backup state, and practice visibility delta before any new choice.", tone: "recovery" },
+          ],
+          recovery: [
+            { title: "Urgent bounce-back", body: "Urgent return-to-practice keeps receipt and supervisor escalation together in one same-shell path.", tone: "recovery" },
+            { title: "Loop prevention", body: "Repeated low-novelty recirculation escalates instead of silently retrying the same pattern.", tone: "warning" },
+          ],
+          parity: [
+            { title: "Hub", body: "Supplier drift marker and reopened acknowledgement remain visible in the commit pane and practice panel.", tone: "warning" },
+            { title: "Patient/manage", body: "Manage posture moves to frozen or recovery-required instead of leaving stale calmness visible.", tone: "confirmation" },
+          ],
+          inspector: [
+            { title: "Diff rows", body: "Manage posture, trusted backup, and practice visibility deltas are rendered as current reopen facts." },
+            { title: "Exception selection", body: "Selecting exc-drift-041 in the exceptions workspace pins hub-case-041 before reopening it." },
+            { title: "Trace posture", body: "Every browser suite emits trace, screenshot, and JSON artifact links for reviewer replay." },
+          ],
+          artifacts: [
+            { label: "Trace", href: "../../output/playwright/339-hub-recovery-and-reopen-trace.zip", note: "Reopen diff-first flow" },
+            { label: "JSON", href: "../../output/playwright/339-hub-commit-confirmation-and-drift.json", note: "Supplier drift markers and continuity drawer evidence" },
+            { label: "JSON", href: "../../output/playwright/339-hub-recovery-and-reopen.json", note: "Reopen diff-strip ARIA snapshot" },
+          ],
+        },
+      ];
+
+      const scenarioList = document.getElementById("scenarioList");
+      const ladderGrid = document.getElementById("ladderGrid");
+      const scenarioChips = document.getElementById("scenarioChips");
+      const truthList = document.getElementById("truthList");
+      const recoveryList = document.getElementById("recoveryList");
+      const parityList = document.getElementById("parityList");
+      const inspectorList = document.getElementById("inspectorList");
+      const artifactLinks = document.getElementById("artifactLinks");
+      const evidenceBody = document.getElementById("evidenceBody");
+
+      function rowMarkup(row, kind) {
+        return `
+          <div class="${kind}" data-tone="${row.tone ?? ""}">
+            <strong>${row.title}</strong>
+            <p>${row.body}</p>
+          </div>
+        `;
+      }
+
+      function renderScenario(index) {
+        const scenario = scenarios[index];
+        document.querySelectorAll(".scenario-button").forEach((button, buttonIndex) => {
+          button.setAttribute("aria-pressed", String(buttonIndex === index));
+        });
+
+        ladderGrid.innerHTML = scenario.ladder
+          .map(
+            (step) => `
+              <div class="ladder-step" data-tone="${step.tone}">
+                <strong>${step.label}</strong>
+                <span>${step.value}</span>
+              </div>
+            `,
+          )
+          .join("");
+
+        scenarioChips.innerHTML = scenario.chips
+          .map((chip) => `<span class="chip ${chip.tone}">${chip.text}</span>`)
+          .join("");
+        truthList.innerHTML = scenario.truth.map((row) => rowMarkup(row, "list-row")).join("");
+        recoveryList.innerHTML = scenario.recovery
+          .map((row) => rowMarkup(row, "list-row"))
+          .join("");
+        parityList.innerHTML = scenario.parity.map((row) => rowMarkup(row, "list-row")).join("");
+        inspectorList.innerHTML = scenario.inspector
+          .map((row) => rowMarkup(row, "detail-row"))
+          .join("");
+        artifactLinks.innerHTML = scenario.artifacts
+          .map(
+            (artifact) => `
+              <div class="fact-row">
+                <strong><a href="${artifact.href}">${artifact.label}</a></strong>
+                <p>${artifact.note}</p>
+              </div>
+            `,
+          )
+          .join("");
+        evidenceBody.innerHTML = scenario.artifacts
+          .map(
+            (artifact) => `
+              <tr>
+                <td><a href="${artifact.href}">${artifact.label}</a></td>
+                <td>${artifact.note}</td>
+                <td>${scenario.title}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      scenarios.forEach((scenario, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "scenario-button";
+        button.setAttribute("aria-pressed", "false");
+        button.innerHTML = `
+          <strong>${scenario.title}</strong>
+          <span>${scenario.subtitle}</span>
+          <small>${scenario.chips.map((chip) => chip.text).join(" / ")}</small>
+        `;
+        button.addEventListener("click", () => renderScenario(index));
+        button.addEventListener("keydown", (event) => {
+          if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+            return;
+          }
+          event.preventDefault();
+          const nextIndex =
+            event.key === "ArrowDown"
+              ? (index + 1) % scenarios.length
+              : (index - 1 + scenarios.length) % scenarios.length;
+          scenarioList.querySelectorAll("button")[nextIndex].focus();
+          renderScenario(nextIndex);
+        });
+        scenarioList.appendChild(button);
+      });
+
+      renderScenario(0);
+    </script>
+  </body>
+</html>

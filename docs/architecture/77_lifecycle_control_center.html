@@ -1,0 +1,1206 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lifecycle Control Center</title>
+    <style>
+      :root {
+        --canvas: #F6F8FC;
+        --panel: #FFFFFF;
+        --rail: #EEF2F7;
+        --inset: #F3F6FB;
+        --text-strong: #0F172A;
+        --text-default: #1E293B;
+        --text-muted: #64748B;
+        --border: #E2E8F0;
+        --milestone: #2563EB;
+        --blocker: #C24141;
+        --confirmation: #7C3AED;
+        --reopen: #D97706;
+        --settled: #059669;
+        --shadow: 0 22px 48px rgba(15, 23, 42, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text-default);
+        background:
+          radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 28%),
+          radial-gradient(circle at top right, rgba(217, 119, 6, 0.09), transparent 22%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(246, 248, 252, 1)),
+          var(--canvas);
+      }
+
+      body[data-reduced-motion="true"] * {
+        transition: none !important;
+        animation: none !important;
+        scroll-behavior: auto !important;
+      }
+
+      .shell {
+        max-width: 1560px;
+        margin: 0 auto;
+        padding: 20px 24px 28px;
+      }
+
+      .masthead,
+      .panel,
+      .rail,
+      .inspector {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+      }
+
+      .masthead {
+        min-height: 76px;
+        padding: 16px 22px;
+        position: sticky;
+        top: 16px;
+        z-index: 10;
+        display: grid;
+        gap: 14px;
+      }
+
+      .brand-row,
+      .metric-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .monogram {
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+        border-radius: 14px;
+        border: 1px solid rgba(37, 99, 235, 0.2);
+        background: linear-gradient(145deg, rgba(37, 99, 235, 0.18), rgba(217, 119, 6, 0.12));
+      }
+
+      .brand h1,
+      .panel h2,
+      .rail h2,
+      .inspector h2 {
+        margin: 0;
+        color: var(--text-strong);
+      }
+
+      .brand p,
+      .panel p,
+      .rail p,
+      .inspector p {
+        margin: 4px 0 0;
+        color: var(--text-muted);
+        line-height: 1.45;
+      }
+
+      .metric-row {
+        gap: 12px;
+      }
+
+      .metric {
+        min-width: 164px;
+        border-radius: 18px;
+        background: var(--inset);
+        border: 1px solid var(--border);
+        padding: 10px 12px;
+      }
+
+      .metric span {
+        display: block;
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 1.35rem;
+        color: var(--text-strong);
+      }
+
+      .workspace {
+        margin-top: 20px;
+        display: grid;
+        grid-template-columns: 320px minmax(0, 1fr) 420px;
+        gap: 20px;
+        align-items: start;
+      }
+
+      .rail,
+      .panel,
+      .inspector {
+        padding: 20px;
+      }
+
+      .rail {
+        background: linear-gradient(180deg, rgba(238, 242, 247, 0.9), rgba(255, 255, 255, 1));
+        display: grid;
+        gap: 18px;
+        align-content: start;
+      }
+
+      .main-column {
+        display: grid;
+        gap: 20px;
+      }
+
+      .filters {
+        display: grid;
+        gap: 12px;
+      }
+
+      label {
+        display: grid;
+        gap: 8px;
+        font-size: 0.84rem;
+        color: var(--text-muted);
+      }
+
+      select {
+        height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        padding: 0 14px;
+        color: var(--text-strong);
+        transition: border-color 180ms ease, box-shadow 180ms ease;
+      }
+
+      select:hover,
+      select:focus-visible,
+      .signal-select:hover,
+      .signal-select:focus-visible {
+        border-color: rgba(37, 99, 235, 0.34);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+        outline: none;
+      }
+
+      .panel-header {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      .visual-grid {
+        min-height: 300px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .diagram {
+        background: linear-gradient(180deg, rgba(243, 246, 251, 0.92), rgba(255, 255, 255, 0.98));
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .diagram h3,
+      .table-shell h3,
+      .inspector h3 {
+        margin: 0;
+        font-size: 0.95rem;
+        color: var(--text-strong);
+      }
+
+      .milestone-ribbon {
+        display: grid;
+        gap: 10px;
+      }
+
+      .milestone-chip {
+        border-radius: 16px;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.92);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
+      }
+
+      .milestone-chip[data-active="true"] {
+        border-color: rgba(37, 99, 235, 0.35);
+        background: rgba(37, 99, 235, 0.1);
+      }
+
+      .milestone-chip[data-linked="true"] {
+        transform: translateY(-1px);
+        box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.18);
+      }
+
+      .milestone-chip strong,
+      .node strong,
+      .epoch-card strong {
+        color: var(--text-strong);
+      }
+
+      .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--border);
+      }
+
+      .milestone-chip[data-active="true"] .status-dot {
+        background: var(--milestone);
+      }
+
+      .node-grid,
+      .gate-list,
+      .epoch-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .node-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .node {
+        border-radius: 18px;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.92);
+        min-height: 84px;
+        transition: transform 180ms ease, border-color 180ms ease;
+      }
+
+      .node[data-active="true"] {
+        border-color: rgba(194, 65, 65, 0.34);
+        background: rgba(194, 65, 65, 0.08);
+      }
+
+      .node[data-linked="true"] {
+        transform: translateY(-1px);
+        box-shadow: inset 0 0 0 1px rgba(194, 65, 65, 0.18);
+      }
+
+      .gate-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(124, 58, 237, 0.22);
+        background: rgba(124, 58, 237, 0.08);
+        color: var(--text-strong);
+        font-size: 0.84rem;
+      }
+
+      .gate-empty {
+        padding: 10px 0 0;
+        color: var(--text-muted);
+        font-size: 0.88rem;
+      }
+
+      .epoch-card {
+        display: grid;
+        gap: 6px;
+        border-radius: 18px;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.92);
+        transition: transform 180ms ease, border-color 180ms ease;
+      }
+
+      .epoch-card[data-linked="true"] {
+        border-color: rgba(217, 119, 6, 0.36);
+        transform: translateY(-1px);
+      }
+
+      .epoch-card[data-current="true"] {
+        background: rgba(5, 150, 105, 0.1);
+        border-color: rgba(5, 150, 105, 0.28);
+      }
+
+      .eyebrow,
+      .mono {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        letter-spacing: 0.04em;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      .parity-panel {
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: var(--inset);
+        padding: 14px;
+        color: var(--text-default);
+        line-height: 1.55;
+      }
+
+      .lower-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.9fr);
+        gap: 20px;
+      }
+
+      .table-shell {
+        display: grid;
+        gap: 12px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        text-align: left;
+        padding: 12px 10px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+        font-size: 0.92rem;
+      }
+
+      th {
+        color: var(--text-muted);
+        font-weight: 600;
+        font-size: 0.78rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .signal-select {
+        width: 100%;
+        text-align: left;
+        border-radius: 14px;
+        border: 1px solid transparent;
+        background: transparent;
+        padding: 10px 12px;
+        color: inherit;
+        cursor: pointer;
+        transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease;
+      }
+
+      .signal-select[data-selected="true"] {
+        background: rgba(37, 99, 235, 0.08);
+        border-color: rgba(37, 99, 235, 0.3);
+      }
+
+      .signal-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 6px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: var(--inset);
+        color: var(--text-muted);
+        font-size: 0.74rem;
+      }
+
+      .pill.blocker {
+        background: rgba(194, 65, 65, 0.08);
+        color: #9F2432;
+      }
+
+      .pill.reopen {
+        background: rgba(217, 119, 6, 0.1);
+        color: #9A5A02;
+      }
+
+      .inspector {
+        position: sticky;
+        top: 92px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .inspector-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .inspector-card {
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: var(--inset);
+        padding: 14px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .list {
+        margin: 0;
+        padding-left: 18px;
+        color: var(--text-default);
+      }
+
+      .list li + li {
+        margin-top: 4px;
+      }
+
+      .empty-state {
+        color: var(--text-muted);
+        padding: 10px 0;
+      }
+
+      @media (max-width: 1180px) {
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+
+        .inspector {
+          position: static;
+        }
+
+        .lower-grid,
+        .visual-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body data-mode="Lifecycle_Control_Center">
+    <div class="shell">
+      <header class="masthead" data-testid="masthead">
+        <div class="brand-row">
+          <div class="brand">
+            <div class="monogram" aria-hidden="true">
+              <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 6V20H10V10H14V6H6Z" fill="#0F172A" />
+                <path d="M16 6H20V16C20 18.2091 18.2091 20 16 20V6Z" fill="#2563EB" />
+              </svg>
+            </div>
+            <div>
+              <h1>Vecells Lifecycle Control Center</h1>
+              <p>Request truth, blocker materialization, and lineage-fence ownership under one coordinated surface.</p>
+            </div>
+          </div>
+          <div class="mono">Mode: Lifecycle_Control_Center</div>
+        </div>
+        <div class="metric-row">
+          <div class="metric"><span>Active Partitions</span><strong id="metric-partitions">0</strong></div>
+          <div class="metric"><span>Close-Ready Requests</span><strong id="metric-close-ready">0</strong></div>
+          <div class="metric"><span>Deferred Requests</span><strong id="metric-deferred">0</strong></div>
+          <div class="metric"><span>Stale-Epoch Incidents</span><strong id="metric-stale">0</strong></div>
+        </div>
+      </header>
+
+      <div class="workspace">
+        <aside class="rail" aria-label="Filters">
+          <div>
+            <h2>Filters</h2>
+            <p>Slice the partition stream by milestone, blocker family, signal family, reopen trigger, and episode partition.</p>
+          </div>
+          <div class="filters">
+            <label>
+              Request milestone
+              <select id="filter-milestone" data-testid="filter-milestone"></select>
+            </label>
+            <label>
+              Blocker family
+              <select id="filter-blocker-family" data-testid="filter-blocker-family"></select>
+            </label>
+            <label>
+              Signal family
+              <select id="filter-signal-family" data-testid="filter-signal-family"></select>
+            </label>
+            <label>
+              Reopen trigger
+              <select id="filter-reopen-trigger" data-testid="filter-reopen-trigger"></select>
+            </label>
+            <label>
+              Partition
+              <select id="filter-partition" data-testid="filter-partition"></select>
+            </label>
+          </div>
+          <div class="parity-panel">
+            <strong class="eyebrow">Contract parity</strong>
+            <div id="contract-summary" style="margin-top: 8px;"></div>
+          </div>
+        </aside>
+
+        <main class="main-column">
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Operational Visual Zone</h2>
+                <p>Milestone ribbon, blocker lattice, and epoch waterfall stay synchronized with the selected signal row.</p>
+              </div>
+            </div>
+            <div class="visual-grid">
+              <section class="diagram">
+                <h3>Request Milestone Ribbon</h3>
+                <div class="milestone-ribbon" data-testid="milestone-ribbon" id="milestone-ribbon"></div>
+              </section>
+              <section class="diagram">
+                <h3>Blocker And Gate Lattice</h3>
+                <div class="node-grid" data-testid="blocker-lattice" id="blocker-lattice"></div>
+                <div class="gate-list" id="gate-list"></div>
+              </section>
+              <section class="diagram">
+                <h3>Lineage-Fence Epoch Waterfall</h3>
+                <div class="epoch-list" data-testid="epoch-waterfall" id="epoch-waterfall"></div>
+              </section>
+            </div>
+            <div class="parity-panel" data-testid="diagram-parity" id="diagram-parity"></div>
+          </section>
+
+          <div class="lower-grid">
+            <section class="panel table-shell">
+              <div class="panel-header">
+                <div>
+                  <h2>Signal Stream</h2>
+                  <p>Partition-ordered lifecycle evidence across the current filter set.</p>
+                </div>
+              </div>
+              <table data-testid="signal-table">
+                <thead>
+                  <tr>
+                    <th>Signal</th>
+                    <th>Domain</th>
+                    <th>Epoch</th>
+                    <th>Eligibility</th>
+                  </tr>
+                </thead>
+                <tbody id="signal-table-body"></tbody>
+              </table>
+            </section>
+
+            <section class="panel table-shell">
+              <div class="panel-header">
+                <div>
+                  <h2>Closure History</h2>
+                  <p>Append-only close/defer decisions for the selected request lineage.</p>
+                </div>
+              </div>
+              <table data-testid="closure-table">
+                <thead>
+                  <tr>
+                    <th>Decision</th>
+                    <th>Epoch</th>
+                    <th>When</th>
+                    <th>Reasons</th>
+                  </tr>
+                </thead>
+                <tbody id="closure-table-body"></tbody>
+              </table>
+            </section>
+          </div>
+        </main>
+
+        <aside class="inspector" data-testid="inspector">
+          <div>
+            <h2>Inspector</h2>
+            <p>Selected request lineage, active blockers, confirmation posture, fence position, and last close verdict.</p>
+          </div>
+          <div class="inspector-grid" id="inspector-content"></div>
+        </aside>
+      </div>
+    </div>
+
+    <script type="module">
+      const workflowStages = [
+        "submitted",
+        "triage_ready",
+        "triage_active",
+        "handoff_active",
+        "outcome_recorded",
+        "closed",
+      ];
+
+      const blockerFamilyLabels = {
+        lease_conflict: "Lease conflict",
+        safety_preemption: "Safety preemption",
+        approval_checkpoint: "Approval checkpoint",
+        outcome_reconciliation: "Outcome reconciliation",
+        confirmation_gate: "Confirmation gate",
+        lineage_case_link_active: "Lineage case link",
+        duplicate_review: "Duplicate review",
+        fallback_review: "Fallback review",
+        identity_repair: "Identity repair",
+        live_phi_grant: "Live PHI grant",
+        reachability_dependency: "Reachability dependency",
+        degraded_promise: "Degraded promise",
+      };
+
+      const blockerFamilies = Object.keys(blockerFamilyLabels);
+      const state = {
+        casebook: null,
+        manifest: null,
+        matrix: [],
+        filters: {
+          milestone: "all",
+          blockerFamily: "all",
+          signalFamily: "all",
+          reopenTrigger: "all",
+          partition: "all",
+        },
+        selectedSignalId: null,
+      };
+
+      const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const layoutQuery = window.matchMedia("(max-width: 1180px)");
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function parseCsv(text) {
+        const rows = [];
+        let row = [];
+        let cell = "";
+        let inQuotes = false;
+        for (let index = 0; index < text.length; index += 1) {
+          const char = text[index];
+          const next = text[index + 1];
+          if (char === '"' && inQuotes && next === '"') {
+            cell += '"';
+            index += 1;
+            continue;
+          }
+          if (char === '"') {
+            inQuotes = !inQuotes;
+            continue;
+          }
+          if (char === "," && !inQuotes) {
+            row.push(cell);
+            cell = "";
+            continue;
+          }
+          if ((char === "\n" || char === "\r") && !inQuotes) {
+            if (char === "\r" && next === "\n") {
+              index += 1;
+            }
+            row.push(cell);
+            if (row.some((value) => value.length > 0)) {
+              rows.push(row);
+            }
+            row = [];
+            cell = "";
+            continue;
+          }
+          cell += char;
+        }
+        if (cell.length || row.length) {
+          row.push(cell);
+          rows.push(row);
+        }
+        const [headers, ...body] = rows;
+        return body.map((values) =>
+          Object.fromEntries(headers.map((header, idx) => [header, values[idx] ?? ""])),
+        );
+      }
+
+      function titleCase(value) {
+        return String(value).replaceAll("_", " ");
+      }
+
+      function slug(value) {
+        return String(value).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      }
+
+      function updateEnvironmentFlags() {
+        document.body.dataset.reducedMotion = motionQuery.matches ? "true" : "false";
+        document.body.dataset.layout = layoutQuery.matches ? "tablet" : "desktop";
+      }
+
+      function allSignals() {
+        return state.casebook.scenarios.flatMap((scenario) =>
+          scenario.signalStream.map((signal) => ({
+            ...signal,
+            scenarioId: scenario.scenarioId,
+            partitionId: scenario.partitionId,
+            currentMilestone: scenario.currentMilestone,
+            currentBlockerFamilies: scenario.currentBlockerFamilies,
+            reopenHistory: scenario.reopenHistory,
+          })),
+        );
+      }
+
+      function scenarioById(scenarioId) {
+        return state.casebook.scenarios.find((scenario) => scenario.scenarioId === scenarioId) ?? null;
+      }
+
+      function visibleSignals() {
+        return allSignals().filter((signal) => {
+          const scenario = scenarioById(signal.scenarioId);
+          if (!scenario) {
+            return false;
+          }
+          if (state.filters.partition !== "all" && scenario.partitionId !== state.filters.partition) {
+            return false;
+          }
+          if (state.filters.milestone !== "all" && scenario.currentMilestone !== state.filters.milestone) {
+            return false;
+          }
+          if (state.filters.signalFamily !== "all" && signal.signalFamily !== state.filters.signalFamily) {
+            return false;
+          }
+          if (
+            state.filters.reopenTrigger !== "all" &&
+            signal.reopenTrigger !== state.filters.reopenTrigger
+          ) {
+            return false;
+          }
+          if (
+            state.filters.blockerFamily !== "all" &&
+            !signal.blockerFamilies.includes(state.filters.blockerFamily) &&
+            !scenario.currentBlockerFamilies.includes(state.filters.blockerFamily)
+          ) {
+            return false;
+          }
+          return true;
+        });
+      }
+
+      function filteredScenarios(signalRows) {
+        const ids = [...new Set(signalRows.map((signal) => signal.scenarioId))];
+        return state.casebook.scenarios.filter((scenario) => ids.includes(scenario.scenarioId));
+      }
+
+      function ensureSelection(signalRows) {
+        if (!signalRows.length) {
+          state.selectedSignalId = null;
+          return null;
+        }
+        const selected = signalRows.find((signal) => signal.signalId === state.selectedSignalId);
+        if (selected) {
+          return selected;
+        }
+        state.selectedSignalId = signalRows[0].signalId;
+        return signalRows[0];
+      }
+
+      function renderFilters() {
+        const milestoneOptions = ["all", ...workflowStages];
+        const signalFamilyOptions = ["all", ...new Set(state.matrix.map((row) => row.signal_family))];
+        const reopenOptions = [
+          "all",
+          ...new Set(state.matrix.map((row) => row.reopen_trigger_family).filter(Boolean)),
+        ];
+        const partitionOptions = ["all", ...state.casebook.scenarios.map((scenario) => scenario.partitionId)];
+
+        const writeOptions = (element, values, formatter = (value) => value) => {
+          element.innerHTML = values
+            .map(
+              (value) =>
+                `<option value="${escapeHtml(value)}">${escapeHtml(
+                  value === "all" ? "All" : formatter(value),
+                )}</option>`,
+            )
+            .join("");
+          element.value = state.filters[element.dataset.filterKey];
+          element.addEventListener("change", (event) => {
+            state.filters[element.dataset.filterKey] = event.target.value;
+            render();
+          });
+        };
+
+        const milestoneSelect = document.getElementById("filter-milestone");
+        milestoneSelect.dataset.filterKey = "milestone";
+        writeOptions(milestoneSelect, milestoneOptions, titleCase);
+
+        const blockerSelect = document.getElementById("filter-blocker-family");
+        blockerSelect.dataset.filterKey = "blockerFamily";
+        writeOptions(blockerSelect, ["all", ...blockerFamilies], (value) => blockerFamilyLabels[value]);
+
+        const signalFamilySelect = document.getElementById("filter-signal-family");
+        signalFamilySelect.dataset.filterKey = "signalFamily";
+        writeOptions(signalFamilySelect, signalFamilyOptions, titleCase);
+
+        const reopenSelect = document.getElementById("filter-reopen-trigger");
+        reopenSelect.dataset.filterKey = "reopenTrigger";
+        writeOptions(reopenSelect, reopenOptions, titleCase);
+
+        const partitionSelect = document.getElementById("filter-partition");
+        partitionSelect.dataset.filterKey = "partition";
+        writeOptions(partitionSelect, partitionOptions, (value) => value);
+      }
+
+      function renderMetrics(scenarios) {
+        document.getElementById("metric-partitions").textContent = String(scenarios.length);
+        document.getElementById("metric-close-ready").textContent = String(
+          scenarios.filter((scenario) => scenario.isCloseReady).length,
+        );
+        document.getElementById("metric-deferred").textContent = String(
+          scenarios.filter((scenario) => scenario.deferred).length,
+        );
+        document.getElementById("metric-stale").textContent = String(
+          scenarios.reduce((total, scenario) => total + scenario.staleEpochIncidentCount, 0),
+        );
+      }
+
+      function renderContractSummary() {
+        const domains = [...new Set(state.matrix.map((row) => row.source_domain))].length;
+        const families = [...new Set(state.matrix.map((row) => row.signal_family))].length;
+        document.getElementById("contract-summary").innerHTML = `
+          <div><strong>${state.matrix.length}</strong> signal contracts</div>
+          <div style="margin-top: 6px;"><strong>${domains}</strong> emitting domains</div>
+          <div style="margin-top: 6px;"><strong>${families}</strong> signal families</div>
+        `;
+      }
+
+      function renderRibbon(selectedScenario, selectedSignal) {
+        const element = document.getElementById("milestone-ribbon");
+        if (!selectedScenario) {
+          element.innerHTML = `<div class="empty-state">No request lineage matches the current filters.</div>`;
+          return;
+        }
+        element.innerHTML = workflowStages
+          .map((stage) => {
+            const isActive = selectedScenario.currentMilestone === stage;
+            const isLinked = selectedSignal?.candidateMilestone === stage;
+            return `
+              <div
+                class="milestone-chip"
+                data-testid="milestone-chip-${stage}"
+                data-active="${isActive}"
+                data-linked="${Boolean(isLinked)}"
+              >
+                <div>
+                  <strong>${escapeHtml(titleCase(stage))}</strong>
+                  <div class="eyebrow">${isActive ? "Current request truth" : "Available coordinator stage"}</div>
+                </div>
+                <span class="status-dot" aria-hidden="true"></span>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      function renderLattice(selectedScenario, selectedSignal) {
+        const element = document.getElementById("blocker-lattice");
+        const gates = document.getElementById("gate-list");
+        if (!selectedScenario) {
+          element.innerHTML = `<div class="empty-state">No blocker lattice is available.</div>`;
+          gates.innerHTML = "";
+          return;
+        }
+        element.innerHTML = blockerFamilies
+          .map((family) => {
+            const active = selectedScenario.currentBlockerFamilies.includes(family);
+            const linked = selectedSignal?.blockerFamilies.includes(family) ?? false;
+            const refs = active
+              ? selectedScenario.currentBlockers.filter((ref) => ref.includes(family.split("_")[0]) || selectedScenario.currentBlockerFamilies.length === 1)
+              : [];
+            return `
+              <div
+                class="node"
+                data-testid="blocker-node-${family}"
+                data-active="${active}"
+                data-linked="${linked}"
+              >
+                <strong>${escapeHtml(blockerFamilyLabels[family])}</strong>
+                <div class="eyebrow" style="margin-top: 6px;">${active ? "Currently materialized" : "Not active"}</div>
+                <div class="mono" style="margin-top: 6px;">${refs.length ? escapeHtml(refs.join(", ")) : "ref-set: empty"}</div>
+              </div>
+            `;
+          })
+          .join("");
+
+        gates.innerHTML = selectedScenario.currentConfirmationGates.length
+          ? selectedScenario.currentConfirmationGates
+              .map(
+                (gateRef) => `
+                  <span class="gate-chip" data-testid="gate-chip-${slug(gateRef)}">${escapeHtml(gateRef)}</span>
+                `,
+              )
+              .join("")
+          : `<div class="gate-empty">No live confirmation gates.</div>`;
+      }
+
+      function renderWaterfall(selectedScenario, selectedSignal) {
+        const element = document.getElementById("epoch-waterfall");
+        if (!selectedScenario) {
+          element.innerHTML = `<div class="empty-state">No epoch history is available.</div>`;
+          return;
+        }
+        const waterfall = state.manifest.scenarioWaterfalls[selectedScenario.scenarioId] ?? [];
+        element.innerHTML = waterfall
+          .map(
+            (entry) => `
+              <div
+                class="epoch-card"
+                data-testid="epoch-node-${selectedScenario.scenarioId}-${entry.epoch}"
+                data-current="${entry.epoch === selectedScenario.activeEpoch}"
+                data-linked="${selectedSignal ? entry.epoch === selectedSignal.resultingEpoch : false}"
+              >
+                <strong>Epoch ${entry.epoch}</strong>
+                <div class="eyebrow">${escapeHtml(entry.issuedFor)} • ${escapeHtml(entry.cause)}</div>
+                <div>${escapeHtml(entry.label)}</div>
+                <div class="mono">workflow_after=${escapeHtml(entry.workflowStateAfter)}</div>
+              </div>
+            `,
+          )
+          .join("");
+      }
+
+      function renderSignalTable(signalRows, selectedSignal) {
+        const body = document.getElementById("signal-table-body");
+        if (!signalRows.length) {
+          body.innerHTML = `<tr><td colspan="4" class="empty-state">No signals match the current filters.</td></tr>`;
+          return;
+        }
+        body.innerHTML = signalRows
+          .map(
+            (signal) => `
+              <tr>
+                <td>
+                  <button
+                    type="button"
+                    class="signal-select"
+                    data-testid="signal-row-${signal.signalId}"
+                    data-selected="${selectedSignal?.signalId === signal.signalId}"
+                    data-signal-id="${signal.signalId}"
+                  >
+                    <strong>${escapeHtml(signal.signalType)}</strong>
+                    <div class="eyebrow">${escapeHtml(signal.partitionId)}</div>
+                    <div class="signal-meta">
+                      ${signal.blockerFamilies
+                        .map((family) => `<span class="pill blocker">${escapeHtml(blockerFamilyLabels[family])}</span>`)
+                        .join("")}
+                      ${signal.reopenTrigger ? `<span class="pill reopen">${escapeHtml(titleCase(signal.reopenTrigger))}</span>` : ""}
+                    </div>
+                  </button>
+                </td>
+                <td>${escapeHtml(signal.sourceDomain)}</td>
+                <td class="mono">${signal.presentedEpoch} → ${signal.resultingEpoch}</td>
+                <td>${escapeHtml(titleCase(signal.closureEligibility))}</td>
+              </tr>
+            `,
+          )
+          .join("");
+
+        const buttons = [...body.querySelectorAll(".signal-select")];
+        buttons.forEach((button, index) => {
+          button.addEventListener("click", () => {
+            state.selectedSignalId = button.dataset.signalId;
+            render();
+          });
+          button.addEventListener("keydown", (event) => {
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+              return;
+            }
+            event.preventDefault();
+            const nextIndex =
+              event.key === "ArrowDown"
+                ? Math.min(index + 1, buttons.length - 1)
+                : Math.max(index - 1, 0);
+            const nextButton = buttons[nextIndex];
+            if (nextButton) {
+              state.selectedSignalId = nextButton.dataset.signalId;
+              render();
+              window.requestAnimationFrame(() => {
+                const refreshed = document.querySelector(
+                  `[data-testid="signal-row-${nextButton.dataset.signalId}"]`,
+                );
+                refreshed?.focus();
+              });
+            }
+          });
+        });
+      }
+
+      function renderClosureTable(selectedScenario) {
+        const body = document.getElementById("closure-table-body");
+        if (!selectedScenario || !selectedScenario.closureHistory.length) {
+          body.innerHTML = `<tr data-testid="closure-row-empty"><td colspan="4" class="empty-state">No closure history has been recorded for this partition.</td></tr>`;
+          return;
+        }
+        body.innerHTML = selectedScenario.closureHistory
+          .map(
+            (row) => `
+              <tr data-testid="closure-row-${row.closureRecordId}">
+                <td>${escapeHtml(titleCase(row.decision))}</td>
+                <td class="mono">${row.requiredLineageEpoch}</td>
+                <td>${escapeHtml(row.evaluatedAt)}</td>
+                <td>${escapeHtml(row.deferReasonCodes.length ? row.deferReasonCodes.join(", ") : "none")}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function renderInspector(selectedScenario, selectedSignal) {
+        const element = document.getElementById("inspector-content");
+        if (!selectedScenario) {
+          element.innerHTML = `<div class="empty-state">No request lineage matches the current filters.</div>`;
+          return;
+        }
+        const close = selectedScenario.lastCloseEvaluation;
+        element.innerHTML = `
+          <section class="inspector-card">
+            <h3>Selected Request</h3>
+            <div class="mono">${escapeHtml(selectedScenario.requestId)}</div>
+            <div class="mono">${escapeHtml(selectedScenario.requestLineageRef)}</div>
+            <div class="eyebrow">partition=${escapeHtml(selectedScenario.partitionId)}</div>
+          </section>
+          <section class="inspector-card">
+            <h3>Current State</h3>
+            <div><strong>${escapeHtml(titleCase(selectedScenario.currentMilestone))}</strong></div>
+            <div class="mono">active_epoch=${selectedScenario.activeEpoch}</div>
+            <div class="mono">close_ready=${selectedScenario.isCloseReady}</div>
+            <div class="mono">deferred=${selectedScenario.deferred}</div>
+          </section>
+          <section class="inspector-card">
+            <h3>Current Blockers</h3>
+            ${
+              selectedScenario.currentBlockers.length
+                ? `<ul class="list">${selectedScenario.currentBlockers
+                    .map((ref) => `<li class="mono">${escapeHtml(ref)}</li>`)
+                    .join("")}</ul>`
+                : `<div class="empty-state">No materialized blocker refs.</div>`
+            }
+          </section>
+          <section class="inspector-card">
+            <h3>Current Gates</h3>
+            ${
+              selectedScenario.currentConfirmationGates.length
+                ? `<ul class="list">${selectedScenario.currentConfirmationGates
+                    .map((ref) => `<li class="mono">${escapeHtml(ref)}</li>`)
+                    .join("")}</ul>`
+                : `<div class="empty-state">No live confirmation gates.</div>`
+            }
+          </section>
+          <section class="inspector-card">
+            <h3>Last Close Evaluation</h3>
+            ${
+              close
+                ? `
+                    <div><strong>${escapeHtml(titleCase(close.decision))}</strong></div>
+                    <div class="mono">required_epoch=${close.requiredLineageEpoch}</div>
+                    <div>${escapeHtml(close.evaluatedAt)}</div>
+                    <div>${escapeHtml(close.deferReasonCodes.length ? close.deferReasonCodes.join(", ") : "No defer reasons.")}</div>
+                  `
+                : `<div class="empty-state">No close evaluation persisted yet.</div>`
+            }
+          </section>
+          <section class="inspector-card">
+            <h3>Selected Signal</h3>
+            ${
+              selectedSignal
+                ? `
+                    <div><strong>${escapeHtml(selectedSignal.signalType)}</strong></div>
+                    <div class="mono">${escapeHtml(selectedSignal.signalId)}</div>
+                    <div class="mono">${selectedSignal.presentedEpoch} → ${selectedSignal.resultingEpoch}</div>
+                    <div>${escapeHtml(selectedSignal.note)}</div>
+                    ${
+                      selectedSignal.blockerRefs.length
+                        ? `<ul class="list">${selectedSignal.blockerRefs
+                            .map((ref) => `<li class="mono">${escapeHtml(ref)}</li>`)
+                            .join("")}</ul>`
+                        : `<div class="empty-state">No signal-local blocker refs.</div>`
+                    }
+                  `
+                : `<div class="empty-state">No signal is currently selected.</div>`
+            }
+          </section>
+        `;
+      }
+
+      function renderParity(selectedScenario, selectedSignal, signalRows) {
+        const element = document.getElementById("diagram-parity");
+        if (!selectedScenario) {
+          element.textContent = "No visible signal rows are available for the current filter combination.";
+          return;
+        }
+        element.innerHTML = `
+          <strong class="eyebrow">Textual parity</strong>
+          <div style="margin-top: 8px;">
+            Partition <span class="mono">${escapeHtml(selectedScenario.partitionId)}</span> is currently
+            <strong>${escapeHtml(titleCase(selectedScenario.currentMilestone))}</strong> at epoch
+            <span class="mono">${selectedScenario.activeEpoch}</span>.
+            ${
+              selectedSignal
+                ? `Selected signal <span class="mono">${escapeHtml(selectedSignal.signalType)}</span>
+                moved the partition from epoch <span class="mono">${selectedSignal.presentedEpoch}</span>
+                to <span class="mono">${selectedSignal.resultingEpoch}</span>.`
+                : ""
+            }
+            The filter set currently exposes <span class="mono">${signalRows.length}</span> visible signals
+            across <span class="mono">${state.matrix.length}</span> published signal contracts.
+          </div>
+        `;
+      }
+
+      function render() {
+        updateEnvironmentFlags();
+        const signalRows = visibleSignals();
+        const selectedSignal = ensureSelection(signalRows);
+        const scenarios = filteredScenarios(signalRows);
+        const selectedScenario = selectedSignal ? scenarioById(selectedSignal.scenarioId) : scenarios[0] ?? null;
+
+        renderMetrics(scenarios);
+        renderContractSummary();
+        renderRibbon(selectedScenario, selectedSignal);
+        renderLattice(selectedScenario, selectedSignal);
+        renderWaterfall(selectedScenario, selectedSignal);
+        renderSignalTable(signalRows, selectedSignal);
+        renderClosureTable(selectedScenario);
+        renderInspector(selectedScenario, selectedSignal);
+        renderParity(selectedScenario, selectedSignal, signalRows);
+      }
+
+      async function load() {
+        updateEnvironmentFlags();
+        motionQuery.addEventListener("change", updateEnvironmentFlags);
+        layoutQuery.addEventListener("change", updateEnvironmentFlags);
+
+        const [casebook, manifest, matrixResponse] = await Promise.all([
+          fetch("/data/analysis/lifecycle_coordinator_casebook.json").then((response) => response.json()),
+          fetch("/data/analysis/lineage_fence_epoch_manifest.json").then((response) => response.json()),
+          fetch("/data/analysis/lifecycle_signal_contract_matrix.csv").then((response) => response.text()),
+        ]);
+
+        state.casebook = casebook;
+        state.manifest = manifest;
+        state.matrix = parseCsv(matrixResponse);
+        state.selectedSignalId = allSignals()[0]?.signalId ?? null;
+        renderFilters();
+        render();
+      }
+
+      load().catch((error) => {
+        document.getElementById("signal-table-body").innerHTML = `
+          <tr><td colspan="4" class="empty-state">${escapeHtml(error.message)}</td></tr>
+        `;
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,3033 @@
+{
+  "schemaVersion": "433.phase9.operational-projection-contracts.v1",
+  "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9B",
+  "phase8ExitPacketRef": "data/contracts/431_phase8_exit_packet.json",
+  "phase9AssuranceContractsRef": "data/contracts/432_phase9_assurance_ledger_contracts.json",
+  "requiredFormulas": {
+    "breachRisk": "d_i, B_i, mu_l^-, W_i, S_i, D_i, T_i, Gamma(k, theta), calibrated P_breach_i, Wilson bounds, P_any_breach_q, priority_i",
+    "anomaly": "y_m, yhat_m, standardized residual, EWMA, positive CUSUM, negative CUSUM, minimum support, hysteresis, alert state",
+    "dashboard": "freshness, trust, completeness, graph or assurance refs, blocking refs, permitted render posture, bounded drill scope"
+  },
+  "requiredInvariants": [
+    "Breach probability is monotone non-decreasing as slack decreases under fixed workload, capacity, service, and dependency assumptions.",
+    "Queue aggregate breach probability is computed as one minus the product of non-breach probabilities after deduplicating mutually exclusive timers.",
+    "Conservative capacity lower bounds degrade when staffed availability, dependency health, fallback sufficiency, or trust posture degrades.",
+    "Dependency delay increases risk when all other inputs are fixed.",
+    "Stale, degraded, quarantined, or incomplete dashboard slices cannot render as normal or interactive.",
+    "Low-support equity slices are marked insufficient_support rather than normal.",
+    "Anomaly hysteresis prevents alert flapping and requires lower exit thresholds for de-escalation.",
+    "Dashboard DTOs require freshnessState, trustState, completenessState, blockers, allowed drill-ins, and investigation scope seed.",
+    "Cross-tenant metric aggregation is denied unless a governed scope says otherwise.",
+    "Metric definitions are versioned, deterministic, and hashable."
+  ],
+  "dashboardDataBoundaryFields": [
+    "stateLabel",
+    "stateReason",
+    "primaryValue",
+    "confidenceOrBound",
+    "lastUpdated",
+    "freshnessState",
+    "trustState",
+    "completenessState",
+    "blockingRefs",
+    "allowedDrillIns",
+    "investigationScopeSeed"
+  ],
+  "downstreamReadiness": {
+    "437": "live operational projections, queue health, breach risk, anomaly state, dashboard envelopes, leases, and live-delta windows",
+    "438": "waitlist conversion, pharmacy bounce-back/outcome latency, and notification delivery metric sources",
+    "439": "investigation drawer sessions and bounded scope seeds for timeline reconstruction",
+    "440": "assurance pack evidence for operational SLO and dashboard trust posture",
+    "441": "CAPA gap routing from metric anomaly and breach-risk records",
+    "442": "retention lifecycle decisions consuming operational projection health and dependency evidence"
+  },
+  "contractSetHash": "8ed14feb577710e684f720a474540383a123f8e31161646daca0cf9747a11310",
+  "metricDefinitionSetHash": "4218931d40cbbdcc9ba92fad49e00190c9a7641d633c5e32fa473ffdd716a998",
+  "contracts": [
+    {
+      "contractName": "SLOProfile",
+      "schemaVersion": "433.phase9.operational-projection-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9B",
+      "fieldNames": [
+        "sloProfileId",
+        "functionCode",
+        "availabilityTarget",
+        "latencyTarget",
+        "freshnessTarget",
+        "restoreTarget",
+        "workingTimeCalendarRef",
+        "alertThresholds",
+        "calibrationPolicyRef"
+      ],
+      "requiredFields": [
+        "sloProfileId",
+        "functionCode",
+        "availabilityTarget",
+        "latencyTarget",
+        "freshnessTarget",
+        "restoreTarget",
+        "workingTimeCalendarRef",
+        "alertThresholds",
+        "calibrationPolicyRef"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "sloProfileId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "functionCode",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "availabilityTarget",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "latencyTarget",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "freshnessTarget",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "restoreTarget",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "workingTimeCalendarRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "alertThresholds",
+          "fieldType": "SLOAlertThresholds",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "calibrationPolicyRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        }
+      ],
+      "enumValues": {},
+      "tenantScopeConstraints": [
+        "Metric definitions and snapshots must carry tenantScope, scopeRef, or actionScopeRef where aggregation can cross boundaries.",
+        "Cross-tenant aggregation is denied unless a governed visibility projection policy narrows every source into the same explicit scope.",
+        "Dashboard DTOs may not contain PHI unless the selected investigation scope explicitly grants it; normal operations overview DTOs are reference-only."
+      ],
+      "identityKeys": [
+        "sloProfileId"
+      ],
+      "idempotencyKeys": [
+        "sloProfileId",
+        "tenantScope|scopeRef|actionScopeRef",
+        "normalizationVersionRef|modelVersionRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 433.phase9.operational-projection-contracts.v1",
+        "breach-risk model pinned to phase9.operational.breach-risk.gamma.v1",
+        "anomaly model pinned to phase9.operational.anomaly.ewma-cusum.v1",
+        "normalization pinned to phase9.operational.metric-normalization.v1",
+        "baseline, calibration, threshold, working-calendar, and dashboard posture policies are versioned refs, never local constants"
+      ],
+      "canonicalHashInputs": [
+        "sloProfileId",
+        "functionCode",
+        "availabilityTarget",
+        "latencyTarget",
+        "freshnessTarget",
+        "restoreTarget",
+        "workingTimeCalendarRef",
+        "alertThresholds",
+        "calibrationPolicyRef"
+      ],
+      "piiPhiClassification": "Operational reference metadata only; dashboard DTOs must use refs and bounded scope seeds rather than inline PHI.",
+      "retentionClassRef": "operational_projection_short_window_with_assurance_refs",
+      "auditEventMapping": [
+        "analytics_assurance.phase9.SLOProfile.created",
+        "analytics_assurance.phase9.SLOProfile.evaluated",
+        "analytics_assurance.phase9.SLOProfile.downgraded_or_superseded"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unsupported metric normalization versions fail closed and cannot promote dashboard posture.",
+        "Calibration, baseline, and threshold model changes require deterministic replay against fixture event streams.",
+        "Late, duplicate, and out-of-order events update projection rebuild paths, not live request handling."
+      ],
+      "validStateExamples": [
+        "data/fixtures/433_phase9_operational_projection_fixtures.json#/examples/SLOProfile"
+      ],
+      "invalidStateExamples": [
+        "invalid:SLOProfile:missing-required-field",
+        "invalid:SLOProfile:bad-enum-or-trust-boundary-bypass"
+      ]
+    },
+    {
+      "contractName": "OperationalMetricDefinition",
+      "schemaVersion": "433.phase9.operational-projection-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9B",
+      "fieldNames": [
+        "metricDefinitionId",
+        "metricCode",
+        "sourceProjection",
+        "numeratorSpec",
+        "denominatorSpec",
+        "aggregationWindow",
+        "tenantScope",
+        "ownerRole",
+        "baselineModelRef",
+        "minimumSupport",
+        "thresholdPolicyRef",
+        "normalizationVersionRef"
+      ],
+      "requiredFields": [
+        "metricDefinitionId",
+        "metricCode",
+        "sourceProjection",
+        "numeratorSpec",
+        "denominatorSpec",
+        "aggregationWindow",
+        "tenantScope",
+        "ownerRole",
+        "baselineModelRef",
+        "minimumSupport",
+        "thresholdPolicyRef",
+        "normalizationVersionRef"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "metricDefinitionId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "metricCode",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "sourceProjection",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "numeratorSpec",
+          "fieldType": "MetricExpressionSpec",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "denominatorSpec",
+          "fieldType": "MetricExpressionSpec",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "aggregationWindow",
+          "fieldType": "AggregationWindowSpec",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "tenantScope",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "ownerRole",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "baselineModelRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "minimumSupport",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "thresholdPolicyRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "normalizationVersionRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        }
+      ],
+      "enumValues": {},
+      "tenantScopeConstraints": [
+        "Metric definitions and snapshots must carry tenantScope, scopeRef, or actionScopeRef where aggregation can cross boundaries.",
+        "Cross-tenant aggregation is denied unless a governed visibility projection policy narrows every source into the same explicit scope.",
+        "Dashboard DTOs may not contain PHI unless the selected investigation scope explicitly grants it; normal operations overview DTOs are reference-only."
+      ],
+      "identityKeys": [
+        "metricDefinitionId"
+      ],
+      "idempotencyKeys": [
+        "metricDefinitionId",
+        "tenantScope|scopeRef|actionScopeRef",
+        "normalizationVersionRef|modelVersionRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 433.phase9.operational-projection-contracts.v1",
+        "breach-risk model pinned to phase9.operational.breach-risk.gamma.v1",
+        "anomaly model pinned to phase9.operational.anomaly.ewma-cusum.v1",
+        "normalization pinned to phase9.operational.metric-normalization.v1",
+        "baseline, calibration, threshold, working-calendar, and dashboard posture policies are versioned refs, never local constants"
+      ],
+      "canonicalHashInputs": [
+        "metricDefinitionId",
+        "metricCode",
+        "sourceProjection",
+        "numeratorSpec",
+        "denominatorSpec",
+        "aggregationWindow",
+        "tenantScope",
+        "ownerRole",
+        "baselineModelRef",
+        "minimumSupport",
+        "thresholdPolicyRef",
+        "normalizationVersionRef"
+      ],
+      "piiPhiClassification": "Operational reference metadata only; dashboard DTOs must use refs and bounded scope seeds rather than inline PHI.",
+      "retentionClassRef": "operational_projection_short_window_with_assurance_refs",
+      "auditEventMapping": [
+        "analytics_assurance.phase9.OperationalMetricDefinition.created",
+        "analytics_assurance.phase9.OperationalMetricDefinition.evaluated",
+        "analytics_assurance.phase9.OperationalMetricDefinition.downgraded_or_superseded"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unsupported metric normalization versions fail closed and cannot promote dashboard posture.",
+        "Calibration, baseline, and threshold model changes require deterministic replay against fixture event streams.",
+        "Late, duplicate, and out-of-order events update projection rebuild paths, not live request handling."
+      ],
+      "validStateExamples": [
+        "data/fixtures/433_phase9_operational_projection_fixtures.json#/examples/OperationalMetricDefinition"
+      ],
+      "invalidStateExamples": [
+        "invalid:OperationalMetricDefinition:missing-required-field",
+        "invalid:OperationalMetricDefinition:bad-enum-or-trust-boundary-bypass"
+      ]
+    },
+    {
+      "contractName": "BreachRiskRecord",
+      "schemaVersion": "433.phase9.operational-projection-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9B",
+      "fieldNames": [
+        "breachRiskRecordId",
+        "entityType",
+        "entityRef",
+        "riskType",
+        "severity",
+        "predictedAt",
+        "windowCloseAt",
+        "predictedProbability",
+        "predictionLowerBound",
+        "predictionUpperBound",
+        "modelVersionRef",
+        "calibrationVersionRef",
+        "queueSnapshotHash",
+        "supportingMetricRefs",
+        "explanationVectorRef"
+      ],
+      "requiredFields": [
+        "breachRiskRecordId",
+        "entityType",
+        "entityRef",
+        "riskType",
+        "severity",
+        "predictedAt",
+        "windowCloseAt",
+        "predictedProbability",
+        "predictionLowerBound",
+        "predictionUpperBound",
+        "modelVersionRef",
+        "calibrationVersionRef",
+        "queueSnapshotHash",
+        "supportingMetricRefs",
+        "explanationVectorRef"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "breachRiskRecordId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "entityType",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "entityRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "riskType",
+          "fieldType": "BreachRiskType",
+          "required": true,
+          "enumRef": "riskType",
+          "notes": "Enum pinned by phase9OperationalEnumValues.riskType."
+        },
+        {
+          "fieldName": "severity",
+          "fieldType": "BreachRiskSeverity",
+          "required": true,
+          "enumRef": "severity",
+          "notes": "Enum pinned by phase9OperationalEnumValues.severity."
+        },
+        {
+          "fieldName": "predictedAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "windowCloseAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "predictedProbability",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "predictionLowerBound",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "predictionUpperBound",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "modelVersionRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "calibrationVersionRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "queueSnapshotHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "supportingMetricRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "explanationVectorRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        }
+      ],
+      "enumValues": {
+        "riskType": [
+          "sla_breach",
+          "clinical_safety_delay",
+          "access_delay",
+          "delivery_delay",
+          "continuity_drift",
+          "rebuild_staleness"
+        ],
+        "severity": [
+          "low",
+          "medium",
+          "high",
+          "critical"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "Metric definitions and snapshots must carry tenantScope, scopeRef, or actionScopeRef where aggregation can cross boundaries.",
+        "Cross-tenant aggregation is denied unless a governed visibility projection policy narrows every source into the same explicit scope.",
+        "Dashboard DTOs may not contain PHI unless the selected investigation scope explicitly grants it; normal operations overview DTOs are reference-only."
+      ],
+      "identityKeys": [
+        "breachRiskRecordId"
+      ],
+      "idempotencyKeys": [
+        "breachRiskRecordId",
+        "tenantScope|scopeRef|actionScopeRef",
+        "normalizationVersionRef|modelVersionRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 433.phase9.operational-projection-contracts.v1",
+        "breach-risk model pinned to phase9.operational.breach-risk.gamma.v1",
+        "anomaly model pinned to phase9.operational.anomaly.ewma-cusum.v1",
+        "normalization pinned to phase9.operational.metric-normalization.v1",
+        "baseline, calibration, threshold, working-calendar, and dashboard posture policies are versioned refs, never local constants"
+      ],
+      "canonicalHashInputs": [
+        "breachRiskRecordId",
+        "entityType",
+        "entityRef",
+        "riskType",
+        "severity",
+        "predictedAt",
+        "windowCloseAt",
+        "predictedProbability",
+        "predictionLowerBound",
+        "predictionUpperBound",
+        "modelVersionRef",
+        "calibrationVersionRef",
+        "queueSnapshotHash",
+        "supportingMetricRefs",
+        "explanationVectorRef"
+      ],
+      "piiPhiClassification": "Operational reference metadata only; dashboard DTOs must use refs and bounded scope seeds rather than inline PHI.",
+      "retentionClassRef": "operational_projection_short_window_with_assurance_refs",
+      "auditEventMapping": [
+        "analytics_assurance.phase9.BreachRiskRecord.created",
+        "analytics_assurance.phase9.BreachRiskRecord.evaluated",
+        "analytics_assurance.phase9.BreachRiskRecord.downgraded_or_superseded"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unsupported metric normalization versions fail closed and cannot promote dashboard posture.",
+        "Calibration, baseline, and threshold model changes require deterministic replay against fixture event streams.",
+        "Late, duplicate, and out-of-order events update projection rebuild paths, not live request handling."
+      ],
+      "validStateExamples": [
+        "data/fixtures/433_phase9_operational_projection_fixtures.json#/examples/BreachRiskRecord"
+      ],
+      "invalidStateExamples": [
+        "invalid:BreachRiskRecord:missing-required-field",
+        "invalid:BreachRiskRecord:bad-enum-or-trust-boundary-bypass"
+      ]
+    },
+    {
+      "contractName": "QueueHealthSnapshot",
+      "schemaVersion": "433.phase9.operational-projection-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9B",
+      "fieldNames": [
+        "queueHealthSnapshotId",
+        "queueCode",
+        "depth",
+        "medianAge",
+        "p95Age",
+        "arrivalRate",
+        "clearRate",
+        "utilization",
+        "aggregateBreachProbability",
+        "breachRiskCount",
+        "escalationCount",
+        "anomalyState",
+        "capturedAt"
+      ],
+      "requiredFields": [
+        "queueHealthSnapshotId",
+        "queueCode",
+        "depth",
+        "medianAge",
+        "p95Age",
+        "arrivalRate",
+        "clearRate",
+        "utilization",
+        "aggregateBreachProbability",
+        "breachRiskCount",
+        "escalationCount",
+        "anomalyState",
+        "capturedAt"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "queueHealthSnapshotId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "queueCode",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "depth",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "medianAge",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "p95Age",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "arrivalRate",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "clearRate",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "utilization",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "aggregateBreachProbability",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "breachRiskCount",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "escalationCount",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "anomalyState",
+          "fieldType": "OperationalAlertState",
+          "required": true,
+          "enumRef": "anomalyState",
+          "notes": "Enum pinned by phase9OperationalEnumValues.anomalyState."
+        },
+        {
+          "fieldName": "capturedAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        }
+      ],
+      "enumValues": {
+        "anomalyState": [
+          "normal",
+          "watch",
+          "elevated",
+          "critical"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "Metric definitions and snapshots must carry tenantScope, scopeRef, or actionScopeRef where aggregation can cross boundaries.",
+        "Cross-tenant aggregation is denied unless a governed visibility projection policy narrows every source into the same explicit scope.",
+        "Dashboard DTOs may not contain PHI unless the selected investigation scope explicitly grants it; normal operations overview DTOs are reference-only."
+      ],
+      "identityKeys": [
+        "queueHealthSnapshotId"
+      ],
+      "idempotencyKeys": [
+        "queueHealthSnapshotId",
+        "tenantScope|scopeRef|actionScopeRef",
+        "normalizationVersionRef|modelVersionRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 433.phase9.operational-projection-contracts.v1",
+        "breach-risk model pinned to phase9.operational.breach-risk.gamma.v1",
+        "anomaly model pinned to phase9.operational.anomaly.ewma-cusum.v1",
+        "normalization pinned to phase9.operational.metric-normalization.v1",
+        "baseline, calibration, threshold, working-calendar, and dashboard posture policies are versioned refs, never local constants"
+      ],
+      "canonicalHashInputs": [
+        "queueHealthSnapshotId",
+        "queueCode",
+        "depth",
+        "medianAge",
+        "p95Age",
+        "arrivalRate",
+        "clearRate",
+        "utilization",
+        "aggregateBreachProbability",
+        "breachRiskCount",
+        "escalationCount",
+        "anomalyState",
+        "capturedAt"
+      ],
+      "piiPhiClassification": "Operational reference metadata only; dashboard DTOs must use refs and bounded scope seeds rather than inline PHI.",
+      "retentionClassRef": "operational_projection_short_window_with_assurance_refs",
+      "auditEventMapping": [
+        "analytics_assurance.phase9.QueueHealthSnapshot.created",
+        "analytics_assurance.phase9.QueueHealthSnapshot.evaluated",
+        "analytics_assurance.phase9.QueueHealthSnapshot.downgraded_or_superseded"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unsupported metric normalization versions fail closed and cannot promote dashboard posture.",
+        "Calibration, baseline, and threshold model changes require deterministic replay against fixture event streams.",
+        "Late, duplicate, and out-of-order events update projection rebuild paths, not live request handling."
+      ],
+      "validStateExamples": [
+        "data/fixtures/433_phase9_operational_projection_fixtures.json#/examples/QueueHealthSnapshot"
+      ],
+      "invalidStateExamples": [
+        "invalid:QueueHealthSnapshot:missing-required-field",
+        "invalid:QueueHealthSnapshot:bad-enum-or-trust-boundary-bypass"
+      ]
+    },
+    {
+      "contractName": "DependencyHealthRecord",
+      "schemaVersion": "433.phase9.operational-projection-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9B",
+      "fieldNames": [
+        "dependencyHealthRecordId",
+        "dependencyCode",
+        "healthState",
+        "latencyP95",
+        "errorRate",
+        "timeoutRate",
+        "fallbackState",
+        "availabilityScore",
+        "delayHazardRef",
+        "capturedAt"
+      ],
+      "requiredFields": [
+        "dependencyHealthRecordId",
+        "dependencyCode",
+        "healthState",
+        "latencyP95",
+        "errorRate",
+        "timeoutRate",
+        "fallbackState",
+        "availabilityScore",
+        "delayHazardRef",
+        "capturedAt"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "dependencyHealthRecordId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "dependencyCode",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "healthState",
+          "fieldType": "DependencyHealthState",
+          "required": true,
+          "enumRef": "healthState",
+          "notes": "Enum pinned by phase9OperationalEnumValues.healthState."
+        },
+        {
+          "fieldName": "latencyP95",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "errorRate",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "timeoutRate",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "fallbackState",
+          "fieldType": "DependencyFallbackState",
+          "required": true,
+          "enumRef": "fallbackState",
+          "notes": "Enum pinned by phase9OperationalEnumValues.fallbackState."
+        },
+        {
+          "fieldName": "availabilityScore",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "delayHazardRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "capturedAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        }
+      ],
+      "enumValues": {
+        "healthState": [
+          "healthy",
+          "degraded",
+          "blocked",
+          "unknown"
+        ],
+        "fallbackState": [
+          "not_required",
+          "available",
+          "active",
+          "insufficient",
+          "blocked"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "Metric definitions and snapshots must carry tenantScope, scopeRef, or actionScopeRef where aggregation can cross boundaries.",
+        "Cross-tenant aggregation is denied unless a governed visibility projection policy narrows every source into the same explicit scope.",
+        "Dashboard DTOs may not contain PHI unless the selected investigation scope explicitly grants it; normal operations overview DTOs are reference-only."
+      ],
+      "identityKeys": [
+        "dependencyHealthRecordId"
+      ],
+      "idempotencyKeys": [
+        "dependencyHealthRecordId",
+        "tenantScope|scopeRef|actionScopeRef",
+        "normalizationVersionRef|modelVersionRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 433.phase9.operational-projection-contracts.v1",
+        "breach-risk model pinned to phase9.operational.breach-risk.gamma.v1",
+        "anomaly model pinned to phase9.operational.anomaly.ewma-cusum.v1",
+        "normalization pinned to phase9.operational.metric-normalization.v1",
+        "baseline, calibration, threshold, working-calendar, and dashboard posture policies are versioned refs, never local constants"
+      ],
+      "canonicalHashInputs": [
+        "dependencyHealthRecordId",
+        "dependencyCode",
+        "healthState",
+        "latencyP95",
+        "errorRate",
+        "timeoutRate",
+        "fallbackState",
+        "availabilityScore",
+        "delayHazardRef",
+        "capturedAt"
+      ],
+      "piiPhiClassification": "Operational reference metadata only; dashboard DTOs must use refs and bounded scope seeds rather than inline PHI.",
+      "retentionClassRef": "operational_projection_short_window_with_assurance_refs",
+      "auditEventMapping": [
+        "analytics_assurance.phase9.DependencyHealthRecord.created",
+        "analytics_assurance.phase9.DependencyHealthRecord.evaluated",
+        "analytics_assurance.phase9.DependencyHealthRecord.downgraded_or_superseded"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unsupported metric normalization versions fail closed and cannot promote dashboard posture.",
+        "Calibration, baseline, and threshold model changes require deterministic replay against fixture event streams.",
+        "Late, duplicate, and out-of-order events update projection rebuild paths, not live request handling."
+      ],
+      "validStateExamples": [
+        "data/fixtures/433_phase9_operational_projection_fixtures.json#/examples/DependencyHealthRecord"
+      ],
+      "invalidStateExamples": [
+        "invalid:DependencyHealthRecord:missing-required-field",
+        "invalid:DependencyHealthRecord:bad-enum-or-trust-boundary-bypass"
+      ]
+    },
+    {
+      "contractName": "EquitySliceMetric",
+      "schemaVersion": "433.phase9.operational-projection-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9B",
+      "fieldNames": [
+        "equitySliceMetricId",
+        "sliceDefinition",
+        "metricSetRef",
+        "periodWindow",
+        "effectiveSampleSize",
+        "varianceMagnitude",
+        "confidenceBandRef",
+        "persistenceState",
+        "varianceState"
+      ],
+      "requiredFields": [
+        "equitySliceMetricId",
+        "sliceDefinition",
+        "metricSetRef",
+        "periodWindow",
+        "effectiveSampleSize",
+        "varianceMagnitude",
+        "confidenceBandRef",
+        "persistenceState",
+        "varianceState"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "equitySliceMetricId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "sliceDefinition",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "metricSetRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "periodWindow",
+          "fieldType": "PeriodWindowSpec",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "effectiveSampleSize",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "varianceMagnitude",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "confidenceBandRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "persistenceState",
+          "fieldType": "EquityPersistenceState",
+          "required": true,
+          "enumRef": "persistenceState",
+          "notes": "Enum pinned by phase9OperationalEnumValues.persistenceState."
+        },
+        {
+          "fieldName": "varianceState",
+          "fieldType": "EquityVarianceState",
+          "required": true,
+          "enumRef": "varianceState",
+          "notes": "Enum pinned by phase9OperationalEnumValues.varianceState."
+        }
+      ],
+      "enumValues": {
+        "persistenceState": [
+          "new",
+          "persistent",
+          "resolved",
+          "insufficient_support"
+        ],
+        "varianceState": [
+          "normal",
+          "watch",
+          "elevated",
+          "critical",
+          "insufficient_support"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "Metric definitions and snapshots must carry tenantScope, scopeRef, or actionScopeRef where aggregation can cross boundaries.",
+        "Cross-tenant aggregation is denied unless a governed visibility projection policy narrows every source into the same explicit scope.",
+        "Dashboard DTOs may not contain PHI unless the selected investigation scope explicitly grants it; normal operations overview DTOs are reference-only."
+      ],
+      "identityKeys": [
+        "equitySliceMetricId"
+      ],
+      "idempotencyKeys": [
+        "equitySliceMetricId",
+        "tenantScope|scopeRef|actionScopeRef",
+        "normalizationVersionRef|modelVersionRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 433.phase9.operational-projection-contracts.v1",
+        "breach-risk model pinned to phase9.operational.breach-risk.gamma.v1",
+        "anomaly model pinned to phase9.operational.anomaly.ewma-cusum.v1",
+        "normalization pinned to phase9.operational.metric-normalization.v1",
+        "baseline, calibration, threshold, working-calendar, and dashboard posture policies are versioned refs, never local constants"
+      ],
+      "canonicalHashInputs": [
+        "equitySliceMetricId",
+        "sliceDefinition",
+        "metricSetRef",
+        "periodWindow",
+        "effectiveSampleSize",
+        "varianceMagnitude",
+        "confidenceBandRef",
+        "persistenceState",
+        "varianceState"
+      ],
+      "piiPhiClassification": "Operational reference metadata only; dashboard DTOs must use refs and bounded scope seeds rather than inline PHI.",
+      "retentionClassRef": "operational_projection_short_window_with_assurance_refs",
+      "auditEventMapping": [
+        "analytics_assurance.phase9.EquitySliceMetric.created",
+        "analytics_assurance.phase9.EquitySliceMetric.evaluated",
+        "analytics_assurance.phase9.EquitySliceMetric.downgraded_or_superseded"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unsupported metric normalization versions fail closed and cannot promote dashboard posture.",
+        "Calibration, baseline, and threshold model changes require deterministic replay against fixture event streams.",
+        "Late, duplicate, and out-of-order events update projection rebuild paths, not live request handling."
+      ],
+      "validStateExamples": [
+        "data/fixtures/433_phase9_operational_projection_fixtures.json#/examples/EquitySliceMetric"
+      ],
+      "invalidStateExamples": [
+        "invalid:EquitySliceMetric:missing-required-field",
+        "invalid:EquitySliceMetric:bad-enum-or-trust-boundary-bypass"
+      ]
+    },
+    {
+      "contractName": "MetricAnomalySnapshot",
+      "schemaVersion": "433.phase9.operational-projection-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9B",
+      "fieldNames": [
+        "metricAnomalySnapshotId",
+        "metricDefinitionRef",
+        "observedValue",
+        "expectedValue",
+        "standardizedResidual",
+        "ewmaScore",
+        "cusumPositiveScore",
+        "cusumNegativeScore",
+        "support",
+        "alertState",
+        "thresholdPolicyRef",
+        "capturedAt"
+      ],
+      "requiredFields": [
+        "metricAnomalySnapshotId",
+        "metricDefinitionRef",
+        "observedValue",
+        "expectedValue",
+        "standardizedResidual",
+        "ewmaScore",
+        "cusumPositiveScore",
+        "cusumNegativeScore",
+        "support",
+        "alertState",
+        "thresholdPolicyRef",
+        "capturedAt"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "metricAnomalySnapshotId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "metricDefinitionRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "observedValue",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "expectedValue",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "standardizedResidual",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "ewmaScore",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "cusumPositiveScore",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "cusumNegativeScore",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "support",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "alertState",
+          "fieldType": "OperationalAlertState",
+          "required": true,
+          "enumRef": "alertState",
+          "notes": "Enum pinned by phase9OperationalEnumValues.alertState."
+        },
+        {
+          "fieldName": "thresholdPolicyRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "capturedAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        }
+      ],
+      "enumValues": {
+        "alertState": [
+          "normal",
+          "watch",
+          "elevated",
+          "critical"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "Metric definitions and snapshots must carry tenantScope, scopeRef, or actionScopeRef where aggregation can cross boundaries.",
+        "Cross-tenant aggregation is denied unless a governed visibility projection policy narrows every source into the same explicit scope.",
+        "Dashboard DTOs may not contain PHI unless the selected investigation scope explicitly grants it; normal operations overview DTOs are reference-only."
+      ],
+      "identityKeys": [
+        "metricAnomalySnapshotId"
+      ],
+      "idempotencyKeys": [
+        "metricAnomalySnapshotId",
+        "tenantScope|scopeRef|actionScopeRef",
+        "normalizationVersionRef|modelVersionRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 433.phase9.operational-projection-contracts.v1",
+        "breach-risk model pinned to phase9.operational.breach-risk.gamma.v1",
+        "anomaly model pinned to phase9.operational.anomaly.ewma-cusum.v1",
+        "normalization pinned to phase9.operational.metric-normalization.v1",
+        "baseline, calibration, threshold, working-calendar, and dashboard posture policies are versioned refs, never local constants"
+      ],
+      "canonicalHashInputs": [
+        "metricAnomalySnapshotId",
+        "metricDefinitionRef",
+        "observedValue",
+        "expectedValue",
+        "standardizedResidual",
+        "ewmaScore",
+        "cusumPositiveScore",
+        "cusumNegativeScore",
+        "support",
+        "alertState",
+        "thresholdPolicyRef",
+        "capturedAt"
+      ],
+      "piiPhiClassification": "Operational reference metadata only; dashboard DTOs must use refs and bounded scope seeds rather than inline PHI.",
+      "retentionClassRef": "operational_projection_short_window_with_assurance_refs",
+      "auditEventMapping": [
+        "analytics_assurance.phase9.MetricAnomalySnapshot.created",
+        "analytics_assurance.phase9.MetricAnomalySnapshot.evaluated",
+        "analytics_assurance.phase9.MetricAnomalySnapshot.downgraded_or_superseded"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unsupported metric normalization versions fail closed and cannot promote dashboard posture.",
+        "Calibration, baseline, and threshold model changes require deterministic replay against fixture event streams.",
+        "Late, duplicate, and out-of-order events update projection rebuild paths, not live request handling."
+      ],
+      "validStateExamples": [
+        "data/fixtures/433_phase9_operational_projection_fixtures.json#/examples/MetricAnomalySnapshot"
+      ],
+      "invalidStateExamples": [
+        "invalid:MetricAnomalySnapshot:missing-required-field",
+        "invalid:MetricAnomalySnapshot:bad-enum-or-trust-boundary-bypass"
+      ]
+    },
+    {
+      "contractName": "ContinuityControlHealthProjection",
+      "schemaVersion": "433.phase9.operational-projection-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9B",
+      "fieldNames": [
+        "continuityControlHealthProjectionId",
+        "controlCode",
+        "scopeRef",
+        "producerFamilyRefs",
+        "routeContinuityEvidenceContractRefs",
+        "requiredAssuranceSliceTrustRefs",
+        "experienceContinuityEvidenceRefs",
+        "continuityTupleHashes",
+        "continuitySetHash",
+        "latestSettlementOrRestoreRef",
+        "latestReturnOrContinuationRef",
+        "supportingSymptomRefs",
+        "trustLowerBound",
+        "validationBasisHash",
+        "validationState",
+        "blockingRefs",
+        "recommendedHandoffRef",
+        "capturedAt"
+      ],
+      "requiredFields": [
+        "continuityControlHealthProjectionId",
+        "controlCode",
+        "scopeRef",
+        "producerFamilyRefs",
+        "routeContinuityEvidenceContractRefs",
+        "requiredAssuranceSliceTrustRefs",
+        "experienceContinuityEvidenceRefs",
+        "continuityTupleHashes",
+        "continuitySetHash",
+        "latestSettlementOrRestoreRef",
+        "latestReturnOrContinuationRef",
+        "supportingSymptomRefs",
+        "trustLowerBound",
+        "validationBasisHash",
+        "validationState",
+        "blockingRefs",
+        "recommendedHandoffRef",
+        "capturedAt"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "continuityControlHealthProjectionId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "controlCode",
+          "fieldType": "ContinuityControlCode",
+          "required": true,
+          "enumRef": "controlCode",
+          "notes": "Enum pinned by phase9OperationalEnumValues.controlCode."
+        },
+        {
+          "fieldName": "scopeRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "producerFamilyRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "routeContinuityEvidenceContractRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "requiredAssuranceSliceTrustRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "experienceContinuityEvidenceRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "continuityTupleHashes",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "continuitySetHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "latestSettlementOrRestoreRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "latestReturnOrContinuationRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "supportingSymptomRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "trustLowerBound",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "validationBasisHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "validationState",
+          "fieldType": "ContinuityValidationState",
+          "required": true,
+          "enumRef": "validationState",
+          "notes": "Enum pinned by phase9OperationalEnumValues.validationState."
+        },
+        {
+          "fieldName": "blockingRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "recommendedHandoffRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "capturedAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        }
+      ],
+      "enumValues": {
+        "controlCode": [
+          "patient_nav",
+          "record_continuation",
+          "conversation_settlement",
+          "more_info_reply",
+          "support_replay_restore",
+          "intake_resume",
+          "booking_manage",
+          "hub_booking_manage",
+          "assistive_session",
+          "workspace_task_completion",
+          "pharmacy_console_settlement"
+        ],
+        "validationState": [
+          "trusted",
+          "degraded",
+          "stale",
+          "blocked"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "Metric definitions and snapshots must carry tenantScope, scopeRef, or actionScopeRef where aggregation can cross boundaries.",
+        "Cross-tenant aggregation is denied unless a governed visibility projection policy narrows every source into the same explicit scope.",
+        "Dashboard DTOs may not contain PHI unless the selected investigation scope explicitly grants it; normal operations overview DTOs are reference-only."
+      ],
+      "identityKeys": [
+        "continuityControlHealthProjectionId"
+      ],
+      "idempotencyKeys": [
+        "continuityControlHealthProjectionId",
+        "tenantScope|scopeRef|actionScopeRef",
+        "normalizationVersionRef|modelVersionRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 433.phase9.operational-projection-contracts.v1",
+        "breach-risk model pinned to phase9.operational.breach-risk.gamma.v1",
+        "anomaly model pinned to phase9.operational.anomaly.ewma-cusum.v1",
+        "normalization pinned to phase9.operational.metric-normalization.v1",
+        "baseline, calibration, threshold, working-calendar, and dashboard posture policies are versioned refs, never local constants"
+      ],
+      "canonicalHashInputs": [
+        "continuityControlHealthProjectionId",
+        "controlCode",
+        "scopeRef",
+        "producerFamilyRefs",
+        "routeContinuityEvidenceContractRefs",
+        "requiredAssuranceSliceTrustRefs",
+        "experienceContinuityEvidenceRefs",
+        "continuityTupleHashes",
+        "continuitySetHash",
+        "latestSettlementOrRestoreRef",
+        "latestReturnOrContinuationRef",
+        "supportingSymptomRefs",
+        "trustLowerBound",
+        "validationBasisHash",
+        "validationState",
+        "blockingRefs",
+        "recommendedHandoffRef",
+        "capturedAt"
+      ],
+      "piiPhiClassification": "Operational reference metadata only; dashboard DTOs must use refs and bounded scope seeds rather than inline PHI.",
+      "retentionClassRef": "operational_projection_short_window_with_assurance_refs",
+      "auditEventMapping": [
+        "analytics_assurance.phase9.ContinuityControlHealthProjection.created",
+        "analytics_assurance.phase9.ContinuityControlHealthProjection.evaluated",
+        "analytics_assurance.phase9.ContinuityControlHealthProjection.downgraded_or_superseded"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unsupported metric normalization versions fail closed and cannot promote dashboard posture.",
+        "Calibration, baseline, and threshold model changes require deterministic replay against fixture event streams.",
+        "Late, duplicate, and out-of-order events update projection rebuild paths, not live request handling."
+      ],
+      "validStateExamples": [
+        "data/fixtures/433_phase9_operational_projection_fixtures.json#/examples/ContinuityControlHealthProjection"
+      ],
+      "invalidStateExamples": [
+        "invalid:ContinuityControlHealthProjection:missing-required-field",
+        "invalid:ContinuityControlHealthProjection:bad-enum-or-trust-boundary-bypass"
+      ]
+    },
+    {
+      "contractName": "OpsOverviewContextFrame",
+      "schemaVersion": "433.phase9.operational-projection-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9B",
+      "fieldNames": [
+        "contextFrameId",
+        "scopeRef",
+        "timeHorizonRef",
+        "filterDigest",
+        "projectionBundleRef",
+        "macroStateRef",
+        "boardStateSnapshotRef",
+        "boardTupleHash",
+        "activeSelectionLeaseRefs",
+        "actionEligibilityFenceRef",
+        "returnTokenRef",
+        "selectedSliceRef",
+        "viewMode"
+      ],
+      "requiredFields": [
+        "contextFrameId",
+        "scopeRef",
+        "timeHorizonRef",
+        "filterDigest",
+        "projectionBundleRef",
+        "macroStateRef",
+        "boardStateSnapshotRef",
+        "boardTupleHash",
+        "activeSelectionLeaseRefs",
+        "actionEligibilityFenceRef",
+        "returnTokenRef",
+        "selectedSliceRef",
+        "viewMode"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "contextFrameId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "scopeRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "timeHorizonRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "filterDigest",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "projectionBundleRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "macroStateRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "boardStateSnapshotRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "boardTupleHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "activeSelectionLeaseRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "actionEligibilityFenceRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "returnTokenRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "selectedSliceRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "viewMode",
+          "fieldType": "OperationalViewMode",
+          "required": true,
+          "enumRef": "viewMode",
+          "notes": "Enum pinned by phase9OperationalEnumValues.viewMode."
+        }
+      ],
+      "enumValues": {
+        "viewMode": [
+          "live",
+          "paused",
+          "replaying"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "Metric definitions and snapshots must carry tenantScope, scopeRef, or actionScopeRef where aggregation can cross boundaries.",
+        "Cross-tenant aggregation is denied unless a governed visibility projection policy narrows every source into the same explicit scope.",
+        "Dashboard DTOs may not contain PHI unless the selected investigation scope explicitly grants it; normal operations overview DTOs are reference-only."
+      ],
+      "identityKeys": [
+        "contextFrameId"
+      ],
+      "idempotencyKeys": [
+        "contextFrameId",
+        "tenantScope|scopeRef|actionScopeRef",
+        "normalizationVersionRef|modelVersionRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 433.phase9.operational-projection-contracts.v1",
+        "breach-risk model pinned to phase9.operational.breach-risk.gamma.v1",
+        "anomaly model pinned to phase9.operational.anomaly.ewma-cusum.v1",
+        "normalization pinned to phase9.operational.metric-normalization.v1",
+        "baseline, calibration, threshold, working-calendar, and dashboard posture policies are versioned refs, never local constants"
+      ],
+      "canonicalHashInputs": [
+        "contextFrameId",
+        "scopeRef",
+        "timeHorizonRef",
+        "filterDigest",
+        "projectionBundleRef",
+        "macroStateRef",
+        "boardStateSnapshotRef",
+        "boardTupleHash",
+        "activeSelectionLeaseRefs",
+        "actionEligibilityFenceRef",
+        "returnTokenRef",
+        "selectedSliceRef",
+        "viewMode"
+      ],
+      "piiPhiClassification": "Operational reference metadata only; dashboard DTOs must use refs and bounded scope seeds rather than inline PHI.",
+      "retentionClassRef": "operational_projection_short_window_with_assurance_refs",
+      "auditEventMapping": [
+        "analytics_assurance.phase9.OpsOverviewContextFrame.created",
+        "analytics_assurance.phase9.OpsOverviewContextFrame.evaluated",
+        "analytics_assurance.phase9.OpsOverviewContextFrame.downgraded_or_superseded"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unsupported metric normalization versions fail closed and cannot promote dashboard posture.",
+        "Calibration, baseline, and threshold model changes require deterministic replay against fixture event streams.",
+        "Late, duplicate, and out-of-order events update projection rebuild paths, not live request handling."
+      ],
+      "validStateExamples": [
+        "data/fixtures/433_phase9_operational_projection_fixtures.json#/examples/OpsOverviewContextFrame"
+      ],
+      "invalidStateExamples": [
+        "invalid:OpsOverviewContextFrame:missing-required-field",
+        "invalid:OpsOverviewContextFrame:bad-enum-or-trust-boundary-bypass"
+      ]
+    },
+    {
+      "contractName": "OpsOverviewSliceEnvelope",
+      "schemaVersion": "433.phase9.operational-projection-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9B",
+      "fieldNames": [
+        "sliceEnvelopeId",
+        "surfaceCode",
+        "projectionRef",
+        "boardTupleHash",
+        "selectedEntityTupleHash",
+        "freshnessState",
+        "trustState",
+        "trustLowerBound",
+        "integrityScore",
+        "completenessState",
+        "confidenceBandRef",
+        "blockingDependencyRefs",
+        "releaseTrustFreezeVerdictRef",
+        "actionEligibilityState",
+        "diagnosticOnlyReasonRef",
+        "renderMode"
+      ],
+      "requiredFields": [
+        "sliceEnvelopeId",
+        "surfaceCode",
+        "projectionRef",
+        "boardTupleHash",
+        "selectedEntityTupleHash",
+        "freshnessState",
+        "trustState",
+        "trustLowerBound",
+        "integrityScore",
+        "completenessState",
+        "confidenceBandRef",
+        "blockingDependencyRefs",
+        "releaseTrustFreezeVerdictRef",
+        "actionEligibilityState",
+        "renderMode"
+      ],
+      "optionalFields": [
+        "diagnosticOnlyReasonRef"
+      ],
+      "fields": [
+        {
+          "fieldName": "sliceEnvelopeId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "surfaceCode",
+          "fieldType": "OperationalSurfaceCode",
+          "required": true,
+          "enumRef": "surfaceCode",
+          "notes": "Enum pinned by phase9OperationalEnumValues.surfaceCode."
+        },
+        {
+          "fieldName": "projectionRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "boardTupleHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "selectedEntityTupleHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "freshnessState",
+          "fieldType": "OperationalFreshnessState",
+          "required": true,
+          "enumRef": "freshnessState",
+          "notes": "Enum pinned by phase9OperationalEnumValues.freshnessState."
+        },
+        {
+          "fieldName": "trustState",
+          "fieldType": "Phase9AssuranceTrustState",
+          "required": true,
+          "enumRef": "trustState",
+          "notes": "Enum pinned by phase9OperationalEnumValues.trustState."
+        },
+        {
+          "fieldName": "trustLowerBound",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "integrityScore",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "completenessState",
+          "fieldType": "Phase9AssuranceCompletenessState",
+          "required": true,
+          "enumRef": "completenessState",
+          "notes": "Enum pinned by phase9OperationalEnumValues.completenessState."
+        },
+        {
+          "fieldName": "confidenceBandRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "blockingDependencyRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "releaseTrustFreezeVerdictRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "actionEligibilityState",
+          "fieldType": "OperationalActionEligibilityState",
+          "required": true,
+          "enumRef": "actionEligibilityState",
+          "notes": "Enum pinned by phase9OperationalEnumValues.actionEligibilityState."
+        },
+        {
+          "fieldName": "diagnosticOnlyReasonRef",
+          "fieldType": "string",
+          "required": false,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "renderMode",
+          "fieldType": "OperationalRenderMode",
+          "required": true,
+          "enumRef": "renderMode",
+          "notes": "Enum pinned by phase9OperationalEnumValues.renderMode."
+        }
+      ],
+      "enumValues": {
+        "surfaceCode": [
+          "NorthStarBand",
+          "BottleneckRadar",
+          "CapacityAllocator",
+          "ServiceHealthGrid",
+          "CohortImpactMatrix",
+          "InterventionWorkbench"
+        ],
+        "freshnessState": [
+          "fresh",
+          "watch",
+          "stale_review",
+          "read_only"
+        ],
+        "trustState": [
+          "trusted",
+          "degraded",
+          "quarantined",
+          "unknown"
+        ],
+        "completenessState": [
+          "complete",
+          "partial",
+          "blocked"
+        ],
+        "actionEligibilityState": [
+          "interactive",
+          "observe_only",
+          "stale_reacquire",
+          "read_only_recovery",
+          "blocked"
+        ],
+        "renderMode": [
+          "interactive",
+          "observe_only",
+          "blocked"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "Metric definitions and snapshots must carry tenantScope, scopeRef, or actionScopeRef where aggregation can cross boundaries.",
+        "Cross-tenant aggregation is denied unless a governed visibility projection policy narrows every source into the same explicit scope.",
+        "Dashboard DTOs may not contain PHI unless the selected investigation scope explicitly grants it; normal operations overview DTOs are reference-only."
+      ],
+      "identityKeys": [
+        "sliceEnvelopeId"
+      ],
+      "idempotencyKeys": [
+        "sliceEnvelopeId",
+        "tenantScope|scopeRef|actionScopeRef",
+        "normalizationVersionRef|modelVersionRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 433.phase9.operational-projection-contracts.v1",
+        "breach-risk model pinned to phase9.operational.breach-risk.gamma.v1",
+        "anomaly model pinned to phase9.operational.anomaly.ewma-cusum.v1",
+        "normalization pinned to phase9.operational.metric-normalization.v1",
+        "baseline, calibration, threshold, working-calendar, and dashboard posture policies are versioned refs, never local constants"
+      ],
+      "canonicalHashInputs": [
+        "sliceEnvelopeId",
+        "surfaceCode",
+        "projectionRef",
+        "boardTupleHash",
+        "selectedEntityTupleHash",
+        "freshnessState",
+        "trustState",
+        "trustLowerBound",
+        "integrityScore",
+        "completenessState",
+        "confidenceBandRef",
+        "blockingDependencyRefs",
+        "releaseTrustFreezeVerdictRef",
+        "actionEligibilityState",
+        "diagnosticOnlyReasonRef",
+        "renderMode"
+      ],
+      "piiPhiClassification": "Operational reference metadata only; dashboard DTOs must use refs and bounded scope seeds rather than inline PHI.",
+      "retentionClassRef": "operational_projection_short_window_with_assurance_refs",
+      "auditEventMapping": [
+        "analytics_assurance.phase9.OpsOverviewSliceEnvelope.created",
+        "analytics_assurance.phase9.OpsOverviewSliceEnvelope.evaluated",
+        "analytics_assurance.phase9.OpsOverviewSliceEnvelope.downgraded_or_superseded"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unsupported metric normalization versions fail closed and cannot promote dashboard posture.",
+        "Calibration, baseline, and threshold model changes require deterministic replay against fixture event streams.",
+        "Late, duplicate, and out-of-order events update projection rebuild paths, not live request handling."
+      ],
+      "validStateExamples": [
+        "data/fixtures/433_phase9_operational_projection_fixtures.json#/examples/OpsOverviewSliceEnvelope"
+      ],
+      "invalidStateExamples": [
+        "invalid:OpsOverviewSliceEnvelope:missing-required-field",
+        "invalid:OpsOverviewSliceEnvelope:bad-enum-or-trust-boundary-bypass"
+      ]
+    },
+    {
+      "contractName": "InvestigationDrawerSession",
+      "schemaVersion": "433.phase9.operational-projection-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9B",
+      "fieldNames": [
+        "drawerSessionId",
+        "openedFromSurface",
+        "sourceSliceEnvelopeRef",
+        "sourceSnapshotRef",
+        "sourceBoardTupleHash",
+        "selectedEntityRef",
+        "selectedEntityTupleHash",
+        "continuityQuestionHash",
+        "baseContinuityControlHealthProjectionRef",
+        "baseOpsContinuityEvidenceSliceRef",
+        "baseExperienceContinuityEvidenceRefs",
+        "baseAssuranceSliceTrustRefs",
+        "baseContinuityTupleHashes",
+        "baseContinuitySetHash",
+        "baseLatestSettlementOrRestoreRef",
+        "returnContextFrameRef",
+        "diffBaseRef",
+        "observeOnlyReasonRef",
+        "deltaState",
+        "lastDeltaComputedAt"
+      ],
+      "requiredFields": [
+        "drawerSessionId",
+        "openedFromSurface",
+        "sourceSliceEnvelopeRef",
+        "sourceSnapshotRef",
+        "sourceBoardTupleHash",
+        "selectedEntityRef",
+        "selectedEntityTupleHash",
+        "continuityQuestionHash",
+        "baseContinuityControlHealthProjectionRef",
+        "baseOpsContinuityEvidenceSliceRef",
+        "baseExperienceContinuityEvidenceRefs",
+        "baseAssuranceSliceTrustRefs",
+        "baseContinuityTupleHashes",
+        "baseContinuitySetHash",
+        "baseLatestSettlementOrRestoreRef",
+        "returnContextFrameRef",
+        "diffBaseRef",
+        "observeOnlyReasonRef",
+        "deltaState",
+        "lastDeltaComputedAt"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "drawerSessionId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "openedFromSurface",
+          "fieldType": "OperationalSurfaceCode",
+          "required": true,
+          "enumRef": "surfaceCode",
+          "notes": "Enum pinned by phase9OperationalEnumValues.surfaceCode."
+        },
+        {
+          "fieldName": "sourceSliceEnvelopeRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "sourceSnapshotRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "sourceBoardTupleHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "selectedEntityRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "selectedEntityTupleHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "continuityQuestionHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "baseContinuityControlHealthProjectionRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "baseOpsContinuityEvidenceSliceRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "baseExperienceContinuityEvidenceRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "baseAssuranceSliceTrustRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "baseContinuityTupleHashes",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "baseContinuitySetHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "baseLatestSettlementOrRestoreRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "returnContextFrameRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "diffBaseRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "observeOnlyReasonRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "deltaState",
+          "fieldType": "OperationalDrawerDeltaState",
+          "required": true,
+          "enumRef": "deltaState",
+          "notes": "Enum pinned by phase9OperationalEnumValues.deltaState."
+        },
+        {
+          "fieldName": "lastDeltaComputedAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        }
+      ],
+      "enumValues": {
+        "openedFromSurface": [
+          "NorthStarBand",
+          "BottleneckRadar",
+          "CapacityAllocator",
+          "ServiceHealthGrid",
+          "CohortImpactMatrix",
+          "InterventionWorkbench"
+        ],
+        "deltaState": [
+          "aligned",
+          "drifted",
+          "superseded",
+          "blocked"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "Metric definitions and snapshots must carry tenantScope, scopeRef, or actionScopeRef where aggregation can cross boundaries.",
+        "Cross-tenant aggregation is denied unless a governed visibility projection policy narrows every source into the same explicit scope.",
+        "Dashboard DTOs may not contain PHI unless the selected investigation scope explicitly grants it; normal operations overview DTOs are reference-only."
+      ],
+      "identityKeys": [
+        "drawerSessionId"
+      ],
+      "idempotencyKeys": [
+        "drawerSessionId",
+        "tenantScope|scopeRef|actionScopeRef",
+        "normalizationVersionRef|modelVersionRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 433.phase9.operational-projection-contracts.v1",
+        "breach-risk model pinned to phase9.operational.breach-risk.gamma.v1",
+        "anomaly model pinned to phase9.operational.anomaly.ewma-cusum.v1",
+        "normalization pinned to phase9.operational.metric-normalization.v1",
+        "baseline, calibration, threshold, working-calendar, and dashboard posture policies are versioned refs, never local constants"
+      ],
+      "canonicalHashInputs": [
+        "drawerSessionId",
+        "openedFromSurface",
+        "sourceSliceEnvelopeRef",
+        "sourceSnapshotRef",
+        "sourceBoardTupleHash",
+        "selectedEntityRef",
+        "selectedEntityTupleHash",
+        "continuityQuestionHash",
+        "baseContinuityControlHealthProjectionRef",
+        "baseOpsContinuityEvidenceSliceRef",
+        "baseExperienceContinuityEvidenceRefs",
+        "baseAssuranceSliceTrustRefs",
+        "baseContinuityTupleHashes",
+        "baseContinuitySetHash",
+        "baseLatestSettlementOrRestoreRef",
+        "returnContextFrameRef",
+        "diffBaseRef",
+        "observeOnlyReasonRef",
+        "deltaState",
+        "lastDeltaComputedAt"
+      ],
+      "piiPhiClassification": "Operational reference metadata only; dashboard DTOs must use refs and bounded scope seeds rather than inline PHI.",
+      "retentionClassRef": "operational_projection_short_window_with_assurance_refs",
+      "auditEventMapping": [
+        "analytics_assurance.phase9.InvestigationDrawerSession.created",
+        "analytics_assurance.phase9.InvestigationDrawerSession.evaluated",
+        "analytics_assurance.phase9.InvestigationDrawerSession.downgraded_or_superseded"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unsupported metric normalization versions fail closed and cannot promote dashboard posture.",
+        "Calibration, baseline, and threshold model changes require deterministic replay against fixture event streams.",
+        "Late, duplicate, and out-of-order events update projection rebuild paths, not live request handling."
+      ],
+      "validStateExamples": [
+        "data/fixtures/433_phase9_operational_projection_fixtures.json#/examples/InvestigationDrawerSession"
+      ],
+      "invalidStateExamples": [
+        "invalid:InvestigationDrawerSession:missing-required-field",
+        "invalid:InvestigationDrawerSession:bad-enum-or-trust-boundary-bypass"
+      ]
+    },
+    {
+      "contractName": "InterventionCandidateLease",
+      "schemaVersion": "433.phase9.operational-projection-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9B",
+      "fieldNames": [
+        "candidateLeaseId",
+        "candidateRef",
+        "actionScopeRef",
+        "sourceSliceEnvelopeRef",
+        "opsBoardStateSnapshotRef",
+        "opsSelectionLeaseRef",
+        "opsRouteIntentRef",
+        "opsDeltaGateRef",
+        "opsReturnTokenRef",
+        "boardTupleHash",
+        "selectedEntityTupleHash",
+        "releaseTrustFreezeVerdictRef",
+        "governingObjectRef",
+        "eligibilityState",
+        "policyBundleRef",
+        "expiresAt"
+      ],
+      "requiredFields": [
+        "candidateLeaseId",
+        "candidateRef",
+        "actionScopeRef",
+        "sourceSliceEnvelopeRef",
+        "opsBoardStateSnapshotRef",
+        "opsSelectionLeaseRef",
+        "opsRouteIntentRef",
+        "opsDeltaGateRef",
+        "opsReturnTokenRef",
+        "boardTupleHash",
+        "selectedEntityTupleHash",
+        "releaseTrustFreezeVerdictRef",
+        "governingObjectRef",
+        "eligibilityState",
+        "policyBundleRef",
+        "expiresAt"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "candidateLeaseId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "candidateRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "actionScopeRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "sourceSliceEnvelopeRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "opsBoardStateSnapshotRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "opsSelectionLeaseRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "opsRouteIntentRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "opsDeltaGateRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "opsReturnTokenRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "boardTupleHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "selectedEntityTupleHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "releaseTrustFreezeVerdictRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "governingObjectRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "eligibilityState",
+          "fieldType": "InterventionEligibilityState",
+          "required": true,
+          "enumRef": "eligibilityState",
+          "notes": "Enum pinned by phase9OperationalEnumValues.eligibilityState."
+        },
+        {
+          "fieldName": "policyBundleRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "expiresAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        }
+      ],
+      "enumValues": {
+        "eligibilityState": [
+          "executable",
+          "observe_only",
+          "stale_reacquire",
+          "read_only_recovery",
+          "blocked"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "Metric definitions and snapshots must carry tenantScope, scopeRef, or actionScopeRef where aggregation can cross boundaries.",
+        "Cross-tenant aggregation is denied unless a governed visibility projection policy narrows every source into the same explicit scope.",
+        "Dashboard DTOs may not contain PHI unless the selected investigation scope explicitly grants it; normal operations overview DTOs are reference-only."
+      ],
+      "identityKeys": [
+        "candidateLeaseId"
+      ],
+      "idempotencyKeys": [
+        "candidateLeaseId",
+        "tenantScope|scopeRef|actionScopeRef",
+        "normalizationVersionRef|modelVersionRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 433.phase9.operational-projection-contracts.v1",
+        "breach-risk model pinned to phase9.operational.breach-risk.gamma.v1",
+        "anomaly model pinned to phase9.operational.anomaly.ewma-cusum.v1",
+        "normalization pinned to phase9.operational.metric-normalization.v1",
+        "baseline, calibration, threshold, working-calendar, and dashboard posture policies are versioned refs, never local constants"
+      ],
+      "canonicalHashInputs": [
+        "candidateLeaseId",
+        "candidateRef",
+        "actionScopeRef",
+        "sourceSliceEnvelopeRef",
+        "opsBoardStateSnapshotRef",
+        "opsSelectionLeaseRef",
+        "opsRouteIntentRef",
+        "opsDeltaGateRef",
+        "opsReturnTokenRef",
+        "boardTupleHash",
+        "selectedEntityTupleHash",
+        "releaseTrustFreezeVerdictRef",
+        "governingObjectRef",
+        "eligibilityState",
+        "policyBundleRef",
+        "expiresAt"
+      ],
+      "piiPhiClassification": "Operational reference metadata only; dashboard DTOs must use refs and bounded scope seeds rather than inline PHI.",
+      "retentionClassRef": "operational_projection_short_window_with_assurance_refs",
+      "auditEventMapping": [
+        "analytics_assurance.phase9.InterventionCandidateLease.created",
+        "analytics_assurance.phase9.InterventionCandidateLease.evaluated",
+        "analytics_assurance.phase9.InterventionCandidateLease.downgraded_or_superseded"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unsupported metric normalization versions fail closed and cannot promote dashboard posture.",
+        "Calibration, baseline, and threshold model changes require deterministic replay against fixture event streams.",
+        "Late, duplicate, and out-of-order events update projection rebuild paths, not live request handling."
+      ],
+      "validStateExamples": [
+        "data/fixtures/433_phase9_operational_projection_fixtures.json#/examples/InterventionCandidateLease"
+      ],
+      "invalidStateExamples": [
+        "invalid:InterventionCandidateLease:missing-required-field",
+        "invalid:InterventionCandidateLease:bad-enum-or-trust-boundary-bypass"
+      ]
+    },
+    {
+      "contractName": "LiveBoardDeltaWindow",
+      "schemaVersion": "433.phase9.operational-projection-contracts.v1",
+      "sourceAlgorithmRef": "blueprint/phase-9-the-assurance-ledger.md#9B",
+      "fieldNames": [
+        "deltaWindowId",
+        "contextFrameRef",
+        "baseBoardTupleHash",
+        "selectionLeaseRefs",
+        "pauseStartedAt",
+        "queuedDeltaRefs",
+        "queuedTupleDriftRefs",
+        "materialChangeCount",
+        "resumeStrategy",
+        "resumeCheckpointRef"
+      ],
+      "requiredFields": [
+        "deltaWindowId",
+        "contextFrameRef",
+        "baseBoardTupleHash",
+        "selectionLeaseRefs",
+        "pauseStartedAt",
+        "queuedDeltaRefs",
+        "queuedTupleDriftRefs",
+        "materialChangeCount",
+        "resumeStrategy",
+        "resumeCheckpointRef"
+      ],
+      "optionalFields": [],
+      "fields": [
+        {
+          "fieldName": "deltaWindowId",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "contextFrameRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "baseBoardTupleHash",
+          "fieldType": "sha256-hex",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "selectionLeaseRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "pauseStartedAt",
+          "fieldType": "iso-timestamp",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "queuedDeltaRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "queuedTupleDriftRefs",
+          "fieldType": "readonly string[]",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "materialChangeCount",
+          "fieldType": "number",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        },
+        {
+          "fieldName": "resumeStrategy",
+          "fieldType": "LiveBoardResumeStrategy",
+          "required": true,
+          "enumRef": "resumeStrategy",
+          "notes": "Enum pinned by phase9OperationalEnumValues.resumeStrategy."
+        },
+        {
+          "fieldName": "resumeCheckpointRef",
+          "fieldType": "string",
+          "required": true,
+          "notes": "Pinned by Phase 9B operational projection source algorithm."
+        }
+      ],
+      "enumValues": {
+        "resumeStrategy": [
+          "apply_in_place",
+          "step_review",
+          "reopen_drawer_base",
+          "stale_reacquire"
+        ]
+      },
+      "tenantScopeConstraints": [
+        "Metric definitions and snapshots must carry tenantScope, scopeRef, or actionScopeRef where aggregation can cross boundaries.",
+        "Cross-tenant aggregation is denied unless a governed visibility projection policy narrows every source into the same explicit scope.",
+        "Dashboard DTOs may not contain PHI unless the selected investigation scope explicitly grants it; normal operations overview DTOs are reference-only."
+      ],
+      "identityKeys": [
+        "deltaWindowId"
+      ],
+      "idempotencyKeys": [
+        "deltaWindowId",
+        "tenantScope|scopeRef|actionScopeRef",
+        "normalizationVersionRef|modelVersionRef"
+      ],
+      "versioningStrategy": [
+        "contract schema pinned to 433.phase9.operational-projection-contracts.v1",
+        "breach-risk model pinned to phase9.operational.breach-risk.gamma.v1",
+        "anomaly model pinned to phase9.operational.anomaly.ewma-cusum.v1",
+        "normalization pinned to phase9.operational.metric-normalization.v1",
+        "baseline, calibration, threshold, working-calendar, and dashboard posture policies are versioned refs, never local constants"
+      ],
+      "canonicalHashInputs": [
+        "deltaWindowId",
+        "contextFrameRef",
+        "baseBoardTupleHash",
+        "selectionLeaseRefs",
+        "pauseStartedAt",
+        "queuedDeltaRefs",
+        "queuedTupleDriftRefs",
+        "materialChangeCount",
+        "resumeStrategy",
+        "resumeCheckpointRef"
+      ],
+      "piiPhiClassification": "Operational reference metadata only; dashboard DTOs must use refs and bounded scope seeds rather than inline PHI.",
+      "retentionClassRef": "operational_projection_short_window_with_assurance_refs",
+      "auditEventMapping": [
+        "analytics_assurance.phase9.LiveBoardDeltaWindow.created",
+        "analytics_assurance.phase9.LiveBoardDeltaWindow.evaluated",
+        "analytics_assurance.phase9.LiveBoardDeltaWindow.downgraded_or_superseded"
+      ],
+      "migrationCompatibilityNotes": [
+        "Unsupported metric normalization versions fail closed and cannot promote dashboard posture.",
+        "Calibration, baseline, and threshold model changes require deterministic replay against fixture event streams.",
+        "Late, duplicate, and out-of-order events update projection rebuild paths, not live request handling."
+      ],
+      "validStateExamples": [
+        "data/fixtures/433_phase9_operational_projection_fixtures.json#/examples/LiveBoardDeltaWindow"
+      ],
+      "invalidStateExamples": [
+        "invalid:LiveBoardDeltaWindow:missing-required-field",
+        "invalid:LiveBoardDeltaWindow:bad-enum-or-trust-boundary-bypass"
+      ]
+    }
+  ],
+  "metricDefinitions": [
+    {
+      "metricDefinitionId": "omd_433_request_intake_health",
+      "metricCode": "request_intake_health",
+      "sourceProjection": "RequestIntakeStatusProjection",
+      "numeratorSpec": {
+        "expressionRef": "metric:request_intake_health:numerator:v1",
+        "sourceFieldRefs": [
+          "RequestIntakeStatusProjection.currentState",
+          "RequestIntakeStatusProjection.settlementState"
+        ]
+      },
+      "denominatorSpec": {
+        "expressionRef": "metric:request_intake_health:denominator:v1",
+        "sourceFieldRefs": [
+          "RequestIntakeStatusProjection.eligibleExposureSet"
+        ]
+      },
+      "aggregationWindow": {
+        "windowRef": "ops:last-60m",
+        "durationMinutes": 60,
+        "maxLookbackMinutes": 240
+      },
+      "tenantScope": "tenant:demo-gp",
+      "ownerRole": "operations_lead",
+      "baselineModelRef": "baseline:request_intake_health:calendar-segment:v1",
+      "minimumSupport": 30,
+      "thresholdPolicyRef": "threshold:request_intake_health:ops:v1",
+      "normalizationVersionRef": "phase9.operational.metric-normalization.v1"
+    },
+    {
+      "metricDefinitionId": "omd_433_triage_queue_health",
+      "metricCode": "triage_queue_health",
+      "sourceProjection": "TriageQueueProjection",
+      "numeratorSpec": {
+        "expressionRef": "metric:triage_queue_health:numerator:v1",
+        "sourceFieldRefs": [
+          "TriageQueueProjection.currentState",
+          "TriageQueueProjection.settlementState"
+        ]
+      },
+      "denominatorSpec": {
+        "expressionRef": "metric:triage_queue_health:denominator:v1",
+        "sourceFieldRefs": [
+          "TriageQueueProjection.eligibleExposureSet"
+        ]
+      },
+      "aggregationWindow": {
+        "windowRef": "ops:last-60m",
+        "durationMinutes": 60,
+        "maxLookbackMinutes": 240
+      },
+      "tenantScope": "tenant:demo-gp",
+      "ownerRole": "operations_lead",
+      "baselineModelRef": "baseline:triage_queue_health:calendar-segment:v1",
+      "minimumSupport": 30,
+      "thresholdPolicyRef": "threshold:triage_queue_health:ops:v1",
+      "normalizationVersionRef": "phase9.operational.metric-normalization.v1"
+    },
+    {
+      "metricDefinitionId": "omd_433_more_info_loop_latency",
+      "metricCode": "more_info_loop_latency",
+      "sourceProjection": "PatientMoreInfoStatusProjection",
+      "numeratorSpec": {
+        "expressionRef": "metric:more_info_loop_latency:numerator:v1",
+        "sourceFieldRefs": [
+          "PatientMoreInfoStatusProjection.currentState",
+          "PatientMoreInfoStatusProjection.settlementState"
+        ]
+      },
+      "denominatorSpec": {
+        "expressionRef": "metric:more_info_loop_latency:denominator:v1",
+        "sourceFieldRefs": [
+          "PatientMoreInfoStatusProjection.eligibleExposureSet"
+        ]
+      },
+      "aggregationWindow": {
+        "windowRef": "ops:last-60m",
+        "durationMinutes": 60,
+        "maxLookbackMinutes": 240
+      },
+      "tenantScope": "tenant:demo-gp",
+      "ownerRole": "operations_lead",
+      "baselineModelRef": "baseline:more_info_loop_latency:calendar-segment:v1",
+      "minimumSupport": 30,
+      "thresholdPolicyRef": "threshold:more_info_loop_latency:ops:v1",
+      "normalizationVersionRef": "phase9.operational.metric-normalization.v1"
+    },
+    {
+      "metricDefinitionId": "omd_433_booking_search_success",
+      "metricCode": "booking_search_success",
+      "sourceProjection": "PatientAppointmentWorkspaceProjection",
+      "numeratorSpec": {
+        "expressionRef": "metric:booking_search_success:numerator:v1",
+        "sourceFieldRefs": [
+          "PatientAppointmentWorkspaceProjection.currentState",
+          "PatientAppointmentWorkspaceProjection.settlementState"
+        ]
+      },
+      "denominatorSpec": {
+        "expressionRef": "metric:booking_search_success:denominator:v1",
+        "sourceFieldRefs": [
+          "PatientAppointmentWorkspaceProjection.eligibleExposureSet"
+        ]
+      },
+      "aggregationWindow": {
+        "windowRef": "ops:last-60m",
+        "durationMinutes": 60,
+        "maxLookbackMinutes": 240
+      },
+      "tenantScope": "tenant:demo-gp",
+      "ownerRole": "operations_lead",
+      "baselineModelRef": "baseline:booking_search_success:calendar-segment:v1",
+      "minimumSupport": 30,
+      "thresholdPolicyRef": "threshold:booking_search_success:ops:v1",
+      "normalizationVersionRef": "phase9.operational.metric-normalization.v1"
+    },
+    {
+      "metricDefinitionId": "omd_433_booking_commit_success",
+      "metricCode": "booking_commit_success",
+      "sourceProjection": "BookingConfirmationTruthProjection",
+      "numeratorSpec": {
+        "expressionRef": "metric:booking_commit_success:numerator:v1",
+        "sourceFieldRefs": [
+          "BookingConfirmationTruthProjection.currentState",
+          "BookingConfirmationTruthProjection.settlementState"
+        ]
+      },
+      "denominatorSpec": {
+        "expressionRef": "metric:booking_commit_success:denominator:v1",
+        "sourceFieldRefs": [
+          "BookingConfirmationTruthProjection.eligibleExposureSet"
+        ]
+      },
+      "aggregationWindow": {
+        "windowRef": "ops:last-60m",
+        "durationMinutes": 60,
+        "maxLookbackMinutes": 240
+      },
+      "tenantScope": "tenant:demo-gp",
+      "ownerRole": "operations_lead",
+      "baselineModelRef": "baseline:booking_commit_success:calendar-segment:v1",
+      "minimumSupport": 30,
+      "thresholdPolicyRef": "threshold:booking_commit_success:ops:v1",
+      "normalizationVersionRef": "phase9.operational.metric-normalization.v1"
+    },
+    {
+      "metricDefinitionId": "omd_433_waitlist_conversion",
+      "metricCode": "waitlist_conversion",
+      "sourceProjection": "WaitlistContinuationTruthProjection",
+      "numeratorSpec": {
+        "expressionRef": "metric:waitlist_conversion:numerator:v1",
+        "sourceFieldRefs": [
+          "WaitlistContinuationTruthProjection.currentState",
+          "WaitlistContinuationTruthProjection.settlementState"
+        ]
+      },
+      "denominatorSpec": {
+        "expressionRef": "metric:waitlist_conversion:denominator:v1",
+        "sourceFieldRefs": [
+          "WaitlistContinuationTruthProjection.eligibleExposureSet"
+        ]
+      },
+      "aggregationWindow": {
+        "windowRef": "ops:last-60m",
+        "durationMinutes": 60,
+        "maxLookbackMinutes": 240
+      },
+      "tenantScope": "tenant:demo-gp",
+      "ownerRole": "operations_lead",
+      "baselineModelRef": "baseline:waitlist_conversion:calendar-segment:v1",
+      "minimumSupport": 30,
+      "thresholdPolicyRef": "threshold:waitlist_conversion:ops:v1",
+      "normalizationVersionRef": "phase9.operational.metric-normalization.v1"
+    },
+    {
+      "metricDefinitionId": "omd_433_hub_coordination_delay",
+      "metricCode": "hub_coordination_delay",
+      "sourceProjection": "HubCoordinationCaseProjection",
+      "numeratorSpec": {
+        "expressionRef": "metric:hub_coordination_delay:numerator:v1",
+        "sourceFieldRefs": [
+          "HubCoordinationCaseProjection.currentState",
+          "HubCoordinationCaseProjection.settlementState"
+        ]
+      },
+      "denominatorSpec": {
+        "expressionRef": "metric:hub_coordination_delay:denominator:v1",
+        "sourceFieldRefs": [
+          "HubCoordinationCaseProjection.eligibleExposureSet"
+        ]
+      },
+      "aggregationWindow": {
+        "windowRef": "ops:last-60m",
+        "durationMinutes": 60,
+        "maxLookbackMinutes": 240
+      },
+      "tenantScope": "tenant:demo-gp",
+      "ownerRole": "operations_lead",
+      "baselineModelRef": "baseline:hub_coordination_delay:calendar-segment:v1",
+      "minimumSupport": 30,
+      "thresholdPolicyRef": "threshold:hub_coordination_delay:ops:v1",
+      "normalizationVersionRef": "phase9.operational.metric-normalization.v1"
+    },
+    {
+      "metricDefinitionId": "omd_433_pharmacy_dispatch_latency",
+      "metricCode": "pharmacy_dispatch_latency",
+      "sourceProjection": "PharmacyDispatchTruthProjection",
+      "numeratorSpec": {
+        "expressionRef": "metric:pharmacy_dispatch_latency:numerator:v1",
+        "sourceFieldRefs": [
+          "PharmacyDispatchTruthProjection.currentState",
+          "PharmacyDispatchTruthProjection.settlementState"
+        ]
+      },
+      "denominatorSpec": {
+        "expressionRef": "metric:pharmacy_dispatch_latency:denominator:v1",
+        "sourceFieldRefs": [
+          "PharmacyDispatchTruthProjection.eligibleExposureSet"
+        ]
+      },
+      "aggregationWindow": {
+        "windowRef": "ops:last-60m",
+        "durationMinutes": 60,
+        "maxLookbackMinutes": 240
+      },
+      "tenantScope": "tenant:demo-gp",
+      "ownerRole": "operations_lead",
+      "baselineModelRef": "baseline:pharmacy_dispatch_latency:calendar-segment:v1",
+      "minimumSupport": 30,
+      "thresholdPolicyRef": "threshold:pharmacy_dispatch_latency:ops:v1",
+      "normalizationVersionRef": "phase9.operational.metric-normalization.v1"
+    },
+    {
+      "metricDefinitionId": "omd_433_pharmacy_bounce_back_outcome_latency",
+      "metricCode": "pharmacy_bounce_back_outcome_latency",
+      "sourceProjection": "PharmacyOutcomeTruthProjection",
+      "numeratorSpec": {
+        "expressionRef": "metric:pharmacy_bounce_back_outcome_latency:numerator:v1",
+        "sourceFieldRefs": [
+          "PharmacyOutcomeTruthProjection.currentState",
+          "PharmacyOutcomeTruthProjection.settlementState"
+        ]
+      },
+      "denominatorSpec": {
+        "expressionRef": "metric:pharmacy_bounce_back_outcome_latency:denominator:v1",
+        "sourceFieldRefs": [
+          "PharmacyOutcomeTruthProjection.eligibleExposureSet"
+        ]
+      },
+      "aggregationWindow": {
+        "windowRef": "ops:last-60m",
+        "durationMinutes": 60,
+        "maxLookbackMinutes": 240
+      },
+      "tenantScope": "tenant:demo-gp",
+      "ownerRole": "operations_lead",
+      "baselineModelRef": "baseline:pharmacy_bounce_back_outcome_latency:calendar-segment:v1",
+      "minimumSupport": 30,
+      "thresholdPolicyRef": "threshold:pharmacy_bounce_back_outcome_latency:ops:v1",
+      "normalizationVersionRef": "phase9.operational.metric-normalization.v1"
+    },
+    {
+      "metricDefinitionId": "omd_433_patient_message_delivery",
+      "metricCode": "patient_message_delivery",
+      "sourceProjection": "PatientCommunicationVisibilityProjection",
+      "numeratorSpec": {
+        "expressionRef": "metric:patient_message_delivery:numerator:v1",
+        "sourceFieldRefs": [
+          "PatientCommunicationVisibilityProjection.currentState",
+          "PatientCommunicationVisibilityProjection.settlementState"
+        ]
+      },
+      "denominatorSpec": {
+        "expressionRef": "metric:patient_message_delivery:denominator:v1",
+        "sourceFieldRefs": [
+          "PatientCommunicationVisibilityProjection.eligibleExposureSet"
+        ]
+      },
+      "aggregationWindow": {
+        "windowRef": "ops:last-60m",
+        "durationMinutes": 60,
+        "maxLookbackMinutes": 240
+      },
+      "tenantScope": "tenant:demo-gp",
+      "ownerRole": "operations_lead",
+      "baselineModelRef": "baseline:patient_message_delivery:calendar-segment:v1",
+      "minimumSupport": 30,
+      "thresholdPolicyRef": "threshold:patient_message_delivery:ops:v1",
+      "normalizationVersionRef": "phase9.operational.metric-normalization.v1"
+    },
+    {
+      "metricDefinitionId": "omd_433_patient_home_navigation_continuity",
+      "metricCode": "patient_home_navigation_continuity",
+      "sourceProjection": "PatientExperienceContinuityEvidenceProjection",
+      "numeratorSpec": {
+        "expressionRef": "metric:patient_home_navigation_continuity:numerator:v1",
+        "sourceFieldRefs": [
+          "PatientExperienceContinuityEvidenceProjection.currentState",
+          "PatientExperienceContinuityEvidenceProjection.settlementState"
+        ]
+      },
+      "denominatorSpec": {
+        "expressionRef": "metric:patient_home_navigation_continuity:denominator:v1",
+        "sourceFieldRefs": [
+          "PatientExperienceContinuityEvidenceProjection.eligibleExposureSet"
+        ]
+      },
+      "aggregationWindow": {
+        "windowRef": "ops:last-60m",
+        "durationMinutes": 60,
+        "maxLookbackMinutes": 240
+      },
+      "tenantScope": "tenant:demo-gp",
+      "ownerRole": "operations_lead",
+      "baselineModelRef": "baseline:patient_home_navigation_continuity:calendar-segment:v1",
+      "minimumSupport": 30,
+      "thresholdPolicyRef": "threshold:patient_home_navigation_continuity:ops:v1",
+      "normalizationVersionRef": "phase9.operational.metric-normalization.v1"
+    },
+    {
+      "metricDefinitionId": "omd_433_record_followup_recovery_integrity",
+      "metricCode": "record_followup_recovery_integrity",
+      "sourceProjection": "PatientRecordFollowUpEligibilityProjection",
+      "numeratorSpec": {
+        "expressionRef": "metric:record_followup_recovery_integrity:numerator:v1",
+        "sourceFieldRefs": [
+          "PatientRecordFollowUpEligibilityProjection.currentState",
+          "PatientRecordFollowUpEligibilityProjection.settlementState"
+        ]
+      },
+      "denominatorSpec": {
+        "expressionRef": "metric:record_followup_recovery_integrity:denominator:v1",
+        "sourceFieldRefs": [
+          "PatientRecordFollowUpEligibilityProjection.eligibleExposureSet"
+        ]
+      },
+      "aggregationWindow": {
+        "windowRef": "ops:last-60m",
+        "durationMinutes": 60,
+        "maxLookbackMinutes": 240
+      },
+      "tenantScope": "tenant:demo-gp",
+      "ownerRole": "operations_lead",
+      "baselineModelRef": "baseline:record_followup_recovery_integrity:calendar-segment:v1",
+      "minimumSupport": 30,
+      "thresholdPolicyRef": "threshold:record_followup_recovery_integrity:ops:v1",
+      "normalizationVersionRef": "phase9.operational.metric-normalization.v1"
+    },
+    {
+      "metricDefinitionId": "omd_433_conversation_settlement_support_replay",
+      "metricCode": "conversation_settlement_support_replay",
+      "sourceProjection": "ConversationThreadProjection",
+      "numeratorSpec": {
+        "expressionRef": "metric:conversation_settlement_support_replay:numerator:v1",
+        "sourceFieldRefs": [
+          "ConversationThreadProjection.currentState",
+          "ConversationThreadProjection.settlementState"
+        ]
+      },
+      "denominatorSpec": {
+        "expressionRef": "metric:conversation_settlement_support_replay:denominator:v1",
+        "sourceFieldRefs": [
+          "ConversationThreadProjection.eligibleExposureSet"
+        ]
+      },
+      "aggregationWindow": {
+        "windowRef": "ops:last-60m",
+        "durationMinutes": 60,
+        "maxLookbackMinutes": 240
+      },
+      "tenantScope": "tenant:demo-gp",
+      "ownerRole": "operations_lead",
+      "baselineModelRef": "baseline:conversation_settlement_support_replay:calendar-segment:v1",
+      "minimumSupport": 30,
+      "thresholdPolicyRef": "threshold:conversation_settlement_support_replay:ops:v1",
+      "normalizationVersionRef": "phase9.operational.metric-normalization.v1"
+    },
+    {
+      "metricDefinitionId": "omd_433_support_replay_restore_integrity",
+      "metricCode": "support_replay_restore_integrity",
+      "sourceProjection": "SupportReplayRestoreSettlement",
+      "numeratorSpec": {
+        "expressionRef": "metric:support_replay_restore_integrity:numerator:v1",
+        "sourceFieldRefs": [
+          "SupportReplayRestoreSettlement.currentState",
+          "SupportReplayRestoreSettlement.settlementState"
+        ]
+      },
+      "denominatorSpec": {
+        "expressionRef": "metric:support_replay_restore_integrity:denominator:v1",
+        "sourceFieldRefs": [
+          "SupportReplayRestoreSettlement.eligibleExposureSet"
+        ]
+      },
+      "aggregationWindow": {
+        "windowRef": "ops:last-60m",
+        "durationMinutes": 60,
+        "maxLookbackMinutes": 240
+      },
+      "tenantScope": "tenant:demo-gp",
+      "ownerRole": "operations_lead",
+      "baselineModelRef": "baseline:support_replay_restore_integrity:calendar-segment:v1",
+      "minimumSupport": 30,
+      "thresholdPolicyRef": "threshold:support_replay_restore_integrity:ops:v1",
+      "normalizationVersionRef": "phase9.operational.metric-normalization.v1"
+    },
+    {
+      "metricDefinitionId": "omd_433_assistive_session_trust_continuity",
+      "metricCode": "assistive_session_trust_continuity",
+      "sourceProjection": "AssuranceSliceTrustRecord",
+      "numeratorSpec": {
+        "expressionRef": "metric:assistive_session_trust_continuity:numerator:v1",
+        "sourceFieldRefs": [
+          "AssuranceSliceTrustRecord.currentState",
+          "AssuranceSliceTrustRecord.settlementState"
+        ]
+      },
+      "denominatorSpec": {
+        "expressionRef": "metric:assistive_session_trust_continuity:denominator:v1",
+        "sourceFieldRefs": [
+          "AssuranceSliceTrustRecord.eligibleExposureSet"
+        ]
+      },
+      "aggregationWindow": {
+        "windowRef": "ops:last-60m",
+        "durationMinutes": 60,
+        "maxLookbackMinutes": 240
+      },
+      "tenantScope": "tenant:demo-gp",
+      "ownerRole": "operations_lead",
+      "baselineModelRef": "baseline:assistive_session_trust_continuity:calendar-segment:v1",
+      "minimumSupport": 30,
+      "thresholdPolicyRef": "threshold:assistive_session_trust_continuity:ops:v1",
+      "normalizationVersionRef": "phase9.operational.metric-normalization.v1"
+    },
+    {
+      "metricDefinitionId": "omd_433_evidence_graph_health",
+      "metricCode": "evidence_graph_health",
+      "sourceProjection": "AssuranceEvidenceGraphSnapshot",
+      "numeratorSpec": {
+        "expressionRef": "metric:evidence_graph_health:numerator:v1",
+        "sourceFieldRefs": [
+          "AssuranceEvidenceGraphSnapshot.currentState",
+          "AssuranceEvidenceGraphSnapshot.settlementState"
+        ]
+      },
+      "denominatorSpec": {
+        "expressionRef": "metric:evidence_graph_health:denominator:v1",
+        "sourceFieldRefs": [
+          "AssuranceEvidenceGraphSnapshot.eligibleExposureSet"
+        ]
+      },
+      "aggregationWindow": {
+        "windowRef": "ops:last-60m",
+        "durationMinutes": 60,
+        "maxLookbackMinutes": 240
+      },
+      "tenantScope": "tenant:demo-gp",
+      "ownerRole": "operations_lead",
+      "baselineModelRef": "baseline:evidence_graph_health:calendar-segment:v1",
+      "minimumSupport": 30,
+      "thresholdPolicyRef": "threshold:evidence_graph_health:ops:v1",
+      "normalizationVersionRef": "phase9.operational.metric-normalization.v1"
+    },
+    {
+      "metricDefinitionId": "omd_433_projection_rebuild_health",
+      "metricCode": "projection_rebuild_health",
+      "sourceProjection": "ProjectionHealthSnapshot",
+      "numeratorSpec": {
+        "expressionRef": "metric:projection_rebuild_health:numerator:v1",
+        "sourceFieldRefs": [
+          "ProjectionHealthSnapshot.currentState",
+          "ProjectionHealthSnapshot.settlementState"
+        ]
+      },
+      "denominatorSpec": {
+        "expressionRef": "metric:projection_rebuild_health:denominator:v1",
+        "sourceFieldRefs": [
+          "ProjectionHealthSnapshot.eligibleExposureSet"
+        ]
+      },
+      "aggregationWindow": {
+        "windowRef": "ops:last-60m",
+        "durationMinutes": 60,
+        "maxLookbackMinutes": 240
+      },
+      "tenantScope": "tenant:demo-gp",
+      "ownerRole": "operations_lead",
+      "baselineModelRef": "baseline:projection_rebuild_health:calendar-segment:v1",
+      "minimumSupport": 30,
+      "thresholdPolicyRef": "threshold:projection_rebuild_health:ops:v1",
+      "normalizationVersionRef": "phase9.operational.metric-normalization.v1"
+    },
+    {
+      "metricDefinitionId": "omd_433_dependency_health",
+      "metricCode": "dependency_health",
+      "sourceProjection": "DependencyHealthRecord",
+      "numeratorSpec": {
+        "expressionRef": "metric:dependency_health:numerator:v1",
+        "sourceFieldRefs": [
+          "DependencyHealthRecord.currentState",
+          "DependencyHealthRecord.settlementState"
+        ]
+      },
+      "denominatorSpec": {
+        "expressionRef": "metric:dependency_health:denominator:v1",
+        "sourceFieldRefs": [
+          "DependencyHealthRecord.eligibleExposureSet"
+        ]
+      },
+      "aggregationWindow": {
+        "windowRef": "ops:last-60m",
+        "durationMinutes": 60,
+        "maxLookbackMinutes": 240
+      },
+      "tenantScope": "tenant:demo-gp",
+      "ownerRole": "operations_lead",
+      "baselineModelRef": "baseline:dependency_health:calendar-segment:v1",
+      "minimumSupport": 30,
+      "thresholdPolicyRef": "threshold:dependency_health:ops:v1",
+      "normalizationVersionRef": "phase9.operational.metric-normalization.v1"
+    },
+    {
+      "metricDefinitionId": "omd_433_audit_projection_staleness",
+      "metricCode": "audit_projection_staleness",
+      "sourceProjection": "ControlStatusSnapshot",
+      "numeratorSpec": {
+        "expressionRef": "metric:audit_projection_staleness:numerator:v1",
+        "sourceFieldRefs": [
+          "ControlStatusSnapshot.currentState",
+          "ControlStatusSnapshot.settlementState"
+        ]
+      },
+      "denominatorSpec": {
+        "expressionRef": "metric:audit_projection_staleness:denominator:v1",
+        "sourceFieldRefs": [
+          "ControlStatusSnapshot.eligibleExposureSet"
+        ]
+      },
+      "aggregationWindow": {
+        "windowRef": "ops:last-60m",
+        "durationMinutes": 60,
+        "maxLookbackMinutes": 240
+      },
+      "tenantScope": "tenant:demo-gp",
+      "ownerRole": "operations_lead",
+      "baselineModelRef": "baseline:audit_projection_staleness:calendar-segment:v1",
+      "minimumSupport": 30,
+      "thresholdPolicyRef": "threshold:audit_projection_staleness:ops:v1",
+      "normalizationVersionRef": "phase9.operational.metric-normalization.v1"
+    }
+  ]
+}

@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>429 Phase 8 Invocation Regression Harness</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f7f9fb;
+        --panel: #ffffff;
+        --raised: #eef3f8;
+        --text: #17212b;
+        --muted: #5f6f7c;
+        --border: #d6e0e8;
+        --blue: #2457ff;
+        --green: #117a65;
+        --amber: #9a6700;
+        --red: #b42318;
+        --violet: #6d4aff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      main {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 24px 0;
+      }
+
+      header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 18px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 24px;
+        line-height: 32px;
+        font-weight: 680;
+        letter-spacing: 0;
+      }
+
+      h2 {
+        font-size: 18px;
+        line-height: 26px;
+        font-weight: 680;
+        letter-spacing: 0;
+      }
+
+      h3 {
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 700;
+        letter-spacing: 0;
+      }
+
+      .subtle {
+        color: var(--muted);
+      }
+
+      .tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 16px;
+      }
+
+      button {
+        min-height: 36px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--panel);
+        color: var(--text);
+        padding: 0 12px;
+        font: inherit;
+        font-weight: 650;
+      }
+
+      button[aria-selected="true"] {
+        border-color: var(--blue);
+        box-shadow: inset 0 0 0 1px var(--blue);
+      }
+
+      button:focus-visible,
+      [role="tabpanel"]:focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 3px;
+      }
+
+      button[disabled] {
+        color: var(--muted);
+        background: var(--raised);
+      }
+
+      .panel {
+        display: grid;
+        gap: 16px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 18px;
+        box-shadow: 0 16px 34px rgb(23 33 43 / 8%);
+      }
+
+      .panel[hidden] {
+        display: none;
+      }
+
+      .panel__head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: start;
+      }
+
+      .chips,
+      .controls,
+      .source-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--raised);
+        padding: 0 9px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 680;
+      }
+
+      .chip[data-tone="green"] {
+        color: var(--green);
+        border-color: rgb(17 122 101 / 35%);
+      }
+
+      .chip[data-tone="amber"] {
+        color: var(--amber);
+        border-color: rgb(154 103 0 / 35%);
+      }
+
+      .chip[data-tone="red"] {
+        color: var(--red);
+        border-color: rgb(180 35 24 / 35%);
+      }
+
+      .chip[data-tone="violet"] {
+        color: var(--violet);
+        border-color: rgb(109 74 255 / 35%);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+        gap: 12px;
+      }
+
+      .box {
+        display: grid;
+        gap: 10px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #fff;
+        padding: 14px;
+      }
+
+      .notice {
+        border-left: 3px solid var(--blue);
+      }
+
+      .notice[data-tone="amber"] {
+        border-left-color: var(--amber);
+      }
+
+      .notice[data-tone="red"] {
+        border-left-color: var(--red);
+      }
+
+      .draft {
+        display: grid;
+        gap: 10px;
+        border: 1px dashed #9bb4c8;
+        border-radius: 8px;
+        background: #f6faf9;
+        padding: 12px;
+      }
+
+      .draft[data-inserted="true"] {
+        border-style: solid;
+        border-color: rgb(17 122 101 / 45%);
+        background: #f4fbf8;
+      }
+
+      .source-row {
+        border-top: 1px solid var(--border);
+        padding-top: 12px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .sentinel {
+        display: none;
+      }
+
+      @media (max-width: 720px) {
+        main {
+          width: min(100% - 20px, 1180px);
+          padding: 14px 0;
+        }
+
+        header,
+        .panel__head,
+        .grid {
+          grid-template-columns: 1fr;
+          display: grid;
+        }
+
+        button {
+          width: 100%;
+          justify-content: center;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          transition-duration: 0.001ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main aria-labelledby="page-title">
+      <header>
+        <div>
+          <h1 id="page-title">Phase 8 invocation regression evidence</h1>
+          <p class="subtle">Synthetic staff, support, release, artifact, and patient-surface states.</p>
+        </div>
+        <button type="button" data-testid="ActivateKillSwitch">Activate safety freeze</button>
+      </header>
+
+      <div class="tabs" role="tablist" aria-label="Invocation regression states" data-testid="InvocationTabs">
+        <button id="tab-allowed" role="tab" aria-controls="panel-allowed" aria-selected="true" data-state="allowed">Allowed</button>
+        <button id="tab-blocked" role="tab" aria-controls="panel-blocked" aria-selected="false" data-state="blocked">Blocked</button>
+        <button id="tab-kill" role="tab" aria-controls="panel-kill" aria-selected="false" data-state="kill">Kill switch</button>
+        <button id="tab-draft" role="tab" aria-controls="panel-draft" aria-selected="false" data-state="draft">Draft</button>
+        <button id="tab-stale" role="tab" aria-controls="panel-stale" aria-selected="false" data-state="stale">Stale freeze</button>
+        <button id="tab-denied" role="tab" aria-controls="panel-denied" aria-selected="false" data-state="denied">Surface denied</button>
+      </div>
+
+      <section id="panel-allowed" class="panel" role="tabpanel" tabindex="0" aria-labelledby="tab-allowed" data-state="allowed" data-testid="AllowedInvocationPanel">
+        <div class="panel__head">
+          <div>
+            <h2>Allowed staff invocation</h2>
+            <p class="subtle">PH8-429-ALLOWED-TRIAGE-001</p>
+          </div>
+          <div class="chips" aria-label="Allowed invocation status">
+            <span class="chip" data-tone="green">Trusted</span>
+            <span class="chip">Current publication</span>
+            <span class="chip">Staff only</span>
+          </div>
+        </div>
+        <div class="grid">
+          <article class="box">
+            <h3>Invocation</h3>
+            <p>A quiet assistive action is available because role, route, rollout, trust, publication, and disclosure gates are satisfied.</p>
+            <div class="controls" aria-label="Allowed invocation controls">
+              <button type="button">Suggest next note</button>
+              <button type="button">Inspect evidence</button>
+            </div>
+          </article>
+          <article class="box notice">
+            <h3>Boundaries</h3>
+            <p>No autonomous send, booking commit, pharmacy outcome change, or task close control is present.</p>
+          </article>
+        </div>
+        <div class="source-row" aria-label="Allowed provenance">
+          <span>Sources: review-bundle:triage-001</span>
+          <span>Audit: assistive.invocation.allowed</span>
+        </div>
+      </section>
+
+      <section id="panel-blocked" class="panel" role="tabpanel" tabindex="0" aria-labelledby="tab-blocked" data-state="blocked" data-testid="BlockedInvocationPanel" hidden>
+        <div class="panel__head">
+          <div>
+            <h2>Blocked invocation</h2>
+            <p class="subtle">PH8-429-UNAUTHORISED-006</p>
+          </div>
+          <div class="chips" aria-label="Blocked invocation status">
+            <span class="chip" data-tone="red">Role denied</span>
+            <span class="chip">Fail closed</span>
+          </div>
+        </div>
+        <div class="box notice" data-tone="red">
+          <h3>Reason</h3>
+          <p>Assistive support is unavailable for this role. No suggestion body or rationale is rendered.</p>
+          <div class="controls" aria-label="Blocked invocation controls">
+            <button type="button">Request staff access review</button>
+            <button type="button" disabled>Suggest next note disabled</button>
+            <button type="button" disabled>Insert draft disabled</button>
+          </div>
+        </div>
+        <div class="source-row" aria-label="Blocked provenance">
+          <span>Audit: assistive.invocation.blocked</span>
+          <span>Evidence: blocked path recorded</span>
+        </div>
+      </section>
+
+      <section id="panel-kill" class="panel" role="tabpanel" tabindex="0" aria-labelledby="tab-kill" data-state="kill" data-testid="KillSwitchPanel" hidden>
+        <div class="panel__head">
+          <div>
+            <h2>Kill switch while output is open</h2>
+            <p class="subtle">PH8-429-GLOBAL-KILL-010</p>
+          </div>
+          <div class="chips" aria-label="Kill switch status">
+            <span class="chip" data-tone="red">Global model/vendor</span>
+            <span class="chip" data-tone="amber">Frozen</span>
+            <span class="chip">No refresh required</span>
+          </div>
+        </div>
+        <div class="grid">
+          <article class="box notice" data-tone="red">
+            <h3>Operational notice</h3>
+            <p>Assistive output is retained as read-only provenance. Invocation, insertion, regenerate, export, and commit controls are disabled.</p>
+          </article>
+          <article class="box">
+            <h3>Safe recovery</h3>
+            <p>Release recovery can inspect the switch state. The open output cannot be inserted or accepted.</p>
+            <div class="controls" aria-label="Kill switch controls">
+              <button type="button">Open release recovery</button>
+              <button type="button" disabled>Insert draft disabled</button>
+            </div>
+          </article>
+        </div>
+        <div class="source-row" aria-label="Kill switch provenance">
+          <span>Audit: assistive.kill_switch.enforced</span>
+          <span>Evidence: kill switch recorded</span>
+        </div>
+      </section>
+
+      <section id="panel-draft" class="panel" role="tabpanel" tabindex="0" aria-labelledby="tab-draft" data-state="draft" data-testid="DraftInsertionPanel" hidden>
+        <div class="panel__head">
+          <div>
+            <h2>Human-settled draft insertion</h2>
+            <p class="subtle">PH8-429-DRAFT-COMMS-002</p>
+          </div>
+          <div class="chips" aria-label="Draft state">
+            <span class="chip" data-tone="green">Human action required</span>
+            <span class="chip" data-tone="violet">Suggested text</span>
+          </div>
+        </div>
+        <div class="draft" data-testid="DraftRegion" data-inserted="false" aria-live="polite">
+          <h3>Suggested draft</h3>
+          <p data-testid="DraftText">Suggested: We have reviewed your message and will update you after clinician review.</p>
+          <p class="subtle" data-testid="DraftStatus">Not inserted</p>
+          <div class="controls" aria-label="Draft insertion controls">
+            <button type="button" data-testid="InsertDraftButton">Insert draft</button>
+            <button type="button" data-testid="UndoDraftButton" disabled>Undo insert</button>
+          </div>
+        </div>
+        <div class="source-row" aria-label="Draft provenance">
+          <span>Command: human UIEventEnvelope</span>
+          <span>Sources inspectable</span>
+          <span>Warnings inspectable</span>
+        </div>
+      </section>
+
+      <section id="panel-stale" class="panel" role="tabpanel" tabindex="0" aria-labelledby="tab-stale" data-state="stale" data-testid="StaleFreezePanel" hidden>
+        <div class="panel__head">
+          <div>
+            <h2>Stale session freeze</h2>
+            <p class="subtle">PH8-429-SESSION-STALE-FREEZE-016</p>
+          </div>
+          <div class="chips" aria-label="Stale freeze status">
+            <span class="chip" data-tone="amber">Stale</span>
+            <span class="chip">Regenerate in place</span>
+          </div>
+        </div>
+        <div class="box notice" data-tone="amber">
+          <h3>Frozen output</h3>
+          <p>Session freshness changed. The open suggestion is read-only until regenerated from current evidence.</p>
+          <div class="controls" aria-label="Stale recovery controls">
+            <button type="button">Regenerate in place</button>
+            <button type="button" disabled>Insert draft disabled</button>
+          </div>
+        </div>
+        <div class="source-row" aria-label="Stale provenance">
+          <span>Audit: assistive.invocation.blocked</span>
+          <span>Evidence: freshness freeze recorded</span>
+        </div>
+      </section>
+
+      <section id="panel-denied" class="panel" role="tabpanel" tabindex="0" aria-labelledby="tab-denied" data-state="denied" data-testid="VisibilityDeniedPanel" hidden>
+        <div class="panel__head">
+          <div>
+            <h2>Wrong-surface visibility denied</h2>
+            <p class="subtle">PH8-429-PATIENT-SURFACE-DENIED-007</p>
+          </div>
+          <div class="chips" aria-label="Visibility denial status">
+            <span class="chip" data-tone="red">Patient raw denied</span>
+            <span class="chip">Human-settled copy only</span>
+          </div>
+        </div>
+        <div class="box notice" data-tone="red">
+          <h3>Patient-safe placeholder</h3>
+          <p>Only clinician-settled patient copy can appear here. Raw assistive rationale is not rendered.</p>
+          <div class="controls" aria-label="Visibility denial controls">
+            <button type="button">Show human-settled summary</button>
+            <button type="button" disabled>Raw rationale disabled</button>
+          </div>
+        </div>
+        <div class="source-row" aria-label="Visibility denial provenance">
+          <span>Audit: assistive.invocation.blocked</span>
+          <span>Disclosure: patient raw denied</span>
+        </div>
+      </section>
+
+      <div class="sentinel" data-hidden-dom-sentinel="" aria-hidden="true"></div>
+    </main>
+
+    <script>
+      const tabs = Array.from(document.querySelectorAll("[role='tab']"));
+      const panels = Array.from(document.querySelectorAll("[role='tabpanel']"));
+      const insertButton = document.querySelector("[data-testid='InsertDraftButton']");
+      const undoButton = document.querySelector("[data-testid='UndoDraftButton']");
+      const draftRegion = document.querySelector("[data-testid='DraftRegion']");
+      const draftStatus = document.querySelector("[data-testid='DraftStatus']");
+      const activateKillSwitch = document.querySelector("[data-testid='ActivateKillSwitch']");
+
+      function setState(state) {
+        for (const tab of tabs) {
+          const selected = tab.dataset.state === state;
+          tab.setAttribute("aria-selected", selected ? "true" : "false");
+          tab.tabIndex = selected ? 0 : -1;
+        }
+        for (const panel of panels) {
+          panel.hidden = panel.dataset.state !== state;
+        }
+      }
+
+      function setInserted(inserted) {
+        draftRegion.dataset.inserted = inserted ? "true" : "false";
+        draftStatus.textContent = inserted ? "Inserted as suggested support, pending human settlement" : "Not inserted";
+        insertButton.disabled = inserted;
+        undoButton.disabled = !inserted;
+      }
+
+      for (const tab of tabs) {
+        tab.addEventListener("click", () => setState(tab.dataset.state));
+        tab.addEventListener("keydown", (event) => {
+          if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") {
+            return;
+          }
+          event.preventDefault();
+          const index = tabs.indexOf(tab);
+          const delta = event.key === "ArrowRight" ? 1 : -1;
+          const next = tabs[(index + delta + tabs.length) % tabs.length];
+          next.focus();
+          setState(next.dataset.state);
+        });
+      }
+
+      insertButton.addEventListener("click", async () => {
+        setInserted(true);
+        try {
+          await fetch("/api/assistive/audit-draft-insert", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ commandAuthority: "human_command", authoritative: false }),
+          });
+        } catch {
+          // The harness is still valid when the test route fulfills this request.
+        }
+      });
+      undoButton.addEventListener("click", () => setInserted(false));
+      activateKillSwitch.addEventListener("click", () => setState("kill"));
+
+      const requested = new URLSearchParams(window.location.search).get("state") || "allowed";
+      setState(requested);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,2170 @@
+{
+  "task_id": "par_087",
+  "generated_at": "2026-04-13T14:51:07+00:00",
+  "captured_on": "2026-04-13",
+  "visual_mode": "Event_Spine_Topology_Atlas",
+  "mission": "Provision the canonical event spine, queueing substrate, and durable outbox and inbox infrastructure for Vecells so canonical events map to concrete broker topology, explicit retry and DLQ posture, and replay-safe command and callback checkpoints.",
+  "source_precedence": [
+    "prompt/087.md",
+    "prompt/shared_operating_contract_086_to_095.md",
+    "prompt/AGENT.md",
+    "prompt/checklist.md",
+    "data/analysis/canonical_event_contracts.json",
+    "data/analysis/dependency_degradation_profiles.json",
+    "data/analysis/runtime_topology_manifest.json",
+    "data/analysis/projection_checkpoint_manifest.json",
+    "data/analysis/simulator_contract_manifest.json",
+    "docs/architecture/13_outbox_inbox_callback_replay_and_idempotency.md",
+    "docs/architecture/82_projection_rebuild_and_event_applier_design.md",
+    "docs/architecture/83_simulator_backplane_design.md",
+    "docs/architecture/84_runtime_topology_and_trust_boundary_realization.md",
+    "docs/architecture/85_domain_transaction_store_and_fhir_storage_design.md",
+    "docs/architecture/86_object_storage_and_retention_design.md",
+    "blueprint/phase-0-the-foundation-protocol.md#CanonicalEventContract",
+    "blueprint/phase-0-the-foundation-protocol.md#CanonicalEventEnvelope",
+    "blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract",
+    "blueprint/platform-runtime-and-release-blueprint.md#DependencyDegradationProfile",
+    "blueprint/forensic-audit-findings.md#Finding-61",
+    "blueprint/forensic-audit-findings.md#Finding-62",
+    "blueprint/forensic-audit-findings.md#Finding-63",
+    "blueprint/forensic-audit-findings.md#Finding-66",
+    "blueprint/forensic-audit-findings.md#Finding-67",
+    "blueprint/forensic-audit-findings.md#Finding-68",
+    "blueprint/forensic-audit-findings.md#Finding-81",
+    "blueprint/forensic-audit-findings.md#Finding-82",
+    "blueprint/forensic-audit-findings.md#Finding-83",
+    "blueprint/forensic-audit-findings.md#Finding-84"
+  ],
+  "assumptions": [
+    {
+      "assumption_ref": "ASSUMPTION_087_NATS_JETSTREAM_COMPATIBLE_LOCAL_EMULATION",
+      "value": "nats_jetstream_compatible_local_broker",
+      "reason": "The mock-now path needs durable streams, queue groups, and replay-safe consumers without requiring a live managed broker during local or CI runs."
+    },
+    {
+      "assumption_ref": "ASSUMPTION_087_EVENT_NAME_IS_CANONICAL_SUBJECT",
+      "value": "transport_subject_equals_event_name",
+      "reason": "Canonical event names remain canonical; the broker may group them by namespace stream but may not invent transport aliases."
+    }
+  ],
+  "follow_on_dependencies": [
+    {
+      "dependency_ref": "FOLLOW_ON_DEPENDENCY_088_CACHE_LIVE_UPDATE_OVERLAYS",
+      "owning_task_ref": "par_088",
+      "scope": "Cache invalidation and live-update fan-out overlays consume the same event spine later."
+    },
+    {
+      "dependency_ref": "FOLLOW_ON_DEPENDENCY_093_CORRELATION_AND_OBSERVABILITY_EXPORT",
+      "owning_task_ref": "par_093",
+      "scope": "Distributed tracing and correlation telemetry may extend these checkpoints but not change queue law."
+    },
+    {
+      "dependency_ref": "FOLLOW_ON_DEPENDENCY_095_MIGRATION_AND_BACKFILL_EXECUTION",
+      "owning_task_ref": "par_095",
+      "scope": "Migration and projection backfill runners consume the published replay queue and checkpoint manifests."
+    }
+  ],
+  "canonicalEnvelopeRequirements": [
+    "tenantId",
+    "eventName",
+    "schemaVersionRef",
+    "sourceBoundedContextRef",
+    "governingBoundedContextRef",
+    "edgeCorrelationId",
+    "causalToken"
+  ],
+  "summary": {
+    "namespace_count": 22,
+    "stream_count": 22,
+    "transport_mapping_count": 192,
+    "queue_group_count": 7,
+    "subscription_count": 100,
+    "policy_count": 12,
+    "access_control_count": 6,
+    "watch_or_review_event_count": 42
+  },
+  "namespaces": [
+    {
+      "namespaceCode": "access",
+      "canonicalEventNamespaceId": "CEN_ACCESS",
+      "owningBoundedContextRef": "identity_access",
+      "canonicalEventCount": 5
+    },
+    {
+      "namespaceCode": "analytics",
+      "canonicalEventNamespaceId": "CEN_ANALYTICS",
+      "owningBoundedContextRef": "analytics_assurance",
+      "canonicalEventCount": 4
+    },
+    {
+      "namespaceCode": "assistive",
+      "canonicalEventNamespaceId": "CEN_ASSISTIVE",
+      "owningBoundedContextRef": "assistive_lab",
+      "canonicalEventCount": 7
+    },
+    {
+      "namespaceCode": "audit",
+      "canonicalEventNamespaceId": "CEN_AUDIT",
+      "owningBoundedContextRef": "audit_compliance",
+      "canonicalEventCount": 3
+    },
+    {
+      "namespaceCode": "booking",
+      "canonicalEventNamespaceId": "CEN_BOOKING",
+      "owningBoundedContextRef": "booking",
+      "canonicalEventCount": 17
+    },
+    {
+      "namespaceCode": "capacity",
+      "canonicalEventNamespaceId": "CEN_CAPACITY",
+      "owningBoundedContextRef": "booking",
+      "canonicalEventCount": 10
+    },
+    {
+      "namespaceCode": "communication",
+      "canonicalEventNamespaceId": "CEN_COMMUNICATION",
+      "owningBoundedContextRef": "communications",
+      "canonicalEventCount": 5
+    },
+    {
+      "namespaceCode": "confirmation",
+      "canonicalEventNamespaceId": "CEN_CONFIRMATION",
+      "owningBoundedContextRef": "identity_access",
+      "canonicalEventCount": 5
+    },
+    {
+      "namespaceCode": "exception",
+      "canonicalEventNamespaceId": "CEN_EXCEPTION",
+      "owningBoundedContextRef": "identity_access",
+      "canonicalEventCount": 4
+    },
+    {
+      "namespaceCode": "hub",
+      "canonicalEventNamespaceId": "CEN_HUB",
+      "owningBoundedContextRef": "hub_coordination",
+      "canonicalEventCount": 11
+    },
+    {
+      "namespaceCode": "identity",
+      "canonicalEventNamespaceId": "CEN_IDENTITY",
+      "owningBoundedContextRef": "identity_access",
+      "canonicalEventCount": 16
+    },
+    {
+      "namespaceCode": "intake",
+      "canonicalEventNamespaceId": "CEN_INTAKE",
+      "owningBoundedContextRef": "intake_safety",
+      "canonicalEventCount": 9
+    },
+    {
+      "namespaceCode": "patient",
+      "canonicalEventNamespaceId": "CEN_PATIENT",
+      "owningBoundedContextRef": "patient_experience",
+      "canonicalEventCount": 7
+    },
+    {
+      "namespaceCode": "pharmacy",
+      "canonicalEventNamespaceId": "CEN_PHARMACY",
+      "owningBoundedContextRef": "pharmacy",
+      "canonicalEventCount": 14
+    },
+    {
+      "namespaceCode": "policy",
+      "canonicalEventNamespaceId": "CEN_POLICY",
+      "owningBoundedContextRef": "governance_admin",
+      "canonicalEventCount": 3
+    },
+    {
+      "namespaceCode": "reachability",
+      "canonicalEventNamespaceId": "CEN_REACHABILITY",
+      "owningBoundedContextRef": "identity_access",
+      "canonicalEventCount": 5
+    },
+    {
+      "namespaceCode": "release",
+      "canonicalEventNamespaceId": "CEN_RELEASE",
+      "owningBoundedContextRef": "release_control",
+      "canonicalEventCount": 7
+    },
+    {
+      "namespaceCode": "request",
+      "canonicalEventNamespaceId": "CEN_REQUEST",
+      "owningBoundedContextRef": "intake_safety",
+      "canonicalEventCount": 27
+    },
+    {
+      "namespaceCode": "safety",
+      "canonicalEventNamespaceId": "CEN_SAFETY",
+      "owningBoundedContextRef": "intake_safety",
+      "canonicalEventCount": 8
+    },
+    {
+      "namespaceCode": "support",
+      "canonicalEventNamespaceId": "CEN_SUPPORT",
+      "owningBoundedContextRef": "support",
+      "canonicalEventCount": 5
+    },
+    {
+      "namespaceCode": "telephony",
+      "canonicalEventNamespaceId": "CEN_TELEPHONY",
+      "owningBoundedContextRef": "communications",
+      "canonicalEventCount": 15
+    },
+    {
+      "namespaceCode": "triage",
+      "canonicalEventNamespaceId": "CEN_TRIAGE",
+      "owningBoundedContextRef": "triage_workspace",
+      "canonicalEventCount": 5
+    }
+  ],
+  "namespaceStreams": [
+    {
+      "streamRef": "stream_access",
+      "streamName": "vecells.access.stream",
+      "namespaceCode": "access",
+      "canonicalEventCount": 5,
+      "subjectPattern": "access.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_notification_effects",
+        "q_event_assurance_audit"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    },
+    {
+      "streamRef": "stream_analytics",
+      "streamName": "vecells.analytics.stream",
+      "namespaceCode": "analytics",
+      "canonicalEventCount": 4,
+      "subjectPattern": "analytics.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_assurance_audit",
+        "q_event_replay_quarantine"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    },
+    {
+      "streamRef": "stream_assistive",
+      "streamName": "vecells.assistive.stream",
+      "namespaceCode": "assistive",
+      "canonicalEventCount": 7,
+      "subjectPattern": "assistive.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_assurance_audit",
+        "q_event_replay_quarantine"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    },
+    {
+      "streamRef": "stream_audit",
+      "streamName": "vecells.audit.stream",
+      "namespaceCode": "audit",
+      "canonicalEventCount": 3,
+      "subjectPattern": "audit.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_assurance_audit",
+        "q_event_replay_quarantine"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    },
+    {
+      "streamRef": "stream_booking",
+      "streamName": "vecells.booking.stream",
+      "namespaceCode": "booking",
+      "canonicalEventCount": 17,
+      "subjectPattern": "booking.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_assurance_audit",
+        "q_event_integration_effects",
+        "q_event_callback_correlation"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    },
+    {
+      "streamRef": "stream_capacity",
+      "streamName": "vecells.capacity.stream",
+      "namespaceCode": "capacity",
+      "canonicalEventCount": 10,
+      "subjectPattern": "capacity.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_integration_effects",
+        "q_event_assurance_audit",
+        "q_event_callback_correlation",
+        "q_event_replay_quarantine"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    },
+    {
+      "streamRef": "stream_communication",
+      "streamName": "vecells.communication.stream",
+      "namespaceCode": "communication",
+      "canonicalEventCount": 5,
+      "subjectPattern": "communication.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_integration_effects",
+        "q_event_notification_effects",
+        "q_event_callback_correlation",
+        "q_event_assurance_audit"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    },
+    {
+      "streamRef": "stream_confirmation",
+      "streamName": "vecells.confirmation.stream",
+      "namespaceCode": "confirmation",
+      "canonicalEventCount": 5,
+      "subjectPattern": "confirmation.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_integration_effects",
+        "q_event_callback_correlation",
+        "q_event_assurance_audit",
+        "q_event_replay_quarantine"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    },
+    {
+      "streamRef": "stream_exception",
+      "streamName": "vecells.exception.stream",
+      "namespaceCode": "exception",
+      "canonicalEventCount": 4,
+      "subjectPattern": "exception.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_assurance_audit",
+        "q_event_replay_quarantine"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    },
+    {
+      "streamRef": "stream_hub",
+      "streamName": "vecells.hub.stream",
+      "namespaceCode": "hub",
+      "canonicalEventCount": 11,
+      "subjectPattern": "hub.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_assurance_audit",
+        "q_event_integration_effects",
+        "q_event_callback_correlation"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    },
+    {
+      "streamRef": "stream_identity",
+      "streamName": "vecells.identity.stream",
+      "namespaceCode": "identity",
+      "canonicalEventCount": 16,
+      "subjectPattern": "identity.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_assurance_audit",
+        "q_event_replay_quarantine"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    },
+    {
+      "streamRef": "stream_intake",
+      "streamName": "vecells.intake.stream",
+      "namespaceCode": "intake",
+      "canonicalEventCount": 9,
+      "subjectPattern": "intake.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_assurance_audit",
+        "q_event_replay_quarantine"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    },
+    {
+      "streamRef": "stream_patient",
+      "streamName": "vecells.patient.stream",
+      "namespaceCode": "patient",
+      "canonicalEventCount": 7,
+      "subjectPattern": "patient.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_integration_effects",
+        "q_event_notification_effects",
+        "q_event_callback_correlation",
+        "q_event_assurance_audit",
+        "q_event_replay_quarantine"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    },
+    {
+      "streamRef": "stream_pharmacy",
+      "streamName": "vecells.pharmacy.stream",
+      "namespaceCode": "pharmacy",
+      "canonicalEventCount": 14,
+      "subjectPattern": "pharmacy.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_integration_effects",
+        "q_event_callback_correlation",
+        "q_event_assurance_audit"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    },
+    {
+      "streamRef": "stream_policy",
+      "streamName": "vecells.policy.stream",
+      "namespaceCode": "policy",
+      "canonicalEventCount": 3,
+      "subjectPattern": "policy.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_assurance_audit",
+        "q_event_replay_quarantine"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    },
+    {
+      "streamRef": "stream_reachability",
+      "streamName": "vecells.reachability.stream",
+      "namespaceCode": "reachability",
+      "canonicalEventCount": 5,
+      "subjectPattern": "reachability.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_integration_effects",
+        "q_event_callback_correlation",
+        "q_event_assurance_audit"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    },
+    {
+      "streamRef": "stream_release",
+      "streamName": "vecells.release.stream",
+      "namespaceCode": "release",
+      "canonicalEventCount": 7,
+      "subjectPattern": "release.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_assurance_audit"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    },
+    {
+      "streamRef": "stream_request",
+      "streamName": "vecells.request.stream",
+      "namespaceCode": "request",
+      "canonicalEventCount": 27,
+      "subjectPattern": "request.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_assurance_audit",
+        "q_event_replay_quarantine"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    },
+    {
+      "streamRef": "stream_safety",
+      "streamName": "vecells.safety.stream",
+      "namespaceCode": "safety",
+      "canonicalEventCount": 8,
+      "subjectPattern": "safety.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_assurance_audit"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    },
+    {
+      "streamRef": "stream_support",
+      "streamName": "vecells.support.stream",
+      "namespaceCode": "support",
+      "canonicalEventCount": 5,
+      "subjectPattern": "support.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_notification_effects",
+        "q_event_assurance_audit"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    },
+    {
+      "streamRef": "stream_telephony",
+      "streamName": "vecells.telephony.stream",
+      "namespaceCode": "telephony",
+      "canonicalEventCount": 15,
+      "subjectPattern": "telephony.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_integration_effects",
+        "q_event_callback_correlation",
+        "q_event_assurance_audit",
+        "q_event_replay_quarantine"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    },
+    {
+      "streamRef": "stream_triage",
+      "streamName": "vecells.triage.stream",
+      "namespaceCode": "triage",
+      "canonicalEventCount": 5,
+      "subjectPattern": "triage.*",
+      "routingRule": "publish subject equals canonical eventName",
+      "consumerQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_assurance_audit"
+      ],
+      "source_refs": [
+        "data/analysis/canonical_event_contracts.json",
+        "prompt/087.md"
+      ]
+    }
+  ],
+  "queueGroups": [
+    {
+      "queueRef": "q_event_projection_live",
+      "displayName": "Projection live apply",
+      "queueClass": "projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "orderingMode": "namespace_partition_ordered",
+      "workloadFamilyRefs": [
+        "wf_projection_read_models"
+      ],
+      "notes": "Live projection consumers replay from immutable canonical events only.",
+      "matchedEventCount": 192,
+      "source_refs": [
+        "prompt/087.md",
+        "data/analysis/canonical_event_contracts.json",
+        "data/analysis/dependency_degradation_profiles.json"
+      ]
+    },
+    {
+      "queueRef": "q_event_projection_replay",
+      "displayName": "Projection replay and rebuild",
+      "queueClass": "projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "orderingMode": "stream_position_strict",
+      "workloadFamilyRefs": [
+        "wf_projection_read_models"
+      ],
+      "notes": "Cold rebuild and dry-run replay stay separate from live projection apply.",
+      "matchedEventCount": 192,
+      "source_refs": [
+        "prompt/087.md",
+        "data/analysis/canonical_event_contracts.json",
+        "data/analysis/dependency_degradation_profiles.json"
+      ]
+    },
+    {
+      "queueRef": "q_event_integration_effects",
+      "displayName": "Integration effect dispatch",
+      "queueClass": "integration_effect_dispatch",
+      "consumerGroupRef": "cg_integration_dispatch",
+      "retryPosture": "dependency_profile_bound_retry",
+      "dlqRef": "dlq_integration_effects",
+      "orderingMode": "effect_scope_ordered",
+      "workloadFamilyRefs": [
+        "wf_integration_dispatch"
+      ],
+      "notes": "External effects publish only after durable outbox checkpoint and effect-key reservation.",
+      "matchedEventCount": 60,
+      "source_refs": [
+        "prompt/087.md",
+        "data/analysis/canonical_event_contracts.json",
+        "data/analysis/dependency_degradation_profiles.json"
+      ]
+    },
+    {
+      "queueRef": "q_event_notification_effects",
+      "displayName": "Notification delivery and resend",
+      "queueClass": "notification_dispatch",
+      "consumerGroupRef": "cg_notification_dispatch",
+      "retryPosture": "delivery_receipt_window",
+      "dlqRef": "dlq_notification_effects",
+      "orderingMode": "recipient_and_route_scope",
+      "workloadFamilyRefs": [
+        "wf_integration_dispatch"
+      ],
+      "notes": "Delivery posture preserves receipt ambiguity and callback repair without silent resend loops.",
+      "matchedEventCount": 22,
+      "source_refs": [
+        "prompt/087.md",
+        "data/analysis/canonical_event_contracts.json",
+        "data/analysis/dependency_degradation_profiles.json"
+      ]
+    },
+    {
+      "queueRef": "q_event_callback_correlation",
+      "displayName": "Callback correlation and receipt checkpoints",
+      "queueClass": "callback_checkpoint",
+      "consumerGroupRef": "cg_callback_receipt_ingest",
+      "retryPosture": "correlation_checkpoint_retry",
+      "dlqRef": "dlq_callback_correlation",
+      "orderingMode": "callback_correlation_window",
+      "workloadFamilyRefs": [
+        "wf_integration_dispatch",
+        "wf_command_orchestration"
+      ],
+      "notes": "Provider callbacks bind to explicit correlation keys and ordered receipt windows.",
+      "matchedEventCount": 51,
+      "source_refs": [
+        "prompt/087.md",
+        "data/analysis/canonical_event_contracts.json",
+        "data/analysis/dependency_degradation_profiles.json"
+      ]
+    },
+    {
+      "queueRef": "q_event_assurance_audit",
+      "displayName": "Assurance observation",
+      "queueClass": "assurance_observe",
+      "consumerGroupRef": "cg_assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "orderingMode": "causal_token_observe",
+      "workloadFamilyRefs": [
+        "wf_assurance_security_control"
+      ],
+      "notes": "Assurance slices observe the same canonical events without shadow audit traffic.",
+      "matchedEventCount": 192,
+      "source_refs": [
+        "prompt/087.md",
+        "data/analysis/canonical_event_contracts.json",
+        "data/analysis/dependency_degradation_profiles.json"
+      ]
+    },
+    {
+      "queueRef": "q_event_replay_quarantine",
+      "displayName": "Replay quarantine and manual review",
+      "queueClass": "replay_quarantine",
+      "consumerGroupRef": "cg_replay_quarantine_review",
+      "retryPosture": "manual_resume_only",
+      "dlqRef": "dlq_replay_quarantine",
+      "orderingMode": "identity_preserving_quarantine",
+      "workloadFamilyRefs": [
+        "wf_assurance_security_control",
+        "wf_command_orchestration"
+      ],
+      "notes": "Identity-preserving quarantine routes hold canonical events for governed replay review.",
+      "matchedEventCount": 42,
+      "source_refs": [
+        "prompt/087.md",
+        "data/analysis/canonical_event_contracts.json",
+        "data/analysis/dependency_degradation_profiles.json"
+      ]
+    }
+  ],
+  "subscriptionBindings": [
+    {
+      "subscriptionRef": "sub_access_q_event_projection_live",
+      "streamRef": "stream_access",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_access_q_event_projection_replay",
+      "streamRef": "stream_access",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_access_q_event_notification_effects",
+      "streamRef": "stream_access",
+      "queueRef": "q_event_notification_effects",
+      "consumerGroupRef": "cg_notification_dispatch",
+      "queueClass": "notification_dispatch",
+      "retryPosture": "delivery_receipt_window",
+      "dlqRef": "dlq_notification_effects",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_access_q_event_assurance_audit",
+      "streamRef": "stream_access",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_analytics_q_event_projection_live",
+      "streamRef": "stream_analytics",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 4,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_analytics_q_event_projection_replay",
+      "streamRef": "stream_analytics",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 4,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_analytics_q_event_assurance_audit",
+      "streamRef": "stream_analytics",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 4,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_analytics_q_event_replay_quarantine",
+      "streamRef": "stream_analytics",
+      "queueRef": "q_event_replay_quarantine",
+      "consumerGroupRef": "cg_replay_quarantine_review",
+      "queueClass": "replay_quarantine",
+      "retryPosture": "manual_resume_only",
+      "dlqRef": "dlq_replay_quarantine",
+      "matchedEventCount": 4,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_assistive_q_event_projection_live",
+      "streamRef": "stream_assistive",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 7,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_assistive_q_event_projection_replay",
+      "streamRef": "stream_assistive",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 7,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_assistive_q_event_assurance_audit",
+      "streamRef": "stream_assistive",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 7,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_assistive_q_event_replay_quarantine",
+      "streamRef": "stream_assistive",
+      "queueRef": "q_event_replay_quarantine",
+      "consumerGroupRef": "cg_replay_quarantine_review",
+      "queueClass": "replay_quarantine",
+      "retryPosture": "manual_resume_only",
+      "dlqRef": "dlq_replay_quarantine",
+      "matchedEventCount": 7,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_audit_q_event_projection_live",
+      "streamRef": "stream_audit",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 3,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_audit_q_event_projection_replay",
+      "streamRef": "stream_audit",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 3,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_audit_q_event_assurance_audit",
+      "streamRef": "stream_audit",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 3,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_audit_q_event_replay_quarantine",
+      "streamRef": "stream_audit",
+      "queueRef": "q_event_replay_quarantine",
+      "consumerGroupRef": "cg_replay_quarantine_review",
+      "queueClass": "replay_quarantine",
+      "retryPosture": "manual_resume_only",
+      "dlqRef": "dlq_replay_quarantine",
+      "matchedEventCount": 3,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_booking_q_event_projection_live",
+      "streamRef": "stream_booking",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 17,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_booking_q_event_projection_replay",
+      "streamRef": "stream_booking",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 17,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_booking_q_event_assurance_audit",
+      "streamRef": "stream_booking",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 17,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_booking_q_event_integration_effects",
+      "streamRef": "stream_booking",
+      "queueRef": "q_event_integration_effects",
+      "consumerGroupRef": "cg_integration_dispatch",
+      "queueClass": "integration_effect_dispatch",
+      "retryPosture": "dependency_profile_bound_retry",
+      "dlqRef": "dlq_integration_effects",
+      "matchedEventCount": 2,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_booking_q_event_callback_correlation",
+      "streamRef": "stream_booking",
+      "queueRef": "q_event_callback_correlation",
+      "consumerGroupRef": "cg_callback_receipt_ingest",
+      "queueClass": "callback_checkpoint",
+      "retryPosture": "correlation_checkpoint_retry",
+      "dlqRef": "dlq_callback_correlation",
+      "matchedEventCount": 2,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_capacity_q_event_projection_live",
+      "streamRef": "stream_capacity",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 10,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_capacity_q_event_projection_replay",
+      "streamRef": "stream_capacity",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 10,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_capacity_q_event_integration_effects",
+      "streamRef": "stream_capacity",
+      "queueRef": "q_event_integration_effects",
+      "consumerGroupRef": "cg_integration_dispatch",
+      "queueClass": "integration_effect_dispatch",
+      "retryPosture": "dependency_profile_bound_retry",
+      "dlqRef": "dlq_integration_effects",
+      "matchedEventCount": 10,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_capacity_q_event_assurance_audit",
+      "streamRef": "stream_capacity",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 10,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_capacity_q_event_callback_correlation",
+      "streamRef": "stream_capacity",
+      "queueRef": "q_event_callback_correlation",
+      "consumerGroupRef": "cg_callback_receipt_ingest",
+      "queueClass": "callback_checkpoint",
+      "retryPosture": "correlation_checkpoint_retry",
+      "dlqRef": "dlq_callback_correlation",
+      "matchedEventCount": 1,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_capacity_q_event_replay_quarantine",
+      "streamRef": "stream_capacity",
+      "queueRef": "q_event_replay_quarantine",
+      "consumerGroupRef": "cg_replay_quarantine_review",
+      "queueClass": "replay_quarantine",
+      "retryPosture": "manual_resume_only",
+      "dlqRef": "dlq_replay_quarantine",
+      "matchedEventCount": 2,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_communication_q_event_projection_live",
+      "streamRef": "stream_communication",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_communication_q_event_projection_replay",
+      "streamRef": "stream_communication",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_communication_q_event_integration_effects",
+      "streamRef": "stream_communication",
+      "queueRef": "q_event_integration_effects",
+      "consumerGroupRef": "cg_integration_dispatch",
+      "queueClass": "integration_effect_dispatch",
+      "retryPosture": "dependency_profile_bound_retry",
+      "dlqRef": "dlq_integration_effects",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_communication_q_event_notification_effects",
+      "streamRef": "stream_communication",
+      "queueRef": "q_event_notification_effects",
+      "consumerGroupRef": "cg_notification_dispatch",
+      "queueClass": "notification_dispatch",
+      "retryPosture": "delivery_receipt_window",
+      "dlqRef": "dlq_notification_effects",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_communication_q_event_callback_correlation",
+      "streamRef": "stream_communication",
+      "queueRef": "q_event_callback_correlation",
+      "consumerGroupRef": "cg_callback_receipt_ingest",
+      "queueClass": "callback_checkpoint",
+      "retryPosture": "correlation_checkpoint_retry",
+      "dlqRef": "dlq_callback_correlation",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_communication_q_event_assurance_audit",
+      "streamRef": "stream_communication",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_confirmation_q_event_projection_live",
+      "streamRef": "stream_confirmation",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_confirmation_q_event_projection_replay",
+      "streamRef": "stream_confirmation",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_confirmation_q_event_integration_effects",
+      "streamRef": "stream_confirmation",
+      "queueRef": "q_event_integration_effects",
+      "consumerGroupRef": "cg_integration_dispatch",
+      "queueClass": "integration_effect_dispatch",
+      "retryPosture": "dependency_profile_bound_retry",
+      "dlqRef": "dlq_integration_effects",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_confirmation_q_event_callback_correlation",
+      "streamRef": "stream_confirmation",
+      "queueRef": "q_event_callback_correlation",
+      "consumerGroupRef": "cg_callback_receipt_ingest",
+      "queueClass": "callback_checkpoint",
+      "retryPosture": "correlation_checkpoint_retry",
+      "dlqRef": "dlq_callback_correlation",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_confirmation_q_event_assurance_audit",
+      "streamRef": "stream_confirmation",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_confirmation_q_event_replay_quarantine",
+      "streamRef": "stream_confirmation",
+      "queueRef": "q_event_replay_quarantine",
+      "consumerGroupRef": "cg_replay_quarantine_review",
+      "queueClass": "replay_quarantine",
+      "retryPosture": "manual_resume_only",
+      "dlqRef": "dlq_replay_quarantine",
+      "matchedEventCount": 2,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_exception_q_event_projection_live",
+      "streamRef": "stream_exception",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 4,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_exception_q_event_projection_replay",
+      "streamRef": "stream_exception",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 4,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_exception_q_event_assurance_audit",
+      "streamRef": "stream_exception",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 4,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_exception_q_event_replay_quarantine",
+      "streamRef": "stream_exception",
+      "queueRef": "q_event_replay_quarantine",
+      "consumerGroupRef": "cg_replay_quarantine_review",
+      "queueClass": "replay_quarantine",
+      "retryPosture": "manual_resume_only",
+      "dlqRef": "dlq_replay_quarantine",
+      "matchedEventCount": 1,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_hub_q_event_projection_live",
+      "streamRef": "stream_hub",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 11,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_hub_q_event_projection_replay",
+      "streamRef": "stream_hub",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 11,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_hub_q_event_assurance_audit",
+      "streamRef": "stream_hub",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 11,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_hub_q_event_integration_effects",
+      "streamRef": "stream_hub",
+      "queueRef": "q_event_integration_effects",
+      "consumerGroupRef": "cg_integration_dispatch",
+      "queueClass": "integration_effect_dispatch",
+      "retryPosture": "dependency_profile_bound_retry",
+      "dlqRef": "dlq_integration_effects",
+      "matchedEventCount": 1,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_hub_q_event_callback_correlation",
+      "streamRef": "stream_hub",
+      "queueRef": "q_event_callback_correlation",
+      "consumerGroupRef": "cg_callback_receipt_ingest",
+      "queueClass": "callback_checkpoint",
+      "retryPosture": "correlation_checkpoint_retry",
+      "dlqRef": "dlq_callback_correlation",
+      "matchedEventCount": 1,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_identity_q_event_projection_live",
+      "streamRef": "stream_identity",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 16,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_identity_q_event_projection_replay",
+      "streamRef": "stream_identity",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 16,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_identity_q_event_assurance_audit",
+      "streamRef": "stream_identity",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 16,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_identity_q_event_replay_quarantine",
+      "streamRef": "stream_identity",
+      "queueRef": "q_event_replay_quarantine",
+      "consumerGroupRef": "cg_replay_quarantine_review",
+      "queueClass": "replay_quarantine",
+      "retryPosture": "manual_resume_only",
+      "dlqRef": "dlq_replay_quarantine",
+      "matchedEventCount": 1,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_intake_q_event_projection_live",
+      "streamRef": "stream_intake",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 9,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_intake_q_event_projection_replay",
+      "streamRef": "stream_intake",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 9,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_intake_q_event_assurance_audit",
+      "streamRef": "stream_intake",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 9,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_intake_q_event_replay_quarantine",
+      "streamRef": "stream_intake",
+      "queueRef": "q_event_replay_quarantine",
+      "consumerGroupRef": "cg_replay_quarantine_review",
+      "queueClass": "replay_quarantine",
+      "retryPosture": "manual_resume_only",
+      "dlqRef": "dlq_replay_quarantine",
+      "matchedEventCount": 1,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_patient_q_event_projection_live",
+      "streamRef": "stream_patient",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 7,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_patient_q_event_projection_replay",
+      "streamRef": "stream_patient",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 7,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_patient_q_event_integration_effects",
+      "streamRef": "stream_patient",
+      "queueRef": "q_event_integration_effects",
+      "consumerGroupRef": "cg_integration_dispatch",
+      "queueClass": "integration_effect_dispatch",
+      "retryPosture": "dependency_profile_bound_retry",
+      "dlqRef": "dlq_integration_effects",
+      "matchedEventCount": 3,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_patient_q_event_notification_effects",
+      "streamRef": "stream_patient",
+      "queueRef": "q_event_notification_effects",
+      "consumerGroupRef": "cg_notification_dispatch",
+      "queueClass": "notification_dispatch",
+      "retryPosture": "delivery_receipt_window",
+      "dlqRef": "dlq_notification_effects",
+      "matchedEventCount": 7,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_patient_q_event_callback_correlation",
+      "streamRef": "stream_patient",
+      "queueRef": "q_event_callback_correlation",
+      "consumerGroupRef": "cg_callback_receipt_ingest",
+      "queueClass": "callback_checkpoint",
+      "retryPosture": "correlation_checkpoint_retry",
+      "dlqRef": "dlq_callback_correlation",
+      "matchedEventCount": 3,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_patient_q_event_assurance_audit",
+      "streamRef": "stream_patient",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 7,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_patient_q_event_replay_quarantine",
+      "streamRef": "stream_patient",
+      "queueRef": "q_event_replay_quarantine",
+      "consumerGroupRef": "cg_replay_quarantine_review",
+      "queueClass": "replay_quarantine",
+      "retryPosture": "manual_resume_only",
+      "dlqRef": "dlq_replay_quarantine",
+      "matchedEventCount": 1,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_pharmacy_q_event_projection_live",
+      "streamRef": "stream_pharmacy",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 14,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_pharmacy_q_event_projection_replay",
+      "streamRef": "stream_pharmacy",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 14,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_pharmacy_q_event_integration_effects",
+      "streamRef": "stream_pharmacy",
+      "queueRef": "q_event_integration_effects",
+      "consumerGroupRef": "cg_integration_dispatch",
+      "queueClass": "integration_effect_dispatch",
+      "retryPosture": "dependency_profile_bound_retry",
+      "dlqRef": "dlq_integration_effects",
+      "matchedEventCount": 14,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_pharmacy_q_event_callback_correlation",
+      "streamRef": "stream_pharmacy",
+      "queueRef": "q_event_callback_correlation",
+      "consumerGroupRef": "cg_callback_receipt_ingest",
+      "queueClass": "callback_checkpoint",
+      "retryPosture": "correlation_checkpoint_retry",
+      "dlqRef": "dlq_callback_correlation",
+      "matchedEventCount": 14,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_pharmacy_q_event_assurance_audit",
+      "streamRef": "stream_pharmacy",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 14,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_policy_q_event_projection_live",
+      "streamRef": "stream_policy",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 3,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_policy_q_event_projection_replay",
+      "streamRef": "stream_policy",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 3,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_policy_q_event_assurance_audit",
+      "streamRef": "stream_policy",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 3,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_policy_q_event_replay_quarantine",
+      "streamRef": "stream_policy",
+      "queueRef": "q_event_replay_quarantine",
+      "consumerGroupRef": "cg_replay_quarantine_review",
+      "queueClass": "replay_quarantine",
+      "retryPosture": "manual_resume_only",
+      "dlqRef": "dlq_replay_quarantine",
+      "matchedEventCount": 3,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_reachability_q_event_projection_live",
+      "streamRef": "stream_reachability",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_reachability_q_event_projection_replay",
+      "streamRef": "stream_reachability",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_reachability_q_event_integration_effects",
+      "streamRef": "stream_reachability",
+      "queueRef": "q_event_integration_effects",
+      "consumerGroupRef": "cg_integration_dispatch",
+      "queueClass": "integration_effect_dispatch",
+      "retryPosture": "dependency_profile_bound_retry",
+      "dlqRef": "dlq_integration_effects",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_reachability_q_event_callback_correlation",
+      "streamRef": "stream_reachability",
+      "queueRef": "q_event_callback_correlation",
+      "consumerGroupRef": "cg_callback_receipt_ingest",
+      "queueClass": "callback_checkpoint",
+      "retryPosture": "correlation_checkpoint_retry",
+      "dlqRef": "dlq_callback_correlation",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_reachability_q_event_assurance_audit",
+      "streamRef": "stream_reachability",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_release_q_event_projection_live",
+      "streamRef": "stream_release",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 7,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_release_q_event_projection_replay",
+      "streamRef": "stream_release",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 7,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_release_q_event_assurance_audit",
+      "streamRef": "stream_release",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 7,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_request_q_event_projection_live",
+      "streamRef": "stream_request",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 27,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_request_q_event_projection_replay",
+      "streamRef": "stream_request",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 27,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_request_q_event_assurance_audit",
+      "streamRef": "stream_request",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 27,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_request_q_event_replay_quarantine",
+      "streamRef": "stream_request",
+      "queueRef": "q_event_replay_quarantine",
+      "consumerGroupRef": "cg_replay_quarantine_review",
+      "queueClass": "replay_quarantine",
+      "retryPosture": "manual_resume_only",
+      "dlqRef": "dlq_replay_quarantine",
+      "matchedEventCount": 2,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_safety_q_event_projection_live",
+      "streamRef": "stream_safety",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 8,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_safety_q_event_projection_replay",
+      "streamRef": "stream_safety",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 8,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_safety_q_event_assurance_audit",
+      "streamRef": "stream_safety",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 8,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_support_q_event_projection_live",
+      "streamRef": "stream_support",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_support_q_event_projection_replay",
+      "streamRef": "stream_support",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_support_q_event_notification_effects",
+      "streamRef": "stream_support",
+      "queueRef": "q_event_notification_effects",
+      "consumerGroupRef": "cg_notification_dispatch",
+      "queueClass": "notification_dispatch",
+      "retryPosture": "delivery_receipt_window",
+      "dlqRef": "dlq_notification_effects",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_support_q_event_assurance_audit",
+      "streamRef": "stream_support",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_telephony_q_event_projection_live",
+      "streamRef": "stream_telephony",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 15,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_telephony_q_event_projection_replay",
+      "streamRef": "stream_telephony",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 15,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_telephony_q_event_integration_effects",
+      "streamRef": "stream_telephony",
+      "queueRef": "q_event_integration_effects",
+      "consumerGroupRef": "cg_integration_dispatch",
+      "queueClass": "integration_effect_dispatch",
+      "retryPosture": "dependency_profile_bound_retry",
+      "dlqRef": "dlq_integration_effects",
+      "matchedEventCount": 15,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_telephony_q_event_callback_correlation",
+      "streamRef": "stream_telephony",
+      "queueRef": "q_event_callback_correlation",
+      "consumerGroupRef": "cg_callback_receipt_ingest",
+      "queueClass": "callback_checkpoint",
+      "retryPosture": "correlation_checkpoint_retry",
+      "dlqRef": "dlq_callback_correlation",
+      "matchedEventCount": 15,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_telephony_q_event_assurance_audit",
+      "streamRef": "stream_telephony",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 15,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_telephony_q_event_replay_quarantine",
+      "streamRef": "stream_telephony",
+      "queueRef": "q_event_replay_quarantine",
+      "consumerGroupRef": "cg_replay_quarantine_review",
+      "queueClass": "replay_quarantine",
+      "retryPosture": "manual_resume_only",
+      "dlqRef": "dlq_replay_quarantine",
+      "matchedEventCount": 15,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_triage_q_event_projection_live",
+      "streamRef": "stream_triage",
+      "queueRef": "q_event_projection_live",
+      "consumerGroupRef": "cg_projection_live",
+      "queueClass": "projection_live",
+      "retryPosture": "checkpoint_resume",
+      "dlqRef": "dlq_projection_live",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_triage_q_event_projection_replay",
+      "streamRef": "stream_triage",
+      "queueRef": "q_event_projection_replay",
+      "consumerGroupRef": "cg_projection_replay",
+      "queueClass": "projection_replay",
+      "retryPosture": "resume_from_checkpoint_only",
+      "dlqRef": "dlq_projection_replay",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    },
+    {
+      "subscriptionRef": "sub_triage_q_event_assurance_audit",
+      "streamRef": "stream_triage",
+      "queueRef": "q_event_assurance_audit",
+      "consumerGroupRef": "cg_assurance_observe",
+      "queueClass": "assurance_observe",
+      "retryPosture": "audit_append_then_alert",
+      "dlqRef": "dlq_assurance_audit",
+      "matchedEventCount": 5,
+      "acknowledgementRule": "durable_inbox_checkpoint_or_quarantine"
+    }
+  ],
+  "accessControls": [
+    {
+      "serviceIdentityRef": "sid_command_api",
+      "publishQueueRefs": [
+        "q_event_integration_effects",
+        "q_event_callback_correlation",
+        "q_event_assurance_audit",
+        "q_event_replay_quarantine"
+      ],
+      "consumeQueueRefs": [
+        "q_event_callback_correlation",
+        "q_event_replay_quarantine"
+      ],
+      "policyMode": "outbox_only_and_no_browser_publish",
+      "blockedQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay"
+      ]
+    },
+    {
+      "serviceIdentityRef": "sid_projection_worker",
+      "publishQueueRefs": [],
+      "consumeQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay"
+      ],
+      "policyMode": "inbox_checkpoint_only",
+      "blockedQueueRefs": [
+        "q_event_integration_effects",
+        "q_event_notification_effects"
+      ]
+    },
+    {
+      "serviceIdentityRef": "sid_integration_dispatch",
+      "publishQueueRefs": [
+        "q_event_notification_effects",
+        "q_event_callback_correlation",
+        "q_event_assurance_audit"
+      ],
+      "consumeQueueRefs": [
+        "q_event_integration_effects",
+        "q_event_notification_effects",
+        "q_event_callback_correlation"
+      ],
+      "policyMode": "outbox_then_callback_checkpoint",
+      "blockedQueueRefs": [
+        "q_event_projection_replay"
+      ]
+    },
+    {
+      "serviceIdentityRef": "sid_adapter_simulators",
+      "publishQueueRefs": [
+        "q_event_callback_correlation",
+        "q_event_assurance_audit"
+      ],
+      "consumeQueueRefs": [
+        "q_event_integration_effects",
+        "q_event_notification_effects"
+      ],
+      "policyMode": "simulator_parity_only",
+      "blockedQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay"
+      ]
+    },
+    {
+      "serviceIdentityRef": "sid_assurance_control",
+      "publishQueueRefs": [],
+      "consumeQueueRefs": [
+        "q_event_assurance_audit",
+        "q_event_replay_quarantine"
+      ],
+      "policyMode": "observe_and_replay_review",
+      "blockedQueueRefs": [
+        "q_event_notification_effects"
+      ]
+    },
+    {
+      "serviceIdentityRef": "browser",
+      "publishQueueRefs": [],
+      "consumeQueueRefs": [],
+      "policyMode": "blocked",
+      "blockedQueueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_integration_effects",
+        "q_event_notification_effects",
+        "q_event_callback_correlation",
+        "q_event_assurance_audit",
+        "q_event_replay_quarantine"
+      ]
+    }
+  ],
+  "localBrokerEnvironments": [
+    {
+      "environmentRing": "local",
+      "brokerRef": "broker_local",
+      "streamRefs": [
+        "stream_access",
+        "stream_analytics",
+        "stream_assistive",
+        "stream_audit",
+        "stream_booking",
+        "stream_capacity",
+        "stream_communication",
+        "stream_confirmation",
+        "stream_exception",
+        "stream_hub",
+        "stream_identity",
+        "stream_intake",
+        "stream_patient",
+        "stream_pharmacy",
+        "stream_policy",
+        "stream_reachability",
+        "stream_release",
+        "stream_request",
+        "stream_safety",
+        "stream_support",
+        "stream_telephony",
+        "stream_triage"
+      ],
+      "queueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_integration_effects",
+        "q_event_notification_effects",
+        "q_event_callback_correlation",
+        "q_event_assurance_audit",
+        "q_event_replay_quarantine"
+      ],
+      "bootstrapScriptRef": "infra/event-spine/local/bootstrap-event-spine.mjs",
+      "resetScriptRef": "infra/event-spine/local/reset-event-spine.mjs",
+      "policyRef": "infra/event-spine/local/broker-access-policy.json",
+      "dlqRetentionHours": 24
+    },
+    {
+      "environmentRing": "ci-preview",
+      "brokerRef": "broker_ci_preview",
+      "streamRefs": [
+        "stream_access",
+        "stream_analytics",
+        "stream_assistive",
+        "stream_audit",
+        "stream_booking",
+        "stream_capacity",
+        "stream_communication",
+        "stream_confirmation",
+        "stream_exception",
+        "stream_hub",
+        "stream_identity",
+        "stream_intake",
+        "stream_patient",
+        "stream_pharmacy",
+        "stream_policy",
+        "stream_reachability",
+        "stream_release",
+        "stream_request",
+        "stream_safety",
+        "stream_support",
+        "stream_telephony",
+        "stream_triage"
+      ],
+      "queueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_integration_effects",
+        "q_event_notification_effects",
+        "q_event_callback_correlation",
+        "q_event_assurance_audit",
+        "q_event_replay_quarantine"
+      ],
+      "bootstrapScriptRef": "infra/event-spine/local/bootstrap-event-spine.mjs",
+      "resetScriptRef": "infra/event-spine/local/reset-event-spine.mjs",
+      "policyRef": "infra/event-spine/local/broker-access-policy.json",
+      "dlqRetentionHours": 24
+    },
+    {
+      "environmentRing": "integration",
+      "brokerRef": "broker_integration",
+      "streamRefs": [
+        "stream_access",
+        "stream_analytics",
+        "stream_assistive",
+        "stream_audit",
+        "stream_booking",
+        "stream_capacity",
+        "stream_communication",
+        "stream_confirmation",
+        "stream_exception",
+        "stream_hub",
+        "stream_identity",
+        "stream_intake",
+        "stream_patient",
+        "stream_pharmacy",
+        "stream_policy",
+        "stream_reachability",
+        "stream_release",
+        "stream_request",
+        "stream_safety",
+        "stream_support",
+        "stream_telephony",
+        "stream_triage"
+      ],
+      "queueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_integration_effects",
+        "q_event_notification_effects",
+        "q_event_callback_correlation",
+        "q_event_assurance_audit",
+        "q_event_replay_quarantine"
+      ],
+      "bootstrapScriptRef": "infra/event-spine/local/bootstrap-event-spine.mjs",
+      "resetScriptRef": "infra/event-spine/local/reset-event-spine.mjs",
+      "policyRef": "infra/event-spine/local/broker-access-policy.json",
+      "dlqRetentionHours": 24
+    },
+    {
+      "environmentRing": "preprod",
+      "brokerRef": "broker_preprod",
+      "streamRefs": [
+        "stream_access",
+        "stream_analytics",
+        "stream_assistive",
+        "stream_audit",
+        "stream_booking",
+        "stream_capacity",
+        "stream_communication",
+        "stream_confirmation",
+        "stream_exception",
+        "stream_hub",
+        "stream_identity",
+        "stream_intake",
+        "stream_patient",
+        "stream_pharmacy",
+        "stream_policy",
+        "stream_reachability",
+        "stream_release",
+        "stream_request",
+        "stream_safety",
+        "stream_support",
+        "stream_telephony",
+        "stream_triage"
+      ],
+      "queueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_integration_effects",
+        "q_event_notification_effects",
+        "q_event_callback_correlation",
+        "q_event_assurance_audit",
+        "q_event_replay_quarantine"
+      ],
+      "bootstrapScriptRef": "infra/event-spine/local/bootstrap-event-spine.mjs",
+      "resetScriptRef": "infra/event-spine/local/reset-event-spine.mjs",
+      "policyRef": "infra/event-spine/local/broker-access-policy.json",
+      "dlqRetentionHours": 168
+    },
+    {
+      "environmentRing": "production",
+      "brokerRef": "broker_production",
+      "streamRefs": [
+        "stream_access",
+        "stream_analytics",
+        "stream_assistive",
+        "stream_audit",
+        "stream_booking",
+        "stream_capacity",
+        "stream_communication",
+        "stream_confirmation",
+        "stream_exception",
+        "stream_hub",
+        "stream_identity",
+        "stream_intake",
+        "stream_patient",
+        "stream_pharmacy",
+        "stream_policy",
+        "stream_reachability",
+        "stream_release",
+        "stream_request",
+        "stream_safety",
+        "stream_support",
+        "stream_telephony",
+        "stream_triage"
+      ],
+      "queueRefs": [
+        "q_event_projection_live",
+        "q_event_projection_replay",
+        "q_event_integration_effects",
+        "q_event_notification_effects",
+        "q_event_callback_correlation",
+        "q_event_assurance_audit",
+        "q_event_replay_quarantine"
+      ],
+      "bootstrapScriptRef": "infra/event-spine/local/bootstrap-event-spine.mjs",
+      "resetScriptRef": "infra/event-spine/local/reset-event-spine.mjs",
+      "policyRef": "infra/event-spine/local/broker-access-policy.json",
+      "dlqRetentionHours": 168
+    }
+  ],
+  "manifest_tuple_hash": "7b17edadd27d7be97cb04ad39deeb26f"
+}

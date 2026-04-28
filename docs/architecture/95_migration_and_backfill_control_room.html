@@ -1,0 +1,1125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Migration And Backfill Control Room</title>
+    <style>
+      :root {
+        --canvas: #f7f9fc;
+        --panel: #ffffff;
+        --rail: #eef2f7;
+        --inset: #f4f7fb;
+        --text-strong: #0f172a;
+        --text-default: #1e293b;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+        --migration: #2563eb;
+        --backfill: #0ea5a4;
+        --readiness: #7c3aed;
+        --warning: #d97706;
+        --blocked: #c24141;
+        --ready: #059669;
+        --shadow: 0 22px 48px rgba(15, 23, 42, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text-default);
+        background:
+          radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 22%),
+          radial-gradient(circle at top right, rgba(14, 165, 164, 0.08), transparent 22%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(247, 249, 252, 1)),
+          var(--canvas);
+      }
+
+      body[data-reduced-motion="true"] * {
+        animation: none !important;
+        scroll-behavior: auto !important;
+        transition: none !important;
+      }
+
+      button,
+      select {
+        transition:
+          background-color 120ms ease,
+          border-color 120ms ease,
+          box-shadow 120ms ease,
+          transform 120ms ease;
+      }
+
+      .shell {
+        max-width: 1580px;
+        margin: 0 auto;
+        padding: 18px 24px 28px;
+      }
+
+      .masthead,
+      .rail,
+      .panel,
+      .inspector {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+      }
+
+      .masthead {
+        min-height: 76px;
+        position: sticky;
+        top: 12px;
+        z-index: 20;
+        padding: 16px 22px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .brand-row,
+      .metric-row,
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .monogram {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(37, 99, 235, 0.18);
+        background: linear-gradient(
+          145deg,
+          rgba(37, 99, 235, 0.14),
+          rgba(124, 58, 237, 0.08)
+        );
+      }
+
+      .brand svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      p {
+        margin: 0;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4 {
+        color: var(--text-strong);
+      }
+
+      .subtle {
+        color: var(--text-muted);
+        line-height: 1.5;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.78rem;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+      }
+
+      .metric-row {
+        gap: 12px;
+      }
+
+      .metric {
+        min-width: 168px;
+        padding: 10px 12px;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: var(--inset);
+      }
+
+      .metric span {
+        display: block;
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 1.36rem;
+        color: var(--text-strong);
+      }
+
+      .workspace {
+        margin-top: 20px;
+        display: grid;
+        grid-template-columns: 324px minmax(0, 1fr) 420px;
+        gap: 20px;
+        align-items: start;
+      }
+
+      .rail,
+      .panel,
+      .inspector {
+        padding: 20px;
+      }
+
+      .rail {
+        background: linear-gradient(180deg, rgba(238, 242, 247, 0.92), rgba(255, 255, 255, 1));
+        display: grid;
+        gap: 18px;
+        align-content: start;
+      }
+
+      .main-column {
+        min-width: 0;
+        display: grid;
+        gap: 20px;
+      }
+
+      .filters,
+      .stack,
+      .timeline-track,
+      .readiness-grid,
+      .execution-grid,
+      .evidence-grid,
+      .inspector-grid,
+      .phase-grid,
+      .parity-copy {
+        display: grid;
+        gap: 12px;
+      }
+
+      .diagram-panel {
+        min-height: 320px;
+      }
+
+      .phase-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .phase-card,
+      .timeline-item,
+      .matrix-card {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(244, 247, 251, 0.92), rgba(255, 255, 255, 0.98));
+        padding: 16px;
+      }
+
+      .phase-card {
+        min-height: 164px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .phase-card[data-state="completed"] {
+        border-color: rgba(5, 150, 105, 0.28);
+      }
+
+      .phase-card[data-state="running"],
+      .timeline-item[data-state="open"] {
+        border-color: rgba(217, 119, 6, 0.28);
+      }
+
+      .phase-card[data-state="blocked"],
+      .timeline-item[data-state="rollback_required"] {
+        border-color: rgba(194, 65, 65, 0.32);
+      }
+
+      .badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 0.74rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        border: 1px solid transparent;
+      }
+
+      .badge-ready {
+        color: var(--ready);
+        background: rgba(5, 150, 105, 0.08);
+        border-color: rgba(5, 150, 105, 0.18);
+      }
+
+      .badge-constrained {
+        color: var(--warning);
+        background: rgba(217, 119, 6, 0.08);
+        border-color: rgba(217, 119, 6, 0.18);
+      }
+
+      .badge-blocked {
+        color: var(--blocked);
+        background: rgba(194, 65, 65, 0.08);
+        border-color: rgba(194, 65, 65, 0.18);
+      }
+
+      .badge-migration {
+        color: var(--migration);
+        background: rgba(37, 99, 235, 0.08);
+        border-color: rgba(37, 99, 235, 0.18);
+      }
+
+      .badge-backfill {
+        color: var(--backfill);
+        background: rgba(14, 165, 164, 0.08);
+        border-color: rgba(14, 165, 164, 0.18);
+      }
+
+      .label {
+        display: grid;
+        gap: 8px;
+        font-size: 0.84rem;
+        color: var(--text-muted);
+      }
+
+      select {
+        height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        padding: 0 14px;
+        color: var(--text-strong);
+      }
+
+      select:focus-visible,
+      .matrix-card:focus-visible,
+      .execution-row:focus-visible {
+        outline: 2px solid rgba(37, 99, 235, 0.2);
+        border-color: rgba(37, 99, 235, 0.42);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+      }
+
+      .matrix-card,
+      .execution-row {
+        cursor: pointer;
+      }
+
+      .readiness-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .matrix-card {
+        text-align: left;
+        width: 100%;
+        background: linear-gradient(180deg, rgba(244, 247, 251, 0.95), rgba(255, 255, 255, 0.98));
+      }
+
+      .matrix-card[data-selected="true"],
+      .execution-row[data-selected="true"] {
+        border-color: rgba(124, 58, 237, 0.34);
+        box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.16);
+      }
+
+      .matrix-card[data-verdict-state="ready"] {
+        border-left: 4px solid var(--ready);
+      }
+
+      .matrix-card[data-verdict-state="constrained"] {
+        border-left: 4px solid var(--warning);
+      }
+
+      .matrix-card[data-verdict-state="blocked"] {
+        border-left: 4px solid var(--blocked);
+      }
+
+      .matrix-card:hover,
+      .execution-row:hover {
+        transform: translateY(-1px);
+      }
+
+      .timeline-track {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .timeline-item {
+        min-height: 132px;
+      }
+
+      .execution-table,
+      .evidence-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+      }
+
+      .execution-table th,
+      .execution-table td,
+      .evidence-table th,
+      .evidence-table td {
+        padding: 12px 10px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .execution-table th,
+      .evidence-table th {
+        font-size: 0.76rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .execution-row {
+        border: 0;
+        background: transparent;
+        padding: 0;
+        width: 100%;
+        text-align: left;
+        border-radius: 16px;
+      }
+
+      .execution-row-wrap {
+        padding: 10px 0;
+      }
+
+      .text-list {
+        margin: 0;
+        padding-left: 18px;
+        color: var(--text-muted);
+      }
+
+      .panel-copy {
+        display: grid;
+        gap: 8px;
+      }
+
+      .inspector {
+        position: sticky;
+        top: 92px;
+        display: grid;
+        gap: 16px;
+        align-content: start;
+      }
+
+      .inspector-grid .group {
+        padding: 14px;
+        border-radius: 18px;
+        background: var(--inset);
+        border: 1px solid var(--border);
+      }
+
+      .kpi-strip {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .kpi {
+        padding: 12px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, rgba(244, 247, 251, 0.88), rgba(255, 255, 255, 0.96));
+      }
+
+      .lower-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+        gap: 20px;
+      }
+
+      .status-text[data-verdict-state="ready"] {
+        color: var(--ready);
+      }
+
+      .status-text[data-verdict-state="constrained"] {
+        color: var(--warning);
+      }
+
+      .status-text[data-verdict-state="blocked"] {
+        color: var(--blocked);
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      @media (max-width: 1320px) {
+        .workspace {
+          grid-template-columns: 324px minmax(0, 1fr);
+        }
+
+        .inspector {
+          position: relative;
+          top: 0;
+          grid-column: 1 / -1;
+        }
+      }
+
+      @media (max-width: 1080px) {
+        .phase-grid,
+        .timeline-track,
+        .readiness-grid,
+        .lower-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="masthead">
+        <div class="brand-row">
+          <div class="brand">
+            <div class="monogram" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 18V6h3.2l4 5.2L15.2 6H20v12h-2.8V9.9l-4.8 6.1-4.8-6.1V18H4Z" fill="#2563EB" />
+              </svg>
+            </div>
+            <div>
+              <p class="mono">Vecells</p>
+              <h1>Migration_And_Backfill_Control_Room</h1>
+            </div>
+          </div>
+          <div class="panel-copy">
+            <p class="subtle">
+              Governed expand-migrate-contract execution, route-scoped readiness, and observation-window proof.
+            </p>
+            <p class="mono" id="catalog-digest">catalog-digest pending</p>
+          </div>
+        </div>
+        <div class="metric-row" aria-live="polite">
+          <div class="metric">
+            <span>Active Migrations</span>
+            <strong id="metric-active">0</strong>
+          </div>
+          <div class="metric">
+            <span>Lagging Backfills</span>
+            <strong id="metric-lagging">0</strong>
+          </div>
+          <div class="metric">
+            <span>Blocked Verdicts</span>
+            <strong id="metric-blocked">0</strong>
+          </div>
+          <div class="metric">
+            <span>Observation Alerts</span>
+            <strong id="metric-observation">0</strong>
+          </div>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <aside class="rail" aria-label="Filters">
+          <div class="panel-copy">
+            <h2>Filters</h2>
+            <p class="subtle">
+              Narrow by environment, plan posture, route family, readiness verdict, and rollback mode.
+            </p>
+          </div>
+          <div class="filters">
+            <label class="label">
+              Environment
+              <select data-testid="filter-environment" id="filter-environment"></select>
+            </label>
+            <label class="label">
+              Plan State
+              <select data-testid="filter-plan-state" id="filter-plan-state"></select>
+            </label>
+            <label class="label">
+              Route Family
+              <select data-testid="filter-route-family" id="filter-route-family"></select>
+            </label>
+            <label class="label">
+              Verdict State
+              <select data-testid="filter-verdict-state" id="filter-verdict-state"></select>
+            </label>
+            <label class="label">
+              Rollback Mode
+              <select data-testid="filter-rollback-mode" id="filter-rollback-mode"></select>
+            </label>
+          </div>
+          <div class="panel-copy">
+            <h3>Operator Notes</h3>
+            <ul class="text-list">
+              <li>Backfill never upgrades route posture on its own.</li>
+              <li>Observation remains an explicit gate, not a dashboard suggestion.</li>
+              <li>Blocked publication tuples stay blocked in the same shell.</li>
+            </ul>
+          </div>
+        </aside>
+
+        <section class="main-column" aria-label="Migration visuals">
+          <section class="panel diagram-panel" data-testid="phase-diagram">
+            <div class="panel-header">
+              <div class="panel-copy">
+                <h2>Migration Phase Lane Diagram</h2>
+                <p class="subtle">
+                  One exact phase lane plus textual parity for the currently selected migration record.
+                </p>
+              </div>
+              <div class="badge-row" id="selected-phase-badges"></div>
+            </div>
+            <div class="phase-grid" id="phase-grid"></div>
+            <div class="parity-copy" id="phase-copy"></div>
+          </section>
+
+          <section class="panel diagram-panel" data-testid="readiness-matrix">
+            <div class="panel-header">
+              <div class="panel-copy">
+                <h2>Projection Readiness Matrix</h2>
+                <p class="subtle">
+                  Ready, constrained, and blocked verdicts remain visually and semantically distinct.
+                </p>
+              </div>
+              <p class="mono" id="matrix-count"></p>
+            </div>
+            <div class="readiness-grid" id="readiness-grid" role="listbox" aria-label="Readiness matrix"></div>
+            <div class="parity-copy">
+              <p class="subtle" id="matrix-parity">
+                Matrix cards mirror the readiness matrix rows and act as the primary selection surface.
+              </p>
+            </div>
+          </section>
+
+          <section class="panel diagram-panel" data-testid="execution-timeline">
+            <div class="panel-header">
+              <div class="panel-copy">
+                <h2>Execution And Observation Timeline</h2>
+                <p class="subtle">
+                  The timeline strip shows expand, backfill, observation, and contract posture for the selected record.
+                </p>
+              </div>
+            </div>
+            <div class="timeline-track" id="timeline-track"></div>
+            <div class="parity-copy" id="timeline-copy"></div>
+          </section>
+
+          <section class="lower-grid">
+            <section class="panel" data-testid="execution-table">
+              <div class="panel-header">
+                <div class="panel-copy">
+                  <h2>Execution Table</h2>
+                  <p class="subtle">
+                    Keyboard-navigable execution rows keep filters, diagrams, timeline, and inspector synchronized.
+                  </p>
+                </div>
+              </div>
+              <table class="execution-table">
+                <thead>
+                  <tr>
+                    <th>Scenario</th>
+                    <th>Environment</th>
+                    <th>Verdict</th>
+                    <th>Settlement</th>
+                    <th>Observation</th>
+                  </tr>
+                </thead>
+                <tbody id="execution-table-body"></tbody>
+              </table>
+            </section>
+
+            <section class="panel" data-testid="evidence-table">
+              <div class="panel-header">
+                <div class="panel-copy">
+                  <h2>Readiness And Evidence Table</h2>
+                  <p class="subtle">
+                    Publication, parity, observation, and rollback evidence stay adjacent to the selected route verdict.
+                  </p>
+                </div>
+              </div>
+              <table class="evidence-table">
+                <thead>
+                  <tr>
+                    <th>Evidence</th>
+                    <th>Kind</th>
+                    <th>State</th>
+                    <th>Detail</th>
+                  </tr>
+                </thead>
+                <tbody id="evidence-table-body"></tbody>
+              </table>
+            </section>
+          </section>
+        </section>
+
+        <aside class="inspector" data-testid="inspector" aria-label="Inspector">
+          <div class="panel-copy">
+            <h2>Inspector</h2>
+            <p class="subtle">
+              Selected plan, binding, backfill, observation, and route verdict details.
+            </p>
+          </div>
+          <div class="kpi-strip" id="inspector-kpis"></div>
+          <div class="inspector-grid" id="inspector-grid"></div>
+        </aside>
+      </main>
+    </div>
+
+    <script>
+      const state = {
+        environment: "all",
+        planState: "all",
+        routeFamily: "all",
+        verdictState: "all",
+        rollbackMode: "all",
+        selectedScenarioId: null,
+      };
+
+      const dom = {
+        body: document.body,
+        catalogDigest: document.getElementById("catalog-digest"),
+        metricActive: document.getElementById("metric-active"),
+        metricLagging: document.getElementById("metric-lagging"),
+        metricBlocked: document.getElementById("metric-blocked"),
+        metricObservation: document.getElementById("metric-observation"),
+        filterEnvironment: document.getElementById("filter-environment"),
+        filterPlanState: document.getElementById("filter-plan-state"),
+        filterRouteFamily: document.getElementById("filter-route-family"),
+        filterVerdictState: document.getElementById("filter-verdict-state"),
+        filterRollbackMode: document.getElementById("filter-rollback-mode"),
+        selectedPhaseBadges: document.getElementById("selected-phase-badges"),
+        phaseGrid: document.getElementById("phase-grid"),
+        phaseCopy: document.getElementById("phase-copy"),
+        readinessGrid: document.getElementById("readiness-grid"),
+        matrixCount: document.getElementById("matrix-count"),
+        timelineTrack: document.getElementById("timeline-track"),
+        timelineCopy: document.getElementById("timeline-copy"),
+        executionTableBody: document.getElementById("execution-table-body"),
+        evidenceTableBody: document.getElementById("evidence-table-body"),
+        inspectorKpis: document.getElementById("inspector-kpis"),
+        inspectorGrid: document.getElementById("inspector-grid"),
+      };
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+      }
+
+      function badgeClass(verdictState) {
+        return verdictState === "ready"
+          ? "badge badge-ready"
+          : verdictState === "constrained"
+            ? "badge badge-constrained"
+            : "badge badge-blocked";
+      }
+
+      function uniqueValues(records, keyPath) {
+        const values = new Set();
+        records.forEach((record) => {
+          const value = keyPath(record);
+          if (value) values.add(value);
+        });
+        return Array.from(values).sort((left, right) => String(left).localeCompare(String(right)));
+      }
+
+      function populateSelect(select, values, fallbackLabel) {
+        select.innerHTML = "";
+        const all = document.createElement("option");
+        all.value = "all";
+        all.textContent = fallbackLabel;
+        select.appendChild(all);
+        values.forEach((value) => {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = value;
+          select.appendChild(option);
+        });
+      }
+
+      function parseCsv(text) {
+        const rows = text.trim().split(/\r?\n/);
+        if (rows.length <= 1) return [];
+        const headers = rows[0].split(",");
+        return rows.slice(1).map((line) => {
+          const values = line.split(",");
+          return Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""]));
+        });
+      }
+
+      function getFilteredRecords() {
+        return window.__catalog.records.filter((record) => {
+          return (
+            (state.environment === "all" || record.environmentRef === state.environment) &&
+            (state.planState === "all" || record.planState === state.planState) &&
+            (state.routeFamily === "all" ||
+              record.plan.affectedRouteFamilyRefs[0] === state.routeFamily) &&
+            (state.verdictState === "all" || record.verdictState === state.verdictState) &&
+            (state.rollbackMode === "all" || record.rollbackMode === state.rollbackMode)
+          );
+        });
+      }
+
+      function getSelectedRecord(filteredRecords) {
+        if (filteredRecords.length === 0) return null;
+        const current = filteredRecords.find((record) => record.scenarioId === state.selectedScenarioId);
+        if (current) return current;
+        state.selectedScenarioId = filteredRecords[0].scenarioId;
+        return filteredRecords[0];
+      }
+
+      function setMetrics(filteredRecords) {
+        dom.metricActive.textContent = String(
+          filteredRecords.filter((record) => record.planState === "ready").length,
+        );
+        dom.metricLagging.textContent = String(
+          filteredRecords.filter((record) => record.lagState === "breached").length,
+        );
+        dom.metricBlocked.textContent = String(
+          filteredRecords.filter((record) => record.verdictState === "blocked").length,
+        );
+        dom.metricObservation.textContent = String(
+          filteredRecords.filter((record) => record.observationState !== "satisfied").length,
+        );
+      }
+
+      function renderPhaseDiagram(record) {
+        dom.selectedPhaseBadges.innerHTML = `
+          <span class="badge badge-migration">${escapeHtml(record.plan.changeType)}</span>
+          <span class="badge badge-backfill">${escapeHtml(record.backfillPlan.rebuildMode)}</span>
+          <span class="${badgeClass(record.verdictState)}" data-verdict-state="${escapeHtml(record.verdictState)}">${escapeHtml(record.verdictState)}</span>
+        `;
+        dom.phaseGrid.innerHTML = record.phaseLane
+          .map(
+            (phase) => `
+              <article class="phase-card" data-state="${escapeHtml(phase.state)}">
+                <div class="badge-row">
+                  <span class="badge badge-migration">${escapeHtml(phase.label)}</span>
+                  <span class="mono">${escapeHtml(record.environmentRef)}</span>
+                </div>
+                <h3>${escapeHtml(phase.phase)}</h3>
+                <p class="subtle">${escapeHtml(
+                  phase.state === "completed"
+                    ? "This phase is bound and complete under the selected runtime tuple."
+                    : phase.state === "running" || phase.state === "open"
+                      ? "This phase is active or still collecting observation proof."
+                      : "This phase is blocked by publication, observation, or rollback posture.",
+                )}</p>
+                <p class="mono">${escapeHtml(record.binding.migrationExecutionBindingId)}</p>
+              </article>
+            `,
+          )
+          .join("");
+        dom.phaseCopy.innerHTML = `
+          <p class="subtle">
+            Selected route family <strong>${escapeHtml(record.plan.affectedRouteFamilyRefs[0])}</strong>
+            is currently <span class="status-text" data-verdict-state="${escapeHtml(record.verdictState)}">${escapeHtml(record.verdictState)}</span>.
+          </p>
+          <ul class="text-list">
+            ${record.notes.map((note) => `<li>${escapeHtml(note)}</li>`).join("")}
+          </ul>
+        `;
+      }
+
+      function renderReadinessMatrix(filteredRecords) {
+        dom.matrixCount.textContent = `${filteredRecords.length} records in filter`;
+        dom.readinessGrid.innerHTML = filteredRecords
+          .map(
+            (record, index) => `
+              <button
+                type="button"
+                class="matrix-card"
+                role="option"
+                aria-selected="${String(record.scenarioId === state.selectedScenarioId)}"
+                data-selected="${String(record.scenarioId === state.selectedScenarioId)}"
+                data-verdict-state="${escapeHtml(record.verdictState)}"
+                data-scenario-id="${escapeHtml(record.scenarioId)}"
+                data-index="${index}"
+              >
+                <div class="badge-row">
+                  <span class="${badgeClass(record.verdictState)}" data-verdict-state="${escapeHtml(record.verdictState)}">${escapeHtml(record.verdictState)}</span>
+                  <span class="badge badge-backfill">${escapeHtml(record.rollbackMode)}</span>
+                </div>
+                <h3>${escapeHtml(record.title)}</h3>
+                <p class="subtle">${escapeHtml(record.summary)}</p>
+                <p class="mono">${escapeHtml(record.plan.migrationPlanId)}</p>
+              </button>
+            `,
+          )
+          .join("");
+      }
+
+      function renderTimeline(record) {
+        dom.timelineTrack.innerHTML = record.phaseLane
+          .map(
+            (phase) => `
+              <article class="timeline-item" data-state="${escapeHtml(
+                phase.phase === "observe" ? record.observationState : phase.state,
+              )}">
+                <p class="mono">${escapeHtml(phase.phase)}</p>
+                <h3>${escapeHtml(phase.label)}</h3>
+                <p class="subtle">${
+                  phase.phase === "observe"
+                    ? `${record.observedMinutes} minutes, ${record.observedSamples} probes, ${escapeHtml(
+                        record.observationState,
+                      )}.`
+                    : escapeHtml(
+                        phase.state === "blocked"
+                          ? "Execution cannot advance because the route verdict is not live."
+                          : "Execution remains bound to the selected migration tuple.",
+                      )
+                }</p>
+              </article>
+            `,
+          )
+          .join("");
+        dom.timelineCopy.innerHTML = `
+          <p class="subtle">
+            Comparison proof is <strong>${record.comparisonMatches ? "matched" : "missing"}</strong> and rollback posture is
+            <strong>${record.rollbackModeMatches ? "matched" : "mismatched"}</strong>.
+          </p>
+        `;
+      }
+
+      function renderExecutionTable(filteredRecords) {
+        dom.executionTableBody.innerHTML = filteredRecords
+          .map(
+            (record, index) => `
+              <tr>
+                <td class="execution-row-wrap">
+                  <button
+                    type="button"
+                    class="execution-row"
+                    data-testid="execution-row-${escapeHtml(record.scenarioId)}"
+                    data-scenario-id="${escapeHtml(record.scenarioId)}"
+                    data-selected="${String(record.scenarioId === state.selectedScenarioId)}"
+                    data-index="${index}"
+                  >
+                    <strong>${escapeHtml(record.title)}</strong>
+                    <div class="mono">${escapeHtml(record.binding.migrationExecutionBindingId)}</div>
+                  </button>
+                </td>
+                <td>${escapeHtml(record.environmentRef)}</td>
+                <td><span class="${badgeClass(record.verdictState)}" data-verdict-state="${escapeHtml(record.verdictState)}">${escapeHtml(record.verdictState)}</span></td>
+                <td>${escapeHtml(record.settlementResult)}</td>
+                <td>${escapeHtml(record.observationState)}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function renderEvidenceTable(record) {
+        dom.evidenceTableBody.innerHTML = record.evidenceRows
+          .map(
+            (row) => `
+              <tr>
+                <td><span class="mono">${escapeHtml(row.evidenceId)}</span></td>
+                <td>${escapeHtml(row.kind)}</td>
+                <td>${escapeHtml(row.state)}</td>
+                <td>${escapeHtml(row.detail)}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function renderInspector(record) {
+        dom.inspectorKpis.innerHTML = `
+          <div class="kpi">
+            <span class="mono">Verdict</span>
+            <h3 class="status-text" data-verdict-state="${escapeHtml(record.verdictState)}">${escapeHtml(record.verdictState)}</h3>
+          </div>
+          <div class="kpi">
+            <span class="mono">Observation</span>
+            <h3>${escapeHtml(record.observationState)}</h3>
+          </div>
+          <div class="kpi">
+            <span class="mono">Publication</span>
+            <h3>${escapeHtml(record.publicationState)}</h3>
+          </div>
+          <div class="kpi">
+            <span class="mono">Settlement</span>
+            <h3>${escapeHtml(record.settlementResult)}</h3>
+          </div>
+        `;
+        dom.inspectorGrid.innerHTML = `
+          <section class="group">
+            <h3>Plan</h3>
+            <p class="mono">${escapeHtml(record.plan.migrationPlanId)}</p>
+            <p class="subtle">${escapeHtml(record.summary)}</p>
+          </section>
+          <section class="group">
+            <h3>Binding</h3>
+            <p class="mono">${escapeHtml(record.binding.migrationExecutionBindingId)}</p>
+            <p class="subtle">Cutover: ${escapeHtml(record.binding.cutoverState)}. Rollback: ${escapeHtml(record.rollbackMode)}.</p>
+          </section>
+          <section class="group">
+            <h3>Backfill</h3>
+            <p class="mono">${escapeHtml(record.backfillPlan.backfillPlanId)}</p>
+            <p class="subtle">Projection set: ${escapeHtml(record.binding.projectionContractVersionSetRefs[0])}</p>
+          </section>
+          <section class="group">
+            <h3>Route Verdict</h3>
+            <p class="mono">${escapeHtml(record.projectionReadinessVerdict.projectionReadinessVerdictId)}</p>
+            <p class="subtle">${escapeHtml(record.projectionReadinessVerdict.reason)}</p>
+          </section>
+          <section class="group">
+            <h3>Observation Window</h3>
+            <p class="mono">${escapeHtml(record.observationWindow.migrationObservationWindowId)}</p>
+            <p class="subtle">${record.observedMinutes} minutes and ${record.observedSamples} probes.</p>
+          </section>
+        `;
+      }
+
+      function bindInteractiveButtons() {
+        const selectScenario = (scenarioId) => {
+          state.selectedScenarioId = scenarioId;
+          render();
+          const button = document.querySelector(`[data-scenario-id="${CSS.escape(scenarioId)}"]`);
+          button?.scrollIntoView({ block: "nearest" });
+        };
+
+        [...document.querySelectorAll(".matrix-card, .execution-row")].forEach((button) => {
+          button.addEventListener("click", () => {
+            selectScenario(button.dataset.scenarioId);
+          });
+          button.addEventListener("keydown", (event) => {
+            if (!["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft"].includes(event.key)) return;
+            const filtered = getFilteredRecords();
+            const currentIndex = filtered.findIndex((record) => record.scenarioId === button.dataset.scenarioId);
+            if (currentIndex === -1) return;
+            event.preventDefault();
+            const delta = event.key === "ArrowDown" || event.key === "ArrowRight" ? 1 : -1;
+            const next = filtered[(currentIndex + delta + filtered.length) % filtered.length];
+            if (next) {
+              selectScenario(next.scenarioId);
+              setTimeout(() => {
+                const nextButton = document.querySelector(
+                  `[data-scenario-id="${CSS.escape(next.scenarioId)}"]`,
+                );
+                nextButton?.focus();
+              }, 0);
+            }
+          });
+        });
+      }
+
+      function render() {
+        const filteredRecords = getFilteredRecords();
+        setMetrics(filteredRecords);
+        const selected = getSelectedRecord(filteredRecords);
+        if (!selected) {
+          renderReadinessMatrix(filteredRecords);
+          renderExecutionTable(filteredRecords);
+          dom.phaseGrid.innerHTML = "";
+          dom.timelineTrack.innerHTML = "";
+          dom.evidenceTableBody.innerHTML = "";
+          dom.inspectorGrid.innerHTML = `<section class="group"><p class="subtle">No records match the current filters.</p></section>`;
+          dom.inspectorKpis.innerHTML = "";
+          bindInteractiveButtons();
+          return;
+        }
+        renderReadinessMatrix(filteredRecords);
+        renderExecutionTable(filteredRecords);
+        renderPhaseDiagram(selected);
+        renderTimeline(selected);
+        renderEvidenceTable(selected);
+        renderInspector(selected);
+        bindInteractiveButtons();
+      }
+
+      async function boot() {
+        const [catalogResponse, matrixResponse] = await Promise.all([
+          fetch("../../data/analysis/migration_backfill_control_catalog.json"),
+          fetch("../../data/analysis/migration_readiness_matrix.csv"),
+        ]);
+        const catalog = await catalogResponse.json();
+        const matrixText = await matrixResponse.text();
+        window.__catalog = catalog;
+        window.__matrixRows = parseCsv(matrixText);
+
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+        const applyMotion = () => {
+          dom.body.dataset.reducedMotion = reduceMotion.matches ? "true" : "false";
+        };
+        applyMotion();
+        if (typeof reduceMotion.addEventListener === "function") {
+          reduceMotion.addEventListener("change", applyMotion);
+        } else {
+          reduceMotion.addListener(applyMotion);
+        }
+
+        dom.catalogDigest.textContent = `catalog-digest ${catalog.catalog_digest_ref.slice(0, 18)}`;
+        populateSelect(
+          dom.filterEnvironment,
+          uniqueValues(catalog.records, (record) => record.environmentRef),
+          "All Environments",
+        );
+        populateSelect(
+          dom.filterPlanState,
+          uniqueValues(catalog.records, (record) => record.planState),
+          "All Plan States",
+        );
+        populateSelect(
+          dom.filterRouteFamily,
+          uniqueValues(catalog.records, (record) => record.plan.affectedRouteFamilyRefs[0]),
+          "All Route Families",
+        );
+        populateSelect(
+          dom.filterVerdictState,
+          uniqueValues(catalog.records, (record) => record.verdictState),
+          "All Verdicts",
+        );
+        populateSelect(
+          dom.filterRollbackMode,
+          uniqueValues(catalog.records, (record) => record.rollbackMode),
+          "All Rollback Modes",
+        );
+
+        [
+          ["environment", dom.filterEnvironment],
+          ["planState", dom.filterPlanState],
+          ["routeFamily", dom.filterRouteFamily],
+          ["verdictState", dom.filterVerdictState],
+          ["rollbackMode", dom.filterRollbackMode],
+        ].forEach(([key, element]) => {
+          element.addEventListener("change", () => {
+            state[key] = element.value;
+            render();
+          });
+        });
+
+        render();
+      }
+
+      boot().catch((error) => {
+        document.body.innerHTML = `<pre>${escapeHtml(String(error))}</pre>`;
+        console.error(error);
+      });
+    </script>
+  </body>
+</html>

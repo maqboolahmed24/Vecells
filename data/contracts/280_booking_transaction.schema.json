@@ -1,0 +1,221 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "vecells://contracts/BookingTransaction",
+  "title": "BookingTransaction",
+  "description": "Append-only booking commit contract separating acknowledgement, processing, external observation, and authoritative outcome.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-taskId": "seq_280",
+  "x-contractVersion": "280.phase4.booking-flow-freeze.v1",
+  "required": [
+    "bookingTransactionId",
+    "bookingCaseId",
+    "snapshotId",
+    "canonicalReservationKey",
+    "selectedCandidateHash",
+    "policyBundleHash",
+    "providerAdapterBindingRef",
+    "providerAdapterBindingHash",
+    "idempotencyKey",
+    "preflightVersion",
+    "reservationVersion",
+    "reservationTruthProjectionRef",
+    "confirmationTruthProjectionRef",
+    "selectedSlotRef",
+    "localAckState",
+    "processingAcceptanceState",
+    "externalObservationState",
+    "authoritativeOutcomeState",
+    "createdAt"
+  ],
+  "properties": {
+    "bookingTransactionId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable booking-transaction identifier."
+    },
+    "bookingCaseId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Owning BookingCase identifier."
+    },
+    "snapshotId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Governing SlotSetSnapshot ref."
+    },
+    "canonicalReservationKey": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Canonical reservation key."
+    },
+    "selectedCandidateHash": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Hash of the selected candidate proof."
+    },
+    "policyBundleHash": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Compiled policy bundle hash."
+    },
+    "providerAdapterBindingRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Current BookingProviderAdapterBinding ref."
+    },
+    "providerAdapterBindingHash": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Current BookingProviderAdapterBinding hash."
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Exact-once idempotency key."
+    },
+    "preflightVersion": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Preflight version token."
+    },
+    "reservationVersion": {
+      "type": "string",
+      "minLength": 1,
+      "description": "ReservationAuthority version token."
+    },
+    "reservationTruthProjectionRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Current ReservationTruthProjection ref."
+    },
+    "confirmationTruthProjectionRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Current BookingConfirmationTruthProjection ref."
+    },
+    "selectedSlotRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Selected canonical slot ref."
+    },
+    "localAckState": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "accepted_locally",
+        "receipt_rendered"
+      ],
+      "description": "Local acknowledgement state."
+    },
+    "processingAcceptanceState": {
+      "type": "string",
+      "enum": [
+        "not_dispatched",
+        "accepted_for_processing",
+        "awaiting_external_confirmation",
+        "dispatch_failed"
+      ],
+      "description": "Dispatch or supplier-processing state."
+    },
+    "externalObservationState": {
+      "type": "string",
+      "enum": [
+        "none",
+        "provider_reference_seen",
+        "read_after_write_seen",
+        "provider_pending",
+        "failed",
+        "disputed"
+      ],
+      "description": "Observed supplier-side state."
+    },
+    "authoritativeOutcomeState": {
+      "type": "string",
+      "enum": [
+        "booking_in_progress",
+        "confirmation_pending",
+        "reconciliation_required",
+        "booked",
+        "failed",
+        "expired",
+        "released"
+      ],
+      "description": "Authoritative booking outcome state."
+    },
+    "compensationDispositionState": {
+      "type": "string",
+      "enum": [
+        "none",
+        "required",
+        "suppressed",
+        "completed"
+      ],
+      "description": "Compensation seam posture when commit or post-commit work diverges."
+    },
+    "externalConfirmationGateRef": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 0,
+      "description": "Linked ExternalConfirmationGate ref."
+    },
+    "adapterDispatchAttemptRef": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 0,
+      "description": "Linked AdapterDispatchAttempt ref."
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Transaction creation time."
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Transaction update time."
+    }
+  },
+  "x-formulas": {
+    "RevalidationPass": {
+      "name": "RevalidationPass(tx,t)",
+      "expression": "RevalidationPass(tx,t) = SnapshotSelectable(SlotSetSnapshot(tx.snapshotId),t) * 1[tx.providerAdapterBindingHash matches the current BookingCapabilityResolution.providerAdapterBindingHash] * LiveSupplierBookable(tx.selectedSlotRef,t) * PolicySatisfied(tx.selectedSlotRef, tx.policyBundleHash) * RouteWritable(tx,t) * VersionFresh(tx.preflightVersion, tx.selectedSlotRef, t)",
+      "machineFields": [
+        "snapshotId",
+        "providerAdapterBindingHash",
+        "selectedSlotRef",
+        "policyBundleHash",
+        "preflightVersion",
+        "routeIntentBindingRef",
+        "surfacePublicationRef",
+        "runtimePublicationBundleRef"
+      ],
+      "subPredicates": [
+        "SnapshotSelectable",
+        "RouteWritable"
+      ],
+      "sameShellFailure": "keep the selected slot visible in the same shell and degrade to bounded refresh, read-only recovery, placeholder, or safe browser handoff instead of generic failure"
+    },
+    "RouteWritable": {
+      "name": "RouteWritable(tx,t)",
+      "expression": "RouteWritable(tx,t) = 1[AudienceSurfaceRouteContract live and surface publication current and RuntimePublicationBundle live and PatientShellConsistencyProjection valid and, when embedded, PatientEmbeddedSessionProjection valid]",
+      "machineFields": [
+        "surfaceRouteContractRef",
+        "surfacePublicationRef",
+        "runtimePublicationBundleRef",
+        "patientShellConsistencyProjectionRef",
+        "patientEmbeddedSessionProjectionRef"
+      ],
+      "failClosedOutcome": "confirm may not proceed if route publication is stale or withdrawn, if shell consistency no longer matches the booking lineage, or if embedded session posture has drifted"
+    }
+  },
+  "x-sourceRefs": [
+    "blueprint/phase-4-the-booking-engine.md",
+    "blueprint/phase-0-the-foundation-protocol.md",
+    "docs/architecture/279_phase4_provider_capability_matrix_and_adapter_seam.md"
+  ]
+}

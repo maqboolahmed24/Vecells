@@ -1,0 +1,707 @@
+{
+  "task_id": "seq_041",
+  "baseline_id": "vecells_repo_topology_rules_v1",
+  "visual_mode": "Topology_Atlas",
+  "summary": {
+    "artifact_count": 39,
+    "boundary_rule_count": 19,
+    "context_boundary_contract_count": 17,
+    "app_count": 7,
+    "service_count": 5,
+    "package_count": 22
+  },
+  "enforcement_stack": [
+    {
+      "layer": "workspace_graph",
+      "tooling": "Nx project graph + project tags",
+      "purpose": "Declares legal edges between apps, services, packages, and tools."
+    },
+    {
+      "layer": "lint",
+      "tooling": "ESLint boundary rules + export-map restrictions",
+      "purpose": "Blocks deep imports into sibling internals and private subpaths."
+    },
+    {
+      "layer": "manifest_validation",
+      "tooling": "validate_repo_topology.py",
+      "purpose": "Fails route, shell, gateway, and owner drift before scaffold prompts run."
+    },
+    {
+      "layer": "ownership",
+      "tooling": "Generated CODEOWNERS and README metadata",
+      "purpose": "Makes ownership changes reviewable instead of tacit."
+    },
+    {
+      "layer": "browser_verification",
+      "tooling": "Playwright topology atlas coverage",
+      "purpose": "Keeps HTML atlas, parity tables, and selection behavior deterministic."
+    }
+  ],
+  "shared_kernel_classes": [
+    "shared_domain_kernel",
+    "shared_contracts",
+    "design_system",
+    "platform_runtime",
+    "platform_integration",
+    "analysis_validation",
+    "assistive_lab",
+    "test_fixtures"
+  ],
+  "artifact_class_map": {
+    "app_shell": "app",
+    "service_gateway": "service",
+    "service_runtime": "service",
+    "shared_kernel_package": "package",
+    "shared_contract_package": "package",
+    "shared_design_package": "package",
+    "shared_policy_package": "package",
+    "shared_support_package": "package",
+    "domain_context_package": "package",
+    "docs_workspace": "docs-only",
+    "tools_workspace": "tools-only"
+  },
+  "rules": [
+    {
+      "rule_id": "RULE_041_ONE_OWNER_PER_PATH",
+      "rule_scope": "ownership",
+      "from_selector": "*",
+      "to_selector": "artifact.repo_path",
+      "verdict": "required",
+      "allowed_access": "Every repo path must resolve to exactly one owner context or one shared-kernel class.",
+      "description": "Closes the starter-shape ambiguity by making path ownership machine-checkable before scaffold work begins.",
+      "enforcement_layers": ["manifest", "validator", "CODEOWNERS"],
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+        "data/analysis/import_boundary_rules.json#RULE_ONE_OWNER_DOMAIN"
+      ]
+    },
+    {
+      "rule_id": "RULE_041_ONE_OWNER_PER_ROUTE_FAMILY",
+      "rule_scope": "shell_ownership",
+      "from_selector": "route_family_id",
+      "to_selector": "artifact.repo_path",
+      "verdict": "required",
+      "allowed_access": "Every route family must resolve to one topology owner, even when the route label is still derived.",
+      "description": "Closes route-family ownership drift before apps are scaffolded.",
+      "enforcement_layers": ["manifest", "validator"],
+      "source_refs": [
+        "blueprint/platform-frontend-blueprint.md#Shell and route-family ownership rules",
+        "data/analysis/shell_ownership_map.json"
+      ]
+    },
+    {
+      "rule_id": "RULE_041_ONE_OWNER_PER_SHELL_FAMILY",
+      "rule_scope": "shell_ownership",
+      "from_selector": "shell_type",
+      "to_selector": "artifact.repo_path",
+      "verdict": "required",
+      "allowed_access": "Every shell family must resolve to exactly one baseline app or one explicitly conditional reserved workspace.",
+      "description": "Closes the omission of support, pharmacy, governance, and assistive shell representation in the starter shape.",
+      "enforcement_layers": ["manifest", "validator"],
+      "source_refs": ["docs/architecture/04_surface_conflict_and_gap_report.md", "prompt/041.md"]
+    },
+    {
+      "rule_id": "RULE_041_APPS_CONSUME_PUBLISHED_PACKAGES_ONLY",
+      "rule_scope": "imports",
+      "from_selector": "apps/*",
+      "to_selector": "packages/api-contracts|packages/design-system|packages/observability|packages/release-controls",
+      "verdict": "allow",
+      "allowed_access": "Shell apps may only import published shared packages and contract bundles.",
+      "description": "No app may import domain package internals, private services, or raw representation mappers.",
+      "enforcement_layers": ["Nx tags", "ESLint boundary rules", "validator"],
+      "source_refs": [
+        "data/analysis/import_boundary_rules.json#RULE_APP_SHELL_CONSUMES_PUBLISHED_CONTRACTS_ONLY",
+        "prompt/041.md"
+      ]
+    },
+    {
+      "rule_id": "RULE_041_NO_APP_OWNS_TRUTH",
+      "rule_scope": "ownership",
+      "from_selector": "apps/*",
+      "to_selector": "packages/domains/*",
+      "verdict": "deny",
+      "allowed_access": "Shell code may render projections, issue commands through contracts, and preserve continuity only.",
+      "description": "Closes the app-owns-truth gap by explicitly reserving write-model ownership to packages and services.",
+      "enforcement_layers": ["README metadata", "validator", "CI policy"],
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#0A. Delivery skeleton and repository architecture",
+        "prompt/041.md"
+      ]
+    },
+    {
+      "rule_id": "RULE_041_SHARED_CODE_LIVES_ONLY_IN_EXPLICIT_SHARED_PACKAGES",
+      "rule_scope": "imports",
+      "from_selector": "*",
+      "to_selector": "packages/domain-kernel|packages/event-contracts|packages/api-contracts|packages/design-system|packages/authz-policy|packages/test-fixtures|packages/observability|packages/release-controls|packages/fhir-mapping",
+      "verdict": "required",
+      "allowed_access": "Shared code is legal only in explicit versioned packages, never in a generic utils folder.",
+      "description": "Closes the shared-util loophole by freezing the only legal shared namespaces.",
+      "enforcement_layers": ["Nx tags", "export maps", "validator"],
+      "source_refs": [
+        "prompt/041.md",
+        "data/analysis/import_boundary_rules.json#RULE_GENERATED_ARTIFACTS_TRACE_TO_SOURCE_CONTRACTS"
+      ]
+    },
+    {
+      "rule_id": "RULE_041_GATEWAY_CONSUMES_API_AND_POLICY_CONTRACTS_ONLY",
+      "rule_scope": "imports",
+      "from_selector": "services/api-gateway",
+      "to_selector": "packages/api-contracts|packages/authz-policy|packages/observability|packages/release-controls",
+      "verdict": "allow",
+      "allowed_access": "Gateway code may publish route-scoped compute boundaries only from contracts and policy packages.",
+      "description": "Prevents the gateway from reaching into domain internals or becoming a hidden truth owner.",
+      "enforcement_layers": ["Nx tags", "ESLint boundary rules", "validator"],
+      "source_refs": [
+        "data/analysis/import_boundary_rules.json#RULE_GATEWAY_USES_CONTRACTS_NOT_DOMAIN_INTERNALS",
+        "prompt/043.md"
+      ]
+    },
+    {
+      "rule_id": "RULE_041_COMMAND_API_WRITES_VIA_PUBLISHED_DOMAIN_ENTRYPOINTS",
+      "rule_scope": "imports",
+      "from_selector": "services/command-api",
+      "to_selector": "packages/domains/*|packages/domain-kernel|packages/event-contracts|packages/api-contracts|packages/authz-policy|packages/observability|packages/release-controls",
+      "verdict": "allow",
+      "allowed_access": "Command API is the only runtime service that may compose multiple domain packages, and only through public entrypoints.",
+      "description": "Freezes the authoritative mutation seam before feature logic lands.",
+      "enforcement_layers": ["Nx tags", "validator"],
+      "source_refs": [
+        "data/analysis/import_boundary_rules.json#RULE_RUNTIME_SERVICES_COMPOSE_PUBLISHED_DOMAINS_ONLY",
+        "prompt/043.md"
+      ]
+    },
+    {
+      "rule_id": "RULE_041_PROJECTION_WORKER_IS_DERIVED_ONLY",
+      "rule_scope": "imports",
+      "from_selector": "services/projection-worker",
+      "to_selector": "packages/domains/*|packages/domain-kernel|packages/event-contracts|packages/api-contracts|packages/fhir-mapping|packages/observability|packages/release-controls",
+      "verdict": "allow",
+      "allowed_access": "Projection worker may rebuild derived reads and representations only.",
+      "description": "Prevents projection freshness, FHIR mapping, or stale-read posture from becoming hidden write authority.",
+      "enforcement_layers": ["Nx tags", "validator"],
+      "source_refs": [
+        "blueprint/platform-runtime-and-release-blueprint.md#ProjectionContractVersionSet",
+        "prompt/043.md"
+      ]
+    },
+    {
+      "rule_id": "RULE_041_NOTIFICATION_WORKER_SETTLES_EFFECTS_NOT_DOMAIN_TRUTH",
+      "rule_scope": "imports",
+      "from_selector": "services/notification-worker",
+      "to_selector": "packages/domains/communications|packages/domains/identity_access|packages/domains/support|packages/event-contracts|packages/api-contracts|packages/authz-policy|packages/observability|packages/release-controls",
+      "verdict": "allow",
+      "allowed_access": "Notification worker may orchestrate effects, receipts, and resend seams only.",
+      "description": "Prevents the worker from becoming a convenience vendor wrapper that silently settles business truth.",
+      "enforcement_layers": ["Nx tags", "validator"],
+      "source_refs": ["prompt/043.md", "docs/external/39_manual_approval_checkpoint_register.md"]
+    },
+    {
+      "rule_id": "RULE_041_ADAPTER_SIMULATORS_ARE_NON_AUTHORITATIVE",
+      "rule_scope": "imports",
+      "from_selector": "services/adapter-simulators",
+      "to_selector": "packages/api-contracts|packages/event-contracts|packages/fhir-mapping|packages/test-fixtures|packages/observability",
+      "verdict": "allow",
+      "allowed_access": "Simulators may model provider seams and proof envelopes only.",
+      "description": "Ensures local labs cannot replace live-provider proof or mutate domain truth directly.",
+      "enforcement_layers": ["validator", "CI policy"],
+      "source_refs": ["docs/external/38_local_adapter_simulator_backlog.md", "prompt/041.md"]
+    },
+    {
+      "rule_id": "RULE_041_DOMAIN_PACKAGES_DO_NOT_IMPORT_SIBLING_DOMAIN_INTERNALS",
+      "rule_scope": "imports",
+      "from_selector": "packages/domains/*",
+      "to_selector": "packages/domain-kernel|packages/event-contracts|packages/authz-policy|packages/observability",
+      "verdict": "allow",
+      "allowed_access": "Domain packages may use the kernel, published event contracts, policy, and telemetry contracts only.",
+      "description": "Sibling domain internals remain forbidden; cross-context seams publish through contracts instead.",
+      "enforcement_layers": ["Nx tags", "ESLint boundary rules", "validator"],
+      "source_refs": [
+        "data/analysis/import_boundary_rules.json#RULE_DOMAIN_CONTEXTS_DO_NOT_IMPORT_SIBLING_DOMAIN_INTERNALS",
+        "prompt/044.md"
+      ]
+    },
+    {
+      "rule_id": "RULE_041_CONTRACT_PACKAGES_DEFINE_PUBLISHED_TRUTH",
+      "rule_scope": "publication",
+      "from_selector": "packages/event-contracts|packages/api-contracts",
+      "to_selector": "apps/*|services/*|packages/domains/*",
+      "verdict": "required",
+      "allowed_access": "Published route, event, and API truth comes only from explicit contract packages.",
+      "description": "No ad hoc DTO folder or route-local type may supersede published contracts.",
+      "enforcement_layers": ["codegen", "validator", "CI parity"],
+      "source_refs": [
+        "data/analysis/import_boundary_rules.json#RULE_CONTRACT_PACKAGES_DEFINE_PUBLISHED_TRUTH",
+        "prompt/041.md"
+      ]
+    },
+    {
+      "rule_id": "RULE_041_RELEASE_CONTROLS_BIND_RUNTIME_PUBLICATION",
+      "rule_scope": "publication",
+      "from_selector": "packages/release-controls",
+      "to_selector": "apps/*|services/*|packages/observability",
+      "verdict": "required",
+      "allowed_access": "Publication, approval-freeze, and watch tuples bind release truth across shells and services.",
+      "description": "No consumer may restitch route, event, design, and release truth independently.",
+      "enforcement_layers": ["validator", "CI parity"],
+      "source_refs": [
+        "data/analysis/import_boundary_rules.json#RULE_RUNTIME_PUBLICATION_BINDS_ROUTE_EVENT_DESIGN_AND_RELEASE_TRUTH",
+        "blueprint/platform-runtime-and-release-blueprint.md#RuntimePublicationBundle"
+      ]
+    },
+    {
+      "rule_id": "RULE_041_FHIR_MAPPING_IS_DERIVED_ONLY",
+      "rule_scope": "representation",
+      "from_selector": "packages/fhir-mapping",
+      "to_selector": "packages/domains/*",
+      "verdict": "allow",
+      "allowed_access": "FHIR mapping may consume public domain representation entrypoints only.",
+      "description": "Derived mapping may never write or own canonical lifecycle truth.",
+      "enforcement_layers": ["validator", "CI parity"],
+      "source_refs": [
+        "data/analysis/import_boundary_rules.json#RULE_FHIR_MAPPING_IS_DERIVED_ONLY",
+        "prompt/044.md"
+      ]
+    },
+    {
+      "rule_id": "RULE_041_DESIGN_AND_ACCESSIBILITY_ARE_FIRST_CLASS",
+      "rule_scope": "design_contract",
+      "from_selector": "apps/*",
+      "to_selector": "packages/design-system",
+      "verdict": "required",
+      "allowed_access": "Every shell must inherit the shared design system and automation marker graph from day one.",
+      "description": "Closes the placeholder-shell drift where shells look identical or ship without stable markers.",
+      "enforcement_layers": ["README metadata", "Playwright", "validator"],
+      "source_refs": [
+        "data/analysis/import_boundary_rules.json#RULE_DESIGN_AND_ACCESSIBILITY_ARE_FIRST_CLASS",
+        "prompt/042.md"
+      ]
+    },
+    {
+      "rule_id": "RULE_041_TOOLING_IS_BOUNDED_AND_NON_AUTHORITATIVE",
+      "rule_scope": "tooling",
+      "from_selector": "tools/*|tests/playwright|docs/architecture",
+      "to_selector": "data/analysis/*.json|docs/architecture/*.md|tools/analysis|tools/architecture",
+      "verdict": "allow",
+      "allowed_access": "Tooling may read and validate manifests, docs, and contracts only.",
+      "description": "Scripts, browser tests, and architecture docs may not become hidden runtime truth owners.",
+      "enforcement_layers": ["validator", "CI policy"],
+      "source_refs": [
+        "data/analysis/import_boundary_rules.json#RULE_TOOLING_LANGUAGES_ARE_BOUNDED_AND_NON_AUTHORITATIVE",
+        "prompt/041.md"
+      ]
+    },
+    {
+      "rule_id": "RULE_041_PLAYWRIGHT_EXISTS_FROM_DAY_ONE",
+      "rule_scope": "verification",
+      "from_selector": "tests/playwright",
+      "to_selector": "docs/architecture/41_repo_topology_atlas.html",
+      "verdict": "required",
+      "allowed_access": "Browser verification is mandatory for topology surfaces and later shell scaffolds.",
+      "description": "Freezes Playwright as a baseline deliverable instead of a late smoke-test afterthought.",
+      "enforcement_layers": ["Playwright", "validator"],
+      "source_refs": ["prompt/shared_operating_contract_036_to_045.md", "prompt/041.md"]
+    },
+    {
+      "rule_id": "RULE_041_CONDITIONAL_ASSISTIVE_STANDALONE_STAYS_TOOLS_ONLY",
+      "rule_scope": "conditional_surface",
+      "from_selector": "tools/assistive-control-lab",
+      "to_selector": "packages/api-contracts|packages/release-controls|packages/observability|tests/playwright",
+      "verdict": "allow",
+      "allowed_access": "Standalone assistive work is reserved for evaluation, replay, monitoring, or release control only.",
+      "description": "Prevents a future assistive shell from silently widening into live-care ownership before later prompts publish concrete route contracts.",
+      "enforcement_layers": ["manifest", "validator"],
+      "source_refs": [
+        "data/analysis/shell_ownership_map.json",
+        "docs/architecture/04_surface_conflict_and_gap_report.md"
+      ]
+    }
+  ],
+  "contracts": [
+    {
+      "contract_id": "CBC_041_SHELLS_TO_API_CONTRACTS",
+      "title": "Shell apps consume published browser/runtime contracts only",
+      "from_owner_codes": [
+        "patient_experience",
+        "triage_workspace",
+        "hub_coordination",
+        "pharmacy",
+        "support",
+        "operations",
+        "governance_admin"
+      ],
+      "to_owner_codes": ["shared_contracts"],
+      "transport_family": "published_contract_package",
+      "allowed_from_selectors": ["apps/*"],
+      "allowed_to_selectors": ["packages/api-contracts"],
+      "write_model_rule": "No shell may reach through API contracts into domain or service private internals.",
+      "notes": "This seam carries typed browser/runtime contracts, never canonical domain objects.",
+      "source_refs": [
+        "blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest",
+        "prompt/041.md"
+      ]
+    },
+    {
+      "contract_id": "CBC_041_SHELLS_TO_DESIGN_SYSTEM",
+      "title": "Shell apps inherit one shared design and marker bundle",
+      "from_owner_codes": [
+        "patient_experience",
+        "triage_workspace",
+        "hub_coordination",
+        "pharmacy",
+        "support",
+        "operations",
+        "governance_admin"
+      ],
+      "to_owner_codes": ["design_system"],
+      "transport_family": "design_contract_package",
+      "allowed_from_selectors": ["apps/*"],
+      "allowed_to_selectors": ["packages/design-system"],
+      "write_model_rule": "Design inheritance may change posture and automation markers but never mint business truth.",
+      "notes": "Keeps placeholder shells visually distinct while preserving one product family and one marker graph.",
+      "source_refs": [
+        "blueprint/platform-frontend-blueprint.md#DesignContractPublicationBundle",
+        "prompt/042.md"
+      ]
+    },
+    {
+      "contract_id": "CBC_041_SHELLS_TO_RELEASE_CONTROLS",
+      "title": "Shell apps consume runtime publication and release posture through one package family",
+      "from_owner_codes": [
+        "patient_experience",
+        "triage_workspace",
+        "hub_coordination",
+        "pharmacy",
+        "support",
+        "operations",
+        "governance_admin"
+      ],
+      "to_owner_codes": ["release_control"],
+      "transport_family": "runtime_publication_bundle",
+      "allowed_from_selectors": ["apps/*"],
+      "allowed_to_selectors": ["packages/release-controls"],
+      "write_model_rule": "Shells may render read-only, recovery-only, or writable posture only when release controls say so.",
+      "notes": "Binds route, release, parity, and recovery truth into one publication seam.",
+      "source_refs": [
+        "blueprint/platform-runtime-and-release-blueprint.md#RuntimePublicationBundle",
+        "prompt/041.md"
+      ]
+    },
+    {
+      "contract_id": "CBC_041_API_GATEWAY_TO_SHARED_CONTRACTS",
+      "title": "API Gateway publishes route-scoped compute from shared contracts",
+      "from_owner_codes": ["platform_runtime"],
+      "to_owner_codes": ["shared_contracts", "release_control"],
+      "transport_family": "gateway_contract_publication",
+      "allowed_from_selectors": ["services/api-gateway"],
+      "allowed_to_selectors": [
+        "packages/api-contracts",
+        "packages/release-controls",
+        "packages/observability"
+      ],
+      "write_model_rule": "Gateway never owns or mutates domain truth; it enforces policy and publication only.",
+      "notes": "The gateway stays contract-first and release-aware instead of calling domain internals directly.",
+      "source_refs": [
+        "blueprint/platform-runtime-and-release-blueprint.md#GatewayBffSurface",
+        "prompt/043.md"
+      ]
+    },
+    {
+      "contract_id": "CBC_041_API_GATEWAY_TO_IDENTITY_POLICY",
+      "title": "API Gateway enforces acting-scope and authz policy through the published policy package",
+      "from_owner_codes": ["platform_runtime"],
+      "to_owner_codes": ["identity_access"],
+      "transport_family": "policy_contract",
+      "allowed_from_selectors": ["services/api-gateway"],
+      "allowed_to_selectors": ["packages/authz-policy"],
+      "write_model_rule": "Gateway evaluates policy; it never writes access grants, claims, or tenant truth.",
+      "notes": "This keeps the browser edge fenced by declared policy tuples instead of route-local shortcuts.",
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#ActingScopeTuple",
+        "prompt/043.md"
+      ]
+    },
+    {
+      "contract_id": "CBC_041_COMMAND_API_TO_DOMAIN_PUBLIC_ENTRYPOINTS",
+      "title": "Command API is the only cross-context mutation coordinator",
+      "from_owner_codes": ["platform_runtime"],
+      "to_owner_codes": [
+        "intake_safety",
+        "identity_access",
+        "triage_workspace",
+        "booking",
+        "hub_coordination",
+        "pharmacy",
+        "communications",
+        "support",
+        "operations",
+        "governance_admin",
+        "analytics_assurance",
+        "audit_compliance",
+        "release_control"
+      ],
+      "transport_family": "published_domain_entrypoint",
+      "allowed_from_selectors": ["services/command-api"],
+      "allowed_to_selectors": [
+        "packages/domains/*",
+        "packages/domain-kernel",
+        "packages/authz-policy"
+      ],
+      "write_model_rule": "Command API may coordinate mutations, but only through public package entrypoints and settlement law.",
+      "notes": "Cross-context writes remain explicit and reviewable instead of spreading across apps or sibling services.",
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#LifecycleCoordinator",
+        "prompt/043.md"
+      ]
+    },
+    {
+      "contract_id": "CBC_041_COMMAND_API_TO_EVENT_CONTRACTS",
+      "title": "Command API publishes authoritative downstream events through one event contract package",
+      "from_owner_codes": ["platform_runtime"],
+      "to_owner_codes": ["shared_contracts"],
+      "transport_family": "event_publication",
+      "allowed_from_selectors": ["services/command-api"],
+      "allowed_to_selectors": ["packages/event-contracts"],
+      "write_model_rule": "The command path may emit only versioned canonical events, never ad hoc local DTOs.",
+      "notes": "Keeps mutation, settlement, and projection replay aligned to one published event catalogue.",
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#CanonicalEventContract",
+        "prompt/043.md"
+      ]
+    },
+    {
+      "contract_id": "CBC_041_PROJECTION_WORKER_TO_DOMAIN_PROJECTIONS",
+      "title": "Projection Worker consumes published domain events and public projection seams only",
+      "from_owner_codes": ["platform_runtime"],
+      "to_owner_codes": [
+        "intake_safety",
+        "identity_access",
+        "triage_workspace",
+        "booking",
+        "hub_coordination",
+        "pharmacy",
+        "communications",
+        "support",
+        "operations",
+        "governance_admin",
+        "analytics_assurance",
+        "audit_compliance",
+        "release_control"
+      ],
+      "transport_family": "projection_rebuild",
+      "allowed_from_selectors": ["services/projection-worker"],
+      "allowed_to_selectors": [
+        "packages/domains/*",
+        "packages/domain-kernel",
+        "packages/event-contracts",
+        "packages/api-contracts"
+      ],
+      "write_model_rule": "Projection worker may derive read truth but never settle canonical state.",
+      "notes": "All read models stay downstream of immutable events and published contracts.",
+      "source_refs": [
+        "blueprint/platform-runtime-and-release-blueprint.md#ProjectionQueryContract",
+        "prompt/043.md"
+      ]
+    },
+    {
+      "contract_id": "CBC_041_PROJECTION_WORKER_TO_FHIR_MAPPING",
+      "title": "Projection Worker reaches FHIR mapping only through the derived representation boundary",
+      "from_owner_codes": ["platform_runtime"],
+      "to_owner_codes": ["shared_contracts"],
+      "transport_family": "derived_representation",
+      "allowed_from_selectors": ["services/projection-worker"],
+      "allowed_to_selectors": ["packages/fhir-mapping"],
+      "write_model_rule": "FHIR representations remain derived and one-way from domain settlements.",
+      "notes": "This seam is explicit so partner exchange scaffolds cannot bypass the canonical event spine later.",
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#FhirRepresentationContract",
+        "prompt/044.md"
+      ]
+    },
+    {
+      "contract_id": "CBC_041_NOTIFICATION_WORKER_TO_COMMUNICATIONS_SUPPORT_IDENTITY",
+      "title": "Notification Worker consumes communications, support, and identity seams as bounded effect contracts",
+      "from_owner_codes": ["platform_integration"],
+      "to_owner_codes": ["communications", "support", "identity_access", "release_control"],
+      "transport_family": "effect_settlement",
+      "allowed_from_selectors": ["services/notification-worker"],
+      "allowed_to_selectors": [
+        "packages/domains/communications",
+        "packages/domains/support",
+        "packages/domains/identity_access",
+        "packages/release-controls"
+      ],
+      "write_model_rule": "Delivery evidence, callback, and resend logic stay explicit; no worker may claim business finality from a partial provider receipt.",
+      "notes": "Ties notification scaffolding back to the manual checkpoint and retry law from seq_039 and seq_040.",
+      "source_refs": [
+        "docs/external/39_manual_approval_checkpoint_register.md",
+        "docs/external/40_degraded_mode_defaults.md",
+        "prompt/043.md"
+      ]
+    },
+    {
+      "contract_id": "CBC_041_ADAPTER_SIMULATORS_TO_CONTRACT_AND_FIXTURE_PACKAGES",
+      "title": "Adapter simulators consume published contracts and fixture builders only",
+      "from_owner_codes": ["platform_integration"],
+      "to_owner_codes": ["shared_contracts", "test_fixtures", "analytics_assurance"],
+      "transport_family": "local_simulator_contract",
+      "allowed_from_selectors": ["services/adapter-simulators"],
+      "allowed_to_selectors": [
+        "packages/api-contracts",
+        "packages/event-contracts",
+        "packages/fhir-mapping",
+        "packages/test-fixtures",
+        "packages/observability"
+      ],
+      "write_model_rule": "Simulator responses are bounded evidence and parity aids, never live-provider truth.",
+      "notes": "Closes the mock-now vs live-later drift by giving simulators an explicit contract-only seam.",
+      "source_refs": [
+        "docs/external/38_local_adapter_simulator_backlog.md",
+        "docs/external/40_mock_vs_actual_contract_delta.md",
+        "prompt/041.md"
+      ]
+    },
+    {
+      "contract_id": "CBC_041_DOMAIN_PACKAGES_TO_DOMAIN_KERNEL",
+      "title": "Every domain package consumes one shared kernel",
+      "from_owner_codes": [
+        "intake_safety",
+        "identity_access",
+        "triage_workspace",
+        "booking",
+        "hub_coordination",
+        "pharmacy",
+        "communications",
+        "support",
+        "operations",
+        "governance_admin",
+        "analytics_assurance",
+        "audit_compliance",
+        "release_control"
+      ],
+      "to_owner_codes": ["shared_domain_kernel"],
+      "transport_family": "shared_kernel",
+      "allowed_from_selectors": ["packages/domains/*"],
+      "allowed_to_selectors": ["packages/domain-kernel"],
+      "write_model_rule": "Cross-context primitives may live only in the kernel, not in sibling domain internals.",
+      "notes": "This seam is the only legal shared primitive path across domain packages.",
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#BoundedContextDescriptor",
+        "prompt/044.md"
+      ]
+    },
+    {
+      "contract_id": "CBC_041_DOMAIN_PACKAGES_TO_EVENT_CONTRACTS",
+      "title": "Every domain package publishes through one event contract family",
+      "from_owner_codes": [
+        "intake_safety",
+        "identity_access",
+        "triage_workspace",
+        "booking",
+        "hub_coordination",
+        "pharmacy",
+        "communications",
+        "support",
+        "operations",
+        "governance_admin",
+        "analytics_assurance",
+        "audit_compliance",
+        "release_control"
+      ],
+      "to_owner_codes": ["shared_contracts"],
+      "transport_family": "event_contract",
+      "allowed_from_selectors": ["packages/domains/*"],
+      "allowed_to_selectors": ["packages/event-contracts"],
+      "write_model_rule": "Domains publish and consume versioned events; they do not deep-import sibling models.",
+      "notes": "Creates one machine-readable seam for every cross-context event handoff.",
+      "source_refs": [
+        "blueprint/phase-0-the-foundation-protocol.md#ContextBoundaryContract",
+        "prompt/044.md"
+      ]
+    },
+    {
+      "contract_id": "CBC_041_DOMAIN_PACKAGES_TO_POLICY_AND_OBSERVABILITY",
+      "title": "Domain packages consume policy and telemetry through published packages only",
+      "from_owner_codes": [
+        "intake_safety",
+        "identity_access",
+        "triage_workspace",
+        "booking",
+        "hub_coordination",
+        "pharmacy",
+        "communications",
+        "support",
+        "operations",
+        "governance_admin",
+        "analytics_assurance",
+        "audit_compliance",
+        "release_control"
+      ],
+      "to_owner_codes": ["identity_access", "analytics_assurance"],
+      "transport_family": "policy_and_telemetry",
+      "allowed_from_selectors": ["packages/domains/*"],
+      "allowed_to_selectors": ["packages/authz-policy", "packages/observability"],
+      "write_model_rule": "Policy and telemetry can constrain or observe domain behavior, but never replace domain-owned aggregates.",
+      "notes": "Explicitly blocks the informal shared-utils path for policy helpers or telemetry wrappers.",
+      "source_refs": [
+        "data/analysis/import_boundary_rules.json#RULE_TOOLING_LANGUAGES_ARE_BOUNDED_AND_NON_AUTHORITATIVE",
+        "prompt/044.md"
+      ]
+    },
+    {
+      "contract_id": "CBC_041_RELEASE_CONTROL_TO_OBSERVABILITY",
+      "title": "Release control consumes trust and readiness through observability contracts",
+      "from_owner_codes": ["release_control"],
+      "to_owner_codes": ["analytics_assurance"],
+      "transport_family": "watch_tuple_parity",
+      "allowed_from_selectors": ["packages/release-controls"],
+      "allowed_to_selectors": ["packages/observability"],
+      "write_model_rule": "Release controls may freeze posture based on watch and readiness proof, not on local optimism.",
+      "notes": "Binds publication parity to watch tuples and assurance evidence before later release scaffolding lands.",
+      "source_refs": [
+        "blueprint/platform-runtime-and-release-blueprint.md#ReleaseWatchTuple",
+        "prompt/041.md"
+      ]
+    },
+    {
+      "contract_id": "CBC_041_TOOLING_TO_MANIFESTS_AND_DOCS",
+      "title": "Docs, analysis, architecture rules, and Playwright consume manifests rather than runtime internals",
+      "from_owner_codes": ["analysis_validation"],
+      "to_owner_codes": ["analysis_validation", "shared_contracts", "release_control"],
+      "transport_family": "machine_readable_manifest",
+      "allowed_from_selectors": [
+        "docs/architecture",
+        "tools/analysis",
+        "tools/architecture",
+        "tests/playwright"
+      ],
+      "allowed_to_selectors": [
+        "data/analysis/*.json",
+        "tools/architecture/dependency_boundary_rules.json",
+        "docs/architecture/*.md"
+      ],
+      "write_model_rule": "Tooling reads manifests and docs only; it cannot become a backdoor runtime owner.",
+      "notes": "Keeps validation and browser coverage first-class without widening tooling into business logic.",
+      "source_refs": ["prompt/shared_operating_contract_036_to_045.md", "prompt/041.md"]
+    },
+    {
+      "contract_id": "CBC_041_ASSISTIVE_LAB_TO_CONTRACTS_AND_RELEASE_CONTROLS",
+      "title": "Standalone assistive work is reserved behind contract and release-control fences",
+      "from_owner_codes": ["assistive_lab"],
+      "to_owner_codes": ["shared_contracts", "release_control", "analytics_assurance"],
+      "transport_family": "conditional_assistive_surface",
+      "allowed_from_selectors": ["tools/assistive-control-lab"],
+      "allowed_to_selectors": [
+        "packages/api-contracts",
+        "packages/release-controls",
+        "packages/observability",
+        "tests/playwright"
+      ],
+      "write_model_rule": "Conditional assistive work may evaluate, replay, or observe only; live care assist must remain inside the owning shell.",
+      "notes": "Makes the assistive shell decision explicit without prematurely scaffolding a baseline app.",
+      "source_refs": [
+        "data/analysis/shell_ownership_map.json",
+        "docs/architecture/04_surface_conflict_and_gap_report.md"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vecells Resilience Control Lab</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #F7F8FC;
+        --rail: #EEF2F8;
+        --panel: #FFFFFF;
+        --inset: #F4F6FB;
+        --text-strong: #0F172A;
+        --text-default: #1E293B;
+        --text-muted: #667085;
+        --border-subtle: #E2E8F0;
+        --border-default: #CBD5E1;
+        --primary: #3559E6;
+        --resilience: #0EA5A4;
+        --recovery: #0F9D58;
+        --diagnostic: #7C3AED;
+        --warning: #C98900;
+        --blocked: #C24141;
+        --shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+        --radius-lg: 24px;
+        --radius-md: 18px;
+        --radius-sm: 12px;
+        --transition-fast: 120ms ease;
+        --transition-medium: 180ms ease;
+        --transition-slow: 220ms ease;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: radial-gradient(circle at top right, rgba(53, 89, 230, 0.08), transparent 28%),
+          linear-gradient(180deg, #fbfcff 0%, var(--canvas) 28%, #eef3fb 100%);
+        color: var(--text-default);
+        min-height: 100vh;
+      }
+
+      body[data-reduced-motion="true"] * {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+        scroll-behavior: auto !important;
+      }
+
+      .app-shell {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 18px 18px 40px;
+      }
+
+      .masthead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        min-height: 72px;
+        display: grid;
+        grid-template-columns: 1.4fr repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        align-items: stretch;
+        padding: 14px 0 18px;
+        backdrop-filter: blur(18px);
+        background: linear-gradient(180deg, rgba(247, 248, 252, 0.92), rgba(247, 248, 252, 0.76));
+      }
+
+      .brand-card,
+      .metric-card,
+      .panel,
+      .rail,
+      .inspector {
+        background: var(--panel);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow);
+      }
+
+      .brand-card {
+        padding: 16px 18px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .monogram {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(53, 89, 230, 0.12), rgba(14, 165, 164, 0.16));
+        display: grid;
+        place-items: center;
+        color: var(--primary);
+      }
+
+      .metric-card {
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 4px;
+      }
+
+      .metric-label {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .metric-value {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--text-strong);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr) 396px;
+        gap: 16px;
+        align-items: start;
+      }
+
+      .rail,
+      .inspector,
+      .panel {
+        padding: 18px;
+      }
+
+      .rail {
+        position: sticky;
+        top: 96px;
+        background: linear-gradient(180deg, var(--rail), #ffffff);
+      }
+
+      .filter-stack {
+        display: grid;
+        gap: 14px;
+      }
+
+      .filter-field label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+        letter-spacing: 0.02em;
+      }
+
+      .filter-field select {
+        width: 100%;
+        min-height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--border-default);
+        background: #fff;
+        color: var(--text-default);
+        padding: 10px 12px;
+        font: inherit;
+      }
+
+      .panel-grid {
+        display: grid;
+        gap: 16px;
+      }
+
+      .diagram-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.9fr;
+        gap: 16px;
+        min-height: 620px;
+      }
+
+      .panel h2,
+      .inspector h2,
+      .rail h2 {
+        margin: 0 0 6px;
+        font-size: 1rem;
+        color: var(--text-strong);
+      }
+
+      .panel-subtitle {
+        margin: 0 0 14px;
+        color: var(--text-muted);
+        font-size: 0.88rem;
+      }
+
+      .function-map {
+        display: grid;
+        gap: 10px;
+      }
+
+      .function-node,
+      .posture-card,
+      .backup-row-button,
+      .rule-row-button {
+        border: 1px solid var(--border-subtle);
+        background: var(--inset);
+        border-radius: var(--radius-md);
+        transition:
+          transform var(--transition-medium),
+          border-color var(--transition-fast),
+          background var(--transition-medium),
+          box-shadow var(--transition-medium);
+      }
+
+      .function-node {
+        padding: 14px 16px;
+        display: grid;
+        gap: 8px;
+        cursor: pointer;
+      }
+
+      .function-node[data-selected="true"],
+      .posture-card[data-selected="true"],
+      .backup-row-button[data-selected="true"],
+      .rule-row-button[data-selected="true"] {
+        border-color: var(--primary);
+        background: rgba(53, 89, 230, 0.08);
+        box-shadow: 0 16px 34px rgba(53, 89, 230, 0.12);
+        transform: translateY(-1px);
+      }
+
+      .function-node:focus-visible,
+      .posture-card:focus-visible,
+      .backup-row-button:focus-visible,
+      .rule-row-button:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+
+      .tag-row,
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .tag,
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        background: rgba(148, 163, 184, 0.14);
+        color: var(--text-default);
+      }
+
+      .chip-live_control {
+        background: rgba(15, 157, 88, 0.12);
+        color: var(--recovery);
+      }
+
+      .chip-diagnostic_only {
+        background: rgba(124, 58, 237, 0.12);
+        color: var(--diagnostic);
+      }
+
+      .chip-governed_recovery {
+        background: rgba(14, 165, 164, 0.12);
+        color: var(--resilience);
+      }
+
+      .chip-blocked {
+        background: rgba(194, 65, 65, 0.12);
+        color: var(--blocked);
+      }
+
+      .chip-fresh {
+        background: rgba(15, 157, 88, 0.12);
+        color: var(--recovery);
+      }
+
+      .chip-stale {
+        background: rgba(201, 137, 0, 0.14);
+        color: var(--warning);
+      }
+
+      .chip-expired,
+      .chip-missing {
+        background: rgba(194, 65, 65, 0.14);
+        color: var(--blocked);
+      }
+
+      .posture-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .posture-card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 14px;
+      }
+
+      .posture-card {
+        min-height: 170px;
+        padding: 16px;
+        display: grid;
+        gap: 10px;
+        cursor: pointer;
+      }
+
+      .mono {
+        font-family: "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, monospace;
+      }
+
+      .inspector {
+        position: sticky;
+        top: 96px;
+        display: grid;
+        gap: 16px;
+        transition: transform var(--transition-slow);
+      }
+
+      .inspector-block {
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: 14px;
+        background: linear-gradient(180deg, #ffffff, var(--inset));
+      }
+
+      .inspector-list,
+      .evidence-rail {
+        display: grid;
+        gap: 10px;
+      }
+
+      .evidence-entry {
+        border: 1px solid var(--border-subtle);
+        border-radius: 14px;
+        background: var(--inset);
+        padding: 12px;
+      }
+
+      .lower-region {
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+        gap: 16px;
+      }
+
+      .table-panel {
+        overflow: hidden;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--border-subtle);
+        padding: 10px 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .table-button {
+        width: 100%;
+        text-align: left;
+        border: 0;
+        background: transparent;
+        padding: 0;
+        color: inherit;
+        font: inherit;
+      }
+
+      .defect-strip {
+        display: grid;
+        gap: 10px;
+      }
+
+      .defect {
+        border-radius: 14px;
+        border: 1px solid rgba(194, 65, 65, 0.22);
+        background: rgba(194, 65, 65, 0.08);
+        padding: 12px 14px;
+      }
+
+      .muted {
+        color: var(--text-muted);
+      }
+
+      @media (max-width: 1180px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .rail,
+        .inspector {
+          position: static;
+        }
+
+        .diagram-grid,
+        .lower-region {
+          grid-template-columns: 1fr;
+        }
+
+        .posture-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 760px) {
+        .masthead {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .brand-card {
+          grid-column: 1 / -1;
+        }
+
+        .posture-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="masthead">
+        <section class="brand-card" aria-label="Vecells resilience control brand">
+          <div class="monogram" aria-hidden="true">
+            <svg viewBox="0 0 48 48" width="24" height="24" fill="none">
+              <rect x="8" y="8" width="32" height="32" rx="10" stroke="currentColor" stroke-width="2.4"></rect>
+              <path d="M17 31V17h8.5c4.2 0 6.5 2.1 6.5 5.7 0 3.7-2.4 5.8-6.5 5.8H21v2.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+          </div>
+          <div>
+            <div class="metric-label">Vecells</div>
+            <div class="metric-value">Resilience Control Lab</div>
+            <div class="muted">One tuple-bound restore, failover, and recovery-control instrument.</div>
+          </div>
+        </section>
+        <section class="metric-card">
+          <div class="metric-label">Essential Functions</div>
+          <div class="metric-value" data-testid="metric-function-count">0</div>
+        </section>
+        <section class="metric-card">
+          <div class="metric-label">Current Manifests</div>
+          <div class="metric-value" data-testid="metric-manifest-count">0</div>
+        </section>
+        <section class="metric-card">
+          <div class="metric-label">Live-Control Scopes</div>
+          <div class="metric-value" data-testid="metric-live-count">0</div>
+        </section>
+        <section class="metric-card">
+          <div class="metric-label">Blocked Scopes</div>
+          <div class="metric-value" data-testid="metric-blocked-count">0</div>
+        </section>
+      </header>
+
+      <div class="layout">
+        <aside class="rail" aria-label="Resilience filters">
+          <h2>Filters</h2>
+          <p class="panel-subtitle">Function, tier, posture, and evidence freshness all filter the same tuple set.</p>
+          <div class="filter-stack">
+            <div class="filter-field">
+              <label for="function-filter">Function group</label>
+              <select id="function-filter" data-testid="function-filter"></select>
+            </div>
+            <div class="filter-field">
+              <label for="tier-filter">Recovery tier</label>
+              <select id="tier-filter" data-testid="tier-filter"></select>
+            </div>
+            <div class="filter-field">
+              <label for="posture-filter">Posture state</label>
+              <select id="posture-filter" data-testid="posture-filter"></select>
+            </div>
+            <div class="filter-field">
+              <label for="freshness-filter">Evidence freshness</label>
+              <select id="freshness-filter" data-testid="freshness-filter"></select>
+            </div>
+          </div>
+        </aside>
+
+        <main class="panel-grid">
+          <div class="diagram-grid">
+            <section class="panel" data-testid="function-map">
+              <h2>Essential Function Map</h2>
+              <p class="panel-subtitle">Business recovery units anchored to shell and route terms.</p>
+              <div class="function-map" id="function-map-grid"></div>
+            </section>
+
+            <section class="panel" data-testid="posture-panel">
+              <h2>Recovery Posture Panel</h2>
+              <p class="panel-subtitle">Live control, diagnostic-only, governed recovery, and blocked remain explicit.</p>
+              <div class="posture-grid" id="posture-chip-grid"></div>
+            </section>
+          </div>
+
+          <section class="panel">
+            <h2>Curated Scope Cards</h2>
+            <p class="panel-subtitle">Selecting a card synchronizes the function map, backup matrix, rule row, and inspector.</p>
+            <div class="posture-card-grid" id="posture-grid"></div>
+          </section>
+
+          <div class="lower-region">
+            <section class="panel table-panel">
+              <h2>Function Map Parity</h2>
+              <p class="panel-subtitle">Every function node has a table row with the same tier, state, and snapshot binding.</p>
+              <table data-testid="function-map-parity-table">
+                <thead>
+                  <tr>
+                    <th>Function</th>
+                    <th>Tier</th>
+                    <th>State</th>
+                    <th>Posture</th>
+                  </tr>
+                </thead>
+                <tbody id="function-map-parity-body"></tbody>
+              </table>
+            </section>
+
+            <section class="panel table-panel">
+              <h2>Posture Parity</h2>
+              <p class="panel-subtitle">The posture panel stays backed by a readable table rather than color alone.</p>
+              <table data-testid="posture-parity-table">
+                <thead>
+                  <tr>
+                    <th>Posture</th>
+                    <th>Count</th>
+                    <th>Meaning</th>
+                  </tr>
+                </thead>
+                <tbody id="posture-parity-body"></tbody>
+              </table>
+            </section>
+          </div>
+
+          <div class="lower-region">
+            <section class="panel table-panel">
+              <h2>Backup Scope Matrix</h2>
+              <p class="panel-subtitle">Immutable manifests and compatibility digests stay visible beside their governing scopes.</p>
+              <table data-testid="backup-scope-table">
+                <thead>
+                  <tr>
+                    <th>Manifest</th>
+                    <th>Dataset</th>
+                    <th>Functions</th>
+                    <th>State</th>
+                  </tr>
+                </thead>
+                <tbody id="backup-matrix-body"></tbody>
+              </table>
+            </section>
+
+            <section class="panel table-panel">
+              <h2>Recovery Posture Rules</h2>
+              <p class="panel-subtitle">Each row is the single runtime verdict for one recovery scope.</p>
+              <table data-testid="posture-rule-table">
+                <thead>
+                  <tr>
+                    <th>Scope</th>
+                    <th>Posture</th>
+                    <th>Freshness</th>
+                    <th>Blockers</th>
+                  </tr>
+                </thead>
+                <tbody id="posture-rule-body"></tbody>
+              </table>
+            </section>
+          </div>
+
+          <section class="panel" data-testid="defect-strip">
+            <h2>Defect Strip</h2>
+            <p class="panel-subtitle">Fail-closed blockers and drift remain explicit even when the lab looks composed.</p>
+            <div class="defect-strip" id="defect-strip-body"></div>
+          </section>
+        </main>
+
+        <aside class="inspector" data-testid="inspector" aria-live="polite">
+          <section class="inspector-block">
+            <h2>Selected Function</h2>
+            <div id="inspector-summary"></div>
+          </section>
+          <section class="inspector-block">
+            <h2>Tuple Details</h2>
+            <div class="inspector-list" id="tuple-details"></div>
+          </section>
+          <section class="inspector-block">
+            <h2>Backup Manifest State</h2>
+            <div class="inspector-list" id="manifest-details"></div>
+          </section>
+          <section class="inspector-block">
+            <h2>Latest Recovery Evidence</h2>
+            <div class="evidence-rail" data-testid="evidence-rail" id="evidence-rail"></div>
+          </section>
+        </aside>
+      </div>
+    </div>
+
+    <script>
+      const PATHS = {
+        essential: "../../data/analysis/essential_function_map.json",
+        tiers: "../../data/analysis/recovery_tiers.json",
+        backup: "../../data/analysis/backup_scope_matrix.csv",
+        posture: "../../data/analysis/recovery_control_posture_rules.json",
+        evidence: "../../data/analysis/recovery_evidence_artifact_catalog.csv",
+      };
+
+      const state = {
+        essential: null,
+        tiers: null,
+        posture: null,
+        backupRows: [],
+        evidenceRows: [],
+        functionsByCode: {},
+        tiersById: {},
+        filters: {
+          function: "all",
+          tier: "all",
+          posture: "all",
+          freshness: "all",
+        },
+        selectedScopeRef: null,
+        selectedBackupManifestId: null,
+      };
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function parseCsv(text) {
+        const rows = [];
+        let field = "";
+        let row = [];
+        let inQuotes = false;
+        for (let index = 0; index < text.length; index += 1) {
+          const character = text[index];
+          const nextCharacter = text[index + 1];
+          if (character === '"') {
+            if (inQuotes && nextCharacter === '"') {
+              field += '"';
+              index += 1;
+            } else {
+              inQuotes = !inQuotes;
+            }
+            continue;
+          }
+          if (character === "," && !inQuotes) {
+            row.push(field);
+            field = "";
+            continue;
+          }
+          if ((character === "\n" || character === "\r") && !inQuotes) {
+            if (character === "\r" && nextCharacter === "\n") {
+              index += 1;
+            }
+            if (field.length > 0 || row.length > 0) {
+              row.push(field);
+              rows.push(row);
+              row = [];
+              field = "";
+            }
+            continue;
+          }
+          field += character;
+        }
+        if (field.length > 0 || row.length > 0) {
+          row.push(field);
+          rows.push(row);
+        }
+        const [header, ...body] = rows;
+        return body.map((values) =>
+          Object.fromEntries(header.map((column, index) => [column, values[index] ?? ""])),
+        );
+      }
+
+      function splitList(value) {
+        return value ? value.split("; ").filter(Boolean) : [];
+      }
+
+      function chipClass(value) {
+        return `chip chip-${value}`;
+      }
+
+      function cardTitle(row) {
+        const fn = state.functionsByCode[row.functionCode];
+        return fn ? fn.functionLabel : row.functionCode;
+      }
+
+      function getTier(row) {
+        return state.tiersById[row.recoveryTierRef] || {};
+      }
+
+      function getFunction(row) {
+        return state.functionsByCode[row.functionCode] || {};
+      }
+
+      function getVisibleRows() {
+        return state.posture.postureRules.filter((row) => {
+          const fn = getFunction(row);
+          const tier = getTier(row);
+          if (state.filters.function !== "all" && fn.functionGroup !== state.filters.function) {
+            return false;
+          }
+          if (state.filters.tier !== "all" && tier.tierCode !== state.filters.tier) {
+            return false;
+          }
+          if (state.filters.posture !== "all" && row.postureState !== state.filters.posture) {
+            return false;
+          }
+          if (
+            state.filters.freshness !== "all" &&
+            row.evidenceFreshnessState !== state.filters.freshness
+          ) {
+            return false;
+          }
+          return true;
+        });
+      }
+
+      function ensureSelection(visibleRows) {
+        if (!visibleRows.length) {
+          state.selectedScopeRef = null;
+          return;
+        }
+        if (!visibleRows.some((row) => row.scopeRef === state.selectedScopeRef)) {
+          state.selectedScopeRef = visibleRows[0].scopeRef;
+        }
+        const selected = visibleRows.find((row) => row.scopeRef === state.selectedScopeRef);
+        if (selected && !selected.currentBackupSetManifestRefs.includes(state.selectedBackupManifestId)) {
+          state.selectedBackupManifestId = selected.currentBackupSetManifestRefs[0] ?? null;
+        }
+      }
+
+      function selectScope(scopeRef) {
+        state.selectedScopeRef = scopeRef;
+        render();
+      }
+
+      function selectBackup(manifestId) {
+        state.selectedBackupManifestId = manifestId;
+        render();
+      }
+
+      function populateFilters() {
+        const functionOptions = [
+          ["all", "All functions"],
+          ...Array.from(
+            new Set(state.essential.essentialFunctionMap.map((row) => row.functionGroup)),
+          ).map((group) => [group, group.replace(/_/g, " ")]),
+        ];
+        const tierOptions = [
+          ["all", "All tiers"],
+          ...Array.from(new Set(state.tiers.recoveryTiers.map((row) => row.tierCode))).map((tier) => [
+            tier,
+            tier.replace(/_/g, " ").toUpperCase(),
+          ]),
+        ];
+        const postureOptions = [
+          ["all", "All postures"],
+          ["live_control", "Live control"],
+          ["diagnostic_only", "Diagnostic only"],
+          ["governed_recovery", "Governed recovery"],
+          ["blocked", "Blocked"],
+        ];
+        const freshnessOptions = [
+          ["all", "All evidence freshness"],
+          ["fresh", "Fresh"],
+          ["stale", "Stale"],
+          ["expired", "Expired"],
+          ["missing", "Missing"],
+        ];
+
+        const fields = [
+          ["function-filter", functionOptions, "function"],
+          ["tier-filter", tierOptions, "tier"],
+          ["posture-filter", postureOptions, "posture"],
+          ["freshness-filter", freshnessOptions, "freshness"],
+        ];
+
+        for (const [id, options, key] of fields) {
+          const select = document.getElementById(id);
+          select.innerHTML = options
+            .map(([value, label]) => `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`)
+            .join("");
+          select.value = state.filters[key];
+          select.addEventListener("change", (event) => {
+            state.filters[key] = event.target.value;
+            render();
+          });
+        }
+      }
+
+      function renderMasthead() {
+        const summary = state.posture.summary;
+        document.querySelector("[data-testid='metric-function-count']").textContent =
+          state.essential.summary.essential_function_count;
+        document.querySelector("[data-testid='metric-manifest-count']").textContent =
+          summary.current_manifest_count;
+        document.querySelector("[data-testid='metric-live-count']").textContent =
+          summary.live_control_scope_count;
+        document.querySelector("[data-testid='metric-blocked-count']").textContent =
+          summary.blocked_scope_count;
+      }
+
+      function renderFunctionMap(visibleRows) {
+        const mapGrid = document.getElementById("function-map-grid");
+        mapGrid.innerHTML = visibleRows
+          .map((row) => {
+            const fn = getFunction(row);
+            const tier = getTier(row);
+            const selected = row.scopeRef === state.selectedScopeRef;
+            return `
+              <button
+                type="button"
+                class="function-node"
+                data-testid="function-node-${escapeHtml(row.functionCode)}"
+                data-selected="${selected ? "true" : "false"}"
+                data-scope-ref="${escapeHtml(row.scopeRef)}"
+              >
+                <div style="display:flex;justify-content:space-between;gap:10px;align-items:start;">
+                  <div>
+                    <strong>${escapeHtml(fn.functionLabel || row.functionCode)}</strong>
+                    <div class="muted">${escapeHtml(fn.functionGroup || "unknown")} · ${escapeHtml(tier.tierCode || "")}</div>
+                  </div>
+                  <span class="${chipClass(row.postureState)}">${escapeHtml(row.postureState)}</span>
+                </div>
+                <div class="tag-row">
+                  ${(fn.routeFamilyRefs || [])
+                    .slice(0, 3)
+                    .map((value) => `<span class="tag mono">${escapeHtml(value)}</span>`)
+                    .join("")}
+                </div>
+                <div class="muted">${escapeHtml(fn.notes || row.notes || "")}</div>
+              </button>
+            `;
+          })
+          .join("");
+
+        for (const element of mapGrid.querySelectorAll("[data-scope-ref]")) {
+          element.addEventListener("click", () => selectScope(element.dataset.scopeRef));
+        }
+
+        document.getElementById("function-map-parity-body").innerHTML = visibleRows
+          .map((row) => {
+            const fn = getFunction(row);
+            const tier = getTier(row);
+            return `
+              <tr>
+                <td>${escapeHtml(fn.functionLabel || row.functionCode)}</td>
+                <td class="mono">${escapeHtml(tier.tierCode || "")}</td>
+                <td>${escapeHtml(fn.functionState || "")}</td>
+                <td>${escapeHtml(row.postureState)}</td>
+              </tr>
+            `;
+          })
+          .join("");
+      }
+
+      function renderPosturePanel(visibleRows) {
+        const counts = {
+          live_control: 0,
+          diagnostic_only: 0,
+          governed_recovery: 0,
+          blocked: 0,
+        };
+        for (const row of visibleRows) {
+          counts[row.postureState] += 1;
+        }
+
+        document.getElementById("posture-chip-grid").innerHTML = Object.entries(counts)
+          .map(
+            ([stateValue, count]) => `
+              <div class="function-node" data-testid="posture-chip-${escapeHtml(stateValue)}">
+                <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;">
+                  <strong>${escapeHtml(stateValue.replace(/_/g, " "))}</strong>
+                  <span class="${chipClass(stateValue)}">${escapeHtml(String(count))}</span>
+                </div>
+                <div class="muted">${
+                  stateValue === "live_control"
+                    ? "Tuple fully aligned for live restore authority."
+                    : stateValue === "diagnostic_only"
+                      ? "Evidence view remains live, controls stay narrowed."
+                      : stateValue === "governed_recovery"
+                        ? "Only bounded recovery actions remain legal."
+                        : "Fail-closed. Only halt or governed observation remains."
+                }</div>
+              </div>
+            `,
+          )
+          .join("");
+
+        document.getElementById("posture-parity-body").innerHTML = state.posture.postureStateLaw
+          .map(
+            (row) => `
+              <tr>
+                <td>${escapeHtml(row.postureState)}</td>
+                <td>${escapeHtml(String(counts[row.postureState] || 0))}</td>
+                <td>${escapeHtml(row.legalWhen)}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function renderCards(visibleRows) {
+        const grid = document.getElementById("posture-grid");
+        grid.innerHTML = visibleRows
+          .map((row) => {
+            const tier = getTier(row);
+            const selected = row.scopeRef === state.selectedScopeRef;
+            return `
+              <button
+                type="button"
+                class="posture-card"
+                data-testid="posture-card-${escapeHtml(row.scopeRef)}"
+                data-selected="${selected ? "true" : "false"}"
+                data-scope-ref="${escapeHtml(row.scopeRef)}"
+              >
+                <div style="display:flex;justify-content:space-between;gap:12px;align-items:start;">
+                  <div>
+                    <strong>${escapeHtml(cardTitle(row))}</strong>
+                    <div class="muted mono">${escapeHtml(row.scopeRef)}</div>
+                  </div>
+                  <span class="${chipClass(row.postureState)}">${escapeHtml(row.postureState)}</span>
+                </div>
+                <div class="chip-row">
+                  <span class="chip">${escapeHtml(tier.tierCode || "")}</span>
+                  <span class="${chipClass(row.evidenceFreshnessState)}">${escapeHtml(
+                    row.evidenceFreshnessState,
+                  )}</span>
+                </div>
+                <div class="muted">${escapeHtml(row.notes || "")}</div>
+                <div class="mono">Allowed: ${escapeHtml(row.allowedActionRefs.join(", "))}</div>
+              </button>
+            `;
+          })
+          .join("");
+
+        for (const element of grid.querySelectorAll("[data-scope-ref]")) {
+          element.addEventListener("click", () => selectScope(element.dataset.scopeRef));
+        }
+      }
+
+      function renderInspector(selectedRow) {
+        const fn = selectedRow ? getFunction(selectedRow) : null;
+        const tier = selectedRow ? getTier(selectedRow) : null;
+        const backupRows = selectedRow
+          ? state.backupRows.filter((row) =>
+              selectedRow.currentBackupSetManifestRefs.includes(row.backup_set_manifest_id),
+            )
+          : [];
+        const evidenceRows = selectedRow
+          ? state.evidenceRows.filter((row) => row.scope_ref === selectedRow.scopeRef)
+          : [];
+
+        document.getElementById("inspector-summary").innerHTML = !selectedRow
+          ? "<div class='muted'>No scope matches the current filters.</div>"
+          : `
+              <strong>${escapeHtml(fn.functionLabel || selectedRow.scopeRef)}</strong>
+              <div class="chip-row" style="margin-top:10px;">
+                <span class="${chipClass(selectedRow.postureState)}">${escapeHtml(selectedRow.postureState)}</span>
+                <span class="chip">${escapeHtml(tier.tierCode || "")}</span>
+                <span class="${chipClass(selectedRow.evidenceFreshnessState)}">${escapeHtml(
+                  selectedRow.evidenceFreshnessState,
+                )}</span>
+              </div>
+              <div class="muted" style="margin-top:12px;">${escapeHtml(selectedRow.notes || "")}</div>
+            `;
+
+        document.getElementById("tuple-details").innerHTML = !selectedRow
+          ? ""
+          : [
+              ["Operational readiness", selectedRow.operationalReadinessSnapshotRef],
+              ["Trust verdict", selectedRow.releaseTrustFreezeVerdictRef],
+              ["Runbooks", selectedRow.requiredRunbookBindingRefs.join(", ")],
+              ["Journey proof", selectedRow.requiredJourneyProofRefs.slice(0, 3).join(", ")],
+              ["Allowed", selectedRow.allowedActionRefs.join(", ")],
+            ]
+              .map(
+                ([label, value]) => `
+                  <div>
+                    <div class="metric-label">${escapeHtml(label)}</div>
+                    <div class="mono">${escapeHtml(value)}</div>
+                  </div>
+                `,
+              )
+              .join("");
+
+        document.getElementById("manifest-details").innerHTML = !backupRows.length
+          ? "<div class='muted'>No backup manifests are currently bound to the selected scope.</div>"
+          : backupRows
+              .map(
+                (row) => `
+                  <div>
+                    <div class="metric-label">${escapeHtml(row.dataset_label)}</div>
+                    <div class="mono">${escapeHtml(row.backup_set_manifest_id)}</div>
+                    <div class="muted">${escapeHtml(
+                      `${row.manifest_state} · ${row.immutability_state} · ${row.compatibility_scope}`,
+                    )}</div>
+                  </div>
+                `,
+              )
+              .join("");
+
+        document.getElementById("evidence-rail").innerHTML = !evidenceRows.length
+          ? "<div class='muted'>No evidence artifacts for the selected scope.</div>"
+          : evidenceRows
+              .map(
+                (row) => `
+                  <article class="evidence-entry" data-testid="evidence-row-${escapeHtml(
+                    row.recovery_evidence_artifact_id,
+                  )}">
+                    <div style="display:flex;justify-content:space-between;gap:10px;align-items:start;">
+                      <strong>${escapeHtml(row.artifact_type)}</strong>
+                      <span class="${chipClass(row.freshness_state)}">${escapeHtml(row.freshness_state)}</span>
+                    </div>
+                    <div class="mono" style="margin-top:8px;">${escapeHtml(
+                      row.recovery_evidence_artifact_id,
+                    )}</div>
+                    <div class="muted" style="margin-top:8px;">${escapeHtml(row.artifact_state)}</div>
+                  </article>
+                `,
+              )
+              .join("");
+      }
+
+      function renderBackupMatrix(selectedRow) {
+        document.getElementById("backup-matrix-body").innerHTML = state.backupRows
+          .map((row) => {
+            const selected =
+              selectedRow &&
+              (row.backup_set_manifest_id === state.selectedBackupManifestId ||
+                selectedRow.currentBackupSetManifestRefs.includes(row.backup_set_manifest_id));
+            return `
+              <tr>
+                <td colspan="4" style="padding:0;">
+                  <button
+                    type="button"
+                    class="backup-row-button table-button"
+                    data-testid="backup-row-${escapeHtml(row.backup_set_manifest_id)}"
+                    data-selected="${selected ? "true" : "false"}"
+                    data-manifest-id="${escapeHtml(row.backup_set_manifest_id)}"
+                    style="padding:12px 14px;display:grid;grid-template-columns:1.2fr 1.4fr 1.1fr 0.6fr;gap:12px;"
+                  >
+                    <span class="mono">${escapeHtml(row.backup_set_manifest_id)}</span>
+                    <span>${escapeHtml(row.dataset_label)}</span>
+                    <span>${escapeHtml(row.essential_function_refs)}</span>
+                    <span>${escapeHtml(row.manifest_state)}</span>
+                  </button>
+                </td>
+              </tr>
+            `;
+          })
+          .join("");
+
+        for (const button of document.querySelectorAll("[data-manifest-id]")) {
+          button.addEventListener("click", () => selectBackup(button.dataset.manifestId));
+        }
+      }
+
+      function renderRuleTable(visibleRows) {
+        document.getElementById("posture-rule-body").innerHTML = visibleRows
+          .map((row) => {
+            const selected = row.scopeRef === state.selectedScopeRef;
+            return `
+              <tr>
+                <td colspan="4" style="padding:0;">
+                  <button
+                    type="button"
+                    class="rule-row-button table-button"
+                    data-testid="rule-row-${escapeHtml(row.scopeRef)}"
+                    data-selected="${selected ? "true" : "false"}"
+                    data-scope-ref="${escapeHtml(row.scopeRef)}"
+                    style="padding:12px 14px;display:grid;grid-template-columns:1.1fr 0.8fr 0.7fr 1.4fr;gap:12px;"
+                  >
+                    <span>${escapeHtml(cardTitle(row))}</span>
+                    <span>${escapeHtml(row.postureState)}</span>
+                    <span>${escapeHtml(row.restoreValidationFreshnessState)}</span>
+                    <span>${escapeHtml(row.blockerRefs.join(", ") || "none")}</span>
+                  </button>
+                </td>
+              </tr>
+            `;
+          })
+          .join("");
+
+        for (const button of document.querySelectorAll("[data-testid^='rule-row-']")) {
+          button.addEventListener("click", () => selectScope(button.dataset.scopeRef));
+        }
+      }
+
+      function renderDefects() {
+        document.getElementById("defect-strip-body").innerHTML = state.posture.defects
+          .map(
+            (defect) => `
+              <article class="defect">
+                <strong class="mono">${escapeHtml(defect.defectId)}</strong>
+                <div style="margin-top:6px;">${escapeHtml(defect.summary)}</div>
+                <div class="muted" style="margin-top:8px;">${escapeHtml(
+                  `${defect.scopeRef} · ${defect.severity}`,
+                )}</div>
+              </article>
+            `,
+          )
+          .join("");
+      }
+
+      function handleCardKeyNavigation(event, visibleRows) {
+        const cards = Array.from(document.querySelectorAll("[data-testid^='posture-card-']"));
+        const activeIndex = cards.findIndex((element) => element === document.activeElement);
+        if (activeIndex === -1) {
+          return;
+        }
+        const delta = event.key === "ArrowDown" || event.key === "ArrowRight" ? 1 : -1;
+        if (!["ArrowDown", "ArrowRight", "ArrowUp", "ArrowLeft"].includes(event.key)) {
+          return;
+        }
+        event.preventDefault();
+        const nextIndex = Math.max(0, Math.min(cards.length - 1, activeIndex + delta));
+        const nextCard = cards[nextIndex];
+        nextCard.focus();
+        const nextScope = visibleRows[nextIndex]?.scopeRef;
+        if (nextScope) {
+          state.selectedScopeRef = nextScope;
+          render();
+        }
+      }
+
+      function handleBackupKeyNavigation(event) {
+        const rows = Array.from(document.querySelectorAll("[data-testid^='backup-row-']"));
+        const activeIndex = rows.findIndex((element) => element === document.activeElement);
+        if (activeIndex === -1) {
+          return;
+        }
+        if (!["ArrowDown", "ArrowUp"].includes(event.key)) {
+          return;
+        }
+        event.preventDefault();
+        const delta = event.key === "ArrowDown" ? 1 : -1;
+        const nextIndex = Math.max(0, Math.min(rows.length - 1, activeIndex + delta));
+        const nextRow = rows[nextIndex];
+        nextRow.focus();
+        state.selectedBackupManifestId = nextRow.dataset.manifestId;
+        render();
+      }
+
+      function render() {
+        const visibleRows = getVisibleRows();
+        ensureSelection(visibleRows);
+        const selectedRow = visibleRows.find((row) => row.scopeRef === state.selectedScopeRef) || null;
+
+        renderMasthead();
+        renderFunctionMap(visibleRows);
+        renderPosturePanel(visibleRows);
+        renderCards(visibleRows);
+        renderInspector(selectedRow);
+        renderBackupMatrix(selectedRow);
+        renderRuleTable(visibleRows);
+        renderDefects();
+
+        const cardGrid = document.getElementById("posture-grid");
+        cardGrid.onkeydown = (event) => handleCardKeyNavigation(event, visibleRows);
+        document.getElementById("backup-matrix-body").onkeydown = handleBackupKeyNavigation;
+      }
+
+      async function loadData() {
+        const [essential, tiers, backupText, posture, evidenceText] = await Promise.all([
+          fetch(PATHS.essential).then((response) => response.json()),
+          fetch(PATHS.tiers).then((response) => response.json()),
+          fetch(PATHS.backup).then((response) => response.text()),
+          fetch(PATHS.posture).then((response) => response.json()),
+          fetch(PATHS.evidence).then((response) => response.text()),
+        ]);
+        state.essential = essential;
+        state.tiers = tiers;
+        state.posture = posture;
+        state.backupRows = parseCsv(backupText);
+        state.evidenceRows = parseCsv(evidenceText);
+        state.functionsByCode = Object.fromEntries(
+          essential.essentialFunctionMap.map((row) => [row.functionCode, row]),
+        );
+        state.tiersById = Object.fromEntries(
+          tiers.recoveryTiers.map((row) => [row.recoveryTierId, row]),
+        );
+        document.body.setAttribute(
+          "data-reduced-motion",
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "true" : "false",
+        );
+        populateFilters();
+        render();
+      }
+
+      loadData().catch((error) => {
+        document.body.innerHTML = `<pre>${escapeHtml(error.stack || String(error))}</pre>`;
+      });
+    </script>
+  </body>
+</html>

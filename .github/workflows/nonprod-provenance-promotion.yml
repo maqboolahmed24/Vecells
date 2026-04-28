@@ -1,0 +1,51 @@
+name: nonprod-provenance-promotion
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_ring:
+        description: Target non-production ring
+        required: true
+        default: integration
+        type: choice
+        options:
+          - integration
+          - preprod
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    env:
+      CI: "1"
+      NX_TUI: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.23.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm ci:rehearse-provenance -- --build-family bf_release_control_bundle
+      - run: pnpm ci:verify-provenance
+      - run: pnpm ci:rehearse-runtime-publication -- --environment ci-preview
+      - run: pnpm ci:verify-runtime-publication -- --environment ci-preview
+      - run: pnpm ci:rehearse-runtime-topology-publication -- --environment ci-preview
+      - run: pnpm ci:verify-runtime-topology-publication -- --environment ci-preview
+      - run: pnpm ci:rehearse-dependency-degradation -- --environment local
+      - run: pnpm ci:verify-dependency-degradation -- --environment local
+      - run: pnpm ci:rehearse-release-watch -- --environment local
+      - run: pnpm ci:verify-release-watch -- --environment local
+      - run: pnpm ci:rehearse-migration-backfill
+      - run: pnpm ci:verify-migration-backfill
+      - run: pnpm ci:rehearse-resilience-baseline
+      - run: pnpm ci:verify-resilience-baseline
+      - run: pnpm ci:rehearse-canary-rollback
+      - run: pnpm ci:verify-canary-rollback
+      - run: pnpm ci:promote-nonprod -- --target-ring ${{ inputs.target_ring }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nonprod-promotion-decision
+          path: .artifacts/build-provenance/ci-preview

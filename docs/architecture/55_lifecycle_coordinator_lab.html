@@ -1,0 +1,935 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vecells Lifecycle Coordinator Lab</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #F7F8FC;
+        --rail: #EEF2F8;
+        --panel: #FFFFFF;
+        --inset: #F4F6FB;
+        --text-strong: #0F172A;
+        --text: #1E293B;
+        --muted: #667085;
+        --border-subtle: #E2E8F0;
+        --border: #CBD5E1;
+        --primary: #3559E6;
+        --milestone: #0EA5A4;
+        --blocker: #6E59D9;
+        --warning: #C98900;
+        --blocked: #C24141;
+        --shadow: 0 22px 40px rgba(15, 23, 42, 0.07);
+        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at 12% 0%, rgba(53, 89, 230, 0.06), transparent 26%),
+          radial-gradient(circle at 88% 12%, rgba(110, 89, 217, 0.06), transparent 26%),
+          linear-gradient(180deg, #FAFBFE, var(--canvas));
+        color: var(--text);
+      }
+      .app { max-width: 1500px; margin: 0 auto; padding: 18px; }
+      .masthead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        min-height: 72px;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 12px 16px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 28px;
+        background: rgba(255,255,255,0.94);
+        backdrop-filter: blur(12px);
+        box-shadow: var(--shadow);
+      }
+      .brand { display: flex; align-items: center; gap: 12px; min-width: 252px; }
+      .mark {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(244,246,251,0.96));
+        display: grid;
+        place-items: center;
+        color: var(--blocker);
+      }
+      .brand strong { display: block; font-size: 16px; color: var(--text-strong); }
+      .brand small,
+      .metric span,
+      .label,
+      .eyebrow {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .metrics { display: grid; grid-template-columns: repeat(4, minmax(132px, 1fr)); gap: 12px; flex: 1; }
+      .metric {
+        padding: 12px 14px;
+        border-radius: 18px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255,255,255,0.84);
+      }
+      .metric strong { display: block; font-size: 22px; color: var(--text-strong); }
+      .layout {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr) 396px;
+        gap: 18px;
+        margin-top: 18px;
+        align-items: start;
+      }
+      .rail, .center, .inspector {
+        border-radius: 28px;
+        border: 1px solid var(--border-subtle);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+      .rail {
+        padding: 18px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.97), var(--rail));
+      }
+      .filters { display: grid; gap: 12px; }
+      label { display: grid; gap: 6px; font-size: 13px; color: var(--text-strong); }
+      select {
+        height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text);
+        padding: 0 12px;
+      }
+      .rail-copy {
+        margin-top: 16px;
+        padding: 14px;
+        border-radius: 18px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255,255,255,0.88);
+      }
+      .center {
+        padding: 18px;
+        display: grid;
+        gap: 18px;
+        min-height: 600px;
+      }
+      .panel {
+        padding: 18px;
+        border-radius: 24px;
+        border: 1px solid var(--border-subtle);
+        background: linear-gradient(180deg, rgba(255,255,255,0.97), rgba(244,246,251,0.94));
+      }
+      .constellation-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 0.44fr);
+        gap: 16px;
+        align-items: center;
+      }
+      .constellation {
+        padding: 12px;
+        border-radius: 20px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255,255,255,0.92);
+      }
+      .constellation svg { width: 100%; height: 220px; }
+      .node { fill: rgba(255,255,255,0.98); stroke: rgba(53,89,230,0.24); stroke-width: 1.4; }
+      .node.milestone { stroke: rgba(14,165,164,0.42); }
+      .node.blocker { stroke: rgba(110,89,217,0.42); }
+      .node.warning { stroke: rgba(201,137,0,0.42); }
+      .edge { stroke: rgba(148,163,184,0.92); stroke-width: 1.6; }
+      .svg-label { fill: var(--text-strong); font-size: 11px; font-weight: 600; }
+      .svg-sub { fill: var(--muted); font-size: 10px; }
+      .signal-list {
+        display: grid;
+        gap: 10px;
+        max-height: 220px;
+        overflow: auto;
+      }
+      .signal-card {
+        padding: 12px 14px;
+        border-radius: 18px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255,255,255,0.92);
+        cursor: pointer;
+        transition: transform 180ms ease, border-color 120ms ease, box-shadow 180ms ease;
+      }
+      .signal-card:hover,
+      .signal-card:focus-visible,
+      .signal-card[data-selected="true"] {
+        transform: translateY(-1px);
+        border-color: rgba(53,89,230,0.28);
+        box-shadow: 0 14px 28px rgba(53,89,230,0.08);
+        outline: none;
+      }
+      .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(15,23,42,0.08);
+        background: rgba(15,23,42,0.04);
+        color: var(--text);
+        font-size: 12px;
+      }
+      .chip.milestone { background: rgba(14,165,164,0.14); color: var(--milestone); }
+      .chip.blocker { background: rgba(110,89,217,0.14); color: var(--blocker); }
+      .chip.warning { background: rgba(201,137,0,0.14); color: var(--warning); }
+      .chip.blocked { background: rgba(194,65,65,0.14); color: var(--blocked); }
+      .verdict-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .verdict-card {
+        min-height: 148px;
+        display: grid;
+        gap: 10px;
+        padding: 16px;
+        border-radius: 22px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255,255,255,0.94);
+      }
+      table { width: 100%; border-collapse: collapse; }
+      th, td {
+        text-align: left;
+        padding: 12px 10px;
+        border-bottom: 1px solid var(--border-subtle);
+        vertical-align: top;
+        font-size: 13px;
+        min-height: 40px;
+      }
+      th {
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .interactive-row {
+        cursor: pointer;
+        transition: background 120ms ease, box-shadow 180ms ease;
+      }
+      .interactive-row:hover,
+      .interactive-row:focus-visible,
+      .interactive-row[data-selected="true"] {
+        background: rgba(53,89,230,0.06);
+        outline: none;
+      }
+      .lower {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+      .inspector {
+        position: sticky;
+        top: 90px;
+        padding: 18px;
+        display: grid;
+        gap: 18px;
+      }
+      .inspector-section {
+        display: grid;
+        gap: 10px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+      .inspector-section:last-child { border-bottom: 0; padding-bottom: 0; }
+      .definition-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 12px;
+      }
+      .definition-grid div {
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255,255,255,0.9);
+      }
+      .mono {
+        font-family: ui-monospace, "SFMono-Regular", "SF Mono", Consolas, monospace;
+        font-size: 12px;
+      }
+      .defect-strip { display: grid; gap: 10px; }
+      .defect-card {
+        padding: 14px;
+        border-radius: 18px;
+        border: 1px solid rgba(194,65,65,0.2);
+        background: rgba(194,65,65,0.06);
+      }
+      @media (max-width: 1240px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        .inspector {
+          position: static;
+        }
+      }
+      @media (max-width: 900px) {
+        .metrics,
+        .lower,
+        .verdict-grid,
+        .constellation-grid,
+        .definition-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="masthead" data-testid="masthead">
+        <div class="brand" aria-label="Vecells Lifecycle Coordinator">
+          <div class="mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" width="24" height="24" fill="none">
+              <path d="M10 10h8v20h14v8H10V10Z" stroke="currentColor" stroke-width="2.2" />
+              <path d="M24 10h14v8H24" stroke="currentColor" stroke-width="2.2" />
+            </svg>
+          </div>
+          <div>
+            <small>Vecells</small>
+            <strong>Lifecycle Coordinator Lab</strong>
+          </div>
+        </div>
+        <div class="metrics" id="metrics"></div>
+      </header>
+      <main class="layout">
+        <aside class="rail">
+          <div class="filters">
+            <label><span class="label">Domain</span><select id="filter-domain" data-testid="filter-domain"></select></label>
+            <label><span class="label">Blocker class</span><select id="filter-blocker-class" data-testid="filter-blocker-class"></select></label>
+            <label><span class="label">Closure eligibility</span><select id="filter-closure-eligibility" data-testid="filter-closure-eligibility"></select></label>
+            <label><span class="label">Reopen trigger</span><select id="filter-reopen-trigger-class" data-testid="filter-reopen-trigger-class"></select></label>
+          </div>
+          <div class="rail-copy">
+            <div class="eyebrow">Control law</div>
+            <p style="margin:8px 0 0;">
+              Milestone signals stay one-way. Blockers remain explicit facts. Close and reopen bind one current lineage epoch.
+            </p>
+          </div>
+        </aside>
+        <section class="center">
+          <section class="panel" data-testid="constellation-canvas">
+            <div class="eyebrow">Milestone-to-blocker constellation</div>
+            <div class="constellation-grid">
+              <div class="constellation" id="constellation"></div>
+              <div class="signal-list" id="signal-cards"></div>
+            </div>
+          </section>
+          <section class="panel" data-testid="verdict-panel">
+            <div class="eyebrow">Closure verdict explanation</div>
+            <div class="verdict-grid" id="verdict-panel"></div>
+          </section>
+          <div class="lower">
+            <section class="panel">
+              <div class="eyebrow">Milestone signal matrix</div>
+              <table>
+                <thead>
+                  <tr><th>Signal</th><th>Domain</th><th>Milestone</th><th>Eligibility</th></tr>
+                </thead>
+                <tbody id="signal-matrix"></tbody>
+              </table>
+            </section>
+            <section class="panel">
+              <div class="eyebrow">Closure blocker taxonomy</div>
+              <table>
+                <thead>
+                  <tr><th>Blocker</th><th>Field</th><th>Group</th></tr>
+                </thead>
+                <tbody id="blocker-matrix"></tbody>
+              </table>
+            </section>
+            <section class="panel">
+              <div class="eyebrow">Reopen trigger matrix</div>
+              <table>
+                <thead>
+                  <tr><th>Trigger</th><th>Threshold</th><th>Reacquire</th></tr>
+                </thead>
+                <tbody id="reopen-matrix"></tbody>
+              </table>
+            </section>
+            <section class="panel" data-testid="defect-strip">
+              <div class="eyebrow">Defect strip</div>
+              <div class="defect-strip" id="defect-strip"></div>
+            </section>
+          </div>
+        </section>
+        <aside class="inspector" data-testid="inspector" id="inspector"></aside>
+      </main>
+    </div>
+    <script type="module">
+      const DATA_PATHS = {
+        inputs: "../../data/analysis/lifecycle_coordinator_inputs.csv",
+        schema: "../../data/analysis/request_closure_record_schema.json",
+        taxonomy: "../../data/analysis/closure_blocker_taxonomy.json",
+        signals: "../../data/analysis/milestone_signal_matrix.csv",
+        reopen: "../../data/analysis/reopen_trigger_matrix.csv",
+      };
+
+      const state = {
+        filters: {
+          domain: "all",
+          blockerClass: "all",
+          closureEligibility: "all",
+          reopenTriggerClass: "all",
+        },
+        selection: { kind: "signal", id: "" },
+        payload: null,
+      };
+
+      function parseCsv(text) {
+        const rows = [];
+        let row = [];
+        let cell = "";
+        let inQuotes = false;
+        for (let index = 0; index < text.length; index += 1) {
+          const char = text[index];
+          const next = text[index + 1];
+          if (char === '"' && inQuotes && next === '"') {
+            cell += '"';
+            index += 1;
+            continue;
+          }
+          if (char === '"') {
+            inQuotes = !inQuotes;
+            continue;
+          }
+          if (char === "," && !inQuotes) {
+            row.push(cell);
+            cell = "";
+            continue;
+          }
+          if ((char === "\n" || char === "\r") && !inQuotes) {
+            if (char === "\r" && next === "\n") {
+              index += 1;
+            }
+            row.push(cell);
+            if (row.some((value) => value.length > 0)) {
+              rows.push(row);
+            }
+            row = [];
+            cell = "";
+            continue;
+          }
+          cell += char;
+        }
+        if (cell.length || row.length) {
+          row.push(cell);
+          rows.push(row);
+        }
+        const [headers, ...body] = rows;
+        return body.map((values) =>
+          Object.fromEntries(headers.map((header, idx) => [header, values[idx] ?? ""])),
+        );
+      }
+
+      function splitList(value) {
+        return String(value || "")
+          .split(";")
+          .map((entry) => entry.trim())
+          .filter(Boolean);
+      }
+
+      function toTestId(value) {
+        return String(value)
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "");
+      }
+
+      function optionMarkup(value, label) {
+        return `<option value="${value}">${label}</option>`;
+      }
+
+      function visibleSignals() {
+        const { signals } = state.payload;
+        return signals.filter((row) => {
+          if (state.filters.domain !== "all" && row.domain_context !== state.filters.domain) {
+            return false;
+          }
+          if (
+            state.filters.blockerClass !== "all" &&
+            !splitList(row.blocker_class_keys).includes(state.filters.blockerClass)
+          ) {
+            return false;
+          }
+          if (
+            state.filters.closureEligibility !== "all" &&
+            row.closure_eligibility !== state.filters.closureEligibility
+          ) {
+            return false;
+          }
+          if (
+            state.filters.reopenTriggerClass !== "all" &&
+            row.reopen_trigger_class !== state.filters.reopenTriggerClass
+          ) {
+            return false;
+          }
+          return true;
+        });
+      }
+
+      function selectedSignal() {
+        const signals = visibleSignals();
+        if (!signals.length) {
+          return null;
+        }
+        if (state.selection.kind !== "signal") {
+          return signals[0];
+        }
+        return (
+          signals.find((row) => row.milestone_signal_id === state.selection.id) || signals[0]
+        );
+      }
+
+      function selectedBlocker() {
+        const blockers = state.payload.taxonomy.blockerClasses;
+        if (state.selection.kind !== "blocker") {
+          return null;
+        }
+        return blockers.find((row) => row.blockerClassKey === state.selection.id) || null;
+      }
+
+      function signalScenario(signal) {
+        const scenarios = state.payload.taxonomy.verdictScenarios;
+        if (!signal) {
+          return scenarios[0];
+        }
+        return (
+          scenarios.find((row) => row.selectedSignalId === signal.milestone_signal_id) ||
+          scenarios.find(
+            (row) =>
+              row.matchingReopenTriggerClass === signal.reopen_trigger_class &&
+              row.matchingReopenTriggerClass !== "none",
+          ) ||
+          scenarios.find((row) =>
+            splitList(signal.blocker_class_keys).some((entry) => row.matchingBlockerClassKeys.includes(entry)),
+          ) ||
+          scenarios[0]
+        );
+      }
+
+      function renderMetrics() {
+        const summary = state.payload.taxonomy.summary;
+        const metrics = [
+          ["Coordinator inputs", summary.coordinator_input_count],
+          ["Blocker categories", summary.blocker_category_count],
+          ["Defer vs close", summary.verdict_scenario_count],
+          ["Reopen triggers", summary.reopen_trigger_count],
+        ];
+        document.getElementById("metrics").innerHTML = metrics
+          .map(
+            ([label, value]) => `
+              <div class="metric">
+                <span>${label}</span>
+                <strong>${value}</strong>
+              </div>
+            `,
+          )
+          .join("");
+      }
+
+      function renderFilters() {
+        const signals = state.payload.signals;
+        const blockers = state.payload.taxonomy.blockerClasses;
+        const domains = ["all", ...new Set(signals.map((row) => row.domain_context))];
+        const closureStates = ["all", ...new Set(signals.map((row) => row.closure_eligibility))];
+        const reopenStates = [
+          "all",
+          ...new Set(signals.map((row) => row.reopen_trigger_class).filter((value) => value !== "none")),
+        ];
+
+        document.getElementById("filter-domain").innerHTML = domains
+          .map((value) => optionMarkup(value, value === "all" ? "All domains" : value))
+          .join("");
+        document.getElementById("filter-blocker-class").innerHTML = [
+          optionMarkup("all", "All blocker classes"),
+          ...blockers.map((row) => optionMarkup(row.blockerClassKey, row.blockerLabel)),
+        ].join("");
+        document.getElementById("filter-closure-eligibility").innerHTML = closureStates
+          .map((value) =>
+            optionMarkup(value, value === "all" ? "All eligibility states" : value),
+          )
+          .join("");
+        document.getElementById("filter-reopen-trigger-class").innerHTML = reopenStates
+          .map((value) =>
+            optionMarkup(value, value === "all" ? "All reopen trigger classes" : value),
+          )
+          .join("");
+
+        Object.entries({
+          "filter-domain": "domain",
+          "filter-blocker-class": "blockerClass",
+          "filter-closure-eligibility": "closureEligibility",
+          "filter-reopen-trigger-class": "reopenTriggerClass",
+        }).forEach(([elementId, key]) => {
+          const element = document.getElementById(elementId);
+          element.value = state.filters[key];
+          element.onchange = (event) => {
+            state.filters[key] = event.target.value;
+            render();
+          };
+        });
+      }
+
+      function renderSignalCards(signals) {
+        const selected = selectedSignal();
+        document.getElementById("signal-cards").innerHTML = signals
+          .map(
+            (row) => `
+              <article
+                class="signal-card"
+                tabindex="0"
+                data-testid="signal-card-${toTestId(row.milestone_signal_id)}"
+                data-signal-id="${row.milestone_signal_id}"
+                data-selected="${selected && selected.milestone_signal_id === row.milestone_signal_id}"
+              >
+                <div class="eyebrow">${row.domain_context}</div>
+                <strong>${row.signal_name}</strong>
+                <div class="chip-row">
+                  <span class="chip milestone">${row.candidate_request_milestone}</span>
+                  <span class="chip ${row.closure_eligibility === "defer_on_blocker" ? "blocked" : row.closure_eligibility === "reopen_candidate" ? "warning" : "milestone"}">${row.closure_eligibility}</span>
+                </div>
+              </article>
+            `,
+          )
+          .join("");
+
+        document.querySelectorAll("[data-signal-id]").forEach((element) => {
+          element.addEventListener("click", () => {
+            state.selection = { kind: "signal", id: element.dataset.signalId };
+            render();
+          });
+          element.addEventListener("keydown", (event) => {
+            const currentSignals = visibleSignals();
+            const index = currentSignals.findIndex(
+              (row) => row.milestone_signal_id === element.dataset.signalId,
+            );
+            if (event.key === "ArrowDown" && currentSignals[index + 1]) {
+              state.selection = {
+                kind: "signal",
+                id: currentSignals[index + 1].milestone_signal_id,
+              };
+              render();
+              event.preventDefault();
+            }
+            if (event.key === "ArrowUp" && currentSignals[index - 1]) {
+              state.selection = {
+                kind: "signal",
+                id: currentSignals[index - 1].milestone_signal_id,
+              };
+              render();
+              event.preventDefault();
+            }
+          });
+        });
+      }
+
+      function renderConstellation(signal) {
+        const blockerKeys = splitList(signal?.blocker_class_keys);
+        const blockers = state.payload.taxonomy.blockerClasses.filter((row) =>
+          blockerKeys.includes(row.blockerClassKey),
+        );
+        const scenario = signalScenario(signal);
+        document.getElementById("constellation").innerHTML = `
+          <svg viewBox="0 0 760 220" role="img" aria-label="Lifecycle coordinator constellation">
+            <path class="edge" d="M124 110 H300" />
+            <path class="edge" d="M428 110 H604" />
+            <rect class="node milestone" x="32" y="66" width="184" height="88" rx="18"></rect>
+            <rect class="node" x="300" y="66" width="128" height="88" rx="18"></rect>
+            <rect class="node blocker" x="472" y="34" width="184" height="64" rx="18"></rect>
+            <rect class="node warning" x="472" y="122" width="184" height="64" rx="18"></rect>
+            <text class="svg-label" x="48" y="96">${signal?.domain_context || "filtered"}</text>
+            <text class="svg-sub" x="48" y="116">${signal?.signal_name || "No visible signal"}</text>
+            <text class="svg-label" x="318" y="96">LifecycleCoordinator</text>
+            <text class="svg-sub" x="318" y="116">epoch-bound materialization</text>
+            <text class="svg-label" x="488" y="64">${blockers[0]?.blockerLabel || "No blocker classes"}</text>
+            <text class="svg-sub" x="488" y="84">${blockers.length ? blockers.map((row) => row.blockerClassKey).join(", ") : "closeable candidate"}</text>
+            <text class="svg-label" x="488" y="152">${scenario.expectedDecision}</text>
+            <text class="svg-sub" x="488" y="172">${scenario.closedByMode}</text>
+          </svg>
+        `;
+      }
+
+      function renderVerdict(signal) {
+        const scenario = signalScenario(signal);
+        const blockerKeys = splitList(signal?.blocker_class_keys);
+        document.getElementById("verdict-panel").innerHTML = `
+          <article class="verdict-card">
+            <div class="eyebrow">Selected scenario</div>
+            <strong>${scenario.label}</strong>
+            <div class="chip-row">
+              <span class="chip ${scenario.expectedDecision === "close" ? "milestone" : "blocked"}">${scenario.expectedDecision}</span>
+              <span class="chip blocker">${scenario.closedByMode}</span>
+              <span class="chip warning mono">${scenario.scenarioInputHash}</span>
+            </div>
+            <p style="margin:0;">${scenario.explanation}</p>
+          </article>
+          <article class="verdict-card">
+            <div class="eyebrow">Selection parity</div>
+            <strong>${signal?.signal_name || "No signal selected"}</strong>
+            <div class="chip-row">
+              ${(blockerKeys.length ? blockerKeys : ["no_blockers"])
+                .map((value) => `<span class="chip blocker">${value}</span>`)
+                .join("")}
+            </div>
+            <p style="margin:0;">The same input tuple must reproduce the same defer-or-close verdict under the current lineage epoch.</p>
+          </article>
+        `;
+      }
+
+      function renderSignalMatrix(signals) {
+        const selected = selectedSignal();
+        document.getElementById("signal-matrix").innerHTML = signals
+          .map(
+            (row) => `
+              <tr
+                class="interactive-row"
+                tabindex="0"
+                data-testid="signal-row-${toTestId(row.milestone_signal_id)}"
+                data-signal-id="${row.milestone_signal_id}"
+                data-selected="${selected && selected.milestone_signal_id === row.milestone_signal_id}"
+              >
+                <td><strong>${row.signal_name}</strong><div class="mono">${row.milestone_signal_id}</div></td>
+                <td>${row.domain_context}</td>
+                <td>${row.candidate_request_milestone}</td>
+                <td>${row.closure_eligibility}</td>
+              </tr>
+            `,
+          )
+          .join("");
+
+        document.querySelectorAll("#signal-matrix [data-signal-id]").forEach((element) => {
+          element.addEventListener("click", () => {
+            state.selection = { kind: "signal", id: element.dataset.signalId };
+            render();
+          });
+          element.addEventListener("keydown", (event) => {
+            const currentSignals = visibleSignals();
+            const index = currentSignals.findIndex(
+              (row) => row.milestone_signal_id === element.dataset.signalId,
+            );
+            if (event.key === "ArrowDown" && currentSignals[index + 1]) {
+              state.selection = {
+                kind: "signal",
+                id: currentSignals[index + 1].milestone_signal_id,
+              };
+              render();
+              event.preventDefault();
+            }
+            if (event.key === "ArrowUp" && currentSignals[index - 1]) {
+              state.selection = {
+                kind: "signal",
+                id: currentSignals[index - 1].milestone_signal_id,
+              };
+              render();
+              event.preventDefault();
+            }
+          });
+        });
+      }
+
+      function renderBlockerMatrix(signal) {
+        const selectedBlockerKey = state.selection.kind === "blocker" ? state.selection.id : "";
+        const linkedKeys = new Set(splitList(signal?.blocker_class_keys));
+        document.getElementById("blocker-matrix").innerHTML = state.payload.taxonomy.blockerClasses
+          .map((row) => {
+            const linked = linkedKeys.has(row.blockerClassKey);
+            const selected = selectedBlockerKey === row.blockerClassKey;
+            return `
+              <tr
+                class="interactive-row"
+                tabindex="0"
+                data-testid="blocker-row-${toTestId(row.blockerClassKey)}"
+                data-blocker-key="${row.blockerClassKey}"
+                data-linked="${linked}"
+                data-selected="${selected}"
+              >
+                <td><strong>${row.blockerLabel}</strong><div class="mono">${row.blockerClassKey}</div></td>
+                <td class="mono">${row.requestClosureRecordField}</td>
+                <td>${row.group}</td>
+              </tr>
+            `;
+          })
+          .join("");
+        document.querySelectorAll("[data-blocker-key]").forEach((element) => {
+          element.addEventListener("click", () => {
+            state.selection = { kind: "blocker", id: element.dataset.blockerKey };
+            render();
+          });
+        });
+      }
+
+      function renderReopenMatrix(signal) {
+        const selectedClass =
+          state.selection.kind === "signal" ? signal?.reopen_trigger_class : "";
+        document.getElementById("reopen-matrix").innerHTML = state.payload.reopen
+          .map((row) => `
+            <tr
+              data-testid="reopen-row-${toTestId(row.reopen_trigger_class)}"
+              data-linked="${selectedClass && row.reopen_trigger_class === selectedClass}"
+            >
+              <td><strong>${row.reopen_trigger_class}</strong></td>
+              <td>${row.threshold_rule}</td>
+              <td>${row.reacquire_ownership}</td>
+            </tr>
+          `)
+          .join("");
+      }
+
+      function renderInspector(signal) {
+        const schema = state.payload.schema;
+        const blocker =
+          state.selection.kind === "blocker"
+            ? state.payload.taxonomy.blockerClasses.find((row) => row.blockerClassKey === state.selection.id)
+            : null;
+        const closureFields = Object.keys(schema.properties).filter((key) =>
+          key.startsWith("blocking") || key.endsWith("Epoch") || key.endsWith("Ref"),
+        );
+        const detailTitle = blocker ? blocker.blockerLabel : signal?.signal_name;
+        const detailBody = blocker
+          ? blocker.clearsVia
+          : signal?.meaning;
+        const refs = blocker
+          ? blocker.eventContractRefs
+          : splitList(signal?.event_contract_refs);
+        const scopeRefs = blocker
+          ? []
+          : splitList(signal?.acting_scope_tuple_refs);
+        const checks = blocker
+          ? blocker.evaluationCheckRefs
+          : splitList(signal?.evaluation_check_refs);
+        document.getElementById("inspector").innerHTML = `
+          <section class="inspector-section">
+            <div class="eyebrow">${blocker ? "Selected blocker" : "Selected signal"}</div>
+            <strong>${detailTitle || "No selection"}</strong>
+            <p style="margin:0;">${detailBody || "No visible records match the current filters."}</p>
+            <div class="chip-row">
+              ${(refs.length ? refs : ["no_event_contract"])
+                .map((value) => `<span class="chip blocker mono">${value}</span>`)
+                .join("")}
+            </div>
+          </section>
+          <section class="inspector-section">
+            <div class="eyebrow">Closure record fields</div>
+            <div class="definition-grid">
+              ${closureFields
+                .slice(0, 10)
+                .map(
+                  (field) => `
+                    <div>
+                      <span class="label">${field}</span>
+                      <strong class="mono">${field}</strong>
+                    </div>
+                  `,
+                )
+                .join("")}
+            </div>
+          </section>
+          <section class="inspector-section">
+            <div class="eyebrow">Consumed epoch and fence</div>
+            <div class="chip-row">
+              <span class="chip warning mono">requiredLineageEpoch</span>
+              <span class="chip warning mono">LineageFence.currentEpoch</span>
+              <span class="chip warning mono">command_following</span>
+            </div>
+            ${scopeRefs.length
+              ? `<div class="chip-row">${scopeRefs
+                  .map((value) => `<span class="chip milestone mono">${value}</span>`)
+                  .join("")}</div>`
+              : ""}
+          </section>
+          <section class="inspector-section">
+            <div class="eyebrow">Evaluation checks</div>
+            <div class="chip-row">
+              ${checks.map((value) => `<span class="chip mono">${value}</span>`).join("")}
+            </div>
+          </section>
+        `;
+      }
+
+      function renderDefects() {
+        document.getElementById("defect-strip").innerHTML = state.payload.taxonomy.defects
+          .map(
+            (row) => `
+              <article class="defect-card" data-testid="defect-${toTestId(row.defectId)}">
+                <strong>${row.defectId}</strong>
+                <p style="margin:8px 0 0;">${row.summary}</p>
+              </article>
+            `,
+          )
+          .join("");
+      }
+
+      function render() {
+        const signals = visibleSignals();
+        if (!signals.length) {
+          state.selection = { kind: "signal", id: "" };
+        } else if (
+          state.selection.kind === "signal" &&
+          !signals.some((row) => row.milestone_signal_id === state.selection.id)
+        ) {
+          state.selection = { kind: "signal", id: signals[0].milestone_signal_id };
+        }
+        const signal = selectedSignal();
+        renderMetrics();
+        renderFilters();
+        renderSignalCards(signals);
+        renderConstellation(signal);
+        renderVerdict(signal);
+        renderSignalMatrix(signals);
+        renderBlockerMatrix(signal);
+        renderReopenMatrix(signal);
+        renderInspector(signal);
+        renderDefects();
+      }
+
+      async function load() {
+        const [inputsText, schema, taxonomy, signalsText, reopenText] = await Promise.all([
+          fetch(DATA_PATHS.inputs).then((response) => response.text()),
+          fetch(DATA_PATHS.schema).then((response) => response.json()),
+          fetch(DATA_PATHS.taxonomy).then((response) => response.json()),
+          fetch(DATA_PATHS.signals).then((response) => response.text()),
+          fetch(DATA_PATHS.reopen).then((response) => response.text()),
+        ]);
+
+        state.payload = {
+          inputs: parseCsv(inputsText),
+          schema,
+          taxonomy,
+          signals: parseCsv(signalsText),
+          reopen: parseCsv(reopenText),
+        };
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          document.body.dataset.reducedMotion = "true";
+        }
+        if (state.payload.signals.length) {
+          state.selection = {
+            kind: "signal",
+            id: state.payload.signals[0].milestone_signal_id,
+          };
+        }
+        render();
+      }
+
+      load().catch((error) => {
+        document.body.innerHTML = `<pre>${error.stack}</pre>`;
+        throw error;
+      });
+    </script>
+  </body>
+</html>

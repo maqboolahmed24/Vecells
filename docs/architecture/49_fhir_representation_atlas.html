@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Clinical Representation Atlas</title>
+    <style>
+      :root {
+        --canvas: #f7f9fc;
+        --rail: #eef3f8;
+        --panel: #ffffff;
+        --inset: #f3f7fb;
+        --text-strong: #0f172a;
+        --text-default: #1e293b;
+        --text-muted: #667085;
+        --border-subtle: #e2e8f0;
+        --border-default: #cbd5e1;
+        --domain-accent: #3559e6;
+        --representation-accent: #0ea5a4;
+        --interchange-accent: #6e59d9;
+        --warning-accent: #c98900;
+        --blocked-accent: #c24141;
+        --shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: radial-gradient(circle at top right, rgba(53, 89, 230, 0.08), transparent 24%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.92)),
+          var(--canvas);
+        color: var(--text-default);
+      }
+
+      body[data-reduced-motion="true"] * {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+
+      .app-shell {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .masthead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: grid;
+        grid-template-columns: 1.4fr repeat(4, 1fr);
+        gap: 12px;
+        align-items: stretch;
+        min-height: 72px;
+        padding: 16px;
+        margin-bottom: 16px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(14px);
+        box-shadow: var(--shadow);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .brand svg {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(53, 89, 230, 0.14), rgba(14, 165, 164, 0.1));
+        border: 1px solid rgba(53, 89, 230, 0.18);
+        padding: 8px;
+      }
+
+      .brand-title {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .eyebrow {
+        color: var(--text-muted);
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .brand-title strong {
+        color: var(--text-strong);
+        font-size: 18px;
+        font-weight: 650;
+      }
+
+      .metric {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 12px 14px;
+        border-radius: 18px;
+        background: var(--inset);
+        border: 1px solid var(--border-subtle);
+      }
+
+      .metric label {
+        color: var(--text-muted);
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+
+      .metric strong {
+        color: var(--text-strong);
+        font-size: 22px;
+        line-height: 1;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 284px minmax(0, 1fr) 392px;
+        gap: 16px;
+      }
+
+      .rail,
+      .canvas-panel,
+      .inspector-panel,
+      .subpanel {
+        background: var(--panel);
+        border: 1px solid var(--border-subtle);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+      }
+
+      .rail {
+        padding: 18px;
+        background: linear-gradient(180deg, rgba(238, 243, 248, 0.88), rgba(255, 255, 255, 0.94));
+      }
+
+      .rail h2,
+      .canvas-panel h2,
+      .inspector-panel h2,
+      .subpanel h2 {
+        margin: 0 0 12px;
+        font-size: 14px;
+        color: var(--text-strong);
+      }
+
+      .filter-stack {
+        display: grid;
+        gap: 10px;
+      }
+
+      .filter-stack label {
+        display: grid;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      select {
+        width: 100%;
+        min-height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--border-default);
+        background: #fff;
+        color: var(--text-default);
+        padding: 0 14px;
+        font-size: 14px;
+      }
+
+      .aggregate-list {
+        display: grid;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .aggregate-button {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        min-height: 44px;
+        border-radius: 16px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255, 255, 255, 0.84);
+        color: var(--text-default);
+        padding: 10px 12px;
+        cursor: pointer;
+        transition: border-color 120ms ease, transform 120ms ease, background 120ms ease;
+      }
+
+      .aggregate-button[data-selected="true"] {
+        border-color: rgba(53, 89, 230, 0.44);
+        background: rgba(53, 89, 230, 0.08);
+        transform: translateX(2px);
+      }
+
+      .aggregate-button span:last-child {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      .canvas-panel,
+      .inspector-panel {
+        padding: 18px;
+      }
+
+      .canvas-panel {
+        display: grid;
+        gap: 16px;
+      }
+
+      .table-shell {
+        min-height: 520px;
+        border-radius: 20px;
+        overflow: hidden;
+        border: 1px solid var(--border-subtle);
+        background: var(--inset);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      thead {
+        background: rgba(15, 23, 42, 0.03);
+      }
+
+      th,
+      td {
+        padding: 12px 14px;
+        text-align: left;
+        vertical-align: top;
+        font-size: 13px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      td code,
+      .inspector-panel code,
+      .subpanel code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+      }
+
+      tbody tr {
+        cursor: pointer;
+        transition: background 180ms ease, transform 180ms ease;
+      }
+
+      tbody tr[data-selected="true"] {
+        background: rgba(53, 89, 230, 0.08);
+      }
+
+      .canvas-grid {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 16px;
+      }
+
+      .subpanel {
+        padding: 16px;
+      }
+
+      .braid-diagram {
+        width: 100%;
+        min-height: 280px;
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(243, 247, 251, 0.95), #fff);
+        border: 1px solid var(--border-subtle);
+      }
+
+      .inspector-panel {
+        display: grid;
+        gap: 14px;
+        align-content: start;
+        transition: transform 220ms ease;
+      }
+
+      .inspector-group {
+        padding: 14px;
+        border-radius: 18px;
+        background: var(--inset);
+        border: 1px solid var(--border-subtle);
+      }
+
+      .inspector-group ul,
+      .subpanel ul {
+        margin: 8px 0 0;
+        padding-left: 18px;
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        min-height: 28px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border-subtle);
+        background: #fff;
+        font-size: 12px;
+      }
+
+      .chip.purpose-external_interchange {
+        color: var(--interchange-accent);
+        border-color: rgba(110, 89, 217, 0.22);
+      }
+
+      .chip.purpose-clinical_persistence {
+        color: var(--domain-accent);
+        border-color: rgba(53, 89, 230, 0.22);
+      }
+
+      .chip.purpose-partner_callback_correlation {
+        color: var(--representation-accent);
+        border-color: rgba(14, 165, 164, 0.22);
+      }
+
+      .chip.purpose-audit_companion {
+        color: var(--warning-accent);
+        border-color: rgba(201, 137, 0, 0.28);
+      }
+
+      .chip.defect-watch {
+        color: var(--warning-accent);
+      }
+
+      .chip.defect-blocked {
+        color: var(--blocked-accent);
+        border-color: rgba(194, 65, 65, 0.24);
+      }
+
+      .bottom-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-top: 16px;
+      }
+
+      .defect-strip {
+        display: grid;
+        gap: 10px;
+      }
+
+      .defect-card {
+        padding: 12px 14px;
+        border-radius: 16px;
+        border: 1px solid rgba(194, 65, 65, 0.2);
+        background: rgba(194, 65, 65, 0.05);
+      }
+
+      .empty-state {
+        padding: 22px;
+        color: var(--text-muted);
+      }
+
+      @media (max-width: 1180px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .canvas-grid,
+        .bottom-grid,
+        .masthead {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="masthead" data-testid="atlas-masthead">
+        <div class="brand">
+          <svg viewBox="0 0 64 64" aria-hidden="true">
+            <rect x="10" y="10" width="44" height="44" rx="14" fill="none" stroke="#3559E6" stroke-width="3" />
+            <path d="M22 20h20M22 32h14M22 44h9" stroke="#0EA5A4" stroke-width="3.5" stroke-linecap="round" />
+          </svg>
+          <div class="brand-title">
+            <span class="eyebrow">Vecells Clinical Representation Atlas</span>
+            <strong>Domain truth first. FHIR only by published contract.</strong>
+          </div>
+        </div>
+        <div class="metric"><label>Contracts</label><strong data-testid="metric-contracts">0</strong></div>
+        <div class="metric"><label>Mapped aggregates</label><strong data-testid="metric-aggregates">0</strong></div>
+        <div class="metric"><label>Bundle policies</label><strong data-testid="metric-bundles">0</strong></div>
+        <div class="metric"><label>Blocked mappings</label><strong data-testid="metric-blocked">0</strong></div>
+      </header>
+
+      <main class="layout">
+        <aside class="rail" data-testid="aggregate-rail">
+          <h2>Aggregate filters</h2>
+          <div class="filter-stack">
+            <label>
+              Owning context
+              <select data-testid="filter-context" id="filter-context"></select>
+            </label>
+            <label>
+              Representation purpose
+              <select data-testid="filter-purpose" id="filter-purpose"></select>
+            </label>
+            <label>
+              Resource type
+              <select data-testid="filter-resource" id="filter-resource"></select>
+            </label>
+            <label>
+              Defect state
+              <select data-testid="filter-defect" id="filter-defect"></select>
+            </label>
+          </div>
+          <div class="aggregate-list" data-testid="aggregate-button-list"></div>
+        </aside>
+
+        <section class="canvas-panel">
+          <div class="table-shell">
+            <table data-testid="mapping-table">
+              <thead>
+                <tr>
+                  <th>Aggregate</th>
+                  <th>Purpose</th>
+                  <th>Resources</th>
+                  <th>Bundle</th>
+                  <th>Defect</th>
+                </tr>
+              </thead>
+              <tbody data-testid="mapping-body"></tbody>
+            </table>
+          </div>
+
+          <div class="canvas-grid">
+            <section class="subpanel">
+              <h2>Domain-to-resource braid</h2>
+              <svg
+                class="braid-diagram"
+                viewBox="0 0 640 280"
+                role="img"
+                aria-label="Aggregate to representation braid"
+                data-testid="braid-diagram"
+              >
+                <rect x="36" y="74" width="156" height="72" rx="22" fill="#FFFFFF" stroke="#CBD5E1" />
+                <rect x="244" y="42" width="156" height="72" rx="22" fill="#FFFFFF" stroke="#CBD5E1" />
+                <rect x="244" y="166" width="156" height="72" rx="22" fill="#FFFFFF" stroke="#CBD5E1" />
+                <rect x="452" y="74" width="156" height="72" rx="22" fill="#FFFFFF" stroke="#CBD5E1" />
+                <path d="M190 110C222 110 222 78 244 78" fill="none" stroke="#3559E6" stroke-width="4" stroke-linecap="round" />
+                <path d="M190 110C222 110 222 202 244 202" fill="none" stroke="#0EA5A4" stroke-width="4" stroke-linecap="round" />
+                <path d="M400 78C430 78 430 110 452 110" fill="none" stroke="#6E59D9" stroke-width="4" stroke-linecap="round" />
+                <path d="M400 202C430 202 430 110 452 110" fill="none" stroke="#0EA5A4" stroke-width="4" stroke-linecap="round" />
+                <text x="54" y="103" font-size="14" fill="#667085">Aggregate</text>
+                <text x="54" y="124" font-size="20" fill="#0F172A" data-testid="braid-aggregate">Request</text>
+                <text x="262" y="71" font-size="14" fill="#667085">Representation set</text>
+                <text x="262" y="92" font-size="18" fill="#0F172A" data-testid="braid-set">clinical_persistence</text>
+                <text x="262" y="114" font-size="12" fill="#667085" data-testid="braid-version">v1</text>
+                <text x="262" y="195" font-size="14" fill="#667085">Resources</text>
+                <text x="262" y="216" font-size="15" fill="#0F172A" data-testid="braid-resources">Task + 2 companions</text>
+                <text x="470" y="103" font-size="14" fill="#667085">Exchange bundle</text>
+                <text x="470" y="124" font-size="18" fill="#0F172A" data-testid="braid-bundle">none</text>
+              </svg>
+              <table data-testid="braid-parity-table">
+                <thead>
+                  <tr><th>Tuple</th><th>Value</th></tr>
+                </thead>
+                <tbody id="braid-parity-body"></tbody>
+              </table>
+            </section>
+
+            <section class="subpanel" data-testid="policy-ledger">
+              <h2>Policy ledger</h2>
+              <div id="policy-ledger-body"></div>
+            </section>
+          </div>
+
+          <div class="bottom-grid">
+            <section class="subpanel">
+              <h2>Exchange bundle matrix</h2>
+              <table data-testid="bundle-matrix">
+                <thead>
+                  <tr>
+                    <th>Policy</th>
+                    <th>Direction</th>
+                    <th>Bundle types</th>
+                    <th>Adapter profiles</th>
+                  </tr>
+                </thead>
+                <tbody id="bundle-matrix-body"></tbody>
+              </table>
+            </section>
+            <section class="subpanel">
+              <h2>Defect strip</h2>
+              <div class="defect-strip" data-testid="defect-strip" id="defect-strip-body"></div>
+            </section>
+          </div>
+        </section>
+
+        <aside class="inspector-panel" data-testid="inspector"></aside>
+      </main>
+    </div>
+
+    <script>
+      const DATA_PATHS = {
+        contracts: "../../data/analysis/fhir_representation_contracts.json",
+        exchange: "../../data/analysis/fhir_exchange_bundle_policies.json",
+        policies: "../../data/analysis/fhir_identifier_and_status_policies.json",
+      };
+
+      const state = {
+        contractsPayload: null,
+        exchangePayload: null,
+        policyPayload: null,
+        filters: {
+          aggregate: "all",
+          context: "all",
+          purpose: "all",
+          resource: "all",
+          defect: "all",
+        },
+        selectedContractId: null,
+      };
+
+      const lookup = {
+        identifier: new Map(),
+        status: new Map(),
+        cardinality: new Map(),
+        redaction: new Map(),
+        companion: new Map(),
+        replay: new Map(),
+        supersession: new Map(),
+        callback: new Map(),
+        bundle: new Map(),
+      };
+
+      function setReducedMotionFlag() {
+        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        document.body.dataset.reducedMotion = reducedMotion ? "true" : "false";
+      }
+
+      function buildLookups() {
+        lookup.identifier = new Map(state.policyPayload.identifierPolicies.map((row) => [row.policyId, row]));
+        lookup.status = new Map(state.policyPayload.statusMappingPolicies.map((row) => [row.policyId, row]));
+        lookup.cardinality = new Map(state.policyPayload.cardinalityPolicies.map((row) => [row.policyId, row]));
+        lookup.redaction = new Map(state.policyPayload.redactionPolicies.map((row) => [row.policyId, row]));
+        lookup.companion = new Map(state.policyPayload.companionArtifactPolicies.map((row) => [row.policyId, row]));
+        lookup.replay = new Map(state.policyPayload.replayPolicies.map((row) => [row.policyId, row]));
+        lookup.supersession = new Map(state.policyPayload.supersessionPolicies.map((row) => [row.policyId, row]));
+        lookup.callback = new Map(state.policyPayload.callbackCorrelationPolicies.map((row) => [row.policyId, row]));
+        lookup.bundle = new Map(state.exchangePayload.policies.map((row) => [row.policyId, row]));
+      }
+
+      function uniqueValues(values) {
+        return Array.from(new Set(values)).sort((left, right) => left.localeCompare(right));
+      }
+
+      function filteredContracts() {
+        return state.contractsPayload.contracts.filter((row) => {
+          const matchesAggregate =
+            state.filters.aggregate === "all" || row.governingAggregateType === state.filters.aggregate;
+          const matchesContext =
+            state.filters.context === "all" || row.owningBoundedContextRef === state.filters.context;
+          const matchesPurpose =
+            state.filters.purpose === "all" || row.representationPurpose === state.filters.purpose;
+          const matchesResource =
+            state.filters.resource === "all" || row.allowedResourceTypes.includes(state.filters.resource);
+          const matchesDefect =
+            state.filters.defect === "all" || row.defectState === state.filters.defect;
+          return matchesAggregate && matchesContext && matchesPurpose && matchesResource && matchesDefect;
+        });
+      }
+
+      function selectedContract() {
+        const rows = filteredContracts();
+        const selected = rows.find((row) => row.fhirRepresentationContractId === state.selectedContractId);
+        return selected || rows[0] || null;
+      }
+
+      function updateMetrics() {
+        document.querySelector("[data-testid='metric-contracts']").textContent =
+          String(state.contractsPayload.summary.active_contract_count);
+        document.querySelector("[data-testid='metric-aggregates']").textContent =
+          String(state.contractsPayload.summary.mapped_aggregate_count);
+        document.querySelector("[data-testid='metric-bundles']").textContent =
+          String(state.exchangePayload.summary.policy_count);
+        document.querySelector("[data-testid='metric-blocked']").textContent =
+          String(state.policyPayload.summary.blocked_lifecycle_owner_count);
+      }
+
+      function renderFilters() {
+        const contracts = state.contractsPayload.contracts;
+        const options = {
+          context: uniqueValues(contracts.map((row) => row.owningBoundedContextRef)),
+          purpose: uniqueValues(contracts.map((row) => row.representationPurpose)),
+          resource: uniqueValues(contracts.flatMap((row) => row.allowedResourceTypes)),
+          defect: uniqueValues(contracts.map((row) => row.defectState)),
+        };
+        for (const [filterName, values] of Object.entries(options)) {
+          const select = document.getElementById(`filter-${filterName}`);
+          select.innerHTML = "";
+          const allOption = document.createElement("option");
+          allOption.value = "all";
+          allOption.textContent = "All";
+          select.appendChild(allOption);
+          values.forEach((value) => {
+            const option = document.createElement("option");
+            option.value = value;
+            option.textContent = value;
+            select.appendChild(option);
+          });
+          select.value = state.filters[filterName];
+          select.onchange = (event) => {
+            state.filters[filterName] = event.target.value;
+            rerender();
+          };
+        }
+      }
+
+      function renderAggregateRail() {
+        const counts = new Map();
+        state.contractsPayload.contracts.forEach((row) => {
+          counts.set(row.governingAggregateType, (counts.get(row.governingAggregateType) || 0) + 1);
+        });
+        const container = document.querySelector("[data-testid='aggregate-button-list']");
+        container.innerHTML = "";
+        const allButton = document.createElement("button");
+        allButton.type = "button";
+        allButton.className = "aggregate-button";
+        allButton.dataset.selected = state.filters.aggregate === "all" ? "true" : "false";
+        allButton.textContent = "All aggregates";
+        allButton.onclick = () => {
+          state.filters.aggregate = "all";
+          rerender();
+        };
+        container.appendChild(allButton);
+        uniqueValues(Array.from(counts.keys())).forEach((aggregate) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "aggregate-button";
+          button.dataset.selected = state.filters.aggregate === aggregate ? "true" : "false";
+          button.dataset.testid = `aggregate-filter-${aggregate}`;
+          button.innerHTML = `<span>${aggregate}</span><span>${counts.get(aggregate)}</span>`;
+          button.onclick = () => {
+            state.filters.aggregate = aggregate;
+            rerender();
+          };
+          container.appendChild(button);
+        });
+      }
+
+      function renderMappingTable() {
+        const rows = filteredContracts();
+        if (!rows.find((row) => row.fhirRepresentationContractId === state.selectedContractId)) {
+          state.selectedContractId = rows[0]?.fhirRepresentationContractId ?? null;
+        }
+        const body = document.querySelector("[data-testid='mapping-body']");
+        body.innerHTML = "";
+        if (!rows.length) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 5;
+          td.className = "empty-state";
+          td.textContent = "No contracts match the current filter tuple.";
+          tr.appendChild(td);
+          body.appendChild(tr);
+          return;
+        }
+        rows.forEach((row, index) => {
+          const tr = document.createElement("tr");
+          tr.tabIndex = 0;
+          tr.dataset.testid = `mapping-row-${row.fhirRepresentationContractId}`;
+          tr.dataset.selected = row.fhirRepresentationContractId === state.selectedContractId ? "true" : "false";
+          tr.dataset.rowIndex = String(index);
+          tr.innerHTML = `
+            <td><code>${row.governingAggregateType}</code><br /><span class="eyebrow">${row.owningBoundedContextRef}</span></td>
+            <td><span class="chip purpose-${row.representationPurpose}">${row.representationPurpose}</span></td>
+            <td>${row.allowedResourceTypes.map((value) => `<code>${value}</code>`).join("<br />")}</td>
+            <td>${(row.declaredBundlePolicyRefs.length ? row.declaredBundlePolicyRefs : ["none"]).map((value) => `<code>${value}</code>`).join("<br />")}</td>
+            <td><span class="chip defect-${row.defectState}">${row.defectState}</span></td>
+          `;
+          tr.onclick = () => {
+            state.selectedContractId = row.fhirRepresentationContractId;
+            rerender(false);
+          };
+          tr.onkeydown = (event) => handleRowKeydown(event, index, rows);
+          body.appendChild(tr);
+        });
+      }
+
+      function handleRowKeydown(event, index, rows) {
+        if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+          return;
+        }
+        event.preventDefault();
+        const delta = event.key === "ArrowDown" ? 1 : -1;
+        const nextIndex = Math.min(Math.max(index + delta, 0), rows.length - 1);
+        const next = rows[nextIndex];
+        state.selectedContractId = next.fhirRepresentationContractId;
+        rerender(false);
+        const nextRow = document.querySelector(`[data-testid='mapping-row-${next.fhirRepresentationContractId}']`);
+        nextRow?.focus();
+      }
+
+      function renderInspector() {
+        const contract = selectedContract();
+        const inspector = document.querySelector("[data-testid='inspector']");
+        inspector.innerHTML = "";
+        if (!contract) {
+          inspector.innerHTML = '<div class="empty-state">Select a contract to inspect its representation law.</div>';
+          return;
+        }
+        const bundlePolicies = contract.declaredBundlePolicyRefs.map((ref) => lookup.bundle.get(ref)).filter(Boolean);
+        const groups = [
+          {
+            title: contract.fhirRepresentationContractId,
+            body: `
+              <div class="chip-row">
+                <span class="chip purpose-${contract.representationPurpose}">${contract.representationPurpose}</span>
+                <span class="chip defect-${contract.defectState}">${contract.defectState}</span>
+              </div>
+              <p><strong>Aggregate</strong><br /><code>${contract.governingAggregateType}</code></p>
+              <p><strong>Owning context</strong><br /><code>${contract.owningBoundedContextRef}</code></p>
+              <p><strong>Contract version</strong><br /><code>${contract.contractVersionRef}</code></p>
+              <p>${contract.rationale}</p>
+            `,
+          },
+          {
+            title: "Allowed resource types",
+            body: `<ul>${contract.resourceProfiles.map((row) => `<li><code>${row.resourceType}</code> <br /><code>${row.profileCanonicalUrl}</code></li>`).join("")}</ul>`,
+          },
+          {
+            title: "Policy bindings",
+            body: `
+              <ul>
+                <li><code>${contract.identifierPolicyRef}</code> - ${lookup.identifier.get(contract.identifierPolicyRef)?.label ?? ""}</li>
+                <li><code>${contract.statusMappingPolicyRef}</code> - ${lookup.status.get(contract.statusMappingPolicyRef)?.label ?? ""}</li>
+                <li><code>${contract.redactionPolicyRef}</code> - ${lookup.redaction.get(contract.redactionPolicyRef)?.label ?? ""}</li>
+                <li><code>${contract.replayPolicyRef}</code> - ${lookup.replay.get(contract.replayPolicyRef)?.label ?? ""}</li>
+                <li><code>${contract.supersessionPolicyRef}</code> - ${lookup.supersession.get(contract.supersessionPolicyRef)?.label ?? ""}</li>
+                <li><code>${contract.callbackCorrelationPolicyRef}</code> - ${lookup.callback.get(contract.callbackCorrelationPolicyRef)?.label ?? ""}</li>
+              </ul>
+            `,
+          },
+          {
+            title: "Trigger and evidence",
+            body: `
+              <p><strong>Trigger milestones</strong></p>
+              <ul>${contract.triggerMilestoneTypes.map((value) => `<li><code>${value}</code></li>`).join("")}</ul>
+              <p><strong>Required evidence</strong></p>
+              <ul>${contract.requiredEvidenceRefs.map((value) => `<li><code>${value}</code></li>`).join("")}</ul>
+            `,
+          },
+          {
+            title: "Bundle posture",
+            body: bundlePolicies.length
+              ? `<ul>${bundlePolicies.map((row) => `<li><code>${row.policyId}</code> - ${row.direction} / ${row.legalBundleTypes.join(", ")}</li>`).join("")}</ul>`
+              : "<p>No adapter-boundary bundle is legal for this contract.</p>",
+          },
+        ];
+        groups.forEach((group) => {
+          const section = document.createElement("section");
+          section.className = "inspector-group";
+          section.innerHTML = `<h2>${group.title}</h2>${group.body}`;
+          inspector.appendChild(section);
+        });
+      }
+
+      function renderBraidDiagram() {
+        const contract = selectedContract();
+        if (!contract) {
+          return;
+        }
+        document.querySelector("[data-testid='braid-aggregate']").textContent = contract.governingAggregateType;
+        document.querySelector("[data-testid='braid-set']").textContent = contract.representationPurpose;
+        document.querySelector("[data-testid='braid-version']").textContent = contract.contractVersionRef;
+        document.querySelector("[data-testid='braid-resources']").textContent = `${contract.allowedResourceTypes[0]} + ${Math.max(contract.allowedResourceTypes.length - 1, 0)} companions`;
+        document.querySelector("[data-testid='braid-bundle']").textContent =
+          contract.declaredBundlePolicyRefs[0] ?? "none";
+
+        const parityBody = document.getElementById("braid-parity-body");
+        parityBody.innerHTML = "";
+        [
+          ["Aggregate", contract.governingAggregateType],
+          ["Purpose", contract.representationPurpose],
+          ["Contract", contract.fhirRepresentationContractId],
+          ["Bundle", contract.declaredBundlePolicyRefs[0] ?? "none"],
+        ].forEach(([label, value]) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `<td>${label}</td><td><code>${value}</code></td>`;
+          parityBody.appendChild(row);
+        });
+      }
+
+      function renderBundleMatrix() {
+        const contract = selectedContract();
+        const body = document.getElementById("bundle-matrix-body");
+        body.innerHTML = "";
+        if (!contract) {
+          return;
+        }
+        const bundlePolicies = contract.declaredBundlePolicyRefs.map((ref) => lookup.bundle.get(ref)).filter(Boolean);
+        if (!bundlePolicies.length) {
+          body.innerHTML = '<tr><td colspan="4" class="empty-state">No adapter-boundary bundle policy for the selected contract.</td></tr>';
+          return;
+        }
+        bundlePolicies.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.dataset.testid = `bundle-row-${row.policyId}`;
+          tr.innerHTML = `
+            <td><code>${row.policyId}</code></td>
+            <td>${row.direction}</td>
+            <td>${row.legalBundleTypes.map((value) => `<code>${value}</code>`).join(", ")}</td>
+            <td>${row.adapterProfileRefs.map((value) => `<code>${value}</code>`).join("<br />")}</td>
+          `;
+          body.appendChild(tr);
+        });
+      }
+
+      function renderPolicyLedger() {
+        const contract = selectedContract();
+        const container = document.getElementById("policy-ledger-body");
+        container.innerHTML = "";
+        if (!contract) {
+          return;
+        }
+        const cards = [
+          lookup.identifier.get(contract.identifierPolicyRef),
+          lookup.status.get(contract.statusMappingPolicyRef),
+          lookup.cardinality.get(contract.cardinalityPolicyRef),
+          lookup.redaction.get(contract.redactionPolicyRef),
+          lookup.companion.get(contract.companionArtifactPolicyRef),
+          lookup.replay.get(contract.replayPolicyRef),
+          lookup.supersession.get(contract.supersessionPolicyRef),
+          lookup.callback.get(contract.callbackCorrelationPolicyRef),
+        ].filter(Boolean);
+        cards.forEach((card) => {
+          const section = document.createElement("section");
+          section.className = "inspector-group";
+          section.dataset.testid = `policy-card-${card.policyId}`;
+          section.innerHTML = `<h2><code>${card.policyId}</code></h2><p>${card.description ?? card.label}</p>`;
+          container.appendChild(section);
+        });
+      }
+
+      function renderDefectStrip() {
+        const contract = selectedContract();
+        const strip = document.getElementById("defect-strip-body");
+        strip.innerHTML = "";
+        state.policyPayload.prohibitedLifecycleOwners.forEach((row) => {
+          const card = document.createElement("article");
+          card.className = "defect-card";
+          card.dataset.testid = `defect-card-${row.objectType}`;
+          card.innerHTML = `<strong><code>${row.objectType}</code></strong><p>${row.blockedReason}</p>`;
+          strip.appendChild(card);
+        });
+        if (contract && contract.defectState === "watch") {
+          state.contractsPayload.assumptions.forEach((row) => {
+            const card = document.createElement("article");
+            card.className = "defect-card";
+            card.dataset.testid = `defect-card-${row.assumptionId}`;
+            card.innerHTML = `<strong><code>${row.assumptionId}</code></strong><p>${row.statement}</p>`;
+            strip.appendChild(card);
+          });
+        }
+      }
+
+      function rerender(renderFiltersToo = true) {
+        updateMetrics();
+        if (renderFiltersToo) {
+          renderFilters();
+        }
+        renderAggregateRail();
+        renderMappingTable();
+        renderInspector();
+        renderBraidDiagram();
+        renderBundleMatrix();
+        renderPolicyLedger();
+        renderDefectStrip();
+      }
+
+      async function boot() {
+        setReducedMotionFlag();
+        const [contractsPayload, exchangePayload, policyPayload] = await Promise.all(
+          Object.values(DATA_PATHS).map((path) => fetch(path).then((response) => response.json())),
+        );
+        state.contractsPayload = contractsPayload;
+        state.exchangePayload = exchangePayload;
+        state.policyPayload = policyPayload;
+        buildLookups();
+        state.selectedContractId = contractsPayload.contracts[0]?.fhirRepresentationContractId ?? null;
+        rerender(true);
+      }
+
+      boot().catch((error) => {
+        const inspector = document.querySelector("[data-testid='inspector']");
+        inspector.innerHTML = `<div class="empty-state">Failed to load atlas data: ${error.message}</div>`;
+      });
+    </script>
+  </body>
+</html>

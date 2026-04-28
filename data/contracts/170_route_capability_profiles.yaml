@@ -1,0 +1,248 @@
+schemaVersion: 170.phase2.trust.v1
+policyVersion: phase2-trust-v1
+unknownProfileBehavior: deny
+identityBindingMutationAuthority: IdentityBindingAuthority
+decisionVocabulary:
+  - allow
+  - step_up_required
+  - recover_only
+  - deny
+protectedSurfaceFamilies:
+  - anonymous_draft_start
+  - anonymous_draft_continue
+  - signed_in_draft_start
+  - authenticated_request_status_view
+  - draft_claim_into_authenticated_account
+  - post_sign_in_attachment_addition
+  - sms_continuation_phone_seeded_draft
+  - future_protected_records
+  - future_booking_surfaces
+  - unknown_protected_route
+profiles:
+  - profileId: RCP_170_ANONYMOUS_DRAFT_START
+    routeFamilyRef: rf_phase1_public_intake
+    surfaceRef: anonymous_draft_start
+    routePathPattern: /start-request
+    lifecycle: current
+    requiredCapability: anonymous_draft_start
+    acceptedIdentitySources:
+      - anonymous
+    minimumVerificationLevel: none
+    patientLinkPosture: unlinked_or_candidate
+    defaultDecision: allow
+    capabilityCeiling: anonymous_public
+    grantCeiling: draft_lease_only
+    writableAuthorityState: read_only
+    futureProfilePending: false
+    evidenceBoundary: vault_reference_only
+    owningAuthority: CapabilityDecisionEngine
+    reasonCodes:
+      - CAP_170_ANONYMOUS_DRAFT_START_ALLOWED
+    authorityNotes: Creates a draft lease only; IdentityBinding remains untouched.
+  - profileId: RCP_170_ANONYMOUS_DRAFT_CONTINUE
+    routeFamilyRef: rf_phase1_public_intake
+    surfaceRef: anonymous_draft_continue
+    routePathPattern: /start-request/:draftPublicId/resume
+    lifecycle: current
+    requiredCapability: anonymous_draft_continue
+    acceptedIdentitySources:
+      - anonymous
+      - secure_link
+    minimumVerificationLevel: none
+    patientLinkPosture: unlinked_or_candidate
+    defaultDecision: allow
+    capabilityCeiling: anonymous_public
+    grantCeiling: draft_lease_only
+    writableAuthorityState: read_only
+    futureProfilePending: false
+    evidenceBoundary: vault_reference_only
+    owningAuthority: CapabilityDecisionEngine
+    reasonCodes:
+      - CAP_170_ANONYMOUS_DRAFT_CONTINUE_ALLOWED
+    authorityNotes: Resume grant remains bounded by draft lease and stale-token supersession.
+  - profileId: RCP_170_SIGNED_IN_DRAFT_START
+    routeFamilyRef: rf_phase2_authenticated_intake
+    surfaceRef: signed_in_draft_start
+    routePathPattern: /account/start-request
+    lifecycle: planned_phase2
+    requiredCapability: signed_in_draft_start
+    acceptedIdentitySources:
+      - nhs_login
+    minimumVerificationLevel: nhs_low
+    patientLinkPosture: candidate_or_linked
+    defaultDecision: allow
+    capabilityCeiling: signed_in_basic
+    grantCeiling: authenticated_draft_only
+    writableAuthorityState: read_only
+    futureProfilePending: false
+    evidenceBoundary: vault_reference_only
+    owningAuthority: CapabilityDecisionEngine
+    reasonCodes:
+      - CAP_170_SIGNED_IN_DRAFT_START_ALLOWED
+    authorityNotes: Starts authenticated draft context without asserting patient ownership.
+  - profileId: RCP_170_AUTHENTICATED_REQUEST_STATUS_VIEW
+    routeFamilyRef: rf_phase2_authenticated_request_status
+    surfaceRef: authenticated_request_status_view
+    routePathPattern: /account/requests/:requestPublicId
+    lifecycle: planned_phase2
+    requiredCapability: authenticated_request_status_view
+    acceptedIdentitySources:
+      - nhs_login
+    minimumVerificationLevel: nhs_p9
+    patientLinkPosture: linked
+    defaultDecision: allow
+    capabilityCeiling: signed_in_verified
+    grantCeiling: request_status_read
+    writableAuthorityState: read_only
+    futureProfilePending: false
+    evidenceBoundary: vault_reference_only
+    owningAuthority: CapabilityDecisionEngine
+    reasonCodes:
+      - CAP_170_AUTH_STATUS_VIEW_ALLOWED
+    authorityNotes: Read-only request access is conditioned on linked posture and fresh session.
+  - profileId: RCP_170_DRAFT_CLAIM_INTO_AUTHENTICATED_ACCOUNT
+    routeFamilyRef: rf_phase2_claim_redemption
+    surfaceRef: draft_claim_into_authenticated_account
+    routePathPattern: /account/claim/:draftPublicId
+    lifecycle: planned_phase2
+    requiredCapability: draft_claim_into_authenticated_account
+    acceptedIdentitySources:
+      - nhs_login
+      - secure_link
+    minimumVerificationLevel: nhs_low
+    patientLinkPosture: candidate
+    defaultDecision: step_up_required
+    capabilityCeiling: signed_in_basic
+    grantCeiling: authenticated_draft_only
+    writableAuthorityState: read_only
+    futureProfilePending: false
+    evidenceBoundary: vault_reference_only
+    owningAuthority: CapabilityDecisionEngine
+    reasonCodes:
+      - CAP_170_DRAFT_CLAIM_REQUIRES_STEP_UP
+    authorityNotes: Claim may emit a bind request signal; only IdentityBindingAuthority can append binding.
+  - profileId: RCP_170_POST_SIGN_IN_ATTACHMENT_ADDITION
+    routeFamilyRef: rf_phase2_authenticated_attachments
+    surfaceRef: post_sign_in_attachment_addition
+    routePathPattern: /account/requests/:requestPublicId/attachments
+    lifecycle: planned_phase2
+    requiredCapability: post_sign_in_attachment_addition
+    acceptedIdentitySources:
+      - nhs_login
+    minimumVerificationLevel: nhs_p9
+    patientLinkPosture: linked
+    defaultDecision: allow
+    capabilityCeiling: signed_in_verified
+    grantCeiling: request_attachment_write
+    writableAuthorityState: writable
+    futureProfilePending: false
+    evidenceBoundary: vault_reference_only
+    owningAuthority: CapabilityDecisionEngine
+    reasonCodes:
+      - CAP_170_ATTACHMENT_ADD_ALLOWED_WITH_LINK
+    authorityNotes: Allows attachment write only to already linked request scope.
+  - profileId: RCP_170_SMS_CONTINUATION_PHONE_SEEDED_DRAFT
+    routeFamilyRef: rf_phase2_sms_continuation
+    surfaceRef: sms_continuation_phone_seeded_draft
+    routePathPattern: /continue/:grantRef
+    lifecycle: planned_phase2
+    requiredCapability: sms_continuation_phone_seeded_draft
+    acceptedIdentitySources:
+      - sms_continuation
+    minimumVerificationLevel: contact_seeded
+    patientLinkPosture: candidate
+    defaultDecision: recover_only
+    capabilityCeiling: recover_only
+    grantCeiling: continuation_recovery_only
+    writableAuthorityState: read_only
+    futureProfilePending: false
+    evidenceBoundary: vault_reference_only
+    owningAuthority: CapabilityDecisionEngine
+    reasonCodes:
+      - CAP_170_SMS_CONTINUATION_RECOVER_ONLY
+    authorityNotes: Phone-seeded continuation cannot raise patient ownership or authenticated grant ceiling.
+  - profileId: RCP_170_IDENTITY_REPAIR_HOLD
+    routeFamilyRef: rf_phase2_identity_repair
+    surfaceRef: identity_repair_hold
+    routePathPattern: /account/identity/repair
+    lifecycle: planned_phase2
+    requiredCapability: identity_repair_hold
+    acceptedIdentitySources:
+      - nhs_login
+      - staff_override
+    minimumVerificationLevel: nhs_low
+    patientLinkPosture: conflict_or_repair_hold
+    defaultDecision: recover_only
+    capabilityCeiling: restricted
+    grantCeiling: continuation_recovery_only
+    writableAuthorityState: blocked
+    futureProfilePending: false
+    evidenceBoundary: vault_reference_only
+    owningAuthority: IdentityBindingAuthority
+    reasonCodes:
+      - CAP_170_IDENTITY_REPAIR_RECOVER_ONLY
+    authorityNotes: Manual repair can narrow capability and request authority review but cannot mutate binding outside authority.
+  - profileId: RCP_170_FUTURE_PROTECTED_RECORDS
+    routeFamilyRef: rf_future_records
+    surfaceRef: future_protected_records
+    routePathPattern: /account/records/*
+    lifecycle: future_profile_pending
+    requiredCapability: future_protected_records
+    acceptedIdentitySources:
+      - nhs_login
+    minimumVerificationLevel: nhs_p9
+    patientLinkPosture: linked
+    defaultDecision: deny
+    capabilityCeiling: deny
+    grantCeiling: future_denied
+    writableAuthorityState: blocked
+    futureProfilePending: true
+    evidenceBoundary: vault_reference_only
+    owningAuthority: CapabilityDecisionEngine
+    reasonCodes:
+      - CAP_170_FUTURE_RECORDS_DENIED_PLACEHOLDER
+    authorityNotes: Placeholder row prevents silent future route activation.
+  - profileId: RCP_170_FUTURE_BOOKING_SURFACES
+    routeFamilyRef: rf_future_booking
+    surfaceRef: future_booking_surfaces
+    routePathPattern: /account/bookings/*
+    lifecycle: future_profile_pending
+    requiredCapability: future_booking_surfaces
+    acceptedIdentitySources:
+      - nhs_login
+    minimumVerificationLevel: nhs_p9
+    patientLinkPosture: linked
+    defaultDecision: deny
+    capabilityCeiling: deny
+    grantCeiling: future_denied
+    writableAuthorityState: blocked
+    futureProfilePending: true
+    evidenceBoundary: vault_reference_only
+    owningAuthority: CapabilityDecisionEngine
+    reasonCodes:
+      - CAP_170_FUTURE_BOOKING_DENIED_PLACEHOLDER
+    authorityNotes: Placeholder row forces explicit future trust review before booking access.
+  - profileId: RCP_170_UNKNOWN_PROTECTED_ROUTE_FALLBACK
+    routeFamilyRef: rf_unknown_protected
+    surfaceRef: unknown_protected_route
+    routePathPattern: "*"
+    lifecycle: fallback
+    requiredCapability: unknown_protected_route
+    acceptedIdentitySources:
+      - anonymous
+      - nhs_login
+      - secure_link
+      - sms_continuation
+      - staff_override
+    minimumVerificationLevel: none
+    patientLinkPosture: any
+    defaultDecision: deny
+    capabilityCeiling: deny
+    grantCeiling: none
+    writableAuthorityState: blocked
+    futureProfilePending: false
+    evidenceBoundary: vault_reference_only
+    owningAuthority: CapabilityDecisionEngine
+    reasonCodes:
+      - CAP_170_UNKNOWN_PROTECTED_ROUTE_DENIED
+    authorityNotes: Deny-by-default fallback when no explicit RouteCapabilityProfile matches.

@@ -1,0 +1,799 @@
+{
+  "catalog_id": "persona_catalog_v1",
+  "axes": [
+    {
+      "axis": "persona",
+      "definition": "The human actor or bounded operator mode whose job to be done drives the surface.",
+      "why_it_matters": "Prevents patient, clinician, support, hub, pharmacy, operations, governance, and assistive users from collapsing into one generic actor.",
+      "canonical_source": "blueprint-init.md#2. Core product surfaces"
+    },
+    {
+      "axis": "audience_tier",
+      "definition": "The published visibility and mutation ceiling resolved through AudienceVisibilityCoverage and MinimumNecessaryContract.",
+      "why_it_matters": "Separates who the actor is from what data and actions the current surface is lawfully allowed to expose.",
+      "canonical_source": "phase-0-the-foundation-protocol.md#12.1 Mandatory audience tiers"
+    },
+    {
+      "axis": "shell_type",
+      "definition": "The owning persistent shell family that preserves continuity for the active entity and route family.",
+      "why_it_matters": "Stops route prefixes, local layouts, or feature labels from impersonating a different shell family.",
+      "canonical_source": "phase-0-the-foundation-protocol.md#1.1 PersistentShell"
+    },
+    {
+      "axis": "channel_profile",
+      "definition": "The posture adaptation of the owning shell: browser, embedded, or constrained_browser.",
+      "why_it_matters": "Lets embedded or constrained delivery narrow chrome and capability without redefining shell ownership.",
+      "canonical_source": "phase-0-the-foundation-protocol.md#1.1 PersistentShell"
+    },
+    {
+      "axis": "ingress_channel",
+      "definition": "The channel by which the actor enters or resumes the lineage: web, embedded, telephony, secure-link, or support-assisted capture.",
+      "why_it_matters": "Preserves telephony parity and same-lineage continuation without creating a second back-office workflow.",
+      "canonical_source": "blueprint-init.md#2. Core product surfaces"
+    },
+    {
+      "axis": "route_family",
+      "definition": "The routed surface family that claims shell residency and owns the dominant action and continuity rules.",
+      "why_it_matters": "Makes route ownership explicit so /workspace, /ops, /hub, and patient portal sections cannot belong to two shells at once.",
+      "canonical_source": "platform-frontend-blueprint.md#Shell and route-family ownership rules"
+    }
+  ],
+  "base_audience_tiers": [
+    {
+      "tier": "patient_public",
+      "definition": "Public-safe patient status, secure-link entry before proof, and governed recovery only.",
+      "source_ref": "phase-0-the-foundation-protocol.md#12.1 Mandatory audience tiers"
+    },
+    {
+      "tier": "patient_authenticated",
+      "definition": "Signed-in patient routes with richer request, booking, message, record, pharmacy, and document visibility after live checks pass.",
+      "source_ref": "phase-0-the-foundation-protocol.md#12.1 Mandatory audience tiers"
+    },
+    {
+      "tier": "origin_practice",
+      "definition": "Practice-owned operational and clinically necessary detail for the current organisation only.",
+      "source_ref": "phase-0-the-foundation-protocol.md#12.1 Mandatory audience tiers"
+    },
+    {
+      "tier": "hub_desk",
+      "definition": "Coordination-safe cross-site visibility for ranked offers, travel constraints, and practice-ack debt, without full clinical narrative.",
+      "source_ref": "phase-0-the-foundation-protocol.md#12.1 Mandatory audience tiers"
+    },
+    {
+      "tier": "servicing_site",
+      "definition": "Service-delivery detail required to fulfil the booked or referred service for the site in scope.",
+      "source_ref": "phase-0-the-foundation-protocol.md#12.1 Mandatory audience tiers"
+    },
+    {
+      "tier": "support",
+      "definition": "Masked summary, chronology, and consequence-preview detail, with stronger gates for identity or access-affecting work.",
+      "source_ref": "phase-0-the-foundation-protocol.md#12.1 Mandatory audience tiers"
+    }
+  ],
+  "derived_audience_tiers": [
+    {
+      "tier": "patient_grant_scoped",
+      "coverage_basis": "patient_public + PatientAudienceCoverageProjection(purposeOfUse = secure_link_recovery)",
+      "reason": "The corpus distinguishes grant-scoped recovery posture without minting a separate Phase 0 base tier."
+    },
+    {
+      "tier": "patient_embedded_authenticated",
+      "coverage_basis": "patient_authenticated + PatientAudienceCoverageProjection(purposeOfUse = embedded_authenticated)",
+      "reason": "Embedded patient use is a channel-constrained authenticated posture, not a second shell family."
+    },
+    {
+      "tier": "origin_practice_clinical",
+      "coverage_basis": "origin_practice + StaffAudienceCoverageProjection(purposeOfUse = operational_execution)",
+      "reason": "Separates clinician/designated reviewer work from generic practice ops while preserving the same base visibility tier."
+    },
+    {
+      "tier": "origin_practice_operations",
+      "coverage_basis": "origin_practice + StaffAudienceCoverageProjection(purposeOfUse = operational_execution)",
+      "reason": "Keeps practice-operational actors distinct from clinical reviewers inside the shared workspace shell."
+    },
+    {
+      "tier": "operations_control",
+      "coverage_basis": "purpose-of-use-specific control-plane rows for operations surfaces",
+      "reason": "Operations is a control-room specialization that must not borrow ordinary practice, hub, or support payloads."
+    },
+    {
+      "tier": "governance_review",
+      "coverage_basis": "StaffAudienceCoverageProjection(purposeOfUse = governance_review) plus GovernanceScopeToken",
+      "reason": "Governance/admin/config/comms/access work is a distinct control surface, not an operations subpanel."
+    },
+    {
+      "tier": "assistive_adjunct",
+      "coverage_basis": "AssistiveSurfaceBinding bound to the owning shell and current audience coverage",
+      "reason": "Assistive use is an adjunct posture inside the owning task unless the corpus explicitly calls for standalone evaluation or replay tooling."
+    }
+  ],
+  "upstream_inputs": {
+    "requirement_registry_rows": 1453,
+    "summary_conflicts": 19,
+    "product_scope_rows": 36
+  },
+  "assumptions": [
+    {
+      "assumption_id": "ASSUMPTION_AUDIENCE_004_001",
+      "statement": "Grant-scoped patient recovery is modeled as a derived audience tier over Phase 0 patient_public coverage because the corpus distinguishes secure-link recovery by purpose of use rather than by adding a third mandatory patient base tier."
+    },
+    {
+      "assumption_id": "ASSUMPTION_CHANNEL_004_002",
+      "statement": "Telephony/IVR and secure-link continuation are mapped to constrained_browser shell posture where a current shell is preserved, because Phase 0 canonicalizes browser, embedded, and constrained_browser as the only shell channel profiles."
+    },
+    {
+      "assumption_id": "ASSUMPTION_ROUTE_004_003",
+      "statement": "Pre-submit intake and standalone assistive-control route families are inventory labels derived from the corpus until later tasks publish concrete URL contracts."
+    }
+  ],
+  "risks": [
+    {
+      "risk_id": "RISK_ROUTE_004_001",
+      "statement": "Seq_005 must harden explicit intake and secure-link route contracts so later API and projection work does not drift between derived labels and implementation endpoints."
+    },
+    {
+      "risk_id": "RISK_CONTROL_004_002",
+      "statement": "Operations, governance, assurance, and break-glass audience rows are clearly required by Phase 0 but are not yet centralized in one dedicated machine-readable coverage registry."
+    },
+    {
+      "risk_id": "RISK_ASSISTIVE_004_003",
+      "statement": "Standalone assistive evaluation, replay, monitoring, and release-control tooling is named by function in the corpus, so any later concrete routes must preserve the bounded-secondary rule encoded here."
+    }
+  ],
+  "personas": [
+    {
+      "persona_id": "patient_anonymous_intake",
+      "persona": "Patient",
+      "sub_persona": "Anonymous intake starter",
+      "audience_tier": "patient_public",
+      "base_audience_tier": "patient_public",
+      "purpose_of_use": "public_status",
+      "primary_shell_types": [
+        "patient"
+      ],
+      "primary_channel_ids": [
+        "browser_web"
+      ],
+      "identity_posture": "Anonymous or partially identified patient before claim or sign-in uplift.",
+      "visibility_policy_posture": "Public-safe summary, placeholder, and governed recovery only until richer proof exists.",
+      "primary_jobs_to_be_done": [
+        "Describe the issue and submit it into the governed intake pipeline.",
+        "Upload optional evidence and contact preferences without leaving the intake lineage."
+      ],
+      "allowed_mutations": [
+        "Create or update SubmissionEnvelope content.",
+        "Submit the intake for governed promotion."
+      ],
+      "continuity_expectations": [
+        "Stay on one intake lineage even if the channel later changes to secure link, telephony, or support-assisted capture."
+      ],
+      "degraded_recovery_states": [
+        "Fallback review, artifact quarantine, safe receipt, or later claim recovery inside the same lineage."
+      ],
+      "external_dependency_touchpoints": [
+        "Optional NHS login uplift",
+        "Binary artifact store"
+      ],
+      "scope_posture": "baseline",
+      "governing_objects": [
+        "SubmissionEnvelope",
+        "IntakeConvergenceContract",
+        "SubmissionIngressRecord",
+        "SubmissionPromotionRecord"
+      ],
+      "owning_blueprints": [
+        "blueprint-init.md",
+        "phase-0-the-foundation-protocol.md"
+      ],
+      "source_refs": [
+        "blueprint-init.md#2. Core product surfaces",
+        "phase-0-the-foundation-protocol.md#12.1 Mandatory audience tiers"
+      ],
+      "notes": "This persona covers public self-service form entry, not post-submit patient portal actions."
+    },
+    {
+      "persona_id": "patient_authenticated_portal",
+      "persona": "Patient",
+      "sub_persona": "Authenticated portal user",
+      "audience_tier": "patient_authenticated",
+      "base_audience_tier": "patient_authenticated",
+      "purpose_of_use": "authenticated_self_service",
+      "primary_shell_types": [
+        "patient"
+      ],
+      "primary_channel_ids": [
+        "browser_web"
+      ],
+      "identity_posture": "Authenticated self-service session with live binding, release, and visibility checks.",
+      "visibility_policy_posture": "Signed-in patient detail, threads, records, documents, and manage actions under VisibilityProjectionPolicy.",
+      "primary_jobs_to_be_done": [
+        "Track requests, appointments, communications, and records inside one signed-in shell.",
+        "Perform route-bound post-submit actions only when current capability and settlement truth allows it."
+      ],
+      "allowed_mutations": [
+        "Reply to messages or more-info prompts.",
+        "Manage appointments and route-bound follow-up actions.",
+        "Open governed artifacts and documents."
+      ],
+      "continuity_expectations": [
+        "Keep the same patient shell across Home, Requests, Appointments, Health record, and Messages."
+      ],
+      "degraded_recovery_states": [
+        "Read-only, placeholder, bounded recovery, or safe-browser handoff without losing the current shell anchor."
+      ],
+      "external_dependency_touchpoints": [
+        "NHS login",
+        "Notification delivery rails",
+        "Booking and messaging adapters"
+      ],
+      "scope_posture": "baseline",
+      "governing_objects": [
+        "PatientPortalEntryProjection",
+        "PatientShellConsistencyProjection",
+        "RouteIntentBinding",
+        "CommandActionRecord",
+        "CommandSettlementRecord"
+      ],
+      "owning_blueprints": [
+        "patient-account-and-communications-blueprint.md",
+        "patient-portal-experience-architecture-blueprint.md"
+      ],
+      "source_refs": [
+        "patient-account-and-communications-blueprint.md#Patient audience coverage contract",
+        "patient-portal-experience-architecture-blueprint.md#Portal entry and shell topology"
+      ],
+      "notes": ""
+    },
+    {
+      "persona_id": "patient_grant_scoped_recovery",
+      "persona": "Patient",
+      "sub_persona": "Grant-scoped patient resuming a specific lineage",
+      "audience_tier": "patient_grant_scoped",
+      "base_audience_tier": "patient_public",
+      "purpose_of_use": "secure_link_recovery",
+      "primary_shell_types": [
+        "patient"
+      ],
+      "primary_channel_ids": [
+        "sms_secure_link_continuation",
+        "constrained_browser"
+      ],
+      "identity_posture": "Minimal access grant or verified continuation before full authenticated uplift.",
+      "visibility_policy_posture": "Summary-only or suppressed-recovery-only visibility until grant redemption and route checks pass.",
+      "primary_jobs_to_be_done": [
+        "Resume one specific request, message, callback, or booking/manage path without broadening the shell to a full authenticated portal.",
+        "Step up into richer self-service only when current grant, route, and publication truth still match."
+      ],
+      "allowed_mutations": [
+        "Redeem a grant-scoped secure link.",
+        "Trigger claim, re-auth, contact repair, or bounded route resumption."
+      ],
+      "continuity_expectations": [
+        "Preserve the same request or child-route anchor across secure-link redemption, step-up, and recovery."
+      ],
+      "degraded_recovery_states": [
+        "Expired link recovery, placeholder-only posture, safe-browser handoff, or identity hold."
+      ],
+      "external_dependency_touchpoints": [
+        "SMS secure links",
+        "NHS login for step-up"
+      ],
+      "scope_posture": "baseline",
+      "governing_objects": [
+        "AccessGrantRedemptionRecord",
+        "PatientSecureLinkSessionProjection",
+        "PatientActionRecoveryProjection",
+        "PatientDegradedModeProjection"
+      ],
+      "owning_blueprints": [
+        "patient-account-and-communications-blueprint.md",
+        "phase-0-the-foundation-protocol.md"
+      ],
+      "source_refs": [
+        "patient-account-and-communications-blueprint.md#Patient audience coverage contract",
+        "phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm"
+      ],
+      "notes": "This is deliberately separated from the authenticated portal persona because the corpus gives secure-link recovery its own purpose-of-use law."
+    },
+    {
+      "persona_id": "phone_ivr_caller",
+      "persona": "Patient",
+      "sub_persona": "Phone or IVR caller",
+      "audience_tier": "patient_public",
+      "base_audience_tier": "patient_public",
+      "purpose_of_use": "public_status",
+      "primary_shell_types": [
+        "patient"
+      ],
+      "primary_channel_ids": [
+        "telephony_ivr"
+      ],
+      "identity_posture": "Phone-origin demand with governed patient identification or partial identity capture.",
+      "visibility_policy_posture": "The same public-safe intake and downstream status model as digital entry, without a parallel back-office workflow.",
+      "primary_jobs_to_be_done": [
+        "Start or continue intake through telephony/IVR with parity to digital intake.",
+        "Receive optional SMS continuation without changing the underlying request lineage."
+      ],
+      "allowed_mutations": [
+        "Append SubmissionIngressRecord rows through telephony capture.",
+        "Trigger secure-link continuation when needed."
+      ],
+      "continuity_expectations": [
+        "Preserve one SubmissionEnvelope and later same-shell continuity across phone, SMS continuation, and digital recovery."
+      ],
+      "degraded_recovery_states": [
+        "Telephony outage, delivery dispute, or governed fallback review without spawning a separate support-only workflow."
+      ],
+      "external_dependency_touchpoints": [
+        "Telephony/IVR adapter",
+        "Optional SMS secure links"
+      ],
+      "scope_posture": "baseline",
+      "governing_objects": [
+        "SubmissionEnvelope",
+        "SubmissionIngressRecord",
+        "IntakeConvergenceContract",
+        "SubmissionPromotionRecord"
+      ],
+      "owning_blueprints": [
+        "blueprint-init.md",
+        "phase-0-the-foundation-protocol.md"
+      ],
+      "source_refs": [
+        "blueprint-init.md#2. Core product surfaces",
+        "phase-0-the-foundation-protocol.md#0.2 Continuity key and shell law"
+      ],
+      "notes": ""
+    },
+    {
+      "persona_id": "patient_embedded_nhs_app",
+      "persona": "Patient",
+      "sub_persona": "Embedded NHS App patient user",
+      "audience_tier": "patient_embedded_authenticated",
+      "base_audience_tier": "patient_authenticated",
+      "purpose_of_use": "embedded_authenticated",
+      "primary_shell_types": [
+        "patient"
+      ],
+      "primary_channel_ids": [
+        "embedded_webview"
+      ],
+      "identity_posture": "Authenticated patient session running under embedded manifest, release, and bridge-capability checks.",
+      "visibility_policy_posture": "The same patient shell under tighter bridge and publication controls, not a second app.",
+      "primary_jobs_to_be_done": [
+        "Use the patient portal through a trusted embedded channel without losing same-shell continuity.",
+        "Perform embedded-safe versions of ordinary patient actions when release and bridge posture permit."
+      ],
+      "allowed_mutations": [
+        "The same route-bound patient mutations as the browser portal, but only after embedded validation passes."
+      ],
+      "continuity_expectations": [
+        "Preserve the same patient shell while channel profile, chrome, and delivery options narrow."
+      ],
+      "degraded_recovery_states": [
+        "Read-only, placeholder, safe-browser handoff, or channel-freeze recovery without shell replacement."
+      ],
+      "external_dependency_touchpoints": [
+        "NHS App embedded webview",
+        "ReleaseApprovalFreeze",
+        "ChannelReleaseFreezeRecord"
+      ],
+      "scope_posture": "deferred",
+      "governing_objects": [
+        "PatientEmbeddedSessionProjection",
+        "PatientEmbeddedNavEligibility",
+        "ChannelReleaseFreezeRecord",
+        "ReleaseApprovalFreeze"
+      ],
+      "owning_blueprints": [
+        "patient-account-and-communications-blueprint.md",
+        "phase-7-inside-the-nhs-app.md"
+      ],
+      "source_refs": [
+        "patient-account-and-communications-blueprint.md#Patient audience coverage contract",
+        "patient-portal-experience-architecture-blueprint.md#Control priorities"
+      ],
+      "notes": "Deferred baseline expansion only; this inventory tracks it without reclassifying it as current scope."
+    },
+    {
+      "persona_id": "clinician_designated_reviewer",
+      "persona": "Staff",
+      "sub_persona": "Clinician or designated reviewer in Clinical Workspace",
+      "audience_tier": "origin_practice_clinical",
+      "base_audience_tier": "origin_practice",
+      "purpose_of_use": "operational_execution",
+      "primary_shell_types": [
+        "staff"
+      ],
+      "primary_channel_ids": [
+        "browser_web"
+      ],
+      "identity_posture": "Authenticated staff actor operating with current acting scope, review lease, and queue/task continuity.",
+      "visibility_policy_posture": "Practice-owned clinical detail and decision context only for the current organisation and scope.",
+      "primary_jobs_to_be_done": [
+        "Scan the queue, open the right task, and reach a safe decision quickly.",
+        "Use bounded assistive and evidence surfaces without losing task continuity."
+      ],
+      "allowed_mutations": [
+        "Claim and review tasks.",
+        "Request more information, commit decisions, or route downstream work under lease and settlement control."
+      ],
+      "continuity_expectations": [
+        "Same request lineage, same shell; queue switches and child review states preserve the active task anchor."
+      ],
+      "degraded_recovery_states": [
+        "Observe-only, reassigned, stale-recoverable, or recovery-required posture that preserves the last safe task summary."
+      ],
+      "external_dependency_touchpoints": [
+        "CIS2 or staff auth rail",
+        "NHS login downstream only through patient-facing child work"
+      ],
+      "scope_posture": "baseline",
+      "governing_objects": [
+        "WorkspaceTrustEnvelope",
+        "ReviewActionLease",
+        "WorkspaceFocusProtectionLease",
+        "DecisionCommitEnvelope"
+      ],
+      "owning_blueprints": [
+        "staff-workspace-interface-architecture.md",
+        "staff-operations-and-support-blueprint.md"
+      ],
+      "source_refs": [
+        "staff-workspace-interface-architecture.md#Route family",
+        "staff-operations-and-support-blueprint.md#Staff audience coverage contract"
+      ],
+      "notes": ""
+    },
+    {
+      "persona_id": "practice_operational_staff",
+      "persona": "Staff",
+      "sub_persona": "Practice operational staff",
+      "audience_tier": "origin_practice_operations",
+      "base_audience_tier": "origin_practice",
+      "purpose_of_use": "operational_execution",
+      "primary_shell_types": [
+        "staff"
+      ],
+      "primary_channel_ids": [
+        "browser_web"
+      ],
+      "identity_posture": "Authenticated staff actor with practice-scoped operational visibility and bounded mutation authority.",
+      "visibility_policy_posture": "Practice-owned operational detail without hub, support, or cross-organisation payload broadening after assembly.",
+      "primary_jobs_to_be_done": [
+        "Work queue items, admin resolution, and operational follow-up in the same workspace shell.",
+        "Escalate, hand off, or resume tasks without leaving the queue/task continuity frame."
+      ],
+      "allowed_mutations": [
+        "Claim tasks, send more-info, complete admin-resolution work, and move items to downstream flows when allowed."
+      ],
+      "continuity_expectations": [
+        "Keep queue filters, selected anchors, and last safe posture while switching between operational tasks."
+      ],
+      "degraded_recovery_states": [
+        "Observe-only, blocked, or recovery-required task posture when scope, trust, or publication drifts."
+      ],
+      "external_dependency_touchpoints": [
+        "Staff auth rail",
+        "Operational messaging and booking adapters"
+      ],
+      "scope_posture": "baseline",
+      "governing_objects": [
+        "StaffAudienceCoverageProjection",
+        "WorkspaceNavigationLedger",
+        "ReviewActionLease",
+        "CommandSettlementRecord"
+      ],
+      "owning_blueprints": [
+        "staff-workspace-interface-architecture.md",
+        "staff-operations-and-support-blueprint.md"
+      ],
+      "source_refs": [
+        "staff-workspace-interface-architecture.md#Route family",
+        "staff-operations-and-support-blueprint.md#Staff audience coverage contract"
+      ],
+      "notes": ""
+    },
+    {
+      "persona_id": "hub_coordinator",
+      "persona": "Staff",
+      "sub_persona": "Hub coordinator",
+      "audience_tier": "hub_desk",
+      "base_audience_tier": "hub_desk",
+      "purpose_of_use": "coordination",
+      "primary_shell_types": [
+        "hub"
+      ],
+      "primary_channel_ids": [
+        "browser_web"
+      ],
+      "identity_posture": "Cross-organisation hub desk actor operating under acting context, ownership lease, and coordination policy evaluation.",
+      "visibility_policy_posture": "Coordination-safe summary, ranked offers, practice-ack debt, and callback or return posture without full narrative by default.",
+      "primary_jobs_to_be_done": [
+        "Coordinate cross-site booking or callback fallback from one hub shell.",
+        "Keep origin-practice continuity visible while alternatives, callback, or return-to-practice work progresses."
+      ],
+      "allowed_mutations": [
+        "Claim hub cases, refresh candidates, offer alternatives, commit native booking, or return to practice."
+      ],
+      "continuity_expectations": [
+        "Preserve the selected case anchor and same hub shell across queue, case detail, alternatives, exceptions, and audit child work."
+      ],
+      "degraded_recovery_states": [
+        "Confirmation-pending, practice-ack debt, callback-transfer pending, stale-owner recovery, or identity-repair hold without detaching from the active case."
+      ],
+      "external_dependency_touchpoints": [
+        "Cross-site booking adapters",
+        "Policy packs",
+        "Callback linkage",
+        "Practice visibility delivery"
+      ],
+      "scope_posture": "baseline",
+      "governing_objects": [
+        "HubCoordinationCase",
+        "AlternativeOfferSession",
+        "HubOfferToConfirmationTruthProjection",
+        "PracticeAcknowledgementRecord"
+      ],
+      "owning_blueprints": [
+        "phase-5-the-network-horizon.md",
+        "phase-0-the-foundation-protocol.md"
+      ],
+      "source_refs": [
+        "phase-5-the-network-horizon.md#Frontend work",
+        "phase-0-the-foundation-protocol.md#12.1 Mandatory audience tiers"
+      ],
+      "notes": ""
+    },
+    {
+      "persona_id": "pharmacy_servicing_assurance_user",
+      "persona": "Staff",
+      "sub_persona": "Pharmacy servicing or assurance user",
+      "audience_tier": "servicing_site",
+      "base_audience_tier": "servicing_site",
+      "purpose_of_use": "servicing_delivery",
+      "primary_shell_types": [
+        "pharmacy"
+      ],
+      "primary_channel_ids": [
+        "browser_web"
+      ],
+      "identity_posture": "Servicing-site actor working a pharmacy case inside the dedicated pharmacy mission frame.",
+      "visibility_policy_posture": "Only the detail needed to deliver, validate, hand off, or assure the booked or referred service for that pharmacy case.",
+      "primary_jobs_to_be_done": [
+        "Validate, fulfil, hand off, and assure Pharmacy First work without falling back to generic workspace layout.",
+        "Keep settlement and continuity truth attached to the same pharmacy case shell."
+      ],
+      "allowed_mutations": [
+        "Validate, inventory-check, resolve, hand off, or assurance-review within the active pharmacy case."
+      ],
+      "continuity_expectations": [
+        "Deep links, refresh, browser history, and reconcile recovery reopen the current pharmacy shell and selected anchor."
+      ],
+      "degraded_recovery_states": [
+        "Read-only or recovery posture when runtime binding, settlement chain, or continuity evidence drifts."
+      ],
+      "external_dependency_touchpoints": [
+        "Pharmacy dispatch and outcome adapters",
+        "Medicine-level data sources"
+      ],
+      "scope_posture": "baseline",
+      "governing_objects": [
+        "PharmacyConsoleContinuityEvidenceProjection",
+        "RouteIntentBinding",
+        "CommandSettlementRecord",
+        "ProjectionContractVersionSet"
+      ],
+      "owning_blueprints": [
+        "pharmacy-console-frontend-architecture.md",
+        "phase-6-the-pharmacy-loop.md"
+      ],
+      "source_refs": [
+        "pharmacy-console-frontend-architecture.md#Mission frame",
+        "pharmacy-console-frontend-architecture.md#The recommended route family is"
+      ],
+      "notes": ""
+    },
+    {
+      "persona_id": "support_desk_agent",
+      "persona": "Staff",
+      "sub_persona": "Support desk agent",
+      "audience_tier": "support",
+      "base_audience_tier": "support",
+      "purpose_of_use": "support_recovery",
+      "primary_shell_types": [
+        "support"
+      ],
+      "primary_channel_ids": [
+        "browser_web",
+        "support_assisted_capture"
+      ],
+      "identity_posture": "Masked-support actor with explicit disclosure ceilings, action leases, and replay or observe gates.",
+      "visibility_policy_posture": "Masked chronology and consequence preview by default, with stronger gates for identity correction, secure-link reissue, and replay.",
+      "primary_jobs_to_be_done": [
+        "Operate a ticket-centric repair workspace across resend, restore, identity, reachability, and handoff work.",
+        "Assist capture into the same request lineage without turning support into a parallel workflow system."
+      ],
+      "allowed_mutations": [
+        "Controlled resend, link reissue, attachment recovery, identity correction, and support-assisted capture under lease."
+      ],
+      "continuity_expectations": [
+        "Stay on one support shell while moving between ticket, conversation, history, knowledge, action, observe, and replay child routes."
+      ],
+      "degraded_recovery_states": [
+        "Read-only fallback, replay restore, pending-external hold, or stale reacquire while preserving the current ticket anchor and mask scope."
+      ],
+      "external_dependency_touchpoints": [
+        "Notification delivery rails",
+        "Telephony adapters",
+        "Secure-link issuance"
+      ],
+      "scope_posture": "baseline",
+      "governing_objects": [
+        "SupportTicket",
+        "SupportLineageBinding",
+        "SupportActionLease",
+        "SupportActionSettlement"
+      ],
+      "owning_blueprints": [
+        "staff-operations-and-support-blueprint.md",
+        "phase-0-the-foundation-protocol.md"
+      ],
+      "source_refs": [
+        "staff-operations-and-support-blueprint.md#Support route contract",
+        "phase-0-the-foundation-protocol.md#6.5 Support and replay algorithm"
+      ],
+      "notes": ""
+    },
+    {
+      "persona_id": "operations_control_room_operator",
+      "persona": "Staff",
+      "sub_persona": "Operations lead or control-room operator",
+      "audience_tier": "operations_control",
+      "base_audience_tier": "support",
+      "purpose_of_use": "operational_control",
+      "primary_shell_types": [
+        "operations"
+      ],
+      "primary_channel_ids": [
+        "browser_web"
+      ],
+      "identity_posture": "Control-room actor working inside a board-scoped shell with selection leases, delta gates, and intervention fences.",
+      "visibility_policy_posture": "Cross-surface, PHI-adjacent operational visibility bound to purpose-of-use-specific coverage rows, not ordinary staff payloads.",
+      "primary_jobs_to_be_done": [
+        "Detect bottlenecks and decide where bounded intervention has the highest safe leverage.",
+        "Drill into anomalies without losing board state, selection, or return context."
+      ],
+      "allowed_mutations": [
+        "Issue operations interventions, freeze or compare board state, and hand off to governance when required."
+      ],
+      "continuity_expectations": [
+        "Reuse the same operations shell while filters, selected anomaly, horizon, and drill path stay within the board continuity frame."
+      ],
+      "degraded_recovery_states": [
+        "Read-only diagnostic, partial restore, stale selection freeze, or governance handoff posture without discarding the last stable board."
+      ],
+      "external_dependency_touchpoints": [
+        "Queue health and dependency telemetry",
+        "Release and governance handoff evidence"
+      ],
+      "scope_posture": "baseline",
+      "governing_objects": [
+        "OpsBoardStateSnapshot",
+        "OpsSelectionLease",
+        "OpsDeltaGate",
+        "OpsActionEligibilityFence"
+      ],
+      "owning_blueprints": [
+        "operations-console-frontend-blueprint.md",
+        "platform-frontend-blueprint.md"
+      ],
+      "source_refs": [
+        "operations-console-frontend-blueprint.md#Canonical route family",
+        "platform-frontend-blueprint.md#Operations Console specialization"
+      ],
+      "notes": ""
+    },
+    {
+      "persona_id": "governance_admin_lead",
+      "persona": "Staff",
+      "sub_persona": "Governance, admin, config, comms, or access lead",
+      "audience_tier": "governance_review",
+      "base_audience_tier": "support",
+      "purpose_of_use": "governance_review",
+      "primary_shell_types": [
+        "governance"
+      ],
+      "primary_channel_ids": [
+        "browser_web"
+      ],
+      "identity_posture": "Governance actor operating with scope token, baseline snapshot, freeze disposition, and approval package continuity.",
+      "visibility_policy_posture": "Purpose-of-use-specific governance visibility that must not be reconstructed from ordinary ops or staff shells.",
+      "primary_jobs_to_be_done": [
+        "Review, approve, promote, rollback, configure, and audit governance work inside a dedicated shell.",
+        "Pivot to read-only evidence without losing the current governed object, draft, or watch context."
+      ],
+      "allowed_mutations": [
+        "Approve, promote, rollback, manage access, update config, govern communications, and review records holds within the current review package."
+      ],
+      "continuity_expectations": [
+        "Keep one governance continuity frame across diff, impact, simulation, approval, promotion watch, and evidence pivots."
+      ],
+      "degraded_recovery_states": [
+        "Freeze disposition, read-only pivot, or blocked guardrail posture while preserving scope and review anchor."
+      ],
+      "external_dependency_touchpoints": [
+        "Release watch tuples",
+        "Governance evidence packs",
+        "Access and config publications"
+      ],
+      "scope_posture": "baseline",
+      "governing_objects": [
+        "GovernanceContinuityFrame",
+        "GovernanceScopeToken",
+        "ChangeBaselineSnapshot",
+        "GovernanceReviewPackage"
+      ],
+      "owning_blueprints": [
+        "governance-admin-console-frontend-blueprint.md",
+        "platform-frontend-blueprint.md"
+      ],
+      "source_refs": [
+        "governance-admin-console-frontend-blueprint.md#Shell and route topology",
+        "governance-admin-console-frontend-blueprint.md#Primary governance personas"
+      ],
+      "notes": ""
+    },
+    {
+      "persona_id": "assistive_feature_consumer",
+      "persona": "Staff",
+      "sub_persona": "Assistive feature consumer",
+      "audience_tier": "assistive_adjunct",
+      "base_audience_tier": "origin_practice",
+      "purpose_of_use": "assistive_companion",
+      "primary_shell_types": [
+        "staff",
+        "support",
+        "operations"
+      ],
+      "primary_channel_ids": [
+        "browser_web"
+      ],
+      "identity_posture": "Bounded adjunct posture attached to the owning shell, active review context, and current publication tuple.",
+      "visibility_policy_posture": "Assistive output inherits the owning shell visibility ceiling and may not widen scope on its own.",
+      "primary_jobs_to_be_done": [
+        "Inspect, accept, reject, or ignore assistive suggestions without displacing primary human-led work.",
+        "Use provenance, freshness, and rollout posture to decide whether the assistive output is usable."
+      ],
+      "allowed_mutations": [
+        "Visible summary, bounded insert, observe-only review, or feedback capture under the active assistive grant."
+      ],
+      "continuity_expectations": [
+        "Remain inside the owning task or ticket shell unless the corpus explicitly calls for standalone evaluation or replay tooling."
+      ],
+      "degraded_recovery_states": [
+        "Shadow-only, quarantined, regenerate-required, or blocked posture when rollout, runtime, or trust drifts."
+      ],
+      "external_dependency_touchpoints": [
+        "Assistive model registry",
+        "Runtime publication bundle",
+        "Evaluation and replay tooling"
+      ],
+      "scope_posture": "bounded_secondary",
+      "governing_objects": [
+        "AssistiveInvocationGrant",
+        "AssistiveSurfaceBinding",
+        "AssistiveCapabilityTrustEnvelope"
+      ],
+      "owning_blueprints": [
+        "phase-8-the-assistive-layer.md",
+        "staff-workspace-interface-architecture.md"
+      ],
+      "source_refs": [
+        "phase-8-the-assistive-layer.md#Control priorities",
+        "staff-workspace-interface-architecture.md#Assistive companion presentation profile"
+      ],
+      "notes": "The corpus allows a standalone assistive shell only for evaluation, replay, monitoring, or release-control work; live care and support use stays bounded to the owning shell."
+    }
+  ]
+}

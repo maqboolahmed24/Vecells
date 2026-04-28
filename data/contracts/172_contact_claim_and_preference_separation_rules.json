@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "172.phase2.patient-link.v1",
+  "policyVersion": "phase2-patient-link-v1",
+  "rulesetId": "CONTACT_PREF_SEPARATION_172",
+  "domainSeparation": {
+    "contactClaims": {
+      "ownedBy": "IdentityEvidenceVault",
+      "mayInform": ["MatchEvidenceBasis", "ReachabilityAssessmentRecord"],
+      "mustNotOverwrite": ["patientPreferredComms"],
+      "storageRule": "vault_reference_and_masked_digest_only"
+    },
+    "pdsDemographics": {
+      "ownedBy": "PdsEnrichmentProvider",
+      "mayInform": ["CandidateSearchSpec", "MatchEvidenceBasis"],
+      "mustNotOverwrite": ["patientPreferredComms", "contactClaims"],
+      "storageRule": "provider_reference_and_minimum_necessary_projection"
+    },
+    "patientPreferredComms": {
+      "ownedBy": "PatientPreferenceService",
+      "mayInform": ["NotificationRouting", "ReachabilityAssessmentRecord"],
+      "mustNotOverwrite": ["contactClaims", "pdsDemographics"],
+      "storageRule": "patient_chosen_preference_with_audit_epoch"
+    }
+  },
+  "rules": [
+    {
+      "ruleId": "LINK_172_CONTACT_CLAIMS_DO_NOT_SET_PREFS",
+      "fromDomain": "contactClaims",
+      "toDomain": "patientPreferredComms",
+      "overwriteAllowed": false,
+      "allowedUse": "match_evidence_or_reachability_signal_only",
+      "patientVisibleCopyKey": "LINK_172_COPY_CONTACT_CLAIM_NOT_PREFERENCE"
+    },
+    {
+      "ruleId": "LINK_172_PDS_DEMOGRAPHICS_DO_NOT_SET_PREFS",
+      "fromDomain": "pdsDemographics",
+      "toDomain": "patientPreferredComms",
+      "overwriteAllowed": false,
+      "allowedUse": "candidate_enrichment_only",
+      "patientVisibleCopyKey": "LINK_172_COPY_PDS_NOT_PREFERENCE"
+    },
+    {
+      "ruleId": "LINK_172_PATIENT_PREFS_DO_NOT_PROVE_IDENTITY",
+      "fromDomain": "patientPreferredComms",
+      "toDomain": "contactClaims",
+      "overwriteAllowed": false,
+      "allowedUse": "notification_route_selection_only",
+      "patientVisibleCopyKey": "LINK_172_COPY_PREF_NOT_IDENTITY"
+    },
+    {
+      "ruleId": "LINK_172_SUPPORT_CORRECTION_REQUIRES_AUTHORITY",
+      "fromDomain": "support_correction_digest",
+      "toDomain": "pdsDemographics",
+      "overwriteAllowed": false,
+      "allowedUse": "submit_repair_signal_to_identity_binding_authority",
+      "patientVisibleCopyKey": "LINK_172_COPY_REPAIR_HOLD"
+    }
+  ],
+  "gapClosures": [
+    "GAP_RESOLVED_PHASE2_LINK_CONTACT_PREFERENCE_SEPARATION_V1",
+    "GAP_RESOLVED_PHASE2_LINK_AUTH_CLAIMS_NOT_COMMS_TRUTH_V1"
+  ]
+}

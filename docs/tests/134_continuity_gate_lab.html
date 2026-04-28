@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>134 Continuity Gate Lab</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #F7F8FA;
+        --shell: #EEF2F6;
+        --panel: #FFFFFF;
+        --inset: #E8EEF3;
+        --text-strong: #0F1720;
+        --text: #24313D;
+        --muted: #5E6B78;
+        --live: #117A55;
+        --provisional: #2F6FED;
+        --recovery: #B7791F;
+        --blocked: #B42318;
+        --continuity: #5B61F6;
+        --border: #D5DEE7;
+        --shadow: 0 22px 44px rgba(15, 23, 32, 0.08);
+        --radius: 24px;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at 12% 0%, rgba(91, 97, 246, 0.08), transparent 26%),
+          radial-gradient(circle at 86% 14%, rgba(47, 111, 237, 0.08), transparent 28%),
+          linear-gradient(180deg, #fbfcfd, var(--canvas));
+        color: var(--text);
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      }
+      body[data-reduced-motion="true"] * {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+      .app {
+        max-width: 1560px;
+        width: min(100%, 1560px);
+        margin: 0 auto;
+        padding: 18px 18px 28px;
+        overflow-x: clip;
+      }
+      .masthead {
+        min-height: 72px;
+        display: grid;
+        grid-template-columns: minmax(280px, 1.2fr) repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        align-items: stretch;
+        margin-bottom: 18px;
+      }
+      .brand,
+      .metric,
+      .rail,
+      .canvas,
+      .inspector,
+      .panel {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: var(--shadow);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 16px 18px;
+      }
+      .brand-mark {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(232,238,243,0.96));
+        color: var(--continuity);
+      }
+      .eyebrow,
+      .metric span,
+      .label {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .brand strong,
+      .metric strong,
+      .panel h2,
+      .inspector h2 {
+        color: var(--text-strong);
+      }
+      .brand strong {
+        display: block;
+        font-size: 18px;
+      }
+      .brand p,
+      .metric p,
+      .panel p,
+      .inspector p,
+      .case-button small,
+      .snapshot-copy,
+      td,
+      th {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .metric {
+        padding: 14px 16px;
+      }
+      .metric strong {
+        display: block;
+        font-size: 24px;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr) 404px;
+        gap: 18px;
+        align-items: start;
+        min-width: 0;
+      }
+      .rail {
+        padding: 18px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.98), var(--shell));
+      }
+      .rail,
+      .canvas,
+      .inspector,
+      .panel,
+      .filters,
+      .case-list,
+      .case-button,
+      label {
+        min-width: 0;
+      }
+      .filters {
+        display: grid;
+        gap: 12px;
+      }
+      label {
+        display: grid;
+        gap: 6px;
+        font-size: 13px;
+        color: var(--text-strong);
+      }
+      select {
+        width: 100%;
+        min-width: 0;
+        height: 42px;
+        padding: 0 12px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text);
+        font: inherit;
+      }
+      .case-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 16px;
+        max-height: 720px;
+        overflow: auto;
+      }
+      .case-button {
+        text-align: left;
+        padding: 14px;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        cursor: pointer;
+        transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease;
+      }
+      .case-button:hover,
+      .case-button:focus-visible,
+      .case-button[data-active="true"] {
+        transform: translateY(-1px);
+        border-color: rgba(91, 97, 246, 0.28);
+        background: var(--shell);
+        outline: none;
+      }
+      .badge-row,
+      .chip-row,
+      .tab-list {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .badge,
+      .chip,
+      .tab-button {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(15, 23, 32, 0.04);
+        font-size: 12px;
+        color: var(--text);
+      }
+      .badge[data-posture="live"] { color: var(--live); background: rgba(17,122,85,0.12); }
+      .badge[data-posture="read_only"] { color: var(--provisional); background: rgba(47,111,237,0.12); }
+      .badge[data-posture="recovery_only"] { color: var(--recovery); background: rgba(183,121,31,0.12); }
+      .badge[data-posture="blocked"] { color: var(--blocked); background: rgba(180,35,24,0.12); }
+      .badge[data-browser="gap"] { color: var(--blocked); background: rgba(180,35,24,0.08); }
+      .canvas {
+        padding: 18px;
+        display: grid;
+        gap: 18px;
+      }
+      .panel {
+        padding: 18px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(232,238,243,0.72));
+      }
+      .panel h2,
+      .inspector h2 {
+        margin: 0 0 8px;
+        font-size: 20px;
+      }
+      .canvas-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 18px;
+      }
+      .diagram-card,
+      .table-card,
+      .snapshot-card,
+      .inspector-section {
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: rgba(255,255,255,0.9);
+        padding: 14px;
+      }
+      .lattice,
+      .ladder,
+      .braid {
+        display: grid;
+        gap: 10px;
+      }
+      .lattice-row,
+      .ladder-row,
+      .braid-row {
+        display: grid;
+        grid-template-columns: 140px minmax(0, 1fr) 120px;
+        gap: 10px;
+        align-items: center;
+      }
+      .node {
+        padding: 12px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+      }
+      .node strong {
+        display: block;
+        color: var(--text-strong);
+      }
+      .braid-row .node:last-child {
+        text-align: right;
+      }
+      .node[data-tone="route"] { border-color: rgba(91,97,246,0.24); }
+      .node[data-tone="freshness"] { border-color: rgba(47,111,237,0.24); }
+      .node[data-tone="mutation"] { border-color: rgba(183,121,31,0.24); }
+      .node[data-tone="blocked"] { border-color: rgba(180,35,24,0.28); }
+      .arrow {
+        height: 2px;
+        background: linear-gradient(90deg, rgba(91,97,246,0.2), rgba(47,111,237,0.6));
+        position: relative;
+      }
+      .arrow::after {
+        content: "";
+        position: absolute;
+        right: -1px;
+        top: -4px;
+        width: 10px;
+        height: 10px;
+        border-top: 2px solid rgba(47,111,237,0.6);
+        border-right: 2px solid rgba(47,111,237,0.6);
+        transform: rotate(45deg);
+      }
+      table {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 10px 8px;
+        border-bottom: 1px solid rgba(213, 222, 231, 0.9);
+        vertical-align: top;
+        font-size: 13px;
+        text-align: left;
+      }
+      th {
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .interactive-row {
+        cursor: pointer;
+      }
+      .interactive-row:hover,
+      .interactive-row:focus-visible,
+      .interactive-row[data-active="true"] {
+        background: rgba(91, 97, 246, 0.06);
+        outline: none;
+      }
+      .inspector {
+        position: sticky;
+        top: 16px;
+        padding: 18px;
+        display: grid;
+        gap: 14px;
+      }
+      .snapshot-shell {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(238,242,246,0.86));
+        padding: 14px;
+        display: grid;
+        gap: 10px;
+      }
+      .snapshot-shell[data-posture="recovery_only"] {
+        border-color: rgba(183,121,31,0.3);
+      }
+      .snapshot-shell[data-posture="blocked"] {
+        border-color: rgba(180,35,24,0.3);
+      }
+      .snapshot-shell[data-posture="read_only"] {
+        border-color: rgba(47,111,237,0.3);
+      }
+      .tab-button {
+        cursor: pointer;
+        background: rgba(15,23,32,0.04);
+      }
+      .tab-button[data-active="true"] {
+        background: rgba(91,97,246,0.12);
+        color: var(--continuity);
+        border-color: rgba(91,97,246,0.24);
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        word-break: break-word;
+      }
+      @media (max-width: 1280px) {
+        .masthead {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        .inspector {
+          position: static;
+        }
+      }
+      @media (max-width: 880px) {
+        .masthead,
+        .canvas-grid {
+          grid-template-columns: 1fr;
+        }
+        .lattice-row,
+        .ladder-row,
+        .braid-row {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        body {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app" data-testid="continuity-gate-lab">
+      <header class="masthead">
+        <section class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M4 12h5l2-6 3 12 2-6h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="6" cy="12" r="1.2" fill="currentColor"/>
+              <circle cx="18" cy="12" r="1.2" fill="currentColor"/>
+            </svg>
+          </div>
+          <div>
+            <span class="eyebrow">Vecells Continuity Gate</span>
+            <strong>Continuity_Gate_Lab</strong>
+            <p>Route intent, freshness, mutation, runtime truth, and selected-anchor recovery in one same-shell proof surface.</p>
+          </div>
+        </section>
+        <section class="metric"><span>Scenarios</span><strong data-testid="summary-scenarios"></strong><p>Integrated continuity cases.</p></section>
+        <section class="metric"><span>Browser Proof</span><strong data-testid="summary-browser"></strong><p>Current browser-verifiable routes.</p></section>
+        <section class="metric"><span>Browser Gaps</span><strong data-testid="summary-gaps"></strong><p>Explicit matrix-only routes.</p></section>
+        <section class="metric"><span>Live ≠ Fresh</span><strong data-testid="summary-live-not-fresh"></strong><p>Transport-live cases that still remain guarded.</p></section>
+      </header>
+      <main class="layout">
+        <aside class="rail">
+          <div class="filters">
+            <label>
+              <span class="label">Case Family</span>
+              <select data-testid="case-family-filter"></select>
+            </label>
+            <label>
+              <span class="label">Browser Proof</span>
+              <select data-testid="browser-filter"></select>
+            </label>
+          </div>
+          <div class="case-list" data-testid="case-list" role="listbox" aria-label="Continuity cases"></div>
+        </aside>
+        <section class="canvas">
+          <div class="canvas-grid">
+            <section class="panel">
+              <h2>Route-Intent Lattice</h2>
+              <p>The governing object tuple, runtime authority, and final route verdict stay adjacent and inspectable.</p>
+              <div class="diagram-card lattice" data-testid="route-intent-lattice"></div>
+              <div class="table-card" data-testid="route-lattice-table"></div>
+            </section>
+            <section class="panel">
+              <h2>Freshness Ladder</h2>
+              <p>Transport health, authoritative freshness, and actionability are displayed as separate rungs.</p>
+              <div class="diagram-card ladder" data-testid="freshness-ladder"></div>
+              <div class="table-card" data-testid="freshness-table"></div>
+            </section>
+          </div>
+          <section class="panel">
+            <h2>Mutation-Gate Decision Braid</h2>
+            <p>Ordinary mutation, same-shell recovery, and selected-anchor preservation remain distinct and fail-closed.</p>
+            <div class="diagram-card braid" data-testid="mutation-braid"></div>
+            <div class="table-card" data-testid="mutation-table"></div>
+          </section>
+          <section class="panel">
+            <h2>Case Table and Shell Snapshots</h2>
+            <p>Every diagram has adjacent table parity, and every continuity scenario exposes a same-shell snapshot rather than a generic redirect.</p>
+            <div class="table-card" data-testid="case-table"></div>
+            <div class="tab-list" data-testid="shell-snapshot-tabs" role="tablist" aria-label="Shell snapshots">
+              <button type="button" class="tab-button" data-testid="snapshot-tab-current" data-tab="current" role="tab">Current</button>
+              <button type="button" class="tab-button" data-testid="snapshot-tab-recovery" data-tab="recovery" role="tab">Recovery</button>
+              <button type="button" class="tab-button" data-testid="snapshot-tab-tuple" data-tab="tuple" role="tab">Tuple</button>
+            </div>
+            <div class="snapshot-card" data-testid="shell-snapshot-panel"></div>
+          </section>
+        </section>
+        <aside class="inspector" data-testid="continuity-inspector">
+          <section class="inspector-section">
+            <h2 data-testid="inspector-title"></h2>
+            <p data-testid="inspector-summary"></p>
+            <div class="badge-row" data-testid="inspector-badges"></div>
+          </section>
+          <section class="inspector-section">
+            <div><span class="label">Selected Anchor</span><p data-testid="selected-anchor-detail"></p></div>
+            <div><span class="label">Next Safe Action</span><p data-testid="next-safe-action"></p></div>
+            <div><span class="label">Gap Ref</span><p class="mono" data-testid="gap-ref"></p></div>
+          </section>
+          <section class="inspector-section">
+            <span class="label">Reason Refs</span>
+            <div class="chip-row" data-testid="reason-refs"></div>
+          </section>
+          <section class="inspector-section">
+            <span class="label">Source Refs</span>
+            <div class="chip-row" data-testid="source-refs"></div>
+          </section>
+        </aside>
+      </main>
+    </div>
+    <script id="suite-data" type="application/json">{"task_id":"seq_134","generated_at":"2026-04-14T08:25:37+00:00","captured_on":"2026-04-14","visual_mode":"Continuity_Gate_Lab","mission":"Prove that stale route intent, stale projection truth, or widened mutation scope cannot silently remain writable or quiet.","source_precedence":["prompt/134.md","prompt/shared_operating_contract_126_to_135.md","blueprint/phase-0-the-foundation-protocol.md#1.7A ProjectionFreshnessEnvelope","blueprint/phase-0-the-foundation-protocol.md#1.17 SelectedAnchor","blueprint/phase-0-the-foundation-protocol.md#1.21 RouteIntentBinding","blueprint/phase-0-the-foundation-protocol.md#1.38A AudienceSurfaceRuntimeBinding","blueprint/phase-0-the-foundation-protocol.md#1.39 ReleaseRecoveryDisposition","blueprint/phase-0-the-foundation-protocol.md#1.41 RouteFreezeDisposition","blueprint/phase-0-the-foundation-protocol.md#2.8 ScopedMutationGate","blueprint/platform-frontend-blueprint.md#ProjectionFreshnessEnvelope","blueprint/platform-frontend-blueprint.md#SelectedAnchorPolicy","blueprint/platform-runtime-and-release-blueprint.md#AudienceSurfaceRuntimeBinding","blueprint/platform-runtime-and-release-blueprint.md#ReleaseRecoveryDisposition","blueprint/phase-1-the-red-flag-gate.md#RouteIntentBinding","blueprint/forensic-audit-findings.md#Finding 91","blueprint/forensic-audit-findings.md#Finding 92","blueprint/forensic-audit-findings.md#Finding 95","blueprint/forensic-audit-findings.md#Finding 118","blueprint/forensic-audit-findings.md#Finding 119","blueprint/forensic-audit-findings.md#Finding 120","data/analysis/scoped_mutation_gate_decision_table.csv","data/analysis/freshness_envelope_examples.json","data/analysis/audience_surface_runtime_bindings.json","data/analysis/route_recovery_disposition_matrix.csv","data/analysis/route_freeze_and_recovery_matrix.csv","data/analysis/selected_anchor_policy_matrix.csv","data/analysis/runtime_binding_guard_examples.json"],"required_case_families":["stale_governing_object_version","stale_identity_binding_or_subject_version","stale_release_publication_runtime_binding","channel_or_embedded_capability_drift","transport_live_but_freshness_not_authoritative","reachability_or_contact_repair_suppresses_mutation","acting_scope_or_break_glass_drift","same_shell_recovery_preserves_selected_anchor"],"summary":{"route_intent_case_count":10,"projection_freshness_case_count":10,"scoped_mutation_case_count":10,"continuity_scenario_count":10,"browser_available_count":8,"browser_gap_count":2,"transport_live_but_non_live_actionability_count":7,"required_family_coverage_count":8},"gap_resolutions":[{"gapId":"GAP_RESOLUTION_134_ROUTE_INTENT_ENFORCED_END_TO_END_V1","statement":"Route-intent law now has one integrated suite that binds route tuples to runtime surface truth and same-shell recovery behavior."},{"gapId":"GAP_RESOLUTION_134_FRESH_TRANSPORT_NOT_FRESH_TRUTH_V1","statement":"Transport health and authoritative projection freshness are tested as separate dimensions so live transport cannot silently reopen writable posture."},{"gapId":"GAP_RESOLUTION_134_SCOPE_DRIFT_REQUIRES_GOVERNED_RECOVERY_V1","statement":"Scope drift now requires explicit same-shell recovery or reissue, never a hidden disable or generic redirect."}],"browser_gap_rows":[{"caseId":"CG_134_SUPPORT_CONTACT_REPAIR","caseSlug":"cg-134-support-contact-repair","title":"Support mutation remains fenced until contact-route repair clears","caseFamily":"reachability_or_contact_repair_suppresses_mutation","routeFamilyRef":"rf_support_ticket_workspace","audienceSurface":"audsurf_support_workspace","audienceSurfaceLabel":"Support routes","shellSlug":"support-workspace","actionScope":"support_repair_action","routeIntentCaseRef":"CG_134_SUPPORT_CONTACT_REPAIR","projectionFreshnessCaseRef":"CG_134_SUPPORT_CONTACT_REPAIR","scopedMutationCaseRef":"CG_134_SUPPORT_CONTACT_REPAIR","surfaceAuthorityVerdictId":"ASV_130_SURF_SUPPORT_TICKET_WORKSPACE_V1","routeTupleDecision":"recovery-only","mutationDecision":"recovery-only","effectiveShellPosture":"recovery_only","sameShellDisposition":"downgrade_recovery_only","selectedAnchorDisposition":"freeze","browserSpecimenState":"gap","gapRef":"GAP_BROWSER_SPECIMEN_RF_SUPPORT_TICKET_WORKSPACE","selectedAnchorKey":"ticket-timeline","selectedAnchorPolicyRef":"SAP_108_RF_SUPPORT_TICKET_WORKSPACE_V1","selectedAnchorPolicyLabel":"present_queue_row_stub_and_quiet_return","nextSafeActionLabel":"Repair the contact route and then resume from the preserved ticket timeline.","routeFreezeDispositionRefs":["RFD_050_SUPPORT_WORKSPACE_V1"],"recoveryDispositionRefs":["RFD_050_SUPPORT_WORKSPACE_V1","RRD_SUPPORT_CAPTURE_READ_ONLY","RRD_SUPPORT_CAPTURE_RECOVERY","RRD_SUPPORT_REPLAY_MASKED","RRD_SUPPORT_REPLAY_RESTORE_FROZEN","RRD_SUPPORT_WORKSPACE_READ_ONLY"],"freshnessEnvelope":{"projectionFreshnessState":"blocked_recovery","transportState":"live","actionabilityState":"recovery_only","scope":"shell"},"shellSnapshot":{"header":"Support mutation remains fenced until contact-route repair clears","summary":"The support repair path stays machine-readable even though a dedicated browser specimen is still missing.","selectedAnchorLabel":"ticket-timeline","nextSafeActionLabel":"Repair the contact route and then resume from the preserved ticket timeline.","recoveryActionLabel":"Repair the contact route and then resume from the preserved ticket timeline.","browserSpecimenState":"gap","sameShellMessage":"This route family remains in the suite as matrix-visible authority while browser specimen proof is still pending."},"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_RECOVERY_ONLY","MFV_127_DESIGN_LINT_PENDING"],"sourceRefs":["prompt/056.md","blueprint/staff-operations-and-support-blueprint.md#Support mutation contract","blueprint/callback-and-clinician-messaging-loop.md#Mutation and settlement law","data/analysis/frontend_contract_manifests.json#MCC_050_RF_SUPPORT_TICKET_WORKSPACE_V1","data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_SUPPORT_TICKET_WORKSPACE_RF_SUPPORT_TICKET_WORKSPACE","data/analysis/gateway_route_family_matrix.csv#rf_support_ticket_workspace","blueprint/forensic-audit-findings.md#Finding 119","blueprint/platform-frontend-blueprint.md","blueprint/staff-operations-and-support-blueprint.md","blueprint/accessibility-and-content-system-contract.md","blueprint/ux-quiet-clarity-redesign.md"],"notes":"Support route law exists, so the suite keeps the case in the machine-readable matrix and flags the missing browser specimen explicitly."},{"caseId":"CG_134_PUBLIC_ENTRY_TELEPHONY_GAP","caseSlug":"cg-134-public-entry-telephony-gap","title":"Telephony intake authority remains matrix-visible while the browser specimen is still missing","caseFamily":"browser_specimen_gap_public_entry","routeFamilyRef":"rf_intake_telephony_capture","audienceSurface":"audsurf_patient_public_entry","audienceSurfaceLabel":"Patient public entry","shellSlug":"patient-web","actionScope":"route_entry","routeIntentCaseRef":"CG_134_PUBLIC_ENTRY_TELEPHONY_GAP","projectionFreshnessCaseRef":"CG_134_PUBLIC_ENTRY_TELEPHONY_GAP","scopedMutationCaseRef":"CG_134_PUBLIC_ENTRY_TELEPHONY_GAP","surfaceAuthorityVerdictId":"ASV_130_SURF_PATIENT_INTAKE_PHONE_V1","routeTupleDecision":"recovery-only","mutationDecision":"blocked","effectiveShellPosture":"recovery_only","sameShellDisposition":"downgrade_recovery_only","selectedAnchorDisposition":"freeze","browserSpecimenState":"gap","gapRef":"GAP_BROWSER_SPECIMEN_RF_INTAKE_TELEPHONY_CAPTURE","selectedAnchorKey":"request-proof","selectedAnchorPolicyRef":"SAP_108_RF_INTAKE_TELEPHONY_CAPTURE_V1","selectedAnchorPolicyLabel":"present_nearest_safe_anchor_with_stub","nextSafeActionLabel":"Resume the governed capture route instead of inferring live authority from transport health.","routeFreezeDispositionRefs":["RFD_050_PATIENT_PUBLIC_ENTRY_V1"],"recoveryDispositionRefs":["RFD_050_PATIENT_PUBLIC_ENTRY_V1","RRD_PATIENT_INTAKE_RECOVERY","RRD_PATIENT_PUBLIC_PLACEHOLDER","RRD_TELEPHONY_CAPTURE_RECOVERY"],"freshnessEnvelope":{"projectionFreshnessState":"blocked_recovery","transportState":"paused","actionabilityState":"recovery_only","scope":"shell"},"shellSnapshot":{"header":"Telephony intake authority remains matrix-visible while the browser specimen is still missing","summary":"The public-entry route remains in the parity matrix, but current browser proof is still a bounded gap rather than a silent omission.","selectedAnchorLabel":"request-proof","nextSafeActionLabel":"Resume the governed capture route instead of inferring live authority from transport health.","recoveryActionLabel":"Resume the governed capture route instead of inferring live authority from transport health.","browserSpecimenState":"gap","sameShellMessage":"This route family remains in the suite as matrix-visible authority while browser specimen proof is still pending."},"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_RECOVERY_ONLY","MFV_127_CONSTRAINED_NON_BROWSER_CHANNEL","MFV_127_DESIGN_LINT_PENDING"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is recovery_only for Patient public entry.","Design lint verdict is dclv::patient_public_entry::pending.","blueprint-init.md#2. Core product surfaces","blueprint/blueprint-init.md#2. Core product surfaces","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/platform-frontend-blueprint.md#Browser boundary and BFF law","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","data/analysis/gateway_bff_surfaces.json#gws_patient_intake_phone","data/analysis/gateway_bff_surfaces.json#gws_patient_intake_web","data/analysis/tenant_isolation_matrix.csv#TIM_PUBLIC_PRE_IDENTITY","docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Gateway Surface Matrix","phase-0-the-foundation-protocol.md#0.2 Continuity key and shell law","phase-0-the-foundation-protocol.md#12.1 Mandatory audience tiers","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md","blueprint/platform-runtime-and-release-blueprint.md#AudienceSurfaceRuntimeBinding","blueprint/forensic-audit-findings.md#Finding 120","blueprint/platform-frontend-blueprint.md","blueprint/patient-portal-experience-architecture-blueprint.md","blueprint/accessibility-and-content-system-contract.md"],"notes":"Routes with published authority law but no specimen must remain explicit in the suite."}],"routeIntentCases":[{"case_id":"CG_134_PATIENT_MESSAGE_CURRENT","title":"Current patient message tuple stays visible while publication truth remains read-only","case_family":"baseline_current_tuple_under_partial_surface_truth","route_family":"rf_patient_messages","action_scope":"reply_message","governing_object_ref":"messageThread://current","governing_object_version_ref":"messageThreadVersion://current","required_identity_tuple_members":"subject://patient/current; subjectBindingVersion://patient/current; patient_session_claimed","required_session_tuple_members":"sessionEpoch://patient/current; patient_authenticated_session; not_required_patient_subject_session","required_release_tuple_members":"RAF_PROD_V1; current_release_approval_freeze::RAF_PROD_V1; release_publication_parity_exact; e068142870daca7b","required_channel_tuple_members":"audsurf_patient_authenticated_portal; patient; monitoring; channel_freeze_state_monitoring_or_released","required_runtime_tuple_members":"ASRB_050_RF_PATIENT_MESSAGES_V1; read_only","audience_surface_runtime_binding_ref":"ASRB_050_PATIENT_AUTHENTICATED_PORTAL_V1","expected_decision":"allow","same_shell_recovery_required":"yes","selected_anchor_policy_ref":"SAP_108_RF_PATIENT_MESSAGES_V1","browser_specimen_state":"available","gap_ref":"","source_refs":"prompt/056.md; blueprint/callback-and-clinician-messaging-loop.md#Mutation and settlement law; blueprint/patient-account-and-communications-blueprint.md#Patient action settlement contract; data/analysis/frontend_contract_manifests.json#MCC_050_RF_PATIENT_MESSAGES_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_PATIENT_MESSAGES_RF_PATIENT_MESSAGES; data/analysis/gateway_route_family_matrix.csv#rf_patient_messages; blueprint/patient-account-and-communications-blueprint.md#Purpose; blueprint/platform-frontend-blueprint.md#1.6 AmbientStateRibbon; blueprint/platform-frontend-blueprint.md; blueprint/patient-portal-experience-architecture-blueprint.md; blueprint/accessibility-and-content-system-contract.md; release_diagnostic_window; capability_downgraded_read_only; runtime_tuple_revalidation_required","rationale":"A current route-intent tuple alone is insufficient to reopen writable posture while the current surface authority row remains partial and read-only."},{"case_id":"CG_134_PATIENT_MESSAGE_SUPERSEDED","title":"Superseded patient message tuple falls back to same-shell thread recovery","case_family":"stale_governing_object_version","route_family":"rf_patient_messages","action_scope":"reply_message","governing_object_ref":"messageThread://superseded","governing_object_version_ref":"messageThreadVersion://superseded","required_identity_tuple_members":"subject://patient/current; subjectBindingVersion://patient/current; patient_session_claimed","required_session_tuple_members":"sessionEpoch://patient/current; patient_authenticated_session; not_required_patient_subject_session","required_release_tuple_members":"RAF_PROD_V1; current_release_approval_freeze::RAF_PROD_V1; release_publication_parity_exact; e068142870daca7b","required_channel_tuple_members":"audsurf_patient_authenticated_portal; patient; monitoring; channel_freeze_state_monitoring_or_released","required_runtime_tuple_members":"ASRB_050_RF_PATIENT_MESSAGES_V1; read_only","audience_surface_runtime_binding_ref":"ASRB_050_PATIENT_AUTHENTICATED_PORTAL_V1","expected_decision":"reissue-required","same_shell_recovery_required":"yes","selected_anchor_policy_ref":"SAP_108_RF_PATIENT_MESSAGES_V1","browser_specimen_state":"available","gap_ref":"","source_refs":"prompt/056.md; blueprint/callback-and-clinician-messaging-loop.md#Mutation and settlement law; blueprint/platform-frontend-blueprint.md#SelectedAnchorPolicy; data/analysis/frontend_contract_manifests.json#MCC_050_RF_PATIENT_MESSAGES_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_PATIENT_MESSAGES_RF_PATIENT_MESSAGES; data/analysis/gateway_route_family_matrix.csv#rf_patient_messages; blueprint/platform-frontend-blueprint.md#1.7A ProjectionFreshnessEnvelope; blueprint/forensic-audit-findings.md#Finding 95; blueprint/platform-frontend-blueprint.md; blueprint/patient-portal-experience-architecture-blueprint.md; blueprint/accessibility-and-content-system-contract.md","rationale":"Stale thread tuples must not silently send on a superseded governing object even when transport is live."},{"case_id":"CG_134_PATIENT_CLAIM_PARTIAL_IDENTITY","title":"Legacy claim binding requires claim reissue before writable posture can resume","case_family":"stale_identity_binding_or_subject_version","route_family":"rf_patient_secure_link_recovery","action_scope":"claim","governing_object_ref":"request://current-claim-target","governing_object_version_ref":"requestVersion://claim/current","required_identity_tuple_members":"subject://patient/current; subjectBindingVersion://claim/current; transaction_action_minimal","required_session_tuple_members":"sessionEpoch://grant-scoped/current; patient_claim_recovery_session; not_required_patient_subject_session","required_release_tuple_members":"RAF_PROD_V1; current_release_approval_freeze::RAF_PROD_V1; release_publication_parity_exact; 55454b109d3d6a95","required_channel_tuple_members":"audsurf_patient_transaction_recovery; patient; monitoring; channel_freeze_state_monitoring_or_released","required_runtime_tuple_members":"ASRB_050_RF_PATIENT_SECURE_LINK_RECOVERY_V1; recovery_only","audience_surface_runtime_binding_ref":"ASRB_050_PATIENT_TRANSACTION_RECOVERY_V1","expected_decision":"reissue-required","same_shell_recovery_required":"yes","selected_anchor_policy_ref":"SAP_108_RF_PATIENT_SECURE_LINK_RECOVERY_V1","browser_specimen_state":"available","gap_ref":"","source_refs":"prompt/056.md; blueprint/phase-0-the-foundation-protocol.md#1.21 RouteIntentBinding; blueprint/phase-2-identity-and-echoes.md#Continuation authority and claim law; data/analysis/frontend_contract_manifests.json#MCC_050_RF_PATIENT_SECURE_LINK_RECOVERY_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_PATIENT_SECURE_LINK_RECOVERY_RF_PATIENT_SECURE_LINK_RECOVERY; data/analysis/gateway_route_family_matrix.csv#rf_patient_secure_link_recovery; blueprint/platform-frontend-blueprint.md#1.7A ProjectionFreshnessEnvelope; blueprint/platform-frontend-blueprint.md; blueprint/patient-portal-experience-architecture-blueprint.md; blueprint/accessibility-and-content-system-contract.md; blueprint/forensic-audit-findings.md","rationale":"Identity or subject-binding drift must not be masked by cached recovery UI or copied link state."},{"case_id":"CG_134_PATIENT_REQUESTS_PENDING_BINDING","title":"Live transport without a hydrated runtime binding keeps requests in recovery-only posture","case_family":"stale_release_publication_runtime_binding","route_family":"rf_patient_requests","action_scope":"pharmacy_choice","governing_object_ref":"pharmacyCase://current","governing_object_version_ref":"pharmacyCaseVersion://current","required_identity_tuple_members":"subject://patient/current; subjectBindingVersion://patient/current; patient_session_claimed","required_session_tuple_members":"sessionEpoch://patient/current; patient_authenticated_session; not_required_patient_subject_session","required_release_tuple_members":"RAF_PROD_V1; current_release_approval_freeze::RAF_PROD_V1; release_publication_parity_exact; 6ea1be56eb007430","required_channel_tuple_members":"audsurf_patient_authenticated_portal; patient; monitoring; channel_freeze_state_monitoring_or_released","required_runtime_tuple_members":"ASRB_050_RF_PATIENT_REQUESTS_V1; read_only","audience_surface_runtime_binding_ref":"ASRB_050_PATIENT_AUTHENTICATED_PORTAL_V1","expected_decision":"allow","same_shell_recovery_required":"yes","selected_anchor_policy_ref":"SAP_108_RF_PATIENT_REQUESTS_V1","browser_specimen_state":"available","gap_ref":"","source_refs":"prompt/056.md; blueprint/phase-6-the-pharmacy-loop.md#Dispatch proof and outcome ingest; blueprint/patient-account-and-communications-blueprint.md#Patient action settlement contract; data/analysis/frontend_contract_manifests.json#MCC_050_RF_PATIENT_REQUESTS_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_PATIENT_REQUESTS_RF_PATIENT_REQUESTS; data/analysis/gateway_route_family_matrix.csv#rf_patient_requests; blueprint/platform-frontend-blueprint.md#1.7A ProjectionFreshnessEnvelope; blueprint/forensic-audit-findings.md#Finding 92; blueprint/platform-frontend-blueprint.md; blueprint/patient-portal-experience-architecture-blueprint.md; blueprint/accessibility-and-content-system-contract.md; blueprint/ux-quiet-clarity-redesign.md; runtime_binding_pending; capability_downgraded_recovery_only; runtime_tuple_revalidation_required","rationale":"Runtime, publication, or release drift must fail closed into same-shell recovery instead of silently reopening ordinary reply or pharmacy actions."},{"case_id":"CG_134_EMBEDDED_CAPABILITY_DRIFT","title":"Embedded capability drift keeps the route bounded to a governed handoff","case_family":"channel_or_embedded_capability_drift","route_family":"rf_patient_embedded_channel","action_scope":"route_entry","governing_object_ref":"routeEntry://rf_patient_embedded_channel","governing_object_version_ref":"rf_patient_embedded_channel.routeEntryVersion.current","required_identity_tuple_members":"audsurf_patient_transaction_recovery; route_entry_subject_validation","required_session_tuple_members":"route_entry_session_tuple; route_entry_scope_validation","required_release_tuple_members":"RC_LOCAL_V1; rpp::local::authoritative; current_release_parity_row","required_channel_tuple_members":"patient; recovery_only; constrained","required_runtime_tuple_members":"ASRB_050_PATIENT_TRANSACTION_RECOVERY_V1; rpb::local::authoritative; blocked","audience_surface_runtime_binding_ref":"ASRB_050_PATIENT_TRANSACTION_RECOVERY_V1","expected_decision":"recovery-only","same_shell_recovery_required":"yes","selected_anchor_policy_ref":"SAP_108_RF_PATIENT_EMBEDDED_CHANNEL_V1","browser_specimen_state":"available","gap_ref":"","source_refs":"Accessibility coverage is blocked.; Browser posture is recovery_only for Grant-scoped patient transaction and recovery.; Design lint verdict is dclv::patient_transaction_recovery::pending.; blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle; blueprint/forensic-audit-findings.md#Finding 90; blueprint/patient-account-and-communications-blueprint.md#Patient audience coverage contract; blueprint/patient-portal-experience-architecture-blueprint.md#Control priorities; blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle; blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest; data/analysis/gateway_bff_surfaces.json#gws_patient_embedded_shell; data/analysis/gateway_bff_surfaces.json#gws_patient_secure_link_recovery; data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_EMBEDDED; patient-account-and-communications-blueprint.md#Patient audience coverage contract; patient-portal-experience-architecture-blueprint.md#Control priorities; phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm; platform-runtime-and-release-blueprint.md#GatewayBffSurface; prompt/052.md; blueprint/platform-frontend-blueprint.md#Browser boundary recovery law; blueprint/forensic-audit-findings.md#Finding 118; blueprint/platform-frontend-blueprint.md; blueprint/patient-portal-experience-architecture-blueprint.md; blueprint/accessibility-and-content-system-contract.md; blueprint/forensic-audit-findings.md; embedded_capability_floor_unmet:signed_identity_bridge+host_return; capability_downgraded_recovery_only; embedded_capability_missing:signed_identity_bridge+host_return; embedded_capability_floor_unmet","rationale":"Embedded or constrained routes must prove the required capability floor before any live action posture remains legal."},{"case_id":"CG_134_STAFF_LIVE_TRANSPORT_STALE_TRUTH","title":"Workspace transport may be live while stale projection truth keeps actionability frozen","case_family":"transport_live_but_freshness_not_authoritative","route_family":"rf_staff_workspace_child","action_scope":"staff_claim_task","governing_object_ref":"triageTask://current","governing_object_version_ref":"triageTaskVersion://current","required_identity_tuple_members":"subject://patient/current; subjectBindingVersion://clinical-workspace/current; staff_scoped_coordination","required_session_tuple_members":"sessionEpoch://clinical-workspace/current; clinical_workspace_review; AST_054_CLINICAL_WORKSPACE_V1","required_release_tuple_members":"RAF_PROD_V1; current_release_approval_freeze::RAF_PROD_V1; release_publication_parity_exact; f0aa0e1d57477753","required_channel_tuple_members":"audsurf_clinical_workspace; staff; monitoring; channel_freeze_state_monitoring_or_released","required_runtime_tuple_members":"ASRB_050_RF_STAFF_WORKSPACE_CHILD_V1; read_only","audience_surface_runtime_binding_ref":"ASRB_050_CLINICAL_WORKSPACE_V1","expected_decision":"allow","same_shell_recovery_required":"yes","selected_anchor_policy_ref":"SAP_108_RF_STAFF_WORKSPACE_CHILD_V1","browser_specimen_state":"available","gap_ref":"","source_refs":"prompt/056.md; blueprint/phase-3-the-human-checkpoint.md#Triage contract and workspace state model; blueprint/platform-frontend-blueprint.md#ContinuityTransitionCheckpoint; data/analysis/frontend_contract_manifests.json#MCC_050_RF_STAFF_WORKSPACE_CHILD_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_CLINICIAN_WORKSPACE_CHILD_RF_STAFF_WORKSPACE_CHILD; data/analysis/gateway_route_family_matrix.csv#rf_staff_workspace_child; blueprint/staff-workspace-interface-architecture.md#3. Active task shell; blueprint/accessibility-and-content-system-contract.md#FreshnessAccessibilityContract; blueprint/platform-frontend-blueprint.md; blueprint/staff-workspace-interface-architecture.md; blueprint/accessibility-and-content-system-contract.md; blueprint/forensic-audit-findings.md","rationale":"Command-following freshness must remain visibly provisional until the queue row, task detail, and route tuple converge again."},{"case_id":"CG_134_SUPPORT_CONTACT_REPAIR","title":"Support mutation remains fenced until contact-route repair clears","case_family":"reachability_or_contact_repair_suppresses_mutation","route_family":"rf_support_ticket_workspace","action_scope":"support_repair_action","governing_object_ref":"supportMutationAttempt://current","governing_object_version_ref":"supportMutationAttemptVersion://current","required_identity_tuple_members":"subject://patient/current; subjectBindingVersion://support/current; governed_support_mutation","required_session_tuple_members":"sessionEpoch://support/current; support_recovery_workspace; AST_054_SUPPORT_WORKSPACE_V1","required_release_tuple_members":"RAF_PROD_V1; current_release_approval_freeze::RAF_PROD_V1; release_publication_parity_exact; 08f74b03be22deee","required_channel_tuple_members":"audsurf_support_workspace; support; monitoring; channel_freeze_state_monitoring_or_released","required_runtime_tuple_members":"ASRB_050_RF_SUPPORT_TICKET_WORKSPACE_V1; recovery_only","audience_surface_runtime_binding_ref":"ASRB_050_SUPPORT_WORKSPACE_V1","expected_decision":"recovery-only","same_shell_recovery_required":"yes","selected_anchor_policy_ref":"SAP_108_RF_SUPPORT_TICKET_WORKSPACE_V1","browser_specimen_state":"gap","gap_ref":"GAP_BROWSER_SPECIMEN_RF_SUPPORT_TICKET_WORKSPACE","source_refs":"prompt/056.md; blueprint/staff-operations-and-support-blueprint.md#Support mutation contract; blueprint/callback-and-clinician-messaging-loop.md#Mutation and settlement law; data/analysis/frontend_contract_manifests.json#MCC_050_RF_SUPPORT_TICKET_WORKSPACE_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_SUPPORT_TICKET_WORKSPACE_RF_SUPPORT_TICKET_WORKSPACE; data/analysis/gateway_route_family_matrix.csv#rf_support_ticket_workspace; blueprint/forensic-audit-findings.md#Finding 119; blueprint/platform-frontend-blueprint.md; blueprint/staff-operations-and-support-blueprint.md; blueprint/accessibility-and-content-system-contract.md; blueprint/ux-quiet-clarity-redesign.md","rationale":"Support route law exists, so the suite keeps the case in the machine-readable matrix and flags the missing browser specimen explicitly."},{"case_id":"CG_134_HUB_SCOPE_DRIFT","title":"Cross-organisation acting-scope drift freezes hub booking posture in place","case_family":"acting_scope_or_break_glass_drift","route_family":"rf_hub_case_management","action_scope":"hub_manage_booking","governing_object_ref":"hubCoordinationCase://current","governing_object_version_ref":"hubCoordinationCaseVersion://current","required_identity_tuple_members":"subject://patient/current; subjectBindingVersion://hub/current; staff_scoped_coordination","required_session_tuple_members":"sessionEpoch://hub/current; hub_cross_org_coordination; AST_054_HUB_COORDINATION_V1","required_release_tuple_members":"RAF_PROD_V1; current_release_approval_freeze::RAF_PROD_V1; release_publication_parity_exact; 4ce803c6e0a53df0","required_channel_tuple_members":"audsurf_hub_desk; hub; monitoring; channel_freeze_state_monitoring_or_released","required_runtime_tuple_members":"ASRB_050_RF_HUB_CASE_MANAGEMENT_V1; read_only","audience_surface_runtime_binding_ref":"ASRB_050_HUB_DESK_V1","expected_decision":"recovery-only","same_shell_recovery_required":"yes","selected_anchor_policy_ref":"SAP_108_RF_HUB_CASE_MANAGEMENT_V1","browser_specimen_state":"available","gap_ref":"","source_refs":"prompt/056.md; blueprint/phase-5-the-network-horizon.md#Network coordination contract; blueprint/staff-operations-and-support-blueprint.md#Staff audience coverage projection; data/analysis/frontend_contract_manifests.json#MCC_050_RF_HUB_CASE_MANAGEMENT_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_HUB_CASE_MANAGEMENT_RF_HUB_CASE_MANAGEMENT; data/analysis/gateway_route_family_matrix.csv#rf_hub_case_management; blueprint/phase-5-the-network-horizon.md#Hub shell; blueprint/platform-frontend-blueprint.md#1.7 FreshnessChip; blueprint/platform-frontend-blueprint.md; blueprint/phase-5-the-network-horizon.md; blueprint/accessibility-and-content-system-contract.md; blueprint/ux-quiet-clarity-redesign.md","rationale":"Acting-scope or break-glass drift freezes writable hub posture in place and requires a new governed scope tuple."},{"case_id":"CG_134_STAFF_SELECTED_ANCHOR_RECOVERY","title":"Workspace child recovery preserves the selected anchor and next safe action","case_family":"same_shell_recovery_preserves_selected_anchor","route_family":"rf_staff_workspace_child","action_scope":"staff_claim_task","governing_object_ref":"triageTask://current","governing_object_version_ref":"triageTaskVersion://current","required_identity_tuple_members":"subject://patient/current; subjectBindingVersion://clinical-workspace/current; staff_scoped_coordination","required_session_tuple_members":"sessionEpoch://clinical-workspace/current; clinical_workspace_review; AST_054_CLINICAL_WORKSPACE_V1","required_release_tuple_members":"RAF_PROD_V1; current_release_approval_freeze::RAF_PROD_V1; release_publication_parity_exact; f0aa0e1d57477753","required_channel_tuple_members":"audsurf_clinical_workspace; staff; monitoring; channel_freeze_state_monitoring_or_released","required_runtime_tuple_members":"ASRB_050_RF_STAFF_WORKSPACE_CHILD_V1; read_only","audience_surface_runtime_binding_ref":"ASRB_050_CLINICAL_WORKSPACE_V1","expected_decision":"recovery-only","same_shell_recovery_required":"yes","selected_anchor_policy_ref":"SAP_108_RF_STAFF_WORKSPACE_CHILD_V1","browser_specimen_state":"available","gap_ref":"","source_refs":"prompt/056.md; blueprint/phase-3-the-human-checkpoint.md#Triage contract and workspace state model; blueprint/platform-frontend-blueprint.md#ContinuityTransitionCheckpoint; data/analysis/frontend_contract_manifests.json#MCC_050_RF_STAFF_WORKSPACE_CHILD_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_CLINICIAN_WORKSPACE_CHILD_RF_STAFF_WORKSPACE_CHILD; data/analysis/gateway_route_family_matrix.csv#rf_staff_workspace_child; blueprint/platform-frontend-blueprint.md#SelectedAnchorPolicy; blueprint/staff-workspace-interface-architecture.md#Active task shell; blueprint/platform-frontend-blueprint.md; blueprint/staff-workspace-interface-architecture.md; blueprint/accessibility-and-content-system-contract.md; blueprint/forensic-audit-findings.md","rationale":"Selected-anchor preservation is a proof obligation, not a best-effort convenience."},{"case_id":"CG_134_PUBLIC_ENTRY_TELEPHONY_GAP","title":"Telephony intake authority remains matrix-visible while the browser specimen is still missing","case_family":"browser_specimen_gap_public_entry","route_family":"rf_intake_telephony_capture","action_scope":"route_entry","governing_object_ref":"routeEntry://rf_intake_telephony_capture","governing_object_version_ref":"rf_intake_telephony_capture.routeEntryVersion.current","required_identity_tuple_members":"audsurf_patient_public_entry; route_entry_subject_validation","required_session_tuple_members":"route_entry_session_tuple; route_entry_scope_validation","required_release_tuple_members":"RC_LOCAL_V1; rpp::local::authoritative; current_release_parity_row","required_channel_tuple_members":"patient; recovery_only; constrained","required_runtime_tuple_members":"ASRB_050_PATIENT_PUBLIC_ENTRY_V1; rpb::local::authoritative; recovery_only","audience_surface_runtime_binding_ref":"ASRB_050_PATIENT_PUBLIC_ENTRY_V1","expected_decision":"recovery-only","same_shell_recovery_required":"yes","selected_anchor_policy_ref":"SAP_108_RF_INTAKE_TELEPHONY_CAPTURE_V1","browser_specimen_state":"gap","gap_ref":"GAP_BROWSER_SPECIMEN_RF_INTAKE_TELEPHONY_CAPTURE","source_refs":"Accessibility coverage is degraded.; Browser posture is recovery_only for Patient public entry.; Design lint verdict is dclv::patient_public_entry::pending.; blueprint-init.md#2. Core product surfaces; blueprint/blueprint-init.md#2. Core product surfaces; blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle; blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle; blueprint/platform-frontend-blueprint.md#Browser boundary and BFF law; blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest; data/analysis/gateway_bff_surfaces.json#gws_patient_intake_phone; data/analysis/gateway_bff_surfaces.json#gws_patient_intake_web; data/analysis/tenant_isolation_matrix.csv#TIM_PUBLIC_PRE_IDENTITY; docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Gateway Surface Matrix; phase-0-the-foundation-protocol.md#0.2 Continuity key and shell law; phase-0-the-foundation-protocol.md#12.1 Mandatory audience tiers; platform-runtime-and-release-blueprint.md#GatewayBffSurface; prompt/052.md; blueprint/platform-runtime-and-release-blueprint.md#AudienceSurfaceRuntimeBinding; blueprint/forensic-audit-findings.md#Finding 120; blueprint/platform-frontend-blueprint.md; blueprint/patient-portal-experience-architecture-blueprint.md; blueprint/accessibility-and-content-system-contract.md","rationale":"Routes with published authority law but no specimen must remain explicit in the suite."}],"projectionFreshnessCases":[{"case_id":"CG_134_PATIENT_MESSAGE_CURRENT","title":"Current patient message tuple stays visible while publication truth remains read-only","case_family":"baseline_current_tuple_under_partial_surface_truth","route_family":"rf_patient_messages","transport_state":"live","projection_freshness_state":"fresh","actionability_state":"live","scope":"shell","status_summary":"We are waiting for confirmation from another service.","expected_freshness_label":"Fresh truth","expected_actionability_label":"Actionable","expected_render_mode":"integrated_status_strip","expected_shell_posture":"read_only","expected_mutation_decision":"blocked","transport_live_insufficient":"yes","selected_anchor_disposition":"freeze","next_safe_action_label":"Review the current thread summary before issuing a fresh reply tuple.","browser_specimen_state":"available","gap_ref":"","source_refs":"prompt/056.md; blueprint/callback-and-clinician-messaging-loop.md#Mutation and settlement law; blueprint/patient-account-and-communications-blueprint.md#Patient action settlement contract; data/analysis/frontend_contract_manifests.json#MCC_050_RF_PATIENT_MESSAGES_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_PATIENT_MESSAGES_RF_PATIENT_MESSAGES; data/analysis/gateway_route_family_matrix.csv#rf_patient_messages; blueprint/patient-account-and-communications-blueprint.md#Purpose; blueprint/platform-frontend-blueprint.md#1.6 AmbientStateRibbon; blueprint/platform-frontend-blueprint.md; blueprint/patient-portal-experience-architecture-blueprint.md; blueprint/accessibility-and-content-system-contract.md; release_diagnostic_window; capability_downgraded_read_only; runtime_tuple_revalidation_required","rationale":"A current route-intent tuple alone is insufficient to reopen writable posture while the current surface authority row remains partial and read-only."},{"case_id":"CG_134_PATIENT_MESSAGE_SUPERSEDED","title":"Superseded patient message tuple falls back to same-shell thread recovery","case_family":"stale_governing_object_version","route_family":"rf_patient_messages","transport_state":"live","projection_freshness_state":"stale_review","actionability_state":"frozen","scope":"shell","status_summary":"The visible thread is stale and must rebind before any reply can remain safe.","expected_freshness_label":"Stale review","expected_actionability_label":"Frozen","expected_render_mode":"integrated_status_strip","expected_shell_posture":"recovery_only","expected_mutation_decision":"blocked","transport_live_insufficient":"yes","selected_anchor_disposition":"freeze","next_safe_action_label":"Resume on the latest thread inside the same shell before replying.","browser_specimen_state":"available","gap_ref":"","source_refs":"prompt/056.md; blueprint/callback-and-clinician-messaging-loop.md#Mutation and settlement law; blueprint/platform-frontend-blueprint.md#SelectedAnchorPolicy; data/analysis/frontend_contract_manifests.json#MCC_050_RF_PATIENT_MESSAGES_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_PATIENT_MESSAGES_RF_PATIENT_MESSAGES; data/analysis/gateway_route_family_matrix.csv#rf_patient_messages; blueprint/platform-frontend-blueprint.md#1.7A ProjectionFreshnessEnvelope; blueprint/forensic-audit-findings.md#Finding 95; blueprint/platform-frontend-blueprint.md; blueprint/patient-portal-experience-architecture-blueprint.md; blueprint/accessibility-and-content-system-contract.md","rationale":"Stale thread tuples must not silently send on a superseded governing object even when transport is live."},{"case_id":"CG_134_PATIENT_CLAIM_PARTIAL_IDENTITY","title":"Legacy claim binding requires claim reissue before writable posture can resume","case_family":"stale_identity_binding_or_subject_version","route_family":"rf_patient_secure_link_recovery","transport_state":"paused","projection_freshness_state":"blocked_recovery","actionability_state":"recovery_only","scope":"shell","status_summary":"The claim shell must reissue its subject-bound tuple before a writable recovery action can continue.","expected_freshness_label":"Recovery only","expected_actionability_label":"Recovery only","expected_render_mode":"promoted_banner","expected_shell_posture":"blocked","expected_mutation_decision":"blocked","transport_live_insufficient":"no","selected_anchor_disposition":"freeze","next_safe_action_label":"Reissue the claim tuple in place and keep the last safe request summary visible.","browser_specimen_state":"available","gap_ref":"","source_refs":"prompt/056.md; blueprint/phase-0-the-foundation-protocol.md#1.21 RouteIntentBinding; blueprint/phase-2-identity-and-echoes.md#Continuation authority and claim law; data/analysis/frontend_contract_manifests.json#MCC_050_RF_PATIENT_SECURE_LINK_RECOVERY_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_PATIENT_SECURE_LINK_RECOVERY_RF_PATIENT_SECURE_LINK_RECOVERY; data/analysis/gateway_route_family_matrix.csv#rf_patient_secure_link_recovery; blueprint/platform-frontend-blueprint.md#1.7A ProjectionFreshnessEnvelope; blueprint/platform-frontend-blueprint.md; blueprint/patient-portal-experience-architecture-blueprint.md; blueprint/accessibility-and-content-system-contract.md; blueprint/forensic-audit-findings.md","rationale":"Identity or subject-binding drift must not be masked by cached recovery UI or copied link state."},{"case_id":"CG_134_PATIENT_REQUESTS_PENDING_BINDING","title":"Live transport without a hydrated runtime binding keeps requests in recovery-only posture","case_family":"stale_release_publication_runtime_binding","route_family":"rf_patient_requests","transport_state":"live","projection_freshness_state":"updating","actionability_state":"guarded","scope":"shell","status_summary":"Transport is live, but the current runtime tuple is still settling and ordinary mutation remains guarded.","expected_freshness_label":"Guarded update","expected_actionability_label":"Guarded","expected_render_mode":"integrated_status_strip","expected_shell_posture":"recovery_only","expected_mutation_decision":"recovery-only","transport_live_insufficient":"yes","selected_anchor_disposition":"freeze","next_safe_action_label":"Refresh the runtime binding and preserve the current request anchor.","browser_specimen_state":"available","gap_ref":"","source_refs":"prompt/056.md; blueprint/phase-6-the-pharmacy-loop.md#Dispatch proof and outcome ingest; blueprint/patient-account-and-communications-blueprint.md#Patient action settlement contract; data/analysis/frontend_contract_manifests.json#MCC_050_RF_PATIENT_REQUESTS_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_PATIENT_REQUESTS_RF_PATIENT_REQUESTS; data/analysis/gateway_route_family_matrix.csv#rf_patient_requests; blueprint/platform-frontend-blueprint.md#1.7A ProjectionFreshnessEnvelope; blueprint/forensic-audit-findings.md#Finding 92; blueprint/platform-frontend-blueprint.md; blueprint/patient-portal-experience-architecture-blueprint.md; blueprint/accessibility-and-content-system-contract.md; blueprint/ux-quiet-clarity-redesign.md; runtime_binding_pending; capability_downgraded_recovery_only; runtime_tuple_revalidation_required","rationale":"Runtime, publication, or release drift must fail closed into same-shell recovery instead of silently reopening ordinary reply or pharmacy actions."},{"case_id":"CG_134_EMBEDDED_CAPABILITY_DRIFT","title":"Embedded capability drift keeps the route bounded to a governed handoff","case_family":"channel_or_embedded_capability_drift","route_family":"rf_patient_embedded_channel","transport_state":"live","projection_freshness_state":"blocked_recovery","actionability_state":"recovery_only","scope":"shell","status_summary":"Embedded delivery may continue only through the governed handoff path because the host capability floor is incomplete.","expected_freshness_label":"Recovery only","expected_actionability_label":"Recovery only","expected_render_mode":"promoted_banner","expected_shell_posture":"recovery_only","expected_mutation_decision":"blocked","transport_live_insufficient":"yes","selected_anchor_disposition":"freeze","next_safe_action_label":"Open the governed handoff and preserve the embedded return anchor.","browser_specimen_state":"available","gap_ref":"","source_refs":"Accessibility coverage is blocked.; Browser posture is recovery_only for Grant-scoped patient transaction and recovery.; Design lint verdict is dclv::patient_transaction_recovery::pending.; blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle; blueprint/forensic-audit-findings.md#Finding 90; blueprint/patient-account-and-communications-blueprint.md#Patient audience coverage contract; blueprint/patient-portal-experience-architecture-blueprint.md#Control priorities; blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle; blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest; data/analysis/gateway_bff_surfaces.json#gws_patient_embedded_shell; data/analysis/gateway_bff_surfaces.json#gws_patient_secure_link_recovery; data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_EMBEDDED; patient-account-and-communications-blueprint.md#Patient audience coverage contract; patient-portal-experience-architecture-blueprint.md#Control priorities; phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm; platform-runtime-and-release-blueprint.md#GatewayBffSurface; prompt/052.md; blueprint/platform-frontend-blueprint.md#Browser boundary recovery law; blueprint/forensic-audit-findings.md#Finding 118; blueprint/platform-frontend-blueprint.md; blueprint/patient-portal-experience-architecture-blueprint.md; blueprint/accessibility-and-content-system-contract.md; blueprint/forensic-audit-findings.md; embedded_capability_floor_unmet:signed_identity_bridge+host_return; capability_downgraded_recovery_only; embedded_capability_missing:signed_identity_bridge+host_return; embedded_capability_floor_unmet","rationale":"Embedded or constrained routes must prove the required capability floor before any live action posture remains legal."},{"case_id":"CG_134_STAFF_LIVE_TRANSPORT_STALE_TRUTH","title":"Workspace transport may be live while stale projection truth keeps actionability frozen","case_family":"transport_live_but_freshness_not_authoritative","route_family":"rf_staff_workspace_child","transport_state":"live","projection_freshness_state":"stale_review","actionability_state":"frozen","scope":"shell","status_summary":"Projection review required before the current action remains safe.","expected_freshness_label":"Stale review","expected_actionability_label":"Frozen","expected_render_mode":"integrated_status_strip","expected_shell_posture":"recovery_only","expected_mutation_decision":"blocked","transport_live_insufficient":"yes","selected_anchor_disposition":"freeze","next_safe_action_label":"Restore the current queue evidence row before issuing a new claim or decision.","browser_specimen_state":"available","gap_ref":"","source_refs":"prompt/056.md; blueprint/phase-3-the-human-checkpoint.md#Triage contract and workspace state model; blueprint/platform-frontend-blueprint.md#ContinuityTransitionCheckpoint; data/analysis/frontend_contract_manifests.json#MCC_050_RF_STAFF_WORKSPACE_CHILD_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_CLINICIAN_WORKSPACE_CHILD_RF_STAFF_WORKSPACE_CHILD; data/analysis/gateway_route_family_matrix.csv#rf_staff_workspace_child; blueprint/staff-workspace-interface-architecture.md#3. Active task shell; blueprint/accessibility-and-content-system-contract.md#FreshnessAccessibilityContract; blueprint/platform-frontend-blueprint.md; blueprint/staff-workspace-interface-architecture.md; blueprint/accessibility-and-content-system-contract.md; blueprint/forensic-audit-findings.md","rationale":"Command-following freshness must remain visibly provisional until the queue row, task detail, and route tuple converge again."},{"case_id":"CG_134_SUPPORT_CONTACT_REPAIR","title":"Support mutation remains fenced until contact-route repair clears","case_family":"reachability_or_contact_repair_suppresses_mutation","route_family":"rf_support_ticket_workspace","transport_state":"live","projection_freshness_state":"blocked_recovery","actionability_state":"recovery_only","scope":"shell","status_summary":"Contact-route repair is now the dominant truth; ordinary support mutation remains fenced in place.","expected_freshness_label":"Recovery only","expected_actionability_label":"Recovery only","expected_render_mode":"promoted_banner","expected_shell_posture":"recovery_only","expected_mutation_decision":"recovery-only","transport_live_insufficient":"yes","selected_anchor_disposition":"freeze","next_safe_action_label":"Repair the contact route and then resume from the preserved ticket timeline.","browser_specimen_state":"gap","gap_ref":"GAP_BROWSER_SPECIMEN_RF_SUPPORT_TICKET_WORKSPACE","source_refs":"prompt/056.md; blueprint/staff-operations-and-support-blueprint.md#Support mutation contract; blueprint/callback-and-clinician-messaging-loop.md#Mutation and settlement law; data/analysis/frontend_contract_manifests.json#MCC_050_RF_SUPPORT_TICKET_WORKSPACE_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_SUPPORT_TICKET_WORKSPACE_RF_SUPPORT_TICKET_WORKSPACE; data/analysis/gateway_route_family_matrix.csv#rf_support_ticket_workspace; blueprint/forensic-audit-findings.md#Finding 119; blueprint/platform-frontend-blueprint.md; blueprint/staff-operations-and-support-blueprint.md; blueprint/accessibility-and-content-system-contract.md; blueprint/ux-quiet-clarity-redesign.md","rationale":"Support route law exists, so the suite keeps the case in the machine-readable matrix and flags the missing browser specimen explicitly."},{"case_id":"CG_134_HUB_SCOPE_DRIFT","title":"Cross-organisation acting-scope drift freezes hub booking posture in place","case_family":"acting_scope_or_break_glass_drift","route_family":"rf_hub_case_management","transport_state":"reconnecting","projection_freshness_state":"updating","actionability_state":"guarded","scope":"shell","status_summary":"Awaiting external confirmation before the shell can settle.","expected_freshness_label":"Update paused","expected_actionability_label":"Guarded","expected_render_mode":"integrated_status_strip","expected_shell_posture":"recovery_only","expected_mutation_decision":"blocked","transport_live_insufficient":"no","selected_anchor_disposition":"freeze","next_safe_action_label":"Re-issue the hub scope tuple before managing booking or alternatives.","browser_specimen_state":"available","gap_ref":"","source_refs":"prompt/056.md; blueprint/phase-5-the-network-horizon.md#Network coordination contract; blueprint/staff-operations-and-support-blueprint.md#Staff audience coverage projection; data/analysis/frontend_contract_manifests.json#MCC_050_RF_HUB_CASE_MANAGEMENT_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_HUB_CASE_MANAGEMENT_RF_HUB_CASE_MANAGEMENT; data/analysis/gateway_route_family_matrix.csv#rf_hub_case_management; blueprint/phase-5-the-network-horizon.md#Hub shell; blueprint/platform-frontend-blueprint.md#1.7 FreshnessChip; blueprint/platform-frontend-blueprint.md; blueprint/phase-5-the-network-horizon.md; blueprint/accessibility-and-content-system-contract.md; blueprint/ux-quiet-clarity-redesign.md","rationale":"Acting-scope or break-glass drift freezes writable hub posture in place and requires a new governed scope tuple."},{"case_id":"CG_134_STAFF_SELECTED_ANCHOR_RECOVERY","title":"Workspace child recovery preserves the selected anchor and next safe action","case_family":"same_shell_recovery_preserves_selected_anchor","route_family":"rf_staff_workspace_child","transport_state":"live","projection_freshness_state":"updating","actionability_state":"recovery_only","scope":"shell","status_summary":"The child route stays in the same shell, preserves the queue anchor, and arms the next safe recovery action.","expected_freshness_label":"Guarded update","expected_actionability_label":"Recovery only","expected_render_mode":"integrated_status_strip","expected_shell_posture":"recovery_only","expected_mutation_decision":"recovery-only","transport_live_insufficient":"yes","selected_anchor_disposition":"freeze","next_safe_action_label":"Restore the draft and review the queue evidence row before continuing.","browser_specimen_state":"available","gap_ref":"","source_refs":"prompt/056.md; blueprint/phase-3-the-human-checkpoint.md#Triage contract and workspace state model; blueprint/platform-frontend-blueprint.md#ContinuityTransitionCheckpoint; data/analysis/frontend_contract_manifests.json#MCC_050_RF_STAFF_WORKSPACE_CHILD_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_CLINICIAN_WORKSPACE_CHILD_RF_STAFF_WORKSPACE_CHILD; data/analysis/gateway_route_family_matrix.csv#rf_staff_workspace_child; blueprint/platform-frontend-blueprint.md#SelectedAnchorPolicy; blueprint/staff-workspace-interface-architecture.md#Active task shell; blueprint/platform-frontend-blueprint.md; blueprint/staff-workspace-interface-architecture.md; blueprint/accessibility-and-content-system-contract.md; blueprint/forensic-audit-findings.md","rationale":"Selected-anchor preservation is a proof obligation, not a best-effort convenience."},{"case_id":"CG_134_PUBLIC_ENTRY_TELEPHONY_GAP","title":"Telephony intake authority remains matrix-visible while the browser specimen is still missing","case_family":"browser_specimen_gap_public_entry","route_family":"rf_intake_telephony_capture","transport_state":"paused","projection_freshness_state":"blocked_recovery","actionability_state":"recovery_only","scope":"shell","status_summary":"Telephony intake remains recovery-only until the current constrained-browser tuple is republished.","expected_freshness_label":"Recovery only","expected_actionability_label":"Recovery only","expected_render_mode":"promoted_banner","expected_shell_posture":"recovery_only","expected_mutation_decision":"blocked","transport_live_insufficient":"no","selected_anchor_disposition":"freeze","next_safe_action_label":"Resume the governed capture route instead of inferring live authority from transport health.","browser_specimen_state":"gap","gap_ref":"GAP_BROWSER_SPECIMEN_RF_INTAKE_TELEPHONY_CAPTURE","source_refs":"Accessibility coverage is degraded.; Browser posture is recovery_only for Patient public entry.; Design lint verdict is dclv::patient_public_entry::pending.; blueprint-init.md#2. Core product surfaces; blueprint/blueprint-init.md#2. Core product surfaces; blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle; blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle; blueprint/platform-frontend-blueprint.md#Browser boundary and BFF law; blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest; data/analysis/gateway_bff_surfaces.json#gws_patient_intake_phone; data/analysis/gateway_bff_surfaces.json#gws_patient_intake_web; data/analysis/tenant_isolation_matrix.csv#TIM_PUBLIC_PRE_IDENTITY; docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Gateway Surface Matrix; phase-0-the-foundation-protocol.md#0.2 Continuity key and shell law; phase-0-the-foundation-protocol.md#12.1 Mandatory audience tiers; platform-runtime-and-release-blueprint.md#GatewayBffSurface; prompt/052.md; blueprint/platform-runtime-and-release-blueprint.md#AudienceSurfaceRuntimeBinding; blueprint/forensic-audit-findings.md#Finding 120; blueprint/platform-frontend-blueprint.md; blueprint/patient-portal-experience-architecture-blueprint.md; blueprint/accessibility-and-content-system-contract.md","rationale":"Routes with published authority law but no specimen must remain explicit in the suite."}],"scopedMutationCases":[{"case_id":"CG_134_PATIENT_MESSAGE_CURRENT","title":"Current patient message tuple stays visible while publication truth remains read-only","case_family":"baseline_current_tuple_under_partial_surface_truth","route_family":"rf_patient_messages","action_scope":"reply_message","drift_dimension":"none_current_tuple","acting_scope_tuple_requirement_ref":"ASTR_056_PATIENT_SUBJECT_BOUND_V1","governing_object_ref":"messageThread://current","governing_object_version_ref":"messageThreadVersion://current","subject_binding_version_ref":"subjectBindingVersion://patient/current","lineage_fence_epoch_requirement":"LineageFence.currentEpoch","release_binding_ref":"rpp::local::authoritative","runtime_binding_ref":"ASRB_050_PATIENT_AUTHENTICATED_PORTAL_V1","ordinary_mutation_state":"blocked","expected_route_decision":"allow","allowed_command_settlement_results":"pending; awaiting_external; applied; review_required; stale_recoverable; blocked_policy","same_shell_recovery_envelope_ref":"RecoveryEnvelope::conversation-rebind","selected_anchor_disposition":"freeze","browser_specimen_state":"available","gap_ref":"","source_refs":"prompt/056.md; blueprint/callback-and-clinician-messaging-loop.md#Mutation and settlement law; blueprint/patient-account-and-communications-blueprint.md#Patient action settlement contract; data/analysis/frontend_contract_manifests.json#MCC_050_RF_PATIENT_MESSAGES_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_PATIENT_MESSAGES_RF_PATIENT_MESSAGES; data/analysis/gateway_route_family_matrix.csv#rf_patient_messages; blueprint/patient-account-and-communications-blueprint.md#Purpose; blueprint/platform-frontend-blueprint.md#1.6 AmbientStateRibbon; blueprint/platform-frontend-blueprint.md; blueprint/patient-portal-experience-architecture-blueprint.md; blueprint/accessibility-and-content-system-contract.md; release_diagnostic_window; capability_downgraded_read_only; runtime_tuple_revalidation_required","rationale":"A current route-intent tuple alone is insufficient to reopen writable posture while the current surface authority row remains partial and read-only."},{"case_id":"CG_134_PATIENT_MESSAGE_SUPERSEDED","title":"Superseded patient message tuple falls back to same-shell thread recovery","case_family":"stale_governing_object_version","route_family":"rf_patient_messages","action_scope":"reply_message","drift_dimension":"governing_object_version","acting_scope_tuple_requirement_ref":"ASTR_056_PATIENT_SUBJECT_BOUND_V1","governing_object_ref":"messageThread://superseded","governing_object_version_ref":"messageThreadVersion://superseded","subject_binding_version_ref":"subjectBindingVersion://patient/current","lineage_fence_epoch_requirement":"LineageFence.currentEpoch","release_binding_ref":"rpp::local::authoritative","runtime_binding_ref":"ASRB_050_PATIENT_AUTHENTICATED_PORTAL_V1","ordinary_mutation_state":"blocked","expected_route_decision":"reissue-required","allowed_command_settlement_results":"stale_recoverable; denied_scope; expired","same_shell_recovery_envelope_ref":"RecoveryEnvelope::conversation-superseded","selected_anchor_disposition":"freeze","browser_specimen_state":"available","gap_ref":"","source_refs":"prompt/056.md; blueprint/callback-and-clinician-messaging-loop.md#Mutation and settlement law; blueprint/platform-frontend-blueprint.md#SelectedAnchorPolicy; data/analysis/frontend_contract_manifests.json#MCC_050_RF_PATIENT_MESSAGES_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_PATIENT_MESSAGES_RF_PATIENT_MESSAGES; data/analysis/gateway_route_family_matrix.csv#rf_patient_messages; blueprint/platform-frontend-blueprint.md#1.7A ProjectionFreshnessEnvelope; blueprint/forensic-audit-findings.md#Finding 95; blueprint/platform-frontend-blueprint.md; blueprint/patient-portal-experience-architecture-blueprint.md; blueprint/accessibility-and-content-system-contract.md","rationale":"Stale thread tuples must not silently send on a superseded governing object even when transport is live."},{"case_id":"CG_134_PATIENT_CLAIM_PARTIAL_IDENTITY","title":"Legacy claim binding requires claim reissue before writable posture can resume","case_family":"stale_identity_binding_or_subject_version","route_family":"rf_patient_secure_link_recovery","action_scope":"claim","drift_dimension":"subject_binding_version","acting_scope_tuple_requirement_ref":"ASTR_056_PATIENT_SUBJECT_BOUND_V1","governing_object_ref":"request://current-claim-target","governing_object_version_ref":"requestVersion://claim/current","subject_binding_version_ref":"subjectBindingVersion://claim/current","lineage_fence_epoch_requirement":"LineageFence.currentEpoch","release_binding_ref":"rpp::local::authoritative","runtime_binding_ref":"ASRB_050_PATIENT_TRANSACTION_RECOVERY_V1","ordinary_mutation_state":"blocked","expected_route_decision":"reissue-required","allowed_command_settlement_results":"stale_recoverable; denied_scope; expired","same_shell_recovery_envelope_ref":"RecoveryEnvelope::claim-reissue","selected_anchor_disposition":"freeze","browser_specimen_state":"available","gap_ref":"","source_refs":"prompt/056.md; blueprint/phase-0-the-foundation-protocol.md#1.21 RouteIntentBinding; blueprint/phase-2-identity-and-echoes.md#Continuation authority and claim law; data/analysis/frontend_contract_manifests.json#MCC_050_RF_PATIENT_SECURE_LINK_RECOVERY_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_PATIENT_SECURE_LINK_RECOVERY_RF_PATIENT_SECURE_LINK_RECOVERY; data/analysis/gateway_route_family_matrix.csv#rf_patient_secure_link_recovery; blueprint/platform-frontend-blueprint.md#1.7A ProjectionFreshnessEnvelope; blueprint/platform-frontend-blueprint.md; blueprint/patient-portal-experience-architecture-blueprint.md; blueprint/accessibility-and-content-system-contract.md; blueprint/forensic-audit-findings.md","rationale":"Identity or subject-binding drift must not be masked by cached recovery UI or copied link state."},{"case_id":"CG_134_PATIENT_REQUESTS_PENDING_BINDING","title":"Live transport without a hydrated runtime binding keeps requests in recovery-only posture","case_family":"stale_release_publication_runtime_binding","route_family":"rf_patient_requests","action_scope":"pharmacy_choice","drift_dimension":"runtime_binding","acting_scope_tuple_requirement_ref":"ASTR_056_PATIENT_SUBJECT_BOUND_V1","governing_object_ref":"pharmacyCase://current","governing_object_version_ref":"pharmacyCaseVersion://current","subject_binding_version_ref":"subjectBindingVersion://patient/current","lineage_fence_epoch_requirement":"LineageFence.currentEpoch","release_binding_ref":"rpp::local::authoritative","runtime_binding_ref":"ASRB_050_PATIENT_AUTHENTICATED_PORTAL_V1","ordinary_mutation_state":"recovery-only","expected_route_decision":"allow","allowed_command_settlement_results":"pending; applied; reconciliation_required; stale_recoverable; blocked_policy","same_shell_recovery_envelope_ref":"RecoveryEnvelope::pharmacy-choice","selected_anchor_disposition":"freeze","browser_specimen_state":"available","gap_ref":"","source_refs":"prompt/056.md; blueprint/phase-6-the-pharmacy-loop.md#Dispatch proof and outcome ingest; blueprint/patient-account-and-communications-blueprint.md#Patient action settlement contract; data/analysis/frontend_contract_manifests.json#MCC_050_RF_PATIENT_REQUESTS_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_PATIENT_REQUESTS_RF_PATIENT_REQUESTS; data/analysis/gateway_route_family_matrix.csv#rf_patient_requests; blueprint/platform-frontend-blueprint.md#1.7A ProjectionFreshnessEnvelope; blueprint/forensic-audit-findings.md#Finding 92; blueprint/platform-frontend-blueprint.md; blueprint/patient-portal-experience-architecture-blueprint.md; blueprint/accessibility-and-content-system-contract.md; blueprint/ux-quiet-clarity-redesign.md; runtime_binding_pending; capability_downgraded_recovery_only; runtime_tuple_revalidation_required","rationale":"Runtime, publication, or release drift must fail closed into same-shell recovery instead of silently reopening ordinary reply or pharmacy actions."},{"case_id":"CG_134_EMBEDDED_CAPABILITY_DRIFT","title":"Embedded capability drift keeps the route bounded to a governed handoff","case_family":"channel_or_embedded_capability_drift","route_family":"rf_patient_embedded_channel","action_scope":"route_entry","drift_dimension":"channel_capability","acting_scope_tuple_requirement_ref":"route_entry_scope_validation","governing_object_ref":"routeEntry://rf_patient_embedded_channel","governing_object_version_ref":"rf_patient_embedded_channel.routeEntryVersion.current","subject_binding_version_ref":"route_entry_subject_validation","lineage_fence_epoch_requirement":"not_applicable_route_entry","release_binding_ref":"rpp::local::authoritative","runtime_binding_ref":"ASRB_050_PATIENT_TRANSACTION_RECOVERY_V1","ordinary_mutation_state":"blocked","expected_route_decision":"recovery-only","allowed_command_settlement_results":"not_applicable_route_entry","same_shell_recovery_envelope_ref":"same_shell_route_entry_recovery","selected_anchor_disposition":"freeze","browser_specimen_state":"available","gap_ref":"","source_refs":"Accessibility coverage is blocked.; Browser posture is recovery_only for Grant-scoped patient transaction and recovery.; Design lint verdict is dclv::patient_transaction_recovery::pending.; blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle; blueprint/forensic-audit-findings.md#Finding 90; blueprint/patient-account-and-communications-blueprint.md#Patient audience coverage contract; blueprint/patient-portal-experience-architecture-blueprint.md#Control priorities; blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle; blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest; data/analysis/gateway_bff_surfaces.json#gws_patient_embedded_shell; data/analysis/gateway_bff_surfaces.json#gws_patient_secure_link_recovery; data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_EMBEDDED; patient-account-and-communications-blueprint.md#Patient audience coverage contract; patient-portal-experience-architecture-blueprint.md#Control priorities; phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm; platform-runtime-and-release-blueprint.md#GatewayBffSurface; prompt/052.md; blueprint/platform-frontend-blueprint.md#Browser boundary recovery law; blueprint/forensic-audit-findings.md#Finding 118; blueprint/platform-frontend-blueprint.md; blueprint/patient-portal-experience-architecture-blueprint.md; blueprint/accessibility-and-content-system-contract.md; blueprint/forensic-audit-findings.md; embedded_capability_floor_unmet:signed_identity_bridge+host_return; capability_downgraded_recovery_only; embedded_capability_missing:signed_identity_bridge+host_return; embedded_capability_floor_unmet","rationale":"Embedded or constrained routes must prove the required capability floor before any live action posture remains legal."},{"case_id":"CG_134_STAFF_LIVE_TRANSPORT_STALE_TRUTH","title":"Workspace transport may be live while stale projection truth keeps actionability frozen","case_family":"transport_live_but_freshness_not_authoritative","route_family":"rf_staff_workspace_child","action_scope":"staff_claim_task","drift_dimension":"projection_freshness","acting_scope_tuple_requirement_ref":"ASTR_056_CLINICAL_WORKSPACE_V1","governing_object_ref":"triageTask://current","governing_object_version_ref":"triageTaskVersion://current","subject_binding_version_ref":"subjectBindingVersion://clinical-workspace/current","lineage_fence_epoch_requirement":"LineageFence.currentEpoch","release_binding_ref":"rpp::local::authoritative","runtime_binding_ref":"ASRB_050_CLINICAL_WORKSPACE_V1","ordinary_mutation_state":"blocked","expected_route_decision":"allow","allowed_command_settlement_results":"pending; applied; review_required; stale_recoverable; blocked_policy","same_shell_recovery_envelope_ref":"RecoveryEnvelope::workspace-task-rebind","selected_anchor_disposition":"freeze","browser_specimen_state":"available","gap_ref":"","source_refs":"prompt/056.md; blueprint/phase-3-the-human-checkpoint.md#Triage contract and workspace state model; blueprint/platform-frontend-blueprint.md#ContinuityTransitionCheckpoint; data/analysis/frontend_contract_manifests.json#MCC_050_RF_STAFF_WORKSPACE_CHILD_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_CLINICIAN_WORKSPACE_CHILD_RF_STAFF_WORKSPACE_CHILD; data/analysis/gateway_route_family_matrix.csv#rf_staff_workspace_child; blueprint/staff-workspace-interface-architecture.md#3. Active task shell; blueprint/accessibility-and-content-system-contract.md#FreshnessAccessibilityContract; blueprint/platform-frontend-blueprint.md; blueprint/staff-workspace-interface-architecture.md; blueprint/accessibility-and-content-system-contract.md; blueprint/forensic-audit-findings.md","rationale":"Command-following freshness must remain visibly provisional until the queue row, task detail, and route tuple converge again."},{"case_id":"CG_134_SUPPORT_CONTACT_REPAIR","title":"Support mutation remains fenced until contact-route repair clears","case_family":"reachability_or_contact_repair_suppresses_mutation","route_family":"rf_support_ticket_workspace","action_scope":"support_repair_action","drift_dimension":"reachability_contact_route","acting_scope_tuple_requirement_ref":"ASTR_056_SUPPORT_WORKSPACE_V1","governing_object_ref":"supportMutationAttempt://current","governing_object_version_ref":"supportMutationAttemptVersion://current","subject_binding_version_ref":"subjectBindingVersion://support/current","lineage_fence_epoch_requirement":"LineageFence.currentEpoch","release_binding_ref":"rpp::local::authoritative","runtime_binding_ref":"ASRB_050_SUPPORT_WORKSPACE_V1","ordinary_mutation_state":"recovery-only","expected_route_decision":"recovery-only","allowed_command_settlement_results":"pending; awaiting_external; applied; review_required; reconciliation_required; stale_recoverable; blocked_policy","same_shell_recovery_envelope_ref":"RecoveryEnvelope::support-ticket-repair","selected_anchor_disposition":"freeze","browser_specimen_state":"gap","gap_ref":"GAP_BROWSER_SPECIMEN_RF_SUPPORT_TICKET_WORKSPACE","source_refs":"prompt/056.md; blueprint/staff-operations-and-support-blueprint.md#Support mutation contract; blueprint/callback-and-clinician-messaging-loop.md#Mutation and settlement law; data/analysis/frontend_contract_manifests.json#MCC_050_RF_SUPPORT_TICKET_WORKSPACE_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_SUPPORT_TICKET_WORKSPACE_RF_SUPPORT_TICKET_WORKSPACE; data/analysis/gateway_route_family_matrix.csv#rf_support_ticket_workspace; blueprint/forensic-audit-findings.md#Finding 119; blueprint/platform-frontend-blueprint.md; blueprint/staff-operations-and-support-blueprint.md; blueprint/accessibility-and-content-system-contract.md; blueprint/ux-quiet-clarity-redesign.md","rationale":"Support route law exists, so the suite keeps the case in the machine-readable matrix and flags the missing browser specimen explicitly."},{"case_id":"CG_134_HUB_SCOPE_DRIFT","title":"Cross-organisation acting-scope drift freezes hub booking posture in place","case_family":"acting_scope_or_break_glass_drift","route_family":"rf_hub_case_management","action_scope":"hub_manage_booking","drift_dimension":"acting_scope_tuple","acting_scope_tuple_requirement_ref":"ASTR_056_HUB_COORDINATION_V1","governing_object_ref":"hubCoordinationCase://current","governing_object_version_ref":"hubCoordinationCaseVersion://current","subject_binding_version_ref":"subjectBindingVersion://hub/current","lineage_fence_epoch_requirement":"LineageFence.currentEpoch","release_binding_ref":"rpp::local::authoritative","runtime_binding_ref":"ASRB_050_HUB_DESK_V1","ordinary_mutation_state":"blocked","expected_route_decision":"recovery-only","allowed_command_settlement_results":"pending; awaiting_external; applied; review_required; reconciliation_required; stale_recoverable","same_shell_recovery_envelope_ref":"RecoveryEnvelope::hub-case-rebind","selected_anchor_disposition":"freeze","browser_specimen_state":"available","gap_ref":"","source_refs":"prompt/056.md; blueprint/phase-5-the-network-horizon.md#Network coordination contract; blueprint/staff-operations-and-support-blueprint.md#Staff audience coverage projection; data/analysis/frontend_contract_manifests.json#MCC_050_RF_HUB_CASE_MANAGEMENT_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_HUB_CASE_MANAGEMENT_RF_HUB_CASE_MANAGEMENT; data/analysis/gateway_route_family_matrix.csv#rf_hub_case_management; blueprint/phase-5-the-network-horizon.md#Hub shell; blueprint/platform-frontend-blueprint.md#1.7 FreshnessChip; blueprint/platform-frontend-blueprint.md; blueprint/phase-5-the-network-horizon.md; blueprint/accessibility-and-content-system-contract.md; blueprint/ux-quiet-clarity-redesign.md","rationale":"Acting-scope or break-glass drift freezes writable hub posture in place and requires a new governed scope tuple."},{"case_id":"CG_134_STAFF_SELECTED_ANCHOR_RECOVERY","title":"Workspace child recovery preserves the selected anchor and next safe action","case_family":"same_shell_recovery_preserves_selected_anchor","route_family":"rf_staff_workspace_child","action_scope":"staff_claim_task","drift_dimension":"selected_anchor_recovery","acting_scope_tuple_requirement_ref":"ASTR_056_CLINICAL_WORKSPACE_V1","governing_object_ref":"triageTask://current","governing_object_version_ref":"triageTaskVersion://current","subject_binding_version_ref":"subjectBindingVersion://clinical-workspace/current","lineage_fence_epoch_requirement":"LineageFence.currentEpoch","release_binding_ref":"rpp::local::authoritative","runtime_binding_ref":"ASRB_050_CLINICAL_WORKSPACE_V1","ordinary_mutation_state":"recovery-only","expected_route_decision":"recovery-only","allowed_command_settlement_results":"pending; applied; review_required; stale_recoverable; blocked_policy","same_shell_recovery_envelope_ref":"RecoveryEnvelope::workspace-task-rebind","selected_anchor_disposition":"freeze","browser_specimen_state":"available","gap_ref":"","source_refs":"prompt/056.md; blueprint/phase-3-the-human-checkpoint.md#Triage contract and workspace state model; blueprint/platform-frontend-blueprint.md#ContinuityTransitionCheckpoint; data/analysis/frontend_contract_manifests.json#MCC_050_RF_STAFF_WORKSPACE_CHILD_V1; data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_CLINICIAN_WORKSPACE_CHILD_RF_STAFF_WORKSPACE_CHILD; data/analysis/gateway_route_family_matrix.csv#rf_staff_workspace_child; blueprint/platform-frontend-blueprint.md#SelectedAnchorPolicy; blueprint/staff-workspace-interface-architecture.md#Active task shell; blueprint/platform-frontend-blueprint.md; blueprint/staff-workspace-interface-architecture.md; blueprint/accessibility-and-content-system-contract.md; blueprint/forensic-audit-findings.md","rationale":"Selected-anchor preservation is a proof obligation, not a best-effort convenience."},{"case_id":"CG_134_PUBLIC_ENTRY_TELEPHONY_GAP","title":"Telephony intake authority remains matrix-visible while the browser specimen is still missing","case_family":"browser_specimen_gap_public_entry","route_family":"rf_intake_telephony_capture","action_scope":"route_entry","drift_dimension":"browser_specimen_gap","acting_scope_tuple_requirement_ref":"route_entry_scope_validation","governing_object_ref":"routeEntry://rf_intake_telephony_capture","governing_object_version_ref":"rf_intake_telephony_capture.routeEntryVersion.current","subject_binding_version_ref":"route_entry_subject_validation","lineage_fence_epoch_requirement":"not_applicable_route_entry","release_binding_ref":"rpp::local::authoritative","runtime_binding_ref":"ASRB_050_PATIENT_PUBLIC_ENTRY_V1","ordinary_mutation_state":"blocked","expected_route_decision":"recovery-only","allowed_command_settlement_results":"not_applicable_route_entry","same_shell_recovery_envelope_ref":"same_shell_route_entry_recovery","selected_anchor_disposition":"freeze","browser_specimen_state":"gap","gap_ref":"GAP_BROWSER_SPECIMEN_RF_INTAKE_TELEPHONY_CAPTURE","source_refs":"Accessibility coverage is degraded.; Browser posture is recovery_only for Patient public entry.; Design lint verdict is dclv::patient_public_entry::pending.; blueprint-init.md#2. Core product surfaces; blueprint/blueprint-init.md#2. Core product surfaces; blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle; blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle; blueprint/platform-frontend-blueprint.md#Browser boundary and BFF law; blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest; data/analysis/gateway_bff_surfaces.json#gws_patient_intake_phone; data/analysis/gateway_bff_surfaces.json#gws_patient_intake_web; data/analysis/tenant_isolation_matrix.csv#TIM_PUBLIC_PRE_IDENTITY; docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Gateway Surface Matrix; phase-0-the-foundation-protocol.md#0.2 Continuity key and shell law; phase-0-the-foundation-protocol.md#12.1 Mandatory audience tiers; platform-runtime-and-release-blueprint.md#GatewayBffSurface; prompt/052.md; blueprint/platform-runtime-and-release-blueprint.md#AudienceSurfaceRuntimeBinding; blueprint/forensic-audit-findings.md#Finding 120; blueprint/platform-frontend-blueprint.md; blueprint/patient-portal-experience-architecture-blueprint.md; blueprint/accessibility-and-content-system-contract.md","rationale":"Routes with published authority law but no specimen must remain explicit in the suite."}],"continuityScenarios":[{"caseId":"CG_134_PATIENT_MESSAGE_CURRENT","caseSlug":"cg-134-patient-message-current","title":"Current patient message tuple stays visible while publication truth remains read-only","caseFamily":"baseline_current_tuple_under_partial_surface_truth","routeFamilyRef":"rf_patient_messages","audienceSurface":"audsurf_patient_authenticated_portal","audienceSurfaceLabel":"Authenticated patient portal","shellSlug":"patient-web","actionScope":"reply_message","routeIntentCaseRef":"CG_134_PATIENT_MESSAGE_CURRENT","projectionFreshnessCaseRef":"CG_134_PATIENT_MESSAGE_CURRENT","scopedMutationCaseRef":"CG_134_PATIENT_MESSAGE_CURRENT","surfaceAuthorityVerdictId":"ASV_130_SURF_PATIENT_MESSAGES_V1","routeTupleDecision":"allow","mutationDecision":"blocked","effectiveShellPosture":"read_only","sameShellDisposition":"downgrade_read_only","selectedAnchorDisposition":"freeze","browserSpecimenState":"available","gapRef":"","selectedAnchorKey":"messages-thread","selectedAnchorPolicyRef":"SAP_108_RF_PATIENT_MESSAGES_V1","selectedAnchorPolicyLabel":"present_nearest_safe_anchor_with_stub","nextSafeActionLabel":"Review the current thread summary before issuing a fresh reply tuple.","routeFreezeDispositionRefs":["RFD_050_PATIENT_AUTHENTICATED_PORTAL_V1"],"recoveryDispositionRefs":["RFD_050_PATIENT_AUTHENTICATED_PORTAL_V1","RRD_ARTIFACT_HANDOFF_REQUIRED","RRD_BOOKING_CONFIRMATION_PLACEHOLDER","RRD_CONVERSATION_RECOVERY_ONLY","RRD_PATIENT_APPOINTMENT_READ_ONLY","RRD_PATIENT_HOME_PLACEHOLDER","RRD_PATIENT_HOME_READ_ONLY","RRD_PATIENT_MESSAGES_READ_ONLY","RRD_PATIENT_RECORD_SUMMARY_ONLY","RRD_PATIENT_REQUEST_READ_ONLY","RRD_PATIENT_REQUEST_RECOVERY_ONLY"],"freshnessEnvelope":{"projectionFreshnessState":"fresh","transportState":"live","actionabilityState":"live","scope":"shell"},"shellSnapshot":{"header":"Current patient message tuple stays visible while publication truth remains read-only","summary":"The current message thread remains visible, but writable reply posture stays suppressed until runtime and release truth are exact.","selectedAnchorLabel":"messages-thread","nextSafeActionLabel":"Review the current thread summary before issuing a fresh reply tuple.","recoveryActionLabel":"Refresh runtime binding","browserSpecimenState":"available","sameShellMessage":"Same-shell recovery keeps the active header, selected anchor, and next safe action in place."},"reasonRefs":["release_diagnostic_window","capability_downgraded_read_only","runtime_tuple_revalidation_required","MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_READ_ONLY","MFV_127_DESIGN_LINT_PENDING"],"sourceRefs":["prompt/056.md","blueprint/callback-and-clinician-messaging-loop.md#Mutation and settlement law","blueprint/patient-account-and-communications-blueprint.md#Patient action settlement contract","data/analysis/frontend_contract_manifests.json#MCC_050_RF_PATIENT_MESSAGES_V1","data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_PATIENT_MESSAGES_RF_PATIENT_MESSAGES","data/analysis/gateway_route_family_matrix.csv#rf_patient_messages","blueprint/patient-account-and-communications-blueprint.md#Purpose","blueprint/platform-frontend-blueprint.md#1.6 AmbientStateRibbon","blueprint/platform-frontend-blueprint.md","blueprint/patient-portal-experience-architecture-blueprint.md","blueprint/accessibility-and-content-system-contract.md","release_diagnostic_window","capability_downgraded_read_only","runtime_tuple_revalidation_required"],"notes":"A current route-intent tuple alone is insufficient to reopen writable posture while the current surface authority row remains partial and read-only."},{"caseId":"CG_134_PATIENT_MESSAGE_SUPERSEDED","caseSlug":"cg-134-patient-message-superseded","title":"Superseded patient message tuple falls back to same-shell thread recovery","caseFamily":"stale_governing_object_version","routeFamilyRef":"rf_patient_messages","audienceSurface":"audsurf_patient_authenticated_portal","audienceSurfaceLabel":"Authenticated patient portal","shellSlug":"patient-web","actionScope":"reply_message","routeIntentCaseRef":"CG_134_PATIENT_MESSAGE_SUPERSEDED","projectionFreshnessCaseRef":"CG_134_PATIENT_MESSAGE_SUPERSEDED","scopedMutationCaseRef":"CG_134_PATIENT_MESSAGE_SUPERSEDED","surfaceAuthorityVerdictId":"ASV_130_SURF_PATIENT_MESSAGES_V1","routeTupleDecision":"reissue-required","mutationDecision":"blocked","effectiveShellPosture":"recovery_only","sameShellDisposition":"downgrade_recovery_only","selectedAnchorDisposition":"freeze","browserSpecimenState":"available","gapRef":"","selectedAnchorKey":"messages-thread","selectedAnchorPolicyRef":"SAP_108_RF_PATIENT_MESSAGES_V1","selectedAnchorPolicyLabel":"present_nearest_safe_anchor_with_stub","nextSafeActionLabel":"Resume on the latest thread inside the same shell before replying.","routeFreezeDispositionRefs":["RFD_050_PATIENT_AUTHENTICATED_PORTAL_V1"],"recoveryDispositionRefs":["RFD_050_PATIENT_AUTHENTICATED_PORTAL_V1","RRD_ARTIFACT_HANDOFF_REQUIRED","RRD_BOOKING_CONFIRMATION_PLACEHOLDER","RRD_CONVERSATION_RECOVERY_ONLY","RRD_PATIENT_APPOINTMENT_READ_ONLY","RRD_PATIENT_HOME_PLACEHOLDER","RRD_PATIENT_HOME_READ_ONLY","RRD_PATIENT_MESSAGES_READ_ONLY","RRD_PATIENT_RECORD_SUMMARY_ONLY","RRD_PATIENT_REQUEST_READ_ONLY","RRD_PATIENT_REQUEST_RECOVERY_ONLY"],"freshnessEnvelope":{"projectionFreshnessState":"stale_review","transportState":"live","actionabilityState":"frozen","scope":"shell"},"shellSnapshot":{"header":"Superseded patient message tuple falls back to same-shell thread recovery","summary":"The thread tuple is superseded, so the shell preserves orientation and points back to the latest safe conversation target.","selectedAnchorLabel":"messages-thread","nextSafeActionLabel":"Resume on the latest thread inside the same shell before replying.","recoveryActionLabel":"Resume on the latest thread inside the same shell before replying.","browserSpecimenState":"available","sameShellMessage":"Same-shell recovery keeps the active header, selected anchor, and next safe action in place."},"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_READ_ONLY","MFV_127_DESIGN_LINT_PENDING"],"sourceRefs":["prompt/056.md","blueprint/callback-and-clinician-messaging-loop.md#Mutation and settlement law","blueprint/platform-frontend-blueprint.md#SelectedAnchorPolicy","data/analysis/frontend_contract_manifests.json#MCC_050_RF_PATIENT_MESSAGES_V1","data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_PATIENT_MESSAGES_RF_PATIENT_MESSAGES","data/analysis/gateway_route_family_matrix.csv#rf_patient_messages","blueprint/platform-frontend-blueprint.md#1.7A ProjectionFreshnessEnvelope","blueprint/forensic-audit-findings.md#Finding 95","blueprint/platform-frontend-blueprint.md","blueprint/patient-portal-experience-architecture-blueprint.md","blueprint/accessibility-and-content-system-contract.md"],"notes":"Stale thread tuples must not silently send on a superseded governing object even when transport is live."},{"caseId":"CG_134_PATIENT_CLAIM_PARTIAL_IDENTITY","caseSlug":"cg-134-patient-claim-partial-identity","title":"Legacy claim binding requires claim reissue before writable posture can resume","caseFamily":"stale_identity_binding_or_subject_version","routeFamilyRef":"rf_patient_secure_link_recovery","audienceSurface":"audsurf_patient_transaction_recovery","audienceSurfaceLabel":"Grant-scoped patient transaction and recovery","shellSlug":"patient-web","actionScope":"claim","routeIntentCaseRef":"CG_134_PATIENT_CLAIM_PARTIAL_IDENTITY","projectionFreshnessCaseRef":"CG_134_PATIENT_CLAIM_PARTIAL_IDENTITY","scopedMutationCaseRef":"CG_134_PATIENT_CLAIM_PARTIAL_IDENTITY","surfaceAuthorityVerdictId":"ASV_130_SURF_PATIENT_SECURE_LINK_RECOVERY_V1","routeTupleDecision":"reissue-required","mutationDecision":"blocked","effectiveShellPosture":"blocked","sameShellDisposition":"downgrade_blocked","selectedAnchorDisposition":"freeze","browserSpecimenState":"available","gapRef":"","selectedAnchorKey":"messages-return","selectedAnchorPolicyRef":"SAP_108_RF_PATIENT_SECURE_LINK_RECOVERY_V1","selectedAnchorPolicyLabel":"present_nearest_safe_anchor_with_stub","nextSafeActionLabel":"Reissue the claim tuple in place and keep the last safe request summary visible.","routeFreezeDispositionRefs":["RFD_050_PATIENT_TRANSACTION_RECOVERY_V1"],"recoveryDispositionRefs":["RFD_050_PATIENT_TRANSACTION_RECOVERY_V1","RRD_EMBEDDED_HANDOFF_ONLY","RRD_EMBEDDED_READ_ONLY","RRD_IDENTITY_HOLD_PLACEHOLDER","RRD_SECURE_LINK_RECOVERY_ONLY"],"freshnessEnvelope":{"projectionFreshnessState":"blocked_recovery","transportState":"paused","actionabilityState":"recovery_only","scope":"shell"},"shellSnapshot":{"header":"Legacy claim binding requires claim reissue before writable posture can resume","summary":"Identity-bound recovery stays same-shell, but no claim completion can remain writable on a partial subject binding.","selectedAnchorLabel":"messages-return","nextSafeActionLabel":"Reissue the claim tuple in place and keep the last safe request summary visible.","recoveryActionLabel":"Reissue the claim tuple in place and keep the last safe request summary visible.","browserSpecimenState":"available","sameShellMessage":"Same-shell recovery keeps the active header, selected anchor, and next safe action in place."},"reasonRefs":["MFV_127_ACCESSIBILITY_BLOCKED","MFV_127_BROWSER_POSTURE_RECOVERY_ONLY","MFV_127_DESIGN_LINT_PENDING"],"sourceRefs":["prompt/056.md","blueprint/phase-0-the-foundation-protocol.md#1.21 RouteIntentBinding","blueprint/phase-2-identity-and-echoes.md#Continuation authority and claim law","data/analysis/frontend_contract_manifests.json#MCC_050_RF_PATIENT_SECURE_LINK_RECOVERY_V1","data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_PATIENT_SECURE_LINK_RECOVERY_RF_PATIENT_SECURE_LINK_RECOVERY","data/analysis/gateway_route_family_matrix.csv#rf_patient_secure_link_recovery","blueprint/platform-frontend-blueprint.md#1.7A ProjectionFreshnessEnvelope","blueprint/platform-frontend-blueprint.md","blueprint/patient-portal-experience-architecture-blueprint.md","blueprint/accessibility-and-content-system-contract.md","blueprint/forensic-audit-findings.md"],"notes":"Identity or subject-binding drift must not be masked by cached recovery UI or copied link state."},{"caseId":"CG_134_PATIENT_REQUESTS_PENDING_BINDING","caseSlug":"cg-134-patient-requests-pending-binding","title":"Live transport without a hydrated runtime binding keeps requests in recovery-only posture","caseFamily":"stale_release_publication_runtime_binding","routeFamilyRef":"rf_patient_requests","audienceSurface":"audsurf_patient_authenticated_portal","audienceSurfaceLabel":"Authenticated patient portal","shellSlug":"patient-web","actionScope":"pharmacy_choice","routeIntentCaseRef":"CG_134_PATIENT_REQUESTS_PENDING_BINDING","projectionFreshnessCaseRef":"CG_134_PATIENT_REQUESTS_PENDING_BINDING","scopedMutationCaseRef":"CG_134_PATIENT_REQUESTS_PENDING_BINDING","surfaceAuthorityVerdictId":"ASV_130_SURF_PATIENT_REQUESTS_V1","routeTupleDecision":"allow","mutationDecision":"recovery-only","effectiveShellPosture":"recovery_only","sameShellDisposition":"downgrade_recovery_only","selectedAnchorDisposition":"freeze","browserSpecimenState":"available","gapRef":"","selectedAnchorKey":"request-lineage","selectedAnchorPolicyRef":"SAP_108_RF_PATIENT_REQUESTS_V1","selectedAnchorPolicyLabel":"present_nearest_safe_anchor_with_stub","nextSafeActionLabel":"Refresh the runtime binding and preserve the current request anchor.","routeFreezeDispositionRefs":["RFD_050_PATIENT_AUTHENTICATED_PORTAL_V1"],"recoveryDispositionRefs":["RFD_050_PATIENT_AUTHENTICATED_PORTAL_V1","RRD_ARTIFACT_HANDOFF_REQUIRED","RRD_BOOKING_CONFIRMATION_PLACEHOLDER","RRD_CONVERSATION_RECOVERY_ONLY","RRD_PATIENT_APPOINTMENT_READ_ONLY","RRD_PATIENT_HOME_PLACEHOLDER","RRD_PATIENT_HOME_READ_ONLY","RRD_PATIENT_MESSAGES_READ_ONLY","RRD_PATIENT_RECORD_SUMMARY_ONLY","RRD_PATIENT_REQUEST_READ_ONLY","RRD_PATIENT_REQUEST_RECOVERY_ONLY"],"freshnessEnvelope":{"projectionFreshnessState":"updating","transportState":"live","actionabilityState":"guarded","scope":"shell"},"shellSnapshot":{"header":"Live transport without a hydrated runtime binding keeps requests in recovery-only posture","summary":"Fresh transport is not fresh truth; requests stay guarded until the runtime tuple becomes authoritative again.","selectedAnchorLabel":"request-lineage","nextSafeActionLabel":"Refresh the runtime binding and preserve the current request anchor.","recoveryActionLabel":"Refresh runtime binding","browserSpecimenState":"available","sameShellMessage":"Same-shell recovery keeps the active header, selected anchor, and next safe action in place."},"reasonRefs":["runtime_binding_pending","capability_downgraded_recovery_only","runtime_tuple_revalidation_required","MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_READ_ONLY","MFV_127_DESIGN_LINT_PENDING"],"sourceRefs":["prompt/056.md","blueprint/phase-6-the-pharmacy-loop.md#Dispatch proof and outcome ingest","blueprint/patient-account-and-communications-blueprint.md#Patient action settlement contract","data/analysis/frontend_contract_manifests.json#MCC_050_RF_PATIENT_REQUESTS_V1","data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_PATIENT_REQUESTS_RF_PATIENT_REQUESTS","data/analysis/gateway_route_family_matrix.csv#rf_patient_requests","blueprint/platform-frontend-blueprint.md#1.7A ProjectionFreshnessEnvelope","blueprint/forensic-audit-findings.md#Finding 92","blueprint/platform-frontend-blueprint.md","blueprint/patient-portal-experience-architecture-blueprint.md","blueprint/accessibility-and-content-system-contract.md","blueprint/ux-quiet-clarity-redesign.md","runtime_binding_pending","capability_downgraded_recovery_only","runtime_tuple_revalidation_required"],"notes":"Runtime, publication, or release drift must fail closed into same-shell recovery instead of silently reopening ordinary reply or pharmacy actions."},{"caseId":"CG_134_EMBEDDED_CAPABILITY_DRIFT","caseSlug":"cg-134-embedded-capability-drift","title":"Embedded capability drift keeps the route bounded to a governed handoff","caseFamily":"channel_or_embedded_capability_drift","routeFamilyRef":"rf_patient_embedded_channel","audienceSurface":"audsurf_patient_transaction_recovery","audienceSurfaceLabel":"Grant-scoped patient transaction and recovery","shellSlug":"patient-web","actionScope":"route_entry","routeIntentCaseRef":"CG_134_EMBEDDED_CAPABILITY_DRIFT","projectionFreshnessCaseRef":"CG_134_EMBEDDED_CAPABILITY_DRIFT","scopedMutationCaseRef":"CG_134_EMBEDDED_CAPABILITY_DRIFT","surfaceAuthorityVerdictId":"ASV_130_SURF_PATIENT_EMBEDDED_SHELL_V1","routeTupleDecision":"recovery-only","mutationDecision":"blocked","effectiveShellPosture":"recovery_only","sameShellDisposition":"downgrade_recovery_only","selectedAnchorDisposition":"freeze","browserSpecimenState":"available","gapRef":"","selectedAnchorKey":"embedded-capabilities","selectedAnchorPolicyRef":"SAP_108_RF_PATIENT_EMBEDDED_CHANNEL_V1","selectedAnchorPolicyLabel":"present_nearest_safe_anchor_with_stub","nextSafeActionLabel":"Open the governed handoff and preserve the embedded return anchor.","routeFreezeDispositionRefs":["RFD_050_PATIENT_TRANSACTION_RECOVERY_V1"],"recoveryDispositionRefs":["RFD_050_PATIENT_TRANSACTION_RECOVERY_V1","RRD_EMBEDDED_HANDOFF_ONLY","RRD_EMBEDDED_READ_ONLY","RRD_IDENTITY_HOLD_PLACEHOLDER","RRD_SECURE_LINK_RECOVERY_ONLY"],"freshnessEnvelope":{"projectionFreshnessState":"blocked_recovery","transportState":"live","actionabilityState":"recovery_only","scope":"shell"},"shellSnapshot":{"header":"Embedded capability drift keeps the route bounded to a governed handoff","summary":"Channel capability drift is recoverable, but never through a silent local enablement or shell replacement.","selectedAnchorLabel":"embedded-capabilities","nextSafeActionLabel":"Open the governed handoff and preserve the embedded return anchor.","recoveryActionLabel":"Open governed handoff","browserSpecimenState":"available","sameShellMessage":"Same-shell recovery keeps the active header, selected anchor, and next safe action in place."},"reasonRefs":["embedded_capability_floor_unmet:signed_identity_bridge+host_return","capability_downgraded_recovery_only","embedded_capability_missing:signed_identity_bridge+host_return","embedded_capability_floor_unmet","MFV_127_ACCESSIBILITY_BLOCKED","MFV_127_BROWSER_POSTURE_RECOVERY_ONLY","MFV_127_DESIGN_LINT_PENDING"],"sourceRefs":["Accessibility coverage is blocked.","Browser posture is recovery_only for Grant-scoped patient transaction and recovery.","Design lint verdict is dclv::patient_transaction_recovery::pending.","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/forensic-audit-findings.md#Finding 90","blueprint/patient-account-and-communications-blueprint.md#Patient audience coverage contract","blueprint/patient-portal-experience-architecture-blueprint.md#Control priorities","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","data/analysis/gateway_bff_surfaces.json#gws_patient_embedded_shell","data/analysis/gateway_bff_surfaces.json#gws_patient_secure_link_recovery","data/analysis/tenant_isolation_matrix.csv#TIM_PATIENT_EMBEDDED","patient-account-and-communications-blueprint.md#Patient audience coverage contract","patient-portal-experience-architecture-blueprint.md#Control priorities","phase-0-the-foundation-protocol.md#5.4 Claim, secure-link, and embedded access algorithm","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md","blueprint/platform-frontend-blueprint.md#Browser boundary recovery law","blueprint/forensic-audit-findings.md#Finding 118","blueprint/platform-frontend-blueprint.md","blueprint/patient-portal-experience-architecture-blueprint.md","blueprint/accessibility-and-content-system-contract.md","blueprint/forensic-audit-findings.md","embedded_capability_floor_unmet:signed_identity_bridge+host_return","capability_downgraded_recovery_only","embedded_capability_missing:signed_identity_bridge+host_return","embedded_capability_floor_unmet"],"notes":"Embedded or constrained routes must prove the required capability floor before any live action posture remains legal."},{"caseId":"CG_134_STAFF_LIVE_TRANSPORT_STALE_TRUTH","caseSlug":"cg-134-staff-live-transport-stale-truth","title":"Workspace transport may be live while stale projection truth keeps actionability frozen","caseFamily":"transport_live_but_freshness_not_authoritative","routeFamilyRef":"rf_staff_workspace_child","audienceSurface":"audsurf_clinical_workspace","audienceSurfaceLabel":"Clinical workspace","shellSlug":"clinical-workspace","actionScope":"staff_claim_task","routeIntentCaseRef":"CG_134_STAFF_LIVE_TRANSPORT_STALE_TRUTH","projectionFreshnessCaseRef":"CG_134_STAFF_LIVE_TRANSPORT_STALE_TRUTH","scopedMutationCaseRef":"CG_134_STAFF_LIVE_TRANSPORT_STALE_TRUTH","surfaceAuthorityVerdictId":"ASV_130_SURF_CLINICIAN_WORKSPACE_CHILD_V1","routeTupleDecision":"allow","mutationDecision":"blocked","effectiveShellPosture":"recovery_only","sameShellDisposition":"downgrade_recovery_only","selectedAnchorDisposition":"freeze","browserSpecimenState":"available","gapRef":"","selectedAnchorKey":"queue-evidence","selectedAnchorPolicyRef":"SAP_108_RF_STAFF_WORKSPACE_CHILD_V1","selectedAnchorPolicyLabel":"present_queue_row_stub_and_quiet_return","nextSafeActionLabel":"Restore the current queue evidence row before issuing a new claim or decision.","routeFreezeDispositionRefs":["RFD_050_CLINICAL_WORKSPACE_V1"],"recoveryDispositionRefs":["RFD_050_CLINICAL_WORKSPACE_V1","RRD_ASSISTIVE_READ_ONLY","RRD_ASSISTIVE_SIDECAR_FROZEN","RRD_WORKSPACE_CHILD_READ_ONLY","RRD_WORKSPACE_CHILD_RECOVERY_ONLY","RRD_WORKSPACE_QUEUE_PLACEHOLDER","RRD_WORKSPACE_READ_ONLY"],"freshnessEnvelope":{"projectionFreshnessState":"stale_review","transportState":"live","actionabilityState":"frozen","scope":"shell"},"shellSnapshot":{"header":"Workspace transport may be live while stale projection truth keeps actionability frozen","summary":"Transport health alone cannot reopen a workspace action when authoritative projection truth is still stale.","selectedAnchorLabel":"queue-evidence","nextSafeActionLabel":"Restore the current queue evidence row before issuing a new claim or decision.","recoveryActionLabel":"Restore the current queue evidence row before issuing a new claim or decision.","browserSpecimenState":"available","sameShellMessage":"Same-shell recovery keeps the active header, selected anchor, and next safe action in place."},"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_READ_ONLY","MFV_127_DESIGN_LINT_PENDING"],"sourceRefs":["prompt/056.md","blueprint/phase-3-the-human-checkpoint.md#Triage contract and workspace state model","blueprint/platform-frontend-blueprint.md#ContinuityTransitionCheckpoint","data/analysis/frontend_contract_manifests.json#MCC_050_RF_STAFF_WORKSPACE_CHILD_V1","data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_CLINICIAN_WORKSPACE_CHILD_RF_STAFF_WORKSPACE_CHILD","data/analysis/gateway_route_family_matrix.csv#rf_staff_workspace_child","blueprint/staff-workspace-interface-architecture.md#3. Active task shell","blueprint/accessibility-and-content-system-contract.md#FreshnessAccessibilityContract","blueprint/platform-frontend-blueprint.md","blueprint/staff-workspace-interface-architecture.md","blueprint/accessibility-and-content-system-contract.md","blueprint/forensic-audit-findings.md"],"notes":"Command-following freshness must remain visibly provisional until the queue row, task detail, and route tuple converge again."},{"caseId":"CG_134_SUPPORT_CONTACT_REPAIR","caseSlug":"cg-134-support-contact-repair","title":"Support mutation remains fenced until contact-route repair clears","caseFamily":"reachability_or_contact_repair_suppresses_mutation","routeFamilyRef":"rf_support_ticket_workspace","audienceSurface":"audsurf_support_workspace","audienceSurfaceLabel":"Support routes","shellSlug":"support-workspace","actionScope":"support_repair_action","routeIntentCaseRef":"CG_134_SUPPORT_CONTACT_REPAIR","projectionFreshnessCaseRef":"CG_134_SUPPORT_CONTACT_REPAIR","scopedMutationCaseRef":"CG_134_SUPPORT_CONTACT_REPAIR","surfaceAuthorityVerdictId":"ASV_130_SURF_SUPPORT_TICKET_WORKSPACE_V1","routeTupleDecision":"recovery-only","mutationDecision":"recovery-only","effectiveShellPosture":"recovery_only","sameShellDisposition":"downgrade_recovery_only","selectedAnchorDisposition":"freeze","browserSpecimenState":"gap","gapRef":"GAP_BROWSER_SPECIMEN_RF_SUPPORT_TICKET_WORKSPACE","selectedAnchorKey":"ticket-timeline","selectedAnchorPolicyRef":"SAP_108_RF_SUPPORT_TICKET_WORKSPACE_V1","selectedAnchorPolicyLabel":"present_queue_row_stub_and_quiet_return","nextSafeActionLabel":"Repair the contact route and then resume from the preserved ticket timeline.","routeFreezeDispositionRefs":["RFD_050_SUPPORT_WORKSPACE_V1"],"recoveryDispositionRefs":["RFD_050_SUPPORT_WORKSPACE_V1","RRD_SUPPORT_CAPTURE_READ_ONLY","RRD_SUPPORT_CAPTURE_RECOVERY","RRD_SUPPORT_REPLAY_MASKED","RRD_SUPPORT_REPLAY_RESTORE_FROZEN","RRD_SUPPORT_WORKSPACE_READ_ONLY"],"freshnessEnvelope":{"projectionFreshnessState":"blocked_recovery","transportState":"live","actionabilityState":"recovery_only","scope":"shell"},"shellSnapshot":{"header":"Support mutation remains fenced until contact-route repair clears","summary":"The support repair path stays machine-readable even though a dedicated browser specimen is still missing.","selectedAnchorLabel":"ticket-timeline","nextSafeActionLabel":"Repair the contact route and then resume from the preserved ticket timeline.","recoveryActionLabel":"Repair the contact route and then resume from the preserved ticket timeline.","browserSpecimenState":"gap","sameShellMessage":"This route family remains in the suite as matrix-visible authority while browser specimen proof is still pending."},"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_RECOVERY_ONLY","MFV_127_DESIGN_LINT_PENDING"],"sourceRefs":["prompt/056.md","blueprint/staff-operations-and-support-blueprint.md#Support mutation contract","blueprint/callback-and-clinician-messaging-loop.md#Mutation and settlement law","data/analysis/frontend_contract_manifests.json#MCC_050_RF_SUPPORT_TICKET_WORKSPACE_V1","data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_SUPPORT_TICKET_WORKSPACE_RF_SUPPORT_TICKET_WORKSPACE","data/analysis/gateway_route_family_matrix.csv#rf_support_ticket_workspace","blueprint/forensic-audit-findings.md#Finding 119","blueprint/platform-frontend-blueprint.md","blueprint/staff-operations-and-support-blueprint.md","blueprint/accessibility-and-content-system-contract.md","blueprint/ux-quiet-clarity-redesign.md"],"notes":"Support route law exists, so the suite keeps the case in the machine-readable matrix and flags the missing browser specimen explicitly."},{"caseId":"CG_134_HUB_SCOPE_DRIFT","caseSlug":"cg-134-hub-scope-drift","title":"Cross-organisation acting-scope drift freezes hub booking posture in place","caseFamily":"acting_scope_or_break_glass_drift","routeFamilyRef":"rf_hub_case_management","audienceSurface":"audsurf_hub_desk","audienceSurfaceLabel":"Hub desk routes","shellSlug":"hub-desk","actionScope":"hub_manage_booking","routeIntentCaseRef":"CG_134_HUB_SCOPE_DRIFT","projectionFreshnessCaseRef":"CG_134_HUB_SCOPE_DRIFT","scopedMutationCaseRef":"CG_134_HUB_SCOPE_DRIFT","surfaceAuthorityVerdictId":"ASV_130_SURF_HUB_CASE_MANAGEMENT_V1","routeTupleDecision":"recovery-only","mutationDecision":"blocked","effectiveShellPosture":"recovery_only","sameShellDisposition":"downgrade_recovery_only","selectedAnchorDisposition":"freeze","browserSpecimenState":"available","gapRef":"","selectedAnchorKey":"hub-settlement","selectedAnchorPolicyRef":"SAP_108_RF_HUB_CASE_MANAGEMENT_V1","selectedAnchorPolicyLabel":"present_ranked_option_stub_and_candidate_fallback","nextSafeActionLabel":"Re-issue the hub scope tuple before managing booking or alternatives.","routeFreezeDispositionRefs":["RFD_050_HUB_DESK_V1"],"recoveryDispositionRefs":["RFD_050_HUB_DESK_V1","RRD_HUB_CASE_READ_ONLY","RRD_HUB_CASE_RECOVERY_ONLY","RRD_HUB_QUEUE_READ_ONLY","RRD_HUB_QUEUE_SUMMARY_ONLY"],"freshnessEnvelope":{"projectionFreshnessState":"updating","transportState":"reconnecting","actionabilityState":"guarded","scope":"shell"},"shellSnapshot":{"header":"Cross-organisation acting-scope drift freezes hub booking posture in place","summary":"Scope drift never resolves through a hidden disable or redirect; the shell must remain oriented and explicitly guarded.","selectedAnchorLabel":"hub-settlement","nextSafeActionLabel":"Re-issue the hub scope tuple before managing booking or alternatives.","recoveryActionLabel":"Re-issue the hub scope tuple before managing booking or alternatives.","browserSpecimenState":"available","sameShellMessage":"Same-shell recovery keeps the active header, selected anchor, and next safe action in place."},"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_READ_ONLY","MFV_127_DESIGN_LINT_PENDING"],"sourceRefs":["prompt/056.md","blueprint/phase-5-the-network-horizon.md#Network coordination contract","blueprint/staff-operations-and-support-blueprint.md#Staff audience coverage projection","data/analysis/frontend_contract_manifests.json#MCC_050_RF_HUB_CASE_MANAGEMENT_V1","data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_HUB_CASE_MANAGEMENT_RF_HUB_CASE_MANAGEMENT","data/analysis/gateway_route_family_matrix.csv#rf_hub_case_management","blueprint/phase-5-the-network-horizon.md#Hub shell","blueprint/platform-frontend-blueprint.md#1.7 FreshnessChip","blueprint/platform-frontend-blueprint.md","blueprint/phase-5-the-network-horizon.md","blueprint/accessibility-and-content-system-contract.md","blueprint/ux-quiet-clarity-redesign.md"],"notes":"Acting-scope or break-glass drift freezes writable hub posture in place and requires a new governed scope tuple."},{"caseId":"CG_134_STAFF_SELECTED_ANCHOR_RECOVERY","caseSlug":"cg-134-staff-selected-anchor-recovery","title":"Workspace child recovery preserves the selected anchor and next safe action","caseFamily":"same_shell_recovery_preserves_selected_anchor","routeFamilyRef":"rf_staff_workspace_child","audienceSurface":"audsurf_clinical_workspace","audienceSurfaceLabel":"Clinical workspace","shellSlug":"clinical-workspace","actionScope":"staff_claim_task","routeIntentCaseRef":"CG_134_STAFF_SELECTED_ANCHOR_RECOVERY","projectionFreshnessCaseRef":"CG_134_STAFF_SELECTED_ANCHOR_RECOVERY","scopedMutationCaseRef":"CG_134_STAFF_SELECTED_ANCHOR_RECOVERY","surfaceAuthorityVerdictId":"ASV_130_SURF_CLINICIAN_WORKSPACE_CHILD_V1","routeTupleDecision":"recovery-only","mutationDecision":"recovery-only","effectiveShellPosture":"recovery_only","sameShellDisposition":"downgrade_recovery_only","selectedAnchorDisposition":"freeze","browserSpecimenState":"available","gapRef":"","selectedAnchorKey":"queue-evidence","selectedAnchorPolicyRef":"SAP_108_RF_STAFF_WORKSPACE_CHILD_V1","selectedAnchorPolicyLabel":"present_queue_row_stub_and_quiet_return","nextSafeActionLabel":"Restore the draft and review the queue evidence row before continuing.","routeFreezeDispositionRefs":["RFD_050_CLINICAL_WORKSPACE_V1"],"recoveryDispositionRefs":["RFD_050_CLINICAL_WORKSPACE_V1","RRD_ASSISTIVE_READ_ONLY","RRD_ASSISTIVE_SIDECAR_FROZEN","RRD_WORKSPACE_CHILD_READ_ONLY","RRD_WORKSPACE_CHILD_RECOVERY_ONLY","RRD_WORKSPACE_QUEUE_PLACEHOLDER","RRD_WORKSPACE_READ_ONLY"],"freshnessEnvelope":{"projectionFreshnessState":"updating","transportState":"live","actionabilityState":"recovery_only","scope":"shell"},"shellSnapshot":{"header":"Workspace child recovery preserves the selected anchor and next safe action","summary":"Same-shell recovery must preserve orientation and the nearest safe queue anchor instead of collapsing to a generic workspace redirect.","selectedAnchorLabel":"queue-evidence","nextSafeActionLabel":"Restore the draft and review the queue evidence row before continuing.","recoveryActionLabel":"Restore the draft and review the queue evidence row before continuing.","browserSpecimenState":"available","sameShellMessage":"Same-shell recovery keeps the active header, selected anchor, and next safe action in place."},"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_READ_ONLY","MFV_127_DESIGN_LINT_PENDING"],"sourceRefs":["prompt/056.md","blueprint/phase-3-the-human-checkpoint.md#Triage contract and workspace state model","blueprint/platform-frontend-blueprint.md#ContinuityTransitionCheckpoint","data/analysis/frontend_contract_manifests.json#MCC_050_RF_STAFF_WORKSPACE_CHILD_V1","data/analysis/route_to_scope_requirements.csv#RSR_054_GWS_CLINICIAN_WORKSPACE_CHILD_RF_STAFF_WORKSPACE_CHILD","data/analysis/gateway_route_family_matrix.csv#rf_staff_workspace_child","blueprint/platform-frontend-blueprint.md#SelectedAnchorPolicy","blueprint/staff-workspace-interface-architecture.md#Active task shell","blueprint/platform-frontend-blueprint.md","blueprint/staff-workspace-interface-architecture.md","blueprint/accessibility-and-content-system-contract.md","blueprint/forensic-audit-findings.md"],"notes":"Selected-anchor preservation is a proof obligation, not a best-effort convenience."},{"caseId":"CG_134_PUBLIC_ENTRY_TELEPHONY_GAP","caseSlug":"cg-134-public-entry-telephony-gap","title":"Telephony intake authority remains matrix-visible while the browser specimen is still missing","caseFamily":"browser_specimen_gap_public_entry","routeFamilyRef":"rf_intake_telephony_capture","audienceSurface":"audsurf_patient_public_entry","audienceSurfaceLabel":"Patient public entry","shellSlug":"patient-web","actionScope":"route_entry","routeIntentCaseRef":"CG_134_PUBLIC_ENTRY_TELEPHONY_GAP","projectionFreshnessCaseRef":"CG_134_PUBLIC_ENTRY_TELEPHONY_GAP","scopedMutationCaseRef":"CG_134_PUBLIC_ENTRY_TELEPHONY_GAP","surfaceAuthorityVerdictId":"ASV_130_SURF_PATIENT_INTAKE_PHONE_V1","routeTupleDecision":"recovery-only","mutationDecision":"blocked","effectiveShellPosture":"recovery_only","sameShellDisposition":"downgrade_recovery_only","selectedAnchorDisposition":"freeze","browserSpecimenState":"gap","gapRef":"GAP_BROWSER_SPECIMEN_RF_INTAKE_TELEPHONY_CAPTURE","selectedAnchorKey":"request-proof","selectedAnchorPolicyRef":"SAP_108_RF_INTAKE_TELEPHONY_CAPTURE_V1","selectedAnchorPolicyLabel":"present_nearest_safe_anchor_with_stub","nextSafeActionLabel":"Resume the governed capture route instead of inferring live authority from transport health.","routeFreezeDispositionRefs":["RFD_050_PATIENT_PUBLIC_ENTRY_V1"],"recoveryDispositionRefs":["RFD_050_PATIENT_PUBLIC_ENTRY_V1","RRD_PATIENT_INTAKE_RECOVERY","RRD_PATIENT_PUBLIC_PLACEHOLDER","RRD_TELEPHONY_CAPTURE_RECOVERY"],"freshnessEnvelope":{"projectionFreshnessState":"blocked_recovery","transportState":"paused","actionabilityState":"recovery_only","scope":"shell"},"shellSnapshot":{"header":"Telephony intake authority remains matrix-visible while the browser specimen is still missing","summary":"The public-entry route remains in the parity matrix, but current browser proof is still a bounded gap rather than a silent omission.","selectedAnchorLabel":"request-proof","nextSafeActionLabel":"Resume the governed capture route instead of inferring live authority from transport health.","recoveryActionLabel":"Resume the governed capture route instead of inferring live authority from transport health.","browserSpecimenState":"gap","sameShellMessage":"This route family remains in the suite as matrix-visible authority while browser specimen proof is still pending."},"reasonRefs":["MFV_127_ACCESSIBILITY_DEGRADED","MFV_127_BROWSER_POSTURE_RECOVERY_ONLY","MFV_127_CONSTRAINED_NON_BROWSER_CHANNEL","MFV_127_DESIGN_LINT_PENDING"],"sourceRefs":["Accessibility coverage is degraded.","Browser posture is recovery_only for Patient public entry.","Design lint verdict is dclv::patient_public_entry::pending.","blueprint-init.md#2. Core product surfaces","blueprint/blueprint-init.md#2. Core product surfaces","blueprint/canonical-ui-contract-kernel.md#DesignContractPublicationBundle","blueprint/phase-0-the-foundation-protocol.md#1.37A DesignContractPublicationBundle","blueprint/platform-frontend-blueprint.md#Browser boundary and BFF law","blueprint/platform-runtime-and-release-blueprint.md#FrontendContractManifest","data/analysis/gateway_bff_surfaces.json#gws_patient_intake_phone","data/analysis/gateway_bff_surfaces.json#gws_patient_intake_web","data/analysis/tenant_isolation_matrix.csv#TIM_PUBLIC_PRE_IDENTITY","docs/architecture/11_gateway_surface_and_runtime_topology_baseline.md#Gateway Surface Matrix","phase-0-the-foundation-protocol.md#0.2 Continuity key and shell law","phase-0-the-foundation-protocol.md#12.1 Mandatory audience tiers","platform-runtime-and-release-blueprint.md#GatewayBffSurface","prompt/052.md","blueprint/platform-runtime-and-release-blueprint.md#AudienceSurfaceRuntimeBinding","blueprint/forensic-audit-findings.md#Finding 120","blueprint/platform-frontend-blueprint.md","blueprint/patient-portal-experience-architecture-blueprint.md","blueprint/accessibility-and-content-system-contract.md"],"notes":"Routes with published authority law but no specimen must remain explicit in the suite."}]}</script>
+    <script>
+      const suite = JSON.parse(document.getElementById("suite-data").textContent);
+      const state = {
+        caseFamily: "all",
+        browser: "all",
+        activeCaseId: suite.continuityScenarios[0].caseId,
+        activeTab: "current",
+      };
+
+      const els = {
+        body: document.body,
+        familyFilter: document.querySelector("[data-testid='case-family-filter']"),
+        browserFilter: document.querySelector("[data-testid='browser-filter']"),
+        caseList: document.querySelector("[data-testid='case-list']"),
+        routeIntentLattice: document.querySelector("[data-testid='route-intent-lattice']"),
+        routeLatticeTable: document.querySelector("[data-testid='route-lattice-table']"),
+        freshnessLadder: document.querySelector("[data-testid='freshness-ladder']"),
+        freshnessTable: document.querySelector("[data-testid='freshness-table']"),
+        mutationBraid: document.querySelector("[data-testid='mutation-braid']"),
+        mutationTable: document.querySelector("[data-testid='mutation-table']"),
+        caseTable: document.querySelector("[data-testid='case-table']"),
+        snapshotPanel: document.querySelector("[data-testid='shell-snapshot-panel']"),
+        inspectorTitle: document.querySelector("[data-testid='inspector-title']"),
+        inspectorSummary: document.querySelector("[data-testid='inspector-summary']"),
+        inspectorBadges: document.querySelector("[data-testid='inspector-badges']"),
+        selectedAnchorDetail: document.querySelector("[data-testid='selected-anchor-detail']"),
+        nextSafeAction: document.querySelector("[data-testid='next-safe-action']"),
+        gapRef: document.querySelector("[data-testid='gap-ref']"),
+        reasonRefs: document.querySelector("[data-testid='reason-refs']"),
+        sourceRefs: document.querySelector("[data-testid='source-refs']"),
+        summaryScenarios: document.querySelector("[data-testid='summary-scenarios']"),
+        summaryBrowser: document.querySelector("[data-testid='summary-browser']"),
+        summaryGaps: document.querySelector("[data-testid='summary-gaps']"),
+        summaryLiveNotFresh: document.querySelector("[data-testid='summary-live-not-fresh']"),
+        tabs: [...document.querySelectorAll("[data-testid^='snapshot-tab-']")],
+      };
+
+      const routeCases = new Map(suite.routeIntentCases.map((row) => [row.case_id, row]));
+      const projectionCases = new Map(suite.projectionFreshnessCases.map((row) => [row.case_id, row]));
+      const mutationCases = new Map(suite.scopedMutationCases.map((row) => [row.case_id, row]));
+
+      function filteredCases() {
+        return suite.continuityScenarios.filter((row) => {
+          const familyOk = state.caseFamily === "all" || row.caseFamily === state.caseFamily;
+          const browserOk = state.browser === "all" || row.browserSpecimenState === state.browser;
+          return familyOk && browserOk;
+        });
+      }
+
+      function activeCase() {
+        return filteredCases().find((row) => row.caseId === state.activeCaseId) || filteredCases()[0] || suite.continuityScenarios[0];
+      }
+
+      function chip(text, attrs = {}, extraClass = "") {
+        const attrText = Object.entries(attrs).map(([key, value]) => ` ${key}="${String(value)}"`).join("");
+        return `<span class="${extraClass || "chip"}"${attrText}>${text}</span>`;
+      }
+
+      function renderFilters() {
+        const familyOptions = ["all", ...new Set(suite.continuityScenarios.map((row) => row.caseFamily))];
+        els.familyFilter.innerHTML = familyOptions.map((option) => `<option value="${option}">${option === "all" ? "All families" : option}</option>`).join("");
+        els.familyFilter.value = state.caseFamily;
+        els.browserFilter.innerHTML = [
+          ["all", "All browser states"],
+          ["available", "Browser specimen available"],
+          ["gap", "Browser gap rows"],
+        ].map(([value, label]) => `<option value="${value}">${label}</option>`).join("");
+        els.browserFilter.value = state.browser;
+      }
+
+      function renderCaseList() {
+        const cases = filteredCases();
+        if (!cases.some((row) => row.caseId === state.activeCaseId)) {
+          state.activeCaseId = cases[0].caseId;
+        }
+        els.caseList.innerHTML = cases.map((row) => `
+          <button
+            type="button"
+            class="case-button"
+            data-testid="case-button-${row.caseSlug}"
+            data-case-id="${row.caseId}"
+            data-active="${row.caseId === state.activeCaseId}"
+            data-browser="${row.browserSpecimenState}"
+            role="option"
+            aria-selected="${row.caseId === state.activeCaseId ? "true" : "false"}"
+          >
+            <span class="eyebrow">${row.routeFamilyRef}</span>
+            <strong>${row.title}</strong>
+            <small>${row.notes}</small>
+            <div class="badge-row" style="margin-top:10px;">
+              <span class="badge" data-posture="${row.effectiveShellPosture}">${row.effectiveShellPosture}</span>
+              <span class="badge" data-browser="${row.browserSpecimenState}">${row.browserSpecimenState}</span>
+            </div>
+          </button>
+        `).join("");
+        const buttons = [...els.caseList.querySelectorAll(".case-button")];
+        buttons.forEach((button, index) => {
+          button.addEventListener("click", () => {
+            state.activeCaseId = button.dataset.caseId;
+            render();
+          });
+          button.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              buttons[(index + 1) % buttons.length].focus();
+              state.activeCaseId = buttons[(index + 1) % buttons.length].dataset.caseId;
+              render();
+            }
+            if (event.key === "ArrowUp") {
+              event.preventDefault();
+              buttons[(index - 1 + buttons.length) % buttons.length].focus();
+              state.activeCaseId = buttons[(index - 1 + buttons.length) % buttons.length].dataset.caseId;
+              render();
+            }
+          });
+        });
+      }
+
+      function renderRouteLattice(row) {
+        const routeCase = routeCases.get(row.routeIntentCaseRef);
+        els.routeIntentLattice.innerHTML = `
+          <div class="lattice-row">
+            <div class="node" data-tone="route"><span class="label">Route Intent</span><strong>${routeCase.expected_decision}</strong><p>${routeCase.action_scope}</p></div>
+            <div class="arrow"></div>
+            <div class="node" data-tone="freshness"><span class="label">Runtime Binding</span><strong>${row.surfaceAuthorityVerdictId}</strong><p>${row.audienceSurface}</p></div>
+          </div>
+          <div class="lattice-row">
+            <div class="node" data-tone="route"><span class="label">Governing Ref</span><strong class="mono">${routeCase.governing_object_ref}</strong><p class="mono">${routeCase.governing_object_version_ref}</p></div>
+            <div class="arrow"></div>
+            <div class="node" data-tone="${row.effectiveShellPosture === "blocked" ? "blocked" : "mutation"}"><span class="label">Shell Posture</span><strong>${row.effectiveShellPosture}</strong><p>${row.sameShellDisposition}</p></div>
+          </div>
+        `;
+        els.routeLatticeTable.innerHTML = `
+          <table>
+            <thead><tr><th>Tuple Member</th><th>Value</th></tr></thead>
+            <tbody>
+              <tr><td>Identity</td><td>${routeCase.required_identity_tuple_members}</td></tr>
+              <tr><td>Session</td><td>${routeCase.required_session_tuple_members}</td></tr>
+              <tr><td>Release</td><td>${routeCase.required_release_tuple_members}</td></tr>
+              <tr><td>Channel</td><td>${routeCase.required_channel_tuple_members}</td></tr>
+              <tr><td>Runtime</td><td>${routeCase.required_runtime_tuple_members}</td></tr>
+            </tbody>
+          </table>
+        `;
+      }
+
+      function renderFreshnessLadder(row) {
+        const freshnessCase = projectionCases.get(row.projectionFreshnessCaseRef);
+        els.freshnessLadder.innerHTML = `
+          <div class="ladder-row">
+            <div class="node" data-tone="freshness"><span class="label">Transport</span><strong>${freshnessCase.transport_state}</strong><p>Transport health stays separate.</p></div>
+            <div class="arrow"></div>
+            <div class="node" data-tone="freshness"><span class="label">Freshness</span><strong>${freshnessCase.projection_freshness_state}</strong><p>${freshnessCase.expected_freshness_label}</p></div>
+          </div>
+          <div class="ladder-row">
+            <div class="node" data-tone="freshness"><span class="label">Actionability</span><strong>${freshnessCase.actionability_state}</strong><p>${freshnessCase.expected_actionability_label}</p></div>
+            <div class="arrow"></div>
+            <div class="node" data-tone="${row.effectiveShellPosture === "blocked" ? "blocked" : "mutation"}"><span class="label">Outcome</span><strong>${freshnessCase.expected_shell_posture}</strong><p>${freshnessCase.status_summary}</p></div>
+          </div>
+        `;
+        els.freshnessTable.innerHTML = `
+          <table>
+            <thead><tr><th>Field</th><th>Value</th></tr></thead>
+            <tbody>
+              <tr><td>Transport state</td><td>${freshnessCase.transport_state}</td></tr>
+              <tr><td>Projection freshness</td><td>${freshnessCase.projection_freshness_state}</td></tr>
+              <tr><td>Actionability</td><td>${freshnessCase.actionability_state}</td></tr>
+              <tr><td>Shell posture</td><td>${freshnessCase.expected_shell_posture}</td></tr>
+              <tr><td>Transport live insufficient</td><td>${freshnessCase.transport_live_insufficient}</td></tr>
+            </tbody>
+          </table>
+        `;
+      }
+
+      function renderMutationBraid(row) {
+        const mutationCase = mutationCases.get(row.scopedMutationCaseRef);
+        els.mutationBraid.innerHTML = `
+          <div class="braid-row">
+            <div class="node" data-tone="mutation"><span class="label">Drift Dimension</span><strong>${mutationCase.drift_dimension}</strong><p>${mutationCase.action_scope}</p></div>
+            <div class="arrow"></div>
+            <div class="node" data-tone="mutation"><span class="label">Ordinary Mutation</span><strong>${mutationCase.ordinary_mutation_state}</strong><p>${mutationCase.expected_route_decision}</p></div>
+          </div>
+          <div class="braid-row">
+            <div class="node" data-tone="mutation"><span class="label">Recovery Envelope</span><strong class="mono">${mutationCase.same_shell_recovery_envelope_ref}</strong><p>${row.nextSafeActionLabel}</p></div>
+            <div class="arrow"></div>
+            <div class="node" data-tone="${row.effectiveShellPosture === "blocked" ? "blocked" : "route"}"><span class="label">Selected Anchor</span><strong>${mutationCase.selected_anchor_disposition}</strong><p>${row.selectedAnchorKey}</p></div>
+          </div>
+        `;
+        els.mutationTable.innerHTML = `
+          <table>
+            <thead><tr><th>Field</th><th>Value</th></tr></thead>
+            <tbody>
+              <tr><td>Acting scope tuple</td><td>${mutationCase.acting_scope_tuple_requirement_ref}</td></tr>
+              <tr><td>Subject binding</td><td>${mutationCase.subject_binding_version_ref}</td></tr>
+              <tr><td>Lineage fence</td><td>${mutationCase.lineage_fence_epoch_requirement}</td></tr>
+              <tr><td>Release binding</td><td>${mutationCase.release_binding_ref}</td></tr>
+              <tr><td>Runtime binding</td><td>${mutationCase.runtime_binding_ref}</td></tr>
+            </tbody>
+          </table>
+        `;
+      }
+
+      function renderCaseTable(activeRow) {
+        const rows = filteredCases();
+        els.caseTable.innerHTML = `
+          <table>
+            <thead><tr><th>Case</th><th>Route</th><th>Decision</th><th>Mutation</th><th>Browser</th></tr></thead>
+            <tbody>
+              ${rows.map((row) => `
+                <tr class="interactive-row" tabindex="0" data-testid="case-table-row-${row.caseSlug}" data-case-id="${row.caseId}" data-active="${row.caseId === activeRow.caseId}">
+                  <td>${row.title}</td>
+                  <td class="mono">${row.routeFamilyRef}</td>
+                  <td>${row.routeTupleDecision}</td>
+                  <td>${row.mutationDecision}</td>
+                  <td>${row.browserSpecimenState}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+        [...els.caseTable.querySelectorAll(".interactive-row")].forEach((rowEl, index, list) => {
+          rowEl.addEventListener("click", () => {
+            state.activeCaseId = rowEl.dataset.caseId;
+            render();
+          });
+          rowEl.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              state.activeCaseId = rowEl.dataset.caseId;
+              render();
+            }
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              list[(index + 1) % list.length].focus();
+            }
+            if (event.key === "ArrowUp") {
+              event.preventDefault();
+              list[(index - 1 + list.length) % list.length].focus();
+            }
+          });
+        });
+      }
+
+      function renderSnapshotPanel(row) {
+        const routeCase = routeCases.get(row.routeIntentCaseRef);
+        const projectionCase = projectionCases.get(row.projectionFreshnessCaseRef);
+        const mutationCase = mutationCases.get(row.scopedMutationCaseRef);
+        els.tabs.forEach((button) => {
+          button.dataset.active = button.dataset.tab === state.activeTab ? "true" : "false";
+          button.setAttribute("aria-selected", button.dataset.tab === state.activeTab ? "true" : "false");
+        });
+        if (state.activeTab === "current") {
+          els.snapshotPanel.innerHTML = `
+            <div class="snapshot-shell" data-testid="shell-snapshot-current" data-posture="${row.effectiveShellPosture}">
+              <span class="label">Shell Snapshot</span>
+              <strong>${row.shellSnapshot.header}</strong>
+              <p class="snapshot-copy">${row.shellSnapshot.summary}</p>
+              <div class="badge-row">
+                <span class="badge" data-posture="${row.effectiveShellPosture}">${row.effectiveShellPosture}</span>
+                <span class="badge" data-browser="${row.browserSpecimenState}">${row.browserSpecimenState}</span>
+              </div>
+              <p data-testid="snapshot-selected-anchor">Selected anchor: <span class="mono">${row.selectedAnchorKey}</span></p>
+              <p data-testid="snapshot-next-safe-action">Next safe action: ${row.nextSafeActionLabel}</p>
+            </div>
+          `;
+        } else if (state.activeTab === "recovery") {
+          els.snapshotPanel.innerHTML = `
+            <div class="snapshot-shell" data-testid="shell-snapshot-recovery" data-posture="${row.effectiveShellPosture}">
+              <span class="label">Recovery Snapshot</span>
+              <strong>${row.sameShellDisposition}</strong>
+              <p class="snapshot-copy">${row.shellSnapshot.sameShellMessage}</p>
+              <p>Selected-anchor disposition: <span class="mono">${row.selectedAnchorDisposition}</span></p>
+              <p>Recovery action: ${row.shellSnapshot.recoveryActionLabel}</p>
+            </div>
+          `;
+        } else {
+          els.snapshotPanel.innerHTML = `
+            <div class="snapshot-shell" data-testid="shell-snapshot-tuple" data-posture="${row.effectiveShellPosture}">
+              <span class="label">Tuple Snapshot</span>
+              <strong class="mono">${routeCase.governing_object_ref}</strong>
+              <p class="snapshot-copy">Release: <span class="mono">${mutationCase.release_binding_ref}</span></p>
+              <p class="snapshot-copy">Runtime: <span class="mono">${mutationCase.runtime_binding_ref}</span></p>
+              <p class="snapshot-copy">Freshness: <span class="mono">${projectionCase.projection_freshness_state}</span> / <span class="mono">${projectionCase.transport_state}</span></p>
+            </div>
+          `;
+        }
+      }
+
+      function renderInspector(row) {
+        els.inspectorTitle.textContent = row.title;
+        els.inspectorSummary.textContent = row.notes;
+        els.inspectorBadges.innerHTML = [
+          chip(row.routeTupleDecision, { "data-posture": row.effectiveShellPosture }, "badge"),
+          chip(row.mutationDecision, {}, "badge"),
+          chip(row.browserSpecimenState, { "data-browser": row.browserSpecimenState }, "badge"),
+        ].join("");
+        els.selectedAnchorDetail.textContent = `${row.selectedAnchorKey} (${row.selectedAnchorDisposition})`;
+        els.nextSafeAction.textContent = row.nextSafeActionLabel;
+        els.gapRef.textContent = row.gapRef || "none";
+        els.reasonRefs.innerHTML = row.reasonRefs.map((ref) => chip(ref)).join("");
+        els.sourceRefs.innerHTML = row.sourceRefs.slice(0, 8).map((ref) => chip(ref)).join("");
+      }
+
+      function renderSummary() {
+        els.summaryScenarios.textContent = String(suite.summary.continuity_scenario_count);
+        els.summaryBrowser.textContent = String(suite.summary.browser_available_count);
+        els.summaryGaps.textContent = String(suite.summary.browser_gap_count);
+        els.summaryLiveNotFresh.textContent = String(suite.summary.transport_live_but_non_live_actionability_count);
+      }
+
+      function render() {
+        renderCaseList();
+        const row = activeCase();
+        renderRouteLattice(row);
+        renderFreshnessLadder(row);
+        renderMutationBraid(row);
+        renderCaseTable(row);
+        renderSnapshotPanel(row);
+        renderInspector(row);
+        renderSummary();
+      }
+
+      els.familyFilter.addEventListener("change", (event) => {
+        state.caseFamily = event.target.value;
+        render();
+      });
+      els.browserFilter.addEventListener("change", (event) => {
+        state.browser = event.target.value;
+        render();
+      });
+      els.tabs.forEach((button) => {
+        button.addEventListener("click", () => {
+          state.activeTab = button.dataset.tab;
+          renderSnapshotPanel(activeCase());
+        });
+        button.addEventListener("keydown", (event) => {
+          const tabs = els.tabs;
+          const index = tabs.indexOf(button);
+          if (event.key === "ArrowRight") {
+            event.preventDefault();
+            const next = tabs[(index + 1) % tabs.length];
+            state.activeTab = next.dataset.tab;
+            next.focus();
+            renderSnapshotPanel(activeCase());
+          }
+          if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            const next = tabs[(index - 1 + tabs.length) % tabs.length];
+            state.activeTab = next.dataset.tab;
+            next.focus();
+            renderSnapshotPanel(activeCase());
+          }
+        });
+      });
+
+      renderFilters();
+      render();
+      document.body.dataset.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "true" : "false";
+    </script>
+  </body>
+</html>

@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>326 Hub Desk Shell And Start Of Day Atlas</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f5f7fa;
+        --shell: #eef2f6;
+        --panel: rgba(255, 255, 255, 0.94);
+        --inset: #e8eef3;
+        --stroke: #d7e0ea;
+        --text-strong: #0f172a;
+        --text: #334155;
+        --text-muted: #64748b;
+        --accent: #2457ff;
+        --violet: #7c3aed;
+        --warning: #b7791f;
+        --critical: #b42318;
+        --confirmed: #0f766e;
+        --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+        --radius: 20px;
+        --transition: 180ms ease;
+        font-family: "IBM Plex Sans", "Avenir Next", "Segoe UI", sans-serif;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        :root {
+          --transition: 0ms linear;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at top left, rgba(36, 87, 255, 0.08), transparent 26%),
+          radial-gradient(circle at 88% 18%, rgba(124, 58, 237, 0.08), transparent 18%),
+          linear-gradient(180deg, #f9fbfd 0%, var(--canvas) 42%, #eef2f7 100%);
+        color: var(--text);
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .skip-link {
+        position: absolute;
+        left: 16px;
+        top: -44px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: var(--text-strong);
+        color: white;
+        z-index: 10;
+      }
+
+      .skip-link:focus {
+        top: 12px;
+      }
+
+      .page {
+        padding: 20px;
+      }
+
+      .atlas {
+        width: min(1720px, 100%);
+        margin: 0 auto;
+        display: grid;
+        gap: 16px;
+      }
+
+      .panel,
+      .masthead,
+      .shell,
+      .specimen {
+        background: var(--panel);
+        border: 1px solid var(--stroke);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        min-width: 0;
+      }
+
+      .masthead,
+      .panel,
+      .shell,
+      .specimen {
+        padding: 18px 20px;
+      }
+
+      .eyebrow {
+        margin: 0 0 6px;
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .masthead {
+        display: grid;
+        gap: 10px;
+      }
+
+      .masthead h1,
+      .shell h2,
+      .shell h3,
+      .specimen h2,
+      .specimen p,
+      .shell p,
+      .panel p {
+        margin: 0;
+      }
+
+      .masthead h1,
+      .shell h2,
+      .shell h3,
+      .specimen h2 {
+        color: var(--text-strong);
+      }
+
+      .muted {
+        color: var(--text-muted);
+        line-height: 1.5;
+      }
+
+      .control-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .button-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .filter-button,
+      .chip {
+        min-height: 34px;
+        padding: 7px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--stroke);
+        background: #fff;
+        color: var(--text-strong);
+      }
+
+      .filter-button {
+        cursor: pointer;
+        transition:
+          border-color var(--transition),
+          background-color var(--transition),
+          box-shadow var(--transition);
+      }
+
+      .filter-button:hover,
+      .filter-button:focus-visible {
+        outline: none;
+        border-color: rgba(36, 87, 255, 0.28);
+        box-shadow: 0 0 0 3px rgba(36, 87, 255, 0.12);
+      }
+
+      .filter-button[data-active="true"] {
+        background: rgba(36, 87, 255, 0.08);
+        border-color: rgba(36, 87, 255, 0.28);
+        color: var(--accent);
+      }
+
+      .chip[data-tone="ready"] {
+        background: rgba(15, 118, 110, 0.1);
+        color: var(--confirmed);
+      }
+
+      .chip[data-tone="watch"] {
+        background: rgba(183, 121, 31, 0.12);
+        color: #7b560f;
+      }
+
+      .chip[data-tone="critical"] {
+        background: rgba(180, 35, 24, 0.1);
+        color: var(--critical);
+      }
+
+      .shell {
+        display: grid;
+        gap: 16px;
+      }
+
+      .shell-header,
+      .shell-status,
+      .shell-body,
+      .route-body,
+      .specimen-grid,
+      .rail-list,
+      .digest-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .shell-header {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+      }
+
+      .shell-status {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .status-card,
+      .rail-card,
+      .digest-card,
+      .dominant-card,
+      .host-card {
+        border-radius: 16px;
+        border: 1px solid var(--stroke);
+        background: #fff;
+        padding: 14px 16px;
+      }
+
+      .status-card strong,
+      .rail-card strong,
+      .digest-card strong,
+      .dominant-card strong,
+      .host-card strong {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--text-strong);
+      }
+
+      .status-card span,
+      .rail-card span,
+      .digest-card span,
+      .dominant-card span,
+      .host-card span {
+        color: var(--text-muted);
+        line-height: 1.45;
+        font-size: 0.92rem;
+      }
+
+      .shell-body[data-layout="two_plane"] {
+        grid-template-columns: 264px minmax(0, 1fr);
+      }
+
+      .shell-body[data-layout="three_panel"] {
+        grid-template-columns: 264px minmax(0, 1fr);
+      }
+
+      .route-body[data-mode="queue"] {
+        grid-template-columns: minmax(0, 1fr) 360px;
+      }
+
+      .route-body[data-mode="case"],
+      .route-body[data-mode="exceptions"],
+      .route-body[data-mode="audit"] {
+        grid-template-columns: 336px minmax(0, 1fr) 320px;
+      }
+
+      .rail-panel {
+        display: grid;
+        gap: 12px;
+      }
+
+      .rail-card[data-active="true"],
+      .digest-card[data-dominant="true"],
+      .dominant-card {
+        border-color: rgba(36, 87, 255, 0.28);
+      }
+
+      .dominant-card {
+        background: linear-gradient(180deg, rgba(36, 87, 255, 0.06), rgba(36, 87, 255, 0.02)), #fff;
+      }
+
+      .digest-card[data-tone="critical"] {
+        border-left: 4px solid var(--critical);
+      }
+
+      .digest-card[data-tone="watch"] {
+        border-left: 4px solid var(--warning);
+      }
+
+      .specimen-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .specimen ul {
+        margin: 10px 0 0;
+        padding-left: 18px;
+      }
+
+      .specimen li {
+        color: var(--text-muted);
+        line-height: 1.45;
+      }
+
+      @media (max-width: 1120px) {
+        .control-grid,
+        .specimen-grid,
+        .shell-status,
+        .shell-body,
+        .route-body {
+          grid-template-columns: 1fr !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#atlas-main">Skip to atlas</a>
+    <div class="page">
+      <div
+        class="atlas"
+        data-testid="HubDeskShellAtlas"
+        data-visual-mode="Hub_Desk_Mission_Control"
+      >
+        <section class="masthead">
+          <p class="eyebrow">Phase 5 / par_326</p>
+          <h1>Hub desk shell and start-of-day atlas</h1>
+          <p class="muted">
+            This atlas shows the first real hub shell family: one saved-view rail, one authoritative status strip,
+            one bounded interruption digest, and one route-host grammar that later queue, confirmation, reminder, and
+            recovery surfaces inherit without rebuilding chrome.
+          </p>
+        </section>
+
+        <section class="panel control-grid" aria-label="Atlas controls">
+          <div>
+            <p class="eyebrow">Saved view</p>
+            <div class="button-row" id="saved-view-buttons"></div>
+          </div>
+          <div>
+            <p class="eyebrow">Route host</p>
+            <div class="button-row" id="route-buttons"></div>
+          </div>
+        </section>
+
+        <main id="atlas-main" class="shell">
+          <div class="shell-header">
+            <div>
+              <p class="eyebrow" id="shell-eyebrow"></p>
+              <h2 id="shell-title"></h2>
+              <p class="muted" id="shell-summary"></p>
+            </div>
+            <div class="button-row" id="shell-chips"></div>
+          </div>
+
+          <div class="shell-status" id="status-strip"></div>
+
+          <div class="shell-body" id="shell-body">
+            <section class="rail-panel">
+              <p class="eyebrow">SavedViewRail</p>
+              <div class="rail-list" id="rail-list"></div>
+            </section>
+
+            <section class="route-body" id="route-body"></section>
+          </div>
+        </main>
+
+        <section class="panel specimen-grid">
+          <article class="specimen">
+            <p class="eyebrow">Continuity binder</p>
+            <h2>Restore order</h2>
+            <ul>
+              <li>History state restores saved view and queue anchor first.</li>
+              <li>Local storage is fallback only.</li>
+              <li>Child-route return lands in the active case shell, not a detached page.</li>
+            </ul>
+          </article>
+          <article class="specimen">
+            <p class="eyebrow">Status authority</p>
+            <h2>One strip, one digest</h2>
+            <ul>
+              <li>Freshness, ownership, visibility, and shell posture stay in one strip.</li>
+              <li>Supplier drift and callback blockage live in the bounded digest instead of second banners.</li>
+              <li>Read-only and recovery posture stay explicit in chrome.</li>
+            </ul>
+          </article>
+        </section>
+      </div>
+    </div>
+    <script>
+      const specimens = {
+        resume_today: {
+          label: "Resume today",
+          shellTitle: "Continue the current same-day coordination queue",
+          shellSummary:
+            "One dominant resume path stays visible while the queue anchor, saved view, and fallback evidence remain stable.",
+          chips: [
+            { label: "Live coordination", tone: "ready" },
+            { label: "Claimed by A. Khan", tone: "ready" },
+            { label: "Same-day queue", tone: "watch" }
+          ],
+          status: [
+            ["Freshness", "Fresh 2m ago / 1 buffered queue change"],
+            ["Ownership", "Claimed-active queue / same-shell resume"],
+            ["Practice visibility", "Current, no acknowledgement debt yet"],
+            ["Shell posture", "Live / writable"]
+          ],
+          savedViews: [
+            "Resume today",
+            "Ack watch",
+            "Callback recovery",
+            "Supplier drift",
+            "Observe only"
+          ],
+          queueRows: [
+            "Case 104 / child fever follow-up",
+            "Case 087 / urgent COPD review",
+            "Case 066 / medication review booking"
+          ],
+          digest: [
+            { label: "Confirmation pending", tone: "critical", dominant: true },
+            { label: "Practice acknowledgement debt", tone: "watch" },
+            { label: "Supplier drift risk", tone: "critical" }
+          ],
+          dominant: {
+            title: "HubStartOfDayResumeCard",
+            summary:
+              "Resume same-day coordination from the pinned queue row with one dominant action and no competing dashboard tile."
+          },
+          host: {
+            title: "HubCaseStageHost",
+            summary:
+              "Reserved host for the later queue and decision workbench. The shell grammar already exists even before 327 lands."
+          }
+        },
+        ack_watch: {
+          label: "Ack watch",
+          shellTitle: "Chase acknowledgement debt without losing the booked case anchor",
+          shellSummary:
+            "Booked truth stays explicit, but the shell keeps acknowledgement debt visible and operationally active.",
+          chips: [
+            { label: "Live coordination", tone: "ready" },
+            { label: "Transfer pending", tone: "watch" },
+            { label: "Ack generation 4", tone: "watch" }
+          ],
+          status: [
+            ["Freshness", "Acknowledgement overdue by 19m"],
+            ["Ownership", "Transfer pending / acknowledgement chase"],
+            ["Practice visibility", "Generation-bound debt still open"],
+            ["Shell posture", "Live / writable"]
+          ],
+          queueRows: [
+            "Case 066 / medication review booking",
+            "Case 041 / booked slot drift review",
+            "Case 087 / urgent COPD review"
+          ],
+          digest: [
+            { label: "Practice acknowledgement debt", tone: "watch", dominant: true },
+            { label: "Supplier drift risk", tone: "critical" },
+            { label: "Confirmation pending", tone: "critical" }
+          ],
+          dominant: {
+            title: "HubStartOfDayResumeCard",
+            summary:
+              "Review the current acknowledgement generation in the same shell before reminder and practice-visibility detail arrive in 330."
+          },
+          host: {
+            title: "HubCaseStageHost",
+            summary:
+              "Cross-org confirmation, practice visibility, and reminder hosts layer in here later without moving the case out of the shell."
+          }
+        },
+        callback_recovery: {
+          label: "Callback recovery",
+          shellTitle: "Resume callback recovery with one explicit next step",
+          shellSummary:
+            "No safe slot remains. The shell stays in governed recovery and keeps stale-owner risk explicit instead of pretending another live option exists.",
+          chips: [
+            { label: "Recovery required", tone: "critical" },
+            { label: "Takeover required", tone: "critical" },
+            { label: "Callback blocked", tone: "critical" }
+          ],
+          status: [
+            ["Freshness", "Recovery lane open / updated 8m ago"],
+            ["Ownership", "Supervisor action needed"],
+            ["Practice visibility", "Fallback publication debt still open"],
+            ["Shell posture", "Recovery-only"]
+          ],
+          queueRows: [
+            "Case 052 / no safe slot left",
+            "Case 041 / booked slot drift review"
+          ],
+          digest: [
+            { label: "Callback transfer blocked", tone: "critical", dominant: true },
+            { label: "Stale-owner recovery", tone: "critical" },
+            { label: "Supplier drift risk", tone: "critical" }
+          ],
+          dominant: {
+            title: "HubStartOfDayResumeCard",
+            summary:
+              "Publish callback expectation from the same queue anchor instead of opening a detached exception flow."
+          },
+          host: {
+            title: "HubCaseStageHost",
+            summary:
+              "331 later owns the detailed no-slot and reopen workbench, but the shell already keeps recovery posture bounded and same-shell."
+          }
+        },
+        supplier_drift: {
+          label: "Supplier drift",
+          shellTitle: "Start with supplier drift, not stale calmness",
+          shellSummary:
+            "The shell makes manage freeze and reopened visibility debt explicit before deeper manage and confirmation surfaces arrive.",
+          chips: [
+            { label: "Recovery required", tone: "critical" },
+            { label: "Observe only", tone: "watch" },
+            { label: "Manage frozen", tone: "critical" }
+          ],
+          status: [
+            ["Freshness", "Mirror drift observed 7m ago"],
+            ["Ownership", "Observe-only supervision"],
+            ["Practice visibility", "Debt reopened against latest drift generation"],
+            ["Shell posture", "Recovery-only"]
+          ],
+          queueRows: [
+            "Case 041 / booked slot drift review",
+            "Case 066 / medication review booking",
+            "Case 087 / urgent COPD review"
+          ],
+          digest: [
+            { label: "Supplier drift risk", tone: "critical", dominant: true },
+            { label: "Practice acknowledgement debt", tone: "watch" },
+            { label: "Confirmation pending", tone: "critical" }
+          ],
+          dominant: {
+            title: "HubCaseStageHost",
+            summary:
+              "Current route host keeps the drifted case readable, but visibly read-only or recovery-only until continuity and visibility settle."
+          },
+          host: {
+            title: "HubRightRailHost",
+            summary:
+              "Later proof drawers and manage recovery previews land here without building a second shell."
+          }
+        },
+        observe_only: {
+          label: "Observe only",
+          shellTitle: "Review current hub work without taking ownership",
+          shellSummary:
+            "The shell stays readable and continuity-safe, but dominant actions demote to review-only posture while another coordinator owns mutation.",
+          chips: [
+            { label: "Observe only", tone: "watch" },
+            { label: "Read-only shell", tone: "watch" }
+          ],
+          status: [
+            ["Freshness", "Current snapshot still within budget"],
+            ["Ownership", "Another coordinator owns mutation"],
+            ["Practice visibility", "Read-only visibility panel"],
+            ["Shell posture", "Read-only"]
+          ],
+          queueRows: [
+            "Case 041 / booked slot drift review",
+            "Case 066 / medication review booking",
+            "Case 087 / urgent COPD review"
+          ],
+          digest: [
+            { label: "Supplier drift risk", tone: "critical", dominant: true },
+            { label: "Practice acknowledgement debt", tone: "watch" }
+          ],
+          dominant: {
+            title: "HubCaseStageHost",
+            summary:
+              "Observe-only review keeps the same queue and case anchor, but it does not disguise itself as claimed-active work."
+          },
+          host: {
+            title: "HubInterruptionDigestPanel",
+            summary:
+              "The bounded digest still shows the same blockers, but the shell chrome makes non-ownership explicit."
+          }
+        }
+      };
+
+      const routeModes = {
+        queue: { label: "Queue", layout: "two_plane" },
+        case: { label: "Case", layout: "three_panel" },
+        exceptions: { label: "Exceptions", layout: "three_panel" },
+        audit: { label: "Audit", layout: "three_panel" }
+      };
+
+      const state = { savedView: "resume_today", route: "queue" };
+
+      const savedViewButtons = document.getElementById("saved-view-buttons");
+      const routeButtons = document.getElementById("route-buttons");
+      const shellEyebrow = document.getElementById("shell-eyebrow");
+      const shellTitle = document.getElementById("shell-title");
+      const shellSummary = document.getElementById("shell-summary");
+      const shellChips = document.getElementById("shell-chips");
+      const statusStrip = document.getElementById("status-strip");
+      const shellBody = document.getElementById("shell-body");
+      const railList = document.getElementById("rail-list");
+      const routeBody = document.getElementById("route-body");
+
+      function button(label, active, onClick) {
+        const element = document.createElement("button");
+        element.type = "button";
+        element.className = "filter-button";
+        element.textContent = label;
+        element.dataset.active = active ? "true" : "false";
+        element.addEventListener("click", onClick);
+        return element;
+      }
+
+      function renderControls() {
+        savedViewButtons.replaceChildren(
+          ...Object.entries(specimens).map(([key, value]) =>
+            button(value.label, state.savedView === key, () => {
+              state.savedView = key;
+              render();
+            }),
+          ),
+        );
+
+        routeButtons.replaceChildren(
+          ...Object.entries(routeModes).map(([key, value]) =>
+            button(value.label, state.route === key, () => {
+              state.route = key;
+              render();
+            }),
+          ),
+        );
+      }
+
+      function render() {
+        const specimen = specimens[state.savedView];
+        const route = routeModes[state.route];
+        const threePanel = state.route !== "queue";
+
+        renderControls();
+
+        shellEyebrow.textContent = `${specimen.label} / ${route.label}`;
+        shellTitle.textContent = specimen.shellTitle;
+        shellSummary.textContent = specimen.shellSummary;
+
+        shellChips.replaceChildren(
+          ...specimen.chips.map((chip) => {
+            const el = document.createElement("span");
+            el.className = "chip";
+            el.dataset.tone = chip.tone;
+            el.textContent = chip.label;
+            return el;
+          }),
+        );
+
+        statusStrip.replaceChildren(
+          ...specimen.status.map(([label, value]) => {
+            const card = document.createElement("article");
+            card.className = "status-card";
+            card.innerHTML = `<strong>${label}</strong><span>${value}</span>`;
+            return card;
+          }),
+        );
+
+        shellBody.dataset.layout = route.layout;
+
+        railList.replaceChildren(
+          ...specimen.savedViews.map((label) => {
+            const card = document.createElement("article");
+            card.className = "rail-card";
+            card.dataset.active = label === specimen.label ? "true" : "false";
+            card.innerHTML = `<strong>${label}</strong><span>${label === specimen.label ? "Current saved view specimen." : "Secondary working mode in the same shell family."}</span>`;
+            return card;
+          }),
+        );
+
+        const queueColumn = document.createElement("section");
+        queueColumn.className = "rail-panel";
+        queueColumn.innerHTML = `<p class="eyebrow">QueueEntryStrip</p>`;
+        specimen.queueRows.forEach((label, index) => {
+          const card = document.createElement("article");
+          card.className = "rail-card";
+          card.dataset.active = index === 0 ? "true" : "false";
+          card.innerHTML = `<strong>#${index + 1} ${label}</strong><span>${index === 0 ? "Pinned queue anchor for the current shell specimen." : "Available in the same saved view without stealing dominant focus."}</span>`;
+          queueColumn.append(card);
+        });
+
+        const dominantColumn = document.createElement("section");
+        dominantColumn.className = "rail-panel";
+        dominantColumn.innerHTML = `<article class="dominant-card"><p class="eyebrow">${specimen.dominant.title}</p><strong>${specimen.shellTitle}</strong><span>${specimen.dominant.summary}</span></article><article class="host-card"><p class="eyebrow">${specimen.host.title}</p><strong>Reserved same-shell host</strong><span>${specimen.host.summary}</span></article>`;
+
+        const digestColumn = document.createElement("section");
+        digestColumn.className = "rail-panel";
+        digestColumn.innerHTML = `<p class="eyebrow">InterruptionDigestPanel</p>`;
+        specimen.digest.forEach((item) => {
+          const card = document.createElement("article");
+          card.className = "digest-card";
+          card.dataset.tone = item.tone;
+          card.dataset.dominant = item.dominant ? "true" : "false";
+          card.innerHTML = `<strong>${item.label}</strong><span>${item.dominant ? "Dominant digest item for this specimen." : "Bounded secondary blocker."}</span>`;
+          digestColumn.append(card);
+        });
+
+        routeBody.dataset.mode = state.route;
+        routeBody.replaceChildren(
+          ...(threePanel ? [queueColumn, dominantColumn, digestColumn] : [dominantColumn, digestColumn]),
+        );
+      }
+
+      render();
+    </script>
+  </body>
+</html>

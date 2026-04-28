@@ -1,0 +1,135 @@
+{
+  "task_id": "seq_049",
+  "artifact_type": "fhir_representation_contract",
+  "generated_at": "2026-04-13T14:51:08+00:00",
+  "contract": {
+    "fhirRepresentationContractId": "FRC_049_REQUEST_EXTERNAL_INTERCHANGE_V1",
+    "owningBoundedContextRef": "foundation_control_plane",
+    "governingAggregateType": "Request",
+    "representationPurpose": "external_interchange",
+    "triggerMilestoneTypes": [
+      "request.submitted",
+      "request.evidence.capture.frozen",
+      "request.representation.emitted"
+    ],
+    "requiredEvidenceRefs": [
+      "EvidenceSnapshot",
+      "ConversationCommandSettlement",
+      "RequestClosureRecord"
+    ],
+    "allowedResourceTypes": ["Task", "DocumentReference", "Provenance"],
+    "requiredProfileCanonicalUrls": [
+      "https://vecells.example/fhir/StructureDefinition/vecells-request-interchange-task",
+      "https://vecells.example/fhir/StructureDefinition/vecells-request-interchange-documentreference",
+      "https://vecells.example/fhir/StructureDefinition/vecells-request-interchange-provenance"
+    ],
+    "identifierPolicyRef": "IDPOL_049_REQUEST_VERSION_FINGERPRINT",
+    "statusMappingPolicyRef": "STPOL_049_REQUEST_TASK_LIFECYCLE",
+    "cardinalityPolicyRef": "CARDPOL_049_REQUEST_ONE_TASK_MANY_DOCS",
+    "redactionPolicyRef": "REDPOL_049_MINIMAL_PARTNER_INTERCHANGE",
+    "companionArtifactPolicyRef": "COMPPOL_049_PARTNER_EXCHANGE_MANIFEST",
+    "replayPolicyRef": "REPLAYPOL_049_AGGREGATE_VERSION_STABLE_SET",
+    "supersessionPolicyRef": "SUPPOL_049_APPEND_ONLY_BY_AGGREGATE_VERSION",
+    "callbackCorrelationPolicyRef": "CALLPOL_049_NONE",
+    "declaredBundlePolicyRefs": ["FXBP_049_REQUEST_OUTBOUND_DOCUMENT"],
+    "contractVersionRef": "FRCV_049_REQUEST_EXTERNAL_INTERCHANGE_V1",
+    "contractState": "active",
+    "publishedAt": "2026-04-13T14:51:08+00:00",
+    "resourceProfiles": [
+      {
+        "resourceType": "Task",
+        "profileCanonicalUrl": "https://vecells.example/fhir/StructureDefinition/vecells-request-interchange-task"
+      },
+      {
+        "resourceType": "DocumentReference",
+        "profileCanonicalUrl": "https://vecells.example/fhir/StructureDefinition/vecells-request-interchange-documentreference"
+      },
+      {
+        "resourceType": "Provenance",
+        "profileCanonicalUrl": "https://vecells.example/fhir/StructureDefinition/vecells-request-interchange-provenance"
+      }
+    ],
+    "defectState": "active",
+    "source_refs": [
+      "blueprint/phase-0-the-foundation-protocol.md#FhirRepresentationContract",
+      "blueprint/phase-3-the-human-checkpoint.md#Message and callback flow / Phase 3 dispatch and callback split",
+      "blueprint/platform-runtime-and-release-blueprint.md#AdapterContractProfile"
+    ],
+    "rationale": "Request-level interchange is allowed only as a governed package emitted from settled aggregate truth and frozen evidence."
+  },
+  "resolvedPolicies": {
+    "identifierPolicy": {
+      "policyId": "IDPOL_049_REQUEST_VERSION_FINGERPRINT",
+      "label": "Request version fingerprint",
+      "description": "Task logical ids are derived from request lineage and the aggregate version hash.",
+      "stableInputs": ["requestId", "requestVersion", "representationPurpose"],
+      "versionRule": "Logical id is stable per aggregate version; new version emits new versionId only."
+    },
+    "statusMappingPolicy": {
+      "policyId": "STPOL_049_REQUEST_TASK_LIFECYCLE",
+      "label": "Request task lifecycle mapping",
+      "resourceType": "Task",
+      "mappings": {
+        "submitted": "requested",
+        "triage_ready": "ready",
+        "triage_active": "in-progress",
+        "handoff_active": "in-progress",
+        "outcome_recorded": "completed",
+        "closed": "completed"
+      }
+    },
+    "cardinalityPolicy": {
+      "policyId": "CARDPOL_049_REQUEST_ONE_TASK_MANY_DOCS",
+      "label": "One task plus bounded document set",
+      "description": "One Request aggregate version emits exactly one primary Task and zero or more supporting DocumentReference rows."
+    },
+    "redactionPolicy": {
+      "policyId": "REDPOL_049_MINIMAL_PARTNER_INTERCHANGE",
+      "label": "Minimal partner interchange",
+      "description": "Only partner-required structured fields and declared profile elements may cross the boundary."
+    },
+    "companionArtifactPolicy": {
+      "policyId": "COMPPOL_049_PARTNER_EXCHANGE_MANIFEST",
+      "label": "Partner exchange manifest",
+      "description": "External bundles may carry an omission/redaction manifest that traces every excluded artifact or field to policy."
+    },
+    "replayPolicy": {
+      "policyId": "REPLAYPOL_049_AGGREGATE_VERSION_STABLE_SET",
+      "label": "Stable set by aggregate version",
+      "stableMembershipOnReplay": true,
+      "description": "Replaying the same aggregate version rematerializes the same resource membership and identifier set."
+    },
+    "supersessionPolicy": {
+      "policyId": "SUPPOL_049_APPEND_ONLY_BY_AGGREGATE_VERSION",
+      "label": "Append-only by aggregate version",
+      "description": "New aggregate versions append new representation sets and explicitly supersede prior versions without mutating history."
+    },
+    "callbackCorrelationPolicy": {
+      "policyId": "CALLPOL_049_NONE",
+      "label": "No callback correlation",
+      "description": "Clinical persistence-only contracts do not participate in partner callback correlation."
+    },
+    "exchangeBundlePolicies": [
+      {
+        "policyId": "FXBP_049_REQUEST_OUTBOUND_DOCUMENT",
+        "representationContractRefs": ["FRC_049_REQUEST_EXTERNAL_INTERCHANGE_V1"],
+        "direction": "outbound",
+        "legalBundleTypes": ["document"],
+        "adapterProfileRefs": ["ACP_049_CLINICAL_REQUEST_INTERCHANGE"],
+        "boundDependencyRefs": [],
+        "correlationKeyFields": ["requestId", "representationSetId", "bundleHash"],
+        "receiptCheckpointRefs": ["AdapterReceiptCheckpoint", "CommandSettlementRecord"],
+        "authoritativeSuccess": "Declared partner acceptance plus durable correlation of the emitted document bundle.",
+        "supersessionBehavior": "New request version or snapshot hash supersedes the older bundle and retires its writable use.",
+        "invalidationBehavior": "Any missing snapshot parity, redaction drift, or route-intent mismatch invalidates the bundle.",
+        "mandatoryProofRefs": ["EvidenceSnapshot", "RequestClosureRecord"],
+        "exchangeStates": ["staged", "dispatched", "accepted", "replayed", "failed", "superseded"],
+        "source_refs": [
+          "blueprint/phase-0-the-foundation-protocol.md#FhirExchangeBundle",
+          "prompt/049.md"
+        ]
+      }
+    ]
+  },
+  "artifactHash": "f99011e612dbcc1774adffa8d03a03deaa2565a0d75a0080aaa6b4808b532304"
+}

@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vecells.local/contracts/194_followup_evidence_ingress_command.schema.json",
+  "title": "FollowupEvidenceIngressCommand",
+  "description": "Governed ingress command for post-submit phone, SMS continuation, support-transcribed, and duplicate-attachment evidence. It freezes refs and provenance before duplicate, assimilation, and re-safety decisions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "commandId",
+    "idempotencyKey",
+    "tenantId",
+    "requestId",
+    "episodeId",
+    "requestLineageRef",
+    "requestTypeRef",
+    "sourceLineageRef",
+    "followupChannel",
+    "evidenceKind",
+    "sourceTimestamp"
+  ],
+  "properties": {
+    "commandId": { "type": "string", "minLength": 1 },
+    "idempotencyKey": { "type": "string", "minLength": 1 },
+    "tenantId": { "type": "string", "minLength": 1 },
+    "requestId": { "type": "string", "minLength": 1 },
+    "episodeId": { "type": "string", "minLength": 1 },
+    "requestLineageRef": { "type": "string", "minLength": 1 },
+    "requestTypeRef": { "type": "string", "minLength": 1 },
+    "sourceLineageRef": { "type": "string", "minLength": 1 },
+    "followupChannel": {
+      "type": "string",
+      "enum": [
+        "post_submit_phone_call",
+        "sms_continuation",
+        "support_transcribed_followup",
+        "duplicate_attachment"
+      ]
+    },
+    "evidenceKind": {
+      "type": "string",
+      "enum": [
+        "audio",
+        "transcript",
+        "form_supplement",
+        "attachment",
+        "contact_route",
+        "support_transcription"
+      ]
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "audioRefs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "transcriptRefs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "attachmentRefs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "formSupplementRefs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "contactRouteEvidenceRefs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "supportTranscriptionRefs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "narrative": { "type": ["string", "null"] },
+    "structuredFacts": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "evidenceQuality": {
+      "type": "string",
+      "enum": ["accepted", "degraded", "contradictory", "unknown"]
+    },
+    "sourceTimestamp": { "type": "string", "format": "date-time" },
+    "receivedAt": { "type": "string", "format": "date-time" },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Refs and hashes only. Raw provider payloads, raw phone numbers, signed URLs, and PHI-rich blobs are forbidden."
+    },
+    "duplicateProbe": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "relationClass": {
+          "type": "string",
+          "enum": [
+            "retry",
+            "duplicate_attachment",
+            "same_request_attach",
+            "same_episode_candidate",
+            "same_episode_link",
+            "separate_request"
+          ]
+        },
+        "candidateRequestRef": { "type": ["string", "null"] },
+        "candidateEpisodeRef": { "type": ["string", "null"] },
+        "candidateRequestLineageRef": { "type": ["string", "null"] },
+        "candidateScore": { "type": "number", "minimum": 0, "maximum": 1 },
+        "scoreOnly": { "type": "boolean" },
+        "noMaterialDivergence": { "type": "boolean" },
+        "calibratedForLateEvidence": { "type": "boolean" },
+        "competingCandidateRefs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "hardBlockerRefs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        }
+      },
+      "required": ["relationClass"]
+    },
+    "continuityWitness": {
+      "$ref": "194_followup_continuity_witness.schema.json"
+    },
+    "materialSignals": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "clinicalMeaningChanged": { "type": "boolean" },
+        "urgentRedFlag": { "type": "boolean" },
+        "respiratoryDistress": { "type": "boolean" },
+        "symptomWorsened": { "type": "boolean" },
+        "chronologyChanged": { "type": "boolean" },
+        "backdatedEvent": { "type": "boolean" },
+        "timingConflict": { "type": "boolean" },
+        "contradictionPresent": { "type": "boolean" },
+        "routineBypassSignal": { "type": "boolean" },
+        "contactRouteChanged": { "type": "boolean" },
+        "contactPreferenceChanged": { "type": "boolean" },
+        "deliveryFailureThreatensReachability": { "type": "boolean" },
+        "degradedTranscript": { "type": "boolean" },
+        "transcriptContradictory": { "type": "boolean" },
+        "technicalOnly": { "type": "boolean" }
+      }
+    },
+    "currentSafetyDecisionEpoch": { "type": "integer", "minimum": 0 },
+    "currentPendingPreemptionRef": { "type": ["string", "null"] },
+    "currentPendingSafetyEpoch": { "type": ["integer", "null"], "minimum": 0 },
+    "priorCompositeSnapshotRef": { "type": ["string", "null"] },
+    "observedAt": { "type": "string", "format": "date-time" }
+  },
+  "anyOf": [
+    { "required": ["evidenceRefs"] },
+    { "required": ["audioRefs"] },
+    { "required": ["transcriptRefs"] },
+    { "required": ["attachmentRefs"] },
+    { "required": ["formSupplementRefs"] },
+    { "required": ["contactRouteEvidenceRefs"] },
+    { "required": ["supportTranscriptionRefs"] }
+  ]
+}

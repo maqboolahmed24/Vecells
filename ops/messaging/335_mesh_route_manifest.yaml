@@ -1,0 +1,280 @@
+taskId: seq_335
+schemaVersion: 335.phase5.mesh-route-configuration.v1
+manifestVersion: 335-phase5-mesh-control-plane-2026-04-23.v1
+generatedAt: 2026-04-23
+routes:
+  - routeId: route_335_hub_notice_local
+    environmentId: local_twin
+    environmentLabel: "Local MESH twin"
+    routeFamilyRef: rf_hub_queue
+    routePurpose: practice_visibility_notice
+    sourceMailboxId: mailbox_335_vecells_hub_local_twin
+    sourceMailboxAlias: MBX_VEC_HUB_LOCAL
+    destinationMailboxId: mailbox_335_practice_proxy_local_twin
+    destinationMailboxAlias: MBX_PRACTICE_PROXY_LOCAL
+    sourceOrganisationRef: ORG_VECELLS_HUB
+    destinationOrganisationRef: ORG_ORIGIN_PRACTICE
+    adapterIdentity: mesh.adapter://hub/practice-continuity
+    workflowGroup: WG_HUB_PRACTICE_VISIBILITY
+    workflowId: VEC_HUB_BOOKING_NOTICE
+    messageObjects:
+      - PracticeContinuityMessage
+      - PracticeVisibilityProjection
+      - HubContinuityEvidenceProjection
+    authoritativeObjects:
+      - PracticeAcknowledgementRecord
+      - HubCoordinationCase.practiceAckGeneration
+    verificationMode: automated_local_twin
+    verificationState: manifest_ready
+    routeCorrelationTemplate: hubCoordinationCaseId|ackGeneration|truthTupleHash|environmentId|routePurpose
+    receiptCorrelationTemplate: practiceContinuityMessageId|adapterCorrelationKey|dispatchWorkflowId
+    transportAcceptanceSignal: message_accepted_or_queued
+    authoritativeBusinessProof: "Current PracticeAcknowledgementRecord on the live ackGeneration and truthTupleHash."
+    businessGuardrail: "Transport acceptance and delivery download do not clear acknowledgement debt."
+    degradedFallback: "Keep acknowledgement debt explicit, open a recovery case, or use governed practice callback."
+    notes:
+      - "Canonical outbound continuity notice after a hub-side commit or reopen."
+  - routeId: route_335_practice_ack_local
+    environmentId: local_twin
+    environmentLabel: "Local MESH twin"
+    routeFamilyRef: rf_hub_case_management
+    routePurpose: practice_business_ack
+    sourceMailboxId: mailbox_335_practice_proxy_local_twin
+    sourceMailboxAlias: MBX_PRACTICE_PROXY_LOCAL
+    destinationMailboxId: mailbox_335_vecells_hub_local_twin
+    destinationMailboxAlias: MBX_VEC_HUB_LOCAL
+    sourceOrganisationRef: ORG_ORIGIN_PRACTICE
+    destinationOrganisationRef: ORG_VECELLS_HUB
+    adapterIdentity: mesh.adapter://practice/business-ack
+    workflowGroup: WG_HUB_PRACTICE_VISIBILITY
+    workflowId: VEC_HUB_BOOKING_ACK
+    messageObjects:
+      - PracticeAcknowledgementRecord
+      - PracticeContinuityMessage
+    authoritativeObjects:
+      - HubCoordinationCase.practiceAckGeneration
+      - HubContinuityEvidenceProjection
+    verificationMode: automated_local_twin
+    verificationState: manifest_ready
+    routeCorrelationTemplate: practiceContinuityMessageId|ackGeneration|truthTupleHash|environmentId
+    receiptCorrelationTemplate: practiceContinuityMessageId|ackGeneration|presentedTruthTupleHash
+    transportAcceptanceSignal: delivery_downloaded
+    authoritativeBusinessProof: "Generation-bound PracticeAcknowledgementRecord accepted against the current message."
+    businessGuardrail: "Mailbox pickup is weaker than business acknowledgement and cannot settle the case by itself."
+    degradedFallback: "Keep the acknowledgement debt open and route to staff escalation or same-lineage recovery."
+    notes:
+      - "Inbound business acknowledgement route. Must remain separate from mailbox download semantics."
+  - routeId: route_335_reminder_refresh_local
+    environmentId: local_twin
+    environmentLabel: "Local MESH twin"
+    routeFamilyRef: rf_staff_workspace
+    routePurpose: practice_visibility_refresh_after_reminder
+    sourceMailboxId: mailbox_335_vecells_hub_local_twin
+    sourceMailboxAlias: MBX_VEC_HUB_LOCAL
+    destinationMailboxId: mailbox_335_practice_proxy_local_twin
+    destinationMailboxAlias: MBX_PRACTICE_PROXY_LOCAL
+    sourceOrganisationRef: ORG_VECELLS_HUB
+    destinationOrganisationRef: ORG_ORIGIN_PRACTICE
+    adapterIdentity: mesh.adapter://hub/practice-continuity
+    workflowGroup: WG_HUB_PRACTICE_VISIBILITY
+    workflowId: VEC_HUB_BOOKING_NOTICE
+    messageObjects:
+      - NetworkReminderPlan
+      - PracticeVisibilityProjection
+      - HubManageSettlement
+    authoritativeObjects:
+      - PracticeAcknowledgementRecord
+      - PracticeVisibilityProjection
+    verificationMode: automated_local_twin
+    verificationState: manifest_ready
+    routeCorrelationTemplate: hubCoordinationCaseId|reminderPlanId|visibilityEnvelopeVersionRef|environmentId
+    receiptCorrelationTemplate: hubCoordinationCaseId|practiceVisibilityProjectionId|dispatchWorkflowId
+    transportAcceptanceSignal: message_accepted
+    authoritativeBusinessProof: "Current PracticeVisibilityProjection refreshed under the current reminder settlement."
+    businessGuardrail: "Reminder transport success must not imply the origin practice has acknowledged refreshed continuity."
+    degradedFallback: "Hold explicit reminder debt and refresh the visibility projection in recovery posture."
+    notes:
+      - "Shares the continuity workflow group but stays bound to reminder and manage truth."
+  - routeId: route_335_recovery_follow_up_local
+    environmentId: local_twin
+    environmentLabel: "Local MESH twin"
+    routeFamilyRef: rf_support_ticket_workspace
+    routePurpose: hub_manual_recovery_follow_up
+    sourceMailboxId: mailbox_335_vecells_hub_local_twin
+    sourceMailboxAlias: MBX_VEC_HUB_LOCAL
+    destinationMailboxId: mailbox_335_practice_proxy_local_twin
+    destinationMailboxAlias: MBX_PRACTICE_PROXY_LOCAL
+    sourceOrganisationRef: ORG_VECELLS_HUB
+    destinationOrganisationRef: ORG_ORIGIN_PRACTICE
+    adapterIdentity: mesh.adapter://hub/practice-continuity
+    workflowGroup: WG_HUB_MANUAL_RECOVERY
+    workflowId: VEC_HUB_RECOVERY_ACTION
+    messageObjects:
+      - HubFallbackRecord
+      - HubReturnToPracticeRecord
+      - HubCoordinationException
+    authoritativeObjects:
+      - HubCoordinationException
+      - PracticeAcknowledgementRecord
+    verificationMode: automated_local_twin
+    verificationState: manifest_ready
+    routeCorrelationTemplate: hubCoordinationCaseId|fallbackRecordId|exceptionClass|environmentId
+    receiptCorrelationTemplate: hubCoordinationCaseId|returnToPracticeRecordId|dispatchWorkflowId
+    transportAcceptanceSignal: message_accepted
+    authoritativeBusinessProof: "Recovery follow-up evidence on the same lineage plus current acknowledgement or explicit inability."
+    businessGuardrail: "Transport acceptance is evidence of action only, not evidence that recovery succeeded."
+    degradedFallback: "Keep the same-lineage exception open and use governed phone escalation if policy allows."
+    notes:
+      - "Explicit same-lineage recovery lane for no-slot, callback, and reopen follow-up."
+  - routeId: route_335_servicing_site_relay_local
+    environmentId: local_twin
+    environmentLabel: "Local MESH twin"
+    routeFamilyRef: rf_staff_workspace
+    routePurpose: servicing_site_relay_notice
+    sourceMailboxId: mailbox_335_vecells_hub_local_twin
+    sourceMailboxAlias: MBX_VEC_HUB_LOCAL
+    destinationMailboxId: mailbox_335_servicing_site_local_twin
+    destinationMailboxAlias: MBX_SERVICING_SITE_LOCAL
+    sourceOrganisationRef: ORG_VECELLS_HUB
+    destinationOrganisationRef: ORG_SERVICING_SITE
+    adapterIdentity: mesh.adapter://hub/practice-continuity
+    workflowGroup: WG_HUB_PRACTICE_VISIBILITY
+    workflowId: VEC_HUB_BOOKING_NOTICE
+    messageObjects:
+      - PracticeVisibilityProjection
+      - HubAppointmentRecord
+    authoritativeObjects:
+      - CrossOrganisationVisibilityEnvelope
+      - PracticeVisibilityProjection
+    verificationMode: automated_local_twin
+    verificationState: manifest_ready
+    routeCorrelationTemplate: hubCoordinationCaseId|servicingSiteRef|visibilityEnvelopeVersionRef|environmentId
+    receiptCorrelationTemplate: hubCoordinationCaseId|servicingSiteRef|dispatchWorkflowId
+    transportAcceptanceSignal: message_accepted
+    authoritativeBusinessProof: "Current minimum-necessary servicing-site relay under the active visibility envelope."
+    businessGuardrail: "Servicing-site relay never clears practice acknowledgement debt or patient-facing truth."
+    degradedFallback: "Keep relay read-only and open operator review when routing or audience drift is detected."
+    notes:
+      - "Observe-only relay used to keep servicing-site continuity explicit and environment-bound."
+  - routeId: route_335_hub_notice_ptl
+    environmentId: path_to_live_deployment
+    environmentLabel: "Path to Live deployment"
+    routeFamilyRef: rf_hub_queue
+    routePurpose: practice_visibility_notice
+    sourceMailboxId: mailbox_335_vecells_hub_path_to_live_deployment
+    sourceMailboxAlias: MBX_VEC_HUB_PTL
+    destinationMailboxId: mailbox_335_practice_proxy_path_to_live_deployment
+    destinationMailboxAlias: MBX_PRACTICE_PROXY_PTL
+    sourceOrganisationRef: ORG_VECELLS_HUB
+    destinationOrganisationRef: ORG_ORIGIN_PRACTICE
+    adapterIdentity: mesh.adapter://hub/practice-continuity
+    workflowGroup: WG_HUB_PRACTICE_VISIBILITY
+    workflowId: VEC_HUB_BOOKING_NOTICE
+    messageObjects:
+      - PracticeContinuityMessage
+      - PracticeVisibilityProjection
+      - HubContinuityEvidenceProjection
+    authoritativeObjects:
+      - PracticeAcknowledgementRecord
+      - HubCoordinationCase.practiceAckGeneration
+    verificationMode: manual_bridge_required
+    verificationState: manual_bridge_required
+    routeCorrelationTemplate: hubCoordinationCaseId|ackGeneration|truthTupleHash|environmentId|routePurpose
+    receiptCorrelationTemplate: practiceContinuityMessageId|adapterCorrelationKey|dispatchWorkflowId
+    transportAcceptanceSignal: message_accepted_or_queued
+    authoritativeBusinessProof: "Current PracticeAcknowledgementRecord on the live ackGeneration and truthTupleHash."
+    businessGuardrail: "PTL transport acceptance is still weaker than business acknowledgement and cannot settle the case."
+    degradedFallback: "Operate the manual bridge and keep the case in explicit continuity-pending posture."
+    notes:
+      - "Real PTL row remains manual until mailbox-admin and workflow approvals are in place."
+  - routeId: route_335_practice_ack_ptl
+    environmentId: path_to_live_deployment
+    environmentLabel: "Path to Live deployment"
+    routeFamilyRef: rf_hub_case_management
+    routePurpose: practice_business_ack
+    sourceMailboxId: mailbox_335_practice_proxy_path_to_live_deployment
+    sourceMailboxAlias: MBX_PRACTICE_PROXY_PTL
+    destinationMailboxId: mailbox_335_vecells_hub_path_to_live_deployment
+    destinationMailboxAlias: MBX_VEC_HUB_PTL
+    sourceOrganisationRef: ORG_ORIGIN_PRACTICE
+    destinationOrganisationRef: ORG_VECELLS_HUB
+    adapterIdentity: mesh.adapter://practice/business-ack
+    workflowGroup: WG_HUB_PRACTICE_VISIBILITY
+    workflowId: VEC_HUB_BOOKING_ACK
+    messageObjects:
+      - PracticeAcknowledgementRecord
+      - PracticeContinuityMessage
+    authoritativeObjects:
+      - HubCoordinationCase.practiceAckGeneration
+      - HubContinuityEvidenceProjection
+    verificationMode: manual_bridge_required
+    verificationState: manual_bridge_required
+    routeCorrelationTemplate: practiceContinuityMessageId|ackGeneration|truthTupleHash|environmentId
+    receiptCorrelationTemplate: practiceContinuityMessageId|ackGeneration|presentedTruthTupleHash
+    transportAcceptanceSignal: delivery_downloaded
+    authoritativeBusinessProof: "Generation-bound PracticeAcknowledgementRecord accepted against the current message."
+    businessGuardrail: "MOLES and mailbox tracking do not replace a current-generation business acknowledgement record."
+    degradedFallback: "Use manual bridge verification and staff escalation while the debt remains open."
+    notes:
+      - "Responder proof in PTL stays manual because mailbox lookup and tracking are smartcard/HSCN-gated."
+  - routeId: route_335_recovery_follow_up_ptl
+    environmentId: path_to_live_deployment
+    environmentLabel: "Path to Live deployment"
+    routeFamilyRef: rf_support_ticket_workspace
+    routePurpose: hub_manual_recovery_follow_up
+    sourceMailboxId: mailbox_335_vecells_hub_path_to_live_deployment
+    sourceMailboxAlias: MBX_VEC_HUB_PTL
+    destinationMailboxId: mailbox_335_practice_proxy_path_to_live_deployment
+    destinationMailboxAlias: MBX_PRACTICE_PROXY_PTL
+    sourceOrganisationRef: ORG_VECELLS_HUB
+    destinationOrganisationRef: ORG_ORIGIN_PRACTICE
+    adapterIdentity: mesh.adapter://hub/practice-continuity
+    workflowGroup: WG_HUB_MANUAL_RECOVERY
+    workflowId: VEC_HUB_RECOVERY_ACTION
+    messageObjects:
+      - HubFallbackRecord
+      - HubReturnToPracticeRecord
+      - HubCoordinationException
+    authoritativeObjects:
+      - HubCoordinationException
+      - PracticeAcknowledgementRecord
+    verificationMode: manual_bridge_required
+    verificationState: manual_bridge_required
+    routeCorrelationTemplate: hubCoordinationCaseId|fallbackRecordId|exceptionClass|environmentId
+    receiptCorrelationTemplate: hubCoordinationCaseId|returnToPracticeRecordId|dispatchWorkflowId
+    transportAcceptanceSignal: message_accepted
+    authoritativeBusinessProof: "Same-lineage recovery evidence plus current acknowledgement or explicit inability."
+    businessGuardrail: "Recovery dispatch in PTL is action evidence only and not recovery settlement."
+    degradedFallback: "Keep the exception open and use governed callback or practice escalation."
+    notes:
+      - "Recovery route is defined now so later PTL onboarding cannot invent a different lineage model."
+  - routeId: route_335_servicing_site_relay_ptl
+    environmentId: path_to_live_deployment
+    environmentLabel: "Path to Live deployment"
+    routeFamilyRef: rf_staff_workspace
+    routePurpose: servicing_site_relay_notice
+    sourceMailboxId: mailbox_335_vecells_hub_path_to_live_deployment
+    sourceMailboxAlias: MBX_VEC_HUB_PTL
+    destinationMailboxId: mailbox_335_servicing_site_path_to_live_deployment
+    destinationMailboxAlias: MBX_SERVICING_SITE_PTL
+    sourceOrganisationRef: ORG_VECELLS_HUB
+    destinationOrganisationRef: ORG_SERVICING_SITE
+    adapterIdentity: mesh.adapter://hub/practice-continuity
+    workflowGroup: WG_HUB_PRACTICE_VISIBILITY
+    workflowId: VEC_HUB_BOOKING_NOTICE
+    messageObjects:
+      - PracticeVisibilityProjection
+      - HubAppointmentRecord
+    authoritativeObjects:
+      - CrossOrganisationVisibilityEnvelope
+      - PracticeVisibilityProjection
+    verificationMode: manual_bridge_required
+    verificationState: manual_bridge_required
+    routeCorrelationTemplate: hubCoordinationCaseId|servicingSiteRef|visibilityEnvelopeVersionRef|environmentId
+    receiptCorrelationTemplate: hubCoordinationCaseId|servicingSiteRef|dispatchWorkflowId
+    transportAcceptanceSignal: message_accepted
+    authoritativeBusinessProof: "Current minimum-necessary servicing-site relay under the active visibility envelope."
+    businessGuardrail: "Servicing-site relay still cannot clear practice acknowledgement debt or patient closure."
+    degradedFallback: "Keep the relay observe-only and route to operator review when manual bridge evidence is incomplete."
+    notes:
+      - "PTL servicing-site relay is explicit but not auto-configured."

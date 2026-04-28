@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>138 Phase 0 Gate Review Board</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #F7F8FA;
+        --panel: #FFFFFF;
+        --rail: #EEF2F6;
+        --text-strong: #0F1720;
+        --text-default: #24313D;
+        --text-muted: #5E6B78;
+        --border: #D8E0E8;
+        --approved: #117A55;
+        --constrained: #B7791F;
+        --blocked: #B42318;
+        --deferred: #5B61F6;
+        --shadow: 0 18px 42px rgba(15, 23, 32, 0.08);
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: var(--canvas); color: var(--text-default); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      body { min-height: 100vh; }
+      button, select { font: inherit; }
+      button { cursor: pointer; }
+      .page { max-width: 1560px; margin: 0 auto; padding: 0 20px 28px; }
+      .masthead {
+        position: sticky; top: 0; z-index: 12; height: 72px; display: flex; align-items: center; justify-content: space-between;
+        gap: 16px; padding: 14px 20px; margin: 0 -20px 18px; background: rgba(247, 248, 250, 0.94); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(216, 224, 232, 0.8);
+      }
+      .brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+      .brand-mark { width: 34px; height: 34px; border-radius: 12px; background: linear-gradient(135deg, rgba(17,122,85,0.18), rgba(91,97,246,0.12)); display: grid; place-items: center; }
+      .brand-label { display: grid; gap: 2px; }
+      .brand-label strong { color: var(--text-strong); font-size: 15px; }
+      .brand-label span { color: var(--text-muted); font-size: 12px; }
+      .summary-pills { display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+      .summary-pill { min-width: 148px; padding: 10px 12px; border-radius: 16px; border: 1px solid var(--border); background: var(--panel); box-shadow: var(--shadow); }
+      .summary-pill small { display: block; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+      .summary-pill strong { color: var(--text-strong); font-size: 14px; }
+      .layout { display: grid; grid-template-columns: 280px minmax(0, 1fr) 392px; gap: 18px; align-items: start; }
+      .layout > * { min-width: 0; }
+      .rail, .canvas, .inspector, .panel { min-width: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 24px; box-shadow: var(--shadow); }
+      .rail, .inspector { position: sticky; top: 92px; }
+      .rail { padding: 18px; display: grid; gap: 16px; background: var(--rail); }
+      .canvas { padding: 18px; display: grid; gap: 18px; }
+      .inspector { padding: 18px; display: grid; gap: 14px; }
+      .panel { padding: 16px; display: grid; gap: 14px; }
+      h1, h2, h3, p { margin: 0; }
+      .section-title { color: var(--text-strong); font-size: 15px; }
+      .muted { color: var(--text-muted); }
+      .filter-group { display: grid; gap: 8px; min-width: 0; }
+      .filter-group label { color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+      .filter-group select { width: 100%; max-width: 100%; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--panel); color: var(--text-default); }
+      .suite-strip { display: flex; flex-wrap: wrap; gap: 8px; }
+      .suite-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 999px; background: #f1f4f8; color: var(--text-strong); font-size: 12px; font-weight: 600; }
+      .suite-pill[data-tone="passed"] { background: rgba(17,122,85,0.12); color: var(--approved); }
+      .heat-strip { display: grid; gap: 10px; }
+      .capability-card { width: 100%; text-align: left; padding: 14px; border-radius: 18px; border: 1px solid var(--border); background: var(--panel); display: grid; gap: 8px; transition: border-color 120ms ease, transform 120ms ease, background 120ms ease; }
+      .capability-card:hover, .capability-card:focus-visible { outline: none; transform: translateY(-1px); }
+      .capability-card[data-status="approved"] { border-left: 4px solid var(--approved); }
+      .capability-card[data-status="constrained"] { border-left: 4px solid var(--constrained); }
+      .capability-card[data-status="blocked"] { border-left: 4px solid var(--blocked); }
+      .capability-card[data-selected="true"] { box-shadow: inset 0 0 0 1px rgba(91, 97, 246, 0.18); background: linear-gradient(180deg, rgba(91,97,246,0.08), rgba(255,255,255,0.98)); }
+      .card-meta { display: flex; gap: 8px; flex-wrap: wrap; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+      .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+      .status-pill[data-status="approved"] { background: rgba(17,122,85,0.12); color: var(--approved); }
+      .status-pill[data-status="constrained"] { background: rgba(183,121,31,0.12); color: var(--constrained); }
+      .status-pill[data-status="blocked"] { background: rgba(180,35,24,0.12); color: var(--blocked); }
+      .status-pill[data-status="deferred_non_blocking"] { background: rgba(91,97,246,0.12); color: var(--deferred); }
+      .table-shell { overflow: auto; border: 1px solid var(--border); border-radius: 18px; background: var(--panel); }
+      table { width: 100%; min-width: 100%; border-collapse: collapse; }
+      th, td { padding: 11px 12px; border-bottom: 1px solid rgba(216,224,232,0.82); text-align: left; vertical-align: top; font-size: 12px; }
+      th { color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; background: rgba(238,242,246,0.74); position: sticky; top: 0; }
+      tbody tr[data-selected="true"] { background: rgba(91,97,246,0.08); }
+      tbody tr:hover { background: rgba(238,242,246,0.72); }
+      tbody tr button { all: unset; display: block; width: 100%; cursor: pointer; }
+      .timeline { display: grid; gap: 10px; }
+      .timeline-card { border: 1px solid var(--border); border-radius: 18px; padding: 12px; background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,248,250,0.98)); display: grid; gap: 6px; }
+      .timeline-card[data-kind="automated_proof"], .timeline-card[data-kind="suite_binding"] { border-left: 4px solid var(--approved); }
+      .timeline-card[data-kind="implementation"] { border-left: 4px solid var(--deferred); }
+      .lower-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; }
+      .inspector-block { border: 1px solid var(--border); border-radius: 18px; padding: 14px; background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,248,250,0.98)); display: grid; gap: 8px; }
+      .inspector-block small { color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
+      .signal-grid { display: grid; gap: 8px; }
+      .signal-row { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; }
+      .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; word-break: break-all; }
+      @media (max-width: 1360px) {
+        .layout { grid-template-columns: 280px minmax(0, 1fr); }
+        .inspector { position: static; grid-column: 1 / -1; }
+      }
+      @media (max-width: 1100px) {
+        .page { padding-inline: 16px; }
+        .masthead { margin-inline: -16px; height: auto; min-height: 72px; align-items: start; flex-direction: column; }
+        .layout { grid-template-columns: 1fr; }
+        .rail { position: static; }
+        .lower-grid { grid-template-columns: 1fr; }
+        .summary-pill { min-width: 0; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+      }
+    </style>
+  </head>
+  <body data-testid="foundation-gate-board">
+    <div class="page">
+      <header class="masthead" data-testid="board-masthead">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+              <path d="M4 15h14" stroke="#117A55" stroke-width="1.5" stroke-linecap="round"></path>
+              <path d="M6 11h10" stroke="#5B61F6" stroke-width="1.5" stroke-linecap="round"></path>
+              <path d="M8 7h6" stroke="#B7791F" stroke-width="1.5" stroke-linecap="round"></path>
+            </svg>
+          </div>
+          <div class="brand-label">
+            <strong>Vecells Foundation Gate</strong>
+            <span>Foundation_Gate_Board</span>
+          </div>
+        </div>
+        <div class="summary-pills">
+          <div class="summary-pill">
+            <small>Verdict</small>
+            <strong data-testid="gate-verdict"></strong>
+          </div>
+          <div class="summary-pill">
+            <small>Approved</small>
+            <strong data-testid="approved-row-count"></strong>
+          </div>
+          <div class="summary-pill">
+            <small>Constrained</small>
+            <strong data-testid="constrained-row-count"></strong>
+          </div>
+          <div class="summary-pill">
+            <small>Blocked</small>
+            <strong data-testid="blocked-row-count"></strong>
+          </div>
+        </div>
+      </header>
+
+      <div class="layout">
+        <nav class="rail" aria-label="Foundation gate filters" data-testid="filter-rail">
+          <div class="filter-group">
+            <label for="filter-status">Decision state</label>
+            <select id="filter-status" data-testid="filter-status"></select>
+          </div>
+          <div class="filter-group">
+            <label for="filter-family">Capability family</label>
+            <select id="filter-family" data-testid="filter-family"></select>
+          </div>
+          <section class="panel" style="background: var(--panel);">
+            <h2 class="section-title">Mandatory suites</h2>
+            <p class="muted">The gate binds directly to the machine-readable outputs from seq_133 through seq_137.</p>
+            <div class="suite-strip" data-testid="suite-strip"></div>
+            <div class="table-shell">
+              <table data-testid="suite-table">
+                <thead><tr><th>Suite</th><th>Outcome</th><th>Proof verdict</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+        </nav>
+
+        <main class="canvas" data-testid="board-canvas">
+          <section class="panel">
+            <h2 class="section-title">Conformance heat strip</h2>
+            <p class="muted">Selecting a capability row synchronizes the inspector, evidence manifest, and deferred-work table.</p>
+            <div class="heat-strip" data-testid="heat-strip"></div>
+            <div class="table-shell">
+              <table data-testid="scorecard-table">
+                <thead><tr><th>Capability family</th><th>Status</th><th>Summary</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2 class="section-title">Evidence manifest timeline</h2>
+            <p class="muted">Implementation evidence, automated proof artifacts, and bound verification suites remain visible for the currently selected row.</p>
+            <div class="timeline" data-testid="evidence-timeline"></div>
+          </section>
+
+          <div class="lower-grid">
+            <section class="panel">
+              <h2 class="section-title">Evidence manifest</h2>
+              <div class="table-shell">
+                <table data-testid="evidence-table">
+                  <thead><tr><th>Artifact</th><th>Kind</th><th>Task</th><th>State</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </section>
+            <section class="panel">
+              <h2 class="section-title">Open items</h2>
+              <div class="table-shell">
+                <table data-testid="open-items-table">
+                  <thead><tr><th>Open item</th><th>Class</th><th>State</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </main>
+
+        <aside class="inspector" aria-label="Selected capability family" data-testid="inspector">
+          <div class="inspector-block" data-testid="inspector-summary">
+            <small>Selected capability</small>
+            <div id="inspector-title"></div>
+            <div id="inspector-status"></div>
+            <div id="inspector-summary-text" class="muted"></div>
+          </div>
+          <div class="inspector-block" data-testid="inspector-signals">
+            <small>Machine signals</small>
+            <div class="signal-grid" id="inspector-signals-grid"></div>
+          </div>
+          <div class="inspector-block" data-testid="inspector-rationale">
+            <small>Constraint rationale</small>
+            <div id="inspector-rationale-text"></div>
+          </div>
+          <div class="inspector-block" data-testid="inspector-boundary">
+            <small>Boundary notes</small>
+            <div id="inspector-open-items"></div>
+          </div>
+          <div class="inspector-block" data-testid="inspector-refs">
+            <small>Source refs</small>
+            <div class="mono" id="inspector-refs-text"></div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <script id="decision-json" type="application/json">{"task_id": "seq_138", "generated_at": "2026-04-14T10:51:19Z", "captured_on": "2026-04-14", "visual_mode": "Foundation_Gate_Board", "gatePackRef": "P0G_138_FOUNDATION_PROTOCOL_COMPLETION_V1", "gateVerdict": "go_with_constraints", "baselineScope": "simulator_first_foundation", "liveProviderReadinessState": "deferred_explicitly_not_approved", "foundationProtocolDecision": "approved_for_simulator_first_mvp_baseline", "source_precedence": ["prompt/138.md", "prompt/shared_operating_contract_136_to_145.md", "prompt/AGENT.md", "prompt/checklist.md", "blueprint/phase-cards.md#card-1-phase-0-the-foundation-protocol", "blueprint/phase-0-the-foundation-protocol.md", "blueprint/platform-runtime-and-release-blueprint.md", "blueprint/platform-frontend-blueprint.md", "blueprint/phase-1-the-red-flag-gate.md", "blueprint/forensic-audit-findings.md", "docs/programme/132_phase0_exit_artifacts.md", "data/test/transition_suite_results.json", "data/test/continuity_gate_suite_results.json", "data/test/exception_path_suite_results.json", "data/test/136_preview_environment_suite_results.json", "data/test/137_rehearsal_results.json"], "mock_now_execution": "Approve the current simulator-backed foundation only. Keep live publication, live-provider readiness, and production signoff outside the approved claim.", "actual_production_strategy_later": "Extend the same tuple, parity, shell, and evidence contracts into later live-provider and live-channel onboarding without redefining Phase 0 semantics.", "summary": {"prior_completed_task_count": 136, "approved_row_count": 5, "constrained_row_count": 5, "blocked_row_count": 0, "deferred_non_blocking_row_count": 0, "mandatory_suite_count": 5, "mandatory_suite_pass_count": 5, "deferred_open_item_count": 7, "publishable_live_surface_count": 0, "live_control_reopened_count": 0}, "selectedReleaseRef": "RC_LOCAL_V1", "selectedTupleHash": "0bab371bd97f01a1", "previousExitPackState": "withheld", "requirementTraceabilityState": {"requirements_with_gaps_count": 0, "traceability_row_count": 10465}, "mandatorySuites": [{"suiteId": "seq_133", "label": "Domain transition and event schema compatibility", "verificationOutcome": "passed", "proofVerdict": "pass_with_bounded_gaps", "summary": "Canonical transition and schema compatibility remain machine-verified with bounded, explicit catalog gaps rather than silent drift.", "artifactRefs": ["data/test/transition_suite_results.json", "docs/tests/133_domain_transition_and_event_schema_compatibility.md", "docs/tests/133_transition_lab.html"], "signalRows": [{"label": "Transition rows", "value": "219"}, {"label": "Schema rows", "value": "28"}, {"label": "Gap rows", "value": "14"}]}, {"suiteId": "seq_134", "label": "Route intent, freshness, and scoped mutation gate", "verificationOutcome": "passed", "proofVerdict": "pass_with_explicit_browser_gaps", "summary": "Route-intent, projection freshness, and scoped mutation proof are current, with the remaining browser specimen gaps held as explicit guarded rows.", "artifactRefs": ["data/test/continuity_gate_suite_results.json", "docs/tests/134_route_intent_projection_freshness_scoped_mutation_suite.md", "docs/tests/134_continuity_gate_lab.html"], "signalRows": [{"label": "Route-intent cases", "value": "10"}, {"label": "Browser gaps", "value": "2"}, {"label": "Covered families", "value": "8"}]}, {"suiteId": "seq_135", "label": "Adapter replay, duplicate, quarantine, and fallback review", "verificationOutcome": "passed", "proofVerdict": "pass_with_bounded_event_gap", "summary": "Replay, duplicate clustering, quarantine, and fallback review are explicitly proven, with zero duplicate side effects and one bounded event-catalog gap kept visible.", "artifactRefs": ["data/test/exception_path_suite_results.json", "docs/tests/135_adapter_replay_duplicate_quarantine_fallback_suite.md", "docs/tests/135_exception_path_lab.html"], "signalRows": [{"label": "Exception cases", "value": "14"}, {"label": "Zero side-effect cases", "value": "14"}, {"label": "Bounded event gaps", "value": "1"}]}, {"suiteId": "seq_136", "label": "Shell accessibility, preview environment, and smoke proof", "verificationOutcome": "passed", "proofVerdict": "release_withheld", "summary": "All shell families are exercised, but every smoke verdict remains rightly withheld because publication parity and browser truth are not yet exact.", "artifactRefs": ["data/test/136_preview_environment_suite_results.json", "docs/tests/136_shell_accessibility_preview_smoke_suite.md", "docs/tests/136_shell_conformance_atlas.html"], "signalRows": [{"label": "Shell families", "value": "6"}, {"label": "Smoke pass count", "value": "0"}, {"label": "Smoke withheld count", "value": "87"}]}, {"suiteId": "seq_137", "label": "Release freeze, restore, and non-production canary rehearsals", "verificationOutcome": "passed", "proofVerdict": "rehearsal_exact_live_withheld", "summary": "Release-watch, canary, rollback, and restore proof is exact for the simulator-first baseline, with no premature applied success and no live control reopening.", "artifactRefs": ["data/test/137_rehearsal_results.json", "docs/tests/137_release_restore_canary_rehearsal_suite.md", "docs/tests/137_release_rehearsal_cockpit.html"], "signalRows": [{"label": "Rehearsal cases", "value": "11"}, {"label": "Blocked actions", "value": "4"}, {"label": "Live reopened", "value": "0"}]}], "capabilityRowRefs": ["P0R_138_CANONICAL_REQUEST_INTAKE_BACKBONE", "P0R_138_REPLAY_AND_DUPLICATE_HANDLING", "P0R_138_IDENTITY_ACCESS_SUBSTRATE", "P0R_138_RUNTIME_PUBLICATION_AND_FREEZE_CONTROL", "P0R_138_SHELL_AND_CONTINUITY_INFRASTRUCTURE", "P0R_138_SIMULATOR_ESTATE_AND_DEGRADED_DEFAULTS", "P0R_138_OBSERVABILITY_AND_AUDIT", "P0R_138_BACKUP_RESTORE_AND_CANARY_REHEARSAL", "P0R_138_ACCESSIBILITY_AND_SHELL_SMOKE_PROOF", "P0R_138_ASSURANCE_PRIVACY_AND_CLINICAL_SAFETY"], "openItemRefs": ["OI_138_LIVE_NHS_LOGIN_ONBOARDING", "OI_138_LIVE_NHS_APP_EMBEDDED_CHANNEL", "OI_138_LIVE_BOOKING_PROVIDER_PAIRING", "OI_138_LIVE_MESH_GP_PHARMACY_ONBOARDING", "OI_138_PRODUCTION_ASSURANCE_SIGNOFF", "OI_138_EXECUTABLE_MALWARE_SCANNING_RUNTIME", "OI_138_PUBLISHABLE_LIVE_BROWSER_PARITY"], "contradictionChecks": [{"checkId": "CHK_138_SURFACE_LIVE_TRUTH_WITHHELD", "state": "aligned", "summary": "Surface authority and shell smoke both keep live browser publication withheld.", "evidenceRefs": ["data/analysis/surface_authority_verdicts.json", "data/test/136_preview_environment_suite_results.json"]}, {"checkId": "CHK_138_RELEASE_CONTROL_NOT_REOPENED", "state": "aligned", "summary": "Release rehearsals do not reopen live control during the simulator-first gate.", "evidenceRefs": ["data/test/137_rehearsal_results.json"]}, {"checkId": "CHK_138_PREVIOUS_EXIT_WITHHELD_IS_EXPLAINED", "state": "aligned", "summary": "The earlier exit pack withheld the claim, and this gate now resolves that ambiguity by approving only the simulator-first foundation baseline.", "evidenceRefs": ["data/analysis/phase0_exit_artifact_index.json", "docs/governance/138_phase0_go_no_go_decision.md"]}], "gateQuestions": [{"questionId": "Q1", "question": "Are all mandatory Phase 0 tasks complete and traceable?", "answerState": "approved", "answer": "Yes. Every task before seq_138 is complete in the checklist and repository traceability still reports zero requirement gaps.", "evidenceRefs": ["prompt/checklist.md", "data/analysis/coverage_summary.json", "data/analysis/requirement_task_traceability.csv"]}, {"questionId": "Q2", "question": "Did verification suites 133-137 pass with machine-readable evidence?", "answerState": "approved", "answer": "Yes. The suites passed, while seq_136 and seq_137 still correctly keep live publication and live control withheld.", "evidenceRefs": ["data/test/transition_suite_results.json", "data/test/continuity_gate_suite_results.json", "data/test/exception_path_suite_results.json", "data/test/136_preview_environment_suite_results.json", "data/test/137_rehearsal_results.json"]}, {"questionId": "Q3", "question": "Are the canonical shell, runtime, publication, accessibility, replay, and recovery invariants demonstrably in place?", "answerState": "constrained", "answer": "Yes for the simulator-first baseline. The invariants are implemented and machine-tested, but live surface calm/writable truth is still intentionally withheld.", "evidenceRefs": ["data/analysis/manifest_fusion_verdicts.json", "data/analysis/surface_authority_verdicts.json", "data/test/136_preview_environment_suite_results.json", "data/test/137_rehearsal_results.json"]}, {"questionId": "Q4", "question": "Are simulator-first external dependency assumptions explicit and bounded?", "answerState": "approved", "answer": "Yes. Adapter validation, handover matrices, and deferred live-provider items are explicit, bounded, and fail closed.", "evidenceRefs": ["data/integration/adapter_validation_results.json", "data/integration/live_provider_handover_matrix.csv", "data/analysis/138_phase0_open_items_and_deferred_live_provider_work.json"]}, {"questionId": "Q5", "question": "Which items are genuinely deferred to later live-provider or live-channel phases, and why are they not Phase 0 blockers?", "answerState": "approved", "answer": "They are listed explicitly in the open-items register and are non-blocking because this gate approves only simulator-first foundation readiness.", "evidenceRefs": ["data/analysis/138_phase0_open_items_and_deferred_live_provider_work.json", "docs/governance/138_phase0_mock_now_vs_actual_later_boundary.md"]}, {"questionId": "Q6", "question": "Is there any unresolved contradiction between the canonical docs, prompts, and implemented foundation artifacts?", "answerState": "approved", "answer": "No current contradiction was detected. The remaining constraints all preserve fail-closed truth instead of weakening the blueprints.", "evidenceRefs": ["data/analysis/phase0_exit_artifact_index.json", "data/analysis/138_phase0_exit_gate_decision.json"]}], "assumptions": [{"assumptionId": "ASSUMPTION_138_PRIOR_VALIDATORS_REMAIN_AUTHORITATIVE", "summary": "Validated outputs from tasks 001-137 remain the governing machine-readable baseline for this gate pack."}], "risks": [{"riskId": "RISK_138_LIVE_SURFACE_TRUTH_STILL_WITHHELD", "summary": "Phase 0 ends with live surface truth withheld; later phases must not misread this gate as permission to advertise live calm/writable posture."}, {"riskId": "RISK_138_DEFERRED_PROVIDER_ONBOARDING_CAN_BE_MISSTATED", "summary": "Deferred provider/channel work must stay explicit so later delivery does not launder simulator-first proof into live-provider claims."}], "prerequisite_gaps": []}</script>
+    <script id="rows-json" type="application/json">[{"rowId": "P0R_138_CANONICAL_REQUEST_INTAKE_BACKBONE", "capabilityFamilyId": "canonical_request_intake_backbone", "capabilityLabel": "Canonical request-intake backbone", "status": "approved", "summary": "The canonical SubmissionEnvelope -> Request boundary, state atlas, and requirement traceability are current for the simulator-first foundation baseline.", "blockingRationale": "", "sourceRefs": ["blueprint/phase-0-the-foundation-protocol.md", "blueprint/phase-cards.md#card-1-phase-0-the-foundation-protocol", "blueprint/phase-1-the-red-flag-gate.md"], "implementationEvidenceRefs": ["data/analysis/request_lineage_transitions.json", "data/analysis/coverage_summary.json", "data/analysis/requirement_task_traceability.csv"], "automatedProofRefs": ["data/test/transition_suite_results.json", "data/analysis/foundation_demo_trace_index.json", "data/analysis/phase0_exit_artifact_index.json"], "suiteRefs": ["seq_133"], "openItemRefs": [], "signalRows": [{"label": "Prior completed tasks", "value": "136"}, {"label": "Requirements with gaps", "value": "0"}, {"label": "Traceability rows", "value": "10465"}]}, {"rowId": "P0R_138_REPLAY_AND_DUPLICATE_HANDLING", "capabilityFamilyId": "replay_and_duplicate_handling", "capabilityLabel": "Replay and duplicate handling", "status": "approved", "summary": "Replay, duplicate clustering, quarantine fallback, and closure blocking are machine-proven with zero duplicate side-effect cases.", "blockingRationale": "", "sourceRefs": ["blueprint/phase-0-the-foundation-protocol.md#6.5 Support and replay algorithm", "blueprint/phase-1-the-red-flag-gate.md#Replay duplicate and safety-preemption law", "blueprint/forensic-audit-findings.md"], "implementationEvidenceRefs": ["data/analysis/replay_classification_matrix.csv", "data/analysis/duplicate_cluster_manifest.json", "data/analysis/replay_collision_casebook.json"], "automatedProofRefs": ["data/test/exception_path_suite_results.json", "data/integration/adapter_validation_results.json", "data/analysis/foundation_demo_trace_index.json"], "suiteRefs": ["seq_135"], "openItemRefs": [], "signalRows": [{"label": "Exception cases", "value": "14"}, {"label": "Zero side-effect cases", "value": "14"}, {"label": "Adapter replay cases", "value": "5"}]}, {"rowId": "P0R_138_IDENTITY_ACCESS_SUBSTRATE", "capabilityFamilyId": "identity_access_substrate", "capabilityLabel": "Identity/access substrate", "status": "approved", "summary": "Identity repair, reachability, and access-grant substrates are implemented and exercised, while live NHS login onboarding stays explicitly outside this approval boundary.", "blockingRationale": "", "sourceRefs": ["blueprint/phase-0-the-foundation-protocol.md", "docs/architecture/68_identity_binding_and_access_grant_design.md", "docs/architecture/80_identity_repair_and_reachability_governor_design.md"], "implementationEvidenceRefs": ["data/analysis/access_grant_runtime_tuple_manifest.json", "data/analysis/identity_repair_casebook.json", "data/analysis/reachability_assessment_casebook.json"], "automatedProofRefs": ["data/test/transition_suite_results.json", "data/analysis/foundation_demo_trace_index.json", "data/assurance/nhs_login_gap_register.json"], "suiteRefs": ["seq_133"], "openItemRefs": ["OI_138_LIVE_NHS_LOGIN_ONBOARDING"], "signalRows": [{"label": "Identity gap rows", "value": "0 in seq_133 transition coverage"}, {"label": "NHS login open gaps", "value": "6"}, {"label": "Identity hold proof", "value": "present in phase0 foundation demo"}]}, {"rowId": "P0R_138_RUNTIME_PUBLICATION_AND_FREEZE_CONTROL", "capabilityFamilyId": "runtime_publication_and_freeze_control", "capabilityLabel": "Runtime/publication and freeze control", "status": "constrained", "summary": "Release-candidate freeze, publication parity, and runtime bundle seams are implemented and exact enough for the non-production baseline, but live surface truth remains intentionally withheld.", "blockingRationale": "Current surface truth has zero publishable-live rows, so this approval cannot be read as live calm/writable publication readiness.", "sourceRefs": ["blueprint/platform-runtime-and-release-blueprint.md", "blueprint/phase-0-the-foundation-protocol.md#Release trust and runtime publication law", "docs/release/131_release_candidate_freeze.md"], "implementationEvidenceRefs": ["data/analysis/runtime_publication_bundles.json", "data/analysis/release_publication_parity_records.json", "data/release/release_candidate_tuple.json"], "automatedProofRefs": ["data/analysis/surface_authority_verdicts.json", "data/analysis/manifest_fusion_verdicts.json", "data/test/137_rehearsal_results.json"], "suiteRefs": ["seq_137"], "openItemRefs": ["OI_138_PUBLISHABLE_LIVE_BROWSER_PARITY", "OI_138_LIVE_NHS_APP_EMBEDDED_CHANNEL"], "signalRows": [{"label": "Freeze verdict", "value": "exact"}, {"label": "Publishable live rows", "value": "0"}, {"label": "Partial or blocked rows", "value": "16"}]}, {"rowId": "P0R_138_SHELL_AND_CONTINUITY_INFRASTRUCTURE", "capabilityFamilyId": "shell_and_continuity_infrastructure", "capabilityLabel": "Shell and continuity infrastructure", "status": "constrained", "summary": "Persistent-shell, selected-anchor, and same-shell recovery law are implemented, but browser truth remains guarded by partial publication and explicit specimen gaps.", "blockingRationale": "Manifest fusion still reports partial tuples and seq_134 keeps two browser specimen gaps visible, so calm browser authority is not exact.", "sourceRefs": ["blueprint/platform-frontend-blueprint.md", "blueprint/phase-0-the-foundation-protocol.md#Same-shell continuity", "docs/architecture/108_continuity_inspector.html"], "implementationEvidenceRefs": ["data/analysis/persistent_shell_contracts.json", "data/analysis/frontend_contract_manifests.json", "data/analysis/selected_anchor_policy_matrix.csv"], "automatedProofRefs": ["data/test/continuity_gate_suite_results.json", "data/analysis/manifest_fusion_verdicts.json", "data/test/136_preview_environment_suite_results.json"], "suiteRefs": ["seq_134", "seq_136"], "openItemRefs": ["OI_138_PUBLISHABLE_LIVE_BROWSER_PARITY", "OI_138_LIVE_NHS_APP_EMBEDDED_CHANNEL"], "signalRows": [{"label": "Manifest-fusion blocked tuples", "value": "3"}, {"label": "Manifest-fusion partial tuples", "value": "20"}, {"label": "Browser specimen gaps", "value": "2"}]}, {"rowId": "P0R_138_SIMULATOR_ESTATE_AND_DEGRADED_DEFAULTS", "capabilityFamilyId": "simulator_estate_and_degraded_defaults", "capabilityLabel": "Simulator estate and degraded defaults", "status": "constrained", "summary": "The simulator-first estate is honest and fail-closed, with real contract rows, replay-safe adapters, and explicit degraded defaults instead of optimistic provider claims.", "blockingRationale": "One blocked executable adapter seam and the remaining live-provider handover work keep this as simulator-first readiness rather than live-provider certification.", "sourceRefs": ["blueprint/phase-cards.md#card-1-phase-0-the-foundation-protocol", "docs/integrations/129_adapter_simulator_validation.md", "data/analysis/dependency_simulator_strategy.json"], "implementationEvidenceRefs": ["data/integration/seeded_external_contract_catalog.json", "data/integration/live_provider_handover_matrix.csv", "data/analysis/dependency_simulator_strategy.json"], "automatedProofRefs": ["data/integration/adapter_validation_results.json", "data/test/137_rehearsal_results.json", "data/analysis/preview_environment_manifest.json"], "suiteRefs": ["seq_135", "seq_137"], "openItemRefs": ["OI_138_LIVE_BOOKING_PROVIDER_PAIRING", "OI_138_LIVE_MESH_GP_PHARMACY_ONBOARDING", "OI_138_EXECUTABLE_MALWARE_SCANNING_RUNTIME"], "signalRows": [{"label": "Validated adapters", "value": "11"}, {"label": "Explicit gaps", "value": "7"}, {"label": "Dishonest claims", "value": "0"}]}, {"rowId": "P0R_138_OBSERVABILITY_AND_AUDIT", "capabilityFamilyId": "observability_and_audit", "capabilityLabel": "Observability and audit", "status": "approved", "summary": "Observability, audit disclosure, retention, and provenance lineage are published as machine-readable controls for the foundation baseline.", "blockingRationale": "", "sourceRefs": ["blueprint/phase-0-the-foundation-protocol.md", "blueprint/platform-runtime-and-release-blueprint.md#BuildProvenanceRecord", "docs/architecture/93_edge_correlation_spine_explorer.html"], "implementationEvidenceRefs": ["data/analysis/observability_signal_matrix.csv", "data/analysis/audit_record_schema.json", "data/analysis/worm_retention_classes.json"], "automatedProofRefs": ["data/analysis/observability_event_schema_manifest.json", "data/analysis/build_provenance_manifest.json", "data/analysis/build_provenance_integrity_catalog.json"], "suiteRefs": [], "openItemRefs": [], "signalRows": [{"label": "Observability schema manifests", "value": "current"}, {"label": "Provenance publishable scenarios", "value": "2"}, {"label": "Provenance blocked scenarios", "value": "2"}]}, {"rowId": "P0R_138_BACKUP_RESTORE_AND_CANARY_REHEARSAL", "capabilityFamilyId": "backup_restore_and_canary_rehearsal", "capabilityLabel": "Backup/restore and canary rehearsal", "status": "approved", "summary": "Release-watch, canary, rollback, and restore drills are tuple-bound and machine-readable for non-production rings, with live authority intentionally withheld.", "blockingRationale": "", "sourceRefs": ["blueprint/platform-runtime-and-release-blueprint.md#ReleaseWatchTuple", "blueprint/phase-cards.md#card-1-mandatory-tests", "docs/tests/137_release_restore_canary_rehearsal_suite.md"], "implementationEvidenceRefs": ["data/analysis/release_watch_pipeline_catalog.json", "data/analysis/release_watch_required_evidence.csv", "data/analysis/resilience_baseline_catalog.json"], "automatedProofRefs": ["data/test/137_rehearsal_results.json", "data/test/137_wave_observation_cases.csv", "data/test/137_restore_readiness_cases.csv"], "suiteRefs": ["seq_137"], "openItemRefs": [], "signalRows": [{"label": "Release-watch scenarios", "value": "6"}, {"label": "Exact-ready restore cases", "value": "1"}, {"label": "Live reopened controls", "value": "0"}]}, {"rowId": "P0R_138_ACCESSIBILITY_AND_SHELL_SMOKE_PROOF", "capabilityFamilyId": "accessibility_and_shell_smoke_proof", "capabilityLabel": "Accessibility and shell smoke proof", "status": "constrained", "summary": "Accessibility semantics, shell smoke, and preview proof are present for every shell family, but they correctly stop short of live proof.", "blockingRationale": "The seq_136 suite verdict remains release_withheld, smoke_pass_count is zero, and one accessibility case stays blocked, so this cannot be described as live browser readiness.", "sourceRefs": ["blueprint/accessibility-and-content-system-contract.md", "blueprint/platform-frontend-blueprint.md", "docs/tests/136_shell_accessibility_preview_smoke_suite.md"], "implementationEvidenceRefs": ["data/analysis/accessibility_semantic_coverage_profiles.json", "data/analysis/preview_environment_manifest.json", "data/analysis/audience_surface_runtime_bindings.json"], "automatedProofRefs": ["data/test/136_preview_environment_suite_results.json", "data/test/continuity_gate_suite_results.json", "data/analysis/surface_authority_verdicts.json"], "suiteRefs": ["seq_134", "seq_136"], "openItemRefs": ["OI_138_PUBLISHABLE_LIVE_BROWSER_PARITY", "OI_138_LIVE_NHS_APP_EMBEDDED_CHANNEL"], "signalRows": [{"label": "Shell families", "value": "6"}, {"label": "Accessibility blocked cases", "value": "1"}, {"label": "Smoke withheld count", "value": "87"}]}, {"rowId": "P0R_138_ASSURANCE_PRIVACY_AND_CLINICAL_SAFETY", "capabilityFamilyId": "assurance_privacy_and_clinical_safety_seed_artifacts", "capabilityLabel": "Assurance, privacy, and clinical-safety seed artifacts", "status": "constrained", "summary": "The repository holds current seed packs and gap registers for clinical safety, privacy, NHS login, DSPT, IM1, and signoff governance, without pretending those seeds are production approvals.", "blockingRationale": "Open assurance and onboarding gaps remain explicit for live signoff, provider scope approval, and deployer-bound evidence, so this row is seed-complete but not production-approved.", "sourceRefs": ["docs/assurance/121_dcb0129_clinical_safety_case_structure.md", "docs/assurance/123_im1_prerequisite_readiness_pack.md", "docs/assurance/126_privacy_threat_model.md"], "implementationEvidenceRefs": ["data/assurance/dcb0129_safety_case_outline.json", "data/assurance/im1_artifact_index.json", "data/assurance/privacy_control_traceability.json"], "automatedProofRefs": ["data/assurance/clinical_signoff_gate_requirements.json", "data/assurance/dspt_gap_register.json", "data/assurance/nhs_login_gap_register.json"], "suiteRefs": [], "openItemRefs": ["OI_138_PRODUCTION_ASSURANCE_SIGNOFF", "OI_138_LIVE_NHS_LOGIN_ONBOARDING", "OI_138_LIVE_BOOKING_PROVIDER_PAIRING"], "signalRows": [{"label": "Clinical signoff blocked prerequisites", "value": "1"}, {"label": "DSPT gap count", "value": "7"}, {"label": "IM1 gap count", "value": "8"}]}]</script>
+    <script id="suites-json" type="application/json">[{"suiteId": "seq_133", "label": "Domain transition and event schema compatibility", "verificationOutcome": "passed", "proofVerdict": "pass_with_bounded_gaps", "summary": "Canonical transition and schema compatibility remain machine-verified with bounded, explicit catalog gaps rather than silent drift.", "artifactRefs": ["data/test/transition_suite_results.json", "docs/tests/133_domain_transition_and_event_schema_compatibility.md", "docs/tests/133_transition_lab.html"], "signalRows": [{"label": "Transition rows", "value": "219"}, {"label": "Schema rows", "value": "28"}, {"label": "Gap rows", "value": "14"}]}, {"suiteId": "seq_134", "label": "Route intent, freshness, and scoped mutation gate", "verificationOutcome": "passed", "proofVerdict": "pass_with_explicit_browser_gaps", "summary": "Route-intent, projection freshness, and scoped mutation proof are current, with the remaining browser specimen gaps held as explicit guarded rows.", "artifactRefs": ["data/test/continuity_gate_suite_results.json", "docs/tests/134_route_intent_projection_freshness_scoped_mutation_suite.md", "docs/tests/134_continuity_gate_lab.html"], "signalRows": [{"label": "Route-intent cases", "value": "10"}, {"label": "Browser gaps", "value": "2"}, {"label": "Covered families", "value": "8"}]}, {"suiteId": "seq_135", "label": "Adapter replay, duplicate, quarantine, and fallback review", "verificationOutcome": "passed", "proofVerdict": "pass_with_bounded_event_gap", "summary": "Replay, duplicate clustering, quarantine, and fallback review are explicitly proven, with zero duplicate side effects and one bounded event-catalog gap kept visible.", "artifactRefs": ["data/test/exception_path_suite_results.json", "docs/tests/135_adapter_replay_duplicate_quarantine_fallback_suite.md", "docs/tests/135_exception_path_lab.html"], "signalRows": [{"label": "Exception cases", "value": "14"}, {"label": "Zero side-effect cases", "value": "14"}, {"label": "Bounded event gaps", "value": "1"}]}, {"suiteId": "seq_136", "label": "Shell accessibility, preview environment, and smoke proof", "verificationOutcome": "passed", "proofVerdict": "release_withheld", "summary": "All shell families are exercised, but every smoke verdict remains rightly withheld because publication parity and browser truth are not yet exact.", "artifactRefs": ["data/test/136_preview_environment_suite_results.json", "docs/tests/136_shell_accessibility_preview_smoke_suite.md", "docs/tests/136_shell_conformance_atlas.html"], "signalRows": [{"label": "Shell families", "value": "6"}, {"label": "Smoke pass count", "value": "0"}, {"label": "Smoke withheld count", "value": "87"}]}, {"suiteId": "seq_137", "label": "Release freeze, restore, and non-production canary rehearsals", "verificationOutcome": "passed", "proofVerdict": "rehearsal_exact_live_withheld", "summary": "Release-watch, canary, rollback, and restore proof is exact for the simulator-first baseline, with no premature applied success and no live control reopening.", "artifactRefs": ["data/test/137_rehearsal_results.json", "docs/tests/137_release_restore_canary_rehearsal_suite.md", "docs/tests/137_release_rehearsal_cockpit.html"], "signalRows": [{"label": "Rehearsal cases", "value": "11"}, {"label": "Blocked actions", "value": "4"}, {"label": "Live reopened", "value": "0"}]}]</script>
+    <script id="evidence-json" type="application/json">[{"evidence_id": "EVID_138_001", "capability_family_id": "canonical_request_intake_backbone", "capability_label": "Canonical request-intake backbone", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "seq_005", "machine_state": "current", "artifact_ref": "data/analysis/request_lineage_transitions.json", "summary": "Canonical request-intake backbone implementation"}, {"evidence_id": "EVID_138_002", "capability_family_id": "canonical_request_intake_backbone", "capability_label": "Canonical request-intake backbone", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "seq_019", "machine_state": "current", "artifact_ref": "data/analysis/coverage_summary.json", "summary": "Canonical request-intake backbone implementation"}, {"evidence_id": "EVID_138_003", "capability_family_id": "canonical_request_intake_backbone", "capability_label": "Canonical request-intake backbone", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "seq_019", "machine_state": "current", "artifact_ref": "data/analysis/requirement_task_traceability.csv", "summary": "Canonical request-intake backbone implementation"}, {"evidence_id": "EVID_138_004", "capability_family_id": "canonical_request_intake_backbone", "capability_label": "Canonical request-intake backbone", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_133", "machine_state": "machine_verified", "artifact_ref": "data/test/transition_suite_results.json", "summary": "Canonical request-intake backbone automated proof"}, {"evidence_id": "EVID_138_005", "capability_family_id": "canonical_request_intake_backbone", "capability_label": "Canonical request-intake backbone", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_132", "machine_state": "machine_verified", "artifact_ref": "data/analysis/foundation_demo_trace_index.json", "summary": "Canonical request-intake backbone automated proof"}, {"evidence_id": "EVID_138_006", "capability_family_id": "canonical_request_intake_backbone", "capability_label": "Canonical request-intake backbone", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_132", "machine_state": "machine_verified", "artifact_ref": "data/analysis/phase0_exit_artifact_index.json", "summary": "Canonical request-intake backbone automated proof"}, {"evidence_id": "EVID_138_007", "capability_family_id": "canonical_request_intake_backbone", "capability_label": "Canonical request-intake backbone", "evidence_kind": "suite_binding", "artifact_class": "verification_suite", "source_task_ref": "seq_133", "machine_state": "passed", "artifact_ref": "data/test/transition_suite_results.json", "summary": "Domain transition and event schema compatibility"}, {"evidence_id": "EVID_138_008", "capability_family_id": "replay_and_duplicate_handling", "capability_label": "Replay and duplicate handling", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "seq_135", "machine_state": "current", "artifact_ref": "data/analysis/replay_classification_matrix.csv", "summary": "Replay and duplicate handling implementation"}, {"evidence_id": "EVID_138_009", "capability_family_id": "replay_and_duplicate_handling", "capability_label": "Replay and duplicate handling", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "seq_135", "machine_state": "current", "artifact_ref": "data/analysis/duplicate_cluster_manifest.json", "summary": "Replay and duplicate handling implementation"}, {"evidence_id": "EVID_138_010", "capability_family_id": "replay_and_duplicate_handling", "capability_label": "Replay and duplicate handling", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "seq_135", "machine_state": "current", "artifact_ref": "data/analysis/replay_collision_casebook.json", "summary": "Replay and duplicate handling implementation"}, {"evidence_id": "EVID_138_011", "capability_family_id": "replay_and_duplicate_handling", "capability_label": "Replay and duplicate handling", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_135", "machine_state": "machine_verified", "artifact_ref": "data/test/exception_path_suite_results.json", "summary": "Replay and duplicate handling automated proof"}, {"evidence_id": "EVID_138_012", "capability_family_id": "replay_and_duplicate_handling", "capability_label": "Replay and duplicate handling", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_129", "machine_state": "machine_verified", "artifact_ref": "data/integration/adapter_validation_results.json", "summary": "Replay and duplicate handling automated proof"}, {"evidence_id": "EVID_138_013", "capability_family_id": "replay_and_duplicate_handling", "capability_label": "Replay and duplicate handling", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_132", "machine_state": "machine_verified", "artifact_ref": "data/analysis/foundation_demo_trace_index.json", "summary": "Replay and duplicate handling automated proof"}, {"evidence_id": "EVID_138_014", "capability_family_id": "replay_and_duplicate_handling", "capability_label": "Replay and duplicate handling", "evidence_kind": "suite_binding", "artifact_class": "verification_suite", "source_task_ref": "seq_135", "machine_state": "passed", "artifact_ref": "data/test/exception_path_suite_results.json", "summary": "Adapter replay, duplicate, quarantine, and fallback review"}, {"evidence_id": "EVID_138_015", "capability_family_id": "identity_access_substrate", "capability_label": "Identity/access substrate", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "seq_133", "machine_state": "current", "artifact_ref": "data/analysis/access_grant_runtime_tuple_manifest.json", "summary": "Identity/access substrate implementation"}, {"evidence_id": "EVID_138_016", "capability_family_id": "identity_access_substrate", "capability_label": "Identity/access substrate", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "seq_133", "machine_state": "current", "artifact_ref": "data/analysis/identity_repair_casebook.json", "summary": "Identity/access substrate implementation"}, {"evidence_id": "EVID_138_017", "capability_family_id": "identity_access_substrate", "capability_label": "Identity/access substrate", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "seq_133", "machine_state": "current", "artifact_ref": "data/analysis/reachability_assessment_casebook.json", "summary": "Identity/access substrate implementation"}, {"evidence_id": "EVID_138_018", "capability_family_id": "identity_access_substrate", "capability_label": "Identity/access substrate", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_133", "machine_state": "machine_verified", "artifact_ref": "data/test/transition_suite_results.json", "summary": "Identity/access substrate automated proof"}, {"evidence_id": "EVID_138_019", "capability_family_id": "identity_access_substrate", "capability_label": "Identity/access substrate", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_132", "machine_state": "machine_verified", "artifact_ref": "data/analysis/foundation_demo_trace_index.json", "summary": "Identity/access substrate automated proof"}, {"evidence_id": "EVID_138_020", "capability_family_id": "identity_access_substrate", "capability_label": "Identity/access substrate", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "par_124", "machine_state": "machine_verified", "artifact_ref": "data/assurance/nhs_login_gap_register.json", "summary": "Identity/access substrate automated proof"}, {"evidence_id": "EVID_138_021", "capability_family_id": "identity_access_substrate", "capability_label": "Identity/access substrate", "evidence_kind": "suite_binding", "artifact_class": "verification_suite", "source_task_ref": "seq_133", "machine_state": "passed", "artifact_ref": "data/test/transition_suite_results.json", "summary": "Domain transition and event schema compatibility"}, {"evidence_id": "EVID_138_022", "capability_family_id": "runtime_publication_and_freeze_control", "capability_label": "Runtime/publication and freeze control", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "seq_137", "machine_state": "current", "artifact_ref": "data/analysis/runtime_publication_bundles.json", "summary": "Runtime/publication and freeze control implementation"}, {"evidence_id": "EVID_138_023", "capability_family_id": "runtime_publication_and_freeze_control", "capability_label": "Runtime/publication and freeze control", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "seq_137", "machine_state": "current", "artifact_ref": "data/analysis/release_publication_parity_records.json", "summary": "Runtime/publication and freeze control implementation"}, {"evidence_id": "EVID_138_024", "capability_family_id": "runtime_publication_and_freeze_control", "capability_label": "Runtime/publication and freeze control", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "seq_131", "machine_state": "current", "artifact_ref": "data/release/release_candidate_tuple.json", "summary": "Runtime/publication and freeze control implementation"}, {"evidence_id": "EVID_138_025", "capability_family_id": "runtime_publication_and_freeze_control", "capability_label": "Runtime/publication and freeze control", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_130", "machine_state": "machine_verified", "artifact_ref": "data/analysis/surface_authority_verdicts.json", "summary": "Runtime/publication and freeze control automated proof"}, {"evidence_id": "EVID_138_026", "capability_family_id": "runtime_publication_and_freeze_control", "capability_label": "Runtime/publication and freeze control", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_127", "machine_state": "machine_verified", "artifact_ref": "data/analysis/manifest_fusion_verdicts.json", "summary": "Runtime/publication and freeze control automated proof"}, {"evidence_id": "EVID_138_027", "capability_family_id": "runtime_publication_and_freeze_control", "capability_label": "Runtime/publication and freeze control", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_137", "machine_state": "machine_verified", "artifact_ref": "data/test/137_rehearsal_results.json", "summary": "Runtime/publication and freeze control automated proof"}, {"evidence_id": "EVID_138_028", "capability_family_id": "runtime_publication_and_freeze_control", "capability_label": "Runtime/publication and freeze control", "evidence_kind": "suite_binding", "artifact_class": "verification_suite", "source_task_ref": "seq_137", "machine_state": "passed", "artifact_ref": "data/test/137_rehearsal_results.json", "summary": "Release freeze, restore, and non-production canary rehearsals"}, {"evidence_id": "EVID_138_029", "capability_family_id": "shell_and_continuity_infrastructure", "capability_label": "Shell and continuity infrastructure", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "par_106_or_par_108", "machine_state": "current", "artifact_ref": "data/analysis/persistent_shell_contracts.json", "summary": "Shell and continuity infrastructure implementation"}, {"evidence_id": "EVID_138_030", "capability_family_id": "shell_and_continuity_infrastructure", "capability_label": "Shell and continuity infrastructure", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "par_106_or_par_108", "machine_state": "current", "artifact_ref": "data/analysis/frontend_contract_manifests.json", "summary": "Shell and continuity infrastructure implementation"}, {"evidence_id": "EVID_138_031", "capability_family_id": "shell_and_continuity_infrastructure", "capability_label": "Shell and continuity infrastructure", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "par_106_or_par_108", "machine_state": "current", "artifact_ref": "data/analysis/selected_anchor_policy_matrix.csv", "summary": "Shell and continuity infrastructure implementation"}, {"evidence_id": "EVID_138_032", "capability_family_id": "shell_and_continuity_infrastructure", "capability_label": "Shell and continuity infrastructure", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_134", "machine_state": "machine_verified", "artifact_ref": "data/test/continuity_gate_suite_results.json", "summary": "Shell and continuity infrastructure automated proof"}, {"evidence_id": "EVID_138_033", "capability_family_id": "shell_and_continuity_infrastructure", "capability_label": "Shell and continuity infrastructure", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_127", "machine_state": "machine_verified", "artifact_ref": "data/analysis/manifest_fusion_verdicts.json", "summary": "Shell and continuity infrastructure automated proof"}, {"evidence_id": "EVID_138_034", "capability_family_id": "shell_and_continuity_infrastructure", "capability_label": "Shell and continuity infrastructure", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_136", "machine_state": "machine_verified", "artifact_ref": "data/test/136_preview_environment_suite_results.json", "summary": "Shell and continuity infrastructure automated proof"}, {"evidence_id": "EVID_138_035", "capability_family_id": "shell_and_continuity_infrastructure", "capability_label": "Shell and continuity infrastructure", "evidence_kind": "suite_binding", "artifact_class": "verification_suite", "source_task_ref": "seq_134", "machine_state": "passed", "artifact_ref": "data/test/continuity_gate_suite_results.json", "summary": "Route intent, freshness, and scoped mutation gate"}, {"evidence_id": "EVID_138_036", "capability_family_id": "shell_and_continuity_infrastructure", "capability_label": "Shell and continuity infrastructure", "evidence_kind": "suite_binding", "artifact_class": "verification_suite", "source_task_ref": "seq_136", "machine_state": "passed", "artifact_ref": "data/test/136_preview_environment_suite_results.json", "summary": "Shell accessibility, preview environment, and smoke proof"}, {"evidence_id": "EVID_138_037", "capability_family_id": "simulator_estate_and_degraded_defaults", "capability_label": "Simulator estate and degraded defaults", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "seq_129", "machine_state": "current", "artifact_ref": "data/integration/seeded_external_contract_catalog.json", "summary": "Simulator estate and degraded defaults implementation"}, {"evidence_id": "EVID_138_038", "capability_family_id": "simulator_estate_and_degraded_defaults", "capability_label": "Simulator estate and degraded defaults", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "seq_129", "machine_state": "current", "artifact_ref": "data/integration/live_provider_handover_matrix.csv", "summary": "Simulator estate and degraded defaults implementation"}, {"evidence_id": "EVID_138_039", "capability_family_id": "simulator_estate_and_degraded_defaults", "capability_label": "Simulator estate and degraded defaults", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "seq_135", "machine_state": "current", "artifact_ref": "data/analysis/dependency_simulator_strategy.json", "summary": "Simulator estate and degraded defaults implementation"}, {"evidence_id": "EVID_138_040", "capability_family_id": "simulator_estate_and_degraded_defaults", "capability_label": "Simulator estate and degraded defaults", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_129", "machine_state": "machine_verified", "artifact_ref": "data/integration/adapter_validation_results.json", "summary": "Simulator estate and degraded defaults automated proof"}, {"evidence_id": "EVID_138_041", "capability_family_id": "simulator_estate_and_degraded_defaults", "capability_label": "Simulator estate and degraded defaults", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_137", "machine_state": "machine_verified", "artifact_ref": "data/test/137_rehearsal_results.json", "summary": "Simulator estate and degraded defaults automated proof"}, {"evidence_id": "EVID_138_042", "capability_family_id": "simulator_estate_and_degraded_defaults", "capability_label": "Simulator estate and degraded defaults", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_135", "machine_state": "machine_verified", "artifact_ref": "data/analysis/preview_environment_manifest.json", "summary": "Simulator estate and degraded defaults automated proof"}, {"evidence_id": "EVID_138_043", "capability_family_id": "simulator_estate_and_degraded_defaults", "capability_label": "Simulator estate and degraded defaults", "evidence_kind": "suite_binding", "artifact_class": "verification_suite", "source_task_ref": "seq_135", "machine_state": "passed", "artifact_ref": "data/test/exception_path_suite_results.json", "summary": "Adapter replay, duplicate, quarantine, and fallback review"}, {"evidence_id": "EVID_138_044", "capability_family_id": "simulator_estate_and_degraded_defaults", "capability_label": "Simulator estate and degraded defaults", "evidence_kind": "suite_binding", "artifact_class": "verification_suite", "source_task_ref": "seq_137", "machine_state": "passed", "artifact_ref": "data/test/137_rehearsal_results.json", "summary": "Release freeze, restore, and non-production canary rehearsals"}, {"evidence_id": "EVID_138_045", "capability_family_id": "observability_and_audit", "capability_label": "Observability and audit", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "par_093_or_seq_051", "machine_state": "current", "artifact_ref": "data/analysis/observability_signal_matrix.csv", "summary": "Observability and audit implementation"}, {"evidence_id": "EVID_138_046", "capability_family_id": "observability_and_audit", "capability_label": "Observability and audit", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "par_093_or_seq_051", "machine_state": "current", "artifact_ref": "data/analysis/audit_record_schema.json", "summary": "Observability and audit implementation"}, {"evidence_id": "EVID_138_047", "capability_family_id": "observability_and_audit", "capability_label": "Observability and audit", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "par_093_or_seq_051", "machine_state": "current", "artifact_ref": "data/analysis/worm_retention_classes.json", "summary": "Observability and audit implementation"}, {"evidence_id": "EVID_138_048", "capability_family_id": "observability_and_audit", "capability_label": "Observability and audit", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "par_093_or_seq_051", "machine_state": "machine_verified", "artifact_ref": "data/analysis/observability_event_schema_manifest.json", "summary": "Observability and audit automated proof"}, {"evidence_id": "EVID_138_049", "capability_family_id": "observability_and_audit", "capability_label": "Observability and audit", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "par_100", "machine_state": "machine_verified", "artifact_ref": "data/analysis/build_provenance_manifest.json", "summary": "Observability and audit automated proof"}, {"evidence_id": "EVID_138_050", "capability_family_id": "observability_and_audit", "capability_label": "Observability and audit", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "par_100", "machine_state": "machine_verified", "artifact_ref": "data/analysis/build_provenance_integrity_catalog.json", "summary": "Observability and audit automated proof"}, {"evidence_id": "EVID_138_051", "capability_family_id": "backup_restore_and_canary_rehearsal", "capability_label": "Backup/restore and canary rehearsal", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "par_097_or_101", "machine_state": "current", "artifact_ref": "data/analysis/release_watch_pipeline_catalog.json", "summary": "Backup/restore and canary rehearsal implementation"}, {"evidence_id": "EVID_138_052", "capability_family_id": "backup_restore_and_canary_rehearsal", "capability_label": "Backup/restore and canary rehearsal", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "par_097_or_101", "machine_state": "current", "artifact_ref": "data/analysis/release_watch_required_evidence.csv", "summary": "Backup/restore and canary rehearsal implementation"}, {"evidence_id": "EVID_138_053", "capability_family_id": "backup_restore_and_canary_rehearsal", "capability_label": "Backup/restore and canary rehearsal", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "par_097_or_101", "machine_state": "current", "artifact_ref": "data/analysis/resilience_baseline_catalog.json", "summary": "Backup/restore and canary rehearsal implementation"}, {"evidence_id": "EVID_138_054", "capability_family_id": "backup_restore_and_canary_rehearsal", "capability_label": "Backup/restore and canary rehearsal", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_137", "machine_state": "machine_verified", "artifact_ref": "data/test/137_rehearsal_results.json", "summary": "Backup/restore and canary rehearsal automated proof"}, {"evidence_id": "EVID_138_055", "capability_family_id": "backup_restore_and_canary_rehearsal", "capability_label": "Backup/restore and canary rehearsal", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_137", "machine_state": "machine_verified", "artifact_ref": "data/test/137_wave_observation_cases.csv", "summary": "Backup/restore and canary rehearsal automated proof"}, {"evidence_id": "EVID_138_056", "capability_family_id": "backup_restore_and_canary_rehearsal", "capability_label": "Backup/restore and canary rehearsal", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_137", "machine_state": "machine_verified", "artifact_ref": "data/test/137_restore_readiness_cases.csv", "summary": "Backup/restore and canary rehearsal automated proof"}, {"evidence_id": "EVID_138_057", "capability_family_id": "backup_restore_and_canary_rehearsal", "capability_label": "Backup/restore and canary rehearsal", "evidence_kind": "suite_binding", "artifact_class": "verification_suite", "source_task_ref": "seq_137", "machine_state": "passed", "artifact_ref": "data/test/137_rehearsal_results.json", "summary": "Release freeze, restore, and non-production canary rehearsals"}, {"evidence_id": "EVID_138_058", "capability_family_id": "accessibility_and_shell_smoke_proof", "capability_label": "Accessibility and shell smoke proof", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "seq_134", "machine_state": "current", "artifact_ref": "data/analysis/accessibility_semantic_coverage_profiles.json", "summary": "Accessibility and shell smoke proof implementation"}, {"evidence_id": "EVID_138_059", "capability_family_id": "accessibility_and_shell_smoke_proof", "capability_label": "Accessibility and shell smoke proof", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "seq_134", "machine_state": "current", "artifact_ref": "data/analysis/preview_environment_manifest.json", "summary": "Accessibility and shell smoke proof implementation"}, {"evidence_id": "EVID_138_060", "capability_family_id": "accessibility_and_shell_smoke_proof", "capability_label": "Accessibility and shell smoke proof", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "seq_130", "machine_state": "current", "artifact_ref": "data/analysis/audience_surface_runtime_bindings.json", "summary": "Accessibility and shell smoke proof implementation"}, {"evidence_id": "EVID_138_061", "capability_family_id": "accessibility_and_shell_smoke_proof", "capability_label": "Accessibility and shell smoke proof", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_136", "machine_state": "machine_verified", "artifact_ref": "data/test/136_preview_environment_suite_results.json", "summary": "Accessibility and shell smoke proof automated proof"}, {"evidence_id": "EVID_138_062", "capability_family_id": "accessibility_and_shell_smoke_proof", "capability_label": "Accessibility and shell smoke proof", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_134", "machine_state": "machine_verified", "artifact_ref": "data/test/continuity_gate_suite_results.json", "summary": "Accessibility and shell smoke proof automated proof"}, {"evidence_id": "EVID_138_063", "capability_family_id": "accessibility_and_shell_smoke_proof", "capability_label": "Accessibility and shell smoke proof", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "seq_130", "machine_state": "machine_verified", "artifact_ref": "data/analysis/surface_authority_verdicts.json", "summary": "Accessibility and shell smoke proof automated proof"}, {"evidence_id": "EVID_138_064", "capability_family_id": "accessibility_and_shell_smoke_proof", "capability_label": "Accessibility and shell smoke proof", "evidence_kind": "suite_binding", "artifact_class": "verification_suite", "source_task_ref": "seq_134", "machine_state": "passed", "artifact_ref": "data/test/continuity_gate_suite_results.json", "summary": "Route intent, freshness, and scoped mutation gate"}, {"evidence_id": "EVID_138_065", "capability_family_id": "accessibility_and_shell_smoke_proof", "capability_label": "Accessibility and shell smoke proof", "evidence_kind": "suite_binding", "artifact_class": "verification_suite", "source_task_ref": "seq_136", "machine_state": "passed", "artifact_ref": "data/test/136_preview_environment_suite_results.json", "summary": "Shell accessibility, preview environment, and smoke proof"}, {"evidence_id": "EVID_138_066", "capability_family_id": "assurance_privacy_and_clinical_safety_seed_artifacts", "capability_label": "Assurance, privacy, and clinical-safety seed artifacts", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "par_121", "machine_state": "current", "artifact_ref": "data/assurance/dcb0129_safety_case_outline.json", "summary": "Assurance, privacy, and clinical-safety seed artifacts implementation"}, {"evidence_id": "EVID_138_067", "capability_family_id": "assurance_privacy_and_clinical_safety_seed_artifacts", "capability_label": "Assurance, privacy, and clinical-safety seed artifacts", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "par_123", "machine_state": "current", "artifact_ref": "data/assurance/im1_artifact_index.json", "summary": "Assurance, privacy, and clinical-safety seed artifacts implementation"}, {"evidence_id": "EVID_138_068", "capability_family_id": "assurance_privacy_and_clinical_safety_seed_artifacts", "capability_label": "Assurance, privacy, and clinical-safety seed artifacts", "evidence_kind": "implementation", "artifact_class": "implementation_evidence", "source_task_ref": "par_126", "machine_state": "current", "artifact_ref": "data/assurance/privacy_control_traceability.json", "summary": "Assurance, privacy, and clinical-safety seed artifacts implementation"}, {"evidence_id": "EVID_138_069", "capability_family_id": "assurance_privacy_and_clinical_safety_seed_artifacts", "capability_label": "Assurance, privacy, and clinical-safety seed artifacts", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "par_125", "machine_state": "machine_verified", "artifact_ref": "data/assurance/clinical_signoff_gate_requirements.json", "summary": "Assurance, privacy, and clinical-safety seed artifacts automated proof"}, {"evidence_id": "EVID_138_070", "capability_family_id": "assurance_privacy_and_clinical_safety_seed_artifacts", "capability_label": "Assurance, privacy, and clinical-safety seed artifacts", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "par_122", "machine_state": "machine_verified", "artifact_ref": "data/assurance/dspt_gap_register.json", "summary": "Assurance, privacy, and clinical-safety seed artifacts automated proof"}, {"evidence_id": "EVID_138_071", "capability_family_id": "assurance_privacy_and_clinical_safety_seed_artifacts", "capability_label": "Assurance, privacy, and clinical-safety seed artifacts", "evidence_kind": "automated_proof", "artifact_class": "automated_proof", "source_task_ref": "par_124", "machine_state": "machine_verified", "artifact_ref": "data/assurance/nhs_login_gap_register.json", "summary": "Assurance, privacy, and clinical-safety seed artifacts automated proof"}]</script>
+    <script id="open-items-json" type="application/json">[{"itemId": "OI_138_LIVE_NHS_LOGIN_ONBOARDING", "title": "Complete live NHS login onboarding and scope approval", "workClass": "live_provider_identity", "deferredState": "deferred_non_blocking", "currentBoundaryState": "mock_identity_available_live_identity_not_approved", "summary": "The mock NHS login baseline is present, but live scope approval, environment progression, and IM1-dependent identity routes remain outside the simulator-first Phase 0 approval.", "whyNonBlockingNow": "Phase 0 only claims simulator-first foundation readiness and does not advertise live provider identity authority.", "sourceRefs": ["docs/assurance/124_nhs_login_onboarding_evidence_pack.md", "docs/assurance/124_nhs_login_actual_onboarding_strategy_later.md", "data/assurance/nhs_login_gap_register.json"]}, {"itemId": "OI_138_LIVE_NHS_APP_EMBEDDED_CHANNEL", "title": "Publish the live NHS App embedded shell posture", "workClass": "live_channel", "deferredState": "deferred_non_blocking", "currentBoundaryState": "embedded_channel_blocked_from_live_publication", "summary": "The embedded patient shell remains an explicit blocked surface until the later live channel posture, publication tuple, and browser contract are published.", "whyNonBlockingNow": "Phase 0 approves the foundation while keeping embedded live-channel truth blocked instead of faking parity.", "sourceRefs": ["data/analysis/surface_authority_verdicts.json", "docs/architecture/112_embedded_and_constrained_channel_guard_rules.md", "data/test/136_preview_environment_suite_results.json"]}, {"itemId": "OI_138_LIVE_BOOKING_PROVIDER_PAIRING", "title": "Replace simulator-first booking/provider seams with live paired integrations", "workClass": "live_provider_pairing", "deferredState": "deferred_non_blocking", "currentBoundaryState": "simulator_only_pairing_boundary", "summary": "Current release and replay proofs use simulator-backed downstreams; live provider pairing, supported-test evidence, and production agreements remain later work.", "whyNonBlockingNow": "The simulator estate is explicit and bounded, and the gate pack does not describe those paths as live-ready.", "sourceRefs": ["docs/assurance/123_im1_actual_pairing_strategy_later.md", "data/assurance/im1_gap_register.json", "data/integration/live_provider_handover_matrix.csv"]}, {"itemId": "OI_138_LIVE_MESH_GP_PHARMACY_ONBOARDING", "title": "Finish live MESH, GP, pharmacy, and partner onboarding", "workClass": "live_provider_operations", "deferredState": "deferred_non_blocking", "currentBoundaryState": "partner_handover_pending", "summary": "Provider handover remains open for the real operational channels even though the simulator-backed contract catalog is current.", "whyNonBlockingNow": "The current approval is for the foundation tuple model and degraded defaults, not for live external transport ownership.", "sourceRefs": ["data/integration/live_provider_handover_matrix.csv", "docs/integrations/129_adapter_simulator_validation.md", "data/integration/adapter_validation_results.json"]}, {"itemId": "OI_138_PRODUCTION_ASSURANCE_SIGNOFF", "title": "Close production-grade assurance, DSPT, and clinical signoff work", "workClass": "production_assurance", "deferredState": "deferred_non_blocking", "currentBoundaryState": "seed_artifacts_present_formal_signoff_pending", "summary": "The repository has seed packs and explicit gap registers for DCB0129, privacy, DSPT, NHS login, and clinical signoff, but not a production signoff claim.", "whyNonBlockingNow": "The gate pack approves the seed-layer governance posture while keeping production signoff out of scope.", "sourceRefs": ["data/assurance/clinical_signoff_gate_requirements.json", "data/assurance/dspt_gap_register.json", "data/assurance/nhs_login_gap_register.json", "docs/assurance/126_privacy_threat_model.md"]}, {"itemId": "OI_138_EXECUTABLE_MALWARE_SCANNING_RUNTIME", "title": "Replace the remaining blocked malware-scanning seam with an executable runtime", "workClass": "runtime_hardening", "deferredState": "deferred_non_blocking", "currentBoundaryState": "bounded_blocked_gap", "summary": "The adapter validation estate still reports 1 blocked runtime gap, including the explicit malware-scanning seam.", "whyNonBlockingNow": "The blocked gap is declared and fail-closed; the gate does not treat it as hidden runtime coverage.", "sourceRefs": ["data/integration/adapter_validation_results.json", "docs/integrations/129_adapter_simulator_validation.md", "data/analysis/35_scan_and_quarantine_policy_matrix.csv"]}, {"itemId": "OI_138_PUBLISHABLE_LIVE_BROWSER_PARITY", "title": "Close design, accessibility, and browser-proof gaps before any live surface publication claim", "workClass": "browser_surface_hardening", "deferredState": "deferred_non_blocking", "currentBoundaryState": "live_publication_withheld", "summary": "Current surface truth still reports 0 publishable-live rows, 13 partial rows, and 3 blocked rows.", "whyNonBlockingNow": "Phase 0 approves the governed non-live foundation and keeps live surface truth withheld instead of weakening the publication law.", "sourceRefs": ["data/analysis/surface_authority_verdicts.json", "data/analysis/manifest_fusion_verdicts.json", "data/test/136_preview_environment_suite_results.json"]}]</script>
+    <script>
+      const decision = JSON.parse(document.getElementById("decision-json").textContent);
+      const rows = JSON.parse(document.getElementById("rows-json").textContent);
+      const suites = JSON.parse(document.getElementById("suites-json").textContent);
+      const evidenceManifest = JSON.parse(document.getElementById("evidence-json").textContent);
+      const openItems = JSON.parse(document.getElementById("open-items-json").textContent);
+      const body = document.body;
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+      body.dataset.reducedMotion = String(reduceMotion.matches);
+
+      const state = {
+        status: "all",
+        family: "all",
+        selectedRowId: rows[0].rowId,
+      };
+
+      function optionize(select, values) {
+        select.innerHTML = "";
+        values.forEach((value) => {
+          const option = document.createElement("option");
+          option.value = value.value;
+          option.textContent = value.label;
+          select.append(option);
+        });
+      }
+
+      function getVisibleRows() {
+        return rows.filter((row) => {
+          if (state.status !== "all" && row.status !== state.status) return false;
+          if (state.family !== "all" && row.capabilityFamilyId !== state.family) return false;
+          return true;
+        });
+      }
+
+      function getSelectedRow() {
+        const visible = getVisibleRows();
+        return visible.find((row) => row.rowId === state.selectedRowId) || visible[0] || rows[0];
+      }
+
+      function getOpenItemsForRow(row) {
+        return openItems.filter((item) => row.openItemRefs.includes(item.itemId));
+      }
+
+      function getEvidenceForRow(row) {
+        return evidenceManifest.filter((item) => item.capability_family_id === row.capabilityFamilyId);
+      }
+
+      function renderMasthead() {
+        document.querySelector("[data-testid='gate-verdict']").textContent = decision.gateVerdict;
+        document.querySelector("[data-testid='approved-row-count']").textContent = String(decision.summary.approved_row_count);
+        document.querySelector("[data-testid='constrained-row-count']").textContent = String(decision.summary.constrained_row_count);
+        document.querySelector("[data-testid='blocked-row-count']").textContent = String(decision.summary.blocked_row_count);
+      }
+
+      function renderSuites() {
+        const strip = document.querySelector("[data-testid='suite-strip']");
+        const tbody = document.querySelector("[data-testid='suite-table'] tbody");
+        strip.innerHTML = "";
+        tbody.innerHTML = "";
+        suites.forEach((suite) => {
+          strip.insertAdjacentHTML("beforeend", `<div class="suite-pill" data-tone="${suite.verificationOutcome}" data-testid="suite-pill-${suite.suiteId}">${suite.suiteId} · ${suite.proofVerdict}</div>`);
+          tbody.insertAdjacentHTML("beforeend", `<tr><td>${suite.label}</td><td>${suite.verificationOutcome}</td><td>${suite.proofVerdict}</td></tr>`);
+        });
+      }
+
+      function renderHeatStrip(selected) {
+        const visible = getVisibleRows();
+        const container = document.querySelector("[data-testid='heat-strip']");
+        container.innerHTML = "";
+        visible.forEach((row) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "capability-card";
+          button.dataset.status = row.status;
+          button.dataset.selected = String(row.rowId === selected.rowId);
+          button.dataset.testid = `capability-card-${row.rowId}`;
+          button.setAttribute("data-testid", `capability-card-${row.rowId}`);
+          button.innerHTML = `
+            <div class="card-meta">
+              <span class="status-pill" data-status="${row.status}">${row.status}</span>
+              <span>${row.rowId}</span>
+            </div>
+            <strong>${row.capabilityLabel}</strong>
+            <span>${row.summary}</span>
+          `;
+          button.addEventListener("click", () => selectRow(row.rowId));
+          button.addEventListener("keydown", (event) => handleRowKeydown(event, row.rowId));
+          container.append(button);
+        });
+
+        const tbody = document.querySelector("[data-testid='scorecard-table'] tbody");
+        tbody.innerHTML = "";
+        visible.forEach((row) => {
+          tbody.insertAdjacentHTML(
+            "beforeend",
+            `<tr data-selected="${String(row.rowId === selected.rowId)}"><td><button type="button" data-testid="scorecard-row-${row.rowId}">${row.capabilityLabel}</button></td><td>${row.status}</td><td>${row.summary}</td></tr>`,
+          );
+        });
+        tbody.querySelectorAll("button").forEach((button) => {
+          button.addEventListener("click", () => {
+            const match = rows.find((row) => row.capabilityLabel === button.textContent);
+            if (match) selectRow(match.rowId);
+          });
+        });
+      }
+
+      function handleRowKeydown(event, rowId) {
+        const visibleIds = getVisibleRows().map((row) => row.rowId);
+        const index = visibleIds.indexOf(rowId);
+        if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+          event.preventDefault();
+          selectRow(visibleIds[(index + 1) % visibleIds.length]);
+        } else if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+          event.preventDefault();
+          selectRow(visibleIds[(index - 1 + visibleIds.length) % visibleIds.length]);
+        } else if (event.key === "Home") {
+          event.preventDefault();
+          selectRow(visibleIds[0]);
+        } else if (event.key === "End") {
+          event.preventDefault();
+          selectRow(visibleIds[visibleIds.length - 1]);
+        }
+      }
+
+      function renderEvidence(selected) {
+        const evidenceRows = getEvidenceForRow(selected);
+        const timeline = document.querySelector("[data-testid='evidence-timeline']");
+        const tbody = document.querySelector("[data-testid='evidence-table'] tbody");
+        timeline.innerHTML = "";
+        tbody.innerHTML = "";
+        evidenceRows.forEach((item) => {
+          timeline.insertAdjacentHTML(
+            "beforeend",
+            `<div class="timeline-card" data-kind="${item.evidence_kind}" data-testid="timeline-card-${item.evidence_id}"><strong>${item.summary}</strong><div class="muted">${item.evidence_kind} · ${item.source_task_ref}</div><div class="mono">${item.artifact_ref}</div></div>`,
+          );
+          tbody.insertAdjacentHTML(
+            "beforeend",
+            `<tr><td>${item.artifact_ref}</td><td>${item.evidence_kind}</td><td>${item.source_task_ref}</td><td>${item.machine_state}</td></tr>`,
+          );
+        });
+      }
+
+      function renderOpenItems(selected) {
+        const itemRows = getOpenItemsForRow(selected);
+        const tbody = document.querySelector("[data-testid='open-items-table'] tbody");
+        tbody.innerHTML = "";
+        itemRows.forEach((item) => {
+          tbody.insertAdjacentHTML(
+            "beforeend",
+            `<tr><td>${item.title}</td><td>${item.workClass}</td><td>${item.deferredState}</td></tr>`,
+          );
+        });
+      }
+
+      function renderInspector(selected) {
+        const rowOpenItems = getOpenItemsForRow(selected);
+        document.getElementById("inspector-title").innerHTML = `<strong>${selected.capabilityLabel}</strong>`;
+        document.getElementById("inspector-status").innerHTML = `<span class="status-pill" data-status="${selected.status}">${selected.status}</span>`;
+        document.getElementById("inspector-summary-text").textContent = selected.summary;
+        document.getElementById("inspector-rationale-text").textContent = selected.blockingRationale || "No current blocking rationale.";
+        document.getElementById("inspector-refs-text").textContent = [...selected.sourceRefs, ...selected.implementationEvidenceRefs, ...selected.automatedProofRefs].join(" ; ");
+        document.getElementById("inspector-signals-grid").innerHTML = selected.signalRows.map((signal) => `<div class="signal-row"><span>${signal.label}</span><strong>${signal.value}</strong></div>`).join("");
+        document.getElementById("inspector-open-items").innerHTML =
+          rowOpenItems.length === 0
+            ? `<div>No deferred live-provider or live-channel item is currently bound to this row.</div>`
+            : rowOpenItems.map((item) => `<div><strong>${item.title}</strong><div class="muted">${item.summary}</div></div>`).join("");
+      }
+
+      function selectRow(rowId) {
+        state.selectedRowId = rowId;
+        render();
+      }
+
+      function render() {
+        const selected = getSelectedRow();
+        if (!selected) return;
+        state.selectedRowId = selected.rowId;
+        renderHeatStrip(selected);
+        renderEvidence(selected);
+        renderOpenItems(selected);
+        renderInspector(selected);
+      }
+
+      optionize(document.querySelector("[data-testid='filter-status']"), [
+        { value: "all", label: "all" },
+        { value: "approved", label: "approved" },
+        { value: "constrained", label: "constrained" },
+        { value: "blocked", label: "blocked" },
+      ]);
+      optionize(document.querySelector("[data-testid='filter-family']"), [
+        { value: "all", label: "all" },
+        ...rows.map((row) => ({ value: row.capabilityFamilyId, label: row.capabilityLabel })),
+      ]);
+
+      document.querySelector("[data-testid='filter-status']").addEventListener("change", (event) => {
+        state.status = event.target.value;
+        render();
+      });
+      document.querySelector("[data-testid='filter-family']").addEventListener("change", (event) => {
+        state.family = event.target.value;
+        render();
+      });
+
+      renderMasthead();
+      renderSuites();
+      render();
+    </script>
+  </body>
+</html>

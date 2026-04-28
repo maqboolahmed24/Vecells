@@ -1,0 +1,11 @@
+-- 142_phase4_booking_triage_notification_integration.sql
+-- Phase 4 booking-triage-notification integration seams.
+--
+-- This migration documents the durable shapes required by seq_306:
+--   - phase4_booking_triage_notification_integrations
+--   - phase4_booking_patient_status_projections
+--   - phase4_booking_status_notifications
+--
+-- The local command-api implementation currently uses deterministic in-memory stores
+-- for the seq_306 proof harness. The table contract is reserved here so later storage
+-- work can land additively without changing route, replay, or projection semantics.

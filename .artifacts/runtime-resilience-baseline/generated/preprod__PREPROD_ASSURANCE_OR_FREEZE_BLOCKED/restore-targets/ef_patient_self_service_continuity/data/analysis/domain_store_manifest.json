@@ -1,0 +1,734 @@
+{
+  "task_id": "par_085",
+  "generated_at": "2026-04-13T14:51:06+00:00",
+  "captured_on": "2026-04-13",
+  "visual_mode": "Data_Storage_Topology_Atlas",
+  "mission": "Provision the Phase 0 data-plane split that keeps Vecells-first transactional domain truth separate from derived FHIR representation truth, while binding both stores to the runtime topology, trust-zone, encryption, and workload-identity law already frozen in Phase 0.",
+  "runtime_topology_manifest_ref": "data/analysis/runtime_topology_manifest.json",
+  "fhir_store_manifest_ref": "data/analysis/fhir_store_manifest.json",
+  "source_precedence": [
+    "prompt/085.md",
+    "prompt/shared_operating_contract_076_to_085.md",
+    "prompt/AGENT.md",
+    "prompt/checklist.md",
+    "docs/architecture/13_storage_and_persistence_baseline.md",
+    "docs/architecture/13_fhir_representation_and_projection_boundary.md",
+    "docs/architecture/11_region_resilience_and_failover_posture.md",
+    "data/analysis/runtime_topology_manifest.json",
+    "data/analysis/fhir_representation_contract_manifest.json",
+    "blueprint/phase-0-the-foundation-protocol.md#FhirRepresentationContract",
+    "blueprint/phase-0-the-foundation-protocol.md#FhirRepresentationSet",
+    "blueprint/phase-0-the-foundation-protocol.md#FhirResourceRecord",
+    "blueprint/phase-0-the-foundation-protocol.md#FhirExchangeBundle",
+    "blueprint/platform-runtime-and-release-blueprint.md#Data persistence and migration contract",
+    "blueprint/platform-runtime-and-release-blueprint.md#Runtime rules",
+    "blueprint/forensic-audit-findings.md#Findings 43,49,50,51,52,112,113"
+  ],
+  "summary": {
+    "schema_count": 8,
+    "access_policy_count": 4,
+    "environment_realization_count": 5,
+    "store_realization_count": 7,
+    "follow_on_dependency_count": 4,
+    "bootstrap_sql_ref_count": 1
+  },
+  "assumptions": [
+    {
+      "assumption_ref": "ASSUMPTION_085_POSTGRESQL_COMPATIBLE_LOCAL_EMULATION",
+      "value": "dual_postgresql_compatible_relational_instances",
+      "reason": "The storage baseline is relational and provider-neutral; PostgreSQL-compatible local emulation gives realistic schema, transaction, and bootstrap behaviour without locking the repo to a vendor-managed SKU.",
+      "source_refs": [
+        "docs/architecture/13_storage_and_persistence_baseline.md#Store Matrix",
+        "prompt/085.md#Mock_now_execution"
+      ]
+    },
+    {
+      "assumption_ref": "ASSUMPTION_085_FHIR_STORE_REMAINS_RELATIONAL_NOT_VENDOR_FHIR_SERVER",
+      "value": "fhir_rows_in_relational_representation_store",
+      "reason": "Prior tasks froze representation contracts, representation sets, resource records, and exchange bundles as relationally materialized contracts; no ADR requires a vendor FHIR server for Phase 0.",
+      "source_refs": [
+        "data/analysis/fhir_representation_contract_manifest.json",
+        "docs/architecture/13_fhir_representation_and_projection_boundary.md#Rules"
+      ]
+    }
+  ],
+  "follow_on_dependencies": [
+    {
+      "dependency_ref": "FOLLOW_ON_DEPENDENCY_086_OBJECT_STORAGE_ARTIFACT_BYTE_CLASSES",
+      "owning_task_ref": "par_086",
+      "scope": "Artifact bytes, quarantine buckets, and retention classes stay owned by object storage.",
+      "notes": "par_085 provisions only relational domain and FHIR truth layers plus explicit object-store seam refs."
+    },
+    {
+      "dependency_ref": "FOLLOW_ON_DEPENDENCY_087_EVENT_SPINE_PHYSICAL_PERSISTENCE",
+      "owning_task_ref": "par_087",
+      "scope": "Canonical event-log, outbox, inbox, and queue durability remain separate from transactional and FHIR rows.",
+      "notes": "The data-plane split records event-log seams explicitly but does not provision those queues or logs here."
+    },
+    {
+      "dependency_ref": "FOLLOW_ON_DEPENDENCY_095_MIGRATION_RUNNER_AND_PROJECTION_BACKFILL",
+      "owning_task_ref": "par_095",
+      "scope": "Runtime execution of schema migrations and replay/backfill orchestration.",
+      "notes": "par_085 publishes bootstrap SQL and connectivity law; par_095 owns ordered rollout and replay automation."
+    },
+    {
+      "dependency_ref": "FOLLOW_ON_DEPENDENCY_101_BACKUP_RESTORE_JOB_EXECUTION",
+      "owning_task_ref": "par_101",
+      "scope": "Automated PITR, replica verification, and restore drills over these stores.",
+      "notes": "This task makes backup hooks visible but does not execute recurring restore automation."
+    }
+  ],
+  "store_descriptor": {
+    "store_ref": "store_domain_transaction",
+    "data_store_ref": "ds_transactional_domain_authority",
+    "display_name": "Transactional domain authority store",
+    "store_class": "transactional_domain",
+    "engine_family": "postgresql_compatible_relational",
+    "runtime_workload_family_ref": "wf_data_stateful_plane",
+    "trust_zone_ref": "tz_stateful_data",
+    "identifier_namespace_ref": "ns_vecells_domain_aggregate",
+    "tenant_partition_rule": "tenant_tuple_on_every_key_or_record",
+    "browser_reachability": "never",
+    "encryption_posture": {
+      "at_rest": "platform_managed_kms_ready",
+      "in_transit": "private_tls_and_workload_identity_ready"
+    },
+    "bootstrap_sql_refs": [
+      "infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"
+    ],
+    "schema_catalog": [
+      {
+        "schema_ref": "schema_request_control",
+        "display_name": "Request control and lineage",
+        "table_refs": [
+          "submission_envelopes",
+          "submission_promotion_records",
+          "request_lineages",
+          "episodes",
+          "requests"
+        ],
+        "owner_task_refs": [
+          "par_062",
+          "par_066"
+        ]
+      },
+      {
+        "schema_ref": "schema_identity_access",
+        "display_name": "Identity bindings and access grants",
+        "table_refs": [
+          "identity_bindings",
+          "patient_links",
+          "access_grants",
+          "access_grant_redemptions",
+          "access_grant_supersessions"
+        ],
+        "owner_task_refs": [
+          "par_068",
+          "par_078"
+        ]
+      },
+      {
+        "schema_ref": "schema_contact_and_duplicate",
+        "display_name": "Reachability, duplicate review, and repair",
+        "table_refs": [
+          "contact_route_snapshots",
+          "reachability_observations",
+          "duplicate_clusters",
+          "duplicate_pair_evidence"
+        ],
+        "owner_task_refs": [
+          "par_069",
+          "par_070",
+          "par_080"
+        ]
+      },
+      {
+        "schema_ref": "schema_mutation_control",
+        "display_name": "Mutation gates, leases, and settlements",
+        "table_refs": [
+          "request_lifecycle_leases",
+          "lineage_fences",
+          "command_action_records",
+          "command_settlement_records"
+        ],
+        "owner_task_refs": [
+          "par_071",
+          "par_072"
+        ]
+      },
+      {
+        "schema_ref": "schema_queue_and_reservation",
+        "display_name": "Queue ranking and reservation authority",
+        "table_refs": [
+          "queue_rank_plans",
+          "queue_rank_snapshots",
+          "reservation_fence_records",
+          "capacity_reservations",
+          "external_confirmation_gates"
+        ],
+        "owner_task_refs": [
+          "par_073",
+          "par_074",
+          "par_081"
+        ]
+      },
+      {
+        "schema_ref": "schema_release_and_closure",
+        "display_name": "Release trust, closure, and lifecycle control",
+        "table_refs": [
+          "request_closure_records",
+          "release_approval_freezes",
+          "channel_release_freezes",
+          "assurance_slice_trust_records"
+        ],
+        "owner_task_refs": [
+          "par_075",
+          "par_076",
+          "par_077"
+        ]
+      },
+      {
+        "schema_ref": "schema_evidence_and_safety",
+        "display_name": "Evidence backbone and safety assimilation",
+        "table_refs": [
+          "evidence_capture_bundles",
+          "evidence_derivation_packages",
+          "evidence_snapshots",
+          "safety_assimilation_runs"
+        ],
+        "owner_task_refs": [
+          "par_063",
+          "par_079"
+        ]
+      },
+      {
+        "schema_ref": "schema_operational_metadata",
+        "display_name": "Bootstrap metadata and migration bookkeeping",
+        "table_refs": [
+          "schema_migration_history",
+          "runtime_store_manifest_publications",
+          "tenant_slice_registry"
+        ],
+        "owner_task_refs": [
+          "par_085",
+          "par_095"
+        ]
+      }
+    ],
+    "source_refs": [
+      "docs/architecture/13_storage_and_persistence_baseline.md#Store Matrix",
+      "docs/architecture/13_fhir_representation_and_projection_boundary.md#Rules",
+      "prompt/085.md#At minimum, implement these authoritative capabilities"
+    ]
+  },
+  "access_policies": [
+    {
+      "policy_ref": "ap_domain_command_writer",
+      "access_posture": "command_write",
+      "service_identity_ref": "sid_command_api",
+      "access_mode": "read_write",
+      "allowed_operations": [
+        "aggregate_write",
+        "settlement_persist",
+        "blocker_freeze",
+        "schema_bootstrap_read"
+      ],
+      "notes": "Command API remains the only direct writer of canonical lifecycle truth."
+    },
+    {
+      "policy_ref": "ap_domain_assurance_reader",
+      "access_posture": "assurance_read",
+      "service_identity_ref": "sid_assurance_control",
+      "access_mode": "read_only",
+      "allowed_operations": [
+        "restore_evidence_read",
+        "closure_diagnostic_read",
+        "lease_drift_review"
+      ],
+      "notes": "Assurance surfaces may inspect truth for restore and governance evidence only."
+    },
+    {
+      "policy_ref": "ap_domain_projection_blocked",
+      "access_posture": "internal_only",
+      "service_identity_ref": "sid_projection_worker",
+      "access_mode": "blocked",
+      "allowed_operations": [],
+      "notes": "Projection worker rebuilds from canonical events and published contracts, not direct domain-row joins."
+    },
+    {
+      "policy_ref": "ap_domain_integration_blocked",
+      "access_posture": "internal_only",
+      "service_identity_ref": "sid_integration_dispatch",
+      "access_mode": "blocked",
+      "allowed_operations": [],
+      "notes": "Integration dispatch may not persist or read raw transactional truth outside the command seam."
+    }
+  ],
+  "environment_realizations": [
+    {
+      "environment_ring": "local",
+      "environment_label": "Local",
+      "publication_state": "simulator_safe_and_private",
+      "region_placements": [
+        {
+          "region_ref": "local_nonprod",
+          "uk_region_role": "nonprod_local",
+          "store_realization_id": "domain-local-nonprod_local",
+          "network_ref": "net_local_local_nonprod",
+          "segment_ref": "seg_local_local_nonprod_data_stateful_plane",
+          "subnet_cidr": "10.240.80.0/24",
+          "endpoint_ref": "domain-local-nonprod_local.internal.vecells",
+          "binding_state": "writable_authority",
+          "access_posture": "command_write",
+          "bootstrap_sql_refs": [
+            "infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"
+          ]
+        }
+      ]
+    },
+    {
+      "environment_ring": "ci-preview",
+      "environment_label": "CI preview",
+      "publication_state": "simulator_safe_and_private",
+      "region_placements": [
+        {
+          "region_ref": "uk_primary_region",
+          "uk_region_role": "primary",
+          "store_realization_id": "domain-ci-preview-primary",
+          "network_ref": "net_ci-preview_uk_primary_region",
+          "segment_ref": "seg_ci-preview_uk_primary_region_data_stateful_plane",
+          "subnet_cidr": "10.24.80.0/24",
+          "endpoint_ref": "domain-ci-preview-primary.internal.vecells",
+          "binding_state": "writable_authority",
+          "access_posture": "command_write",
+          "bootstrap_sql_refs": [
+            "infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"
+          ]
+        }
+      ]
+    },
+    {
+      "environment_ring": "integration",
+      "environment_label": "Integration",
+      "publication_state": "simulator_safe_and_private",
+      "region_placements": [
+        {
+          "region_ref": "uk_primary_region",
+          "uk_region_role": "primary",
+          "store_realization_id": "domain-integration-primary",
+          "network_ref": "net_integration_uk_primary_region",
+          "segment_ref": "seg_integration_uk_primary_region_data_stateful_plane",
+          "subnet_cidr": "10.25.80.0/24",
+          "endpoint_ref": "domain-integration-primary.internal.vecells",
+          "binding_state": "writable_authority",
+          "access_posture": "command_write",
+          "bootstrap_sql_refs": [
+            "infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"
+          ]
+        }
+      ]
+    },
+    {
+      "environment_ring": "preprod",
+      "environment_label": "Preprod",
+      "publication_state": "simulator_safe_and_private",
+      "region_placements": [
+        {
+          "region_ref": "uk_primary_region",
+          "uk_region_role": "primary",
+          "store_realization_id": "domain-preprod-primary",
+          "network_ref": "net_preprod_uk_primary_region",
+          "segment_ref": "seg_preprod_uk_primary_region_data_stateful_plane",
+          "subnet_cidr": "10.26.80.0/24",
+          "endpoint_ref": "domain-preprod-primary.internal.vecells",
+          "binding_state": "writable_authority",
+          "access_posture": "command_write",
+          "bootstrap_sql_refs": [
+            "infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"
+          ]
+        },
+        {
+          "region_ref": "uk_secondary_region",
+          "uk_region_role": "secondary",
+          "store_realization_id": "domain-preprod-secondary",
+          "network_ref": "net_preprod_uk_secondary_region",
+          "segment_ref": "seg_preprod_uk_secondary_region_data_stateful_plane",
+          "subnet_cidr": "10.27.80.0/24",
+          "endpoint_ref": "domain-preprod-secondary.internal.vecells",
+          "binding_state": "warm_standby",
+          "access_posture": "internal_only",
+          "bootstrap_sql_refs": [
+            "infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"
+          ]
+        }
+      ]
+    },
+    {
+      "environment_ring": "production",
+      "environment_label": "Production",
+      "publication_state": "simulator_safe_and_private",
+      "region_placements": [
+        {
+          "region_ref": "uk_primary_region",
+          "uk_region_role": "primary",
+          "store_realization_id": "domain-production-primary",
+          "network_ref": "net_production_uk_primary_region",
+          "segment_ref": "seg_production_uk_primary_region_data_stateful_plane",
+          "subnet_cidr": "10.28.80.0/24",
+          "endpoint_ref": "domain-production-primary.internal.vecells",
+          "binding_state": "writable_authority",
+          "access_posture": "command_write",
+          "bootstrap_sql_refs": [
+            "infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"
+          ]
+        },
+        {
+          "region_ref": "uk_secondary_region",
+          "uk_region_role": "secondary",
+          "store_realization_id": "domain-production-secondary",
+          "network_ref": "net_production_uk_secondary_region",
+          "segment_ref": "seg_production_uk_secondary_region_data_stateful_plane",
+          "subnet_cidr": "10.29.80.0/24",
+          "endpoint_ref": "domain-production-secondary.internal.vecells",
+          "binding_state": "warm_standby",
+          "access_posture": "internal_only",
+          "bootstrap_sql_refs": [
+            "infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"
+          ]
+        }
+      ]
+    }
+  ],
+  "store_realizations": [
+    {
+      "store_realization_id": "domain-local-nonprod_local",
+      "store_family": "domain",
+      "environment_ring": "local",
+      "environment_label": "Local",
+      "region_ref": "local_nonprod",
+      "uk_region_role": "nonprod_local",
+      "runtime_workload_family_id": "rwf_local_nonprod_local_data_stateful_plane",
+      "runtime_workload_family_ref": "wf_data_stateful_plane",
+      "trust_zone_ref": "tz_stateful_data",
+      "network_ref": "net_local_local_nonprod",
+      "segment_ref": "seg_local_local_nonprod_data_stateful_plane",
+      "subnet_cidr": "10.240.80.0/24",
+      "network_policy_ref": "np_data_stateful_plane",
+      "route_domain_ref": "rd_stateful_data",
+      "service_identity_ref": "sid_data_plane",
+      "egress_allowlist_ref": "eal_data_internal_only",
+      "binding_state": "writable_authority",
+      "access_posture": "command_write",
+      "display_name": "Local nonprod_local domain authority",
+      "endpoint_ref": "domain-local-nonprod_local.internal.vecells",
+      "bootstrap_sql_refs": [
+        "infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"
+      ],
+      "allowed_policy_refs": [
+        "ap_domain_command_writer",
+        "ap_domain_assurance_reader"
+      ],
+      "blocked_service_identity_refs": [
+        "sid_public_edge_proxy",
+        "sid_published_gateway",
+        "sid_projection_worker",
+        "sid_integration_dispatch",
+        "browser"
+      ],
+      "tenant_isolation_mode": "tenant_tuple_enforced_storage_partition",
+      "encryption_profile_ref": "enc_postgresql_kms_ready_at_rest",
+      "connectivity_mode": "private_identity_ready_tls",
+      "continuity_posture": "canonical_write_authority",
+      "bootstrap_health": "bootstrap_ready",
+      "source_refs": [
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings",
+        "blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract",
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families",
+        "blueprint/blueprint-init.md#12. Practical engineering shape"
+      ]
+    },
+    {
+      "store_realization_id": "domain-ci-preview-primary",
+      "store_family": "domain",
+      "environment_ring": "ci-preview",
+      "environment_label": "CI preview",
+      "region_ref": "uk_primary_region",
+      "uk_region_role": "primary",
+      "runtime_workload_family_id": "rwf_ci_preview_primary_data_stateful_plane",
+      "runtime_workload_family_ref": "wf_data_stateful_plane",
+      "trust_zone_ref": "tz_stateful_data",
+      "network_ref": "net_ci-preview_uk_primary_region",
+      "segment_ref": "seg_ci-preview_uk_primary_region_data_stateful_plane",
+      "subnet_cidr": "10.24.80.0/24",
+      "network_policy_ref": "np_data_stateful_plane",
+      "route_domain_ref": "rd_stateful_data",
+      "service_identity_ref": "sid_data_plane",
+      "egress_allowlist_ref": "eal_data_internal_only",
+      "binding_state": "writable_authority",
+      "access_posture": "command_write",
+      "display_name": "CI preview primary domain authority",
+      "endpoint_ref": "domain-ci-preview-primary.internal.vecells",
+      "bootstrap_sql_refs": [
+        "infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"
+      ],
+      "allowed_policy_refs": [
+        "ap_domain_command_writer",
+        "ap_domain_assurance_reader"
+      ],
+      "blocked_service_identity_refs": [
+        "sid_public_edge_proxy",
+        "sid_published_gateway",
+        "sid_projection_worker",
+        "sid_integration_dispatch",
+        "browser"
+      ],
+      "tenant_isolation_mode": "tenant_tuple_enforced_storage_partition",
+      "encryption_profile_ref": "enc_postgresql_kms_ready_at_rest",
+      "connectivity_mode": "private_identity_ready_tls",
+      "continuity_posture": "canonical_write_authority",
+      "bootstrap_health": "bootstrap_ready",
+      "source_refs": [
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings",
+        "blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract",
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families",
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Pipeline Stage Chain"
+      ]
+    },
+    {
+      "store_realization_id": "domain-integration-primary",
+      "store_family": "domain",
+      "environment_ring": "integration",
+      "environment_label": "Integration",
+      "region_ref": "uk_primary_region",
+      "uk_region_role": "primary",
+      "runtime_workload_family_id": "rwf_integration_primary_data_stateful_plane",
+      "runtime_workload_family_ref": "wf_data_stateful_plane",
+      "trust_zone_ref": "tz_stateful_data",
+      "network_ref": "net_integration_uk_primary_region",
+      "segment_ref": "seg_integration_uk_primary_region_data_stateful_plane",
+      "subnet_cidr": "10.25.80.0/24",
+      "network_policy_ref": "np_data_stateful_plane",
+      "route_domain_ref": "rd_stateful_data",
+      "service_identity_ref": "sid_data_plane",
+      "egress_allowlist_ref": "eal_data_internal_only",
+      "binding_state": "writable_authority",
+      "access_posture": "command_write",
+      "display_name": "Integration primary domain authority",
+      "endpoint_ref": "domain-integration-primary.internal.vecells",
+      "bootstrap_sql_refs": [
+        "infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"
+      ],
+      "allowed_policy_refs": [
+        "ap_domain_command_writer",
+        "ap_domain_assurance_reader"
+      ],
+      "blocked_service_identity_refs": [
+        "sid_public_edge_proxy",
+        "sid_published_gateway",
+        "sid_projection_worker",
+        "sid_integration_dispatch",
+        "browser"
+      ],
+      "tenant_isolation_mode": "tenant_tuple_enforced_storage_partition",
+      "encryption_profile_ref": "enc_postgresql_kms_ready_at_rest",
+      "connectivity_mode": "private_identity_ready_tls",
+      "continuity_posture": "canonical_write_authority",
+      "bootstrap_health": "bootstrap_ready",
+      "source_refs": [
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings",
+        "blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract",
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families",
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Pipeline Stage Chain"
+      ]
+    },
+    {
+      "store_realization_id": "domain-preprod-primary",
+      "store_family": "domain",
+      "environment_ring": "preprod",
+      "environment_label": "Preprod",
+      "region_ref": "uk_primary_region",
+      "uk_region_role": "primary",
+      "runtime_workload_family_id": "rwf_preprod_primary_data_stateful_plane",
+      "runtime_workload_family_ref": "wf_data_stateful_plane",
+      "trust_zone_ref": "tz_stateful_data",
+      "network_ref": "net_preprod_uk_primary_region",
+      "segment_ref": "seg_preprod_uk_primary_region_data_stateful_plane",
+      "subnet_cidr": "10.26.80.0/24",
+      "network_policy_ref": "np_data_stateful_plane",
+      "route_domain_ref": "rd_stateful_data",
+      "service_identity_ref": "sid_data_plane",
+      "egress_allowlist_ref": "eal_data_internal_only",
+      "binding_state": "writable_authority",
+      "access_posture": "command_write",
+      "display_name": "Preprod primary domain authority",
+      "endpoint_ref": "domain-preprod-primary.internal.vecells",
+      "bootstrap_sql_refs": [
+        "infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"
+      ],
+      "allowed_policy_refs": [
+        "ap_domain_command_writer",
+        "ap_domain_assurance_reader"
+      ],
+      "blocked_service_identity_refs": [
+        "sid_public_edge_proxy",
+        "sid_published_gateway",
+        "sid_projection_worker",
+        "sid_integration_dispatch",
+        "browser"
+      ],
+      "tenant_isolation_mode": "tenant_tuple_enforced_storage_partition",
+      "encryption_profile_ref": "enc_postgresql_kms_ready_at_rest",
+      "connectivity_mode": "private_identity_ready_tls",
+      "continuity_posture": "canonical_write_authority",
+      "bootstrap_health": "bootstrap_ready",
+      "source_refs": [
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings",
+        "blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract",
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families",
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings"
+      ]
+    },
+    {
+      "store_realization_id": "domain-preprod-secondary",
+      "store_family": "domain",
+      "environment_ring": "preprod",
+      "environment_label": "Preprod",
+      "region_ref": "uk_secondary_region",
+      "uk_region_role": "secondary",
+      "runtime_workload_family_id": "rwf_preprod_secondary_data_stateful_plane",
+      "runtime_workload_family_ref": "wf_data_stateful_plane",
+      "trust_zone_ref": "tz_stateful_data",
+      "network_ref": "net_preprod_uk_secondary_region",
+      "segment_ref": "seg_preprod_uk_secondary_region_data_stateful_plane",
+      "subnet_cidr": "10.27.80.0/24",
+      "network_policy_ref": "np_data_stateful_plane",
+      "route_domain_ref": "rd_stateful_data",
+      "service_identity_ref": "sid_data_plane",
+      "egress_allowlist_ref": "eal_data_internal_only",
+      "binding_state": "warm_standby",
+      "access_posture": "internal_only",
+      "display_name": "Preprod secondary domain authority",
+      "endpoint_ref": "domain-preprod-secondary.internal.vecells",
+      "bootstrap_sql_refs": [
+        "infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"
+      ],
+      "allowed_policy_refs": [
+        "ap_domain_command_writer",
+        "ap_domain_assurance_reader"
+      ],
+      "blocked_service_identity_refs": [
+        "sid_public_edge_proxy",
+        "sid_published_gateway",
+        "sid_projection_worker",
+        "sid_integration_dispatch",
+        "browser"
+      ],
+      "tenant_isolation_mode": "tenant_tuple_enforced_storage_partition",
+      "encryption_profile_ref": "enc_postgresql_kms_ready_at_rest",
+      "connectivity_mode": "private_identity_ready_tls",
+      "continuity_posture": "warm_replica_read_only_until_restore_tuple_exact",
+      "bootstrap_health": "bootstrap_ready",
+      "source_refs": [
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings",
+        "blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract",
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families",
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings"
+      ]
+    },
+    {
+      "store_realization_id": "domain-production-primary",
+      "store_family": "domain",
+      "environment_ring": "production",
+      "environment_label": "Production",
+      "region_ref": "uk_primary_region",
+      "uk_region_role": "primary",
+      "runtime_workload_family_id": "rwf_production_primary_data_stateful_plane",
+      "runtime_workload_family_ref": "wf_data_stateful_plane",
+      "trust_zone_ref": "tz_stateful_data",
+      "network_ref": "net_production_uk_primary_region",
+      "segment_ref": "seg_production_uk_primary_region_data_stateful_plane",
+      "subnet_cidr": "10.28.80.0/24",
+      "network_policy_ref": "np_data_stateful_plane",
+      "route_domain_ref": "rd_stateful_data",
+      "service_identity_ref": "sid_data_plane",
+      "egress_allowlist_ref": "eal_data_internal_only",
+      "binding_state": "writable_authority",
+      "access_posture": "command_write",
+      "display_name": "Production primary domain authority",
+      "endpoint_ref": "domain-production-primary.internal.vecells",
+      "bootstrap_sql_refs": [
+        "infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"
+      ],
+      "allowed_policy_refs": [
+        "ap_domain_command_writer",
+        "ap_domain_assurance_reader"
+      ],
+      "blocked_service_identity_refs": [
+        "sid_public_edge_proxy",
+        "sid_published_gateway",
+        "sid_projection_worker",
+        "sid_integration_dispatch",
+        "browser"
+      ],
+      "tenant_isolation_mode": "tenant_tuple_enforced_storage_partition",
+      "encryption_profile_ref": "enc_postgresql_kms_ready_at_rest",
+      "connectivity_mode": "private_identity_ready_tls",
+      "continuity_posture": "canonical_write_authority",
+      "bootstrap_health": "bootstrap_ready",
+      "source_refs": [
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings",
+        "blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract",
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families",
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Supply Chain Law"
+      ]
+    },
+    {
+      "store_realization_id": "domain-production-secondary",
+      "store_family": "domain",
+      "environment_ring": "production",
+      "environment_label": "Production",
+      "region_ref": "uk_secondary_region",
+      "uk_region_role": "secondary",
+      "runtime_workload_family_id": "rwf_production_secondary_data_stateful_plane",
+      "runtime_workload_family_ref": "wf_data_stateful_plane",
+      "trust_zone_ref": "tz_stateful_data",
+      "network_ref": "net_production_uk_secondary_region",
+      "segment_ref": "seg_production_uk_secondary_region_data_stateful_plane",
+      "subnet_cidr": "10.29.80.0/24",
+      "network_policy_ref": "np_data_stateful_plane",
+      "route_domain_ref": "rd_stateful_data",
+      "service_identity_ref": "sid_data_plane",
+      "egress_allowlist_ref": "eal_data_internal_only",
+      "binding_state": "warm_standby",
+      "access_posture": "internal_only",
+      "display_name": "Production secondary domain authority",
+      "endpoint_ref": "domain-production-secondary.internal.vecells",
+      "bootstrap_sql_refs": [
+        "infra/data-storage/bootstrap/001_domain_transaction_bootstrap.sql"
+      ],
+      "allowed_policy_refs": [
+        "ap_domain_command_writer",
+        "ap_domain_assurance_reader"
+      ],
+      "blocked_service_identity_refs": [
+        "sid_public_edge_proxy",
+        "sid_published_gateway",
+        "sid_projection_worker",
+        "sid_integration_dispatch",
+        "browser"
+      ],
+      "tenant_isolation_mode": "tenant_tuple_enforced_storage_partition",
+      "encryption_profile_ref": "enc_postgresql_kms_ready_at_rest",
+      "connectivity_mode": "private_identity_ready_tls",
+      "continuity_posture": "warm_replica_read_only_until_restore_tuple_exact",
+      "bootstrap_health": "bootstrap_ready",
+      "source_refs": [
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Required Object Bindings",
+        "blueprint/platform-runtime-and-release-blueprint.md#Runtime topology contract",
+        "docs/architecture/11_trust_zone_and_workload_family_strategy.md#Workload Families",
+        "docs/architecture/15_release_and_supply_chain_tooling_baseline.md#Supply Chain Law"
+      ]
+    }
+  ],
+  "store_tuple_hash": "68262da66d11fc7a"
+}

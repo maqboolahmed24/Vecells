@@ -1,0 +1,50 @@
+flowchart LR
+    subgraph Ingress["Ingress And Contract Boundary"]
+        A["API Gateway / BFF"]
+    end
+
+    subgraph Command["Authoritative Command Plane"]
+        B["Command API"]
+        C["Transactional Domain Store"]
+        D["Durable Command Outbox"]
+    end
+
+    subgraph Effects["External Effect And Timer Plane"]
+        E["Integration Worker"]
+        F["Notification Worker"]
+        G["Timer Orchestrator"]
+        H["Receipt Inbox"]
+        I["Normalization Quarantine"]
+    end
+
+    subgraph Read["Read And Derived Stores"]
+        J["Canonical Event Spine"]
+        K["Projection Worker"]
+        L["Projection Read Store"]
+        M["FHIR Representation Store"]
+        N["Artifact Object Store"]
+    end
+
+    subgraph Assurance["Assurance And Witness"]
+        O["Assurance Worker"]
+        P["WORM Audit Ledger"]
+    end
+
+    A -->|"RouteIntentBinding + MutationCommandContract"| B
+    B -->|"Aggregate + settlement writes"| C
+    B -->|"effect key + action refs"| D
+    B -->|"canonical envelopes"| J
+    D -->|"dispatch only from durable queue"| E
+    D -->|"communication dispatch"| F
+    G -->|"governed wakeups -> commands"| B
+    E -->|"supplier / transport egress"| H
+    F -->|"message / callback egress"| H
+    H -->|"accepted receipts only"| B
+    H -->|"bad producer or divergent replay"| I
+    J -->|"rebuild and projection apply"| K
+    K -->|"audience-safe reads"| L
+    B -->|"published mapping contracts"| M
+    B -->|"artifact refs only"| N
+    J -->|"analytics / audit witness"| O
+    O -->|"tamper-evident witness"| P
+    I -->|"review and quarantine audit"| O

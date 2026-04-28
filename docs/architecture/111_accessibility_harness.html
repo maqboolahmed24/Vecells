@@ -1,0 +1,881 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>111 Accessibility Harness</title>
+    <link rel="stylesheet" href="../../packages/design-system/src/foundation.css" />
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at top left, color-mix(in oklab, var(--sys-surface-inset) 78%, transparent), transparent 36%),
+          linear-gradient(
+            180deg,
+            color-mix(in oklab, var(--sys-surface-canvas) 95%, white),
+            var(--sys-surface-canvas)
+          );
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      .deck-shell {
+        max-width: 1720px;
+        margin: 0 auto;
+        padding: 24px;
+        display: grid;
+        gap: 24px;
+      }
+
+      .deck-panel,
+      .deck-masthead,
+      .deck-mode-strip {
+        border-radius: 24px;
+        border: 1px solid var(--sys-border-subtle);
+        background: color-mix(in oklab, var(--sys-surface-panel) 94%, white);
+        box-shadow: var(--shadow-z1);
+      }
+
+      .deck-masthead {
+        padding: 24px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .deck-chip-row,
+      .deck-kpi-row,
+      .deck-action-row,
+      .deck-button-row,
+      .deck-mode-options,
+      .deck-focus-trail,
+      .deck-keyboard-keys {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .deck-chip,
+      .deck-kpi,
+      .deck-pill,
+      .deck-key {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid var(--sys-border-default);
+        background: var(--sys-surface-shell);
+        color: var(--sys-text-default);
+      }
+
+      .deck-layout {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr) minmax(360px, 400px);
+        gap: 24px;
+        align-items: start;
+      }
+
+      .deck-shell[data-layout-mode="stacked"] .deck-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .deck-rail,
+      .deck-stage,
+      .deck-verification {
+        display: grid;
+        gap: 16px;
+      }
+
+      .deck-rail {
+        position: sticky;
+        top: 24px;
+      }
+
+      .deck-panel {
+        padding: 20px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .deck-scenario-buttons,
+      .deck-target-grid,
+      .deck-verification-grid,
+      .deck-two-column,
+      .deck-mode-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .deck-mode-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .deck-shell[data-layout-mode="stacked"] .deck-mode-grid,
+      .deck-shell[data-layout-mode="stacked"] .deck-two-column {
+        grid-template-columns: 1fr;
+      }
+
+      .deck-two-column {
+        grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+      }
+
+      .deck-scenario-button,
+      .deck-action-button,
+      .deck-mode-button,
+      .deck-target-button {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 16px;
+        border: 1px solid var(--sys-border-default);
+        background: var(--sys-surface-shell);
+        color: var(--sys-text-default);
+        text-align: left;
+        font: inherit;
+      }
+
+      .deck-scenario-button,
+      .deck-action-button,
+      .deck-mode-button {
+        cursor: pointer;
+      }
+
+      .deck-scenario-button[aria-pressed="true"],
+      .deck-mode-button[data-selected="true"],
+      .deck-target-button[data-current="true"] {
+        border-color: var(--sys-state-active-border);
+        background: color-mix(in oklab, var(--sys-surface-shell) 78%, var(--sys-state-active-soft));
+        color: var(--sys-text-strong);
+        box-shadow: var(--shadow-z1);
+      }
+
+      .deck-target-button {
+        display: grid;
+        gap: 4px;
+      }
+
+      .deck-target-button[data-previous="true"] {
+        border-style: dashed;
+      }
+
+      .deck-copy-stack,
+      .deck-summary-card,
+      .deck-visual-card,
+      .deck-verification-card,
+      .deck-transcript-row,
+      .deck-focus-causal,
+      .deck-chart,
+      .deck-table-wrap,
+      .deck-placeholder {
+        display: grid;
+        gap: 10px;
+        padding: 16px;
+        border-radius: 18px;
+        border: 1px solid var(--sys-border-subtle);
+        background: var(--sys-surface-shell);
+      }
+
+      .deck-copy-stack h1,
+      .deck-copy-stack h2,
+      .deck-copy-stack h3,
+      .deck-copy-stack p,
+      .deck-summary-card h2,
+      .deck-summary-card p,
+      .deck-verification-card h2,
+      .deck-verification-card p,
+      .deck-verification-card h3,
+      .deck-visual-card h2,
+      .deck-visual-card p {
+        margin: 0;
+      }
+
+      .deck-stage-shell {
+        display: grid;
+        gap: 18px;
+      }
+
+      .deck-live-region {
+        min-height: 64px;
+      }
+
+      .deck-visual-card[data-parity-state="table_only"] .deck-chart,
+      .deck-visual-card[data-parity-state="summary_only"] .deck-chart,
+      .deck-visual-card[data-parity-state="summary_only"] .deck-table-wrap,
+      .deck-visual-card[data-parity-state="placeholder"] .deck-chart,
+      .deck-visual-card[data-parity-state="placeholder"] .deck-table-wrap,
+      .deck-visual-card[data-parity-state="placeholder"] .deck-summary-card {
+        display: none;
+      }
+
+      .deck-visual-card[data-parity-state="visual_table_summary"] .deck-placeholder,
+      .deck-visual-card[data-parity-state="table_only"] .deck-placeholder,
+      .deck-visual-card[data-parity-state="summary_only"] .deck-placeholder {
+        display: none;
+      }
+
+      .deck-chart-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .deck-chart-bar {
+        min-height: 116px;
+        border-radius: 14px;
+        border: 1px solid var(--sys-border-subtle);
+        background:
+          linear-gradient(
+            180deg,
+            color-mix(in oklab, var(--sys-state-active-soft) 70%, white),
+            color-mix(in oklab, var(--sys-surface-inset) 82%, white)
+          );
+        display: grid;
+        align-content: end;
+        padding: 12px;
+      }
+
+      .deck-chart-bar strong {
+        color: var(--sys-text-strong);
+      }
+
+      .deck-visual-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .deck-visual-table th,
+      .deck-visual-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--sys-border-subtle);
+        text-align: left;
+      }
+
+      .deck-visual-table th {
+        font-size: 12px;
+        line-height: 16px;
+      }
+
+      .deck-transcript-row[data-status="current"] {
+        border-color: var(--sys-state-active-border);
+      }
+
+      .deck-transcript-row[data-status="suppressed"] {
+        opacity: 0.72;
+      }
+
+      .deck-transcript-row[data-status="deduplicated"] {
+        border-style: dashed;
+      }
+
+      .deck-transcript-row[data-status="superseded"] {
+        color: var(--sys-text-muted);
+      }
+
+      .deck-meta-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .deck-shell[data-layout-mode="stacked"] .deck-meta-grid,
+      .deck-shell[data-layout-mode="stacked"] .deck-chart-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .deck-mode-strip {
+        padding: 18px 20px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .deck-mode-group {
+        display: grid;
+        gap: 10px;
+      }
+
+      .deck-shell[data-motion-mode="reduced"] * {
+        transition-duration: 1ms !important;
+        animation-duration: 1ms !important;
+      }
+
+      .deck-shell[data-zoom-mode="400"] .deck-copy-stack,
+      .deck-shell[data-zoom-mode="400"] .deck-panel,
+      .deck-shell[data-zoom-mode="400"] .deck-mode-strip {
+        scroll-margin-top: 24px;
+      }
+
+      @media (max-width: 1280px) {
+        .deck-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .deck-rail {
+          position: static;
+        }
+
+        .deck-mode-grid,
+        .deck-two-column,
+        .deck-chart-grid,
+        .deck-meta-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main
+      class="deck-shell"
+      data-testid="accessibility-harness-root"
+      data-current-focus-target=""
+      data-announcement-authority=""
+      data-parity-state=""
+      data-layout-mode="wide"
+      data-motion-mode="standard"
+      data-breakpoint="expanded"
+      data-zoom-mode="100"
+    >
+      <section class="deck-masthead" data-testid="harness-masthead">
+        <div class="deck-copy-stack">
+          <span class="foundation-kicker">Signal Atlas Live</span>
+          <h1>Accessibility Control Deck</h1>
+          <p>
+            One shared workstation for semantic coverage, focus law, announcement truth,
+            and visualization fallback proof.
+          </p>
+        </div>
+        <div class="deck-chip-row">
+          <span class="deck-chip">par_111</span>
+          <span class="deck-chip">Accessibility_Control_Deck</span>
+          <span class="deck-chip">Keyboard + focus + parity</span>
+        </div>
+        <div class="deck-kpi-row" id="deck-kpis"></div>
+      </section>
+
+      <section class="deck-layout">
+        <aside class="deck-rail" data-testid="scenario-rail">
+          <section class="deck-panel">
+            <div class="deck-copy-stack">
+              <span class="foundation-kicker">Scenario rail</span>
+              <h2>Route specimens</h2>
+              <p>Select a shared route-family scenario and drive it with keyboard-only controls.</p>
+            </div>
+            <div class="deck-scenario-buttons" id="scenario-buttons"></div>
+          </section>
+        </aside>
+
+        <section class="deck-stage" data-testid="live-specimen-pane">
+          <section class="deck-panel deck-stage-shell" data-testid="specimen-shell">
+            <div class="deck-copy-stack">
+              <span class="foundation-kicker" id="scenario-kicker">Scenario</span>
+              <h2 id="scenario-title">Loading scenario</h2>
+              <p id="scenario-description"></p>
+            </div>
+
+            <div class="deck-action-row" data-testid="action-row">
+              <button class="deck-action-button" data-trigger="same_shell_refresh" data-testid="trigger-same_shell_refresh">
+                Refresh in shell
+              </button>
+              <button class="deck-action-button" data-trigger="buffered_update" data-testid="trigger-buffered_update">
+                Buffered update
+              </button>
+              <button class="deck-action-button" data-trigger="mission_stack_fold" data-testid="trigger-mission_stack_fold">
+                Fold mission stack
+              </button>
+              <button class="deck-action-button" data-trigger="mission_stack_unfold" data-testid="trigger-mission_stack_unfold">
+                Unfold mission stack
+              </button>
+              <button class="deck-action-button" data-trigger="restore" data-testid="trigger-restore">
+                Restore focus
+              </button>
+              <button class="deck-action-button" data-trigger="invalidation" data-testid="trigger-invalidation">
+                Invalidate target
+              </button>
+              <button class="deck-action-button" data-trigger="recovery_return" data-testid="trigger-recovery_return">
+                Recovery return
+              </button>
+              <button class="deck-action-button" id="toggle-parity" data-testid="toggle-parity-fallback">
+                Toggle parity fallback
+              </button>
+            </div>
+
+            <div class="deck-two-column">
+              <section class="deck-summary-card" data-testid="specimen-summary">
+                <div class="deck-copy-stack">
+                  <span class="foundation-kicker">Summary-first shell</span>
+                  <h3 id="summary-title">Summary</h3>
+                  <p id="summary-sentence"></p>
+                </div>
+                <div class="deck-target-grid" id="focus-targets"></div>
+                <div class="deck-focus-causal" data-testid="focus-trail">
+                  <strong>Focus causal trail</strong>
+                  <div class="deck-focus-trail">
+                    <span class="deck-pill" id="previous-focus-pill">Previous</span>
+                    <span class="deck-pill" id="current-focus-pill">Current</span>
+                  </div>
+                  <p id="focus-explanation"></p>
+                </div>
+              </section>
+
+              <section
+                class="deck-visual-card"
+                data-testid="parity-panel"
+                data-parity-state="visual_table_summary"
+              >
+                <div class="deck-copy-stack">
+                  <span class="foundation-kicker">Visualization parity</span>
+                  <h3 id="parity-title">Parity</h3>
+                  <p id="parity-explanation"></p>
+                </div>
+                <div class="deck-chart" data-testid="visualization-chart">
+                  <strong id="chart-label">Chart</strong>
+                  <div class="deck-chart-grid" id="chart-grid"></div>
+                </div>
+                <div class="deck-table-wrap" data-testid="visualization-table">
+                  <strong id="table-label">Table</strong>
+                  <table class="deck-visual-table">
+                    <thead>
+                      <tr>
+                        <th>Metric</th>
+                        <th>Current</th>
+                        <th>Fallback</th>
+                      </tr>
+                    </thead>
+                    <tbody id="visualization-table-body"></tbody>
+                  </table>
+                </div>
+                <div class="deck-placeholder" data-testid="visualization-placeholder">
+                  <strong>Placeholder posture</strong>
+                  <p>The harness has withdrawn the visual and table surfaces because the tuple cannot be proved.</p>
+                </div>
+              </section>
+            </div>
+          </section>
+        </section>
+
+        <aside class="deck-verification" data-testid="verification-pane">
+          <section class="deck-panel">
+            <div class="deck-copy-stack">
+              <span class="foundation-kicker">Semantic verification</span>
+              <h2>Inspector</h2>
+            </div>
+            <div class="deck-verification-grid">
+              <section class="deck-verification-card" data-testid="landmark-tree">
+                <strong>Landmark tree</strong>
+                <ul id="landmark-tree-list"></ul>
+              </section>
+              <section class="deck-verification-card" data-testid="heading-order">
+                <strong>Heading order</strong>
+                <ol id="heading-order-list"></ol>
+              </section>
+              <section class="deck-verification-card" data-testid="current-focus-target">
+                <strong>Current focus target</strong>
+                <div class="deck-meta-grid">
+                  <span class="deck-pill" id="focus-target-name">Target</span>
+                  <span class="deck-pill" id="focus-target-role">Role</span>
+                </div>
+                <p id="focus-contract-label"></p>
+              </section>
+              <section class="deck-verification-card" data-testid="keyboard-model-panel">
+                <strong>Keyboard model</strong>
+                <div class="deck-keyboard-keys" id="keyboard-keys"></div>
+                <p id="keyboard-narrative"></p>
+              </section>
+              <section class="deck-verification-card" data-testid="transcript-panel">
+                <strong>Announcement transcript</strong>
+                <div class="deck-copy-stack">
+                  <span class="deck-pill" id="announcement-authority-pill">Authority</span>
+                  <p id="announcement-summary"></p>
+                </div>
+                <div id="transcript-rows"></div>
+              </section>
+            </div>
+          </section>
+        </aside>
+      </section>
+
+      <section class="deck-mode-strip" data-testid="mode-strip">
+        <div class="deck-copy-stack">
+          <span class="foundation-kicker">Breakpoint / motion / zoom</span>
+          <h2>Control strip</h2>
+          <p>The harness keeps the same semantic verdict across reduced motion and narrow reflow.</p>
+        </div>
+        <div class="deck-mode-grid">
+          <section class="deck-mode-group" data-testid="breakpoint-strip">
+            <strong>Breakpoint</strong>
+            <div class="deck-mode-options" id="breakpoint-options"></div>
+          </section>
+          <section class="deck-mode-group" data-testid="motion-strip">
+            <strong>Motion</strong>
+            <div class="deck-mode-options" id="motion-options"></div>
+          </section>
+          <section class="deck-mode-group" data-testid="zoom-strip">
+            <strong>Zoom</strong>
+            <div class="deck-mode-options" id="zoom-options"></div>
+          </section>
+        </div>
+      </section>
+
+      <div class="sr-only" aria-live="polite" id="live-announcer"></div>
+    </main>
+
+    <script>
+      const ACCESSIBILITY_URL = "../../data/analysis/accessibility_semantic_coverage_profiles.json";
+      const ANNOUNCEMENT_URL = "../../data/analysis/assistive_announcement_examples.json";
+      const BREAKPOINTS = ["compact", "narrow", "medium", "expanded", "wide"];
+      const MOTION_MODES = ["standard", "reduced"];
+      const ZOOM_MODES = ["100", "400"];
+
+      const root = document.querySelector("[data-testid='accessibility-harness-root']");
+      const scenarioButtons = document.getElementById("scenario-buttons");
+      const deckKpis = document.getElementById("deck-kpis");
+      const scenarioKicker = document.getElementById("scenario-kicker");
+      const scenarioTitle = document.getElementById("scenario-title");
+      const scenarioDescription = document.getElementById("scenario-description");
+      const summaryTitle = document.getElementById("summary-title");
+      const summarySentence = document.getElementById("summary-sentence");
+      const focusTargetsNode = document.getElementById("focus-targets");
+      const previousFocusPill = document.getElementById("previous-focus-pill");
+      const currentFocusPill = document.getElementById("current-focus-pill");
+      const focusExplanation = document.getElementById("focus-explanation");
+      const parityPanel = document.querySelector("[data-testid='parity-panel']");
+      const parityTitle = document.getElementById("parity-title");
+      const parityExplanation = document.getElementById("parity-explanation");
+      const chartLabel = document.getElementById("chart-label");
+      const chartGrid = document.getElementById("chart-grid");
+      const tableLabel = document.getElementById("table-label");
+      const tableBody = document.getElementById("visualization-table-body");
+      const landmarkTreeList = document.getElementById("landmark-tree-list");
+      const headingOrderList = document.getElementById("heading-order-list");
+      const focusTargetName = document.getElementById("focus-target-name");
+      const focusTargetRole = document.getElementById("focus-target-role");
+      const focusContractLabel = document.getElementById("focus-contract-label");
+      const keyboardKeys = document.getElementById("keyboard-keys");
+      const keyboardNarrative = document.getElementById("keyboard-narrative");
+      const announcementAuthorityPill = document.getElementById("announcement-authority-pill");
+      const announcementSummary = document.getElementById("announcement-summary");
+      const transcriptRows = document.getElementById("transcript-rows");
+      const breakpointOptions = document.getElementById("breakpoint-options");
+      const motionOptions = document.getElementById("motion-options");
+      const zoomOptions = document.getElementById("zoom-options");
+      const liveAnnouncer = document.getElementById("live-announcer");
+
+      const state = {
+        accessibility: null,
+        announcements: null,
+        scenarioId: null,
+        activeTrigger: "initial",
+        currentFocusTargetRef: "",
+        previousFocusTargetRef: "",
+        motionMode: "standard",
+        breakpoint: "expanded",
+        zoomMode: "100",
+        forceParityFallback: false,
+      };
+
+      function getScenario() {
+        return state.accessibility.harnessScenarios.find((scenario) => scenario.scenarioId === state.scenarioId);
+      }
+
+      function getKeyboardContract(routeFamilyRef) {
+        return state.accessibility.keyboardInteractionContracts.find(
+          (row) => row.routeFamilyRef === routeFamilyRef,
+        );
+      }
+
+      function getFocusContract(routeFamilyRef, trigger) {
+        return state.accessibility.focusTransitionContracts.find(
+          (row) => row.routeFamilyRef === routeFamilyRef && row.trigger === trigger,
+        );
+      }
+
+      function getTargetLabel(scenario, targetRef) {
+        return scenario.focusTargets.find((target) => target.focusTargetRef === targetRef)?.label ?? targetRef;
+      }
+
+      function getTargetRole(scenario, targetRef) {
+        return scenario.focusTargets.find((target) => target.focusTargetRef === targetRef)?.role ?? "button";
+      }
+
+      function getScenarioAnnouncements(scenarioId) {
+        return state.announcements.assistiveAnnouncementExamples.filter(
+          (entry) => entry.scenarioId === scenarioId,
+        );
+      }
+
+      function getAnnouncementAuthority(rows) {
+        const current = [...rows].reverse().find((row) => row.status === "current");
+        return current ? current.authority : "none";
+      }
+
+      function updateLayoutMode() {
+        const stacked = window.innerWidth < 1260 || state.zoomMode === "400";
+        root.dataset.layoutMode = stacked ? "stacked" : "wide";
+      }
+
+      function syncMarkers(transcript, parityState) {
+        root.dataset.currentFocusTarget = state.currentFocusTargetRef;
+        root.dataset.announcementAuthority = getAnnouncementAuthority(transcript);
+        root.dataset.parityState = parityState;
+        root.dataset.motionMode = state.motionMode;
+        root.dataset.breakpoint = state.breakpoint;
+        root.dataset.zoomMode = state.zoomMode;
+        updateLayoutMode();
+      }
+
+      function renderModeButtons(container, values, selectedValue, onSelect) {
+        container.innerHTML = "";
+        values.forEach((value) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "deck-mode-button";
+          button.dataset.selected = String(value === selectedValue);
+          button.textContent = value;
+          button.addEventListener("click", () => onSelect(value));
+          container.appendChild(button);
+        });
+      }
+
+      function focusCurrentTarget() {
+        requestAnimationFrame(() => {
+          const target = document.querySelector(
+            `[data-focus-target-ref="${state.currentFocusTargetRef}"]`,
+          );
+          if (target && document.activeElement !== target) {
+            target.focus();
+          }
+        });
+      }
+
+      function render() {
+        const scenario = getScenario();
+        const transcript = getScenarioAnnouncements(scenario.scenarioId);
+        const keyboardContract = getKeyboardContract(scenario.routeFamilyRef);
+        const activeFocusContract =
+          state.activeTrigger === "initial"
+            ? getFocusContract(scenario.routeFamilyRef, "same_shell_refresh")
+            : getFocusContract(scenario.routeFamilyRef, state.activeTrigger);
+        const parityState = state.forceParityFallback ? scenario.parityFallbackState : scenario.parityState;
+
+        renderScenarioButtons();
+        renderModeButtons(breakpointOptions, BREAKPOINTS, state.breakpoint, (value) => {
+          state.breakpoint = value;
+          render();
+        });
+        renderModeButtons(motionOptions, MOTION_MODES, state.motionMode, (value) => {
+          state.motionMode = value;
+          render();
+        });
+        renderModeButtons(zoomOptions, ZOOM_MODES, state.zoomMode, (value) => {
+          state.zoomMode = value;
+          render();
+        });
+
+        scenarioKicker.textContent = `${scenario.audienceLabel} route family`;
+        scenarioTitle.textContent = scenario.label;
+        scenarioDescription.textContent = scenario.description;
+        summaryTitle.textContent = getTargetLabel(scenario, scenario.selectedAnchorTargetRef || scenario.currentFocusTargetRef);
+        summarySentence.textContent = scenario.summarySentence;
+        previousFocusPill.textContent = `Previous: ${getTargetLabel(
+          scenario,
+          state.previousFocusTargetRef,
+        )}`;
+        currentFocusPill.textContent = `Current: ${getTargetLabel(
+          scenario,
+          state.currentFocusTargetRef,
+        )}`;
+        focusExplanation.textContent = activeFocusContract
+          ? `${activeFocusContract.disposition} via ${activeFocusContract.contractId}`
+          : "Shared focus law loaded.";
+
+        parityPanel.dataset.parityState = parityState;
+        parityTitle.textContent = `Parity state: ${parityState}`;
+        parityExplanation.textContent = state.forceParityFallback
+          ? "Fallback posture is active because the visual can no longer prove the same tuple."
+          : "Visual, table, and summary are reading from the same accessibility tuple.";
+        chartLabel.textContent = scenario.chartLabel;
+        tableLabel.textContent = scenario.tableLabel;
+
+        chartGrid.innerHTML = "";
+        tableBody.innerHTML = "";
+        scenario.visualizationRows.forEach((row) => {
+          const chartCard = document.createElement("article");
+          chartCard.className = "deck-chart-bar";
+          chartCard.innerHTML = `<strong>${row.metric}</strong><span>${row.current}</span>`;
+          chartGrid.appendChild(chartCard);
+
+          const tableRow = document.createElement("tr");
+          tableRow.innerHTML = `<td>${row.metric}</td><td>${row.current}</td><td>${row.fallback}</td>`;
+          tableBody.appendChild(tableRow);
+        });
+
+        focusTargetsNode.innerHTML = "";
+        scenario.focusTargets.forEach((target) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "deck-target-button";
+          button.dataset.focusTargetRef = target.focusTargetRef;
+          button.dataset.current = String(target.focusTargetRef === state.currentFocusTargetRef);
+          button.dataset.previous = String(target.focusTargetRef === state.previousFocusTargetRef);
+          button.innerHTML = `<strong>${target.label}</strong><span>${target.role}</span>`;
+          button.addEventListener("click", () => {
+            state.previousFocusTargetRef = state.currentFocusTargetRef;
+            state.currentFocusTargetRef = target.focusTargetRef;
+            render();
+          });
+          focusTargetsNode.appendChild(button);
+        });
+
+        landmarkTreeList.innerHTML = "";
+        scenario.landmarkRefs.forEach((landmark) => {
+          const item = document.createElement("li");
+          item.textContent = landmark;
+          landmarkTreeList.appendChild(item);
+        });
+
+        headingOrderList.innerHTML = "";
+        scenario.headingOrder.forEach((heading) => {
+          const item = document.createElement("li");
+          item.textContent = heading;
+          headingOrderList.appendChild(item);
+        });
+
+        focusTargetName.textContent = getTargetLabel(scenario, state.currentFocusTargetRef);
+        focusTargetRole.textContent = getTargetRole(scenario, state.currentFocusTargetRef);
+        focusContractLabel.textContent = activeFocusContract
+          ? `${activeFocusContract.trigger} -> ${activeFocusContract.disposition}`
+          : "Shared focus law loaded";
+
+        keyboardKeys.innerHTML = "";
+        [...keyboardContract.traversalKeyRefs, ...keyboardContract.activationKeyRefs].forEach(
+          (key) => {
+            const span = document.createElement("span");
+            span.className = "deck-key";
+            span.textContent = key;
+            keyboardKeys.appendChild(span);
+          },
+        );
+        keyboardNarrative.textContent = `${keyboardContract.verificationNarrative} (${keyboardContract.contractState})`;
+
+        announcementAuthorityPill.textContent = `Authority: ${getAnnouncementAuthority(transcript)}`;
+        announcementSummary.textContent = `${transcript.filter((row) => row.status === "current").length} current, ${transcript.filter((row) => row.status === "suppressed").length} suppressed, ${transcript.filter((row) => row.status === "deduplicated").length} deduplicated.`;
+        transcriptRows.innerHTML = "";
+        transcript.forEach((row) => {
+          const item = document.createElement("article");
+          item.className = "deck-transcript-row";
+          item.dataset.status = row.status;
+          item.innerHTML = `
+            <strong>${row.intent}</strong>
+            <span>${row.text}</span>
+            <small>${row.authority} · ${row.status}</small>
+          `;
+          transcriptRows.appendChild(item);
+        });
+
+        syncMarkers(transcript, parityState);
+        liveAnnouncer.textContent =
+          transcript.find((row) => row.status === "current")?.text ?? "Accessibility harness ready.";
+        focusCurrentTarget();
+      }
+
+      function applyTrigger(trigger) {
+        const scenario = getScenario();
+        const contract = getFocusContract(scenario.routeFamilyRef, trigger);
+        if (!contract) {
+          return;
+        }
+        state.previousFocusTargetRef = state.currentFocusTargetRef;
+        state.currentFocusTargetRef = contract.nextTargetRef;
+        state.activeTrigger = trigger;
+        if (trigger === "mission_stack_fold") {
+          state.forceParityFallback = state.forceParityFallback;
+        }
+        if (trigger === "invalidation" && scenario.parityFallbackState !== scenario.parityState) {
+          state.forceParityFallback = true;
+        }
+        if (trigger === "recovery_return" && scenario.parityState === "visual_table_summary") {
+          state.forceParityFallback = false;
+        }
+        render();
+      }
+
+      function setScenario(scenarioId) {
+        const scenario = state.accessibility.harnessScenarios.find(
+          (entry) => entry.scenarioId === scenarioId,
+        );
+        state.scenarioId = scenarioId;
+        state.activeTrigger = "initial";
+        state.currentFocusTargetRef = scenario.currentFocusTargetRef;
+        state.previousFocusTargetRef = scenario.previousFocusTargetRef;
+        state.forceParityFallback = false;
+        render();
+      }
+
+      function renderScenarioButtons() {
+        scenarioButtons.innerHTML = "";
+        state.accessibility.harnessScenarios.forEach((scenario) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "deck-scenario-button";
+          button.setAttribute("aria-pressed", String(state.scenarioId === scenario.scenarioId));
+          button.dataset.scenarioId = scenario.scenarioId;
+          button.innerHTML = `<strong>${scenario.label}</strong><small>${scenario.routeFamilyRef}</small>`;
+          button.addEventListener("click", () => setScenario(scenario.scenarioId));
+          scenarioButtons.appendChild(button);
+        });
+      }
+
+      function renderKpis() {
+        const summary = state.accessibility.harness_summary;
+        deckKpis.innerHTML = `
+          <span class="deck-kpi">Routes ${summary.route_profile_count}</span>
+          <span class="deck-kpi">Scenarios ${summary.scenario_count}</span>
+          <span class="deck-kpi">Focus contracts ${summary.focus_transition_contract_count}</span>
+          <span class="deck-kpi">Keyboard contracts ${summary.keyboard_interaction_contract_count}</span>
+        `;
+      }
+
+      function bindActionButtons() {
+        document.querySelectorAll("[data-trigger]").forEach((button) => {
+          button.addEventListener("click", () => applyTrigger(button.dataset.trigger));
+        });
+        document.getElementById("toggle-parity").addEventListener("click", () => {
+          state.forceParityFallback = !state.forceParityFallback;
+          render();
+        });
+      }
+
+      async function boot() {
+        const [accessibility, announcements] = await Promise.all([
+          fetch(ACCESSIBILITY_URL).then((response) => response.json()),
+          fetch(ANNOUNCEMENT_URL).then((response) => response.json()),
+        ]);
+        state.accessibility = accessibility;
+        state.announcements = announcements;
+        state.scenarioId = accessibility.harnessScenarios[0].scenarioId;
+        state.currentFocusTargetRef = accessibility.harnessScenarios[0].currentFocusTargetRef;
+        state.previousFocusTargetRef = accessibility.harnessScenarios[0].previousFocusTargetRef;
+
+        renderKpis();
+        bindActionButtons();
+        render();
+      }
+
+      window.addEventListener("resize", updateLayoutMode);
+      boot();
+    </script>
+  </body>
+</html>
