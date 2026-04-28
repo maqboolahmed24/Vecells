@@ -89,6 +89,12 @@ function baseEntries(activeQueueKey: string, activeTaskId: string): readonly Wor
       route: parseStaffPath("/workspace/validation"),
     },
     {
+      id: "command-bookings",
+      label: "Open bookings",
+      summary: "Open the staff-assisted booking control panel.",
+      route: parseStaffPath("/workspace/bookings"),
+    },
+    {
       id: "command-search",
       label: "Open search",
       summary: "Open the same-shell search route.",

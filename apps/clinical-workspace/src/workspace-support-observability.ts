@@ -427,6 +427,17 @@ export const UI_EVENT_CONTRACT_CATALOG: readonly UIEventContractCatalogEntry[] =
     requiredShellSlug: "clinical_workspace",
   },
   {
+    catalogId: "ui_event_catalog_staff_child_claim",
+    routeFamilyRef: "rf_staff_workspace_child",
+    actionFamily: "claim",
+    eventName: "ui.review.claim",
+    allowedSettlementStates: ["accepted", "authoritative"],
+    allowedDisclosureClasses: ["descriptor_and_hash_only"],
+    automationAnchorRef: "marker.rf_staff_workspace_child.dominant_action",
+    semanticCoverageRef: "AccessibilitySemanticCoverageProfile",
+    requiredShellSlug: "clinical_workspace",
+  },
+  {
     catalogId: "ui_event_catalog_staff_workspace_stale_recovery",
     routeFamilyRef: "rf_staff_workspace",
     actionFamily: "stale_recovery",

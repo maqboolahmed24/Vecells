@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>297 Appointment Manage Views Atlas</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f4f7fb;
+        --panel: #ffffff;
+        --stroke: #d7e0ea;
+        --text: #334155;
+        --text-strong: #0f172a;
+        --muted: #64748b;
+        --primary: #2457ff;
+        --safe: #0f766e;
+        --warn: #b7791f;
+        --blocked: #b42318;
+        --reminder: #6d28d9;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 32px;
+        background:
+          radial-gradient(circle at top left, rgba(36, 87, 255, 0.08), transparent 30%),
+          var(--canvas);
+        color: var(--text-strong);
+        font: 16px/1.5 Inter, "Segoe UI", sans-serif;
+      }
+
+      .atlas {
+        display: grid;
+        gap: 20px;
+      }
+
+      .panel {
+        border: 1px solid var(--stroke);
+        border-radius: 22px;
+        background: var(--panel);
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+      }
+
+      .hero {
+        display: grid;
+        gap: 10px;
+      }
+
+      .eyebrow {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p,
+      dl {
+        margin: 0;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+      }
+
+      .card {
+        border: 1px solid var(--stroke);
+        border-radius: 18px;
+        padding: 16px;
+        background: linear-gradient(180deg, rgba(248, 250, 252, 0.92), #ffffff);
+        display: grid;
+        gap: 8px;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .chip.safe { background: rgba(15, 118, 110, 0.1); color: var(--safe); }
+      .chip.warn { background: rgba(183, 121, 31, 0.12); color: var(--warn); }
+      .chip.blocked { background: rgba(180, 35, 24, 0.1); color: var(--blocked); }
+      .chip.primary { background: rgba(36, 87, 255, 0.1); color: var(--primary); }
+      .chip.reminder { background: rgba(109, 40, 217, 0.1); color: var(--reminder); }
+
+      pre {
+        margin: 0;
+        padding: 16px;
+        border-radius: 18px;
+        border: 1px solid var(--stroke);
+        background: #f8fafc;
+        overflow: auto;
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="atlas" data-testid="PatientAppointmentManageAtlas">
+      <section class="panel hero">
+        <span class="eyebrow">Manage_Appointment_Studio</span>
+        <h1>Appointment manage views atlas</h1>
+        <p>
+          Summary-first manage surface with same-shell cancel, reschedule reuse, reminder repair, and continuity recovery.
+        </p>
+      </section>
+
+      <section class="panel">
+        <span class="eyebrow">Scenario atlas</span>
+        <div class="grid" id="scenario-grid"></div>
+      </section>
+
+      <section class="panel">
+        <span class="eyebrow">Topology</span>
+        <pre>AppointmentSummaryCard
+  -> AttendanceInstructionPanel
+  -> ManageActionDeck
+     -> CancelAppointmentFlow
+     -> RescheduleEntryStage -> OfferSelectionStage (295)
+     -> AppointmentDetailUpdateForm
+  -> ManagePendingOrRecoveryPanel
+  -> ReminderPreferencePanel -> Contact-route repair
+  -> AssistedFallbackStub</pre>
+      </section>
+    </main>
+
+    <script>
+      const scenarios = [
+        ["booking_case_297_ready", "summary", "confirmed", "writable", "scheduled", "trusted"],
+        ["booking_case_297_reschedule", "reschedule", "confirmed", "writable", "scheduled", "trusted"],
+        ["booking_case_297_reschedule_pending", "pending", "confirmed", "summary_only", "pending_schedule", "trusted"],
+        ["booking_case_297_cancel_pending", "pending", "confirmed", "summary_only", "blocked", "trusted"],
+        ["booking_case_297_cancelled", "settled", "confirmed", "summary_only", "blocked", "trusted"],
+        ["booking_case_297_detail_edit", "detail_update", "confirmed", "writable", "scheduled", "trusted"],
+        ["booking_case_297_detail_pending", "pending", "confirmed", "summary_only", "scheduled", "trusted"],
+        ["booking_case_297_reminder_pending", "pending", "confirmed", "summary_only", "pending_schedule", "trusted"],
+        ["booking_case_297_ready_email", "summary", "confirmed", "writable", "scheduled", "trusted"],
+        ["booking_case_297_reminder_blocked", "recovery", "confirmed", "writable", "blocked", "degraded"],
+        ["booking_case_297_stale", "recovery", "confirmed", "summary_only", "blocked", "stale"],
+        ["booking_case_297_confirmation_pending", "recovery", "confirmation_pending", "summary_only", "blocked", "trusted"]
+      ].map(([scenarioId, viewKind, truth, manageExposure, reminderExposure, continuity]) => ({
+        scenarioId,
+        viewKind,
+        truth,
+        manageExposure,
+        reminderExposure,
+        continuity
+      }));
+
+      window.__patientAppointmentManageAtlasData = scenarios;
+
+      const grid = document.getElementById("scenario-grid");
+      for (const scenario of scenarios) {
+        const card = document.createElement("article");
+        card.className = "card";
+        const toneClass =
+          scenario.viewKind === "recovery" ? "blocked" :
+          scenario.viewKind === "pending" ? "warn" :
+          scenario.manageExposure === "writable" ? "safe" : "primary";
+        card.innerHTML = `
+          <span class="eyebrow">${scenario.scenarioId}</span>
+          <h3>${scenario.viewKind}</h3>
+          <div class="chips">
+            <span class="chip ${toneClass}">${scenario.truth}</span>
+            <span class="chip primary">${scenario.manageExposure}</span>
+            <span class="chip reminder">${scenario.reminderExposure}</span>
+            <span class="chip ${scenario.continuity === "trusted" ? "safe" : scenario.continuity === "stale" ? "blocked" : "warn"}">${scenario.continuity}</span>
+          </div>
+        `;
+        grid.appendChild(card);
+      }
+    </script>
+  </body>
+</html>

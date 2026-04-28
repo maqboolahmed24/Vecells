@@ -893,19 +893,32 @@ class Phase3TriageKernelApplicationImpl implements Phase3TriageKernelApplication
     ) {
       return;
     }
-    await this.leaseAuthority.releaseLease({
-      domain: TRIAGE_DOMAIN,
-      domainObjectRef: snapshot.taskId,
-      leaseId: leaseSnapshot.leaseId,
-      presentedOwnershipEpoch: leaseSnapshot.ownershipEpoch,
-      presentedFencingToken: leaseSnapshot.fencingToken,
-      releasedAt: recordedAt,
-      closeBlockReason: "reopen_reacquire",
-      sameShellRecoveryRouteRef: this.recoveryRouteRef(snapshot.taskId),
-      operatorVisibleWorkRef: this.operatorVisibleWorkRef(snapshot.taskId),
-      blockedActionScopeRefs: ["reopen", "task_claim"],
-      detectedByRef: actorRef,
-    });
+    try {
+      await this.leaseAuthority.releaseLease({
+        domain: TRIAGE_DOMAIN,
+        domainObjectRef: snapshot.taskId,
+        leaseId: leaseSnapshot.leaseId,
+        presentedOwnershipEpoch: leaseSnapshot.ownershipEpoch,
+        presentedFencingToken: leaseSnapshot.fencingToken,
+        releasedAt: recordedAt,
+        closeBlockReason: "reopen_reacquire",
+        sameShellRecoveryRouteRef: this.recoveryRouteRef(snapshot.taskId),
+        operatorVisibleWorkRef: this.operatorVisibleWorkRef(snapshot.taskId),
+        blockedActionScopeRefs: ["reopen", "task_claim"],
+        detectedByRef: actorRef,
+      });
+    } catch (error) {
+      // Reopen reacquire only needs the detached lease gone; if another mutation already
+      // made the lease context stale, continue and let reopen acquire a fresh lease.
+      const staleLeaseContext =
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        (error as { code?: unknown }).code === "STALE_LEASE_CONTEXT";
+      if (!staleLeaseContext) {
+        throw error;
+      }
+    }
   }
 
   private actionScopeForStatus(status: Phase3TriageTaskStatus): string {

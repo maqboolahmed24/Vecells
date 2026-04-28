@@ -1,0 +1,280 @@
+{
+  "taskId": "par_404",
+  "schemaVersion": "404.shadow-mode-evidence-requirements.v1",
+  "contractFamily": "assistive_evaluation_shadow_feedback",
+  "sourceEvaluationContractRef": "data/contracts/404_assistive_evaluation_contracts.json",
+  "sourceGateRef": "data/contracts/403_phase8_track_readiness_registry.json",
+  "launchPacketRef": "data/launchpacks/403_track_launch_packet_404.json",
+  "ownedBy": "assistive_shadow_evidence_contracts",
+  "completenessStates": ["complete", "stale", "missing", "blocked"],
+  "objectContracts": [
+    {
+      "objectName": "ShadowModeEvidenceRequirement",
+      "objectRole": "frozen capability-specific rule for deciding whether shadow evidence can support rollout or trust claims",
+      "requiredFields": [
+        "shadowModeEvidenceRequirementId",
+        "capabilityCode",
+        "datasetPartition",
+        "requiredMetricFamilyRefs",
+        "freshnessWindowRef",
+        "minimumCaseCount",
+        "minimumSubgroupCoverageRef",
+        "surfaceRouteContractRef",
+        "surfacePublicationRef",
+        "runtimePublicationBundleRef",
+        "telemetryDisclosureFenceRef",
+        "releaseRecoveryDispositionRef",
+        "requirementState",
+        "effectiveFrom"
+      ],
+      "states": ["draft", "published", "superseded", "withdrawn"],
+      "dependencyRules": [
+        "datasetPartition must be shadow_live",
+        "published requirements must bind publication, runtime, disclosure, and recovery refs",
+        "withdrawn requirements force completenessState blocked for dependent capabilities"
+      ]
+    },
+    {
+      "objectName": "ShadowCompletenessAssessment",
+      "objectRole": "derived completeness result for one capability and shadow dataset cut",
+      "requiredFields": [
+        "shadowCompletenessAssessmentId",
+        "shadowModeEvidenceRequirementRef",
+        "datasetPartitionManifestRef",
+        "metricSetRefs",
+        "freshnessObservedAt",
+        "observedCaseCount",
+        "observedSubgroupCoverageRef",
+        "publicationBindingRef",
+        "runtimeBindingRef",
+        "disclosureFenceBindingRef",
+        "recoveryDispositionRef",
+        "completenessState",
+        "blockingReasonCodes",
+        "evaluatedAt"
+      ],
+      "states": ["complete", "stale", "missing", "blocked"],
+      "dependencyRules": [
+        "complete requires all required metric families, sample floor, subgroup floor, and current publication tuple",
+        "stale is emitted when freshness expires but no hard blocker exists",
+        "missing is emitted when dataset, metric, or manifest evidence is absent",
+        "blocked is emitted when publication, runtime, disclosure, model, prompt, or recovery posture blocks use"
+      ]
+    },
+    {
+      "objectName": "ShadowEvidenceMetricSet",
+      "objectRole": "addressable metric bundle supporting a completeness assessment",
+      "requiredFields": [
+        "shadowEvidenceMetricSetId",
+        "caseReplayBundleRefs",
+        "capabilityCode",
+        "metricFamily",
+        "metricVersion",
+        "summaryMetricRefs",
+        "failureSliceRefs",
+        "subgroupCoverageRefs",
+        "qualityThresholdRef",
+        "computedAt",
+        "metricSetHash"
+      ],
+      "states": ["candidate", "published", "superseded", "quarantined", "revoked"],
+      "dependencyRules": [
+        "quarantined or revoked metric sets cannot satisfy complete state",
+        "metricSetHash must derive from frozen replay bundle refs",
+        "summary exports may reference metric sets but must not reveal raw replay contents by default"
+      ]
+    },
+    {
+      "objectName": "ShadowEvidencePublicationBinding",
+      "objectRole": "runtime and publication truth tuple for shadow evidence claims",
+      "requiredFields": [
+        "shadowEvidencePublicationBindingId",
+        "surfaceRouteContractRef",
+        "surfacePublicationRef",
+        "runtimePublicationBundleRef",
+        "telemetryDisclosureFenceRef",
+        "releaseRecoveryDispositionRef",
+        "assistiveEvaluationSurfaceBindingRef",
+        "publicationState",
+        "runtimeState",
+        "disclosureState",
+        "trustState",
+        "boundAt"
+      ],
+      "states": ["current", "stale", "observe_only", "recovery_only", "blocked", "withdrawn"],
+      "dependencyRules": [
+        "blocked or withdrawn publication binding forces shadow completeness blocked",
+        "stale publication binding forces shadow completeness stale unless a stricter blocker applies",
+        "observe_only may support internal evaluation but cannot imply visible rollout approval"
+      ]
+    }
+  ],
+  "requiredMetricFamilies": [
+    {
+      "metricFamily": "output_concordance",
+      "meaning": "agreement between assistive output and adjudicated expected output"
+    },
+    {
+      "metricFamily": "unsupported_assertion_or_hallucination",
+      "meaning": "unsupported generated facts, unsafe inference, or fabricated source linkage"
+    },
+    {
+      "metricFamily": "omission_rate",
+      "meaning": "clinically or workflow-relevant expected items absent from the output"
+    },
+    {
+      "metricFamily": "evidence_attribution_coverage",
+      "meaning": "proportion of output claims backed by frozen evidence spans or structured facts"
+    },
+    {
+      "metricFamily": "abstention_and_boundedness",
+      "meaning": "whether the capability refuses, narrows, or degrades when inputs are unsafe or insufficient"
+    },
+    {
+      "metricFamily": "safety_routing_alignment",
+      "meaning": "agreement with human-control, escalation, and endpoint-routing policy"
+    },
+    {
+      "metricFamily": "clinician_override_and_edit_distance",
+      "meaning": "visible-use proxy metrics for later feedback comparison without treating edits as trainable by default"
+    },
+    {
+      "metricFamily": "counterfactual_completeness",
+      "meaning": "coverage of rejected, changed, regenerated, or alternative output paths required for eligibility law"
+    },
+    {
+      "metricFamily": "subgroup_bias_and_fairness",
+      "meaning": "case-slice coverage and disparity checks required before rollout claims"
+    },
+    {
+      "metricFamily": "latency_recovery_and_degradation",
+      "meaning": "runtime latency, recovery posture, and graceful degradation evidence"
+    },
+    {
+      "metricFamily": "disclosure_export_integrity",
+      "meaning": "proof that evaluation output follows disclosure, artifact-presentation, and export policy"
+    },
+    {
+      "metricFamily": "incident_and_hazard_linkage",
+      "meaning": "linkage between shadow failures, hazard log entries, and incident review queues"
+    }
+  ],
+  "freshnessWindows": [
+    {
+      "freshnessWindowId": "SHADOW404_SUMMARY_NOTE_DRAFT",
+      "capabilityCode": "summary_note_draft",
+      "maximumAgeDays": 14,
+      "minimumCaseCount": 120,
+      "minimumSubgroupCoverageRef": "PHASE8_SHADOW_SUBGROUP_BASELINE"
+    },
+    {
+      "freshnessWindowId": "SHADOW404_STRUCTURED_DOCUMENTATION",
+      "capabilityCode": "structured_documentation",
+      "maximumAgeDays": 14,
+      "minimumCaseCount": 120,
+      "minimumSubgroupCoverageRef": "PHASE8_SHADOW_SUBGROUP_BASELINE"
+    },
+    {
+      "freshnessWindowId": "SHADOW404_RISK_EXTRACTION",
+      "capabilityCode": "risk_extraction",
+      "maximumAgeDays": 7,
+      "minimumCaseCount": 80,
+      "minimumSubgroupCoverageRef": "PHASE8_SAFETY_SLICE_BASELINE"
+    },
+    {
+      "freshnessWindowId": "SHADOW404_QUESTION_SUGGESTION",
+      "capabilityCode": "question_suggestion",
+      "maximumAgeDays": 14,
+      "minimumCaseCount": 80,
+      "minimumSubgroupCoverageRef": "PHASE8_SHADOW_SUBGROUP_BASELINE"
+    },
+    {
+      "freshnessWindowId": "SHADOW404_ENDPOINT_RECOMMENDATION",
+      "capabilityCode": "endpoint_recommendation",
+      "maximumAgeDays": 7,
+      "minimumCaseCount": 80,
+      "minimumSubgroupCoverageRef": "PHASE8_SAFETY_SLICE_BASELINE"
+    },
+    {
+      "freshnessWindowId": "SHADOW404_AUDIO_TRANSCRIPT_NORMALIZATION",
+      "capabilityCode": "audio_transcript_artifact_normalization",
+      "maximumAgeDays": 7,
+      "minimumCaseCount": 100,
+      "minimumSubgroupCoverageRef": "PHASE8_AMBIENT_SCRIBE_SLICE_BASELINE"
+    }
+  ],
+  "publicationBindings": {
+    "requiredRefs": [
+      "surfaceRouteContractRef",
+      "surfacePublicationRef",
+      "runtimePublicationBundleRef",
+      "telemetryDisclosureFenceRef",
+      "releaseRecoveryDispositionRef",
+      "assistiveEvaluationSurfaceBindingRef"
+    ],
+    "blockedWhen": [
+      "surface publication is withdrawn",
+      "runtime publication bundle is suspended or revoked",
+      "telemetry disclosure fence is missing or stale",
+      "release recovery disposition is emergency_kill, hard_block, or rollback_only",
+      "assistive evaluation surface binding is blocked or withdrawn"
+    ],
+    "observeOnlyWhen": [
+      "surface binding is observe_only",
+      "publication is current but visible approval has not opened",
+      "recovery disposition limits the surface to evidence review"
+    ]
+  },
+  "completenessDerivationOrder": [
+    {
+      "order": 1,
+      "state": "blocked",
+      "rule": "emit blocked when publication, runtime, disclosure, model, prompt, safety, or recovery posture has a hard blocker"
+    },
+    {
+      "order": 2,
+      "state": "missing",
+      "rule": "emit missing when the shadow_live manifest, replay bundle cut, required metric family, or publication binding is absent"
+    },
+    {
+      "order": 3,
+      "state": "stale",
+      "rule": "emit stale when the freshness window has expired or the publication binding is stale and no hard blocker applies"
+    },
+    {
+      "order": 4,
+      "state": "complete",
+      "rule": "emit complete only when all required metric families, sample floors, subgroup floors, freshness windows, and publication bindings pass"
+    }
+  ],
+  "blockingReasonCodes": [
+    "surface_publication_withdrawn",
+    "runtime_publication_revoked",
+    "telemetry_disclosure_fence_missing",
+    "release_recovery_hard_block",
+    "model_registry_entry_suspended",
+    "prompt_template_revoked",
+    "feature_snapshot_quarantined",
+    "incident_linked_metric_set",
+    "dataset_manifest_integrity_failure"
+  ],
+  "invariants": [
+    {
+      "invariantId": "INV404_SHADOW_001",
+      "statement": "Shadow evidence can be complete only for the shadow_live partition."
+    },
+    {
+      "invariantId": "INV404_SHADOW_002",
+      "statement": "Completeness depends on metrics, freshness, sample floor, subgroup floor, and current runtime-publication truth."
+    },
+    {
+      "invariantId": "INV404_SHADOW_003",
+      "statement": "Blocked beats stale, missing, and complete."
+    },
+    {
+      "invariantId": "INV404_SHADOW_004",
+      "statement": "Shadow evidence remains invisible to end users and cannot imply live approval."
+    }
+  ],
+  "downstreamConsumers": ["par_406", "par_411", "par_415", "par_417", "phase9_assistive_expansion_gate"]
+}

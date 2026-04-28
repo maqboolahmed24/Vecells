@@ -1,0 +1,140 @@
+{
+  "taskId": "seq_311",
+  "contractVersion": "311.phase5.hub-core-freeze.v1",
+  "identityContracts": [
+    "StaffIdentityContext",
+    "ActingContext",
+    "CrossOrganisationVisibilityEnvelope"
+  ],
+  "audienceTiers": [
+    {
+      "tierId": "origin_practice_visibility",
+      "label": "Origin practice visibility",
+      "summary": "Operational macro truth for the originating practice without exposing hub-internal narrative, raw proof, or cross-site capacity detail.",
+      "visibilityProjectionPolicyRef": "HubPracticeVisibilityPolicy",
+      "minimumNecessaryContractRef": "MinimumNecessaryContract.origin_practice",
+      "sectionContracts": [
+        "PracticeVisibilityProjection.summary",
+        "PracticeContinuityMessage.delta",
+        "PracticeAcknowledgementStatusStrip"
+      ],
+      "previewContracts": [
+        "OriginPracticeCasePreview",
+        "PracticeAckDebtPreview"
+      ],
+      "artifactContracts": [
+        "PracticeVisibilityProjection",
+        "PracticeAcknowledgementRecord"
+      ],
+      "visibleFieldRefs": [
+        "requestLineageRef",
+        "macro_booking_status",
+        "fallback_reason_code",
+        "patient_communication_state",
+        "latest_continuity_delta",
+        "ack_generation_state"
+      ],
+      "hiddenFieldRefs": [
+        "hub_internal_free_text",
+        "cross_site_capacity_detail",
+        "raw_native_booking_proof"
+      ],
+      "placeholderContractRef": "HubOutOfScopePlaceholder.origin_practice",
+      "commandGuards": [
+        "Current CrossOrganisationVisibilityEnvelope",
+        "Current ackGeneration",
+        "No reinterpretation from frontend state"
+      ],
+      "driftResponse": "Demote to read-only or recovery posture when organisation, purpose-of-use, or envelope drift invalidates the current scope."
+    },
+    {
+      "tierId": "hub_desk_visibility",
+      "label": "Hub desk visibility",
+      "summary": "Minimum necessary routing, timing, access, and governed proof required for safe coordination across organisations.",
+      "visibilityProjectionPolicyRef": "HubDeskVisibilityProjectionPolicy",
+      "minimumNecessaryContractRef": "MinimumNecessaryContract.hub_desk",
+      "sectionContracts": [
+        "HubCaseConsoleProjection",
+        "HubAlternativeOfferProjection",
+        "HubOperationalEvidencePanel"
+      ],
+      "previewContracts": [
+        "HubQueuePreview",
+        "HubCasePulse"
+      ],
+      "artifactContracts": [
+        "NetworkBookingRequest",
+        "HubCoordinationCase",
+        "HubOfferToConfirmationTruthProjection"
+      ],
+      "visibleFieldRefs": [
+        "clinical_routing_summary",
+        "operational_timing_needs",
+        "travel_access_constraints",
+        "governed_coordination_evidence",
+        "requestLineageRef",
+        "selected_candidate_ref"
+      ],
+      "hiddenFieldRefs": [
+        "broad_narrative_without_promotion",
+        "attachment_payload_without_break_glass"
+      ],
+      "placeholderContractRef": "HubOutOfScopePlaceholder.hub_desk",
+      "commandGuards": [
+        "ActingContext.scopeTupleHash",
+        "ownershipFenceToken + ownershipEpoch",
+        "current visibility contract",
+        "reason-coded break-glass when promoted"
+      ],
+      "driftResponse": "Freeze writable controls in place and require a same-shell re-read under the new acting context."
+    },
+    {
+      "tierId": "servicing_site_visibility",
+      "label": "Servicing site visibility",
+      "summary": "Encounter-delivery and site-local capacity facts only, with no origin triage notes, callback rationale, or other-site alternatives.",
+      "visibilityProjectionPolicyRef": "HubServicingSiteVisibilityPolicy",
+      "minimumNecessaryContractRef": "MinimumNecessaryContract.servicing_site",
+      "sectionContracts": [
+        "ServicingSiteDeliveryProjection",
+        "SiteCapacityManagePanel"
+      ],
+      "previewContracts": [
+        "ServicingSiteAppointmentPreview"
+      ],
+      "artifactContracts": [
+        "HubAppointmentRecord",
+        "NetworkManageCapabilities"
+      ],
+      "visibleFieldRefs": [
+        "encounter_delivery_brief",
+        "site_local_capacity",
+        "confirmed_slot_summary",
+        "manage_capability_state"
+      ],
+      "hiddenFieldRefs": [
+        "origin_practice_triage_notes",
+        "callback_rationale",
+        "alternative_options_other_sites"
+      ],
+      "placeholderContractRef": "HubOutOfScopePlaceholder.servicing_site",
+      "commandGuards": [
+        "Purpose of use = site delivery",
+        "Current CrossOrganisationVisibilityEnvelope",
+        "No access to origin-practice-only fields"
+      ],
+      "driftResponse": "Keep the case anchor visible but downgrade to read-only delivery posture until the servicing-site envelope is regenerated."
+    }
+  ],
+  "commandEnvelopeRequirements": [
+    "Every writable command carries ActingContext.",
+    "Every writable command carries ownershipFenceToken and ownershipEpoch.",
+    "Every writable command carries the active minimum-necessary visibility contract.",
+    "Cross-organisation commands also carry CrossOrganisationVisibilityEnvelope.",
+    "Every mutation appends audit context with actor, acting organisation, purpose of use, break-glass state, and drift rejection reason when denied."
+  ],
+  "driftResponses": [
+    "Organisation switch revokes writable posture until the same case is re-read under the new acting context.",
+    "Stale visibility envelope demotes the shell to read-only or recovery posture in place.",
+    "Purpose-of-use drift may not be inferred from frontend navigation or cached role names."
+  ]
+}

@@ -1,0 +1,181 @@
+{
+  "taskId": "par_406",
+  "schemaVersion": "406.evaluation-runtime-contract.v1",
+  "contractFamily": "assistive_evaluation_runtime",
+  "sourceGateRef": "data/contracts/403_phase8_track_readiness_registry.json",
+  "launchPacketRef": "data/launchpacks/403_track_launch_packet_406.json",
+  "upstreamContractRefs": [
+    "data/contracts/404_assistive_evaluation_contracts.json",
+    "data/contracts/404_feedback_eligibility_contracts.json",
+    "data/contracts/404_shadow_mode_evidence_requirements.json",
+    "data/contracts/405_assistive_release_candidate_contracts.json",
+    "data/contracts/405_regulatory_change_control_rules.json"
+  ],
+  "runtimePackage": {
+    "packageName": "@vecells/domain-assistive-evaluation",
+    "sourceRoot": "packages/domains/assistive_evaluation/src",
+    "separationLaw": "Evaluation writes persist only to assistive_evaluation_* records and do not mutate live workflow task state."
+  },
+  "services": [
+    {
+      "serviceName": "EvaluationDatasetPartitionService",
+      "ownedApis": ["createManifest", "addBundleToManifest", "publishManifest"],
+      "requiresActorContext": true,
+      "auditActionNames": ["createManifest", "addBundleToManifest", "publishManifest"]
+    },
+    {
+      "serviceName": "CaseReplayBundleService",
+      "ownedApis": ["createReplayBundle", "publishReplayBundle"],
+      "requiresActorContext": true,
+      "auditActionNames": ["createReplayBundle", "publishReplayBundle"]
+    },
+    {
+      "serviceName": "GroundTruthLabelService",
+      "ownedApis": ["recordLabel", "submitLabel", "supersedeLabel", "revokeLabel"],
+      "requiresActorContext": true,
+      "auditActionNames": ["recordLabel", "submitLabel", "supersedeLabel", "revokeLabel"]
+    },
+    {
+      "serviceName": "ReplayAdjudicationService",
+      "ownedApis": ["adjudicateLabels"],
+      "requiresActorContext": true,
+      "auditActionNames": ["adjudicateLabels"]
+    },
+    {
+      "serviceName": "ErrorTaxonomyService",
+      "ownedApis": ["recordErrorTaxonomy"],
+      "requiresActorContext": true,
+      "auditActionNames": ["recordErrorTaxonomy"]
+    },
+    {
+      "serviceName": "ReplayHarnessOrchestrator",
+      "ownedApis": ["scheduleReplayRun", "executeReplayRun"],
+      "requiresActorContext": true,
+      "auditActionNames": ["scheduleReplayRun", "executeReplayRun"]
+    },
+    {
+      "serviceName": "ShadowDatasetCaptureService",
+      "ownedApis": ["captureShadowCase"],
+      "requiresActorContext": true,
+      "auditActionNames": ["captureShadowCase"]
+    },
+    {
+      "serviceName": "EvaluationExportArtifactService",
+      "ownedApis": ["generateExportArtifact"],
+      "requiresActorContext": true,
+      "auditActionNames": ["generateExportArtifact"]
+    },
+    {
+      "serviceName": "AssistiveEvaluationSurfaceBindingResolver",
+      "ownedApis": ["resolveBinding"],
+      "requiresActorContext": true,
+      "auditActionNames": ["resolveBinding"]
+    }
+  ],
+  "datasetPartitions": [
+    {
+      "partitionId": "gold",
+      "allowedWriters": ["evaluation_data_steward", "clinical_safety_lead"],
+      "mutability": "immutable_after_publication",
+      "enforcedBy": ["EvaluationDatasetPartitionService", "CaseReplayBundleService"]
+    },
+    {
+      "partitionId": "shadow_live",
+      "allowedWriters": ["shadow_dataset_capture_job"],
+      "mutability": "append_only_with_versioned_cuts",
+      "enforcedBy": ["EvaluationDatasetPartitionService", "ShadowDatasetCaptureService", "CaseReplayBundleService"]
+    },
+    {
+      "partitionId": "feedback",
+      "allowedWriters": ["feedback_chain_settlement_job"],
+      "mutability": "append_only_with_revocation",
+      "enforcedBy": ["EvaluationDatasetPartitionService", "CaseReplayBundleService"]
+    }
+  ],
+  "persistedObjects": [
+    "DatasetPartitionManifest",
+    "CaseReplayBundle",
+    "GroundTruthLabel",
+    "LabelAdjudicationRecord",
+    "ErrorTaxonomyRecord",
+    "ReplayRunRecord",
+    "ShadowDatasetCaptureRecord",
+    "EvaluationExportArtifact",
+    "AssistiveEvaluationSurfaceBinding",
+    "EvaluationAuditRecord"
+  ],
+  "migrationRef": "services/command-api/migrations/406_phase8_assistive_evaluation_plane.sql",
+  "deterministicReplay": {
+    "pinnedInputs": [
+      "evidenceSnapshotRefs",
+      "evidenceCaptureBundleRefs",
+      "evidenceDerivationPackageRefs",
+      "featureSnapshotRefs",
+      "promptTemplateVersionRef",
+      "modelRegistryEntryRef",
+      "outputSchemaVersionRef",
+      "runtimeConfigHash"
+    ],
+    "failClosedWhen": [
+      "pinned input is missing",
+      "mutable current task state is referenced",
+      "output schema version drifts",
+      "runtime config hash drifts",
+      "replay attempts live workflow mutation"
+    ],
+    "hashes": ["bundleHash", "replayInputHash", "outputHash"]
+  },
+  "shadowCapture": {
+    "partitionId": "shadow_live",
+    "invisibleToEndUsers": true,
+    "requiredBindings": [
+      "surfaceRouteContractRef",
+      "surfacePublicationRef",
+      "runtimePublicationBundleRef",
+      "telemetryDisclosureFenceRef",
+      "releaseRecoveryDispositionRef",
+      "assistiveEvaluationSurfaceBindingRef",
+      "shadowModeEvidenceRequirementRef"
+    ]
+  },
+  "exportPolicy": {
+    "defaultArtifactState": "summary_only",
+    "blockedFormats": ["csv_phi", "raw_replay_dump"],
+    "forbiddenDefaults": ["raw PHI export", "direct storage URL", "external handoff without outbound navigation grant"]
+  },
+  "surfaceBindingPolicy": {
+    "defaultForMissingLaterTrustSurfaces": "observe_only",
+    "blockedWhen": ["telemetryDisclosureFenceRef missing", "publication withdrawn or blocked", "runtime revoked or blocked", "trust quarantined"]
+  },
+  "invariants": [
+    {
+      "invariantId": "INV406_001",
+      "statement": "Evaluation persistence is separate from live workflow mutation paths."
+    },
+    {
+      "invariantId": "INV406_002",
+      "statement": "Gold manifests and bundles cannot be widened after publication."
+    },
+    {
+      "invariantId": "INV406_003",
+      "statement": "Replay runs fail closed unless prompt, model, schema, feature, evidence, and runtime hashes are pinned."
+    },
+    {
+      "invariantId": "INV406_004",
+      "statement": "Raw labels are not final truth until adjudication state permits final truth."
+    },
+    {
+      "invariantId": "INV406_005",
+      "statement": "Shadow capture cannot expose assistive output to end users."
+    },
+    {
+      "invariantId": "INV406_006",
+      "statement": "Evaluation exports default to summary-only and block raw PHI or direct storage handoff."
+    },
+    {
+      "invariantId": "INV406_007",
+      "statement": "Every mutating evaluation API requires actor context and emits an audit record."
+    }
+  ],
+  "downstreamConsumers": ["par_408", "par_409", "par_410", "par_411", "par_413", "par_414", "par_415"]
+}

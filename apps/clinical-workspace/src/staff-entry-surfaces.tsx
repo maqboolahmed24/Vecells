@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { VecellLogoLockup, formatVecellTitle } from "@vecells/design-system";
+import { resolvePharmacyProductMergePreviewForRequest } from "../../../packages/domains/pharmacy/src/phase6-pharmacy-product-merge-preview";
 
 export type StaffEntryScenario = "quiet" | "busy" | "blocking" | "degraded";
 export type StaffEntryRouteKey =
@@ -100,6 +101,11 @@ export interface CrossDomainTaskSummaryProjection {
   readonly countLabel: string;
   readonly summary: string;
   readonly launchPath: string;
+  readonly requestRef: string | null;
+  readonly pharmacyCaseId: string | null;
+  readonly changedSinceSeenLabel: string | null;
+  readonly notificationStateLabel: string | null;
+  readonly continuitySummary: string | null;
 }
 
 export interface DependencyDigestProjection {
@@ -344,10 +350,14 @@ const SUPPORT_INBOX_ROWS: readonly SupportInboxRow[] = [
   },
 ];
 
-function createScenarioDataset(scenario: StaffEntryScenario): StaffEntryDataset {
+export function createScenarioDataset(scenario: StaffEntryScenario): StaffEntryDataset {
   const busy = scenario === "busy";
   const blocking = scenario === "blocking";
   const degraded = scenario === "degraded";
+  const pharmacyCreatedMerge = resolvePharmacyProductMergePreviewForRequest("request_211_b");
+  const pharmacyUrgentReturnMerge = resolvePharmacyProductMergePreviewForRequest("request_215_callback");
+  const dominantPharmacyMerge =
+    busy || blocking ? pharmacyUrgentReturnMerge ?? pharmacyCreatedMerge : pharmacyCreatedMerge;
 
   const recommendedQueue: RecommendedQueueProjection = {
     queueKey: "same-day-review",
@@ -474,17 +484,38 @@ function createScenarioDataset(scenario: StaffEntryScenario): StaffEntryDataset 
       projectionName: "ChangedSinceSeenProjection",
       changedCount: busy ? 9 : degraded ? 6 : 2,
       changedLabels: busy
-        ? ["Callback promise changed", "Evidence repaired", "Queue rank reranked"]
-        : ["RX-2148 changed", "Support repair settled"],
+        ? [
+            dominantPharmacyMerge?.changedSinceSeenLabel ?? "Urgent pharmacy return changed",
+            dominantPharmacyMerge?.triageChangedLabel ?? "Pharmacy lineage reranked",
+            "Queue rank reranked",
+          ]
+        : [
+            dominantPharmacyMerge?.changedSinceSeenLabel ?? "Pharmacy request child updated",
+            "Support repair settled",
+          ],
     },
     crossDomainTasks: [
       {
         projectionName: "CrossDomainTaskSummaryProjection",
         domain: "pharmacy",
-        label: "Pharmacy verification holds",
-        countLabel: busy ? "5 waiting" : "2 waiting",
-        summary: "Output 211 contributes refill and intervention risk so staff can launch with context.",
-        launchPath: "/ops/overview",
+        label: dominantPharmacyMerge?.triageCardLabel ?? "Pharmacy continuation",
+        countLabel: dominantPharmacyMerge
+          ? `${dominantPharmacyMerge.pharmacyCaseId} · ${dominantPharmacyMerge.triageCountLabel}`
+          : busy
+            ? "5 waiting"
+            : "2 waiting",
+        summary:
+          dominantPharmacyMerge?.triageCardSummary ??
+          "Output 211 contributes refill and intervention risk so staff can launch with context.",
+        launchPath:
+          dominantPharmacyMerge?.mergeState === "urgent_return"
+            ? "/ops/overview"
+            : "/workspace/queue/same-day-review",
+        requestRef: dominantPharmacyMerge?.requestRef ?? null,
+        pharmacyCaseId: dominantPharmacyMerge?.pharmacyCaseId ?? null,
+        changedSinceSeenLabel: dominantPharmacyMerge?.changedSinceSeenLabel ?? null,
+        notificationStateLabel: dominantPharmacyMerge?.patientNotification.stateLabel ?? null,
+        continuitySummary: dominantPharmacyMerge?.supportReplaySummary ?? null,
       },
       {
         projectionName: "CrossDomainTaskSummaryProjection",
@@ -493,6 +524,11 @@ function createScenarioDataset(scenario: StaffEntryScenario): StaffEntryDataset 
         countLabel: blocking ? "1 blocked" : "3 ready",
         summary: "Output 219 exposes replay-safe repair and restore posture before the full ticket shell lands.",
         launchPath: "/ops/support",
+        requestRef: null,
+        pharmacyCaseId: null,
+        changedSinceSeenLabel: null,
+        notificationStateLabel: null,
+        continuitySummary: null,
       },
       {
         projectionName: "CrossDomainTaskSummaryProjection",
@@ -501,6 +537,11 @@ function createScenarioDataset(scenario: StaffEntryScenario): StaffEntryDataset 
         countLabel: busy ? "4 changed" : "1 changed",
         summary: "Output 210 still feeds the changed-since-seen digest instead of a separate console hop.",
         launchPath: "/workspace",
+        requestRef: null,
+        pharmacyCaseId: null,
+        changedSinceSeenLabel: null,
+        notificationStateLabel: null,
+        continuitySummary: null,
       },
     ],
     dependencyDigest: {
@@ -1014,11 +1055,41 @@ export function CrossDomainTaskStrip({
             key={`${task.domain}-${task.label}`}
             type="button"
             className="staff-entry__cross-domain-card"
+            data-domain={task.domain}
+            data-request-ref={task.requestRef ?? undefined}
+            data-pharmacy-case-id={task.pharmacyCaseId ?? undefined}
+            data-notification-state={task.notificationStateLabel ?? undefined}
+            data-changed-since-seen={task.changedSinceSeenLabel ?? undefined}
             onClick={() => onLaunch(task.launchPath)}
           >
             <strong>{task.label}</strong>
-            <span>{task.countLabel}</span>
+            <div className="staff-entry__tag-row">
+              <span
+                className="staff-entry__tag"
+                data-tone={
+                  task.notificationStateLabel?.toLowerCase().includes("urgent")
+                    ? "blocked"
+                    : task.domain === "pharmacy"
+                      ? "watch"
+                      : undefined
+                }
+              >
+                {task.countLabel}
+              </span>
+              {task.requestRef ? <span className="staff-entry__tag">{task.requestRef}</span> : null}
+              {task.pharmacyCaseId ? (
+                <span className="staff-entry__tag">{task.pharmacyCaseId}</span>
+              ) : null}
+            </div>
             <p>{task.summary}</p>
+            {task.changedSinceSeenLabel ? (
+              <small className="staff-entry__cross-domain-meta">{task.changedSinceSeenLabel}</small>
+            ) : null}
+            {task.notificationStateLabel ? (
+              <small className="staff-entry__cross-domain-meta">
+                Notification posture: {task.notificationStateLabel}
+              </small>
+            ) : null}
           </button>
         ))}
       </div>

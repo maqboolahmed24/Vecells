@@ -1452,13 +1452,14 @@ export class SubmissionLineageCommandService {
       command.nextState === "superseded" ||
       command.nextState === "compensated"
     ) {
+      const latestLineageCaseLinkRef = activeLinkRefs.at(-1) ?? nextLink.lineageCaseLinkId;
       requestLineage = requestLineage.updateSummary({
-        latestLineageCaseLinkRef: nextLink.lineageCaseLinkId,
+        latestLineageCaseLinkRef,
         activeLineageCaseLinkRefs: activeLinkRefs,
         updatedAt: command.updatedAt,
       });
       request = request.refreshLineageSummary({
-        latestLineageCaseLinkRef: nextLink.lineageCaseLinkId,
+        latestLineageCaseLinkRef,
         activeLineageCaseLinkRefs: activeLinkRefs,
         updatedAt: command.updatedAt,
       });

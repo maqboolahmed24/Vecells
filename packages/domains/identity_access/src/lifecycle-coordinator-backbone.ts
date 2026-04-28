@@ -2025,22 +2025,35 @@ export class LifecycleCoordinatorService {
 
     const previousWorkflowState = request.workflowState;
     let nextWorkflowState = request.workflowState;
+    const requestForWorkflow = refsChanged
+      ? await this.requireRequest(materializedState.requestId)
+      : request;
     if (
-      request.workflowState !== "closed" &&
-      workflowRank[materializedState.derivedWorkflowState] > workflowRank[request.workflowState]
+      requestForWorkflow.workflowState === "outcome_recorded" &&
+      materializedState.derivedWorkflowState === "handoff_active"
+    ) {
+      const correctedRequest = forceRequestWorkflowState(
+        requestForWorkflow,
+        "handoff_active",
+        updatedAt,
+      );
+      nextWorkflowState = correctedRequest.workflowState;
+      await this.repositories.saveRequest(correctedRequest, {
+        expectedVersion: requestForWorkflow.version,
+      });
+    } else if (
+      requestForWorkflow.workflowState !== "closed" &&
+      workflowRank[materializedState.derivedWorkflowState] > workflowRank[requestForWorkflow.workflowState]
     ) {
       const nextRequest = advanceRequestForward(
-        refsChanged ? await this.requireRequest(materializedState.requestId) : request,
+        requestForWorkflow,
         materializedState.derivedWorkflowState,
         updatedAt,
       );
       nextWorkflowState = nextRequest.workflowState;
-      if (nextRequest.workflowState !== request.workflowState) {
+      if (nextRequest.workflowState !== requestForWorkflow.workflowState) {
         await this.repositories.saveRequest(nextRequest, {
-          expectedVersion: (refsChanged
-            ? await this.requireRequest(materializedState.requestId)
-            : request
-          ).version,
+          expectedVersion: requestForWorkflow.version,
         });
       }
     }

@@ -2599,7 +2599,7 @@ export const canonicalEventContracts = [
   },
 ] as const;
 export const schemaArtifactCatalog = {
-  activeSchemaArtifactCount: 192,
+  activeSchemaArtifactCount: 193,
   envelopeSchemaPath: "packages/event-contracts/schemas/canonical-event-envelope.v1.schema.json",
   artifacts: [
     {

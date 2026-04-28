@@ -3,6 +3,176 @@ import {
   componentPrimitiveContractFamily,
   componentPrimitiveObjectFamilies,
 } from "./component-primitives";
+export {
+  PHARMACY_ACCESSIBLE_QUIET_POLISH_VISUAL_MODE,
+  PharmacyA11yAnnouncementHub,
+  PharmacyAccessibleStatusBadge,
+  PharmacyDialogAndDrawerSemantics,
+  PharmacyFocusRouteMap,
+  PharmacyInlineAck,
+  PharmacyReducedMotionBridge,
+  PharmacyTargetSizeGuard,
+} from "./pharmacy-accessibility-micro-interactions";
+export type { PharmacyAccessibleTone } from "./pharmacy-accessibility-micro-interactions";
+export {
+  OpenOriginalRequestAction,
+  PHARMACY_RECOVERY_CONTROL_VISUAL_MODE,
+  PharmacyBounceBackQueue,
+  PharmacyLoopRiskEscalationCard,
+  PharmacyRecoveryControlPanel,
+  PharmacyRecoveryDecisionDock,
+  PharmacyReopenedCaseBanner,
+  PharmacyReopenDiffStrip,
+  PharmacyReturnMessagePreview,
+  PharmacyUrgentReturnMode,
+} from "./pharmacy-bounce-back-recovery-surfaces";
+export type {
+  OpenOriginalRequestActionModel,
+  PharmacyBounceBackQueueItemModel,
+  PharmacyBounceBackQueueModel,
+  PharmacyBounceBackRecoveryPanelModel,
+  PharmacyLoopRiskEscalationCardModel,
+  PharmacyRecoveryDecisionDockActionModel,
+  PharmacyRecoveryDecisionDockModel,
+  PharmacyRecoverySurfaceState,
+  PharmacyRecoveryTone,
+  PharmacyReopenedCaseBannerModel,
+  PharmacyReopenDiffRowModel,
+  PharmacyReopenDiffStripModel,
+  PharmacyReturnMessagePreviewModel,
+  PharmacyUrgentReturnModeModel,
+} from "./pharmacy-bounce-back-recovery-surfaces";
+export {
+  PHARMACY_MISSION_STACK_RECOVERY_VISUAL_MODE,
+  PharmacyCaseResumeStub,
+  PharmacyContinuityFrozenOverlay,
+  PharmacyMissionStackController,
+  PharmacyQueuePeekDrawer,
+  PharmacyRecoveryStrip,
+  PharmacySupportRegionResumeCard,
+  PharmacyWatchWindowReentryBanner,
+} from "./pharmacy-mission-stack-recovery-surfaces";
+export type {
+  PharmacyCaseResumeStubModel,
+  PharmacyContinuityFrozenOverlayModel,
+  PharmacyMissionStackControllerModel,
+  PharmacyMissionStackTone,
+  PharmacyQueuePeekDrawerModel,
+  PharmacyRecoveryStripModel,
+  PharmacySupportRegionResumeCardModel,
+  PharmacyWatchWindowReentryBannerModel,
+} from "./pharmacy-mission-stack-recovery-surfaces";
+export {
+  ChosenPharmacyAnchorCard,
+  DispatchArtifactSummaryCard,
+  DispatchContinuityWarningStrip,
+  DispatchEvidenceRows,
+  DispatchProofStatusStrip,
+  PatientConsentCheckpointNotice,
+  PatientDispatchPendingState,
+  PHARMACY_DISPATCH_ASSURANCE_VISUAL_MODE,
+  PharmacyReferralConfirmationDrawer,
+} from "./pharmacy-dispatch-surfaces";
+export type {
+  ChosenPharmacyAnchorCardModel,
+  DispatchArtifactDisposition,
+  DispatchArtifactSummaryCardModel,
+  DispatchArtifactSummaryRowModel,
+  DispatchContinuityWarningStripModel,
+  DispatchEvidenceRowModel,
+  DispatchProofStatusStripModel,
+  DispatchSurfaceTone,
+  DispatchWarningKind,
+  PatientConsentCheckpointNoticeModel,
+  PatientDispatchPendingStateModel,
+} from "./pharmacy-dispatch-surfaces";
+export {
+  OutcomeConfidenceMeter,
+  OutcomeDecisionDock,
+  OutcomeEvidenceDrawer,
+  OutcomeEvidenceSourceCard,
+  OutcomeGateTimeline,
+  OutcomeManualReviewBanner,
+  OutcomeMatchSummary,
+  PHARMACY_ASSURANCE_WORKBENCH_VISUAL_MODE,
+  PharmacyOutcomeAssurancePanel,
+} from "./pharmacy-outcome-assurance-surfaces";
+export type {
+  OutcomeAssuranceHeaderModel,
+  OutcomeConfidenceBreakdownModel,
+  OutcomeConfidenceMeterModel,
+  OutcomeDecisionDockActionModel,
+  OutcomeDecisionDockModel,
+  OutcomeEvidenceDrawerGroupModel,
+  OutcomeEvidenceDrawerModel,
+  OutcomeEvidenceDrawerRowModel,
+  OutcomeEvidenceSourceCardModel,
+  OutcomeGateTimelineModel,
+  OutcomeGateTimelineStepModel,
+  OutcomeManualReviewBannerModel,
+  OutcomeMatchSummaryModel,
+  PharmacyOutcomeAssurancePanelModel,
+  PharmacyOutcomeAssuranceSurfaceState,
+  PharmacyOutcomeAssuranceTone,
+} from "./pharmacy-outcome-assurance-surfaces";
+export {
+  ChosenPharmacyConfirmationPage,
+  PharmacyContactCard,
+  PharmacyContactRouteRepairState,
+  PharmacyNextStepPage,
+  PharmacyOpeningStateChip,
+  PharmacyOutcomePage,
+  PharmacyReferralReferenceCard,
+  PharmacyReviewNextStepPage,
+  PharmacyStatusTracker,
+} from "./pharmacy-patient-status-surfaces";
+export type {
+  ChosenPharmacyConfirmationPageModel,
+  PharmacyContactCardModel,
+  PharmacyContactRouteRepairStateModel,
+  PharmacyNextStepPageModel,
+  PharmacyOpeningStateChipModel,
+  PharmacyOpeningStateChipTone,
+  PharmacyOutcomePageModel,
+  PharmacyReferralReferenceCardModel,
+  PharmacyReviewNextStepPageModel,
+  PharmacyStatusTrackerModel,
+  PharmacyStatusTrackerStepModel,
+} from "./pharmacy-patient-status-surfaces";
+export {
+  HandoffReadinessBoard,
+  InventoryComparisonWorkspace,
+  InventoryTruthPanel,
+  MedicationValidationBoard,
+  PHARMACY_OPERATIONS_WORKBENCH_VISUAL_MODE,
+  PharmacyCaseWorkbench,
+  PharmacyOperationsPanel,
+  PharmacyOperationsQueueTable,
+  PharmacyStockRiskChip,
+  PharmacyWatchWindowBanner,
+  PharmacyWorkbenchDecisionDock,
+} from "./pharmacy-workbench-surfaces";
+export type {
+  HandoffProofLaneModel,
+  HandoffReadinessBoardModel,
+  InventoryComparisonCandidateModel,
+  InventoryComparisonWorkspaceModel,
+  InventoryTruthPanelModel,
+  InventoryTruthRecordModel,
+  MedicationLineCardModel,
+  MedicationValidationBoardModel,
+  MedicationValidationSignalModel,
+  PharmacyCaseWorkbenchModel,
+  PharmacyOperationsMetricModel,
+  PharmacyOperationsPanelModel,
+  PharmacyOperationsQueueRowModel,
+  PharmacyOperationsQueueTableModel,
+  PharmacyStockRiskChipModel,
+  PharmacyWatchWindowBannerModel,
+  PharmacyWorkbenchDecisionDockActionModel,
+  PharmacyWorkbenchDecisionDockModel,
+  PharmacyWorkbenchTone,
+} from "./pharmacy-workbench-surfaces";
 
 export interface ShellMetric {
   label: string;
@@ -964,6 +1134,53 @@ export type {
   VisualizationParityInput,
   VisualizationParityState,
 } from "./accessibility-harness";
+
+export {
+  CROSS_ORG_ARTIFACT_HANDOFF_VISUAL_MODE,
+  AccessibleTimelineStatusAnnotations,
+  ArtifactHandoffActionBar,
+  ArtifactParityBanner,
+  CrossOrgArtifactSurfaceFrame,
+  CrossOrgContentLegend,
+  GrantBoundPreviewState,
+  GovernedPlaceholderSummary,
+  NetworkConfirmationArtifactStage,
+  PracticeNotificationArtifactSummary,
+  ReturnAnchorReceipt,
+} from "./cross-org-artifact-handoff";
+
+export type {
+  CrossOrgArtifactAction,
+  CrossOrgArtifactGrantState,
+  CrossOrgArtifactStageMode,
+  CrossOrgArtifactTone,
+  CrossOrgContentLegendItem,
+  CrossOrgSummaryRow,
+  CrossOrgTimelineStatusAnnotation,
+} from "./cross-org-artifact-handoff";
+
+export {
+  EligibilityEvidenceDrawer,
+  EligibilityGateLadder,
+  EligibilitySupersessionNotice,
+  EligibilityVersionChip,
+  PatientAlternativeRouteNextStepPanel,
+  PatientUnsuitableReturnState,
+  PHARMACY_ELIGIBILITY_CLARITY_VISUAL_MODE,
+  PharmacyEligibilityRuleExplainer,
+} from "./pharmacy-eligibility-surfaces";
+
+export type {
+  PharmacyEligibilityEvidenceSummaryRow,
+  PharmacyEligibilityFinalDisposition,
+  PharmacyEligibilityGateState,
+  PharmacyEligibilityGateViewModel,
+  PharmacyEligibilityNextStepPanelModel,
+  PharmacyEligibilityPolicyPackMeta,
+  PharmacyEligibilityPublicationState,
+  PharmacyEligibilitySurfaceModel,
+  PharmacyEligibilitySupersessionNoticeModel,
+} from "./pharmacy-eligibility-surfaces";
 
 export {
   VECELL_BRAND_NAME,

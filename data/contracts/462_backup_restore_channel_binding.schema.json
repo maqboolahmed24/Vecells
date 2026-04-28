@@ -1,0 +1,284 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vecells.local/contracts/462_backup_restore_channel_binding.schema.json",
+  "title": "Phase 9 backup target and restore report channel binding",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "targetBindings",
+    "reportChannels",
+    "readiness",
+    "registryHash",
+    "noRawArtifactUrls"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "462.phase9.backup-restore-channel-binding.v1"
+    },
+    "targetBindings": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "$ref": "#/$defs/BackupTargetBinding"
+      }
+    },
+    "reportChannels": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "$ref": "#/$defs/RestoreReportChannelBinding"
+      }
+    },
+    "readiness": {
+      "type": "object",
+      "required": [
+        "readinessState",
+        "recoveryControlState",
+        "evidencePackState",
+        "tupleState"
+      ],
+      "properties": {
+        "readinessState": {
+          "enum": ["ready", "blocked", "stale", "diagnostic"]
+        },
+        "recoveryControlState": {
+          "enum": ["live_control", "diagnostic_only", "blocked"]
+        },
+        "evidencePackState": {
+          "enum": ["current", "blocked", "stale"]
+        },
+        "tupleState": {
+          "enum": ["exact", "drifted"]
+        }
+      },
+      "additionalProperties": true
+    },
+    "registryHash": {
+      "type": "string",
+      "pattern": "^sha256:"
+    },
+    "noRawArtifactUrls": {
+      "const": true
+    }
+  },
+  "$defs": {
+    "BackupTargetBinding": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "bindingId",
+        "tenantRef",
+        "environmentRef",
+        "releaseRef",
+        "datasetScope",
+        "essentialFunctionRefs",
+        "recoveryTierRefs",
+        "backupSetManifestRef",
+        "recoveryEvidencePackRef",
+        "checksumAlgorithm",
+        "checksumCadence",
+        "restoreCompatibilityDigestStrategy",
+        "dependencyOrderDigestStrategy",
+        "secretRef",
+        "secretMaterialInline",
+        "latestVerificationRecord",
+        "diagnosticDegradedConsequence",
+        "resilienceTupleHash"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "462.phase9.backup-restore-channel-binding.v1"
+        },
+        "datasetScope": {
+          "enum": [
+            "patient_intake_event_data",
+            "safety_gate_triage_queue",
+            "booking_hub_coordination",
+            "pharmacy_referral_loop",
+            "outbound_communications",
+            "audit_search_assurance_ledger",
+            "assistive_downgrade_human_artifact",
+            "operational_projection_conformance_proof"
+          ]
+        },
+        "secretRef": {
+          "type": "string",
+          "pattern": "^(vault-ref/|$)"
+        },
+        "secretMaterialInline": {
+          "const": false
+        },
+        "checksumAlgorithm": {
+          "const": "sha256"
+        },
+        "latestVerificationRecord": {
+          "$ref": "#/$defs/BackupTargetVerificationRecord"
+        }
+      },
+      "additionalProperties": true
+    },
+    "BackupTargetVerificationRecord": {
+      "type": "object",
+      "required": [
+        "verificationId",
+        "bindingId",
+        "status",
+        "checksumAlgorithm",
+        "checksumExpected",
+        "checksumObserved",
+        "checksumMatches",
+        "immutabilityProofObserved",
+        "restoreCompatibilityDigest",
+        "dependencyOrderDigest",
+        "resilienceTupleHash"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "verified",
+            "pending_creation",
+            "missing_secret",
+            "stale_checksum",
+            "missing_immutability_proof",
+            "blocked",
+            "unsupported_scope",
+            "tuple_drift",
+            "withdrawn"
+          ]
+        },
+        "checksumAlgorithm": {
+          "const": "sha256"
+        },
+        "restoreCompatibilityDigest": {
+          "type": "string",
+          "pattern": "^sha256:"
+        },
+        "dependencyOrderDigest": {
+          "type": "string",
+          "pattern": "^sha256:"
+        }
+      },
+      "additionalProperties": true
+    },
+    "RestoreReportChannelBinding": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "channelId",
+        "artifactTypes",
+        "artifactPresentationPolicy",
+        "maskingRedactionPolicyHash",
+        "permittedRecipients",
+        "secretRef",
+        "secretMaterialInline",
+        "settlementBehavior",
+        "safeFallbackDisposition",
+        "retentionArchiveProtection",
+        "latestSettlement"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "462.phase9.backup-restore-channel-binding.v1"
+        },
+        "artifactTypes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "restore_report",
+              "failover_report",
+              "chaos_report",
+              "journey_recovery_proof",
+              "backup_manifest_report",
+              "runbook_bundle",
+              "readiness_snapshot_summary"
+            ]
+          }
+        },
+        "secretRef": {
+          "type": "string",
+          "pattern": "^(vault-ref/|$)"
+        },
+        "secretMaterialInline": {
+          "const": false
+        },
+        "artifactPresentationPolicy": {
+          "$ref": "#/$defs/RecoveryArtifactChannelPolicy"
+        },
+        "latestSettlement": {
+          "$ref": "#/$defs/RestoreReportDeliverySettlement"
+        }
+      },
+      "additionalProperties": true
+    },
+    "RecoveryArtifactChannelPolicy": {
+      "type": "object",
+      "required": [
+        "policyId",
+        "presentationContractRef",
+        "artifactSurfaceFrameRef",
+        "artifactModeTruthProjectionRef",
+        "rawObjectStoreUrlsAllowed",
+        "outboundGrantRequired",
+        "redactionMode",
+        "retentionClass",
+        "archiveProtection"
+      ],
+      "properties": {
+        "presentationContractRef": {
+          "const": "ArtifactPresentationContract"
+        },
+        "artifactSurfaceFrameRef": {
+          "const": "ArtifactSurfaceFrame"
+        },
+        "artifactModeTruthProjectionRef": {
+          "const": "ArtifactModeTruthProjection"
+        },
+        "rawObjectStoreUrlsAllowed": {
+          "const": false
+        },
+        "outboundGrantRequired": {
+          "const": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "RestoreReportDeliverySettlement": {
+      "type": "object",
+      "required": [
+        "settlementId",
+        "channelId",
+        "result",
+        "artifactType",
+        "artifactRef",
+        "presentationGrantRef",
+        "receiverRef",
+        "receiverObserved",
+        "idempotencyKey",
+        "redactionPolicyHash",
+        "fallbackDisposition"
+      ],
+      "properties": {
+        "result": {
+          "enum": ["delivered", "blocked", "failed", "stale", "withdrawn"]
+        },
+        "artifactType": {
+          "enum": [
+            "restore_report",
+            "failover_report",
+            "chaos_report",
+            "journey_recovery_proof",
+            "backup_manifest_report",
+            "runbook_bundle",
+            "readiness_snapshot_summary"
+          ]
+        },
+        "redactionPolicyHash": {
+          "type": "string",
+          "pattern": "^sha256:"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,863 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>338 Phase 5 Scope Capacity Ranking SLA Lab</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f7f8fa;
+        --shell: #eef2f6;
+        --panel: #ffffff;
+        --inset: #e8eef3;
+        --stroke: #d6dce5;
+        --text-strong: #0f172a;
+        --text: #334155;
+        --text-muted: #64748b;
+        --scope-accent: #3158e0;
+        --trusted-accent: #0f766e;
+        --degraded-accent: #b7791f;
+        --quarantined-accent: #b42318;
+        --ranking-accent: #5b61f6;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at top left, rgba(49, 88, 224, 0.08), transparent 32%),
+          linear-gradient(180deg, #fbfcfe 0%, var(--canvas) 36%, #eef3f8 100%);
+        color: var(--text-strong);
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      }
+
+      button,
+      a {
+        color: inherit;
+        font: inherit;
+      }
+
+      main {
+        width: min(1720px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 20px 0 40px;
+        display: grid;
+        gap: 18px;
+      }
+
+      .surface {
+        border: 1px solid var(--stroke);
+        border-radius: 26px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 24px 52px rgba(15, 23, 42, 0.08);
+      }
+
+      .masthead {
+        min-height: 72px;
+        padding: 18px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        background:
+          linear-gradient(135deg, rgba(49, 88, 224, 0.12), transparent 36%),
+          linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+      }
+
+      .masthead-copy,
+      .truth-band,
+      .panel-head {
+        display: grid;
+        gap: 6px;
+      }
+
+      .eyebrow {
+        color: var(--text-muted);
+        font-size: 0.76rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .truth-band {
+        padding: 18px 24px;
+      }
+
+      .truth-band-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .truth-chip {
+        border-radius: 18px;
+        background: var(--shell);
+        padding: 12px 14px;
+        display: grid;
+        gap: 4px;
+      }
+
+      .layout {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: 320px minmax(760px, 1fr) 420px;
+      }
+
+      .rail,
+      .canvas,
+      .inspector {
+        min-height: 760px;
+        padding: 18px;
+      }
+
+      .rail,
+      .canvas,
+      .inspector,
+      .evidence-table {
+        border: 1px solid var(--stroke);
+        border-radius: 26px;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 20px 44px rgba(15, 23, 42, 0.07);
+      }
+
+      .rail {
+        display: grid;
+        gap: 12px;
+        align-content: start;
+      }
+
+      .scenario-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .scenario-button {
+        width: 100%;
+        text-align: left;
+        border: 1px solid var(--stroke);
+        border-radius: 20px;
+        background: var(--panel);
+        padding: 14px;
+        display: grid;
+        gap: 6px;
+        cursor: pointer;
+      }
+
+      .scenario-button[aria-pressed="true"] {
+        border-color: rgba(49, 88, 224, 0.28);
+        background:
+          linear-gradient(180deg, rgba(49, 88, 224, 0.08), rgba(91, 97, 246, 0.06)),
+          #ffffff;
+        box-shadow: inset 0 0 0 1px rgba(49, 88, 224, 0.08);
+      }
+
+      .scenario-button strong {
+        font-size: 0.98rem;
+      }
+
+      .scenario-button span,
+      .scenario-button small,
+      .inspector-grid p,
+      .canvas-card p,
+      .evidence-table td {
+        color: var(--text);
+      }
+
+      .canvas {
+        display: grid;
+        gap: 16px;
+        grid-template-rows: auto auto 1fr;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.98) 0%,
+          rgba(247, 250, 253, 0.92) 42%,
+          rgba(232, 238, 243, 0.82) 100%
+        );
+      }
+
+      .canvas-grid {
+        display: grid;
+        gap: 14px;
+      }
+
+      .canvas-row {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: 1.05fr 0.95fr;
+      }
+
+      .canvas-card {
+        border: 1px solid rgba(214, 220, 229, 0.94);
+        border-radius: 22px;
+        background: var(--panel);
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .signal-strip,
+      .evidence-links,
+      .inspector-grid,
+      .queue-list,
+      .candidate-list,
+      .invariant-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .signal-row,
+      .list-row,
+      .fact-row,
+      .invariant-row {
+        border-radius: 18px;
+        background: var(--shell);
+        padding: 12px 14px;
+        display: grid;
+        gap: 6px;
+      }
+
+      .list-row[data-tone="scope"] {
+        border-left: 4px solid var(--scope-accent);
+      }
+
+      .list-row[data-tone="trusted"] {
+        border-left: 4px solid var(--trusted-accent);
+      }
+
+      .list-row[data-tone="degraded"] {
+        border-left: 4px solid var(--degraded-accent);
+      }
+
+      .list-row[data-tone="quarantined"] {
+        border-left: 4px solid var(--quarantined-accent);
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .chip[data-tone="scope"] {
+        background: rgba(49, 88, 224, 0.12);
+        color: var(--scope-accent);
+      }
+
+      .chip[data-tone="trusted"] {
+        background: rgba(15, 118, 110, 0.14);
+        color: var(--trusted-accent);
+      }
+
+      .chip[data-tone="degraded"] {
+        background: rgba(183, 121, 31, 0.16);
+        color: var(--degraded-accent);
+      }
+
+      .chip[data-tone="quarantined"] {
+        background: rgba(180, 35, 24, 0.14);
+        color: var(--quarantined-accent);
+      }
+
+      .chip[data-tone="ranking"] {
+        background: rgba(91, 97, 246, 0.12);
+        color: var(--ranking-accent);
+      }
+
+      .inspector {
+        display: grid;
+        gap: 14px;
+        align-content: start;
+      }
+
+      .inspector-block {
+        border-radius: 22px;
+        border: 1px solid rgba(214, 220, 229, 0.94);
+        background: linear-gradient(180deg, rgba(232, 238, 243, 0.56), rgba(255, 255, 255, 0.96));
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .inspector-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .inspector-grid strong,
+      .list-row strong,
+      .invariant-row strong,
+      .truth-chip strong {
+        font-size: 0.96rem;
+      }
+
+      .evidence-table {
+        min-height: 280px;
+        padding: 18px;
+        display: grid;
+        gap: 14px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 12px;
+        border-bottom: 1px solid rgba(214, 220, 229, 0.94);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--text-muted);
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      a {
+        text-decoration-thickness: 0.08em;
+        text-underline-offset: 0.15em;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      @media (max-width: 1480px) {
+        .layout {
+          grid-template-columns: 320px minmax(0, 1fr);
+        }
+
+        .inspector {
+          grid-column: 1 / -1;
+          min-height: auto;
+        }
+      }
+
+      @media (max-width: 1120px) {
+        .truth-band-grid,
+        .canvas-row,
+        .inspector-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main data-testid="Phase5ScopeCapacityRankingSlaLab">
+      <section class="surface masthead">
+        <div class="masthead-copy">
+          <span class="eyebrow">Phase 5 Evidence Lab</span>
+          <h1>Scope, capacity, ranking, and SLA authority</h1>
+          <p>One release-grade reviewer surface for pre-commit hub truth, responsive parity, and explicit unsupported seams.</p>
+        </div>
+        <div class="chip-row" aria-label="Outcome status">
+          <span class="chip" data-tone="scope">Org boundary proved</span>
+          <span class="chip" data-tone="trusted">Trusted supply gated</span>
+          <span class="chip" data-tone="degraded">Degraded supply suppressed</span>
+          <span class="chip" data-tone="quarantined">Quarantine explicit</span>
+        </div>
+      </section>
+
+      <section class="surface truth-band" aria-label="Truth summary band">
+        <div class="truth-band-grid">
+          <div class="truth-chip">
+            <span class="eyebrow">Scope law</span>
+            <strong>Writable authority never survives org drift</strong>
+            <span>Read-only and denied postures come from the acting-context tuple, not route-local decoration.</span>
+          </div>
+          <div class="truth-chip">
+            <span class="eyebrow">Capacity law</span>
+            <strong>Degraded and quarantined supply never masquerade as ordinary patient offers</strong>
+            <span>Decision-plan frontiers stay limited to trusted supply unless the callback path is the only lawful surface.</span>
+          </div>
+          <div class="truth-chip">
+            <span class="eyebrow">Ranking law</span>
+            <strong>Queue order equals the authoritative projection</strong>
+            <span>Selection anchors and the DecisionDock survive buffered reorder and responsive folding.</span>
+          </div>
+          <div class="truth-chip">
+            <span class="eyebrow">Unsupported seam</span>
+            <strong>Patient-choice expiry timer remains blocked upstream</strong>
+            <span>The unsupported gap is explicit evidence, not a hidden pass.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="layout" aria-label="Scenario workbench">
+        <aside class="rail" aria-label="Scenario rail">
+          <div class="panel-head">
+            <span class="eyebrow">Scenarios</span>
+            <h2>Release-grade proof set</h2>
+            <p>Keyboard selection synchronizes the queue canvas, inspector tuple, and evidence links.</p>
+          </div>
+          <div class="scenario-list" role="listbox" aria-label="338 scenarios">
+            <button class="scenario-button" type="button" aria-pressed="true" data-scenario-id="scope_drift">
+              <strong>Scope drift freeze</strong>
+              <span>North Shore writable scope drifts into Riverside read-only, then South Vale denied.</span>
+              <small>SCOPE338_001 · BROWSER338_001</small>
+            </button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-scenario-id="degraded_filter">
+              <strong>Degraded capacity filter</strong>
+              <span>Queue shows only rows where degraded or quarantined supply matters.</span>
+              <small>CAP338_001 · BROWSER338_004</small>
+            </button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-scenario-id="supplier_drift">
+              <strong>Supplier drift quarantine</strong>
+              <span>Quarantined candidate remains diagnostic-only under recovery posture.</span>
+              <small>CAP338_001 · CAP338_002 · BROWSER338_004</small>
+            </button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-scenario-id="queue_delta">
+              <strong>Queue delta continuity</strong>
+              <span>Applied authoritative reorder preserves the selected case and DecisionDock option.</span>
+              <small>RANK338_001 · RANK338_002 · BROWSER338_002</small>
+            </button>
+            <button class="scenario-button" type="button" aria-pressed="false" data-scenario-id="mission_stack">
+              <strong>Mission stack parity</strong>
+              <span>Callback recovery keeps the same active case at mobile, tablet, and 320px reduced-motion.</span>
+              <small>BROWSER338_003</small>
+            </button>
+          </div>
+        </aside>
+
+        <section class="canvas" aria-live="polite">
+          <div class="panel-head">
+            <span class="eyebrow" id="scenario-eyebrow">Current scenario</span>
+            <h2 id="scenario-title">Scope drift freeze</h2>
+            <p id="scenario-summary">Acting-context switching is proved against current tuple authority and explicit visibility posture instead of banner-only assertions.</p>
+          </div>
+
+          <div class="signal-strip" id="signal-strip"></div>
+
+          <div class="canvas-grid">
+            <div class="canvas-row">
+              <section class="canvas-card" aria-labelledby="queue-card-heading">
+                <div class="panel-head">
+                  <span class="eyebrow">Queue and candidate canvas</span>
+                  <h3 id="queue-card-heading">Authoritative queue slice</h3>
+                </div>
+                <div class="queue-list" id="queue-list"></div>
+                <div class="candidate-list" id="candidate-list"></div>
+              </section>
+
+              <section class="canvas-card" aria-labelledby="invariant-card-heading">
+                <div class="panel-head">
+                  <span class="eyebrow">Invariant outcomes</span>
+                  <h3 id="invariant-card-heading">What this scenario proves</h3>
+                </div>
+                <div class="invariant-list" id="invariant-list"></div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <aside class="inspector" aria-label="Scenario inspector">
+          <section class="inspector-block">
+            <div class="panel-head">
+              <span class="eyebrow">Projection tuple</span>
+              <h3>Current authority</h3>
+            </div>
+            <div class="inspector-grid" id="tuple-grid"></div>
+          </section>
+          <section class="inspector-block">
+            <div class="panel-head">
+              <span class="eyebrow">Artifact inspector</span>
+              <h3>Trace and proof references</h3>
+            </div>
+            <div class="evidence-links" id="artifact-links"></div>
+          </section>
+          <section class="inspector-block">
+            <div class="panel-head">
+              <span class="eyebrow">Unsupported seams</span>
+              <h3>Explicit carry-forward</h3>
+            </div>
+            <div class="fact-row">
+              <strong>Patient-choice expiry timer</strong>
+              <p>Still blocked by `PHASE5_BATCH_316_323_INTERFACE_GAP_QUEUE_PATIENT_CHOICE_EXPIRY.json`, so the battery records it as unsupported instead of promoting a false pass.</p>
+            </div>
+          </section>
+        </aside>
+      </section>
+
+      <section class="evidence-table" aria-labelledby="evidence-table-heading">
+        <div class="panel-head">
+          <span class="eyebrow">Evidence table</span>
+          <h2 id="evidence-table-heading">Machine-readable bundle rows</h2>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Case</th>
+              <th scope="col">Environment</th>
+              <th scope="col">Status</th>
+              <th scope="col">Artifacts</th>
+            </tr>
+          </thead>
+          <tbody id="evidence-rows"></tbody>
+        </table>
+      </section>
+    </main>
+
+    <script>
+      const scenarios = {
+        scope_drift: {
+          eyebrow: "Scope and visibility",
+          title: "Scope drift freeze",
+          summary:
+            "The current case stays selected while writable authority collapses to read-only and then denied as the acting tuple changes.",
+          signals: [
+            ["Organisation", "North Shore Hub → Riverside Medical → South Vale Network", "scope"],
+            ["Audience tier", "hub_desk_visibility → origin_practice_visibility → no_visibility", "scope"],
+            ["Posture", "writable → read_only → denied", "scope"],
+            ["Placeholders", "0 → 3 → 0", "scope"],
+          ],
+          queue: [
+            { tone: "scope", title: "Case anchor", body: "hub-case-104 stays active throughout the switch path." },
+            { tone: "scope", title: "Mutation posture", body: "Route mutation disables as soon as writable authority is no longer lawful." },
+          ],
+          candidates: [
+            { tone: "scope", title: "DecisionDock posture", body: "Blocked shell rebinds to scope-review recovery instead of preserving the previous dominant action." },
+          ],
+          invariants: [
+            ["BROWSER338_001", "Second browser context stays on default North Shore writable scope."],
+            ["SCOPE338_001", "Scope drift returns `decision=stale` with `reasonCode=organisation_switch`."],
+            ["SCOPE338_002", "Audience-tier projection never leaks hidden fields."],
+          ],
+          tuple: [
+            ["Route family", "rf_hub_case_management"],
+            ["Selected case", "hub-case-104"],
+            ["Break-glass", "inactive"],
+            ["Visibility envelope", "explicit"],
+          ],
+          artifacts: [
+            "tests/playwright/338_org_boundary_and_scope_switcher.spec.ts",
+            "output/playwright/338-org-boundary-primary-trace.zip",
+            "output/playwright/338-org-boundary-denied.png",
+          ],
+          evidence: [
+            ["BROWSER338_001", "hub_shell_desktop_local", "passed", "338-org-boundary-primary-trace.zip, 338-org-boundary-denied.png"],
+            ["SCOPE338_001", "hub_scope_truth_local", "passed", "338_acting_context_and_visibility_truth.spec.ts"],
+            ["SCOPE338_002", "hub_scope_truth_local", "passed", "338_acting_context_and_visibility_truth.spec.ts"],
+          ],
+        },
+        degraded_filter: {
+          eyebrow: "Capacity admission",
+          title: "Degraded capacity filter",
+          summary:
+            "The queue slice stays limited to rows where degraded or quarantined supply changes the operator’s truth, while callback-only reasoning remains explicit.",
+          signals: [
+            ["Filter", "degraded", "degraded"],
+            ["Visible rows", "hub-case-104 · hub-case-087", "ranking"],
+            ["Direct commit", "1 trusted candidate only", "trusted"],
+            ["Callback-only reasoning", "Visible for degraded supply only", "degraded"],
+          ],
+          queue: [
+            { tone: "degraded", title: "Degraded slice", body: "Only rows whose truth changes under degraded or quarantined supply remain visible." },
+            { tone: "trusted", title: "Trusted frontier", body: "Trusted direct-commit candidate stays the only live ordinary offer." },
+          ],
+          candidates: [
+            { tone: "degraded", title: "Degraded candidate", body: "Offerability remains callback_only_reasoning and hidden from ordinary patient truth." },
+          ],
+          invariants: [
+            ["CAP338_001", "Degraded admissions stay hidden from patientOfferableFrontierRefs."],
+            ["BROWSER338_004", "Desktop degraded filter order equals the authoritative projection."],
+          ],
+          tuple: [
+            ["Saved view", "resume_today"],
+            ["Filter scope", "degraded"],
+            ["Selected case", "hub-case-104"],
+            ["Offerability law", "trusted direct_commit only"],
+          ],
+          artifacts: [
+            "tests/playwright/338_capacity_degraded_and_quarantined_visuals.spec.ts",
+            "output/playwright/338-capacity-degraded-and-quarantined.png",
+          ],
+          evidence: [
+            ["CAP338_001", "capacity_admission_local_twin", "passed", "338_capacity_feed_admission_and_quarantine.spec.ts"],
+            ["BROWSER338_004", "hub_shell_capacity_visual_local", "passed", "338-capacity-degraded-and-quarantined.png"],
+          ],
+        },
+        supplier_drift: {
+          eyebrow: "Quarantine law",
+          title: "Supplier drift quarantine",
+          summary:
+            "Supplier drift freezes the shell, keeps the current candidate diagnostic-only, and still leaves the callback fallback separate from ranked trusted backup supply.",
+          signals: [
+            ["Saved view", "supplier_drift", "quarantined"],
+            ["Posture", "frozen / shell_recovery_only", "quarantined"],
+            ["Selected option", "opt-041-current", "quarantined"],
+            ["Fallback", "Callback card remains separate", "ranking"],
+          ],
+          queue: [
+            { tone: "quarantined", title: "Quarantined row", body: "hub-case-041 leads the queue because live manage truth is frozen under supplier drift." },
+            { tone: "trusted", title: "Trusted backup", body: "Backup supply may remain patient-offerable without promoting the quarantined candidate." },
+          ],
+          candidates: [
+            { tone: "quarantined", title: "Current candidate", body: "quarantined / diagnostic_only / supplier_drift review" },
+            { tone: "trusted", title: "Backup candidate", body: "trusted / patient_offerable / non-direct-commit" },
+          ],
+          invariants: [
+            ["CAP338_002", "Trusted collisions stay ahead of degraded or quarantined supply."],
+            ["BROWSER338_004", "No direct-commit card remains visible in supplier-drift review."],
+          ],
+          tuple: [
+            ["Current work state", "supplier_drift_review"],
+            ["Banner", "supplier_drift"],
+            ["Recovery posture", "frozen"],
+            ["Callback fallback", "still explicit"],
+          ],
+          artifacts: [
+            "output/playwright/338-capacity-degraded-and-quarantined-trace.zip",
+            "output/playwright/338-capacity-degraded-and-quarantined.png",
+          ],
+          evidence: [
+            ["CAP338_002", "capacity_admission_local_twin", "passed", "338_capacity_feed_admission_and_quarantine.spec.ts"],
+            ["BROWSER338_004", "hub_shell_capacity_visual_local", "passed", "338-capacity-degraded-and-quarantined-trace.zip"],
+          ],
+        },
+        queue_delta: {
+          eyebrow: "Ranking continuity",
+          title: "Queue delta continuity",
+          summary:
+            "Buffered and applied queue deltas reorder the workbench only through the authoritative batch mechanism and keep the current DecisionDock meaning stable.",
+          signals: [
+            ["Initial order", "104 → 087 → 066", "ranking"],
+            ["Applied order", "087 → 104 → 066", "ranking"],
+            ["Selected case", "hub-case-104", "scope"],
+            ["Selected option", "opt-104-north-shore", "trusted"],
+          ],
+          queue: [
+            { tone: "ranking", title: "Buffered phase", body: "Queue order stays unchanged until the authoritative apply event lands." },
+            { tone: "trusted", title: "DecisionDock anchor", body: "Selected option stays bound to opt-104-north-shore through the reorder." },
+          ],
+          candidates: [
+            { tone: "trusted", title: "Urgent row truth", body: "hub-case-087 keeps its critical timer and trust summary even after applied reorder." },
+          ],
+          invariants: [
+            ["RANK338_001", "Workbench row refs equal authoritative rank entry refs."],
+            ["RANK338_002", "Replay reproduces the stored queue snapshot exactly."],
+            ["BROWSER338_002", "Applied browser order equals the authoritative applied snapshot."],
+          ],
+          tuple: [
+            ["Route family", "rf_hub_queue"],
+            ["Queue change state", "buffered → applied"],
+            ["Fairness merge", "preserved"],
+            ["Dominant action", "stable"],
+          ],
+          artifacts: [
+            "tests/playwright/338_hub_queue_ranking_and_sla.spec.ts",
+            "output/playwright/338-hub-queue-ranking-and-sla-trace.zip",
+            "output/playwright/338-hub-queue-ranking-and-sla.png",
+          ],
+          evidence: [
+            ["RANK338_001", "hub_queue_projection_local", "passed", "338_candidate_ranking_and_queue_projection.spec.ts"],
+            ["RANK338_002", "hub_queue_projection_local", "passed", "338_candidate_ranking_and_queue_projection.spec.ts"],
+            ["BROWSER338_002", "hub_shell_desktop_local", "passed", "338-hub-queue-ranking-and-sla.png"],
+          ],
+        },
+        mission_stack: {
+          eyebrow: "Responsive parity",
+          title: "Mission stack parity",
+          summary:
+            "Mobile, tablet, and 320px reduced-motion views keep the same saved-view, case anchor, and DecisionDock authority without overflow.",
+          signals: [
+            ["Layout", "mission_stack", "ranking"],
+            ["Saved view", "callback_recovery", "scope"],
+            ["Selected case", "hub-case-052", "scope"],
+            ["Reduced motion", "respect → reduce", "ranking"],
+          ],
+          queue: [
+            { tone: "ranking", title: "Mobile queue order", body: "hub-case-052 → hub-case-031 → hub-case-041" },
+            { tone: "ranking", title: "Tablet parity", body: "The same selected option and dominant action persist at tablet width." },
+          ],
+          candidates: [
+            { tone: "trusted", title: "Current option", body: "opt-052-variance stays selected across support-drawer travel and reload." },
+            { tone: "degraded", title: "Alternative option", body: "opt-052-remote stays diagnostic-only and never becomes a live direct-commit substitute." },
+          ],
+          invariants: [
+            ["BROWSER338_003", "Support drawer and reload preserve the selected option anchor."],
+            ["BROWSER338_003", "320px reduced-motion view has no horizontal overflow."],
+            ["SLA338_001", "Urgency meaning survives responsive folding."],
+          ],
+          tuple: [
+            ["Breakpoint class", "compact at 320px"],
+            ["Support region", "drawer"],
+            ["DecisionDock", "sticky bottom authority"],
+            ["Selected option", "opt-052-variance"],
+          ],
+          artifacts: [
+            "output/playwright/338-hub-mission-stack-mobile-trace.zip",
+            "output/playwright/338-hub-mission-stack-tablet.png",
+            "output/playwright/338-hub-mission-stack-320-reduced.png",
+          ],
+          evidence: [
+            ["BROWSER338_003", "hub_shell_mission_stack_mobile", "passed", "338-hub-mission-stack-mobile.png"],
+            ["BROWSER338_003", "hub_shell_mission_stack_tablet", "passed", "338-hub-mission-stack-tablet.png"],
+            ["UNSUPPORTED338_001", "hub_shell_mission_stack_mobile", "unsupported", "PHASE5_BATCH_316_323_INTERFACE_GAP_QUEUE_PATIENT_CHOICE_EXPIRY.json"],
+          ],
+        },
+      };
+
+      const buttons = Array.from(document.querySelectorAll(".scenario-button"));
+      const signalStrip = document.getElementById("signal-strip");
+      const queueList = document.getElementById("queue-list");
+      const candidateList = document.getElementById("candidate-list");
+      const invariantList = document.getElementById("invariant-list");
+      const tupleGrid = document.getElementById("tuple-grid");
+      const artifactLinks = document.getElementById("artifact-links");
+      const evidenceRows = document.getElementById("evidence-rows");
+
+      function renderScenario(id) {
+        const scenario = scenarios[id];
+        document.getElementById("scenario-eyebrow").textContent = scenario.eyebrow;
+        document.getElementById("scenario-title").textContent = scenario.title;
+        document.getElementById("scenario-summary").textContent = scenario.summary;
+
+        signalStrip.innerHTML = scenario.signals
+          .map(
+            ([label, value, tone]) => `
+              <div class="list-row" data-tone="${tone}">
+                <strong>${label}</strong>
+                <p>${value}</p>
+              </div>`,
+          )
+          .join("");
+
+        queueList.innerHTML = scenario.queue
+          .map(
+            (item) => `
+              <div class="list-row" data-tone="${item.tone}">
+                <strong>${item.title}</strong>
+                <p>${item.body}</p>
+              </div>`,
+          )
+          .join("");
+
+        candidateList.innerHTML = scenario.candidates
+          .map(
+            (item) => `
+              <div class="list-row" data-tone="${item.tone}">
+                <strong>${item.title}</strong>
+                <p>${item.body}</p>
+              </div>`,
+          )
+          .join("");
+
+        invariantList.innerHTML = scenario.invariants
+          .map(
+            ([id, text]) => `
+              <div class="invariant-row">
+                <strong>${id}</strong>
+                <p>${text}</p>
+              </div>`,
+          )
+          .join("");
+
+        tupleGrid.innerHTML = scenario.tuple
+          .map(
+            ([label, value]) => `
+              <div class="fact-row">
+                <strong>${label}</strong>
+                <p>${value}</p>
+              </div>`,
+          )
+          .join("");
+
+        artifactLinks.innerHTML = scenario.artifacts
+          .map(
+            (artifact) => `
+              <div class="fact-row">
+                <strong>${artifact.split("/").pop()}</strong>
+                <a href="/Users/test/Code/V/${artifact}" target="_blank" rel="noreferrer">${artifact}</a>
+              </div>`,
+          )
+          .join("");
+
+        evidenceRows.innerHTML = scenario.evidence
+          .map(
+            ([caseId, environment, status, artifact]) => `
+              <tr>
+                <td>${caseId}</td>
+                <td>${environment}</td>
+                <td>${status}</td>
+                <td>${artifact}</td>
+              </tr>`,
+          )
+          .join("");
+
+        buttons.forEach((button) =>
+          button.setAttribute("aria-pressed", button.dataset.scenarioId === id ? "true" : "false"),
+        );
+      }
+
+      buttons.forEach((button) => {
+        button.addEventListener("click", () => renderScenario(button.dataset.scenarioId));
+        button.addEventListener("keydown", (event) => {
+          const index = buttons.indexOf(button);
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            buttons[(index + 1) % buttons.length].focus();
+          }
+          if (event.key === "ArrowUp") {
+            event.preventDefault();
+            buttons[(index - 1 + buttons.length) % buttons.length].focus();
+          }
+          if (event.key === " " || event.key === "Enter") {
+            event.preventDefault();
+            renderScenario(button.dataset.scenarioId);
+          }
+        });
+      });
+
+      renderScenario("scope_drift");
+    </script>
+  </body>
+</html>

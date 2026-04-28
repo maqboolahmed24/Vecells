@@ -44,7 +44,6 @@ import {
   isMutationAllowed,
   navPathForSection,
   parsePatientShellLocation,
-  patientAppointments,
   patientIdentitySummary,
   patientRecords,
   patientRequests,
@@ -54,7 +53,6 @@ import {
   resolveHomeSpotlightRequest,
   resolvePatientShellView,
   resolveQuietHomeNextRecord,
-  resolveSelectedAppointmentForLocation,
   resolveSelectedRecordForLocation,
   resolveSelectedRequestForLocation,
   resolveSelectedThreadForLocation,
@@ -67,6 +65,7 @@ import {
   type PatientShellRouteView,
   type PatientShellViewMemory,
 } from "./patient-shell-seed.model";
+import { PatientAppointmentFamilyWorkspace } from "./patient-appointment-family-workspace";
 
 const VIEW_MEMORY_STORAGE_KEY = "patient-shell-seed::view-memory";
 const TELEMETRY_LIMIT = 10;
@@ -832,28 +831,14 @@ function AppointmentsRoute({
   memory: PatientShellViewMemory;
   location: PatientShellLocation;
 }) {
-  const activeAppointment = resolveSelectedAppointmentForLocation(memory);
-
   return (
     <div className="patient-shell-seed__appointments" data-testid="patient-appointments-route">
-      <RouteGuardCard view={view} selectedAnchor={selectedAnchorKeyForLocation(location, memory.homeMode)} />
-      <div className="patient-shell-seed__appointment-grid" data-testid="patient-appointment-itinerary">
-        {patientAppointments.map((appointment) => (
-          <article
-            key={appointment.id}
-            className="patient-shell-seed__appointment-card"
-            data-active={appointment.id === activeAppointment.id ? "true" : "false"}
-          >
-            <span className="patient-shell-seed__eyebrow">{appointment.id}</span>
-            <h3>{appointment.title}</h3>
-            <p>{appointment.summary}</p>
-            <div className="patient-shell-seed__list-meta">
-              <StatusPill label={humanizeState(appointment.status)} tone={buttonTone(appointment.status)} />
-              <span>{appointment.dateLabel}</span>
-            </div>
-            <small>{appointment.locationLabel}</small>
-          </article>
-        ))}
+      <RouteGuardCard
+        view={view}
+        selectedAnchor={selectedAnchorKeyForLocation(location, memory.homeMode)}
+      />
+      <div data-testid="patient-appointment-itinerary">
+        <PatientAppointmentFamilyWorkspace />
       </div>
     </div>
   );

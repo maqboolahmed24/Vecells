@@ -209,6 +209,37 @@ describe("phase 3 more-info kernel application seam", () => {
     expect(current?.checkpoint.replyWindowState).toBe("open");
   });
 
+  it("suppresses reminder authority after late review starts instead of sending stale jobs", async () => {
+    const application = createPhase3MoreInfoKernelApplication();
+    await seedReviewTask(application, "236_late_review");
+
+    const requested = await application.requestMoreInfo(
+      requestInput("236_late_review", {
+        dueAt: "2026-04-16T09:08:00.000Z",
+        expiresAt: "2026-04-16T09:40:00.000Z",
+        reminderOffsetsMinutes: [1],
+      }),
+    );
+
+    await application.drainReminderWorker({
+      evaluatedAt: "2026-04-16T09:04:00.000Z",
+    });
+    const lateReview = await application.drainReminderWorker({
+      evaluatedAt: "2026-04-16T09:09:00.000Z",
+    });
+    const current = await application.queryTaskMoreInfo("task_236_late_review");
+
+    expect(lateReview.dispatched).toEqual([]);
+    expect(current?.cycle.cycleId).toBe(requested.cycle.cycleId);
+    expect(current?.cycle.state).toBe("awaiting_late_review");
+    expect(current?.checkpoint.replyWindowState).toBe("late_review");
+    expect(current?.schedule.scheduleState).toBe("suppressed");
+    expect(current?.schedule.suppressedReasonRef).toBe("late_review_reached");
+    expect(
+      application.listOutboxEntries().filter((entry) => entry.effectType === "reminder_send"),
+    ).toHaveLength(0);
+  });
+
   it("seeds callback fallback once under blocked reachability and releases lease plus grant on explicit expiry", async () => {
     const application = createPhase3MoreInfoKernelApplication();
     await seedReviewTask(application, "236_expiry");

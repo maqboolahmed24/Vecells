@@ -19,6 +19,7 @@ import {
   type AttachmentArtifactPresentationView,
   type AttachmentScannerAdapter,
   type AttachmentWorkerRunResult,
+  type ContactPreferenceValidationSummary,
   type DraftAttachmentProjectionCard,
   type InitiateAttachmentUploadInput,
   type InitiateAttachmentUploadResult,
@@ -179,6 +180,30 @@ export function createIntakeAttachmentApplication(options?: {
   const validation = createSubmissionEnvelopeValidationApplication({
     repositories,
     attachmentStateResolver: async ({ draftPublicId }) => attachments.buildSubmissionAttachmentStates(draftPublicId),
+    contactPreferenceResolver: async ({
+      draftPublicId,
+      envelopeRef,
+    }): Promise<ContactPreferenceValidationSummary> => {
+      const projection = await repositories.findDraftContinuityEvidenceProjectionByPublicId(draftPublicId);
+      const snapshot = projection?.toSnapshot();
+      return {
+        validationSummarySchemaVersion: "PHASE1_CONTACT_PREFERENCE_VALIDATION_SUMMARY_V1",
+        draftPublicId,
+        envelopeRef,
+        contactPreferenceCaptureRef: null,
+        contactPreferencesRef: null,
+        maskedViewRef: null,
+        routeSnapshotSeedRef: null,
+        preferredChannel: snapshot?.contactPreferences.preferredChannel ?? null,
+        preferredDestinationMasked: null,
+        completenessState: "complete",
+        reasonCodes: ["ATTACHMENT_SEAM_CONTACT_PREFERENCE_OUT_OF_SCOPE"],
+        sourceAuthorityClass:
+          snapshot?.surfaceChannelProfile === "embedded"
+            ? "self_service_embedded_entry"
+            : "self_service_browser_entry",
+      };
+    },
   });
 
   const application: IntakeAttachmentApplication = {

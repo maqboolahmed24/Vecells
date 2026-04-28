@@ -1819,6 +1819,7 @@ function validateGrantAgainstRuntime(
     sessionEpochRef?: string | null;
     subjectBindingVersionRef?: string | null;
     channelReleaseFreezeState: "released" | "monitoring" | "frozen";
+    evaluatedAt?: string;
   },
 ): string[] {
   const grantSnapshot = grant.toSnapshot();
@@ -1832,7 +1833,7 @@ function validateGrantAgainstRuntime(
   ) {
     reasons.push("GRANT_ALREADY_SUPERSEDED");
   }
-  if (compareIso(new Date().toISOString(), grantSnapshot.expiresAt) >= 0) {
+  if (compareIso(input.evaluatedAt ?? new Date().toISOString(), grantSnapshot.expiresAt) >= 0) {
     reasons.push("GRANT_EXPIRED");
   }
   if (scopeSnapshot.governingObjectRef !== input.envelopeRef) {
@@ -2184,6 +2185,7 @@ export class DraftSessionAutosaveService {
           sessionEpochRef: command.sessionEpochRef ?? null,
           subjectBindingVersionRef: command.subjectBindingVersionRef ?? null,
           channelReleaseFreezeState,
+          evaluatedAt: command.observedAt,
         })
       : {
           grant: null,
@@ -2343,6 +2345,7 @@ export class DraftSessionAutosaveService {
       sessionEpochRef: command.sessionEpochRef ?? null,
       subjectBindingVersionRef: command.subjectBindingVersionRef ?? null,
       channelReleaseFreezeState: runtimeChannelReleaseFreezeState,
+      evaluatedAt: command.resumedAt,
     });
     if (validation.reasonCodes.length > 0) {
       const updatedProjection = await this.openRecoveryForProjection({
@@ -2600,6 +2603,7 @@ export class DraftSessionAutosaveService {
       sessionEpochRef: runtime.sessionEpochRef ?? null,
       subjectBindingVersionRef: runtime.subjectBindingVersionRef ?? null,
       channelReleaseFreezeState: runtime.channelReleaseFreezeState,
+      evaluatedAt: patch.recordedAt,
     });
     if (validation.reasonCodes.length > 0 || lease.toSnapshot().leaseState !== "live") {
       const recovery = await this.openRecoveryForProjection({
@@ -3025,6 +3029,7 @@ export class DraftSessionAutosaveService {
     sessionEpochRef?: string | null;
     subjectBindingVersionRef?: string | null;
     channelReleaseFreezeState: "released" | "monitoring" | "frozen";
+    evaluatedAt?: string;
   }): Promise<{
     grant: AccessGrantDocument | null;
     scopeEnvelope: AccessGrantScopeEnvelopeDocument | null;
@@ -3077,6 +3082,7 @@ export class DraftSessionAutosaveService {
         sessionEpochRef: input.sessionEpochRef ?? null,
         subjectBindingVersionRef: input.subjectBindingVersionRef ?? null,
         channelReleaseFreezeState: input.channelReleaseFreezeState,
+        evaluatedAt: input.evaluatedAt,
       }),
     };
   }

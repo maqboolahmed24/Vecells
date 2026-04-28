@@ -91,9 +91,41 @@ describe("review bundle shared contracts", () => {
     });
 
     expect(summary.visibilityState).toBe("suppressed");
+    expect(summary.summaryLines).toEqual([]);
     expect(summary.summaryText).toBeNull();
-    expect(summary.provisionalText).toContain("Awaiting evidence rebuild");
+    expect(summary.provisionalText).toBeNull();
     expect(summary.suppressionReasonCodes).toContain("REVIEW_235_PARITY_BLOCKED");
+  });
+
+  it("allows provisional regenerated copy only for stale parity", () => {
+    const visibility = resolveReviewSummaryVisibility({
+      parityState: "stale",
+      missingRequiredProvenance: false,
+    });
+
+    const summary = renderDeterministicReviewSummary({
+      templateVersion: "review_summary_v1",
+      rulesVersion: "rules_v1",
+      requestSummary: ["Awaiting parity refresh"],
+      structuredAnswers: [],
+      patientNarrative: null,
+      safetySummary: ["Safety meaning unchanged"],
+      telephonySummary: [],
+      transcriptSummary: null,
+      attachmentLabels: [],
+      identitySummary: ["Identity stable"],
+      contactSummary: ["Portal only"],
+      priorResponseSummary: [],
+      duplicateSummary: [],
+      slaSummary: ["SLA held"],
+      visibilityState: visibility.visibilityState,
+      suppressionReasonCodes: visibility.suppressionReasonCodes,
+    });
+
+    expect(summary.visibilityState).toBe("provisional");
+    expect(summary.summaryText).toBeNull();
+    expect(summary.provisionalText).toContain("Awaiting parity refresh");
+    expect(summary.suppressionReasonCodes).toContain("REVIEW_235_PARITY_STALE");
   });
 
   it("classifies duplicate and decision supersession as decisive delta", () => {

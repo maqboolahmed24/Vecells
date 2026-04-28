@@ -649,7 +649,8 @@ function assembleReviewBundle(input: {
   });
 
   const publicationState: ReviewBundlePublicationState =
-    evidenceValidation.missingRequiredProvenance.length > 0
+    evidenceValidation.missingRequiredProvenance.length > 0 ||
+    summaryVisibility.visibilityState === "suppressed"
       ? "recovery_required"
       : input.source.parityState === "verified" &&
           input.taskSnapshot.latestDecisionSupersessionRef === null &&

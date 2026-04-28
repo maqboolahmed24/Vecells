@@ -338,6 +338,7 @@ const legalTransitionGraph: Readonly<Record<BookingCaseStatus, readonly BookingC
     "callback_fallback",
     "fallback_to_hub",
     "booking_failed",
+    "managed",
   ],
   offers_ready: [
     "selecting",
@@ -345,6 +346,7 @@ const legalTransitionGraph: Readonly<Record<BookingCaseStatus, readonly BookingC
     "callback_fallback",
     "fallback_to_hub",
     "booking_failed",
+    "managed",
   ],
   selecting: [
     "revalidating",
@@ -353,6 +355,7 @@ const legalTransitionGraph: Readonly<Record<BookingCaseStatus, readonly BookingC
     "callback_fallback",
     "fallback_to_hub",
     "booking_failed",
+    "managed",
   ],
   revalidating: [
     "commit_pending",
@@ -361,6 +364,7 @@ const legalTransitionGraph: Readonly<Record<BookingCaseStatus, readonly BookingC
     "callback_fallback",
     "fallback_to_hub",
     "booking_failed",
+    "managed",
   ],
   commit_pending: [
     "booked",
@@ -370,6 +374,7 @@ const legalTransitionGraph: Readonly<Record<BookingCaseStatus, readonly BookingC
     "callback_fallback",
     "fallback_to_hub",
     "booking_failed",
+    "managed",
   ],
   booked: ["managed"],
   confirmation_pending: [

@@ -1,3 +1,9 @@
+import {
+  PATIENT_BOOKING_ENTRY_IDS,
+  bookingEntryPath,
+} from "./patient-booking-entry.paths";
+import { resolvePharmacyProductMergePreviewForRequest } from "../../../packages/domains/pharmacy/src/phase6-pharmacy-product-merge-preview";
+
 export const PATIENT_HOME_REQUESTS_DETAIL_TASK_ID =
   "par_215_crosscutting_track_Playwright_or_other_appropriate_tooling_frontend_build_patient_home_requests_and_request_detail_routes";
 export const PATIENT_HOME_REQUESTS_DETAIL_VISUAL_MODE = "Quiet_Casework_Premium";
@@ -6,7 +12,13 @@ export type PatientCaseworkRouteKey = "home" | "quiet_home" | "requests_index" |
 export type PatientRequestBucket = "needs_attention" | "in_progress" | "complete";
 export type PatientRequestActionability = "live" | "secondary" | "read_only" | "blocked";
 export type PatientCaseworkTone = "attention" | "info" | "success" | "blocked" | "quiet";
-export type PatientChildSurfaceKind = "more_info" | "callback" | "records" | "communications";
+export type PatientChildSurfaceKind =
+  | "more_info"
+  | "callback"
+  | "records"
+  | "communications"
+  | "booking"
+  | "pharmacy";
 export type PatientRestoreMode = "soft_navigation" | "browser_back" | "refresh_replay";
 
 export interface PatientRequestReturnBundle {
@@ -156,7 +168,23 @@ export interface PatientRequestSummaryProjection {
   readonly trustCueRef: string;
   readonly summarySafetyTier: "patient_safe_summary" | "same_patient_detail" | "read_only";
   readonly surfaceState: "ready" | "summary_only" | "placeholder_only";
+  readonly linkedPharmacyCaseId: string | null;
+  readonly linkedPharmacyStatusLabel: string | null;
+  readonly changedSinceSeenLabel: string | null;
   readonly reasonCodes: readonly string[];
+}
+
+export interface PatientPharmacyChildContinuationProjection {
+  readonly projectionName: "PatientPharmacyChildContinuationProjection";
+  readonly pharmacyCaseId: string;
+  readonly mergeState: "dispatch_pending" | "urgent_return" | "completed";
+  readonly requestLineageLabel: string;
+  readonly changedSinceSeenLabel: string;
+  readonly freshnessLabel: string;
+  readonly notificationStateLabel: string;
+  readonly supportReplaySummary: string;
+  readonly auditSummary: string;
+  readonly sourceProjectionRefs: readonly string[];
 }
 
 export interface PatientRequestLineageProjection {
@@ -200,6 +228,7 @@ export interface PatientRequestDownstreamProjection {
   readonly nextSafeActionRef: string | null;
   readonly routeRef: string;
   readonly childAnchorTupleHash: string;
+  readonly pharmacyChild: PatientPharmacyChildContinuationProjection | null;
 }
 
 export interface PatientNextActionProjection {
@@ -348,6 +377,9 @@ export const patientRequestSummaries215: readonly PatientRequestSummaryProjectio
     trustCueRef: "fresh_from_practice",
     summarySafetyTier: "same_patient_detail",
     surfaceState: "ready",
+    linkedPharmacyCaseId: null,
+    linkedPharmacyStatusLabel: null,
+    changedSinceSeenLabel: null,
     reasonCodes: ["selected_by_PatientSpotlightDecisionProjection", "same_lineage_context_ready"],
   },
   {
@@ -355,66 +387,75 @@ export const patientRequestSummaries215: readonly PatientRequestSummaryProjectio
     summaryProjectionRef: "patient_request_summary::request_211_b",
     requestRef: "request_211_b",
     requestLineageRef: "lineage_211_b",
-    displayLabel: "Admin request",
-    statusText: "In progress",
+    displayLabel: "Pharmacy referral",
+    statusText: "Proof pending",
     statusTone: "info",
     bucket: "in_progress",
     patientSummary:
-      "The practice has the request. There is no new patient action while it is checked.",
+      "Harbour Pharmacy Group remains the chosen pharmacy while the referral proof is still being confirmed.",
     latestMeaningfulUpdateAt: "2026-04-16T09:30:00.000Z",
     updatedLabel: "Updated today, 09:30",
-    nextSafeActionRef: "view_request",
+    nextSafeActionRef: "open_pharmacy_status",
     dominantActionRef: null,
-    actionLabel: "Read current status",
+    actionLabel: "Open pharmacy status",
     actionability: "secondary",
-    trustCueRef: "in_progress",
+    trustCueRef: "pharmacy_merge_authoritative",
     summarySafetyTier: "patient_safe_summary",
     surfaceState: "ready",
-    reasonCodes: ["practice_awaited", "quiet_secondary_row"],
+    linkedPharmacyCaseId: "PHC-2057",
+    linkedPharmacyStatusLabel: "Referral proof pending",
+    changedSinceSeenLabel: "Referral handoff still awaiting authoritative proof",
+    reasonCodes: ["pharmacy_child_visible", "practice_awaited", "quiet_secondary_row"],
   },
   {
     projectionName: "PatientRequestSummaryProjection",
     summaryProjectionRef: "patient_request_summary::request_215_callback",
     requestRef: "request_215_callback",
     requestLineageRef: "lineage_215_callback",
-    displayLabel: "Phone callback",
-    statusText: "Callback queued",
-    statusTone: "quiet",
+    displayLabel: "Urgent pharmacy return",
+    statusText: "Urgent review",
+    statusTone: "blocked",
     bucket: "in_progress",
     patientSummary:
-      "A callback status surface is reserved here until the callback projection lands.",
+      "The pharmacy route reopened this request for urgent review and kept the original request anchor visible.",
     latestMeaningfulUpdateAt: "2026-04-15T16:10:00.000Z",
     updatedLabel: "Updated yesterday, 16:10",
-    nextSafeActionRef: "view_callback_placeholder",
+    nextSafeActionRef: "review_urgent_return",
     dominantActionRef: null,
-    actionLabel: "View callback placeholder",
+    actionLabel: "Review urgent update",
     actionability: "read_only",
-    trustCueRef: "governed_placeholder",
-    summarySafetyTier: "patient_safe_summary",
-    surfaceState: "placeholder_only",
-    reasonCodes: ["future_child_surface_placeholder", "PatientCallbackStatusProjection_pending"],
+    trustCueRef: "urgent_return_visible",
+    summarySafetyTier: "same_patient_detail",
+    surfaceState: "ready",
+    linkedPharmacyCaseId: "PHC-2103",
+    linkedPharmacyStatusLabel: "Urgent return reopened",
+    changedSinceSeenLabel: "Urgent return reopened the original request context",
+    reasonCodes: ["pharmacy_reopened", "bounce_back_preserved", "urgent_return_visible"],
   },
   {
     projectionName: "PatientRequestSummaryProjection",
     summaryProjectionRef: "patient_request_summary::request_215_closed",
     requestRef: "request_215_closed",
     requestLineageRef: "lineage_215_closed",
-    displayLabel: "Prescription question",
-    statusText: "Complete",
+    displayLabel: "Pharmacy outcome",
+    statusText: "Outcome recorded",
     statusTone: "success",
     bucket: "complete",
     patientSummary:
-      "The prescription question is closed and remains available as a patient-safe summary.",
+      "The completed pharmacy outcome remains available through the same request-led record.",
     latestMeaningfulUpdateAt: "2026-04-14T15:20:00.000Z",
     updatedLabel: "Closed 14 Apr, 15:20",
-    nextSafeActionRef: "review_closed_summary",
+    nextSafeActionRef: "review_pharmacy_outcome",
     dominantActionRef: null,
-    actionLabel: "Review closed summary",
+    actionLabel: "Review pharmacy outcome",
     actionability: "read_only",
-    trustCueRef: "authoritative_outcome_settled",
+    trustCueRef: "pharmacy_outcome_settled",
     summarySafetyTier: "read_only",
     surfaceState: "ready",
-    reasonCodes: ["settled_read_only", "not_promoted_on_home"],
+    linkedPharmacyCaseId: "PHC-2196",
+    linkedPharmacyStatusLabel: "Outcome recorded",
+    changedSinceSeenLabel: "Pharmacy outcome settled and archived into the request record",
+    reasonCodes: ["settled_read_only", "pharmacy_outcome_visible", "not_promoted_on_home"],
   },
 ];
 
@@ -610,12 +651,17 @@ function compactPanels(): readonly PatientHomeCompactPanel[] {
       panelRef: "home_panel_appointments",
       kind: "appointments",
       label: "Appointments",
-      summary: "Appointments stay reserved for the later booking surface and do not invent data.",
-      stateLabel: "Future surface",
-      path: "#appointments-placeholder",
-      tone: "quiet",
-      governedPlaceholder: true,
-      sourceProjectionRefs: ["GovernedPlaceholderCard", "PatientRequestDownstreamProjection"],
+      summary:
+        "Start booking from the home shell with the return contract and home anchor preserved before the booking workspace becomes interactive.",
+      stateLabel: "Book or rebook",
+      path: bookingEntryPath(PATIENT_BOOKING_ENTRY_IDS.homeReady),
+      tone: "info",
+      governedPlaceholder: false,
+      sourceProjectionRefs: [
+        "PatientNavReturnContract",
+        "PatientPortalEntryProjection",
+        "PatientAppointmentWorkspaceProjection",
+      ],
     },
     {
       panelRef: "home_panel_record_updates",
@@ -760,6 +806,7 @@ function downstreamFor(
   const missingContextRef = "PARALLEL_INTERFACE_GAP_CROSSCUTTING_REQUEST_CONTEXT";
   const missingRecordsRef = "PARALLEL_INTERFACE_GAP_CROSSCUTTING_RECORDS";
   const communicationsRef = "PatientCommunicationsTimelineProjection";
+  const pharmacyMerge = resolvePharmacyProductMergePreviewForRequest(request.requestRef);
 
   if (request.requestRef === "request_211_a") {
     return [
@@ -781,6 +828,7 @@ function downstreamFor(
         nextSafeActionRef: "reply_to_more_info",
         routeRef: `${base}/more-info`,
         childAnchorTupleHash: tupleHash("request_211_a:more_info"),
+        pharmacyChild: null,
       },
       {
         projectionName: "PatientRequestDownstreamProjection",
@@ -800,6 +848,32 @@ function downstreamFor(
         nextSafeActionRef: "view_callback_status",
         routeRef: `${base}/callback`,
         childAnchorTupleHash: tupleHash("request_211_a:callback"),
+        pharmacyChild: null,
+      },
+      {
+        projectionName: "PatientRequestDownstreamProjection",
+        downstreamProjectionRef: "patient_downstream::request_211_a::booking_entry",
+        requestRef: request.requestRef,
+        requestLineageRef: request.requestLineageRef,
+        childType: "booking",
+        childRef: "booking_entry_300_requests_ready",
+        patientLabelRef: "booking_follow_up",
+        label: "Booking follow-up",
+        summary:
+          "Booking entry keeps this request lineage, selected anchor, and safe return visible before scheduling opens.",
+        authoritativeState: "available",
+        awaitingParty: "none",
+        visibilityTier: "full",
+        placeholderPosture: "none",
+        placeholderReasonRefs: [
+          "PatientRequestReturnBundle",
+          "PatientNavReturnContract",
+          "PatientBookingEntryProjectionAdapter",
+        ],
+        nextSafeActionRef: "open_booking_entry",
+        routeRef: bookingEntryPath(PATIENT_BOOKING_ENTRY_IDS.requestsReady),
+        childAnchorTupleHash: tupleHash("request_211_a:booking_entry"),
+        pharmacyChild: null,
       },
       {
         projectionName: "PatientRequestDownstreamProjection",
@@ -819,6 +893,7 @@ function downstreamFor(
         nextSafeActionRef: "view_results_update",
         routeRef: `${base}/records`,
         childAnchorTupleHash: tupleHash("request_211_a:records"),
+        pharmacyChild: null,
       },
       {
         projectionName: "PatientRequestDownstreamProjection",
@@ -839,6 +914,48 @@ function downstreamFor(
         nextSafeActionRef: "open_communications_thread",
         routeRef: `${base}/messages`,
         childAnchorTupleHash: tupleHash("request_211_a:communications"),
+        pharmacyChild: null,
+      },
+    ];
+  }
+
+  if (pharmacyMerge) {
+    return [
+      {
+        projectionName: "PatientRequestDownstreamProjection",
+        downstreamProjectionRef: `patient_downstream::${request.requestRef}::pharmacy`,
+        requestRef: request.requestRef,
+        requestLineageRef: request.requestLineageRef,
+        childType: "pharmacy",
+        childRef: pharmacyMerge.pharmacyCaseId,
+        patientLabelRef: "pharmacy_continuation",
+        label: pharmacyMerge.childLabel,
+        summary: pharmacyMerge.childSummary,
+        authoritativeState: pharmacyMerge.authoritativeStateLabel,
+        awaitingParty:
+          pharmacyMerge.mergeState === "completed"
+            ? "none"
+            : pharmacyMerge.mergeState === "urgent_return"
+              ? "patient"
+              : "practice",
+        visibilityTier: "full",
+        placeholderPosture: "none",
+        placeholderReasonRefs: pharmacyMerge.sourceProjectionRefs,
+        nextSafeActionRef: request.nextSafeActionRef,
+        routeRef: pharmacyMerge.patientRouteRef,
+        childAnchorTupleHash: tupleHash(`${request.requestRef}:${pharmacyMerge.pharmacyCaseId}`),
+        pharmacyChild: {
+          projectionName: "PatientPharmacyChildContinuationProjection",
+          pharmacyCaseId: pharmacyMerge.pharmacyCaseId,
+          mergeState: pharmacyMerge.mergeState,
+          requestLineageLabel: pharmacyMerge.requestLineageLabel,
+          changedSinceSeenLabel: pharmacyMerge.changedSinceSeenLabel,
+          freshnessLabel: pharmacyMerge.freshnessLabel,
+          notificationStateLabel: pharmacyMerge.patientNotification.stateLabel,
+          supportReplaySummary: pharmacyMerge.supportReplaySummary,
+          auditSummary: pharmacyMerge.auditSummary,
+          sourceProjectionRefs: pharmacyMerge.sourceProjectionRefs,
+        },
       },
     ];
   }
@@ -863,6 +980,7 @@ function downstreamFor(
       nextSafeActionRef: request.nextSafeActionRef,
       routeRef: `${base}/updates`,
       childAnchorTupleHash: tupleHash(`${request.requestRef}:updates`),
+      pharmacyChild: null,
     },
   ];
 }
@@ -873,6 +991,7 @@ function detailFor(
   restoredBy: PatientRestoreMode,
 ): PatientRequestDetailProjection {
   const request = requestByRef.get(requestRef) ?? firstRequestSummary215();
+  const pharmacyMerge = resolvePharmacyProductMergePreviewForRequest(request.requestRef);
   const returnBundle = makePatientRequestReturnBundle215(
     request.requestRef,
     selectedFilterRef,
@@ -888,7 +1007,9 @@ function detailFor(
     lineageCaseLinkRefs:
       request.requestRef === "request_211_a"
         ? ["case_211_more_info", "case_211_callback", "record_211_a"]
-        : [`case_${request.requestRef}`],
+        : pharmacyMerge
+          ? [`case_${request.requestRef}`, `pharmacy_case_${pharmacyMerge.pharmacyCaseId}`]
+          : [`case_${request.requestRef}`],
     downstreamProjectionRefs: downstream.map((child) => child.downstreamProjectionRef),
     childObjects: downstream.map((child) => `${child.childType}:${child.childRef}`),
     requestReturnBundleRef: returnBundle.requestReturnBundleRef,
@@ -934,7 +1055,7 @@ function detailFor(
     routeTargetRef:
       request.dominantActionRef === "respond_more_info"
         ? `/requests/${request.requestRef}/more-info`
-        : `/requests/${request.requestRef}`,
+        : pharmacyMerge?.patientRouteRef ?? `/requests/${request.requestRef}`,
     blockedReasonRef: null,
   };
 
@@ -945,7 +1066,7 @@ function detailFor(
     requestLineageRef: request.requestLineageRef,
     title: request.displayLabel,
     statusRibbon: {
-      label: request.statusText,
+      label: pharmacyMerge?.requestStatusLabel ?? request.statusText,
       tone: request.statusTone,
       freshnessLabel: request.updatedLabel,
       canonicalTruthRef: `canonical_request_truth::${request.requestRef}`,
@@ -953,7 +1074,7 @@ function detailFor(
     patientSafeDetail:
       request.requestRef === "request_211_a"
         ? "The team is waiting for one patient-safe reply about photo timing. Clinical reasoning and staff-only notes stay outside this route."
-        : request.patientSummary,
+        : pharmacyMerge?.childSummary ?? request.patientSummary,
     summary: request,
     lineage,
     downstream,
@@ -989,7 +1110,9 @@ function detailFor(
       freshnessLabel: request.updatedLabel,
       trustLabel: request.trustCueRef.replaceAll("_", " "),
       receiptLabel:
-        request.bucket === "complete"
+        pharmacyMerge
+          ? pharmacyMerge.authoritativeStateLabel
+          : request.bucket === "complete"
           ? "Authoritative outcome settled"
           : "Same-lineage context preserved",
       latestMeaningfulUpdateLabel: request.latestMeaningfulUpdateAt,
@@ -1000,9 +1123,13 @@ function detailFor(
       ],
     },
     trustSummaries: [
-      "The route uses the 211 request projection family for rows, detail, lineage, action routing, and return bundles.",
-      "Future child surfaces render as governed placeholders rather than empty gaps.",
-      "The selected anchor and filter survive soft navigation, refresh replay, and browser back.",
+      "The route uses one request-led projection family for rows, detail, lineage, action routing, and return bundles.",
+      pharmacyMerge
+        ? `Pharmacy child ${pharmacyMerge.pharmacyCaseId} stays visible here, in notifications, and in operations without creating a second local status copy.`
+        : "Future child surfaces render as governed placeholders rather than empty gaps.",
+      pharmacyMerge
+        ? pharmacyMerge.supportReplaySummary
+        : "The selected anchor and filter survive soft navigation, refresh replay, and browser back.",
     ],
     sourceProjectionRefs: [
       "PatientRequestDetailProjection",
@@ -1013,6 +1140,7 @@ function detailFor(
       "PatientActionSettlementProjection",
       "PatientSafetyInterruptionProjection",
       "PatientRequestReturnBundle",
+      ...(pharmacyMerge?.sourceProjectionRefs ?? []),
     ],
   };
 }

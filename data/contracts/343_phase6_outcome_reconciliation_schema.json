@@ -1,0 +1,997 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Phase6OutcomeReconciliationContracts",
+  "description": "Frozen Phase 6 outcome ingest, replay, matching, reconciliation, and settlement contract pack.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "taskId",
+    "contractVersion",
+    "outcomeSourceFamilies",
+    "replayPostures",
+    "outcomeClassifications",
+    "matchingAlgorithm",
+    "sourceFamilyPolicies"
+  ],
+  "properties": {
+    "taskId": {
+      "const": "seq_343_phase6_freeze_directory_discovery_referral_dispatch_and_outcome_reconciliation_contracts"
+    },
+    "contractVersion": {
+      "const": "343.phase6.discovery-dispatch-outcome-freeze.v1"
+    },
+    "outcomeSourceFamilies": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "gp_workflow_observation",
+          "direct_structured_message",
+          "email_ingest",
+          "manual_structured_capture"
+        ]
+      }
+    },
+    "replayPostures": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "exact_replay",
+          "semantic_replay",
+          "collision_review",
+          "distinct"
+        ]
+      }
+    },
+    "outcomeClassifications": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "advice_only",
+          "medicine_supplied",
+          "resolved_no_supply",
+          "onward_referral",
+          "urgent_gp_action",
+          "unable_to_contact",
+          "pharmacy_unable_to_complete",
+          "unmatched"
+        ]
+      }
+    },
+    "matchingAlgorithm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "formulae",
+        "thresholds"
+      ],
+      "properties": {
+        "formulae": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rawMatch",
+            "matchScore",
+            "posterior"
+          ],
+          "properties": {
+            "rawMatch": {
+              "const": "rawMatch(c,e) = product_k max(epsilon, m_k(c,e))^{omega_k}"
+            },
+            "matchScore": {
+              "const": "matchScore(c,e) = sourceFloor_e * rawMatch(c,e) * (1 - m_contra(c,e))^{lambda_match_contra}"
+            },
+            "posterior": {
+              "const": "posterior(c | e) = exp(kappa_match * matchScore(c,e)) / sum_{c'} exp(kappa_match * matchScore(c',e))"
+            }
+          }
+        },
+        "thresholds": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tau_patient_floor",
+            "tau_service_floor",
+            "tau_route_floor",
+            "tau_match_time",
+            "tau_strong_match",
+            "tau_posterior_strong",
+            "delta_match",
+            "tau_contra_apply",
+            "lambda_match_contra",
+            "kappa_match"
+          ],
+          "properties": {
+            "tau_patient_floor": {
+              "const": 0.92
+            },
+            "tau_service_floor": {
+              "const": 0.75
+            },
+            "tau_route_floor": {
+              "const": 0.7
+            },
+            "tau_match_time": {
+              "const": 720
+            },
+            "tau_strong_match": {
+              "const": 0.86
+            },
+            "tau_posterior_strong": {
+              "const": 0.8
+            },
+            "delta_match": {
+              "const": 0.12
+            },
+            "tau_contra_apply": {
+              "const": 0.2
+            },
+            "lambda_match_contra": {
+              "const": 1.6
+            },
+            "kappa_match": {
+              "const": 6
+            }
+          }
+        }
+      }
+    },
+    "sourceFamilyPolicies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sourceFamily",
+          "sourceFloor",
+          "autoApplyPolicy",
+          "manualReviewPolicy"
+        ],
+        "properties": {
+          "sourceFamily": {
+            "type": "string",
+            "enum": [
+              "gp_workflow_observation",
+              "direct_structured_message",
+              "email_ingest",
+              "manual_structured_capture"
+            ]
+          },
+          "sourceFloor": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "autoApplyPolicy": {
+            "type": "string",
+            "minLength": 1
+          },
+          "manualReviewPolicy": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "noCompletionFromSilenceLaw": {
+      "const": true
+    },
+    "weakMatchBypassesClosureForbidden": {
+      "const": true
+    }
+  },
+  "$defs": {
+    "OutcomeEvidenceEnvelope": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "OutcomeEvidenceEnvelope",
+      "description": "Immutable canonicalized outcome evidence envelope.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcomeEvidenceEnvelopeId",
+        "sourceType",
+        "sourceMessageKey",
+        "rawPayloadHash",
+        "semanticPayloadHash",
+        "replayKey",
+        "decisionClass",
+        "parserVersion",
+        "receivedAt",
+        "trustClass",
+        "correlationRefs",
+        "dedupeState"
+      ],
+      "properties": {
+        "outcomeEvidenceEnvelopeId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Outcome evidence envelope identifier."
+        },
+        "sourceType": {
+          "type": "string",
+          "enum": [
+            "gp_workflow_observation",
+            "direct_structured_message",
+            "email_ingest",
+            "manual_structured_capture"
+          ],
+          "description": "Outcome source family."
+        },
+        "sourceMessageKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Source message key."
+        },
+        "rawPayloadHash": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Raw payload hash."
+        },
+        "semanticPayloadHash": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Semantic payload hash."
+        },
+        "replayKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Replay key."
+        },
+        "decisionClass": {
+          "type": "string",
+          "enum": [
+            "exact_replay",
+            "semantic_replay",
+            "collision_review",
+            "distinct"
+          ],
+          "description": "Replay posture classification."
+        },
+        "parserVersion": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Parser version."
+        },
+        "receivedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Receive timestamp."
+        },
+        "trustClass": {
+          "type": "string",
+          "enum": [
+            "trusted_structured",
+            "trusted_observed",
+            "email_low_assurance",
+            "manual_operator_entered"
+          ],
+          "description": "Trust class."
+        },
+        "correlationRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Correlation reference."
+          },
+          "description": "Correlation references."
+        },
+        "dedupeState": {
+          "type": "string",
+          "enum": [
+            "new",
+            "duplicate",
+            "collision_review"
+          ],
+          "description": "Dedupe state."
+        }
+      }
+    },
+    "PharmacyOutcomeIngestAttempt": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "PharmacyOutcomeIngestAttempt",
+      "description": "Governed ingest attempt for one envelope against the current case set.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ingestAttemptId",
+        "outcomeEvidenceEnvelopeRef",
+        "pharmacyCaseId",
+        "bestCandidateCaseRef",
+        "runnerUpCaseRef",
+        "matchState",
+        "matchScore",
+        "runnerUpMatchScore",
+        "posteriorMatchConfidence",
+        "contradictionScore",
+        "classificationState",
+        "replayState",
+        "manualReviewState",
+        "outcomeReconciliationGateRef",
+        "autoApplyEligible",
+        "closeEligibilityState",
+        "settlementState",
+        "createdAt",
+        "settledAt"
+      ],
+      "properties": {
+        "ingestAttemptId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Outcome ingest attempt identifier."
+        },
+        "outcomeEvidenceEnvelopeRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Outcome evidence envelope reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "OutcomeEvidenceEnvelope"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "pharmacyCaseId": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Matched pharmacy case identifier."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Matched pharmacy case identifier when one exists."
+        },
+        "bestCandidateCaseRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Best candidate case reference.",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyCase"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_342"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Best candidate case reference."
+        },
+        "runnerUpCaseRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Runner-up case reference.",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyCase"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_342"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Runner-up case reference."
+        },
+        "matchState": {
+          "type": "string",
+          "enum": [
+            "strong_match",
+            "review_required",
+            "unmatched"
+          ],
+          "description": "Match state."
+        },
+        "matchScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Best match score."
+        },
+        "runnerUpMatchScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Runner-up match score."
+        },
+        "posteriorMatchConfidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Posterior match confidence."
+        },
+        "contradictionScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Contradiction score."
+        },
+        "classificationState": {
+          "type": "string",
+          "enum": [
+            "advice_only",
+            "medicine_supplied",
+            "resolved_no_supply",
+            "onward_referral",
+            "urgent_gp_action",
+            "unable_to_contact",
+            "pharmacy_unable_to_complete",
+            "unmatched"
+          ],
+          "description": "Outcome classification state."
+        },
+        "replayState": {
+          "type": "string",
+          "enum": [
+            "exact_replay",
+            "semantic_replay",
+            "collision_review",
+            "distinct"
+          ],
+          "description": "Replay state."
+        },
+        "manualReviewState": {
+          "type": "string",
+          "enum": [
+            "none",
+            "required",
+            "in_review",
+            "approved_apply",
+            "approved_reopen",
+            "approved_unmatched"
+          ],
+          "description": "Manual review state."
+        },
+        "outcomeReconciliationGateRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Outcome reconciliation gate reference.",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyOutcomeReconciliationGate"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_343"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Outcome reconciliation gate reference."
+        },
+        "autoApplyEligible": {
+          "type": "boolean",
+          "description": "Whether auto-apply remains eligible."
+        },
+        "closeEligibilityState": {
+          "type": "string",
+          "enum": [
+            "blocked_by_reconciliation",
+            "blocked_by_safety",
+            "eligible_pending_projection",
+            "not_closable"
+          ],
+          "description": "Close eligibility state."
+        },
+        "settlementState": {
+          "type": "string",
+          "enum": [
+            "unsettled",
+            "duplicate_ignored",
+            "review_required",
+            "resolved_pending_projection",
+            "reopened_for_safety",
+            "unmatched"
+          ],
+          "description": "Settlement state."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp."
+        },
+        "settledAt": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "description": "Settlement timestamp."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Settlement timestamp."
+        }
+      }
+    },
+    "PharmacyOutcomeReconciliationGate": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "PharmacyOutcomeReconciliationGate",
+      "description": "Dedicated weak-match review seam that blocks closure while open.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcomeReconciliationGateId",
+        "pharmacyCaseId",
+        "ingestAttemptRef",
+        "outcomeEvidenceEnvelopeRef",
+        "candidateCaseRef",
+        "runnerUpCaseRef",
+        "matchScore",
+        "runnerUpMatchScore",
+        "posteriorMatchConfidence",
+        "contradictionScore",
+        "classificationState",
+        "gateState",
+        "manualReviewState",
+        "blockingClosureState",
+        "patientVisibilityState",
+        "currentOwnerRef",
+        "resolutionNotesRef",
+        "openedAt",
+        "resolvedAt"
+      ],
+      "properties": {
+        "outcomeReconciliationGateId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Outcome reconciliation gate identifier."
+        },
+        "pharmacyCaseId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Owning pharmacy case identifier."
+        },
+        "ingestAttemptRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Ingest attempt reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyOutcomeIngestAttempt"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "outcomeEvidenceEnvelopeRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Outcome evidence envelope reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "OutcomeEvidenceEnvelope"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_343"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "candidateCaseRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Candidate case reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyCase"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_342"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "runnerUpCaseRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Runner-up case reference.",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyCase"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_342"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Runner-up case reference."
+        },
+        "matchScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Match score."
+        },
+        "runnerUpMatchScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Runner-up match score."
+        },
+        "posteriorMatchConfidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Posterior match confidence."
+        },
+        "contradictionScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Contradiction score."
+        },
+        "classificationState": {
+          "type": "string",
+          "enum": [
+            "advice_only",
+            "medicine_supplied",
+            "resolved_no_supply",
+            "onward_referral",
+            "urgent_gp_action",
+            "unable_to_contact",
+            "pharmacy_unable_to_complete",
+            "unmatched"
+          ],
+          "description": "Outcome classification state."
+        },
+        "gateState": {
+          "type": "string",
+          "enum": [
+            "open",
+            "in_review",
+            "resolved_apply",
+            "resolved_reopen",
+            "resolved_unmatched",
+            "superseded"
+          ],
+          "description": "Gate state."
+        },
+        "manualReviewState": {
+          "type": "string",
+          "enum": [
+            "required",
+            "in_review",
+            "approved_apply",
+            "approved_reopen",
+            "approved_unmatched",
+            "dismissed"
+          ],
+          "description": "Manual review state."
+        },
+        "blockingClosureState": {
+          "type": "string",
+          "enum": [
+            "blocks_close",
+            "operational_only"
+          ],
+          "description": "Blocking closure posture."
+        },
+        "patientVisibilityState": {
+          "type": "string",
+          "enum": [
+            "review_placeholder",
+            "hidden"
+          ],
+          "description": "Patient visibility state."
+        },
+        "currentOwnerRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Current owner reference."
+        },
+        "resolutionNotesRef": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Resolution notes reference."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Resolution notes reference."
+        },
+        "openedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Open timestamp."
+        },
+        "resolvedAt": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "description": "Resolve timestamp."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Resolve timestamp."
+        }
+      }
+    },
+    "PharmacyOutcomeSettlement": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "PharmacyOutcomeSettlement",
+      "description": "Outcome settlement object produced after ingest and gate resolution.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "settlementId",
+        "pharmacyCaseId",
+        "ingestAttemptId",
+        "consentCheckpointRef",
+        "outcomeReconciliationGateRef",
+        "result",
+        "matchConfidenceBand",
+        "closeEligibilityState",
+        "receiptTextRef",
+        "experienceContinuityEvidenceRef",
+        "causalToken",
+        "recoveryRouteRef",
+        "recordedAt"
+      ],
+      "properties": {
+        "settlementId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Outcome settlement identifier."
+        },
+        "pharmacyCaseId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Owning pharmacy case identifier."
+        },
+        "ingestAttemptId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Ingest attempt identifier."
+        },
+        "consentCheckpointRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Consent checkpoint reference.",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyConsentCheckpoint"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_343"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Consent checkpoint reference."
+        },
+        "outcomeReconciliationGateRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Outcome reconciliation gate reference.",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyOutcomeReconciliationGate"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_343"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Outcome reconciliation gate reference."
+        },
+        "result": {
+          "type": "string",
+          "enum": [
+            "resolved_pending_projection",
+            "reopened_for_safety",
+            "review_required",
+            "unmatched",
+            "duplicate_ignored"
+          ],
+          "description": "Settlement result."
+        },
+        "matchConfidenceBand": {
+          "type": "string",
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ],
+          "description": "Match confidence band."
+        },
+        "closeEligibilityState": {
+          "type": "string",
+          "enum": [
+            "blocked_by_reconciliation",
+            "blocked_by_safety",
+            "eligible_pending_projection",
+            "not_closable"
+          ],
+          "description": "Close eligibility state."
+        },
+        "receiptTextRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Receipt text reference."
+        },
+        "experienceContinuityEvidenceRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Experience continuity evidence reference."
+        },
+        "causalToken": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Causal token."
+        },
+        "recoveryRouteRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Recovery route reference for reopen, bounce-back, or urgent-return follow-on.",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyBounceBackRecord"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_344"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Recovery route reference for reopen, bounce-back, or urgent-return follow-on."
+        },
+        "recordedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Record timestamp."
+        }
+      }
+    }
+  },
+  "x-vecells-task-id": "seq_343_phase6_freeze_directory_discovery_referral_dispatch_and_outcome_reconciliation_contracts",
+  "x-vecells-contract-version": "343.phase6.discovery-dispatch-outcome-freeze.v1"
+}

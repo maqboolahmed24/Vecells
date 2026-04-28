@@ -1,0 +1,17 @@
+# Task 475 Launch Training Pack
+
+This pack is the role-based launch curriculum for clinical operations, support, service owners, governance admins, and supplier contacts.
+
+| Module | Audience | Duration | Evidence | Retraining path |
+| --- | --- | ---: | --- | --- |
+| Launch operations foundation | Clinician, Care Navigator, Admin, Hub Operator, Pharmacist, Support Analyst, Governance Admin, Clinical Safety Officer, Security Privacy Owner, Incident Commander, Service Owner, Release Manager, Supplier Contact | 45 | Observed walkthrough of the BAU model, support boundaries, and release tuple constraints. | Repeat facilitated walkthrough, then supervised launch huddle exercise. |
+| Support lineage and handoff | Clinician, Care Navigator, Admin, Hub Operator, Pharmacist, Support Analyst, Incident Commander | 60 | Role-played support ticket handoff with SupportLineageBinding and transfer settlement evidence. | Repeat support replay and handoff drill with supervisor sign-off. |
+| Assistive layer human review responsibility | Clinician, Pharmacist, Support Analyst, Governance Admin, Clinical Safety Officer | 75 | Reviewed synthetic assistive output, corrected a material error, and recorded final human approval. | Blocked from assistive-capable workflows until the human-review simulation is passed. |
+| NHS App deferred channel support | Care Navigator, Admin, Support Analyst, Governance Admin, Incident Commander, Service Owner, Supplier Contact | 60 | Answered a deferred-channel support scenario without claiming NHS App go-live. | Repeat channel support scenario and review change-notice obligations with governance. |
+| Incident, security, and privacy escalation | Support Analyst, Governance Admin, Security Privacy Owner, Incident Commander | 70 | Completed reportable-incident drill with out-of-hours escalation evidence. | Repeat incident drill and complete security/privacy owner review. |
+| Rollback rehearsal and cutover support | Support Analyst, Incident Commander, Service Owner, Release Manager | 55 | Observed rollback tabletop tied to the current migration tuple and release recovery disposition. | Repeat rollback tabletop before joining launch on-call rotation. |
+| Governance cadence and evidence pack | Governance Admin, Clinical Safety Officer, Security Privacy Owner, Service Owner, Release Manager | 65 | Prepared a monthly assurance pack entry and governance cadence decision record. | Repeat cadence pack exercise with governance admin review. |
+| Accessible training artifacts and non-HTML controls | Clinician, Care Navigator, Admin, Hub Operator, Pharmacist, Support Analyst, Governance Admin, Clinical Safety Officer, Security Privacy Owner, Incident Commander, Service Owner, Release Manager, Supplier Contact | 35 | Confirmed table fallback, focus return, plain-language copy, and accessible alternative for a non-HTML artifact. | Rework the training artifact and repeat accessibility sign-off before publication. |
+| Clinical safety operations and DCB0160 evidence | Clinician, Clinical Safety Officer, Governance Admin, Service Owner | 80 | Reviewed a synthetic hazard, linked mitigation evidence, and confirmed the clinical safety officer route. | Clinical safety officer must approve retraining evidence before the role can be marked complete. |
+
+Every module publishes an artifact presentation contract and accessible formats. Non-HTML material without an accessible alternative is not complete.

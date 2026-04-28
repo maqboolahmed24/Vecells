@@ -494,3 +494,7 @@ export * from "./phase4-booking-capability-engine";
 export * from "./phase4-slot-search-snapshot-pipeline";
 export * from "./phase4-capacity-rank-offer-engine";
 export * from "./phase4-booking-commit-engine";
+export * from "./phase4-booking-reconciliation-engine";
+export * from "./phase4-appointment-manage-engine";
+export * from "./phase4-smart-waitlist-engine";
+export * from "./phase4-assisted-booking-engine";

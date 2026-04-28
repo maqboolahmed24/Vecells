@@ -544,3 +544,8 @@ export function bootstrapDomainModule() {
     projectionFamilies: projectionFamilies.length,
   };
 }
+
+export * from "./phase9-operational-destination-registry";
+export * from "./phase9-backup-restore-channels";
+export * from "./phase9-security-compliance-export-destinations";
+export * from "./phase9-live-projection-gateway";

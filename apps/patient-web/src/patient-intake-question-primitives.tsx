@@ -61,6 +61,11 @@ export function RequestTypeSignalGrid({
 }) {
   const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const focusCard = (requestType: ProgressiveQuestionUiProfile["requestType"]) => {
+    const target = buttonRefs.current[requestType];
+    if (target) {
+      target.focus();
+      return;
+    }
     window.requestAnimationFrame(() => {
       buttonRefs.current[requestType]?.focus();
     });

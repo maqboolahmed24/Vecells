@@ -198,7 +198,9 @@ export function DeltaStack({ frame }: { frame: TaskCanvasFrameProjection }) {
         <p>{frame.deltaStack.decisiveMeaning}</p>
       </header>
       <div className="staff-shell__task-stack-inline">
-        <span>Authoritative delta packet</span>
+        <span style={{ textTransform: "none" }}>
+          {`${frame.deltaStack.deltaClass.toUpperCase()} delta packet`}
+        </span>
         <strong>{frame.deltaStack.authoritativeDeltaPacketRef}</strong>
       </div>
       <StackRows rows={frame.deltaStack.rows} />

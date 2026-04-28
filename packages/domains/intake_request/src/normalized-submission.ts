@@ -544,6 +544,18 @@ export function buildNormalizedSubmissionDedupeFingerprint(input: {
   );
 }
 
+function filterActiveStructuredAnswers(
+  activeStructuredAnswers: Record<string, unknown>,
+  activeQuestionKeys?: readonly string[],
+): Record<string, unknown> {
+  const allowedQuestionKeys = new Set(activeQuestionKeys ?? Object.keys(activeStructuredAnswers));
+  return Object.fromEntries(
+    Object.entries(activeStructuredAnswers)
+      .filter(([questionKey]) => allowedQuestionKeys.has(questionKey))
+      .sort(([left], [right]) => compareStrings(left, right)),
+  );
+}
+
 function mapContactAuthorityClass(
   state: NormalizedSubmissionFreezeInput["contactAuthorityState"],
 ): NormalizedSubmissionSnapshot["contactAuthorityClass"] {
@@ -616,6 +628,7 @@ function buildCanonicalNormalization(
   definitions: readonly CompiledQuestionDefinition[],
   input: {
     requestType: IntakeRequestType;
+    activeQuestionKeys?: readonly string[];
     activeStructuredAnswers: Record<string, unknown>;
     freeTextNarrative: string;
     attachmentRefs: readonly string[];
@@ -624,16 +637,25 @@ function buildCanonicalNormalization(
 ): Omit<NormalizedSubmissionPreview, "normalizationVersionRef"> {
   const matchingDefinitions = definitions
     .filter((definition) => definition.requestType === input.requestType)
+    .filter((definition) =>
+      (input.activeQuestionKeys ?? Object.keys(input.activeStructuredAnswers)).includes(
+        definition.questionKey,
+      ),
+    )
     .sort((left, right) => compareStrings(left.questionKey, right.questionKey));
+  const activeStructuredAnswers = filterActiveStructuredAnswers(
+    input.activeStructuredAnswers,
+    input.activeQuestionKeys,
+  );
 
   const requestShape: Record<string, unknown> = {};
   const summaryFragments: NormalizedSubmissionSummaryFragment[] = [];
 
   for (const definition of matchingDefinitions) {
-    if (!(definition.questionKey in input.activeStructuredAnswers)) {
+    if (!(definition.questionKey in activeStructuredAnswers)) {
       continue;
     }
-    const rawValue = input.activeStructuredAnswers[definition.questionKey];
+    const rawValue = activeStructuredAnswers[definition.questionKey];
     const normalizedValue = normalizeAnswerValue(definition.answerType, rawValue);
     if (normalizedValue === null) {
       continue;
@@ -844,6 +866,7 @@ export function createNormalizedSubmissionService(options?: {
     bundle,
     buildPreviewCandidate(input: {
       requestType: IntakeRequestType;
+      activeQuestionKeys?: readonly string[];
       activeStructuredAnswers: Record<string, unknown>;
       freeTextNarrative: string;
       attachmentRefs: readonly string[];
@@ -851,6 +874,7 @@ export function createNormalizedSubmissionService(options?: {
     }): NormalizedSubmissionPreview {
       const preview = buildCanonicalNormalization(compiledDefinitions, {
         requestType: input.requestType,
+        activeQuestionKeys: input.activeQuestionKeys,
         activeStructuredAnswers: input.activeStructuredAnswers,
         freeTextNarrative: input.freeTextNarrative,
         attachmentRefs: input.attachmentRefs,
@@ -888,11 +912,16 @@ export function createNormalizedSubmissionService(options?: {
     ): NormalizedSubmissionDocument {
       const preview = buildCanonicalNormalization(compiledDefinitions, {
         requestType: input.freeze.requestType,
+        activeQuestionKeys: input.freeze.activeQuestionKeys,
         activeStructuredAnswers: input.freeze.activeStructuredAnswers,
         freeTextNarrative: input.freeze.freeTextNarrative,
         attachmentRefs: input.freeze.attachmentRefs,
         contactPreferencesRef: input.freeze.contactPreferencesRef,
       });
+      const activeStructuredAnswers = filterActiveStructuredAnswers(
+        input.freeze.activeStructuredAnswers,
+        input.freeze.activeQuestionKeys,
+      );
       const evidenceReadinessState = resolveEvidenceReadinessState(input.freeze);
       const normalizationReasonCodes = buildNormalizationReasonCodes(
         input.freeze.requestType,
@@ -940,7 +969,7 @@ export function createNormalizedSubmissionService(options?: {
           phase1QuestionDefinitionContract.questionDefinitionContractId,
         sourceLineageRef: input.freeze.sourceLineageRef,
         requestShape: preview.requestShape,
-        activeStructuredAnswers: input.freeze.activeStructuredAnswers,
+        activeStructuredAnswers,
         summaryFragments: preview.summaryFragments,
         authoredNarrative: preview.authoredNarrative,
         dedupeFeatures: preview.dedupeFeatures,

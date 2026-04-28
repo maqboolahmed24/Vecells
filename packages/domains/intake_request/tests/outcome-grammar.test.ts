@@ -129,4 +129,23 @@ describe("phase 1 outcome grammar service", () => {
     expect(failedSafe.receiptEnvelope?.promiseState).toBe("recovery_required");
     expect(failedSafe.tuple.continuityPosture).toBe("recovery_same_shell");
   });
+
+  it("rejects urgent_diverted grammar without a durable urgent settlement reference", async () => {
+    const service = createPhase1OutcomeGrammarService(createPhase1OutcomeGrammarStore());
+
+    await expect(
+      service.settleOutcome(
+        buildSettlementInput({
+          intakeSubmitSettlementRef: "phase1_submit_settlement_151_urgent_missing",
+          result: "urgent_diversion" as const,
+          appliesToState: "urgent_diverted" as const,
+          urgentDiversionSettlementRef: null,
+          receiptConsistencyKey: null,
+          statusConsistencyKey: null,
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: "URGENT_DIVERTED_REQUIRES_ISSUED_SETTLEMENT",
+    });
+  });
 });

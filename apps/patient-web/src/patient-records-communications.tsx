@@ -2,6 +2,10 @@ import { startTransition, useEffect, useMemo, useRef, useState, type ReactNode }
 import { VecellLogoWordmark } from "@vecells/design-system";
 import { resolvePortalSupportPhase2Context } from "../../../packages/domain-kernel/src/patient-support-phase2-integration";
 import {
+  PATIENT_BOOKING_ENTRY_IDS,
+  bookingEntryPath,
+} from "./patient-booking-entry.paths";
+import {
   PATIENT_RECORDS_COMMUNICATIONS_TASK_ID,
   PATIENT_RECORDS_COMMUNICATIONS_VISUAL_MODE,
   isRecordsCommunicationsPath,
@@ -317,16 +321,18 @@ function ResultDetailPage({
   entry,
   chartMode,
   setChartMode,
+  onNavigate,
 }: {
   entry: RecordsCommunicationsEntryProjection;
   chartMode: ChartMode;
   setChartMode: (mode: ChartMode) => void;
+  onNavigate: (pathname: string, replace?: boolean) => void;
 }) {
   if (entry.recordSurfaceContext.surfaceState === "gated_placeholder") {
     return (
       <div className="patient-correspondence__layout">
         <RecordVisibilityPlaceholder entry={entry} />
-        <RecordContextRail entry={entry} />
+        <RecordContextRail entry={entry} onNavigate={onNavigate} />
       </div>
     );
   }
@@ -359,7 +365,7 @@ function ResultDetailPage({
           onModeChange={setChartMode}
         />
       </div>
-      <RecordContextRail entry={entry} />
+      <RecordContextRail entry={entry} onNavigate={onNavigate} />
     </div>
   );
 }
@@ -501,12 +507,18 @@ export function RecordArtifactPanel({
   );
 }
 
-function DocumentDetailPage({ entry }: { entry: RecordsCommunicationsEntryProjection }) {
+function DocumentDetailPage({
+  entry,
+  onNavigate,
+}: {
+  entry: RecordsCommunicationsEntryProjection;
+  onNavigate: (pathname: string, replace?: boolean) => void;
+}) {
   if (entry.recordSurfaceContext.surfaceState === "gated_placeholder") {
     return (
       <div className="patient-correspondence__layout">
         <RecordVisibilityPlaceholder entry={entry} />
-        <RecordContextRail entry={entry} />
+        <RecordContextRail entry={entry} onNavigate={onNavigate} />
       </div>
     );
   }
@@ -515,7 +527,7 @@ function DocumentDetailPage({ entry }: { entry: RecordsCommunicationsEntryProjec
       <div className="patient-correspondence__primary-column">
         <RecordArtifactPanel artifact={entry.recordArtifact} witness={entry.parityWitness} />
       </div>
-      <RecordContextRail entry={entry} />
+      <RecordContextRail entry={entry} onNavigate={onNavigate} />
     </div>
   );
 }
@@ -560,7 +572,19 @@ export function RecordVisibilityPlaceholder({
   );
 }
 
-function RecordContextRail({ entry }: { entry: RecordsCommunicationsEntryProjection }) {
+function RecordContextRail({
+  entry,
+  onNavigate,
+}: {
+  entry: RecordsCommunicationsEntryProjection;
+  onNavigate: (pathname: string, replace?: boolean) => void;
+}) {
+  const bookingEntryFixtureId =
+    entry.followUpEligibility.eligibilityState === "available" &&
+    entry.recordContinuity.continuationState === "stable"
+      ? PATIENT_BOOKING_ENTRY_IDS.recordOriginReady
+      : PATIENT_BOOKING_ENTRY_IDS.recordOriginRecovery;
+
   return (
     <aside className="patient-correspondence__context" data-testid="record-context-rail">
       <h2>Record context</h2>
@@ -582,6 +606,16 @@ function RecordContextRail({ entry }: { entry: RecordsCommunicationsEntryProject
           <dd>{entry.resultInsightAlias.aliasStrategy}</dd>
         </div>
       </dl>
+      <button
+        type="button"
+        className="patient-correspondence__secondary-action"
+        data-testid="record-follow-up-booking-launch"
+        onClick={() => onNavigate(bookingEntryPath(bookingEntryFixtureId))}
+      >
+        {bookingEntryFixtureId === PATIENT_BOOKING_ENTRY_IDS.recordOriginReady
+          ? "Open booking entry"
+          : "Review blocked booking path"}
+      </button>
     </aside>
   );
 }
@@ -626,6 +660,9 @@ export function MessagePreviewCard({
       className="patient-correspondence__message-row"
       data-testid="message-preview-card"
       data-cluster-ref={cluster.clusterRef}
+      data-request-ref={cluster.governingObjectRef}
+      data-pharmacy-case-id={cluster.linkedPharmacyCaseId ?? undefined}
+      data-authoritative-status={cluster.authoritativeStatusLabel ?? undefined}
       onClick={onOpen}
     >
       <span>
@@ -641,7 +678,12 @@ export function MessagePreviewCard({
       >
         {cluster.previewDigest.state.replaceAll("_", " ")}
       </span>
-      <em>{cluster.previewDigest.updatedLabel}</em>
+      <em>
+        {cluster.previewDigest.updatedLabel}
+        {cluster.linkedPharmacyCaseId
+          ? ` · ${cluster.linkedPharmacyCaseId}`
+          : ` · ${cluster.careEpisodeLabel}`}
+      </em>
     </button>
   );
 }
@@ -661,6 +703,16 @@ function ClusterShellPage({
       <aside className="patient-correspondence__context" data-testid="message-context-rail">
         <h2>Conversation context</h2>
         <dl>
+          <div>
+            <dt>Request anchor</dt>
+            <dd>{entry.activeCluster.governingObjectRef}</dd>
+          </div>
+          {entry.activeCluster.linkedPharmacyCaseId ? (
+            <div>
+              <dt>Pharmacy case</dt>
+              <dd>{entry.activeCluster.linkedPharmacyCaseId}</dd>
+            </div>
+          ) : null}
           <div>
             <dt>Cluster</dt>
             <dd>{entry.activeCluster.clusterRef}</dd>
@@ -694,13 +746,17 @@ export function ConversationBraid({
   const repairRequired = entry.composerLease.leaseState === "blocked";
   const requestConversationPath =
     cluster.governingObjectRef.startsWith("request_")
-      ? `/requests/${cluster.governingObjectRef}/conversation/messages?origin=messages`
+      ? `/requests/${cluster.governingObjectRef}?origin=messages`
       : null;
   return (
     <section
       className="patient-correspondence__braid"
       data-testid="conversation-braid"
       data-projection-name={entry.conversationThread.projectionName}
+      data-cluster-ref={cluster.clusterRef}
+      data-request-ref={cluster.governingObjectRef}
+      data-pharmacy-case-id={cluster.linkedPharmacyCaseId ?? undefined}
+      data-authoritative-status={cluster.authoritativeStatusLabel ?? undefined}
       aria-labelledby="conversation-braid-title"
     >
       <span className="patient-correspondence__kicker">ConversationThreadProjection</span>
@@ -742,7 +798,7 @@ export function ConversationBraid({
                 data-testid="message-open-request-conversation"
                 onClick={() => onNavigate(requestConversationPath)}
               >
-                Open request conversation
+                Open request detail
               </button>
             ) : null}
           </div>
@@ -864,9 +920,14 @@ export default function PatientRecordsCommunicationsApp() {
       {entry.routeKey === "records_overview" ? (
         <RecordOverviewSection entry={entry} onNavigate={navigate} />
       ) : entry.routeKey === "result_detail" ? (
-        <ResultDetailPage entry={entry} chartMode={chartMode} setChartMode={setChartMode} />
+        <ResultDetailPage
+          entry={entry}
+          chartMode={chartMode}
+          setChartMode={setChartMode}
+          onNavigate={navigate}
+        />
       ) : entry.routeKey === "document_detail" ? (
-        <DocumentDetailPage entry={entry} />
+        <DocumentDetailPage entry={entry} onNavigate={navigate} />
       ) : entry.routeKey === "messages_index" ? (
         <ConversationClusterList timeline={entry.communicationsTimeline} onNavigate={navigate} />
       ) : (

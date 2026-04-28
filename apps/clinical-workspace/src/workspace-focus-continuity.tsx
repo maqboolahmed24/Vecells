@@ -30,7 +30,10 @@ export function WorkspaceProtectionStrip({
       data-focus-protection={projection.focusState}
       data-protected-composition={projection.protectedMode}
     >
-      <div className="staff-shell__focus-protection-copy">
+      <div
+        className="staff-shell__focus-protection-copy"
+        data-testid="protected-composition-ribbon"
+      >
         <span className="staff-shell__eyebrow">WorkspaceFocusProtectionLease</span>
         <strong>{projection.title}</strong>
         <p>{projection.summary}</p>
@@ -129,6 +132,7 @@ export function BufferedQueueChangeTray({
           onClick={onApply}
           disabled={!projection.applyEnabled}
           aria-describedby={`${projection.trayId}-apply-reason`}
+          aria-label={`${projection.applyLabel} Apply queued changes`}
         >
           {projection.applyLabel}
         </button>

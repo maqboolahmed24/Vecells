@@ -1,0 +1,539 @@
+{
+  "taskId": "seq_342_phase6_freeze_pharmacy_case_model_eligibility_and_policy_pack_contracts",
+  "contractVersion": "342.phase6.pharmacy-case-policy-freeze.v1",
+  "aggregate": "PharmacyCase",
+  "closureAuthority": "LifecycleCoordinator",
+  "stateVocabularyLock": "additive_only",
+  "states": [
+    {
+      "stateId": "candidate_received",
+      "stateFamily": "intake",
+      "summary": "A pharmacy-eligible branch has been created and lineage has been acknowledged, but rules have not yet begun."
+    },
+    {
+      "stateId": "rules_evaluating",
+      "stateFamily": "evaluation",
+      "summary": "The case is actively being evaluated against the frozen pathway and fallback pack."
+    },
+    {
+      "stateId": "ineligible_returned",
+      "stateFamily": "evaluation",
+      "summary": "Pharmacy suitability has been denied and the work returns to a non-pharmacy route."
+    },
+    {
+      "stateId": "eligible_choice_pending",
+      "stateFamily": "choice",
+      "summary": "Eligibility passed and the case waits on provider-choice truth under the current pack."
+    },
+    {
+      "stateId": "provider_selected",
+      "stateFamily": "choice",
+      "summary": "A single provider has been durably selected but consent and package posture still govern onward progress."
+    },
+    {
+      "stateId": "consent_pending",
+      "stateFamily": "consent",
+      "summary": "Selection exists, but referral consent or checkpoint posture is not currently satisfied."
+    },
+    {
+      "stateId": "package_ready",
+      "stateFamily": "dispatch",
+      "summary": "The canonical package is frozen and the current consent checkpoint is satisfied."
+    },
+    {
+      "stateId": "dispatch_pending",
+      "stateFamily": "dispatch",
+      "summary": "A fenced dispatch attempt exists and transport proof is still being gathered."
+    },
+    {
+      "stateId": "referred",
+      "stateFamily": "dispatch",
+      "summary": "Dispatch proof satisfies the current assurance profile and the referral is live with the selected provider."
+    },
+    {
+      "stateId": "consultation_outcome_pending",
+      "stateFamily": "outcome",
+      "summary": "The referral is live and the branch waits for an authoritative pharmacy outcome."
+    },
+    {
+      "stateId": "outcome_reconciliation_pending",
+      "stateFamily": "outcome",
+      "summary": "Weak or contradictory outcome truth blocks ordinary settlement pending case-local review."
+    },
+    {
+      "stateId": "resolved_by_pharmacy",
+      "stateFamily": "outcome",
+      "summary": "Outcome truth is strong enough to settle the pharmacy branch locally, but closure still requires blocker clearance."
+    },
+    {
+      "stateId": "unresolved_returned",
+      "stateFamily": "return",
+      "summary": "The pharmacy branch has not resolved and is returning to practice or triage under routine return law."
+    },
+    {
+      "stateId": "urgent_bounce_back",
+      "stateFamily": "return",
+      "summary": "Urgent return dominates ordinary branch messaging and requires direct safety handling."
+    },
+    {
+      "stateId": "no_contact_return_pending",
+      "stateFamily": "return",
+      "summary": "No-contact return has been made explicit and cannot auto-close."
+    },
+    {
+      "stateId": "closed",
+      "stateFamily": "closure",
+      "summary": "LifecycleCoordinator has accepted closure because no confirmation, reachability, consent, or outcome blockers remain open."
+    }
+  ],
+  "transitions": [
+    {
+      "transitionId": "PH6_TX_001",
+      "from": "candidate_received",
+      "event": "pharmacy.service_type.resolved",
+      "to": "rules_evaluating",
+      "preconditions": [
+        "A current LineageCaseLink(caseFamily = pharmacy) is present on the active RequestLineage.",
+        "ScopedMutationGate admits the evaluation command for the active ownership epoch."
+      ],
+      "prohibitedWhen": [
+        "Identity repair branch is active and unresolved."
+      ],
+      "blockerFamilies": [
+        "identity_repair_freeze",
+        "stale_owner_recovery"
+      ],
+      "sideEffectFamilies": [
+        "service_type_decision_persisted",
+        "evidence_snapshot_frozen"
+      ]
+    },
+    {
+      "transitionId": "PH6_TX_002",
+      "from": "rules_evaluating",
+      "event": "pharmacy.pathway.evaluated",
+      "to": "ineligible_returned",
+      "preconditions": [
+        "The current PharmacyRulePack and threshold families are resolved and attached to the evaluation record.",
+        "s_global(x) >= tau_global_block or all candidate pathways fail without lawful fallback."
+      ],
+      "prohibitedWhen": [
+        "Rule-pack version is missing or mutable in place."
+      ],
+      "blockerFamilies": [
+        "pack_mutation_rejected"
+      ],
+      "sideEffectFamilies": [
+        "eligibility_explanation_created",
+        "return_route_required"
+      ]
+    },
+    {
+      "transitionId": "PH6_TX_003",
+      "from": "rules_evaluating",
+      "event": "pharmacy.pathway.evaluated",
+      "to": "eligible_choice_pending",
+      "preconditions": [
+        "At least one pathway is eligible under the frozen threshold family registry or minor-illness fallback is lawfully satisfied.",
+        "Matched rules, completeness, contradiction, confidence, and timing guardrail are persisted."
+      ],
+      "prohibitedWhen": [
+        "Fallback is being used to bypass a global block or hard-failed contradiction."
+      ],
+      "blockerFamilies": [
+        "illegal_fallback_bypass"
+      ],
+      "sideEffectFamilies": [
+        "eligibility_explanation_created",
+        "choice_session_refresh_required"
+      ]
+    },
+    {
+      "transitionId": "PH6_TX_004",
+      "from": "eligible_choice_pending",
+      "event": "pharmacy.provider.selected",
+      "to": "provider_selected",
+      "preconditions": [
+        "A current PharmacyChoiceSession exists with a full visible provider set and deterministic frontier ordering.",
+        "The selected provider remains present in the current choice proof and any override acknowledgement requirement is met."
+      ],
+      "prohibitedWhen": [
+        "Choice proof has been superseded or stale provider capability evidence is being reused."
+      ],
+      "blockerFamilies": [
+        "choice_proof_superseded",
+        "provider_capability_stale"
+      ],
+      "sideEffectFamilies": [
+        "provider_selection_persisted",
+        "consent_checkpoint_refresh_required"
+      ]
+    },
+    {
+      "transitionId": "PH6_TX_005",
+      "from": "provider_selected",
+      "event": "pharmacy.consent.checkpoint.updated",
+      "to": "consent_pending",
+      "preconditions": [
+        "Selection exists but the current checkpointState is not satisfied.",
+        "The checkpoint binds the selected provider, pathway, referral scope, selectionBindingHash, and package fingerprint candidate."
+      ],
+      "prohibitedWhen": [
+        "A withdrawn or revoked consent row is being treated as still usable."
+      ],
+      "blockerFamilies": [
+        "consent_invalid",
+        "selection_binding_drift"
+      ],
+      "sideEffectFamilies": [
+        "patient_reassurance_blocked",
+        "same_shell_renewal_required"
+      ]
+    },
+    {
+      "transitionId": "PH6_TX_006",
+      "from": "provider_selected",
+      "event": "pharmacy.package.composed",
+      "to": "package_ready",
+      "preconditions": [
+        "The current consent checkpoint is satisfied.",
+        "The package is frozen against the current selected provider, pathway, scope, and package fingerprint."
+      ],
+      "prohibitedWhen": [
+        "The package fingerprint does not match the selectionBindingHash."
+      ],
+      "blockerFamilies": [
+        "package_lineage_mismatch",
+        "consent_invalid"
+      ],
+      "sideEffectFamilies": [
+        "package_frozen",
+        "dispatch_plan_refresh_enabled"
+      ]
+    },
+    {
+      "transitionId": "PH6_TX_007",
+      "from": "consent_pending",
+      "event": "pharmacy.consent.checkpoint.updated",
+      "to": "package_ready",
+      "preconditions": [
+        "A refreshed consent record, explanation binding, and selected provider tuple are current.",
+        "The consent checkpointState has become satisfied without stale-write drift."
+      ],
+      "prohibitedWhen": [
+        "The consent update was written under an expired ownership epoch."
+      ],
+      "blockerFamilies": [
+        "stale_owner_recovery",
+        "consent_invalid"
+      ],
+      "sideEffectFamilies": [
+        "consent_checkpoint_satisfied",
+        "package_frozen"
+      ]
+    },
+    {
+      "transitionId": "PH6_TX_008",
+      "from": "package_ready",
+      "event": "pharmacy.consent.revoked",
+      "to": "consent_pending",
+      "preconditions": [
+        "Provider, pathway, scope, proof, or package lineage changed materially; or consent was withdrawn or revoked.",
+        "A PharmacyConsentRevocationRecord or equivalent checkpoint drift signal was persisted."
+      ],
+      "prohibitedWhen": [
+        "Revocation is ignored because package_ready is being treated as calmer than consent truth."
+      ],
+      "blockerFamilies": [
+        "consent_invalid",
+        "package_lineage_mismatch"
+      ],
+      "sideEffectFamilies": [
+        "checkpoint_unsatisfied",
+        "dispatch_blocked"
+      ]
+    },
+    {
+      "transitionId": "PH6_TX_009",
+      "from": "package_ready",
+      "event": "pharmacy.dispatch.started",
+      "to": "dispatch_pending",
+      "preconditions": [
+        "The current consent checkpoint remains satisfied.",
+        "Route intent, lineage fence, ownership epoch, and idempotency tuple all match the current plan."
+      ],
+      "prohibitedWhen": [
+        "RequestLifecycleLease is stale or the active identity-repair branch is unresolved."
+      ],
+      "blockerFamilies": [
+        "stale_owner_recovery",
+        "identity_repair_freeze",
+        "consent_invalid"
+      ],
+      "sideEffectFamilies": [
+        "dispatch_attempt_created",
+        "confirmation_gate_created_or_refreshed"
+      ]
+    },
+    {
+      "transitionId": "PH6_TX_010",
+      "from": "dispatch_pending",
+      "event": "pharmacy.dispatch.confirmed",
+      "to": "referred",
+      "preconditions": [
+        "Dispatch proof satisfies the active TransportAssuranceProfile.",
+        "The authoritative proof source or confirmation gate is attached to the dispatch attempt."
+      ],
+      "prohibitedWhen": [
+        "Proof is still pending, expired, or disputed under the active confidence threshold."
+      ],
+      "blockerFamilies": [
+        "confirmation_gate_open",
+        "dispatch_proof_disputed"
+      ],
+      "sideEffectFamilies": [
+        "dispatch_truth_projection_refreshed",
+        "patient_instruction_ready"
+      ]
+    },
+    {
+      "transitionId": "PH6_TX_011",
+      "from": "referred",
+      "event": "pharmacy.dispatch.confirmed",
+      "to": "consultation_outcome_pending",
+      "preconditions": [
+        "The referral remains bound to the same provider, pathway, package, and continuity evidence tuple.",
+        "Dispatch truth remains sufficient for patient and staff reassurance."
+      ],
+      "prohibitedWhen": [
+        "A dispatch-plan supersession or consent revocation has invalidated the live tuple."
+      ],
+      "blockerFamilies": [
+        "consent_invalid",
+        "dispatch_tuple_drift"
+      ],
+      "sideEffectFamilies": [
+        "await_outcome_projection_started"
+      ]
+    },
+    {
+      "transitionId": "PH6_TX_012",
+      "from": "consultation_outcome_pending",
+      "event": "pharmacy.case.resolved",
+      "to": "resolved_by_pharmacy",
+      "preconditions": [
+        "Outcome evidence is strongly correlated and no reconciliation gate remains open.",
+        "Closure blockers other than lifecycle-close remain empty or explicitly settled."
+      ],
+      "prohibitedWhen": [
+        "Weak, ambiguous, or contradictory outcome truth is being auto-applied."
+      ],
+      "blockerFamilies": [
+        "outcome_reconciliation_gate_open"
+      ],
+      "sideEffectFamilies": [
+        "outcome_settlement_persisted",
+        "closure_eligibility_recomputed"
+      ]
+    },
+    {
+      "transitionId": "PH6_TX_013",
+      "from": "consultation_outcome_pending",
+      "event": "pharmacy.case.bounce_back",
+      "to": "unresolved_returned",
+      "preconditions": [
+        "Outcome evidence or return signal is strong enough for a routine unresolved return.",
+        "The return pathway does not meet urgent or no-contact thresholds."
+      ],
+      "prohibitedWhen": [
+        "Urgent return is being flattened into routine unresolved return."
+      ],
+      "blockerFamilies": [
+        "return_route_pending"
+      ],
+      "sideEffectFamilies": [
+        "bounce_back_record_created",
+        "request_reopen_signal_emitted"
+      ]
+    },
+    {
+      "transitionId": "PH6_TX_014",
+      "from": "consultation_outcome_pending",
+      "event": "pharmacy.case.bounce_back",
+      "to": "urgent_bounce_back",
+      "preconditions": [
+        "Urgent return evidence meets the carry-floor and direct-safety route threshold.",
+        "Urgent communication routing is available or an explicit monitored fallback route is active."
+      ],
+      "prohibitedWhen": [
+        "Update Record or routine messaging is being treated as the urgent return mechanism."
+      ],
+      "blockerFamilies": [
+        "urgent_route_unacknowledged",
+        "reachability_dependency_open"
+      ],
+      "sideEffectFamilies": [
+        "bounce_back_record_created",
+        "direct_urgent_route_started"
+      ]
+    },
+    {
+      "transitionId": "PH6_TX_015",
+      "from": "consultation_outcome_pending",
+      "event": "pharmacy.reachability.blocked",
+      "to": "no_contact_return_pending",
+      "preconditions": [
+        "No-contact return threshold or reachability dependency failure has been met.",
+        "The branch has not been resolved or urgently bounced back."
+      ],
+      "prohibitedWhen": [
+        "No-contact return is being auto-closed or hidden behind general unresolved text."
+      ],
+      "blockerFamilies": [
+        "reachability_dependency_open"
+      ],
+      "sideEffectFamilies": [
+        "reachability_plan_refreshed",
+        "return_review_required"
+      ]
+    },
+    {
+      "transitionId": "PH6_TX_016",
+      "from": "consultation_outcome_pending",
+      "event": "pharmacy.outcome.received",
+      "to": "outcome_reconciliation_pending",
+      "preconditions": [
+        "Outcome evidence is weak, ambiguous, contradictory, or below the strong-match threshold.",
+        "A case-local reconciliation gate has been created or refreshed."
+      ],
+      "prohibitedWhen": [
+        "Weak outcome evidence is being treated as final settlement."
+      ],
+      "blockerFamilies": [
+        "outcome_reconciliation_gate_open"
+      ],
+      "sideEffectFamilies": [
+        "outcome_reconciliation_gate_created",
+        "closure_blocker_added"
+      ]
+    },
+    {
+      "transitionId": "PH6_TX_017",
+      "from": "outcome_reconciliation_pending",
+      "event": "pharmacy.outcome.reconciled",
+      "to": "resolved_by_pharmacy",
+      "preconditions": [
+        "The reconciliation gate has been explicitly settled in favor of pharmacy resolution."
+      ],
+      "prohibitedWhen": [
+        "The reconciliation gate is still blocking closure."
+      ],
+      "blockerFamilies": [
+        "outcome_reconciliation_gate_open"
+      ],
+      "sideEffectFamilies": [
+        "outcome_settlement_persisted",
+        "closure_eligibility_recomputed"
+      ]
+    },
+    {
+      "transitionId": "PH6_TX_018",
+      "from": "outcome_reconciliation_pending",
+      "event": "pharmacy.outcome.reconciled",
+      "to": "unresolved_returned",
+      "preconditions": [
+        "The reconciliation gate has been explicitly settled in favor of routine return to practice."
+      ],
+      "prohibitedWhen": [
+        "The gate resolution still requires urgent handling."
+      ],
+      "blockerFamilies": [
+        "outcome_reconciliation_gate_open"
+      ],
+      "sideEffectFamilies": [
+        "bounce_back_record_created",
+        "request_reopen_signal_emitted"
+      ]
+    },
+    {
+      "transitionId": "PH6_TX_019",
+      "from": "outcome_reconciliation_pending",
+      "event": "pharmacy.outcome.reconciled",
+      "to": "urgent_bounce_back",
+      "preconditions": [
+        "The reconciliation gate has been explicitly settled in favor of urgent return handling."
+      ],
+      "prohibitedWhen": [
+        "Urgent handling route is unresolved."
+      ],
+      "blockerFamilies": [
+        "outcome_reconciliation_gate_open",
+        "urgent_route_unacknowledged"
+      ],
+      "sideEffectFamilies": [
+        "bounce_back_record_created",
+        "direct_urgent_route_started"
+      ]
+    },
+    {
+      "transitionId": "PH6_TX_020",
+      "from": "outcome_reconciliation_pending",
+      "event": "pharmacy.outcome.reconciled",
+      "to": "no_contact_return_pending",
+      "preconditions": [
+        "The reconciliation gate has been explicitly settled in favor of no-contact return handling."
+      ],
+      "prohibitedWhen": [
+        "Reachability remediation is still unresolved."
+      ],
+      "blockerFamilies": [
+        "outcome_reconciliation_gate_open",
+        "reachability_dependency_open"
+      ],
+      "sideEffectFamilies": [
+        "reachability_plan_refreshed",
+        "return_review_required"
+      ]
+    },
+    {
+      "transitionId": "PH6_TX_021",
+      "from": "resolved_by_pharmacy",
+      "event": "pharmacy.case.closed",
+      "to": "closed",
+      "preconditions": [
+        "LifecycleCoordinator remains the only request-closure authority.",
+        "All currentConfirmationGateRefs, currentClosureBlockerRefs, and activeReachabilityDependencyRefs are empty or settled."
+      ],
+      "prohibitedWhen": [
+        "Any closure blocker, reachability blocker, or unresolved urgent return remains active."
+      ],
+      "blockerFamilies": [
+        "closure_blocker_open",
+        "reachability_dependency_open"
+      ],
+      "sideEffectFamilies": [
+        "request_closure_record_written",
+        "lineage_link_settled"
+      ]
+    }
+  ],
+  "prohibitedTransitionLaw": "Transitions not listed in this machine are illegal unless added later as additive extensions with explicit source-backed justification.",
+  "blockerFamilies": [
+    "identity_repair_freeze",
+    "stale_owner_recovery",
+    "pack_mutation_rejected",
+    "illegal_fallback_bypass",
+    "choice_proof_superseded",
+    "provider_capability_stale",
+    "consent_invalid",
+    "selection_binding_drift",
+    "package_lineage_mismatch",
+    "confirmation_gate_open",
+    "dispatch_proof_disputed",
+    "dispatch_tuple_drift",
+    "outcome_reconciliation_gate_open",
+    "urgent_route_unacknowledged",
+    "reachability_dependency_open",
+    "closure_blocker_open"
+  ]
+}

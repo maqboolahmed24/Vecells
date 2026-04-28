@@ -1,0 +1,133 @@
+{
+  "taskId": "par_407",
+  "schemaVersion": "407.transcript-runtime-contract.v1",
+  "contractFamily": "assistive_transcript_artifact_runtime",
+  "sourceGateRef": "data/contracts/403_phase8_track_readiness_registry.json",
+  "launchPacketRef": "data/launchpacks/403_track_launch_packet_407.json",
+  "upstreamContractRefs": [
+    "data/contracts/404_assistive_evaluation_contracts.json",
+    "data/contracts/404_shadow_mode_evidence_requirements.json",
+    "data/contracts/405_assistive_release_candidate_contracts.json",
+    "data/contracts/406_evaluation_runtime_contract.json"
+  ],
+  "runtimePackage": {
+    "packageName": "@vecells/domain-assistive-transcript",
+    "sourceRoot": "packages/domains/assistive_transcript/src",
+    "separationLaw": "Transcript artifacts store refs, hashes, lineage, retention, and presentation posture; raw audio and raw transcript bytes are not exposed as default API payloads."
+  },
+  "services": [
+    {
+      "serviceName": "AudioCaptureSessionService",
+      "ownedApis": ["createSession", "attachRetentionEnvelope", "releaseQuarantine", "endSession"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "TranscriptJobOrchestrator",
+      "ownedApis": ["scheduleTranscriptJob", "startTranscriptJob", "failTranscriptJob"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "TranscriptNormalizationPipeline",
+      "ownedApis": ["completeTranscriptJob"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "TranscriptArtifactService",
+      "ownedApis": ["markReferencedByFrozenEvidence", "markReadyForDrafting"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "TranscriptRedactionService",
+      "ownedApis": ["applyRedactions", "failRedaction"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "ClinicalConceptSpanExtractor",
+      "ownedApis": ["extractConceptSpans"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "RetentionEnvelopeService",
+      "ownedApis": ["createRetentionEnvelope", "enforceDeletionSchedule"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "TranscriptPresentationArtifactService",
+      "ownedApis": ["generatePresentationArtifact"],
+      "requiresActorContext": true
+    }
+  ],
+  "supportedInputOrder": [
+    "telephony_recording",
+    "uploaded_audio_artifact",
+    "clinician_dictation_clip",
+    "live_ambient_capture_policy_gated"
+  ],
+  "persistedObjects": [
+    "AudioCaptureSession",
+    "TranscriptJob",
+    "SpeakerSegment",
+    "ClinicalConceptSpan",
+    "RedactionSpan",
+    "EvidenceDerivationPackage",
+    "TranscriptArtifact",
+    "RetentionEnvelope",
+    "TranscriptPresentationArtifact",
+    "TranscriptDomainEvent",
+    "TranscriptAuditRecord"
+  ],
+  "migrationRef": "services/command-api/migrations/407_phase8_transcript_artifact_pipeline.sql",
+  "permissionAndCapturePolicy": {
+    "blockedPermissionStates": ["objected", "withdrawn", "blocked", "policy_pending"],
+    "ambientCaptureDefault": "disabled_unless_manual_start_explicit_permission_tenant_policy_and_local_governance_approval",
+    "automaticAmbientCapture": "forbidden_first_release",
+    "quarantineFirst": true
+  },
+  "derivationPolicy": {
+    "immutablePackages": true,
+    "rerunBehavior": "append_new_derivation_package_and_supersede_prior_artifact",
+    "forbiddenInputs": ["raw transcript text in commands", "mutable latest transcript pointer"],
+    "downstreamReadyEvents": ["assistive.transcript.ready", "assistive.context.snapshot.created"]
+  },
+  "retentionPolicy": {
+    "requiredEnvelopeForCaptureRelease": true,
+    "deletionBlockedBy": ["legalHoldRef", "retentionFreezeRef", "policyConflictRef"],
+    "nonEssentialDerivedArtifactsMustNotOutliveSource": true
+  },
+  "presentationPolicy": {
+    "defaultArtifactState": "summary_only",
+    "forbiddenDefaults": ["raw blob URL", "direct download URL", "external handoff without outbound navigation grant"],
+    "recoveryWhen": ["permission drift", "redaction failed", "artifact quarantined"]
+  },
+  "invariants": [
+    {
+      "invariantId": "INV407_001",
+      "statement": "Capture permission, capture mode, retention policy, and artifact refs are explicit on every AudioCaptureSession."
+    },
+    {
+      "invariantId": "INV407_002",
+      "statement": "Audio and text artifacts enter quarantine before transcript jobs run."
+    },
+    {
+      "invariantId": "INV407_003",
+      "statement": "Transcript reruns append immutable derivation packages and never rewrite frozen evidence."
+    },
+    {
+      "invariantId": "INV407_004",
+      "statement": "Clinical concept spans and redaction spans are typed and source-segment attributable."
+    },
+    {
+      "invariantId": "INV407_005",
+      "statement": "Retention envelopes and deletion scheduling are enforced in repository code."
+    },
+    {
+      "invariantId": "INV407_006",
+      "statement": "Presentation artifacts are summary-first and block raw blob URLs or ungranted external handoff."
+    },
+    {
+      "invariantId": "INV407_007",
+      "statement": "Transcript readiness events emit only after immutable derivation and settled redaction posture."
+    }
+  ],
+  "downstreamConsumers": ["par_408", "par_409", "par_410", "par_411", "par_413", "par_414", "par_415"]
+}

@@ -1,0 +1,138 @@
+{
+  "taskId": "par_416",
+  "schemaVersion": "416.freeze-disposition-and-freshness-invalidations.v1",
+  "packageName": "@vecells/domain-assistive-freeze",
+  "services": [
+    {
+      "serviceName": "AssistiveReleaseFreezeRecordService",
+      "owns": ["AssistiveReleaseFreezeRecord"],
+      "contract": "Maintains current freeze truth for a watch tuple, route family, cohort, publication tuple, recovery disposition, rollout rung, and trigger."
+    },
+    {
+      "serviceName": "AssistiveFreezeDispositionResolver",
+      "owns": ["AssistiveFreezeDisposition"],
+      "contract": "Resolves exact fallback modes only: shadow_only, read_only_provenance, placeholder_only, assistive_hidden."
+    },
+    {
+      "serviceName": "AssistivePolicyFreshnessValidator",
+      "owns": ["AssistivePolicyFreshnessVerdict"],
+      "contract": "Validates session, prompt, approval-gate, threshold, watch tuple, release candidate, and route-family policy bundle agreement."
+    },
+    {
+      "serviceName": "AssistivePublicationFreshnessValidator",
+      "owns": ["AssistivePublicationFreshnessVerdict"],
+      "contract": "Validates route contract, surface publication, and runtime publication tuple agreement."
+    },
+    {
+      "serviceName": "AssistiveSessionInvalidationService",
+      "owns": ["AssistiveSessionInvalidationRecord"],
+      "contract": "Invalidates stale sessions, chains, work-protection leases, and patch leases on trust, policy, publication, decision, anchor, insertion, incident, or final-artifact drift."
+    },
+    {
+      "serviceName": "AssistiveRecoveryDispositionBinder",
+      "owns": ["AssistiveRecoveryDispositionBinding"],
+      "contract": "Binds freeze recovery to ReleaseRecoveryDisposition and same-shell recovery semantics."
+    },
+    {
+      "serviceName": "AssistiveActionabilityFreezeGuard",
+      "owns": ["AssistiveActionabilityFreezeDecision"],
+      "contract": "Blocks stale accept, insert, regenerate, export, and completion-adjacent controls while preserving provenance when policy allows."
+    },
+    {
+      "serviceName": "AssistiveSessionReclearanceService",
+      "owns": ["AssistiveSessionReclearanceRecord"],
+      "contract": "Requires explicit refresh, regeneration, or operator unfreeze and prevents reuse of old patch leases."
+    }
+  ],
+  "persistedObjects": [
+    "AssistiveReleaseFreezeRecord",
+    "AssistiveFreezeDisposition",
+    "AssistivePolicyFreshnessVerdict",
+    "AssistivePublicationFreshnessVerdict",
+    "AssistiveSessionInvalidationRecord",
+    "AssistiveRecoveryDispositionBinding",
+    "AssistiveActionabilityFreezeDecision",
+    "AssistiveSessionReclearanceRecord",
+    "AssistiveFreezeAuditRecord"
+  ],
+  "freezeDispositionPolicy": {
+    "allowedModes": ["shadow_only", "read_only_provenance", "placeholder_only", "assistive_hidden"],
+    "forbidden": ["disabled", "error", "hidden_generic"],
+    "writeControlsSuppressed": ["accept", "insert", "export", "completion_adjacent"]
+  },
+  "freshnessPolicy": {
+    "policyTupleMembers": [
+      "sessionPolicyBundleRef",
+      "promptPolicyBundleRef",
+      "approvalGatePolicyBundleRef",
+      "thresholdSetPolicyBundleRef",
+      "watchTupleHash",
+      "releaseCandidateRef",
+      "routeFamilyRef"
+    ],
+    "publicationTupleMembers": [
+      "surfaceRouteContractRef",
+      "surfacePublicationRef",
+      "runtimePublicationBundleRef",
+      "surfaceBindingRef",
+      "routeFamilyRef"
+    ],
+    "failClosedStates": ["stale", "mismatched", "withdrawn", "missing", "blocked"]
+  },
+  "reclearancePolicy": {
+    "requiresExplicitMethod": ["session_refresh", "regeneration", "operator_unfreeze"],
+    "oldPatchLeaseReuse": "blocked",
+    "requiredFreshRefs": ["policy", "publication", "trust"]
+  },
+  "laterConsumers": ["422", "423", "424", "429", "430"],
+  "invariants": [
+    {
+      "code": "release_freeze_record_current_truth",
+      "description": "Release freeze records are current operational truth, not only historical commands."
+    },
+    {
+      "code": "freeze_disposition_exact_modes_only",
+      "description": "Only blueprint fallback modes are legal."
+    },
+    {
+      "code": "policy_freshness_tuple_match_required",
+      "description": "Policy bundle mismatch invalidates actionability."
+    },
+    {
+      "code": "publication_freshness_tuple_match_required",
+      "description": "Publication and runtime tuple mismatch invalidates actionability."
+    },
+    {
+      "code": "stale_session_invalidates_actionability",
+      "description": "Stale sessions block action controls and require recovery."
+    },
+    {
+      "code": "insertion_lease_not_silently_resurrected",
+      "description": "Old patch leases cannot return to actionability after drift."
+    },
+    {
+      "code": "same_shell_recovery_disposition_required",
+      "description": "Recovery stays in the same shell family through ReleaseRecoveryDisposition."
+    },
+    {
+      "code": "actionability_freeze_guard_blocks_stale_controls",
+      "description": "Accept, insert, regenerate, export, and completion-adjacent actions obey the active freeze state."
+    },
+    {
+      "code": "provenance_preserved_when_policy_allows",
+      "description": "Read-only provenance can remain visible while write controls are suppressed."
+    },
+    {
+      "code": "freeze_records_phi_safe_refs_only",
+      "description": "Freeze records store refs and blockers rather than sensitive text."
+    },
+    {
+      "code": "reclearance_requires_refresh_or_regeneration",
+      "description": "Actionability returns only after explicit refresh, regeneration, or unfreeze."
+    },
+    {
+      "code": "exact_blocker_detail_exposed",
+      "description": "Later UI and proof work can inspect exact blocker detail."
+    }
+  ]
+}

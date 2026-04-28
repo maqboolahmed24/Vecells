@@ -1,0 +1,202 @@
+{
+  "schemaVersion": "438.phase9.essential-function-metrics.v1",
+  "projectionEngineVersion": "437.phase9.operational-projection-engine.v1",
+  "sourceAlgorithmRefs": [
+    "blueprint/phase-9-the-assurance-ledger.md#9A",
+    "blueprint/phase-9-the-assurance-ledger.md#9B",
+    "blueprint/phase-4-the-booking-engine.md#4G",
+    "blueprint/phase-6-the-pharmacy-loop.md#6G",
+    "blueprint/patient-account-and-communications-blueprint.md#Callback-and-message-visibility",
+    "data/contracts/437_phase9_operational_projection_engine_contract.json"
+  ],
+  "metricInputs": [
+    {
+      "eventFamily": "waitlist_lifecycle",
+      "sourceObject": "WaitlistOffer",
+      "sourceProjection": "WaitlistContinuationTruthProjection",
+      "requiredFields": [
+        "eventId",
+        "eventFamily",
+        "eventType",
+        "tenantId",
+        "entityRef",
+        "occurredAt",
+        "recordedAt",
+        "dedupeKey",
+        "orderingKey",
+        "sourceTrustRef"
+      ],
+      "orderingKey": "orderingKey",
+      "dedupeKey": "dedupeKey",
+      "tenantScope": "tenantId",
+      "timestampSemantics": "domain_occurred_at",
+      "authoritativeTruthBoundary": "WaitlistEntry, WaitlistOffer, WaitlistDeadlineEvaluation, WaitlistFallbackObligation, BookingConfirmationTruthProjection",
+      "sourceTrustDependency": "AssuranceSliceTrustRecord:waitlist-conversion"
+    },
+    {
+      "eventFamily": "pharmacy_lifecycle",
+      "sourceObject": "PharmacyBounceBackRecord",
+      "sourceProjection": "PharmacyOutcomeTruthProjection",
+      "requiredFields": [
+        "eventId",
+        "eventFamily",
+        "eventType",
+        "tenantId",
+        "entityRef",
+        "occurredAt",
+        "recordedAt",
+        "dedupeKey",
+        "orderingKey",
+        "sourceTrustRef"
+      ],
+      "orderingKey": "orderingKey",
+      "dedupeKey": "dedupeKey",
+      "tenantScope": "tenantId",
+      "timestampSemantics": "settled_at",
+      "authoritativeTruthBoundary": "PharmacyDispatchAttempt, PharmacyOutcomeSettlement, PharmacyBounceBackRecord, PharmacyConsoleContinuityEvidenceProjection",
+      "sourceTrustDependency": "AssuranceSliceTrustRecord:pharmacy-bounce-back"
+    },
+    {
+      "eventFamily": "notification_lifecycle",
+      "sourceObject": "CommunicationEnvelope",
+      "sourceProjection": "PatientCommunicationVisibilityProjection",
+      "requiredFields": [
+        "eventId",
+        "eventFamily",
+        "eventType",
+        "tenantId",
+        "entityRef",
+        "occurredAt",
+        "recordedAt",
+        "dedupeKey",
+        "orderingKey",
+        "sourceTrustRef"
+      ],
+      "orderingKey": "orderingKey",
+      "dedupeKey": "dedupeKey",
+      "tenantScope": "tenantId",
+      "timestampSemantics": "provider_observed_at",
+      "authoritativeTruthBoundary": "CommunicationEnvelope, AdapterReceiptCheckpoint, PatientReceiptEnvelope, ConversationCommandSettlement",
+      "sourceTrustDependency": "AssuranceSliceTrustRecord:notification-delivery"
+    },
+    {
+      "eventFamily": "assurance_metric_trust",
+      "sourceObject": "AssuranceSliceTrustRecord",
+      "sourceProjection": "ProjectionHealthSnapshot",
+      "requiredFields": [
+        "eventId",
+        "eventFamily",
+        "eventType",
+        "tenantId",
+        "entityRef",
+        "occurredAt",
+        "recordedAt",
+        "dedupeKey",
+        "orderingKey",
+        "sourceTrustRef"
+      ],
+      "orderingKey": "orderingKey",
+      "dedupeKey": "dedupeKey",
+      "tenantScope": "tenantId",
+      "timestampSemantics": "settled_at",
+      "authoritativeTruthBoundary": "ProjectionHealthSnapshot and AssuranceGraphCompletenessVerdict",
+      "sourceTrustDependency": "AssuranceGraphCompletenessVerdict:operational-dashboard"
+    }
+  ],
+  "producedObjects": [
+    "WaitlistConversionMetricSnapshot",
+    "PharmacyBounceBackMetricSnapshot",
+    "NotificationDeliveryMetricSnapshot",
+    "MetricAnomalySnapshot",
+    "Phase9MetricAlertHook",
+    "Phase9MetricDashboardDto",
+    "Phase9OperationalProjectionResult"
+  ],
+  "requiredMetricSnapshotLineageFields": [
+    "sourceEventRefs",
+    "sourceWindowHash",
+    "metricDefinitionRef",
+    "tenantId",
+    "scopeRef",
+    "aggregationWindow",
+    "normalizationVersionRef",
+    "trustState",
+    "completenessState",
+    "projectionHealthRef",
+    "graphVerdictRef",
+    "blockingRefs"
+  ],
+  "dashboardDtoFields": [
+    "topLineValue",
+    "denominator",
+    "window",
+    "trend",
+    "riskOrConfidenceBand",
+    "stateLabel",
+    "stateReason",
+    "drillInSeed",
+    "allowedInvestigationScope",
+    "supportingLifecycleCounts",
+    "blockedOrDegradedExplanation"
+  ],
+  "alertHooks": [
+    {
+      "alertCode": "waitlist_offer_expiry_rise",
+      "metricFamily": "waitlist_conversion",
+      "anomalyRef": "mas_438_5226f6605ec449d7"
+    },
+    {
+      "alertCode": "waitlist_conversion_drop",
+      "metricFamily": "waitlist_conversion",
+      "anomalyRef": "mas_438_706eae6db00a254d"
+    },
+    {
+      "alertCode": "pharmacy_urgent_return_backlog",
+      "metricFamily": "pharmacy_bounce_back",
+      "anomalyRef": "mas_438_71316ba9837ca6a8"
+    },
+    {
+      "alertCode": "notification_delivery_failure_spike",
+      "metricFamily": "notification_delivery",
+      "anomalyRef": "mas_438_b780fdd30a818662"
+    },
+    {
+      "alertCode": "slice_access_inequity_persistence",
+      "metricFamily": "waitlist_conversion",
+      "anomalyRef": "mas_438_b796b154d76f1940"
+    },
+    {
+      "alertCode": "notification_channel_transport_failure",
+      "metricFamily": "notification_delivery",
+      "anomalyRef": "mas_438_bc019f55ff16cf93"
+    },
+    {
+      "alertCode": "notification_receipt_reply_latency_degradation",
+      "metricFamily": "notification_delivery",
+      "anomalyRef": "mas_438_c4d3ebdcccccf9d0"
+    },
+    {
+      "alertCode": "pharmacy_bounce_back_reason_spike",
+      "metricFamily": "pharmacy_bounce_back",
+      "anomalyRef": "mas_438_d2de5b40cd3b6079"
+    }
+  ],
+  "deterministicReplay": {
+    "baselineResultHash": "0095b0a9de93a48efe9552967920fd75a6e3cb11700d946ef61c67a443f59688",
+    "replayHash": "ad79228d679bb370789552ce6c3b2971b57001e570e81d72351dfb7446d7d0f2",
+    "duplicateEventRefs": [
+      "evt-438-duplicate-receipt"
+    ],
+    "duplicateReceiptCount": 1,
+    "lateEventRefs": [
+      "evt-438-late-booking"
+    ],
+    "lateConversionRate": 1,
+    "incompleteLifecycleTrustState": "degraded"
+  },
+  "noPhiPosture": {
+    "dashboardDtosAreAggregateOnly": true,
+    "drillInsCarryPurposeScopedSeedsOnly": true
+  },
+  "noGapArtifactRequired": true
+}

@@ -1,0 +1,173 @@
+{
+  "taskId": "par_326",
+  "contractVersion": "326.phase5.hub-shell.v1",
+  "visualMode": "Hub_Desk_Mission_Control",
+  "shellType": "hub",
+  "shellSlug": "hub-desk",
+  "defaultPath": "/hub/queue",
+  "continuityStorageKey": "hub-desk::continuity-ledger::326",
+  "routeFamilies": [
+    {
+      "routeId": "hub_queue",
+      "path": "/hub/queue",
+      "routeFamilyRef": "rf_hub_queue",
+      "viewMode": "queue",
+      "projectionRef": "HubConsoleConsistencyProjection",
+      "selectedAnchorPolicy": "preserve_saved_view_then_queue_row_then_case_anchor",
+      "dominantActionRule": "one start-of-day resume path only",
+      "statusRule": "shared strip owns freshness, ownership, visibility, and recovery posture"
+    },
+    {
+      "routeId": "hub_case",
+      "path": "/hub/case/:hubCoordinationCaseId",
+      "routeFamilyRef": "rf_hub_case_management",
+      "viewMode": "case",
+      "projectionRef": "HubCaseConsoleProjection",
+      "selectedAnchorPolicy": "preserve_case_anchor_across_same_shell_child_routes",
+      "dominantActionRule": "case host owns the current coordination prompt",
+      "statusRule": "shared strip remains authoritative; local host may add route-specific actionability only"
+    },
+    {
+      "routeId": "hub_alternatives",
+      "path": "/hub/alternatives/:offerSessionId",
+      "routeFamilyRef": "rf_hub_case_management",
+      "viewMode": "alternatives",
+      "projectionRef": "AlternativeOfferSession",
+      "selectedAnchorPolicy": "preserve_offer_session_origin_case_anchor",
+      "dominantActionRule": "alternatives stay bounded to the active case shell",
+      "statusRule": "summary-first child route; no detached review page"
+    },
+    {
+      "routeId": "hub_exceptions",
+      "path": "/hub/exceptions",
+      "routeFamilyRef": "rf_hub_queue",
+      "viewMode": "exceptions",
+      "projectionRef": "HubCoordinationException",
+      "selectedAnchorPolicy": "preserve_current_recovery_case_anchor",
+      "dominantActionRule": "exception host may dominate only when recovery is required",
+      "statusRule": "shared strip owns shell posture while the exception host stays bounded"
+    },
+    {
+      "routeId": "hub_audit",
+      "path": "/hub/audit/:hubCoordinationCaseId",
+      "routeFamilyRef": "rf_hub_case_management",
+      "viewMode": "audit",
+      "projectionRef": "HubContinuityEvidenceProjection",
+      "selectedAnchorPolicy": "preserve_current_case_anchor_and_saved_view",
+      "dominantActionRule": "audit stays read-only and same-shell",
+      "statusRule": "shared strip remains visible and audit does not mint writable posture"
+    }
+  ],
+  "savedViews": [
+    {
+      "savedViewId": "resume_today",
+      "posture": "live",
+      "defaultCaseId": "hub-case-104",
+      "dominantActionLabel": "Resume same-day coordination",
+      "dominantActionPath": "/hub/case/hub-case-104"
+    },
+    {
+      "savedViewId": "ack_watch",
+      "posture": "live",
+      "defaultCaseId": "hub-case-066",
+      "dominantActionLabel": "Review acknowledgement debt",
+      "dominantActionPath": "/hub/case/hub-case-066"
+    },
+    {
+      "savedViewId": "callback_recovery",
+      "posture": "recovery_required",
+      "defaultCaseId": "hub-case-052",
+      "dominantActionLabel": "Publish callback expectation",
+      "dominantActionPath": "/hub/case/hub-case-052"
+    },
+    {
+      "savedViewId": "supplier_drift",
+      "posture": "recovery_required",
+      "defaultCaseId": "hub-case-041",
+      "dominantActionLabel": "Review supplier drift recovery",
+      "dominantActionPath": "/hub/case/hub-case-041"
+    },
+    {
+      "savedViewId": "observe_only",
+      "posture": "read_only",
+      "defaultCaseId": "hub-case-041",
+      "dominantActionLabel": "Open read-only case review",
+      "dominantActionPath": "/hub/case/hub-case-041"
+    }
+  ],
+  "componentMap": {
+    "HubDeskShellFrame": {
+      "role": "shell_root",
+      "domMarkers": [
+        "data-shell",
+        "data-hub-route-family",
+        "data-current-path",
+        "data-layout-mode",
+        "data-shell-status",
+        "data-dominant-action"
+      ]
+    },
+    "HubStartOfDayView": {
+      "role": "queue_route_host",
+      "dominantRegionRule": "exactly one dominant region at a time"
+    },
+    "HubSavedViewRail": {
+      "role": "saved_view_and_route_navigation",
+      "restores": [
+        "selectedSavedViewId",
+        "selectedQueueAnchorId",
+        "activeCaseAnchorId"
+      ]
+    },
+    "HubStatusAuthorityStrip": {
+      "role": "shell_status_authority",
+      "signals": [
+        "freshness",
+        "ownership",
+        "practice_visibility",
+        "shell_posture"
+      ]
+    },
+    "HubInterruptionDigestPanel": {
+      "role": "bounded_digest",
+      "allowedKinds": [
+        "stale_owner_risk",
+        "practice_ack_debt",
+        "callback_transfer_blockage",
+        "supplier_drift_risk",
+        "confirmation_pending"
+      ]
+    },
+    "HubShellContinuityBinder": {
+      "role": "continuity_ledger_bridge",
+      "restoreOrder": [
+        "history_state",
+        "local_storage"
+      ]
+    }
+  },
+  "projectionInputs": [
+    "HubQueueWorkbenchProjection",
+    "HubConsoleConsistencyProjection",
+    "HubCaseConsoleProjection",
+    "HubPostureProjection",
+    "PracticeVisibilityProjection",
+    "HubManageSettlement",
+    "HubSupplierMirrorState",
+    "HubCoordinationException",
+    "HubContinuityEvidenceProjection"
+  ],
+  "sourceRefs": [
+    "blueprint/phase-5-the-network-horizon.md",
+    "blueprint/staff-workspace-interface-architecture.md",
+    "blueprint/staff-operations-and-support-blueprint.md",
+    "blueprint/platform-frontend-blueprint.md",
+    "data/contracts/311_hub_route_family_registry.yaml"
+  ],
+  "playwrightProofRefs": [
+    "tests/playwright/326_hub_shell_start_of_day.spec.ts",
+    "tests/playwright/326_hub_shell_navigation.spec.ts",
+    "tests/playwright/326_hub_shell.visual.spec.ts",
+    "tests/playwright/326_hub_shell.accessibility.spec.ts"
+  ]
+}

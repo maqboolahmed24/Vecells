@@ -899,6 +899,14 @@ export class Phase1OutcomeGrammarService {
     const recordedAt = ensureIsoTimestamp(input.recordedAt, "recordedAt");
     const variant = resolvePhase1OutcomeVariant(input);
     const settlementRef = requireRef(input.intakeSubmitSettlementRef, "intakeSubmitSettlementRef");
+    const urgentDiversionSettlementRef = optionalRef(input.urgentDiversionSettlementRef);
+    invariant(
+      input.result !== "urgent_diversion" ||
+        input.appliesToState !== "urgent_diverted" ||
+        urgentDiversionSettlementRef !== null,
+      "URGENT_DIVERTED_REQUIRES_ISSUED_SETTLEMENT",
+      "urgent_diverted outcome grammar requires an issued UrgentDiversionSettlement reference.",
+    );
     const requestPublicId = optionalRef(input.requestPublicId);
     const requestRef = optionalRef(input.requestRef);
     const requestLineageRef = optionalRef(input.requestLineageRef);
@@ -1023,7 +1031,7 @@ export class Phase1OutcomeGrammarService {
       appliesToState: input.appliesToState,
       presentationArtifactRef: artifact.toSnapshot().intakeOutcomePresentationArtifactId,
       receiptEnvelopeRef: receiptEnvelope?.toSnapshot().consistencyEnvelopeId ?? null,
-      urgentDiversionSettlementRef: optionalRef(input.urgentDiversionSettlementRef),
+      urgentDiversionSettlementRef,
       outboundNavigationGrantRef:
         outboundNavigationGrant?.toSnapshot().outboundNavigationGrantId ?? null,
       replayTupleHash: sha256Hex({
@@ -1032,7 +1040,7 @@ export class Phase1OutcomeGrammarService {
         appliesToState: input.appliesToState,
         artifactRef: artifact.toSnapshot().intakeOutcomePresentationArtifactId,
         receiptEnvelopeRef: receiptEnvelope?.toSnapshot().consistencyEnvelopeId ?? null,
-        urgentDiversionSettlementRef: optionalRef(input.urgentDiversionSettlementRef),
+        urgentDiversionSettlementRef,
       }),
       continuityPosture:
         input.result === "triage_ready" || input.result === "urgent_diversion"

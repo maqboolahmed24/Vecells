@@ -19,12 +19,19 @@ export type GovernanceRouteKey =
   | "governance_authority_links"
   | "governance_compliance"
   | "governance_records"
+  | "governance_records_holds"
+  | "governance_records_disposition"
   | "access_home"
   | "access_users"
   | "access_roles"
+  | "access_role_scope_studio"
   | "access_reviews"
   | "config_home"
+  | "config_tenants"
   | "config_bundles"
+  | "config_operational_destinations"
+  | "config_backup_restore_channels"
+  | "config_security_compliance_exports"
   | "config_promotions"
   | "comms_home"
   | "comms_templates"
@@ -220,7 +227,8 @@ const configRows = [
     ownerLabel: "Identity governance",
     approvalBurden: "Access reviewer + compliance officer",
     evidenceAge: "25m",
-    nextSafeAction: "Check the effective access preview before widening any recertification window.",
+    nextSafeAction:
+      "Check the effective access preview before widening any recertification window.",
     gapRefs: ["GAP_SCOPE_TOKEN_DETAIL_ACCESS_PREVIEW_V1"],
   },
   {
@@ -236,6 +244,143 @@ const configRows = [
     evidenceAge: "41m",
     nextSafeAction: "Compare lifecycle evidence before releasing any retention freeze.",
     gapRefs: ["GAP_FUTURE_GOVERNANCE_DEPTH_RECORDS_DISPOSITION_V1"],
+  },
+] as const satisfies readonly GovernanceObjectRow[];
+
+const operationalDestinationRows = [
+  {
+    objectId: "dest-service-level-breach-risk-alert",
+    label: "Service breach-risk destination",
+    kind: "OperationalDestinationBinding",
+    summary:
+      "Binds calibrated breach-risk alerts to a fake receiver through a vault reference and redacted payload contract.",
+    statusTone: "success",
+    baselineLabel: "Destination registry 461.1",
+    ownerLabel: "Operations platform",
+    approvalBurden: "Config owner + incident duty review",
+    evidenceAge: "2m",
+    nextSafeAction: "Verify the fake receiver and confirm downstream operations readiness.",
+    gapRefs: ["PHASE9_BATCH_458_472_INTERFACE_GAP_461_DESTINATION_REGISTRY"],
+  },
+  {
+    objectId: "dest-incident-command",
+    label: "Incident command destination",
+    kind: "OperationalDestinationBinding",
+    summary:
+      "Routes incident creation, severity escalation, near-miss, and reportability alerts through the same redaction fence.",
+    statusTone: "caution",
+    baselineLabel: "Destination registry 461.1",
+    ownerLabel: "Incident commander",
+    approvalBurden: "Incident owner + assurance observer",
+    evidenceAge: "4m",
+    nextSafeAction: "Check command-route readiness before starting final incident exercises.",
+    gapRefs: [],
+  },
+  {
+    objectId: "dest-fallback-delivery-failure",
+    label: "Delivery failure fallback destination",
+    kind: "OperationalDestinationBinding",
+    summary:
+      "Receives failed delivery notices without raw endpoint details, inline credentials, or unrestricted payload copies.",
+    statusTone: "info",
+    baselineLabel: "Destination registry 461.1",
+    ownerLabel: "Fallback operations duty lead",
+    approvalBurden: "Fallback route evidence",
+    evidenceAge: "1m",
+    nextSafeAction: "Keep the fallback binding verified while testing failed delivery cases.",
+    gapRefs: [],
+  },
+] as const satisfies readonly GovernanceObjectRow[];
+
+const backupRestoreChannelRows = [
+  {
+    objectId: "backup-target-patient-intake-event-data",
+    label: "Patient intake backup target",
+    kind: "BackupTargetBinding",
+    summary:
+      "Binds digital intake and patient-status backup manifests to an immutable fake target with checksum and restore digest proof.",
+    statusTone: "success",
+    baselineLabel: "Backup restore registry 462.1",
+    ownerLabel: "Resilience platform",
+    approvalBurden: "Resilience owner + operations duty review",
+    evidenceAge: "2m",
+    nextSafeAction: "Verify the fake target and confirm the recovery artifact channel before enabling live controls.",
+    gapRefs: ["PHASE9_BATCH_458_472_INTERFACE_GAP_462_BACKUP_RESTORE_CHANNELS"],
+  },
+  {
+    objectId: "restore-channel-resilience-board",
+    label: "Resilience board restore channel",
+    kind: "RestoreReportChannelBinding",
+    summary:
+      "Delivers governed restore, failover, chaos, journey, manifest, runbook, and readiness summaries through artifact grants.",
+    statusTone: "caution",
+    baselineLabel: "Backup restore registry 462.1",
+    ownerLabel: "Resilience duty lead",
+    approvalBurden: "Artifact policy + receiver settlement",
+    evidenceAge: "3m",
+    nextSafeAction: "Test synthetic delivery and verify no raw object-store links are rendered.",
+    gapRefs: [],
+  },
+  {
+    objectId: "backup-target-assistive-downgrade-human-artifact",
+    label: "Assistive downgrade artifact target",
+    kind: "BackupTargetBinding",
+    summary:
+      "Protects final human-artifact fallback and downgrade evidence with write-once archive posture.",
+    statusTone: "info",
+    baselineLabel: "Backup restore registry 462.1",
+    ownerLabel: "Operations continuity lead",
+    approvalBurden: "Runbook binding + journey proof",
+    evidenceAge: "5m",
+    nextSafeAction: "Keep the downgrade runbook binding aligned with the current evidence pack.",
+    gapRefs: [],
+  },
+] as const satisfies readonly GovernanceObjectRow[];
+
+const securityComplianceExportRows = [
+  {
+    objectId: "export-reportable-data-security-incident-handoff",
+    label: "Reportable incident handoff destination",
+    kind: "SecurityReportingDestinationBinding",
+    summary:
+      "Binds DSPT reportable incident handoff to a fake receiver with vault refs, artifact presentation, and outbound grant proof.",
+    statusTone: "success",
+    baselineLabel: "Security compliance export registry 463.1",
+    ownerLabel: "Security reporting owner",
+    approvalBurden: "DPO + incident commander review",
+    evidenceAge: "2m",
+    nextSafeAction: "Verify reportability handoff before trusting incident-desk readiness.",
+    gapRefs: [
+      "PHASE9_BATCH_458_472_INTERFACE_GAP_463_SECURITY_COMPLIANCE_EXPORT_DESTINATIONS",
+    ],
+  },
+  {
+    objectId: "export-dspt-operational-evidence-pack",
+    label: "DSPT operational evidence pack export",
+    kind: "GovernedExportDestinationBinding",
+    summary:
+      "Exports DSPT operational evidence through a deterministic manifest and redaction parity settlement.",
+    statusTone: "caution",
+    baselineLabel: "Security compliance export registry 463.1",
+    ownerLabel: "Assurance platform",
+    approvalBurden: "Assurance owner + compliance observer",
+    evidenceAge: "3m",
+    nextSafeAction: "Confirm framework version, graph hash, and redaction policy before export.",
+    gapRefs: [],
+  },
+  {
+    objectId: "export-archive-manifest-deletion-certificate",
+    label: "Archive manifest and deletion certificate export",
+    kind: "ComplianceExportPolicyBinding",
+    summary:
+      "Keeps records lifecycle exports summary-first with no raw links, inline secrets, or unmanaged download paths.",
+    statusTone: "info",
+    baselineLabel: "Security compliance export registry 463.1",
+    ownerLabel: "Records governance",
+    approvalBurden: "Records lead + legal hold check",
+    evidenceAge: "4m",
+    nextSafeAction: "Validate legal-hold disposition and source readiness before handoff.",
+    gapRefs: [],
   },
 ] as const satisfies readonly GovernanceObjectRow[];
 
@@ -393,8 +538,7 @@ const recordsRows = [
     objectId: "records-freeze-archive-14",
     label: "Archive freeze AF-14",
     kind: "Retention freeze",
-    summary:
-      "Archive-only posture is exact; delete-ready controls remain correctly suppressed.",
+    summary: "Archive-only posture is exact; delete-ready controls remain correctly suppressed.",
     statusTone: "success",
     baselineLabel: "Freeze scope hash 14C7",
     ownerLabel: "Compliance officer",
@@ -625,7 +769,8 @@ const releaseRows = [
     ownerLabel: "Platform governance",
     approvalBurden: "Recovery-only observe",
     evidenceAge: "3m",
-    nextSafeAction: "Stay in the same shell and review the recovery tuple, not a generic rollout board.",
+    nextSafeAction:
+      "Stay in the same shell and review the recovery tuple, not a generic rollout board.",
     gapRefs: ["GAP_FUTURE_GOVERNANCE_DEPTH_RELEASE_RECOVERY_EVIDENCE_V1"],
   },
   {
@@ -727,8 +872,45 @@ const governanceRouteDefinitions = [
     centerPaneMode: "detail",
     reviewStage: "diff",
     primaryActionLabel: "Review the selected lifecycle decision safely",
-    calmNextStep: "Keep the selected hold or disposition row pinned while verifying the dependency graph.",
+    calmNextStep:
+      "Keep the selected hold or disposition row pinned while verifying the dependency graph.",
     defaultObjectId: "records-hold-09",
+  },
+  {
+    pathname: "/ops/governance/records/holds",
+    routeKey: "governance_records_holds",
+    cluster: "governance",
+    routeFamilyRef: "rf_governance_shell",
+    sectionLabel: "Legal hold queue",
+    title: "Records legal holds",
+    summary:
+      "Hold scope hashes, freeze lineage, release state, and superseding assessment burden stay pinned in one shell.",
+    anchorKey: "governance-diff",
+    supportRegion: "evidence",
+    centerPaneMode: "detail",
+    reviewStage: "diff",
+    primaryActionLabel: "Review the selected legal hold scope",
+    calmNextStep:
+      "Release review stays read-only until a superseding assessment proves disposition posture.",
+    defaultObjectId: "records-hold-09",
+  },
+  {
+    pathname: "/ops/governance/records/disposition",
+    routeKey: "governance_records_disposition",
+    cluster: "governance",
+    routeFamilyRef: "rf_governance_shell",
+    sectionLabel: "Disposition queue",
+    title: "Records disposition",
+    summary:
+      "Archive and delete previews admit current eligibility assessments only; raw batch candidates stay blocked.",
+    anchorKey: "governance-diff",
+    supportRegion: "evidence",
+    centerPaneMode: "detail",
+    reviewStage: "diff",
+    primaryActionLabel: "Review the selected disposition job",
+    calmNextStep:
+      "Confirm assessment hash, graph hash, hold state, and artifact contract before approval.",
+    defaultObjectId: "records-disposition-31",
   },
   {
     pathname: "/ops/access",
@@ -782,6 +964,24 @@ const governanceRouteDefinitions = [
     defaultObjectId: "role-clinical-reviewer",
   },
   {
+    pathname: "/ops/access/role-scope-studio",
+    routeKey: "access_role_scope_studio",
+    cluster: "access",
+    routeFamilyRef: "rf_governance_shell",
+    sectionLabel: "GovernanceRoleScopeStudio",
+    title: "Role scope studio",
+    summary:
+      "Role grants, effective access preview, break-glass posture, masking, and release freezes stay visible in one restricted access studio.",
+    anchorKey: "governance-diff",
+    supportRegion: "access",
+    centerPaneMode: "diff",
+    reviewStage: "diff",
+    primaryActionLabel: "Inspect role scope and preview safely",
+    calmNextStep:
+      "Keep the acting scope tuple, preview mask, and freeze cards visible before starting any authorized change envelope.",
+    defaultObjectId: "role-clinical-reviewer",
+  },
+  {
     pathname: "/ops/access/reviews",
     routeKey: "access_reviews",
     cluster: "access",
@@ -816,6 +1016,23 @@ const governanceRouteDefinitions = [
     defaultObjectId: "bundle-routing-core-v7",
   },
   {
+    pathname: "/ops/config/tenants",
+    routeKey: "config_tenants",
+    cluster: "config",
+    routeFamilyRef: "rf_governance_shell",
+    sectionLabel: "TenantConfigMatrix",
+    title: "Tenant baseline matrix",
+    summary:
+      "Tenant baselines, config diffs, policy-pack history, and standards dependency watchlist stay bound to one candidate package.",
+    anchorKey: "governance-diff",
+    supportRegion: "impact",
+    centerPaneMode: "matrix",
+    reviewStage: "diff",
+    primaryActionLabel: "Review the selected tenant baseline",
+    calmNextStep: "Keep the selected tenant and standards watchlist pinned before compiling.",
+    defaultObjectId: "tenant-north-river",
+  },
+  {
     pathname: "/ops/config/bundles",
     routeKey: "config_bundles",
     cluster: "config",
@@ -831,6 +1048,60 @@ const governanceRouteDefinitions = [
     primaryActionLabel: "Review the selected policy bundle safely",
     calmNextStep: "Keep the selected bundle and its baseline pinned while comparing changes.",
     defaultObjectId: "bundle-routing-core-v7",
+  },
+  {
+    pathname: "/ops/config/destinations",
+    routeKey: "config_operational_destinations",
+    cluster: "config",
+    routeFamilyRef: "rf_governance_shell",
+    sectionLabel: "OperationalDestinationBinding",
+    title: "Operational destinations",
+    summary:
+      "Observability, incident, alerting, release, assurance, and resilience destinations are configured and verified through one governed control ledger.",
+    anchorKey: "governance-diff",
+    supportRegion: "approval",
+    centerPaneMode: "matrix",
+    reviewStage: "diff",
+    primaryActionLabel: "Verify operational destination bindings",
+    calmNextStep:
+      "Select tenant, environment, and destination class, then test delivery through the fake receiver before trusting downstream readiness.",
+    defaultObjectId: "dest-service-level-breach-risk-alert",
+  },
+  {
+    pathname: "/ops/config/backup-restore",
+    routeKey: "config_backup_restore_channels",
+    cluster: "config",
+    routeFamilyRef: "rf_governance_shell",
+    sectionLabel: "BackupRestoreChannelBinding",
+    title: "Backup and restore channels",
+    summary:
+      "Backup targets, restore report receivers, artifact channel policy, and recovery tuple readiness are configured through one governed resilience ledger.",
+    anchorKey: "governance-diff",
+    supportRegion: "approval",
+    centerPaneMode: "matrix",
+    reviewStage: "diff",
+    primaryActionLabel: "Verify backup targets and restore report channels",
+    calmNextStep:
+      "Select tenant, environment, release, and essential function, then verify the fake target and report receiver before trusting resilience controls.",
+    defaultObjectId: "backup-target-patient-intake-event-data",
+  },
+  {
+    pathname: "/ops/config/security-compliance-exports",
+    routeKey: "config_security_compliance_exports",
+    cluster: "config",
+    routeFamilyRef: "rf_governance_shell",
+    sectionLabel: "GovernedExportDestinationBinding",
+    title: "Security and compliance export destinations",
+    summary:
+      "Security reporting, compliance evidence, records, resilience, audit, and conformance exports are configured through one redaction-first control ledger.",
+    anchorKey: "governance-diff",
+    supportRegion: "approval",
+    centerPaneMode: "matrix",
+    reviewStage: "diff",
+    primaryActionLabel: "Verify security reporting and compliance export destinations",
+    calmNextStep:
+      "Select tenant, environment, framework, and artifact class, then verify the fake receivers before trusting source-surface readiness.",
+    defaultObjectId: "export-reportable-data-security-incident-handoff",
   },
   {
     pathname: "/ops/config/promotions",
@@ -880,7 +1151,8 @@ const governanceRouteDefinitions = [
     centerPaneMode: "diff",
     reviewStage: "diff",
     primaryActionLabel: "Review the selected template package safely",
-    calmNextStep: "Inspect fallback, suppression, and tenant scope before promoting the template set.",
+    calmNextStep:
+      "Inspect fallback, suppression, and tenant scope before promoting the template set.",
     defaultObjectId: "template-reminders-v12",
   },
   {
@@ -897,7 +1169,8 @@ const governanceRouteDefinitions = [
     centerPaneMode: "review",
     reviewStage: "approval",
     primaryActionLabel: "Review the current release tuple safely",
-    calmNextStep: "Keep the release tuple and watch cockpit pinned while evaluating rollout posture.",
+    calmNextStep:
+      "Keep the release tuple and watch cockpit pinned while evaluating rollout posture.",
     defaultObjectId: "release-wave-blue-42",
   },
 ] as const satisfies readonly GovernanceRouteDefinition[];
@@ -908,12 +1181,19 @@ const governanceRowsByRouteKey: Record<GovernanceRouteKey, readonly GovernanceOb
   governance_authority_links: authorityRows,
   governance_compliance: complianceRows,
   governance_records: recordsRows,
+  governance_records_holds: recordsRows,
+  governance_records_disposition: recordsRows,
   access_home: accessUserRows,
   access_users: accessUserRows,
   access_roles: accessRoleRows,
+  access_role_scope_studio: accessRoleRows,
   access_reviews: accessReviewRows,
   config_home: configRows,
+  config_tenants: tenantRows,
   config_bundles: configRows,
+  config_operational_destinations: operationalDestinationRows,
+  config_backup_restore_channels: backupRestoreChannelRows,
+  config_security_compliance_exports: securityComplianceExportRows,
   config_promotions: configRows,
   comms_home: commsRows,
   comms_templates: commsRows,
@@ -965,6 +1245,15 @@ export const governanceMockProjectionExamples = [
     selectedObjectId: "review-breakglass-021",
   },
   {
+    exampleId: "gov-role-scope-studio-frozen",
+    path: "/ops/access/role-scope-studio",
+    freezeDisposition: "freeze_conflict",
+    supportRegion: "access",
+    summary:
+      "Role-scope preview keeps access, masks, break-glass posture, and release freeze cards visible without granting mutation authority.",
+    selectedObjectId: "role-release-manager",
+  },
+  {
     exampleId: "gov-freeze-conflict-release",
     path: "/ops/release",
     freezeDisposition: "freeze_conflict",
@@ -1001,9 +1290,7 @@ const routeClusterLabels: Record<GovernanceCluster, string> = {
   release: "Release",
 };
 
-function runtimeScenarioForDisposition(
-  disposition: GovernanceFreezeDisposition,
-): RuntimeScenario {
+function runtimeScenarioForDisposition(disposition: GovernanceFreezeDisposition): RuntimeScenario {
   switch (disposition) {
     case "writable":
       return "live";
@@ -1040,7 +1327,9 @@ export function deriveGovernanceVisualizationAuthority(
 }
 
 function routeDefinitionForPath(pathname: string): GovernanceRouteDefinition {
-  return governanceRoutesByPath.get(pathname) ?? governanceRoutesByPath.get(GOVERNANCE_DEFAULT_PATH)!;
+  return (
+    governanceRoutesByPath.get(pathname) ?? governanceRoutesByPath.get(GOVERNANCE_DEFAULT_PATH)!
+  );
 }
 
 function objectRowsForRoute(routeKey: GovernanceRouteKey): readonly GovernanceObjectRow[] {
@@ -1059,12 +1348,11 @@ function requiredObjectForRoute(
   return rows.find((row) => row.objectId === objectId) ?? fallback;
 }
 
-function selectInitialObjectId(
-  location: GovernanceLocation,
-  preferredObjectId?: string,
-): string {
+function selectInitialObjectId(location: GovernanceLocation, preferredObjectId?: string): string {
   const rows = objectRowsForRoute(location.routeKey);
-  return rows.find((row) => row.objectId === preferredObjectId)?.objectId ?? location.defaultObjectId;
+  return (
+    rows.find((row) => row.objectId === preferredObjectId)?.objectId ?? location.defaultObjectId
+  );
 }
 
 function scopeTokenForState(
@@ -1105,7 +1393,8 @@ function scopeTokenForState(
     tenantLabel: "North River ICS / Tenant 04",
     organisationLabel:
       location.cluster === "access" ? "Organisation authority review" : "Platform governance scope",
-    environmentLabel: location.cluster === "release" ? "Integration watch window" : "Pre-release review",
+    environmentLabel:
+      location.cluster === "release" ? "Integration watch window" : "Pre-release review",
     purposeLabel:
       location.cluster === "access"
         ? "Administrative review under bounded operational purpose"
@@ -1137,7 +1426,9 @@ function releaseTupleForState(
             ? "Scope drift freeze"
             : "Recovery-only freeze conflict",
     publicationState:
-      disposition === "freeze_conflict" ? "Published tuple drifted" : "Published tuple matches the visible package",
+      disposition === "freeze_conflict"
+        ? "Published tuple drifted"
+        : "Published tuple matches the visible package",
     watchState:
       location.cluster === "release"
         ? "Watch cockpit attached to the same rollout tuple"
@@ -1172,7 +1463,8 @@ function impactItemsForState(
       impactId: `${selectedObject.objectId}-continuity`,
       title: "Continuity burden",
       effectLabel: "Same-shell preserve",
-      summary: "Scope ribbon, selected anchor, and support region stay bound to the same review package.",
+      summary:
+        "Scope ribbon, selected anchor, and support region stay bound to the same review package.",
     },
     {
       impactId: `${selectedObject.objectId}-evidence`,
@@ -1256,15 +1548,19 @@ function approvalStepsForState(
             ? "pending"
             : "settled"
           : "blocked",
-      evidence:
-        hasPendingReplacement
-          ? "The diff anchor must be acknowledged before the promoted review becomes dominant."
-          : selectedObject.approvalBurden,
+      evidence: hasPendingReplacement
+        ? "The diff anchor must be acknowledged before the promoted review becomes dominant."
+        : selectedObject.approvalBurden,
     },
     {
       stepId: "watch",
       label: "Watch tuple and publication parity",
-      state: disposition === "freeze_conflict" ? "blocked" : location.cluster === "release" ? "pending" : "settled",
+      state:
+        disposition === "freeze_conflict"
+          ? "blocked"
+          : location.cluster === "release"
+            ? "pending"
+            : "settled",
       evidence:
         disposition === "freeze_conflict"
           ? "Runtime publication or compatibility drift suppresses live watch actions."
@@ -1273,10 +1569,7 @@ function approvalStepsForState(
   ];
 }
 
-function objectRowsMatch(
-  nextLocation: GovernanceLocation,
-  selectedObjectId: string,
-): boolean {
+function objectRowsMatch(nextLocation: GovernanceLocation, selectedObjectId: string): boolean {
   return objectRowsForRoute(nextLocation.routeKey).some((row) => row.objectId === selectedObjectId);
 }
 
@@ -1420,10 +1713,15 @@ export function selectGovernanceObject(
   };
   return {
     ...nextState,
-    telemetry: appendTelemetry(nextState, "selected_anchor_changed", "Selected governance object updated.", {
-      pathname: state.location.pathname,
-      selectedObjectId: objectId,
-    }),
+    telemetry: appendTelemetry(
+      nextState,
+      "selected_anchor_changed",
+      "Selected governance object updated.",
+      {
+        pathname: state.location.pathname,
+        selectedObjectId: objectId,
+      },
+    ),
   };
 }
 
@@ -1437,10 +1735,15 @@ export function setGovernanceSupportRegion(
   const nextState = { ...state, supportRegion };
   return {
     ...nextState,
-    telemetry: appendTelemetry(nextState, "dominant_action_changed", "Promoted support region changed.", {
-      pathname: state.location.pathname,
-      supportRegion,
-    }),
+    telemetry: appendTelemetry(
+      nextState,
+      "dominant_action_changed",
+      "Promoted support region changed.",
+      {
+        pathname: state.location.pathname,
+        supportRegion,
+      },
+    ),
   };
 }
 
@@ -1461,10 +1764,15 @@ export function setGovernanceFreezeDisposition(
   };
   return {
     ...nextState,
-    telemetry: appendTelemetry(nextState, "scope_state_changed", "Governance freeze disposition changed.", {
-      pathname: state.location.pathname,
-      freezeDisposition,
-    }),
+    telemetry: appendTelemetry(
+      nextState,
+      "scope_state_changed",
+      "Governance freeze disposition changed.",
+      {
+        pathname: state.location.pathname,
+        freezeDisposition,
+      },
+    ),
   };
 }
 
@@ -1507,17 +1815,20 @@ export function navigateGovernanceShell(
       : "surface_enter";
   return {
     ...nextState,
-    telemetry: appendTelemetry(nextState, eventClass, "Governance route changed inside the same shell.", {
-      pathname: nextLocation.pathname,
-      selectedObjectId,
-      reviewStage: nextLocation.reviewStage,
-    }),
+    telemetry: appendTelemetry(
+      nextState,
+      eventClass,
+      "Governance route changed inside the same shell.",
+      {
+        pathname: nextLocation.pathname,
+        selectedObjectId,
+        reviewStage: nextLocation.reviewStage,
+      },
+    ),
   };
 }
 
-export function returnFromGovernanceReview(
-  state: GovernanceShellState,
-): GovernanceShellState {
+export function returnFromGovernanceReview(state: GovernanceShellState): GovernanceShellState {
   if (!state.returnIntent) {
     return state;
   }
@@ -1529,9 +1840,7 @@ export function returnFromGovernanceReview(
   };
 }
 
-export function acknowledgeGovernanceReview(
-  state: GovernanceShellState,
-): GovernanceShellState {
+export function acknowledgeGovernanceReview(state: GovernanceShellState): GovernanceShellState {
   if (!state.continuitySnapshot.currentStub?.replacementAnchorRef) {
     return state;
   }
@@ -1544,17 +1853,20 @@ export function acknowledgeGovernanceReview(
   };
   return {
     ...nextState,
-    telemetry: appendTelemetry(nextState, "review_state_changed", "Governance review replacement acknowledged.", {
-      pathname: state.location.pathname,
-      selectedObjectId: state.selectedObjectId,
-      anchorKey: "governance-approval",
-    }),
+    telemetry: appendTelemetry(
+      nextState,
+      "review_state_changed",
+      "Governance review replacement acknowledged.",
+      {
+        pathname: state.location.pathname,
+        selectedObjectId: state.selectedObjectId,
+        anchorKey: "governance-approval",
+      },
+    ),
   };
 }
 
-export function reviewRouteForLocation(
-  location: GovernanceLocation,
-): string | null {
+export function reviewRouteForLocation(location: GovernanceLocation): string | null {
   switch (location.routeKey) {
     case "config_bundles":
       return "/ops/config/promotions";
@@ -1572,10 +1884,7 @@ export function resolveGovernanceShellSnapshot(
   viewportWidth: number,
 ): GovernanceShellSnapshot {
   const objectRows = objectRowsForRoute(state.location.routeKey);
-  const selectedObject = requiredObjectForRoute(
-    state.location.routeKey,
-    state.selectedObjectId,
-  );
+  const selectedObject = requiredObjectForRoute(state.location.routeKey, state.selectedObjectId);
   const layoutMode: GovernanceLayoutMode =
     viewportWidth < 920
       ? "mission_stack"
@@ -1585,9 +1894,7 @@ export function resolveGovernanceShellSnapshot(
             state.location.reviewStage === "approval")
         ? "three_plane"
         : "two_plane";
-  const hasPendingReplacement = Boolean(
-    state.continuitySnapshot.currentStub?.replacementAnchorRef,
-  );
+  const hasPendingReplacement = Boolean(state.continuitySnapshot.currentStub?.replacementAnchorRef);
   const scopeToken = scopeTokenForState(state.location, selectedObject, state.freezeDisposition);
   const supportHeadline =
     state.supportRegion === "impact"

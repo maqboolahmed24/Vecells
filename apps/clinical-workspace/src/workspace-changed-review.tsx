@@ -388,6 +388,9 @@ export function ChangedWorkRoute({
         <div>
           <span className="staff-shell__eyebrow">Delta_Reentry_Compass</span>
           <h2>Changed since seen</h2>
+          <p data-testid="changed-route">
+            Resumed review remains delta-first until reopen obligations are cleared.
+          </p>
           <p>{projection.queueHealthSummary}</p>
         </div>
         <div className="staff-shell__control-room-summary">

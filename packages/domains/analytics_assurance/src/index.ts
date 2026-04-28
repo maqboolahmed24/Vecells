@@ -681,3 +681,22 @@ export function bootstrapDomainModule() {
   };
 }
 export * from "./assurance-slice-trust-backbone";
+export * from "./phase9-assurance-ledger-contracts";
+export * from "./phase9-operational-projection-contracts";
+export * from "./phase9-governance-control-contracts";
+export * from "./phase9-assurance-ingest-service";
+export * from "./phase9-assurance-graph-verdict-engine";
+export * from "./phase9-operational-projection-engine";
+export * from "./phase9-essential-function-metrics";
+export * from "./phase9-investigation-timeline-service";
+export * from "./phase9-assurance-pack-factory";
+export * from "./phase9-capa-attestation-workflow";
+export * from "./phase9-retention-lifecycle-engine";
+export * from "./phase9-disposition-execution-engine";
+export * from "./phase9-operational-readiness-posture";
+export * from "./phase9-resilience-action-settlement";
+export * from "./phase9-projection-rebuild-quarantine";
+export * from "./phase9-incident-reportability-workflow";
+export * from "./phase9-tenant-config-governance";
+export * from "./phase9-cross-phase-conformance";
+export * from "./phase9-exit-gate";

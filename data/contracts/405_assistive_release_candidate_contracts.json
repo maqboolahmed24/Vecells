@@ -1,0 +1,337 @@
+{
+  "taskId": "par_405",
+  "schemaVersion": "405.assistive-release-candidate-contracts.v1",
+  "contractFamily": "assistive_release_regulatory_change_control",
+  "sourceGateRef": "data/contracts/403_phase8_track_readiness_registry.json",
+  "launchPacketRef": "data/launchpacks/403_track_launch_packet_405.json",
+  "sourceEvaluationContractRefs": [
+    "data/contracts/404_assistive_evaluation_contracts.json",
+    "data/contracts/404_feedback_eligibility_contracts.json",
+    "data/contracts/404_shadow_mode_evidence_requirements.json"
+  ],
+  "sourceLaunchVerdict": "open_phase8_now",
+  "ownedBy": "assistive_release_safety_and_regulatory_control",
+  "changeTypes": [
+    "template_copy_only_no_behavior",
+    "prompt_template_change",
+    "threshold_calibration_policy_change",
+    "model_version_change",
+    "subprocessor_or_inference_host_change",
+    "capability_expansion",
+    "intended_use_change",
+    "endpoint_suggestion_or_decision_support",
+    "regulatory_posture_change",
+    "safety_incident_or_hazard_response"
+  ],
+  "medicalPurposeBoundary": {
+    "boundaryStates": [
+      "transcription_documentation_assistance",
+      "higher_function_summarisation_structured_inference",
+      "endpoint_suggestion_clinically_consequential_decision_support",
+      "regulatory_posture_change"
+    ],
+    "failClosedState": "regulatory_posture_change",
+    "boundaryRules": [
+      {
+        "capabilityClass": "transcription_only",
+        "defaultBoundaryState": "transcription_documentation_assistance",
+        "escalatesWhen": ["summarisation", "coding", "record_population", "action_suggestion", "endpoint_suggestion"]
+      },
+      {
+        "capabilityClass": "summary_or_documentation_draft",
+        "defaultBoundaryState": "higher_function_summarisation_structured_inference",
+        "escalatesWhen": ["endpoint_suggestion", "workflow_decision_delta", "patient_specific_decision_support"]
+      },
+      {
+        "capabilityClass": "risk_or_endpoint_suggestion",
+        "defaultBoundaryState": "endpoint_suggestion_clinically_consequential_decision_support",
+        "escalatesWhen": ["autonomous_commit", "new_intended_use", "medical_device_registration_change"]
+      }
+    ]
+  },
+  "objectContracts": [
+    {
+      "objectName": "ModelChangeRequest",
+      "objectRole": "initiating record for an assistive capability change",
+      "requiredFields": [
+        "changeRequestId",
+        "capabilityCode",
+        "changeType",
+        "currentVersionRef",
+        "proposedVersionRef",
+        "releaseCandidateRef",
+        "impactAssessmentRef",
+        "intendedUseImpact",
+        "safetyImpact",
+        "approvalState",
+        "requestedBy",
+        "requestedAt"
+      ],
+      "states": ["draft", "impact_assessed", "candidate_materialized", "approval_pending", "approved", "rejected", "superseded", "withdrawn"],
+      "dependencyRules": [
+        "changeType must map to a published regulatory trigger rule",
+        "approval_pending requires a frozen AssistiveReleaseCandidate candidateHash",
+        "approved requires a satisfied ReleaseApprovalGraph",
+        "superseded preserves the prior request and points to a new change request"
+      ]
+    },
+    {
+      "objectName": "MedicalDeviceAssessmentRef",
+      "objectRole": "intended-purpose and regulatory boundary assessment pointer",
+      "requiredFields": [
+        "assessmentRefId",
+        "capabilityCode",
+        "intendedUseProfileRef",
+        "boundaryDecisionRef",
+        "assessmentOutcome",
+        "registrationState",
+        "evidenceRefs",
+        "reviewDueAt"
+      ],
+      "states": [
+        "not_medical_device",
+        "medical_device_not_registered",
+        "registered",
+        "reassessment_required",
+        "blocked",
+        "expired",
+        "superseded"
+      ],
+      "dependencyRules": [
+        "endpoint suggestions and clinically consequential decision support require assessmentOutcome not_medical_device only with explicit clinical safety rationale",
+        "reassessment_required blocks promotion until a current assessment is pinned",
+        "expired or blocked assessment states force AssuranceFreezeState"
+      ]
+    },
+    {
+      "objectName": "SafetyCaseDelta",
+      "objectRole": "DCB0129 and related clinical-safety delta for the candidate",
+      "requiredFields": [
+        "deltaId",
+        "releaseCandidateRef",
+        "hazardChanges",
+        "controlsAdded",
+        "hazardTraceRef",
+        "controlVerificationRefs",
+        "residualRiskRef",
+        "testEvidenceRef",
+        "signoffState"
+      ],
+      "states": ["not_required", "draft", "in_review", "signed", "blocked", "superseded", "revoked"],
+      "dependencyRules": [
+        "signed requires independent clinical-safety review",
+        "blocked forces promotion_blocked on the release candidate",
+        "hazardChanges must be linked to controlVerificationRefs before approval"
+      ]
+    },
+    {
+      "objectName": "SubprocessorAssuranceRef",
+      "objectRole": "supplier and subprocessor assurance freshness gate",
+      "requiredFields": [
+        "subprocessorRefId",
+        "supplierName",
+        "suppliedModelOrServiceRefs",
+        "safetyEvidenceRef",
+        "dpiaRef",
+        "contractualControlRef",
+        "assuranceVersion",
+        "assuranceFreshUntil",
+        "driftState",
+        "suspensionState"
+      ],
+      "states": ["current", "stale", "drifted", "suspended", "withdrawn", "superseded"],
+      "dependencyRules": [
+        "current requires assuranceFreshUntil later than the promotion decision time",
+        "stale, drifted, suspended, or withdrawn blocks promotion",
+        "suppliedModelOrServiceRefs must include every model, inference host, or vendor service used by the candidate"
+      ]
+    },
+    {
+      "objectName": "AssistiveReleaseCandidate",
+      "objectRole": "immutable release identity for one assistive capability change",
+      "requiredFields": [
+        "releaseCandidateId",
+        "capabilityCode",
+        "rolloutLadderPolicyRef",
+        "rolloutSliceContractRefs",
+        "watchTupleHash",
+        "modelVersionRef",
+        "promptPackageRef",
+        "compiledPolicyBundleRef",
+        "outputSchemaBundleRef",
+        "surfaceRouteContractRefs",
+        "runtimePublicationBundleRef",
+        "recoveryDispositionSetRef",
+        "artifactPresentationPolicyRef",
+        "uiTelemetryDisclosureBaselineRef",
+        "evaluationCorpusRef",
+        "calibrationBundleRef",
+        "uncertaintySelectorVersionRef",
+        "conformalBundleRef",
+        "thresholdSetRef",
+        "replayHarnessVersionRef",
+        "containerOrRuntimeImageRef",
+        "subprocessorRefs",
+        "rollbackBundleRef",
+        "assuranceBaselineSnapshotRef",
+        "candidateHash",
+        "candidateState"
+      ],
+      "states": [
+        "draft",
+        "frozen",
+        "approval_pending",
+        "approved",
+        "promotion_ready",
+        "promotion_blocked",
+        "promoted_shadow",
+        "promoted_visible",
+        "frozen_by_assurance",
+        "rolled_back",
+        "superseded",
+        "withdrawn",
+        "revoked"
+      ],
+      "dependencyRules": [
+        "candidateHash is computed from all pinned candidate fields and may not be edited in place after approval work starts",
+        "approval may attach only to candidateHash plus AssuranceBaselineSnapshot",
+        "promotion_ready requires a ready RollbackReadinessBundle and satisfied ReleaseApprovalGraph",
+        "promotion_blocked applies when assurance baseline, supplier assurance, runtime publication, disclosure baseline, recovery posture, or rollback proof is stale or blocked"
+      ]
+    },
+    {
+      "objectName": "ChangeImpactAssessment",
+      "objectRole": "deterministic regulatory and safety routing decision",
+      "requiredFields": [
+        "impactAssessmentId",
+        "changeRequestId",
+        "surfaceDeltaRefs",
+        "surfacePublicationDeltaRefs",
+        "rolloutLadderDelta",
+        "rolloutSliceDeltaRefs",
+        "workflowDecisionDelta",
+        "artifactDeliveryDelta",
+        "uiTelemetryDisclosureDelta",
+        "intendedUseDelta",
+        "medicalPurposeBoundaryState",
+        "im1RfcRequired",
+        "scalUpdateRequired",
+        "dtacDeltaRequired",
+        "dcb0129DeltaRequired",
+        "dcb0160DependencyNoteRequired",
+        "dpiaDeltaRequired",
+        "mhraAssessmentRequired",
+        "medicalDeviceReassessmentRequired",
+        "blockingReasonCodes"
+      ],
+      "states": ["pending", "complete", "blocked", "superseded"],
+      "dependencyRules": [
+        "blocked is emitted when the medical-purpose boundary cannot be classified",
+        "im1RfcRequired must be true for capability expansion, intended-use change, endpoint suggestion, regulatory posture change, or material AI functional enhancement",
+        "mhraAssessmentRequired or medicalDeviceReassessmentRequired must be true when the intended purpose or clinical decision-support boundary changes",
+        "all true regulatory flags must be represented in the ReleaseApprovalGraph"
+      ]
+    },
+    {
+      "objectName": "AssuranceBaselineSnapshot",
+      "objectRole": "pinned assurance standard and evidence baseline for the candidate",
+      "requiredFields": [
+        "baselineSnapshotId",
+        "im1GuidanceVersionRef",
+        "dtacVersionRef",
+        "dcbStandardVersionRef",
+        "dpiaRef",
+        "scalVersionRef",
+        "medicalDeviceAssessmentRef",
+        "evaluationDatasetRef",
+        "replayHarnessVersionRef",
+        "supplierAssuranceRefs",
+        "freshUntil",
+        "supersededAt"
+      ],
+      "states": ["candidate", "current", "stale", "superseded", "withdrawn"],
+      "dependencyRules": [
+        "current is required for approval and promotion",
+        "stale, superseded, or withdrawn blocks promotion",
+        "freshUntil must be evaluated against the promotion decision timestamp",
+        "supplierAssuranceRefs must all be current before promotion"
+      ]
+    }
+  ],
+  "releaseCandidateHashInputs": [
+    "capabilityCode",
+    "rolloutLadderPolicyRef",
+    "rolloutSliceContractRefs",
+    "watchTupleHash",
+    "modelVersionRef",
+    "promptPackageRef",
+    "compiledPolicyBundleRef",
+    "outputSchemaBundleRef",
+    "surfaceRouteContractRefs",
+    "runtimePublicationBundleRef",
+    "recoveryDispositionSetRef",
+    "artifactPresentationPolicyRef",
+    "uiTelemetryDisclosureBaselineRef",
+    "evaluationCorpusRef",
+    "calibrationBundleRef",
+    "uncertaintySelectorVersionRef",
+    "conformalBundleRef",
+    "thresholdSetRef",
+    "replayHarnessVersionRef",
+    "containerOrRuntimeImageRef",
+    "subprocessorRefs",
+    "rollbackBundleRef",
+    "assuranceBaselineSnapshotRef"
+  ],
+  "promotionBlockers": [
+    "candidate_not_frozen",
+    "approval_graph_not_satisfied",
+    "assurance_baseline_stale",
+    "supplier_assurance_stale",
+    "supplier_assurance_drifted",
+    "supplier_suspended",
+    "rollback_bundle_not_ready",
+    "runtime_publication_stale",
+    "surface_publication_stale",
+    "disclosure_baseline_missing",
+    "recovery_disposition_blocked",
+    "regulatory_trigger_unresolved",
+    "safety_case_delta_unsigned",
+    "medical_device_assessment_expired"
+  ],
+  "invariants": [
+    {
+      "invariantId": "INV405_001",
+      "statement": "A candidate hash may not be edited in place after approval work starts."
+    },
+    {
+      "invariantId": "INV405_002",
+      "statement": "Approval attaches to the candidate hash and pinned assurance baseline, not loose version labels."
+    },
+    {
+      "invariantId": "INV405_003",
+      "statement": "A promotion action is blocked if assurance baseline freshness or supplier assurance is stale, drifted, suspended, or withdrawn."
+    },
+    {
+      "invariantId": "INV405_004",
+      "statement": "A change that materially evolves AI use, use case, or function must route through the RFC decision path."
+    },
+    {
+      "invariantId": "INV405_005",
+      "statement": "Deployment may not proceed without a ready rollback bundle."
+    },
+    {
+      "invariantId": "INV405_006",
+      "statement": "Approval state cannot imply deployment safety if runtime publication, route publication, disclosure baseline, or recovery posture drifted."
+    },
+    {
+      "invariantId": "INV405_007",
+      "statement": "Maker, requester, and independent reviewer roles may not be satisfied by the same actor for one candidate hash."
+    },
+    {
+      "invariantId": "INV405_008",
+      "statement": "UI acknowledgement or command dispatch is not authoritative release completion without action settlement."
+    }
+  ],
+  "downstreamConsumers": ["par_410", "par_411", "par_415", "par_416", "par_417", "phase8_rollout"]
+}

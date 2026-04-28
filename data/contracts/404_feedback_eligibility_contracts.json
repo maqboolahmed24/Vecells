@@ -1,0 +1,363 @@
+{
+  "taskId": "par_404",
+  "schemaVersion": "404.feedback-eligibility-contracts.v1",
+  "contractFamily": "assistive_evaluation_shadow_feedback",
+  "sourceEvaluationContractRef": "data/contracts/404_assistive_evaluation_contracts.json",
+  "sourceGateRef": "data/contracts/403_phase8_track_readiness_registry.json",
+  "launchPacketRef": "data/launchpacks/403_track_launch_packet_404.json",
+  "ownedBy": "assistive_feedback_eligibility_contracts",
+  "eligibilityStates": [
+    {
+      "state": "pending_settlement",
+      "meaning": "visible-use output exists, but final human artifact and downstream workflow settlement are not both authoritative"
+    },
+    {
+      "state": "requires_adjudication",
+      "meaning": "the case cannot become eligible until adjudication resolves risk, conflict, policy, or counterfactual uncertainty"
+    },
+    {
+      "state": "eligible",
+      "meaning": "settled, quality-accepted, non-excluded, non-revoked feedback may be used by governed learning or evaluation flows"
+    },
+    {
+      "state": "excluded",
+      "meaning": "the visible-use artifact is not trainable because a deterministic exclusion reason applies before eligibility"
+    },
+    {
+      "state": "revoked",
+      "meaning": "a previously eligible flag is superseded by a later incident, supersession, policy, integrity, or consent event"
+    }
+  ],
+  "objectContracts": [
+    {
+      "objectName": "FeedbackEligibilityFlag",
+      "objectRole": "settlement-backed trainability gate for visible-use assistive artifacts",
+      "requiredFields": [
+        "feedbackEligibilityFlagId",
+        "assistiveFeedbackChainRef",
+        "caseReplayBundleRef",
+        "finalHumanArtifactRef",
+        "authoritativeWorkflowSettlementRef",
+        "groundTruthLabelRefs",
+        "labelAdjudicationRecordRef",
+        "labelQualityState",
+        "counterfactualCompletenessState",
+        "eligibilityState",
+        "eligibilityReasonCodes",
+        "exclusionReasonRefs",
+        "revocationReasonRefs",
+        "adjudicationRoutingDecisionRef",
+        "incidentRefs",
+        "policyTupleRef",
+        "supersedesEligibilityFlagRef",
+        "evaluatedAt"
+      ],
+      "states": ["pending_settlement", "requires_adjudication", "eligible", "excluded", "revoked"],
+      "dependencyRules": [
+        "eligible requires a settled finalHumanArtifactRef and authoritativeWorkflowSettlementRef",
+        "eligible requires labelQualityState of routine_clean or adjudicated_clean",
+        "eligible requires counterfactualCompletenessState of complete or not_applicable",
+        "eligible is forbidden when any exclusionReasonRefs or unresolved incidentRefs exist",
+        "revoked creates a new flag that supersedes the old eligible flag instead of mutating it in place"
+      ]
+    },
+    {
+      "objectName": "FeedbackEligibilityEvaluation",
+      "objectRole": "repeatable derivation record for a FeedbackEligibilityFlag decision",
+      "requiredFields": [
+        "feedbackEligibilityEvaluationId",
+        "feedbackEligibilityFlagRef",
+        "caseReplayBundleRef",
+        "settlementCheckRef",
+        "labelQualityCheckRef",
+        "counterfactualCompletenessCheckRef",
+        "incidentSearchRef",
+        "supersessionSearchRef",
+        "policyExclusionCheckRef",
+        "decisionState",
+        "decisionReasonCodes",
+        "createdAt"
+      ],
+      "states": ["started", "passed", "requires_adjudication", "excluded", "revoked", "failed_integrity"],
+      "dependencyRules": [
+        "decisionState passed may emit eligible only through FeedbackEligibilityFlag",
+        "all check refs must be frozen refs, not current mutable task fields",
+        "failed_integrity must block training export"
+      ]
+    },
+    {
+      "objectName": "AdjudicationRoutingDecision",
+      "objectRole": "deterministic routing object for feedback cases that need separate human judgement",
+      "requiredFields": [
+        "adjudicationRoutingDecisionId",
+        "caseReplayBundleRef",
+        "triggerReasonCodes",
+        "requiredReviewerRoles",
+        "minimumReviewerCount",
+        "clinicalSafetyLeadRequired",
+        "policyOwnerRequired",
+        "routingState",
+        "labelAdjudicationRecordRef",
+        "createdAt"
+      ],
+      "states": ["not_required", "queued", "in_review", "settled_clean", "settled_excluded", "settled_revoked"],
+      "dependencyRules": [
+        "dual-review, high-risk, policy-exception, and incident-linked cases require minimumReviewerCount of at least two",
+        "clinicalSafetyLeadRequired is true for high-risk, incident-linked, and safety-critical taxonomy records",
+        "settled_clean may unlock eligibility only after settlement and exclusion checks pass"
+      ]
+    },
+    {
+      "objectName": "FeedbackRevocationRecord",
+      "objectRole": "append-only record explaining why a previously eligible flag stopped being trainable",
+      "requiredFields": [
+        "feedbackRevocationRecordId",
+        "previousFeedbackEligibilityFlagRef",
+        "replacementFeedbackEligibilityFlagRef",
+        "revocationReasonCode",
+        "triggeringEvidenceRef",
+        "incidentRef",
+        "supersedingFinalHumanArtifactRef",
+        "policyTupleRef",
+        "revokedByRole",
+        "revokedAt"
+      ],
+      "states": ["draft", "published", "superseded"],
+      "dependencyRules": [
+        "published revocation records must point to a replacement FeedbackEligibilityFlag in revoked state",
+        "revocation supersedes prior eligibility and preserves the old flag address",
+        "training exports must consume the replacement flag state"
+      ]
+    },
+    {
+      "objectName": "TrainabilityExclusionPolicy",
+      "objectRole": "versioned policy table for deterministic feedback exclusion and revocation routing",
+      "requiredFields": [
+        "trainabilityExclusionPolicyId",
+        "policyVersion",
+        "exclusionReasonCodes",
+        "revocationReasonCodes",
+        "adjudicationRoutingRuleRefs",
+        "effectiveFrom",
+        "supersededByPolicyRef",
+        "publicationState"
+      ],
+      "states": ["draft", "published", "superseded", "revoked"],
+      "dependencyRules": [
+        "FeedbackEligibilityEvaluation must bind one published TrainabilityExclusionPolicy",
+        "policy changes never rewrite historical eligibility flags",
+        "policy_exception_override must route to adjudication or exclusion before eligibility"
+      ]
+    }
+  ],
+  "eligibilityRequirements": [
+    "finalHumanArtifactRef is settled and points to the human-owned final artifact",
+    "authoritativeWorkflowSettlementRef confirms downstream workflow outcome is settled",
+    "labelQualityState is routine_clean or adjudicated_clean",
+    "counterfactualCompletenessState is complete or not_applicable",
+    "incidentSearchRef has no open or later-linked incident",
+    "supersessionSearchRef has no later final-human-artifact supersession",
+    "policyExclusionCheckRef has no active exclusion reason",
+    "modelRegistryEntryRef and promptTemplateVersionRef remain replayable"
+  ],
+  "labelQualityStates": [
+    "routine_clean",
+    "adjudicated_clean",
+    "adjudicated_with_limitations",
+    "requires_adjudication",
+    "excluded_quality",
+    "revoked_quality"
+  ],
+  "counterfactualCompletenessStates": ["complete", "not_applicable", "incomplete", "stale", "blocked"],
+  "adjudicationRoutingRules": [
+    {
+      "ruleId": "ADR404_POLICY_EXCEPTION",
+      "triggerReasonCodes": ["policy_exception_override"],
+      "requiredReviewerRoles": ["policy_owner", "clinical_safety_lead"],
+      "minimumReviewerCount": 2
+    },
+    {
+      "ruleId": "ADR404_DUAL_REVIEW_HIGH_RISK",
+      "triggerReasonCodes": ["dual_review_required", "high_risk_case"],
+      "requiredReviewerRoles": ["senior_clinician", "clinical_safety_lead"],
+      "minimumReviewerCount": 2
+    },
+    {
+      "ruleId": "ADR404_INCIDENT_LINKED",
+      "triggerReasonCodes": ["incident_linked_case"],
+      "requiredReviewerRoles": ["clinical_safety_lead", "incident_owner"],
+      "minimumReviewerCount": 2
+    },
+    {
+      "ruleId": "ADR404_COUNTERFACTUAL_INCOMPLETE",
+      "triggerReasonCodes": ["incomplete_counterfactual_completeness"],
+      "requiredReviewerRoles": ["evaluation_data_steward"],
+      "minimumReviewerCount": 1
+    },
+    {
+      "ruleId": "ADR404_LABEL_CONFLICT",
+      "triggerReasonCodes": ["conflicting_ground_truth_labels", "unsafe_or_low_confidence_acceptance"],
+      "requiredReviewerRoles": ["senior_clinician"],
+      "minimumReviewerCount": 1
+    }
+  ],
+  "exclusionReasons": [
+    {
+      "reasonId": "policy_exception_override",
+      "routing": "requires_adjudication",
+      "meaning": "a policy exception was used and must not silently become training data"
+    },
+    {
+      "reasonId": "dual_review_required",
+      "routing": "requires_adjudication",
+      "meaning": "local law requires more than one reviewer before feedback can be eligible"
+    },
+    {
+      "reasonId": "high_risk_case",
+      "routing": "requires_adjudication",
+      "meaning": "clinical or safety risk class requires senior review before eligibility"
+    },
+    {
+      "reasonId": "incident_linked_case",
+      "routing": "excluded",
+      "meaning": "the case is linked to an incident or safety investigation"
+    },
+    {
+      "reasonId": "regenerate_only_flow",
+      "routing": "excluded",
+      "meaning": "the visible interaction produced regenerated draft material without stable final acceptance lineage"
+    },
+    {
+      "reasonId": "stale_recovery_action",
+      "routing": "excluded",
+      "meaning": "the user action occurred under recovery posture or stale publication/runtime truth"
+    },
+    {
+      "reasonId": "incomplete_counterfactual_completeness",
+      "routing": "requires_adjudication",
+      "meaning": "required rejected, changed, or alternative outcome evidence is incomplete"
+    },
+    {
+      "reasonId": "final_human_artifact_supersession",
+      "routing": "excluded",
+      "meaning": "a later human artifact superseded the artifact that would have made the feedback trainable"
+    },
+    {
+      "reasonId": "dismissed_suggestion",
+      "routing": "excluded",
+      "meaning": "the assistive suggestion was dismissed and has no accepted final artifact lineage"
+    },
+    {
+      "reasonId": "no_authoritative_settlement",
+      "routing": "pending_settlement",
+      "meaning": "final artifact or downstream workflow settlement is absent"
+    },
+    {
+      "reasonId": "patient_objection_or_ig_exclusion",
+      "routing": "excluded",
+      "meaning": "information-governance, consent, or objection rule bars trainability"
+    },
+    {
+      "reasonId": "missing_label_quality",
+      "routing": "requires_adjudication",
+      "meaning": "label quality has not reached routine_clean or adjudicated_clean"
+    },
+    {
+      "reasonId": "unsafe_or_low_confidence_acceptance",
+      "routing": "requires_adjudication",
+      "meaning": "the case combines acceptance with low confidence or safety-relevant uncertainty"
+    },
+    {
+      "reasonId": "conflicting_ground_truth_labels",
+      "routing": "requires_adjudication",
+      "meaning": "ground-truth labels conflict and need separate adjudication truth"
+    }
+  ],
+  "revocationReasons": [
+    {
+      "reasonId": "later_incident_linked",
+      "meaning": "a safety, quality, or information-governance incident was linked after eligibility"
+    },
+    {
+      "reasonId": "final_human_artifact_superseded_after_eligibility",
+      "meaning": "a later final human artifact superseded the accepted artifact"
+    },
+    {
+      "reasonId": "adjudication_reversal",
+      "meaning": "adjudication reversed a previously clean label or feedback decision"
+    },
+    {
+      "reasonId": "policy_exclusion_after_eligibility",
+      "meaning": "a later policy version or exception review bars trainability"
+    },
+    {
+      "reasonId": "counterfactual_integrity_failure",
+      "meaning": "counterfactual or rejection evidence was found incomplete or corrupt"
+    },
+    {
+      "reasonId": "patient_objection_or_ig_revocation",
+      "meaning": "information-governance or patient objection rules revoke training use"
+    },
+    {
+      "reasonId": "model_prompt_or_dataset_recall",
+      "meaning": "a recalled prompt, model, or dataset cut invalidates the prior eligibility"
+    }
+  ],
+  "stateTransitions": [
+    {
+      "from": "pending_settlement",
+      "to": "eligible",
+      "requires": ["eligibilityRequirements_all_pass"]
+    },
+    {
+      "from": "pending_settlement",
+      "to": "requires_adjudication",
+      "requires": ["adjudicationRoutingRule_triggered"]
+    },
+    {
+      "from": "pending_settlement",
+      "to": "excluded",
+      "requires": ["terminal_exclusion_reason"]
+    },
+    {
+      "from": "requires_adjudication",
+      "to": "eligible",
+      "requires": ["adjudicationState_settled_clean", "eligibilityRequirements_all_pass"]
+    },
+    {
+      "from": "requires_adjudication",
+      "to": "excluded",
+      "requires": ["adjudicationState_settled_excluded"]
+    },
+    {
+      "from": "eligible",
+      "to": "revoked",
+      "requires": ["revocationReasonCode_present", "FeedbackRevocationRecord_published"]
+    }
+  ],
+  "trainingExportRules": [
+    "only FeedbackEligibilityFlag.state eligible may feed governed training export",
+    "requires_adjudication, pending_settlement, excluded, and revoked are non-trainable",
+    "revoked always wins over a historical eligible flag",
+    "training export must carry the flag id, policy version, and replay bundle hash"
+  ],
+  "invariants": [
+    {
+      "invariantId": "INV404_FB_001",
+      "statement": "FeedbackEligibilityFlag cannot be eligible without settled final human artifact and authoritative workflow settlement."
+    },
+    {
+      "invariantId": "INV404_FB_002",
+      "statement": "Adjudication routing is deterministic from reason codes and policy version."
+    },
+    {
+      "invariantId": "INV404_FB_003",
+      "statement": "Exclusion before eligibility and revocation after eligibility are separate histories."
+    },
+    {
+      "invariantId": "INV404_FB_004",
+      "statement": "A revoked flag may not be exported as trainable even if an older flag was eligible."
+    }
+  ],
+  "downstreamConsumers": ["par_413", "par_414", "par_408", "par_409", "par_415"]
+}

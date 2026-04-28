@@ -173,6 +173,33 @@ async function rootAttribute(page, name) {
   return await page.locator("[data-testid='patient-intake-mission-frame-root']").getAttribute(name);
 }
 
+async function advanceDetailsFlowToFiles(page, baseUrl) {
+  const filesPath = "/start-request/dft_7k49m2v8pq41/files";
+  const filesUrl = `${baseUrl}${filesPath}`;
+  for (let attempt = 0; attempt < 8 && new URL(page.url()).pathname !== filesPath; attempt += 1) {
+    const narrativeField = page.locator("[data-testid='patient-intake-details-step'] textarea").first();
+    if ((await narrativeField.count()) > 0) {
+      await narrativeField.focus();
+      await page.keyboard.press("End");
+      await page.keyboard.type(" Same-shell keyboard proof.");
+    }
+    const beforeQuestionKey = await rootAttribute(page, "data-current-question-key");
+    await page.locator("[data-testid='patient-intake-primary-action']").click();
+    await page.waitForFunction(
+      ({ previousQuestionKey, targetPath }) => {
+        const root = document.querySelector("[data-testid='patient-intake-mission-frame-root']");
+        return (
+          window.location.pathname === targetPath ||
+          root?.getAttribute("data-current-question-key") !== previousQuestionKey
+        );
+      },
+      { previousQuestionKey: beforeQuestionKey, targetPath: filesPath },
+      { timeout: 5_000 },
+    );
+  }
+  await page.waitForURL(filesUrl);
+}
+
 export async function run() {
   assertCondition(fs.existsSync(GALLERY_PATH), "Mission frame gallery HTML is missing.");
   assertCondition(fs.existsSync(LAYOUT_JSON_PATH), "Mission frame layout contract JSON is missing.");
@@ -280,16 +307,15 @@ export async function run() {
     await continuityPage.keyboard.press("ArrowLeft");
     await continuityPage.locator("[data-testid='patient-intake-primary-action']").click();
     await continuityPage.waitForURL(`${baseUrl}/start-request/dft_7k49m2v8pq41/details`);
+    await continuityPage
+      .locator("[data-testid='patient-intake-mission-frame-root'][data-selected-anchor='request-proof']")
+      .waitFor();
     assertCondition(
       (await rootAttribute(continuityPage, "data-selected-anchor")) === "request-proof",
       "Details route lost the request-proof anchor.",
     );
 
-    await continuityPage.locator("[data-testid='patient-intake-detail-textarea']").focus();
-    await continuityPage.keyboard.press("End");
-    await continuityPage.keyboard.type(" Same-shell keyboard proof.");
-    await continuityPage.locator("[data-testid='patient-intake-primary-action']").click();
-    await continuityPage.waitForURL(`${baseUrl}/start-request/dft_7k49m2v8pq41/files`);
+    await advanceDetailsFlowToFiles(continuityPage, baseUrl);
     assertCondition(
       continuityExternal.size === 0,
       `Mission frame made unexpected external requests: ${Array.from(continuityExternal).join(", ")}`,
@@ -315,7 +341,11 @@ export async function run() {
       }
       const trayRect = tray.getBoundingClientRect();
       const targetRect = target.getBoundingClientRect();
-      return { overlap: targetRect.bottom > trayRect.top - 8 };
+      return {
+        overlap:
+          targetRect.bottom > trayRect.top - 8 &&
+          targetRect.top < trayRect.bottom + 8,
+      };
     });
     assertCondition(
       overlapState.overlap === false,

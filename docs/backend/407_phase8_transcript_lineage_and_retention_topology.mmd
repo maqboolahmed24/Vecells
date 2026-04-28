@@ -1,0 +1,21 @@
+flowchart LR
+  Source["Supported source\ntelephony / upload / dictation / policy-gated ambient"] --> Capture["AudioCaptureSessionService\npermission + capture mode"]
+  Capture --> Quarantine["quarantined artifact"]
+  Retention["RetentionEnvelopeService\nbasis + deleteAfter + review"] --> Quarantine
+  Quarantine --> Scan["malware / integrity scan"]
+  Scan --> Cleared["quarantine cleared\nsourceCaptureBundleRef"]
+  Cleared --> Job["TranscriptJobOrchestrator\nmodel + diarisation + language"]
+  Job --> Normalize["TranscriptNormalizationPipeline"]
+  Normalize --> Derivation["EvidenceDerivationPackage\nimmutable hash"]
+  Normalize --> Segments["SpeakerSegment refs"]
+  Derivation --> Artifact["TranscriptArtifact\nrawTranscriptRef + segment refs"]
+  Segments --> Concepts["ClinicalConceptSpanExtractor"]
+  Segments --> Redaction["TranscriptRedactionService"]
+  Concepts --> Artifact
+  Redaction --> Artifact
+  Artifact --> Ready["TranscriptArtifactService\nready for drafting"]
+  Ready --> TranscriptEvent["assistive.transcript.ready"]
+  Ready --> ContextEvent["assistive.context.snapshot.created"]
+  Artifact --> Presentation["TranscriptPresentationArtifactService\nsummary_only default"]
+  Presentation -. blocks .-> RawLinks["raw blob URL / direct download / ungranted handoff"]
+  Retention --> DeleteDecision["retained / delete_due /\nblocked legal hold / policy conflict"]

@@ -699,15 +699,24 @@ export const phase1SynchronousSafetyRulePackRegistry = [
 export class StaticSynchronousSafetyRulePackLoader implements SynchronousSafetyRulePackLoader {
   loadRulePack(preferredRulePackVersionRef?: string | null): Phase1SynchronousSafetyRulePack {
     const preferred = preferredRulePackVersionRef?.trim() ?? null;
-    const resolved =
-      phase1SynchronousSafetyRulePackRegistry.find(
+    if (preferred) {
+      const resolved = phase1SynchronousSafetyRulePackRegistry.find(
         (candidate) =>
           candidate.rulePackVersionRef === preferred || candidate.rulePackId === preferred,
-      ) ?? phase1SynchronousSafetyRulePackRegistry[0];
+      );
+      invariant(
+        !!resolved,
+        "SYNC_SAFETY_RULE_PACK_NOT_FOUND",
+        `Unsupported synchronous safety rule pack ${preferred}.`,
+      );
+      return resolved;
+    }
+
+    const resolved = phase1SynchronousSafetyRulePackRegistry[0];
     invariant(
       !!resolved,
       "SYNC_SAFETY_RULE_PACK_NOT_FOUND",
-      `Unsupported synchronous safety rule pack ${preferred ?? "default"}.`,
+      "No default synchronous safety rule pack is registered.",
     );
     return resolved;
   }
@@ -1356,15 +1365,6 @@ export class SynchronousSafetyEngine {
             : ["PHASE1_SYNC_SAFETY_SCREEN_CLEAR"]),
     ]);
 
-    const previousDecision =
-      (await this.repositories.findLatestSafetyDecisionForRequest(requestId)) ?? null;
-    const previousClassifications =
-      await this.repositories.listEvidenceClassificationDecisionsByRequest(requestId);
-    const previousClassification = previousClassifications.at(-1) ?? null;
-    const openingSafetyEpoch =
-      input.currentSafetyDecisionEpoch ?? previousDecision?.resultingSafetyEpoch ?? 0;
-    const nextSafetyEpoch = openingSafetyEpoch + 1;
-
     const decisionTupleHash = sha256Hex({
       requestId,
       submissionSnapshotFreezeRef: input.evidenceCut.submissionSnapshotFreezeRef,
@@ -1382,6 +1382,66 @@ export class SynchronousSafetyEngine {
       requestedSafetyState,
       decisionOutcome,
     });
+
+    const diagnostics: SynchronousSafetyDiagnostics = {
+      rulePackVersionRef: rulePack.rulePackVersionRef,
+      calibratorVersionRef: calibrator.calibratorVersionRef,
+      hardStopRuleRefs,
+      urgentContributorRuleRefs,
+      residualContributorRuleRefs,
+      reachabilityContributorRuleRefs,
+      urgentProbability,
+      residualProbability,
+      contradictionRatio: derived.contradictionRatio,
+      missingnessRatio: derived.missingnessRatio,
+      conflictVectorRef,
+      criticalMissingnessRef,
+      activeReachabilityDependencyRefs: derived.activeReachabilityDependencyRefs,
+      firedRuleRefs: [...firedRuleIds].sort(),
+      featureStates: derived.featureStates,
+      reasonCodes,
+    };
+
+    const previousDecisions = await this.repositories.listSafetyDecisionRecordsByRequest(requestId);
+    const replayDecision =
+      previousDecisions
+        .filter(
+          (candidate) =>
+            candidate.compositeSnapshotRef === input.evidenceCut.evidenceSnapshotRef &&
+            candidate.rulePackVersionRef === rulePack.rulePackVersionRef &&
+            candidate.calibratorVersionRef === calibrator.calibratorVersionRef &&
+            candidate.decisionTupleHash === decisionTupleHash,
+        )
+        .at(-1) ?? null;
+    if (replayDecision) {
+      const existingClassification = await this.repositories.getEvidenceClassificationDecision(
+        replayDecision.classificationDecisionRef,
+      );
+      const existingPreemption = await this.repositories.getSafetyPreemptionRecord(
+        replayDecision.preemptionRef,
+      );
+      invariant(
+        !!existingClassification && !!existingPreemption,
+        "SYNC_SAFETY_REPLAY_CHAIN_INCOMPLETE",
+        "Existing synchronous safety replay is missing classification or preemption records.",
+      );
+      return {
+        replayed: true,
+        classification: existingClassification,
+        preemption: existingPreemption,
+        safetyDecision: replayDecision,
+        derivedFeatures: derived,
+        diagnostics,
+      };
+    }
+
+    const previousDecision = previousDecisions.at(-1) ?? null;
+    const previousClassifications =
+      await this.repositories.listEvidenceClassificationDecisionsByRequest(requestId);
+    const previousClassification = previousClassifications.at(-1) ?? null;
+    const openingSafetyEpoch =
+      input.currentSafetyDecisionEpoch ?? previousDecision?.resultingSafetyEpoch ?? 0;
+    const nextSafetyEpoch = openingSafetyEpoch + 1;
 
     const classificationDecisionId = buildDeterministicRecordId(
       "sync_classification",
@@ -1420,24 +1480,7 @@ export class SynchronousSafetyEngine {
         preemption: existingPreemption,
         safetyDecision: existingDecision,
         derivedFeatures: derived,
-        diagnostics: {
-          rulePackVersionRef: rulePack.rulePackVersionRef,
-          calibratorVersionRef: calibrator.calibratorVersionRef,
-          hardStopRuleRefs,
-          urgentContributorRuleRefs,
-          residualContributorRuleRefs,
-          reachabilityContributorRuleRefs,
-          urgentProbability,
-          residualProbability,
-          contradictionRatio: derived.contradictionRatio,
-          missingnessRatio: derived.missingnessRatio,
-          conflictVectorRef,
-          criticalMissingnessRef,
-          activeReachabilityDependencyRefs: derived.activeReachabilityDependencyRefs,
-          firedRuleRefs: [...firedRuleIds].sort(),
-          featureStates: derived.featureStates,
-          reasonCodes,
-        },
+        diagnostics,
       };
     }
 
@@ -1548,24 +1591,7 @@ export class SynchronousSafetyEngine {
       preemption,
       safetyDecision,
       derivedFeatures: derived,
-      diagnostics: {
-        rulePackVersionRef: rulePack.rulePackVersionRef,
-        calibratorVersionRef: calibrator.calibratorVersionRef,
-        hardStopRuleRefs,
-        urgentContributorRuleRefs,
-        residualContributorRuleRefs,
-        reachabilityContributorRuleRefs,
-        urgentProbability,
-        residualProbability,
-        contradictionRatio: derived.contradictionRatio,
-        missingnessRatio: derived.missingnessRatio,
-        conflictVectorRef,
-        criticalMissingnessRef,
-        activeReachabilityDependencyRefs: derived.activeReachabilityDependencyRefs,
-        firedRuleRefs: [...firedRuleIds].sort(),
-        featureStates: derived.featureStates,
-        reasonCodes,
-      },
+      diagnostics,
     };
   }
 }

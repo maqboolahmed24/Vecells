@@ -149,6 +149,12 @@ describe("normalized submission service", () => {
       primaryIngressRecordRef: "ingress::draft_149_002::2026-04-14T23:11:00Z",
       freeze: makeFreeze({
         requestType: "Results",
+        activeQuestionKeys: [
+          "results.context",
+          "results.testName",
+          "results.dateKnown",
+          "results.question",
+        ],
         activeStructuredAnswers: {
           "results.context": "blood_test",
           "results.testName": "Full blood count",
@@ -171,6 +177,115 @@ describe("normalized submission service", () => {
     expect(normalized.toSnapshot().authoredNarrative).toMatchObject({
       sourceKind: "request_field",
       authoredText: "What does this result mean for me?",
+    });
+  });
+
+  it("excludes hidden superseded answers from active truth, summary, and dedupe", () => {
+    const service = createNormalizedSubmissionService();
+    const withHiddenAnswer = service.createNormalizedSubmission({
+      normalizedSubmissionId: "normalized_submission_149_hidden_001",
+      governingSnapshotRef: "evidence_snapshot_149_hidden_001",
+      primaryIngressRecordRef: "ingress::draft_149_hidden_001::2026-04-14T23:12:00Z",
+      freeze: makeFreeze({
+        activeQuestionKeys: [
+          "symptoms.category",
+          "symptoms.onsetPrecision",
+          "symptoms.onsetDate",
+          "symptoms.severityClues",
+          "symptoms.narrative",
+        ],
+        activeStructuredAnswers: {
+          "symptoms.category": "general",
+          "symptoms.onsetPrecision": "exact_date",
+          "symptoms.onsetDate": "2026-04-10",
+          "symptoms.worseningNow": true,
+          "symptoms.severityClues": ["sleep_affected"],
+          "symptoms.narrative": "The pain is worse at night.",
+        },
+      }),
+      createdAt: "2026-04-14T23:12:01Z",
+    });
+    const withoutHiddenAnswer = service.createNormalizedSubmission({
+      normalizedSubmissionId: "normalized_submission_149_hidden_002",
+      governingSnapshotRef: "evidence_snapshot_149_hidden_002",
+      primaryIngressRecordRef: "ingress::draft_149_hidden_002::2026-04-14T23:12:00Z",
+      freeze: makeFreeze({
+        activeQuestionKeys: [
+          "symptoms.category",
+          "symptoms.onsetPrecision",
+          "symptoms.onsetDate",
+          "symptoms.severityClues",
+          "symptoms.narrative",
+        ],
+        activeStructuredAnswers: {
+          "symptoms.category": "general",
+          "symptoms.onsetPrecision": "exact_date",
+          "symptoms.onsetDate": "2026-04-10",
+          "symptoms.severityClues": ["sleep_affected"],
+          "symptoms.narrative": "The pain is worse at night.",
+        },
+      }),
+      createdAt: "2026-04-14T23:12:01Z",
+    });
+
+    expect(withHiddenAnswer.toSnapshot().requestShape).not.toMatchObject({
+      symptoms: { worseningNow: true },
+    });
+    expect(withHiddenAnswer.toSnapshot().activeStructuredAnswers).not.toHaveProperty(
+      "symptoms.worseningNow",
+    );
+    expect(
+      withHiddenAnswer
+        .toSnapshot()
+        .summaryFragments.some((fragment) => fragment.questionKey === "symptoms.worseningNow"),
+    ).toBe(false);
+    expect(withHiddenAnswer.toSnapshot().dedupeFingerprint).toBe(
+      withoutHiddenAnswer.toSnapshot().dedupeFingerprint,
+    );
+  });
+
+  it("normalizes the Admin request type into the published request shape", () => {
+    const service = createNormalizedSubmissionService();
+    const normalized = service.createNormalizedSubmission({
+      normalizedSubmissionId: "normalized_submission_149_admin_001",
+      governingSnapshotRef: "evidence_snapshot_149_admin_001",
+      primaryIngressRecordRef: "ingress::draft_149_admin_001::2026-04-14T23:13:00Z",
+      freeze: makeFreeze({
+        requestType: "Admin",
+        activeQuestionKeys: [
+          "admin.supportType",
+          "admin.deadlineKnown",
+          "admin.deadlineDate",
+          "admin.referenceAvailable",
+          "admin.referenceNumber",
+          "admin.details",
+        ],
+        activeStructuredAnswers: {
+          "admin.supportType": "fit_note",
+          "admin.deadlineKnown": "known",
+          "admin.deadlineDate": "2026-04-18",
+          "admin.referenceAvailable": "available",
+          "admin.referenceNumber": "REF-123",
+          "admin.details": "Please help with the form.",
+        },
+        freeTextNarrative: "",
+      }),
+      createdAt: "2026-04-14T23:13:01Z",
+    });
+
+    expect(normalized.toSnapshot().requestShape).toMatchObject({
+      admin: {
+        supportTypeCode: "fit_note",
+        deadlineState: "known",
+        deadlineDate: "2026-04-18",
+        referenceState: "available",
+        referenceNumber: "REF-123",
+        patientNarrative: "Please help with the form.",
+      },
+    });
+    expect(normalized.toSnapshot().authoredNarrative).toMatchObject({
+      sourceKind: "request_field",
+      authoredText: "Please help with the form.",
     });
   });
 

@@ -1,0 +1,162 @@
+{
+  "taskId": "par_410",
+  "schemaVersion": "410.capability-control-plane-contract.v1",
+  "contractFamily": "assistive_invocation_eligibility_and_capability_control",
+  "sourceGateRef": "data/contracts/403_phase8_track_readiness_registry.json",
+  "upstreamContractRefs": [
+    "data/contracts/405_assistive_release_candidate_contracts.json",
+    "data/contracts/409_recommendation_orchestrator_contract.json"
+  ],
+  "runtimePackage": {
+    "packageName": "@vecells/domain-assistive-control-plane",
+    "sourceRoot": "packages/domains/assistive_control_plane/src",
+    "separationLaw": "The capability control plane admits, blocks, downgrades, and settles assistive runs. It cannot render workspace UI, create endpoint decisions, or widen rollout posture beyond current release, intended-use, composition, kill-switch, and publication truth."
+  },
+  "services": [
+    {
+      "serviceName": "AssistiveCapabilityManifestService",
+      "ownedApis": ["registerManifest", "getManifest"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "IntendedUseProfileService",
+      "ownedApis": ["registerProfile"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "InvocationEligibilityService",
+      "ownedApis": ["evaluateInvocationEligibility"],
+      "requiresActorContext": false
+    },
+    {
+      "serviceName": "AssistiveInvocationGrantIssuer",
+      "ownedApis": ["issueInvocationGrant", "revokeInvocationGrant"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "AssistiveCompositionPolicyEngine",
+      "ownedApis": ["registerPolicy", "evaluateComposition"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "AssistiveReleaseStateResolver",
+      "ownedApis": ["publishReleaseState", "resolveActiveReleaseState"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "AssistiveKillSwitchService",
+      "ownedApis": ["setKillSwitchState", "getCurrentKillSwitchState"],
+      "requiresActorContext": true
+    },
+    {
+      "serviceName": "AssistiveRunSettlementService",
+      "ownedApis": ["settleRun"],
+      "requiresActorContext": true
+    }
+  ],
+  "persistedObjects": [
+    "AssistiveCapabilityManifest",
+    "IntendedUseProfile",
+    "AssistiveCompositionPolicy",
+    "AssistiveReleaseState",
+    "AssistiveKillSwitchState",
+    "AssistiveInvocationGrant",
+    "AssistiveRunSettlement",
+    "AssistiveControlAuditRecord"
+  ],
+  "migrationRef": "services/command-api/migrations/410_phase8_capability_control_plane.sql",
+  "admissionPolicy": {
+    "failClosedWhenMissing": [
+      "capability manifest",
+      "intended-use profile",
+      "release state",
+      "kill-switch state",
+      "surface binding or surface policy",
+      "published route contract",
+      "current runtime publication bundle"
+    ],
+    "perRunGrantBinds": [
+      "capabilityCode",
+      "routeFamily",
+      "subjectScope",
+      "actorRef",
+      "actingContextRef",
+      "evidenceClassRefs",
+      "visibilityCeiling",
+      "compiledPolicyBundleRef",
+      "reviewVersionRef",
+      "lineageFenceEpoch",
+      "entityContinuityKey",
+      "surfaceBindingRef",
+      "rolloutVerdictRef",
+      "surfacePublicationRef",
+      "runtimePublicationBundleRef",
+      "releaseRecoveryDispositionRef",
+      "telemetryDisclosureFenceRef",
+      "expiresAt",
+      "grantState"
+    ]
+  },
+  "compositionPolicy": {
+    "explicitGraphRequired": true,
+    "blockedDownstreamObjectTypes": ["EndpointDecision", "AppointmentRecord", "PharmacyCase", "TaskClosure"],
+    "loopDetectionRequired": true,
+    "maxChainDepthRequired": true,
+    "blockedSettlement": "blocked_by_policy"
+  },
+  "releaseAndKillSwitchPolicy": {
+    "releaseStateIsCurrentTruth": true,
+    "killSwitchStateIsCurrentTruth": true,
+    "historicalKillSwitchCommandsAreNotLiveTruth": true,
+    "localFeatureFlagsMayNarrowButNotWiden": true,
+    "shadowOnlyDefaultWhenReleaseNotPromoted": true
+  },
+  "settlementPolicy": {
+    "firstClassObject": "AssistiveRunSettlement",
+    "partitions": ["renderableArtifactRefs", "blockedArtifactRefs"],
+    "requiredRefs": [
+      "AssistiveInvocationGrant",
+      "TransitionEnvelope",
+      "UITransitionSettlementRecord",
+      "ReleaseRecoveryDisposition"
+    ],
+    "schemaInvalidSettlement": "quarantined",
+    "policyInvalidSettlement": "blocked_by_policy",
+    "renderableIsNecessaryButNotSufficientForVisibleUI": true
+  },
+  "invariants": [
+    {
+      "invariantId": "INV410_001",
+      "statement": "AssistiveCapabilityManifest and IntendedUseProfile are first-class runtime objects and must be active before invocation."
+    },
+    {
+      "invariantId": "INV410_002",
+      "statement": "AssistiveInvocationGrant is per-run and binds route, actor, subject scope, evidence class, visibility ceiling, policy bundle, release state, surface binding, review fence, and expiry."
+    },
+    {
+      "invariantId": "INV410_003",
+      "statement": "InvocationEligibilityService fails closed when intended use, release state, kill-switch state, publication posture, route family, subject scope, or evidence class cannot be proven."
+    },
+    {
+      "invariantId": "INV410_004",
+      "statement": "AssistiveCompositionPolicy blocks forbidden downstream consumers, loops, unsupported artifact types, and chain-depth violations in code."
+    },
+    {
+      "invariantId": "INV410_005",
+      "statement": "AssistiveKillSwitchState is materialized live truth separate from historical operator command records."
+    },
+    {
+      "invariantId": "INV410_006",
+      "statement": "AssistiveRunSettlement partitions renderable and blocked artifacts and quarantines schema-invalid outputs."
+    },
+    {
+      "invariantId": "INV410_007",
+      "statement": "Visibility posture and action posture stay separate; renderable output may still remain shadow-only or observe-only."
+    },
+    {
+      "invariantId": "INV410_008",
+      "statement": "The control plane cannot create EndpointDecision, AppointmentRecord, PharmacyCase, or TaskClosure objects."
+    }
+  ],
+  "downstreamConsumers": ["par_411", "par_412", "par_413", "par_414", "par_415"]
+}

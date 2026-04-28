@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>293 Patient Booking Workspace Atlas</title>
+    <style>
+      :root {
+        --canvas: #f4f7fb;
+        --panel: #ffffff;
+        --panel-alt: #f8fafc;
+        --stroke: #d7e0ea;
+        --text-strong: #0f172a;
+        --text: #334155;
+        --text-muted: #64748b;
+        --primary: #2457ff;
+        --help: #6d28d9;
+        --safe: #0f766e;
+        --warn: #b7791f;
+        --blocked: #b42318;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at top left, rgba(36, 87, 255, 0.08), transparent 34%),
+          linear-gradient(180deg, #f9fbfe 0%, var(--canvas) 32%, #eef4fb 100%);
+        color: var(--text-strong);
+        font-family: Inter, "Segoe UI", sans-serif;
+      }
+
+      main {
+        width: min(100%, 1480px);
+        margin: 0 auto;
+        padding: 32px 24px 48px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .eyebrow {
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+      }
+
+      .stack {
+        display: grid;
+        gap: 24px;
+      }
+
+      .hero,
+      .panel {
+        border: 1px solid var(--stroke);
+        border-radius: 24px;
+        background: var(--panel);
+        box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+      }
+
+      .hero {
+        display: grid;
+        gap: 18px;
+        padding: 28px;
+        background:
+          linear-gradient(135deg, rgba(36, 87, 255, 0.08), transparent 42%),
+          linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+      }
+
+      .hero p {
+        max-width: 840px;
+        color: var(--text);
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .scenario-button {
+        min-height: 40px;
+        padding: 0 14px;
+        border: 1px solid var(--stroke);
+        border-radius: 999px;
+        background: var(--panel-alt);
+        color: var(--text-strong);
+        cursor: pointer;
+      }
+
+      .scenario-button[data-active="true"] {
+        background: rgba(36, 87, 255, 0.1);
+        border-color: rgba(36, 87, 255, 0.2);
+        color: var(--primary);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 288px minmax(760px, 1fr) 280px;
+        gap: 18px;
+      }
+
+      .column {
+        display: grid;
+        gap: 18px;
+      }
+
+      .panel {
+        padding: 22px;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 10px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .chip.primary {
+        background: rgba(36, 87, 255, 0.1);
+        color: var(--primary);
+      }
+
+      .chip.safe {
+        background: rgba(15, 118, 110, 0.12);
+        color: var(--safe);
+      }
+
+      .chip.warn {
+        background: rgba(183, 121, 31, 0.14);
+        color: var(--warn);
+      }
+
+      .chip.blocked {
+        background: rgba(180, 35, 24, 0.12);
+        color: var(--blocked);
+      }
+
+      .diagram {
+        display: grid;
+        gap: 14px;
+      }
+
+      .flow,
+      .topology {
+        display: grid;
+        gap: 14px;
+      }
+
+      .flow-row,
+      .topology-row {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .node {
+        padding: 16px;
+        border: 1px solid var(--stroke);
+        border-radius: 18px;
+        background: var(--panel-alt);
+      }
+
+      .node strong {
+        display: block;
+        margin-top: 6px;
+      }
+
+      .node p {
+        margin-top: 8px;
+        color: var(--text);
+        font-size: 0.95rem;
+      }
+
+      .matrix {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .matrix th,
+      .matrix td {
+        padding: 12px 10px;
+        border-bottom: 1px solid rgba(215, 224, 234, 0.8);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .matrix th {
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .matrix td {
+        color: var(--text);
+      }
+
+      @media (max-width: 1360px) {
+        .layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      @media (max-width: 960px) {
+        .flow-row,
+        .topology-row {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 640px) {
+        main {
+          padding: 20px 16px 40px;
+        }
+
+        .flow-row,
+        .topology-row {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main
+      class="stack"
+      id="patient-booking-workspace-atlas-root"
+      data-testid="PatientBookingWorkspaceAtlas"
+      data-visual-mode="Appointment_Scheduling_Workspace"
+    >
+      <section class="hero">
+        <span class="eyebrow">293 atlas</span>
+        <h1>Patient booking workspace shell</h1>
+        <p>
+          One signed-in booking shell keeps appointment need, capability posture, continuity
+          evidence, and return memory stable while `/select` and `/confirm` child surfaces mount
+          later.
+        </p>
+        <div class="toolbar" id="scenario-toolbar" data-testid="booking-atlas-scenarios"></div>
+      </section>
+
+      <div class="layout">
+        <div class="column">
+          <section class="panel">
+            <span class="eyebrow">Summary rail</span>
+            <h2>Need and preference summary</h2>
+            <p id="atlas-heading" style="margin-top: 10px; color: var(--text)"></p>
+          </section>
+          <section class="panel">
+            <span class="eyebrow">Continuity</span>
+            <h2>Return contract inspector</h2>
+            <table class="matrix" aria-label="Return contract inspector">
+              <tbody id="return-inspector"></tbody>
+            </table>
+          </section>
+        </div>
+
+        <div class="column">
+          <section class="panel">
+            <span class="eyebrow">Content stage</span>
+            <h2>Scenario inspector</h2>
+            <div class="chips" id="scenario-chips" style="margin-top: 12px"></div>
+            <p id="atlas-copy" style="margin-top: 14px; color: var(--text)"></p>
+          </section>
+          <section class="panel diagram">
+            <div>
+              <span class="eyebrow">Same-shell continuity diagram</span>
+              <h2>Origin to child-host flow</h2>
+            </div>
+            <div class="flow">
+              <div class="flow-row">
+                <article class="node">
+                  <span class="eyebrow">Origin</span>
+                  <strong>Home / Requests / Appointments</strong>
+                  <p>Launches booking with a real return contract and selected anchor.</p>
+                </article>
+                <article class="node">
+                  <span class="eyebrow">Host</span>
+                  <strong>`/bookings/:bookingCaseId`</strong>
+                  <p>Need summary, capability posture, and support path stay visible.</p>
+                </article>
+                <article class="node">
+                  <span class="eyebrow">Child</span>
+                  <strong>`/select` or `/confirm`</strong>
+                  <p>Only the content stage swaps while the shell continuity key persists.</p>
+                </article>
+                <article class="node">
+                  <span class="eyebrow">Return</span>
+                  <strong>Quiet return stub</strong>
+                  <p>Return memory survives refresh, browser back, and lawful read-only drift.</p>
+                </article>
+              </div>
+            </div>
+          </section>
+          <section class="panel diagram">
+            <div>
+              <span class="eyebrow">Shell-state topology</span>
+              <h2>Shared layout across posture changes</h2>
+            </div>
+            <div class="topology">
+              <div class="topology-row">
+                <article class="node">
+                  <span class="eyebrow">Loading</span>
+                  <strong>Need frame visible</strong>
+                  <p>No blank-screen spinner takeover.</p>
+                </article>
+                <article class="node">
+                  <span class="eyebrow">Ready</span>
+                  <strong>One dominant next step</strong>
+                  <p>Capability posture drives the CTA.</p>
+                </article>
+                <article class="node">
+                  <span class="eyebrow">Read-only</span>
+                  <strong>Provenance preserved</strong>
+                  <p>Selected anchor remains visible even when writable controls freeze.</p>
+                </article>
+                <article class="node">
+                  <span class="eyebrow">Recovery</span>
+                  <strong>Fail closed in place</strong>
+                  <p>Continuity refresh replaces detached error pages.</p>
+                </article>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="column">
+          <section class="panel">
+            <span class="eyebrow">Dominant action</span>
+            <h2 id="action-title"></h2>
+            <p id="action-copy" style="margin-top: 10px; color: var(--text)"></p>
+          </section>
+          <section class="panel">
+            <span class="eyebrow">Future child hosts</span>
+            <table class="matrix" aria-label="Child host registry">
+              <thead>
+                <tr>
+                  <th>Host</th>
+                  <th>Owner task</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>`slot_results_host`</td><td>`294`</td></tr>
+                <tr><td>`truthful_selection_host`</td><td>`295`</td></tr>
+                <tr><td>`confirmation_host`</td><td>`296`</td></tr>
+                <tr><td>`manage_host`</td><td>`297`</td></tr>
+                <tr><td>`waitlist_host`</td><td>`298`</td></tr>
+              </tbody>
+            </table>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <script id="atlas-data" type="application/json">
+      {
+        "scenarios": [
+          {
+            "bookingCaseId": "booking_case_293_live",
+            "label": "Live self-service",
+            "heading": "Schedule the follow-up review",
+            "copy": "Self-service is lawful and the shell exposes one calm next step without losing the support path.",
+            "shellState": "ready",
+            "surfaceState": "self_service_live",
+            "continuityState": "preserved",
+            "returnLabel": "Appointments",
+            "selectedAnchor": "Capability posture",
+            "dominantAction": "Find appointment times",
+            "dominantCopy": "The dominant action comes directly from BookingCapabilityProjection and enters the `/select` child host."
+          },
+          {
+            "bookingCaseId": "booking_case_293_linkage",
+            "label": "Linkage required",
+            "heading": "Repair linkage before booking continues",
+            "copy": "The need summary remains visible while the current tuple requires fresh GP linkage proof.",
+            "shellState": "read_only",
+            "surfaceState": "linkage_required",
+            "continuityState": "preserved",
+            "returnLabel": "Requests",
+            "selectedAnchor": "Capability posture",
+            "dominantAction": "Repair GP linkage",
+            "dominantCopy": "Support remains visible, but stale self-service controls stay closed."
+          },
+          {
+            "bookingCaseId": "booking_case_293_local_component",
+            "label": "Local component",
+            "heading": "This booking continues in the linked provider flow",
+            "copy": "The shell explains the governed handoff instead of pretending the local results host can still open here.",
+            "shellState": "read_only",
+            "surfaceState": "local_component_required",
+            "continuityState": "preserved",
+            "returnLabel": "Appointments",
+            "selectedAnchor": "Capability posture",
+            "dominantAction": "Open the linked booking service",
+            "dominantCopy": "The workspace preserves the same summary and return contract before handoff."
+          },
+          {
+            "bookingCaseId": "booking_case_293_assisted",
+            "label": "Assisted only",
+            "heading": "Support will book this appointment with you",
+            "copy": "The shell stays inside the patient frame and promotes help as the active next step.",
+            "shellState": "read_only",
+            "surfaceState": "assisted_only",
+            "continuityState": "preserved",
+            "returnLabel": "Home",
+            "selectedAnchor": "Capability posture",
+            "dominantAction": "Need help booking?",
+            "dominantCopy": "The dominant action changes, but the shell and return memory do not."
+          },
+          {
+            "bookingCaseId": "booking_case_293_degraded",
+            "label": "Degraded manual",
+            "heading": "Supply posture changed while this booking was open",
+            "copy": "Degraded supplier truth keeps the shell in place and swaps only the relevant posture copy.",
+            "shellState": "partial",
+            "surfaceState": "degraded_manual",
+            "continuityState": "preserved",
+            "returnLabel": "Requests",
+            "selectedAnchor": "Last safe search context",
+            "dominantAction": "Use the practice booking line",
+            "dominantCopy": "Stale self-service affordances stay suppressed while provenance remains visible."
+          },
+          {
+            "bookingCaseId": "booking_case_293_blocked",
+            "label": "Blocked read-only",
+            "heading": "The booking summary is preserved, but controls are frozen",
+            "copy": "Policy or assurance drift moves the shell into read-only posture without hiding the last safe booking context.",
+            "shellState": "read_only",
+            "surfaceState": "blocked",
+            "continuityState": "read_only",
+            "returnLabel": "Appointments",
+            "selectedAnchor": "Selected slot preserved as provenance",
+            "dominantAction": "Review the last safe booking summary",
+            "dominantCopy": "The shell fails closed in place instead of taking the patient to a generic error route."
+          },
+          {
+            "bookingCaseId": "booking_case_293_recovery",
+            "label": "Recovery required",
+            "heading": "Restore the booking shell before continuing",
+            "copy": "Continuity drift keeps the last safe shell shape visible and asks for an in-place recovery step.",
+            "shellState": "recovery_required",
+            "surfaceState": "recovery_required",
+            "continuityState": "recovery_required",
+            "returnLabel": "Recovery route",
+            "selectedAnchor": "Last safe booking anchor",
+            "dominantAction": "Restore booking continuity",
+            "dominantCopy": "Route publication and embedded-session drift do not break the shell or erase provenance."
+          },
+          {
+            "bookingCaseId": "booking_case_293_partial",
+            "label": "Loading",
+            "heading": "Preparing the booking workspace",
+            "copy": "The first load still frames the booking need and support path instead of showing a detached spinner shell.",
+            "shellState": "loading",
+            "surfaceState": "self_service_live",
+            "continuityState": "preserved",
+            "returnLabel": "Appointments",
+            "selectedAnchor": "Capability posture",
+            "dominantAction": "Find appointment times",
+            "dominantCopy": "Loading does not remove the support path or the signed-in shell chrome."
+          }
+        ]
+      }
+    </script>
+    <script>
+      const atlasData = JSON.parse(document.getElementById("atlas-data").textContent);
+      window.__patientBookingWorkspaceAtlasData = atlasData;
+
+      const root = document.getElementById("patient-booking-workspace-atlas-root");
+      const toolbar = document.getElementById("scenario-toolbar");
+      const heading = document.getElementById("atlas-heading");
+      const copy = document.getElementById("atlas-copy");
+      const chips = document.getElementById("scenario-chips");
+      const returnInspector = document.getElementById("return-inspector");
+      const actionTitle = document.getElementById("action-title");
+      const actionCopy = document.getElementById("action-copy");
+
+      function renderScenario(scenario) {
+        root.dataset.bookingCase = scenario.bookingCaseId;
+        root.dataset.shellState = scenario.shellState;
+        root.dataset.surfaceState = scenario.surfaceState;
+        root.dataset.continuityState = scenario.continuityState;
+        heading.textContent = scenario.heading;
+        copy.textContent = scenario.copy;
+        actionTitle.textContent = scenario.dominantAction;
+        actionCopy.textContent = scenario.dominantCopy;
+        chips.innerHTML = `
+          <span class="chip primary">${scenario.shellState}</span>
+          <span class="chip ${scenario.surfaceState === "self_service_live" ? "safe" : scenario.surfaceState === "degraded_manual" ? "warn" : scenario.surfaceState === "blocked" || scenario.surfaceState === "recovery_required" ? "blocked" : "primary"}">${scenario.surfaceState}</span>
+          <span class="chip ${scenario.continuityState === "preserved" ? "safe" : scenario.continuityState === "read_only" ? "warn" : "blocked"}">${scenario.continuityState}</span>
+        `;
+        returnInspector.innerHTML = `
+          <tr><th>Return route</th><td>${scenario.returnLabel}</td></tr>
+          <tr><th>Selected anchor</th><td>${scenario.selectedAnchor}</td></tr>
+          <tr><th>Dominant action</th><td>${scenario.dominantAction}</td></tr>
+        `;
+
+        Array.from(toolbar.querySelectorAll("button")).forEach((button) => {
+          button.dataset.active = String(button.dataset.scenario === scenario.bookingCaseId);
+        });
+      }
+
+      atlasData.scenarios.forEach((scenario) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "scenario-button";
+        button.dataset.scenario = scenario.bookingCaseId;
+        button.textContent = scenario.label;
+        button.addEventListener("click", () => renderScenario(scenario));
+        toolbar.append(button);
+      });
+
+      renderScenario(atlasData.scenarios[0]);
+    </script>
+  </body>
+</html>

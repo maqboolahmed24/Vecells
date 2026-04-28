@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>419 Diffable Note Draft Atlas</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --card: #ffffff;
+        --diff: #f8fafc;
+        --border: #d7dfe8;
+        --text: #0f172a;
+        --secondary: #475569;
+        --muted: #64748b;
+        --insert: #2457ff;
+        --accepted: #0f766e;
+        --blocked: #b42318;
+        --add-bg: #e8fff4;
+        --add-text: #0f5132;
+        --remove-bg: #fff1f2;
+        --remove-text: #7f1d1d;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      body {
+        margin: 0;
+        background: #eef2f7;
+        color: var(--text);
+      }
+
+      main {
+        display: grid;
+        gap: 24px;
+        width: min(1120px, calc(100vw - 40px));
+        margin: 32px auto;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      .rail {
+        display: grid;
+        gap: 12px;
+        width: min(432px, 100%);
+        padding: 16px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .deck-header {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        align-items: start;
+      }
+
+      .eyebrow {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 650;
+        text-transform: uppercase;
+      }
+
+      .status {
+        padding: 4px 8px;
+        border: 1px solid rgba(15, 118, 110, 0.22);
+        border-radius: 999px;
+        background: rgba(15, 118, 110, 0.08);
+        color: var(--accepted);
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 650;
+      }
+
+      .status.blocked {
+        border-color: rgba(180, 35, 24, 0.24);
+        background: rgba(180, 35, 24, 0.08);
+        color: var(--blocked);
+      }
+
+      .card {
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--insert);
+        border-radius: 8px;
+        background: var(--card);
+      }
+
+      .card.blocked {
+        border-left-color: var(--blocked);
+      }
+
+      .title-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+      }
+
+      .title-row h2 {
+        font-size: 15px;
+        line-height: 22px;
+      }
+
+      .support {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 18px;
+      }
+
+      .toggle {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+        padding: 3px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--diff);
+      }
+
+      .toggle span {
+        min-height: 30px;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+        color: var(--secondary);
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 650;
+      }
+
+      .toggle .active {
+        background: #fff;
+        color: var(--insert);
+      }
+
+      .diff {
+        display: grid;
+        gap: 8px;
+        padding: 10px;
+        border: 1px solid rgba(215, 223, 232, 0.78);
+        border-radius: 8px;
+        background: var(--diff);
+      }
+
+      .diff-columns {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .line {
+        min-height: 20px;
+        padding: 7px 8px;
+        border: 1px solid rgba(215, 223, 232, 0.62);
+        border-radius: 8px;
+        background: #fff;
+        font-size: 13px;
+        line-height: 20px;
+      }
+
+      .line.add {
+        background: var(--add-bg);
+        color: var(--add-text);
+      }
+
+      .line.remove {
+        background: var(--remove-bg);
+        color: var(--remove-text);
+      }
+
+      .slot {
+        display: inline-grid;
+        max-width: 220px;
+        padding: 6px 9px;
+        border: 1px solid rgba(36, 87, 255, 0.22);
+        border-radius: 999px;
+        background: rgba(36, 87, 255, 0.07);
+        color: var(--insert);
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 650;
+      }
+
+      .block {
+        padding: 10px;
+        border: 1px solid rgba(180, 35, 24, 0.22);
+        border-radius: 8px;
+        background: rgba(180, 35, 24, 0.06);
+        color: var(--blocked);
+        font-size: 12px;
+        line-height: 18px;
+      }
+
+      .insert {
+        min-height: 56px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        align-items: center;
+        padding: 8px;
+        border: 1px solid rgba(36, 87, 255, 0.22);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.96);
+      }
+
+      .insert button {
+        min-height: 36px;
+        border: 0;
+        border-radius: 8px;
+        background: var(--insert);
+        color: #fff;
+        font-weight: 650;
+      }
+
+      .insert.blocked {
+        border-color: rgba(180, 35, 24, 0.22);
+        background: rgba(180, 35, 24, 0.04);
+      }
+
+      .insert.blocked button {
+        background: #e2e8f0;
+        color: #64748b;
+      }
+
+      @media (max-width: 520px) {
+        main {
+          width: min(390px, calc(100vw - 24px));
+        }
+
+        .deck-header,
+        .title-row,
+        .diff-columns,
+        .insert {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main data-visual-mode="Assistive_Draft_Diff_Deck">
+      <section>
+        <p class="eyebrow">Visual mode</p>
+        <h1>Assistive_Draft_Diff_Deck</h1>
+        <p class="support">Static atlas for the sectioned draft deck inside the assistive rail.</p>
+      </section>
+      <section class="rail" aria-label="Enabled draft rail specimen">
+        <header class="deck-header">
+          <div>
+            <p class="eyebrow">Draft deck</p>
+            <h2>Draft note sections</h2>
+          </div>
+          <span class="status">Live patch lease</span>
+        </header>
+        <article class="card">
+          <div class="title-row">
+            <div>
+              <p class="eyebrow">Section 1</p>
+              <h2>History summary</h2>
+            </div>
+            <span class="status">Ready</span>
+          </div>
+          <p class="support">Evidence mapped to current task snapshot</p>
+          <div class="toggle" aria-label="Compare model">
+            <span>Before</span>
+            <span>After</span>
+            <span class="active">Compare</span>
+          </div>
+          <div class="diff">
+            <div class="diff-columns">
+              <p class="line remove">Parent asks for antibiotics.</p>
+              <p class="line add">Parent asks whether antibiotics are needed.</p>
+            </div>
+          </div>
+          <span class="slot">Decision note - history slot</span>
+          <div class="insert">
+            <p class="support">Bound to Decision note - history slot.</p>
+            <button type="button">Insert in shown slot</button>
+          </div>
+        </article>
+      </section>
+      <section class="rail" aria-label="Blocked draft rail specimen">
+        <header class="deck-header">
+          <div>
+            <p class="eyebrow">Draft deck</p>
+            <h2>Draft note sections</h2>
+          </div>
+          <span class="status blocked">Blocked</span>
+        </header>
+        <article class="card blocked">
+          <div class="title-row">
+            <div>
+              <p class="eyebrow">Section 1</p>
+              <h2>History summary</h2>
+            </div>
+            <span class="status blocked">Insert blocked</span>
+          </div>
+          <p class="support">Draft remains readable as stale-recoverable context</p>
+          <div class="diff">
+            <p class="line">No same-day red flags are recorded in the request.</p>
+          </div>
+          <span class="slot">Decision note - history slot stale</span>
+          <div class="block">
+            <strong>Insert blocked before click</strong>
+            <p>Target slot changed. Selected anchor changed.</p>
+          </div>
+          <div class="insert blocked">
+            <p class="support">Insert is unavailable until the shown lease and slot are live.</p>
+            <button type="button">Insert in shown slot</button>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

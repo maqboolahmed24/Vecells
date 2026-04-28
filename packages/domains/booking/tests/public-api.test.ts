@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   aggregateFamilies,
+  createPhase4AppointmentManageService,
+  createPhase4AppointmentManageStore,
+  createPhase4AssistedBookingService,
+  createPhase4AssistedBookingStore,
+  createPhase4BookingReconciliationService,
+  createPhase4BookingReconciliationStore,
+  createPhase4SmartWaitlistService,
+  createPhase4SmartWaitlistStore,
   bootstrapDomainModule,
   createPhase4BookingCapabilityEngineService,
   createPhase4BookingCapabilityEngineStore,
@@ -34,6 +42,14 @@ describe("public package surface", () => {
     expect(Array.isArray(eventFamilies)).toBe(true);
     expect(Array.isArray(policyFamilies)).toBe(true);
     expect(Array.isArray(projectionFamilies)).toBe(true);
+    expect(typeof createPhase4AppointmentManageStore).toBe("function");
+    expect(typeof createPhase4AppointmentManageService).toBe("function");
+    expect(typeof createPhase4AssistedBookingStore).toBe("function");
+    expect(typeof createPhase4AssistedBookingService).toBe("function");
+    expect(typeof createPhase4BookingReconciliationStore).toBe("function");
+    expect(typeof createPhase4BookingReconciliationService).toBe("function");
+    expect(typeof createPhase4SmartWaitlistStore).toBe("function");
+    expect(typeof createPhase4SmartWaitlistService).toBe("function");
     expect(typeof createPhase4BookingCapabilityEngineStore).toBe("function");
     expect(typeof createPhase4BookingCapabilityEngineService).toBe("function");
     expect(typeof createPhase4BookingCaseKernelStore).toBe("function");

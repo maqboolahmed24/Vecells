@@ -1444,7 +1444,18 @@ export function createPhase4BookingReservationApplication(input?: {
       | Awaited<ReturnType<typeof reservationServices.reservationAuthority.claimReservation>>
       | Awaited<ReturnType<typeof reservationServices.reservationAuthority.transitionReservation>>;
 
-    if (priorScope === null) {
+    if (priorScope !== null) {
+      invariant(
+        priorScope.scopeTupleHash === input.context.scopeTupleHash,
+        "STALE_RESERVATION_SCOPE_TUPLE",
+        "Reservation mutation requires the current booking tuple. Refresh reservation truth before retrying.",
+      );
+    }
+
+    const canTransitionActiveScope = priorScope !== null && priorScope.scopeState === "active";
+
+    if (!canTransitionActiveScope) {
+      // Terminal scopes must re-enter through a fresh claim because the live fence is gone.
       authorityResult = await reservationServices.reservationAuthority.claimReservation({
         capacityIdentityRef: input.context.capacityIdentityRef,
         canonicalReservationKey: input.context.canonicalReservationKey,
@@ -1485,11 +1496,6 @@ export function createPhase4BookingReservationApplication(input?: {
         input.command.fenceToken,
         "RESERVATION_FENCE_TOKEN_REQUIRED",
         "Reservation mutation requires the latest active fence token.",
-      );
-      invariant(
-        priorScope.scopeTupleHash === input.context.scopeTupleHash,
-        "STALE_RESERVATION_SCOPE_TUPLE",
-        "Reservation mutation requires the current booking tuple. Refresh reservation truth before retrying.",
       );
       authorityResult = await reservationServices.reservationAuthority.transitionReservation({
         canonicalReservationKey: input.context.canonicalReservationKey,

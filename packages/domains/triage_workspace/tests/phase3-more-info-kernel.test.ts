@@ -154,6 +154,48 @@ describe("phase 3 more-info kernel", () => {
     expect(blocked.checkpoint.repairRequiredReasonRef).toBe("contact_route_disputed");
   });
 
+  it("suppresses live reminder schedules once the authoritative checkpoint reaches late review", async () => {
+    const { service } = createHarness("late_review");
+    const created = await service.createCycle(
+      createCycleInput("late_review", {
+        dueAt: "2026-04-16T09:10:00.000Z",
+        lateReviewStartsAt: "2026-04-16T09:10:00.000Z",
+        expiresAt: "2026-04-16T09:40:00.000Z",
+        reminderOffsetsMinutes: [5],
+      }),
+    );
+
+    const delivered = await service.markDelivered({
+      cycleId: created.cycle.cycleId,
+      presentedOwnershipEpoch: created.cycle.ownershipEpoch,
+      presentedFencingToken: created.cycle.fencingToken,
+      presentedLineageFenceEpoch: created.cycle.currentLineageFenceEpoch,
+      deliveredAt: "2026-04-16T09:01:00.000Z",
+    });
+    const lateReview = await service.refreshReplyWindowState({
+      cycleId: created.cycle.cycleId,
+      presentedOwnershipEpoch: delivered.cycle.ownershipEpoch,
+      presentedFencingToken: delivered.cycle.fencingToken,
+      presentedLineageFenceEpoch: delivered.cycle.currentLineageFenceEpoch,
+      evaluatedAt: "2026-04-16T09:11:00.000Z",
+      repairBlocked: false,
+    });
+
+    expect(lateReview.checkpoint.replyWindowState).toBe("late_review");
+    expect(lateReview.cycle.state).toBe("awaiting_late_review");
+    expect(lateReview.schedule.scheduleState).toBe("suppressed");
+    expect(lateReview.schedule.suppressedReasonRef).toBe("late_review_reached");
+    await expect(
+      service.markReminderDispatched({
+        cycleId: created.cycle.cycleId,
+        presentedOwnershipEpoch: lateReview.cycle.ownershipEpoch,
+        presentedFencingToken: lateReview.cycle.fencingToken,
+        presentedLineageFenceEpoch: lateReview.cycle.currentLineageFenceEpoch,
+        reminderSentAt: "2026-04-16T09:12:00.000Z",
+      }),
+    ).rejects.toThrow(/Reminders may dispatch only while the reply window is open or due/i);
+  });
+
   it("keeps quiet-hours release and worker effect keys replay-safe", () => {
     expect(
       resolveQuietHoursReleaseAt({

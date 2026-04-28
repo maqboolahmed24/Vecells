@@ -227,6 +227,9 @@ export async function run() {
     await galleryPage.close();
 
     const page = await browser.newPage({ viewport: { width: 1480, height: 1120 } });
+    await page.addInitScript(() => {
+      localStorage.setItem("patient-shell-seed-routes", "true");
+    });
     const appExternal = new Set();
     trackExternalRequests(page, baseUrl, appExternal);
 
@@ -384,6 +387,9 @@ export async function run() {
     await page.close();
 
     const mobilePage = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    await mobilePage.addInitScript(() => {
+      localStorage.setItem("patient-shell-seed-routes", "true");
+    });
     await mobilePage.goto(`${baseUrl}/messages/thread/THR-399`, { waitUntil: "networkidle" });
     await mobilePage.locator("[data-testid='patient-shell-root']").waitFor();
     assertCondition(
@@ -393,6 +399,9 @@ export async function run() {
     await mobilePage.close();
 
     const motionPage = await browser.newPage({ viewport: { width: 1280, height: 920 } });
+    await motionPage.addInitScript(() => {
+      localStorage.setItem("patient-shell-seed-routes", "true");
+    });
     await motionPage.emulateMedia({ reducedMotion: "reduce" });
     await motionPage.goto(`${baseUrl}/home`, { waitUntil: "networkidle" });
     await motionPage.locator("[data-testid='patient-shell-root']").waitFor();

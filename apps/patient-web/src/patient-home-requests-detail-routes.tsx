@@ -28,6 +28,7 @@ import {
   type PatientRequestsIndexProjection,
 } from "./patient-home-requests-detail-routes.model";
 import { PatientSupportPhase2Bridge } from "./patient-support-phase2-bridge";
+import { PatientRequestDownstreamWorkRail } from "./patient-appointment-family-workspace";
 
 export { isPatientHomeRequestsDetailPath };
 
@@ -146,6 +147,10 @@ function usePatientCaseworkController() {
       setAnnouncement("Governed placeholder focused.");
       return;
     }
+    if (!isPatientHomeRequestsDetailPath(pathname)) {
+      ownerWindow?.location.assign(pathname);
+      return;
+    }
     const nextBundle = bundle ?? entry.returnBundle;
     writeReturnBundle(nextBundle);
     startTransition(() => {
@@ -253,6 +258,7 @@ export function PatientShellFrame({
       data-recovery-class={phase2Context.recoveryClass}
       data-canonical-status-label={phase2Context.canonicalStatusLabel}
       data-supported-testids="home-spotlight-card quiet-home-panel home-compact-grid request-index-rail request-summary-row request-detail-hero request-lineage-strip case-pulse-panel decision-dock governed-placeholder-card"
+      data-supported-testids-368="pharmacy-child-card request-row-pharmacy-chip"
     >
       <header className="patient-casework__top-band" data-testid="patient-shell-top-band">
         <a
@@ -487,9 +493,21 @@ export function RequestSummaryRow({
       <span className="patient-casework__row-main">
         <strong>{request.displayLabel}</strong>
         <span>{request.patientSummary}</span>
+        {request.linkedPharmacyCaseId ? (
+          <small
+            className="patient-casework__row-pharmacy-chip"
+            data-testid={`request-row-pharmacy-chip-${request.requestRef}`}
+            data-pharmacy-case-id={request.linkedPharmacyCaseId}
+          >
+            {request.linkedPharmacyCaseId} · {request.linkedPharmacyStatusLabel}
+          </small>
+        ) : null}
       </span>
       <span className="patient-casework__row-meta">
         <em>{request.statusText}</em>
+        {request.changedSinceSeenLabel ? (
+          <small>{request.changedSinceSeenLabel}</small>
+        ) : null}
         <small>{request.updatedLabel}</small>
       </span>
     </button>
@@ -771,7 +789,14 @@ export function DecisionDock({
   );
 }
 
-export function GovernedPlaceholderCard({ child }: { child: PatientRequestDownstreamProjection }) {
+export function GovernedPlaceholderCard({
+  child,
+  onNavigate,
+}: {
+  child: PatientRequestDownstreamProjection;
+  onNavigate?: ((pathname: string) => void) | null;
+}) {
+  const actionable = child.placeholderPosture === "none" && Boolean(onNavigate);
   return (
     <article
       className="patient-casework__placeholder-card"
@@ -791,6 +816,87 @@ export function GovernedPlaceholderCard({ child }: { child: PatientRequestDownst
         <h3 id={`${child.childRef}-title`}>{child.label}</h3>
         <p>{child.summary}</p>
         <small>{child.placeholderReasonRefs.join(" | ")}</small>
+        {actionable ? (
+          <div className="patient-casework__detail-hero-actions">
+            <button
+              type="button"
+              className="patient-casework__secondary-action"
+              data-testid={`governed-placeholder-open-${child.childType}`}
+              onClick={() => onNavigate?.(child.routeRef)}
+            >
+              Open entry
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
+function PharmacyContinuationCard({
+  child,
+  onNavigate,
+}: {
+  child: PatientRequestDownstreamProjection;
+  onNavigate: (pathname: string) => void;
+}) {
+  const pharmacyChild = child.pharmacyChild;
+  if (!pharmacyChild) {
+    return null;
+  }
+  return (
+    <article
+      className="patient-casework__placeholder-card patient-casework__placeholder-card--pharmacy"
+      data-testid={`pharmacy-child-card-${pharmacyChild.pharmacyCaseId}`}
+      data-placeholder-ref={child.downstreamProjectionRef}
+      data-pharmacy-case-id={pharmacyChild.pharmacyCaseId}
+      data-merge-state={pharmacyChild.mergeState}
+      tabIndex={-1}
+      aria-labelledby={`${child.childRef}-title`}
+    >
+      <div className="patient-casework__placeholder-icon" aria-hidden>
+        <Icon name="action" />
+      </div>
+      <div>
+        <span className="patient-casework__panel-state">{child.authoritativeState}</span>
+        <h3 id={`${child.childRef}-title`}>{child.label}</h3>
+        <p>{child.summary}</p>
+        <dl className="patient-casework__pharmacy-meta">
+          <div>
+            <dt>Case</dt>
+            <dd>{pharmacyChild.pharmacyCaseId}</dd>
+          </div>
+          <div>
+            <dt>Lineage</dt>
+            <dd>{pharmacyChild.requestLineageLabel}</dd>
+          </div>
+          <div>
+            <dt>Changed</dt>
+            <dd>{pharmacyChild.changedSinceSeenLabel}</dd>
+          </div>
+          <div>
+            <dt>Notification</dt>
+            <dd>{pharmacyChild.notificationStateLabel}</dd>
+          </div>
+          <div>
+            <dt>Support</dt>
+            <dd>{pharmacyChild.supportReplaySummary}</dd>
+          </div>
+          <div>
+            <dt>Audit</dt>
+            <dd>{pharmacyChild.auditSummary}</dd>
+          </div>
+        </dl>
+        <div className="patient-casework__detail-hero-actions">
+          <button
+            type="button"
+            className="patient-casework__secondary-action"
+            data-testid={`pharmacy-child-open-${pharmacyChild.pharmacyCaseId}`}
+            onClick={() => onNavigate(child.routeRef)}
+          >
+            Open pharmacy route
+          </button>
+        </div>
       </div>
     </article>
   );
@@ -819,12 +925,16 @@ function DetailRoute({
   onReturn,
   onFocusPlaceholder,
   onOpenConversation,
+  onNavigate,
 }: {
   detail: PatientRequestDetailProjection;
   onReturn: () => void;
   onFocusPlaceholder: (child: PatientRequestDownstreamProjection) => void;
   onOpenConversation?: (() => void) | null;
+  onNavigate: (pathname: string) => void;
 }) {
+  const visibleChildren = detail.downstream.filter((child) => child.childType !== "booking");
+
   return (
     <div className="patient-casework__detail" data-testid="patient-request-detail-route">
       <div className="patient-casework__detail-main">
@@ -834,13 +944,26 @@ function DetailRoute({
           onReturn={onReturn}
           onOpenConversation={onOpenConversation}
         />
+        <PatientRequestDownstreamWorkRail requestRef={detail.requestRef} onNavigate={onNavigate} />
         <section
           className="patient-casework__placeholder-grid"
           aria-label="Governed child surfaces"
         >
-          {detail.downstream.map((child) => (
-            <GovernedPlaceholderCard key={child.downstreamProjectionRef} child={child} />
-          ))}
+          {visibleChildren.map((child) =>
+            child.childType === "pharmacy" ? (
+              <PharmacyContinuationCard
+                key={child.downstreamProjectionRef}
+                child={child}
+                onNavigate={onNavigate}
+              />
+            ) : (
+              <GovernedPlaceholderCard
+                key={child.downstreamProjectionRef}
+                child={child}
+                onNavigate={onNavigate}
+              />
+            ),
+          )}
         </section>
         <TrustSummary detail={detail} />
       </div>
@@ -886,6 +1009,7 @@ export default function PatientHomeRequestsDetailRoutesApp() {
           detail={entry.requestDetail}
           onReturn={returnToRequests}
           onFocusPlaceholder={focusPlaceholder}
+          onNavigate={navigate}
           onOpenConversation={(() => {
             const bundle = tryResolvePhase3PatientWorkspaceConversationBundle({
               requestRef: entry.requestDetail.requestRef,

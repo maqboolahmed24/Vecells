@@ -58,6 +58,24 @@ describe("phase 3 review bundle assembler seam", () => {
     expect(result.visibleSuggestions[0].visibilityState).toBe("observe_only");
   });
 
+  it("blocks regenerated summary copy and workflow suggestions when parity is unsafe", async () => {
+    const application = createReviewBundleAssemblerApplication();
+    await application.simulation.applyParityState(PHASE3_REVIEW_BUNDLE_FIXTURE_TASK_ID, "blocked");
+
+    const result = await application.queryTaskReviewBundle(PHASE3_REVIEW_BUNDLE_FIXTURE_TASK_ID);
+
+    expect(result.bundle.publicationState).toBe("recovery_required");
+    expect(result.bundle.summaryVisibilityState).toBe("suppressed");
+    expect(result.bundle.deterministicSummary.summaryLines).toEqual([]);
+    expect(result.bundle.deterministicSummary.summaryText).toBeNull();
+    expect(result.bundle.deterministicSummary.provisionalText).toBeNull();
+    expect(result.bundle.deterministicSummary.suppressionReasonCodes).toContain(
+      "REVIEW_235_PARITY_BLOCKED",
+    );
+    expect(result.visibleSuggestions[0].visibilityState).toBe("blocked");
+    expect(result.shadowSuggestions[0].visibilityState).toBe("silent_shadow");
+  });
+
   it("invalidates stale bundle assumptions and forces a rebuild when duplicate truth reverses", async () => {
     const application = createReviewBundleAssemblerApplication();
     const initial = await application.queryTaskReviewBundle(PHASE3_REVIEW_BUNDLE_FIXTURE_TASK_ID);

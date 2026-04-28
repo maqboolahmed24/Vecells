@@ -38,6 +38,10 @@ import {
   type Phase3PatientWorkspaceRepairPosture,
   type Phase3PatientWorkspaceReplyEligibilityState,
 } from "@vecells/domain-kernel";
+import {
+  defaultStaffBookingCaseId,
+  resolveStaffBookingCaseSeed,
+} from "./workspace-booking-handoff.model";
 
 type FrontendContractManifestRuntime = any;
 type FrontendManifestValidationVerdict = any;
@@ -107,6 +111,7 @@ export type StaffRouteKind =
   | "approvals"
   | "escalations"
   | "changed"
+  | "bookings"
   | "search"
   | "support-handoff";
 
@@ -199,6 +204,7 @@ export interface StaffShellRoute {
   sectionLabel: string;
   queueKey: string | null;
   taskId: string | null;
+  bookingCaseId?: string | null;
   searchQuery: string;
 }
 
@@ -2411,6 +2417,7 @@ export function routeFamilyRefForKind(
     case "approvals":
     case "escalations":
     case "changed":
+    case "bookings":
     case "search":
     case "support-handoff":
       return "rf_staff_workspace_child";
@@ -2421,6 +2428,7 @@ export function buildStaffPath(route: {
   kind: StaffRouteKind;
   queueKey?: string | null;
   taskId?: string | null;
+  bookingCaseId?: string | null;
   searchQuery?: string;
 }): string {
   switch (route.kind) {
@@ -2448,6 +2456,8 @@ export function buildStaffPath(route: {
       return "/workspace/escalations";
     case "changed":
       return "/workspace/changed";
+    case "bookings":
+      return route.bookingCaseId ? `/workspace/bookings/${route.bookingCaseId}` : "/workspace/bookings";
     case "search": {
       const search = route.searchQuery?.trim();
       return search ? `/workspace/search?q=${encodeURIComponent(search)}` : "/workspace/search";
@@ -2483,6 +2493,8 @@ function titleForRoute(route: StaffRouteKind): string {
       return "Escalations";
     case "changed":
       return "Changed since seen";
+    case "bookings":
+      return "Bookings";
     case "search":
       return "Search";
     case "support-handoff":
@@ -2504,6 +2516,8 @@ function sectionForRoute(route: StaffRouteKind): string {
       return "Escalations";
     case "changed":
       return "Changed";
+    case "bookings":
+      return "Bookings";
     case "search":
       return "Search";
     case "validation":
@@ -2653,6 +2667,23 @@ export function parseStaffPath(pathname: string, search = ""): StaffShellRoute {
     };
   }
 
+  const bookingMatch = normalizedPath.match(/^\/workspace\/bookings(?:\/([^/]+))?$/);
+  if (bookingMatch) {
+    const bookingCaseId = decodeURIComponent(bookingMatch[1] ?? defaultStaffBookingCaseId);
+    const bookingSeed = resolveStaffBookingCaseSeed(bookingCaseId);
+    return {
+      kind: "bookings",
+      path: buildStaffPath({ kind: "bookings", bookingCaseId: bookingSeed.bookingCaseId }),
+      routeFamilyRef: "rf_staff_workspace_child",
+      title: titleForRoute("bookings"),
+      sectionLabel: sectionForRoute("bookings"),
+      queueKey: bookingSeed.queueKey,
+      taskId: bookingSeed.taskId,
+      bookingCaseId: bookingSeed.bookingCaseId,
+      searchQuery: "",
+    };
+  }
+
   if (normalizedPath === "/workspace/search") {
     const searchQuery = params.get("q") ?? "";
     return {
@@ -2718,6 +2749,8 @@ export function defaultAnchorForRoute(route: StaffShellRoute): string {
       return "escalation-preview-task-412";
     case "changed":
       return "changed-delta-task-311";
+    case "bookings":
+      return resolveStaffBookingCaseSeed(route.bookingCaseId).defaultAnchorRef;
     case "search":
       return "search-results";
     case "support-handoff":
@@ -2729,11 +2762,13 @@ export function createInitialLedger(
   route: StaffShellRoute,
   runtimeScenario: RuntimeScenario,
 ): StaffShellLedger {
+  const bookingSeed = route.kind === "bookings" ? resolveStaffBookingCaseSeed(route.bookingCaseId) : null;
   const queuedBatchPending =
     route.kind === "queue" ||
     route.kind === "home" ||
     route.kind === "callbacks" ||
-    route.kind === "messages";
+    route.kind === "messages" ||
+    Boolean(bookingSeed?.queueBuffered);
   return {
     path: route.path,
     selectedAnchorId: defaultAnchorForRoute(route),
@@ -2752,16 +2787,18 @@ export function createInitialLedger(
           ? "expanded"
           : "collapsed",
     runtimeScenario,
-      lastQuietRegionLabel:
-        route.kind === "home"
-          ? "Today workbench hero"
-          : route.kind === "callbacks"
-            ? "Callback workbench"
+    lastQuietRegionLabel:
+      route.kind === "home"
+        ? "Today workbench hero"
+        : route.kind === "callbacks"
+          ? "Callback workbench"
           : route.kind === "consequences"
             ? "Bounded consequence studio"
-          : route.kind === "messages"
-            ? "Thread repair studio"
-          : "Queue workboard",
+            : route.kind === "messages"
+              ? "Thread repair studio"
+              : route.kind === "bookings"
+                ? "Staff booking control panel"
+                : "Queue workboard",
   };
 }
 
@@ -3230,10 +3267,12 @@ export function buildWorkspaceStatus(
             ? "Repair message delivery truth with evidence"
         : route.kind === "approvals"
           ? "Advance the promoted approval preview"
-          : route.kind === "escalations"
+        : route.kind === "escalations"
             ? "Relieve the escalated callback blocker"
             : route.kind === "changed"
               ? "Acknowledge the authoritative delta packet"
+              : route.kind === "bookings"
+                ? "Advance the assisted booking case through the shared booking core"
               : route.kind === "search"
                 ? "Review the exact-match search result"
                 : route.kind === "support-handoff"
@@ -3339,6 +3378,8 @@ export function buildWorkspaceStatus(
             ? "Escalation active"
             : route.kind === "changed"
               ? "Resumed review"
+              : route.kind === "bookings"
+                ? "Assisted booking"
               : runtimeScenario === "live"
                 ? "In review"
                 : runtimeScenario === "blocked"
@@ -5430,6 +5471,8 @@ export function deriveTaskForRoute(route: StaffShellRoute): StaffQueueCase | nul
         ? requireCase("task-412")
         : route.kind === "changed"
           ? requireCase("task-311")
+          : route.kind === "bookings"
+            ? requireCase(resolveStaffBookingCaseSeed(route.bookingCaseId).taskId)
           : route.kind === "support-handoff"
             ? requireCase("task-412")
             : null;
@@ -5472,9 +5515,23 @@ export function deriveVisibleQueueRows(
       (item) => item.state === "changed" || item.state === "reassigned" || item.deltaClass !== "contextual",
     );
   }
+  if (route.kind === "bookings") {
+    const bookingTaskIds = new Set(baseQueueRowsForBookings());
+    return visibleCases.filter((item) => bookingTaskIds.has(item.id));
+  }
   const queueKey = route.queueKey ?? ledger.queueKey ?? "recommended";
   const rows = listQueueCases(queueKey);
   return ledger.queuedBatchPending ? rows : applyQueueChangeBatch(rows, ledger.selectedTaskId);
+}
+
+function baseQueueRowsForBookings(): readonly string[] {
+  return [
+    resolveStaffBookingCaseSeed("booking_case_299_linkage_required").taskId,
+    resolveStaffBookingCaseSeed("booking_case_299_compare_live").taskId,
+    resolveStaffBookingCaseSeed("booking_case_299_pending_confirmation").taskId,
+    resolveStaffBookingCaseSeed("booking_case_299_stale_recovery").taskId,
+    resolveStaffBookingCaseSeed("booking_case_299_confirmed").taskId,
+  ];
 }
 
 function queueRankSnapshotRef(queueKey: string, queuedBatchPending: boolean): string {
@@ -5909,7 +5966,9 @@ export function reduceLedgerForNavigation(input: {
       callbackStage: input.nextRoute.kind === "callbacks" ? input.ledger.callbackStage : "detail",
       messageStage: input.nextRoute.kind === "messages" ? input.ledger.messageStage : "detail",
       bufferedQueueTrayState: input.ledger.queuedBatchPending
-        ? input.nextRoute.kind === "queue" || input.nextRoute.kind === "home"
+        ? input.nextRoute.kind === "queue" ||
+          input.nextRoute.kind === "home" ||
+          (input.nextRoute.kind === "bookings" && resolveStaffBookingCaseSeed(input.nextRoute.bookingCaseId).queueBuffered)
           ? "expanded"
           : input.ledger.bufferedQueueTrayState === "expanded"
             ? "collapsed"
@@ -5924,6 +5983,8 @@ export function reduceLedgerForNavigation(input: {
               ? "Bounded consequence studio"
             : input.nextRoute.kind === "messages"
               ? "Thread repair studio"
+              : input.nextRoute.kind === "bookings"
+                ? "Staff booking control panel"
             : input.ledger.lastQuietRegionLabel,
     },
     boundaryState: boundaryDecision.boundaryState,

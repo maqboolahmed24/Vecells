@@ -36,8 +36,10 @@ describe("pharmacy shell accessibility surface", () => {
 
     expect(html).toContain('data-visualization-mode="table_only"');
     expect(html).toContain('data-testid="pharmacy-inventory-route"');
-    expect(html).toContain("Table-first inventory review");
-    expect(html).toContain("Inventory comparison fallback");
+    expect(html).toContain('data-promoted-support-region="inventory_comparison"');
+    expect(html).toContain('data-testid="InventoryTruthPanel"');
+    expect(html).toContain('data-testid="InventoryComparisonWorkspace"');
+    expect(html).toContain("comparison workspace");
   });
 
   it("folds to mission_stack and recovery-only posture for urgent return", () => {

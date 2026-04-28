@@ -1,0 +1,12 @@
+# Phase 9 Resilience Action Settlement
+
+Schema version: 445.phase9.resilience-action-settlement.v1
+Readiness tuple hash: ac124ee5a8eab4a4268eaae0c9f826d58692906b5fe036cdf0ddc1199578d2ce
+Recovery control posture hash: ea79eeb5e1c89d8ac30ece0c16d11a81a134040184ae16d0657e9198413fa169
+Action scope tuple hash: 0d2163336006c2f3ce32d9cfdc00044364207f9deb4863eb8b0acaf7d46f6e36
+Live surface binding: live
+Restore validation result: succeeded
+Failover stand-down settlement: ras_445_42ca1262b8f6b143
+Chaos guardrail blocked: blocked_guardrail
+Recovery evidence writeback hash: 71b08efa7f43ff7e307b4aa6d2801e720a3696a7dd1ccdee25c84725b73fb07c
+Replay hash: e9d7edc38fe5660fc596054a7507331e080b9955fd0c17a61fd2ba0a5598cece

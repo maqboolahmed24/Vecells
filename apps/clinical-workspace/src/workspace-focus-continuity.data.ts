@@ -5,6 +5,7 @@ import type {
   TaskWorkspaceProjection,
 } from "./workspace-shell.data";
 import { applyQueueChangeBatch, listQueueCases } from "./workspace-shell.data";
+import { resolveStaffBookingCaseSeed } from "./workspace-booking-handoff.model";
 import { buildQueueCallbackAdminMergeDigest } from "./workspace-queue-callback-admin-merge.data";
 
 export type ProtectedCompositionMode =
@@ -152,6 +153,14 @@ function protectedModeFor(input: {
   if (route.kind === "messages") {
     return ledger.messageStage === "detail" ? "none" : "dispute_review";
   }
+  if (route.kind === "bookings") {
+    const focusMode = resolveStaffBookingCaseSeed(route.bookingCaseId).focusMode;
+    return focusMode === "comparing"
+      ? "comparing"
+      : focusMode === "confirming"
+        ? "confirming"
+        : "none";
+  }
   if (!taskProjection) {
     return "none";
   }
@@ -198,6 +207,9 @@ function focusSubjectFor(
     case "confirming":
       if (route.kind === "callbacks") {
         return `Callback outcome capture for ${task.patientLabel}`;
+      }
+      if (route.kind === "bookings") {
+        return `Assisted booking confirmation for ${task.patientLabel}`;
       }
       return route.kind === "decision"
         ? `Endpoint consequence draft for ${task.patientLabel}`

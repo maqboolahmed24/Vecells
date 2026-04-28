@@ -329,7 +329,22 @@ export interface AppointmentRecordSnapshot {
   providerAdapterBindingRef: string;
   providerReference: string | null;
   authoritativeProofClass: Exclude<BookingAuthoritativeProofClass, "none">;
-  appointmentStatus: "booked";
+  appointmentStatus:
+    | "booked"
+    | "cancellation_pending"
+    | "cancelled"
+    | "reschedule_in_progress"
+    | "superseded";
+  confirmationTruthProjectionRef: string;
+  manageSupportContractRef: string | null;
+  manageCapabilities: readonly string[];
+  manageCapabilityProjectionRef: string | null;
+  reminderPlanRef: string | null;
+  presentationArtifactRef: string | null;
+  supersedesAppointmentRef: string | null;
+  supersededByAppointmentRef: string | null;
+  latestManageSettlementRef: string | null;
+  administrativeDetails: Readonly<Record<string, string>>;
   createdAt: string;
   updatedAt: string;
   version: number;
@@ -1065,7 +1080,19 @@ function buildAppointmentRecord(
     providerAdapterBindingRef: transaction.providerAdapterBindingRef,
     providerReference: transaction.providerReference,
     authoritativeProofClass: proofClass,
-    appointmentStatus: "booked",
+    appointmentStatus: existing?.appointmentStatus ?? "booked",
+    confirmationTruthProjectionRef: transaction.confirmationTruthProjectionRef,
+    manageSupportContractRef: existing?.manageSupportContractRef ?? null,
+    manageCapabilities: existing?.manageCapabilities ?? [],
+    manageCapabilityProjectionRef: existing?.manageCapabilityProjectionRef ?? null,
+    reminderPlanRef: existing?.reminderPlanRef ?? null,
+    presentationArtifactRef:
+      existing?.presentationArtifactRef ??
+      `artifact://booking/appointment/${existing?.appointmentRecordId ?? transaction.bookingCaseId}`,
+    supersedesAppointmentRef: existing?.supersedesAppointmentRef ?? null,
+    supersededByAppointmentRef: existing?.supersededByAppointmentRef ?? null,
+    latestManageSettlementRef: existing?.latestManageSettlementRef ?? null,
+    administrativeDetails: existing?.administrativeDetails ?? {},
     createdAt: existing?.createdAt ?? transaction.updatedAt,
     updatedAt: transaction.updatedAt,
     version: (existing?.version ?? 0) + 1,
@@ -1980,42 +2007,45 @@ export function createPhase4BookingCommitService(input?: {
             emitConfirmedEvent = true;
           }
         } else if (command.observationKind === "confirmation_pending") {
+          const allowsPendingConfirmation =
+            previousTransaction.supportsAsyncCommitConfirmation ||
+            previousTransaction.authoritativeReadMode === "read_after_write";
           const blockerReasonCode =
             optionalRef(command.blockerReasonCode) ??
-            (previousTransaction.supportsAsyncCommitConfirmation
-              ? "awaiting_external_confirmation"
-              : "async_confirmation_not_allowed_by_policy");
+            (previousTransaction.authoritativeReadMode === "read_after_write"
+              ? "awaiting_authoritative_read"
+              : previousTransaction.supportsAsyncCommitConfirmation
+                ? "awaiting_external_confirmation"
+                : "async_confirmation_not_allowed_by_policy");
           nextTransaction = {
             ...nextTransaction,
-            authoritativeOutcomeState: previousTransaction.supportsAsyncCommitConfirmation
+            authoritativeOutcomeState: allowsPendingConfirmation
               ? "confirmation_pending"
               : "reconciliation_required",
-            commitState: previousTransaction.supportsAsyncCommitConfirmation
+            commitState: allowsPendingConfirmation ? "confirmation_pending" : "reconciliation_required",
+            confirmationState: allowsPendingConfirmation
               ? "confirmation_pending"
               : "reconciliation_required",
-            confirmationState: previousTransaction.supportsAsyncCommitConfirmation
-              ? "confirmation_pending"
-              : "reconciliation_required",
-            blockerReasonCodes: previousTransaction.supportsAsyncCommitConfirmation
-              ? [blockerReasonCode]
-              : [],
-            reconciliationReasonCodes: previousTransaction.supportsAsyncCommitConfirmation
+            blockerReasonCodes: allowsPendingConfirmation ? [blockerReasonCode] : [],
+            reconciliationReasonCodes: allowsPendingConfirmation
               ? nextTransaction.reconciliationReasonCodes
               : [blockerReasonCode],
           };
           reasonCodes.push(blockerReasonCode);
           emitPendingEvent = {
-            eventName: previousTransaction.supportsAsyncCommitConfirmation
+            eventName: allowsPendingConfirmation
               ? "booking.commit.confirmation_pending"
               : "booking.commit.reconciliation_pending",
             blockerReasonCode,
             recoveryMode:
               optionalRef(command.recoveryMode) ??
-              (previousTransaction.supportsAsyncCommitConfirmation
-                ? "awaiting_external_confirmation"
-                : "policy_reconciliation_required"),
+              (previousTransaction.authoritativeReadMode === "read_after_write"
+                ? "awaiting_authoritative_read"
+                : previousTransaction.supportsAsyncCommitConfirmation
+                  ? "awaiting_external_confirmation"
+                  : "policy_reconciliation_required"),
           };
-          emitAmbiguousEvent = !previousTransaction.supportsAsyncCommitConfirmation;
+          emitAmbiguousEvent = !allowsPendingConfirmation;
         } else if (command.observationKind === "reconciliation_required") {
           const blockerReasonCode =
             optionalRef(command.blockerReasonCode) ?? "reconciliation_required";
@@ -2104,6 +2134,18 @@ export function createPhase4BookingCommitService(input?: {
             commitState: "expired",
             confirmationState: "expired",
             blockerReasonCodes: [failureReasonCode],
+          };
+          bookingException = buildBookingException(
+            nextTransaction,
+            "authoritative_failure",
+            failureReasonCode,
+            nextTransaction.latestReceiptCheckpointRef,
+            optionalRef(command.providerCorrelationRef),
+            bookingException,
+          );
+          nextTransaction = {
+            ...nextTransaction,
+            bookingExceptionRef: bookingException.bookingExceptionId,
           };
           reasonCodes.push(failureReasonCode);
         }
@@ -2214,6 +2256,14 @@ export function createPhase4BookingCommitService(input?: {
           ...nextTransaction,
           appointmentRecordRef: appointment.appointmentRecordId,
         };
+        if (bookingException) {
+          bookingException = {
+            ...bookingException,
+            exceptionState: "resolved",
+            updatedAt: nextTransaction.updatedAt,
+            version: bookingException.version + 1,
+          };
+        }
         emitConfirmedEvent = true;
         emitAppointmentCreatedEvent = existingAppointmentDocument === null;
       } else if (command.resolution.kind === "failed") {
@@ -2226,6 +2276,18 @@ export function createPhase4BookingCommitService(input?: {
           confirmationState: "failed",
           blockerReasonCodes: [command.resolution.failureReasonCode],
         };
+        bookingException = buildBookingException(
+          nextTransaction,
+          "authoritative_failure",
+          command.resolution.failureReasonCode,
+          nextTransaction.latestReceiptCheckpointRef,
+          previousTransaction.providerReference,
+          bookingException,
+        );
+        nextTransaction = {
+          ...nextTransaction,
+          bookingExceptionRef: bookingException.bookingExceptionId,
+        };
         reasonCodes.push(command.resolution.failureReasonCode);
       } else {
         nextTransaction = {
@@ -2237,16 +2299,19 @@ export function createPhase4BookingCommitService(input?: {
           confirmationState: "expired",
           blockerReasonCodes: [command.resolution.failureReasonCode],
         };
-        reasonCodes.push(command.resolution.failureReasonCode);
-      }
-
-      if (bookingException) {
-        bookingException = {
-          ...bookingException,
-          exceptionState: nextTransaction.authoritativeOutcomeState === "booked" ? "resolved" : "superseded",
-          updatedAt: nextTransaction.updatedAt,
-          version: bookingException.version + 1,
+        bookingException = buildBookingException(
+          nextTransaction,
+          "authoritative_failure",
+          command.resolution.failureReasonCode,
+          nextTransaction.latestReceiptCheckpointRef,
+          previousTransaction.providerReference,
+          bookingException,
+        );
+        nextTransaction = {
+          ...nextTransaction,
+          bookingExceptionRef: bookingException.bookingExceptionId,
         };
+        reasonCodes.push(command.resolution.failureReasonCode);
       }
 
       return writeCurrentResult({

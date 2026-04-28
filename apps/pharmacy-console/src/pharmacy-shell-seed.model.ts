@@ -11,8 +11,9 @@ import {
 } from "@vecells/persistent-shell";
 import type { CasePulseContract, StatusTruthInput } from "@vecells/design-system";
 
-export const PHARMACY_SHELL_TASK_ID = "par_120";
-export const PHARMACY_SHELL_VISUAL_MODE = "Pharmacy_Shell_Seed_Routes";
+export const PHARMACY_SHELL_TASK_ID = "par_356";
+export const PHARMACY_SHELL_VISUAL_MODE = "Pharmacy_Mission_Frame";
+export const PHARMACY_MISSION_FRAME_VISUAL_MODE = PHARMACY_SHELL_VISUAL_MODE;
 export const PHARMACY_SOURCE_SURFACE = "shell_gallery";
 export const PHARMACY_TELEMETRY_SCENARIO_ID =
   "SCN_PATIENT_SEED_SURROGATE_HOME";
@@ -41,7 +42,8 @@ export type PharmacyCaseScenario =
   | "clarification_required"
   | "urgent_return"
   | "weak_match_outcome"
-  | "manual_review_debt";
+  | "manual_review_debt"
+  | "unmatched_outcome";
 export type PharmacyQueueTone = "watch" | "caution" | "critical" | "success";
 export type PharmacyCheckpointState =
   | "satisfied"
@@ -69,7 +71,8 @@ export type PharmacyOutcomeTruthState =
   | "settled_resolved"
   | "weak_match"
   | "manual_review_debt"
-  | "urgent_return";
+  | "urgent_return"
+  | "unmatched_review";
 export type PharmacyConsentState =
   | "satisfied"
   | "clarification_required"
@@ -89,6 +92,18 @@ export type PharmacyRouteShellPosture =
   | "shell_live"
   | "shell_read_only"
   | "shell_recovery";
+export type PharmacyOperationsStateRef =
+  | "active_case"
+  | "waiting_for_patient_choice"
+  | "waiting_for_outcome"
+  | "bounce_back"
+  | "transport_failure"
+  | "provider_outage"
+  | "validation_due"
+  | "stock_risk"
+  | "handoff_blocked";
+export type PharmacyProviderHealthState = "nominal" | "degraded" | "outage";
+export type PharmacyWatchWindowState = "clear" | "watch" | "blocked";
 
 export interface PharmacyLocation {
   pathname: string;
@@ -162,6 +177,11 @@ export interface PharmacyCaseSeed {
   defaultLineItemId: string;
   checkpoints: readonly PharmacyCheckpoint[];
   lineItems: readonly PharmacyLineItem[];
+  operationsStateRefs?: readonly PharmacyOperationsStateRef[];
+  providerHealthState?: PharmacyProviderHealthState;
+  watchWindowState?: PharmacyWatchWindowState;
+  blockingReasonCodes?: readonly string[];
+  recoveryOwnerLabel?: string;
   gapRefs: readonly string[];
 }
 
@@ -912,6 +932,234 @@ export const pharmacyCases: readonly PharmacyCaseSeed[] = [
     gapRefs: [truthfulReopenGap],
   },
   {
+    pharmacyCaseId: "PHC-2204",
+    patientLabel: "Case 2204 / routine reopen",
+    scenario: "urgent_return",
+    queueLane: "Routine reopen",
+    queueTone: "caution",
+    queueSummary:
+      "Routine return has reopened the original request; the shell must stay explicit until the reopened route settles.",
+    caseSummary:
+      "This case proves routine bounce-back recovery stays in the same shell without splitting away from the original request frame.",
+    consentState: "satisfied",
+    consentSummary:
+      "Consent still supports review, but it does not restore quiet continuation while the reopen is active.",
+    inventoryPosture: "blocked",
+    inventorySummary:
+      "Held stock remains reference-only while the original request is reacquired and reviewed.",
+    proofState: "contradictory_proof",
+    proofSummary:
+      "Previous dispatch proof remains visible, but it is no longer the current safe path after the return.",
+    outcomeTruth: {
+      outcomeTruthState: "urgent_return",
+      matchConfidenceLabel: "Routine return / reopen active",
+      manualReviewState: "pending",
+      summary:
+        "Outcome posture is reopened and cannot read as settled while the original request is reacquired.",
+    },
+    dispatchTruth: {
+      transportAcceptanceState: "disputed",
+      providerAcceptanceState: "pending",
+      authoritativeProofState: "contradictory_proof",
+      deadlineRisk: "watch",
+      summary:
+        "The shell keeps the last proof visible for context, then routes action back through the original request frame.",
+    },
+    workbenchPosture: "reopen_for_safety",
+    dominantActionLabel: "Return to the original request and review what changed",
+    checkpointQuestion:
+      "Which part of the previous route is no longer valid, and what must stay visible when the original request reopens?",
+    watchWindowSummary:
+      "Routine return watch window is active and keeps quiet closure suppressed until the reopen settles.",
+    reopenSummary:
+      "Original request reacquisition is the dominant posture and must stay same-shell until the recovery completes.",
+    supportSummary:
+      "Promoted support region becomes a routine-return recovery board with diff and message preview instead of a calm completion surface.",
+    providerLabel: "Canal Street Pharmacy",
+    pathwayLabel: "Minor illness routine follow-up",
+    dueLabel: "Reopen today",
+    defaultCheckpointId: "validation",
+    defaultLineItemId: "PHC-2204-L1",
+    checkpoints: [
+      {
+        checkpointId: "consent",
+        label: "Consent",
+        state: "watch",
+        summary: "Consent supports review only while the reopen is active.",
+        evidenceLabel: "Recovery-only posture",
+      },
+      {
+        checkpointId: "validation",
+        label: "Validation",
+        state: "review_required",
+        summary: "Validation must reopen on the original request frame.",
+        evidenceLabel: "Diff review required",
+      },
+      {
+        checkpointId: "inventory",
+        label: "Inventory",
+        state: "blocked",
+        summary: "Inventory remains reference-only until the reopened route settles.",
+        evidenceLabel: "Held for context",
+      },
+      {
+        checkpointId: "dispatch",
+        label: "Dispatch",
+        state: "blocked",
+        summary: "Dispatch continuation is frozen while the case re-enters review.",
+        evidenceLabel: "Frozen by routine return",
+      },
+      {
+        checkpointId: "outcome",
+        label: "Outcome",
+        state: "review_required",
+        summary: "Outcome stays open because the return removed quiet settlement posture.",
+        evidenceLabel: "Routine reopen active",
+      },
+    ],
+    lineItems: [
+      {
+        lineItemId: "PHC-2204-L1",
+        medicationLabel: "Hay fever relief pack",
+        instructionLabel: "One pack previously prepared",
+        requestedUnits: 1,
+        reservedUnits: 1,
+        availableUnits: 3,
+        posture: "blocked",
+        summary: "Prepared stock stays visible but cannot be quietly released after the return.",
+        reconciliationLabel:
+          "Original request must be reviewed before the held pack can become actionable again.",
+      },
+      {
+        lineItemId: "PHC-2204-L2",
+        medicationLabel: "Patient follow-up note",
+        instructionLabel: "Return message draft",
+        requestedUnits: 1,
+        reservedUnits: 1,
+        availableUnits: 12,
+        posture: "manual_review",
+        summary: "The patient message draft remains the current recovery artifact.",
+        reconciliationLabel:
+          "Message preview is tied to the reopen contract and remains review-only until emitted.",
+      },
+    ],
+    gapRefs: [truthfulReopenGap],
+  },
+  {
+    pharmacyCaseId: "PHC-2215",
+    patientLabel: "Case 2215 / loop-risk escalation",
+    scenario: "urgent_return",
+    queueLane: "Escalated reopen",
+    queueTone: "critical",
+    queueSummary:
+      "Repeated returns have escalated loop risk; supervisor review and contact repair now block any automatic continuation.",
+    caseSummary:
+      "This case proves repeat bounce-backs stay explicit, escalated, and same-shell instead of becoming silent retry debt.",
+    consentState: "satisfied",
+    consentSummary:
+      "Consent still supports review, but supervisor escalation and contact-repair debt remain the blocking posture.",
+    inventoryPosture: "blocked",
+    inventorySummary:
+      "Inventory is preserved for reference only while the escalated recovery path is resolved.",
+    proofState: "contradictory_proof",
+    proofSummary:
+      "Historic proof remains visible for comparison, but it cannot authorize another automatic retry.",
+    outcomeTruth: {
+      outcomeTruthState: "urgent_return",
+      matchConfidenceLabel: "Loop-risk escalation / recovery blocked",
+      manualReviewState: "required",
+      summary:
+        "Outcome posture stays reopened and blocked until supervisor review and contact repair both clear.",
+    },
+    dispatchTruth: {
+      transportAcceptanceState: "disputed",
+      providerAcceptanceState: "disputed",
+      authoritativeProofState: "contradictory_proof",
+      deadlineRisk: "breach_risk",
+      summary:
+        "The shell keeps every proof and return signal explicit, but auto-redispatch and auto-close remain blocked.",
+    },
+    workbenchPosture: "reopen_for_safety",
+    dominantActionLabel: "Resolve loop-risk escalation before continuing recovery",
+    checkpointQuestion:
+      "What repeated recovery pattern triggered escalation, and which debt must clear before the case can continue again?",
+    watchWindowSummary:
+      "Loop-risk watch window is active and now outranks ordinary routine-reopen posture.",
+    reopenSummary:
+      "Supervisor review and contact repair are the dominant recovery posture until the escalation is settled.",
+    supportSummary:
+      "Promoted support region becomes a loop-risk recovery board with escalation, reopen diff, and suppressed patient messaging.",
+    providerLabel: "Riverside Pharmacy",
+    pathwayLabel: "Respiratory follow-up escalation",
+    dueLabel: "Supervisor review now",
+    defaultCheckpointId: "outcome",
+    defaultLineItemId: "PHC-2215-L1",
+    checkpoints: [
+      {
+        checkpointId: "consent",
+        label: "Consent",
+        state: "watch",
+        summary: "Consent is current, but it does not clear the escalated recovery debt.",
+        evidenceLabel: "Escalation active",
+      },
+      {
+        checkpointId: "validation",
+        label: "Validation",
+        state: "review_required",
+        summary: "Validation must reopen with escalation and contact repair still visible.",
+        evidenceLabel: "Supervisor route required",
+      },
+      {
+        checkpointId: "inventory",
+        label: "Inventory",
+        state: "blocked",
+        summary: "Inventory remains frozen during the escalated reopen.",
+        evidenceLabel: "Reference only",
+      },
+      {
+        checkpointId: "dispatch",
+        label: "Dispatch",
+        state: "blocked",
+        summary: "Another automatic dispatch attempt is forbidden.",
+        evidenceLabel: "Loop-risk blocked",
+      },
+      {
+        checkpointId: "outcome",
+        label: "Outcome",
+        state: "blocked",
+        summary: "Outcome remains unresolved until escalation settles.",
+        evidenceLabel: "Loop risk high",
+      },
+    ],
+    lineItems: [
+      {
+        lineItemId: "PHC-2215-L1",
+        medicationLabel: "Bronchodilator review pack",
+        instructionLabel: "One pack previously held",
+        requestedUnits: 1,
+        reservedUnits: 1,
+        availableUnits: 1,
+        posture: "blocked",
+        summary: "The held pack remains reference-only while supervisor review blocks recovery.",
+        reconciliationLabel:
+          "No release or redispatch can occur while loop risk and contact-route repair remain active.",
+      },
+      {
+        lineItemId: "PHC-2215-L2",
+        medicationLabel: "Contact repair script",
+        instructionLabel: "Reachability repair note",
+        requestedUnits: 1,
+        reservedUnits: 1,
+        availableUnits: 10,
+        posture: "manual_review",
+        summary: "The repair script is now the dominant operational artifact for this case.",
+        reconciliationLabel:
+          "The patient message remains suppressed until the repair path is confirmed.",
+      },
+    ],
+    gapRefs: [truthfulReopenGap],
+  },
+  {
     pharmacyCaseId: "PHC-2124",
     patientLabel: "Case 2124 / weak-match outcome",
     scenario: "weak_match_outcome",
@@ -1135,7 +1383,505 @@ export const pharmacyCases: readonly PharmacyCaseSeed[] = [
     ],
     gapRefs: [truthfulConsentGap, truthfulOutcomeGap],
   },
+  {
+    pharmacyCaseId: "PHC-2168",
+    patientLabel: "Case 2168 / unmatched outcome",
+    scenario: "unmatched_outcome",
+    queueLane: "Unmatched outcome",
+    queueTone: "critical",
+    queueSummary:
+      "Incoming outcome evidence could not be matched to a trusted case tuple, so the case stays visibly review-required.",
+    caseSummary:
+      "This case proves unmatched pharmacy outcomes stay explicit and cannot quietly dissolve into closure posture.",
+    consentState: "satisfied",
+    consentSummary:
+      "Consent remains current for the chosen pharmacy, so the current blocker is unmatched outcome evidence rather than consent drift.",
+    inventoryPosture: "stale_review",
+    inventorySummary:
+      "Inventory context is preserved for reference, but the assurance route falls back to evidence-first review until the outcome tuple is clarified.",
+    proofState: "proof_pending",
+    proofSummary:
+      "Historical handoff proof remains visible, but unmatched outcome evidence keeps closure and reassurance frozen.",
+    outcomeTruth: {
+      outcomeTruthState: "unmatched_review",
+      matchConfidenceLabel: "Unmatched / 0.18 confidence",
+      manualReviewState: "required",
+      summary:
+        "Outcome remains unmatched and review-required because no trusted case tuple currently satisfies the reconciliation thresholds.",
+    },
+    dispatchTruth: {
+      transportAcceptanceState: "ready",
+      providerAcceptanceState: "ready",
+      authoritativeProofState: "proof_pending",
+      deadlineRisk: "watch",
+      summary:
+        "Prior dispatch proof is visible for context, but unmatched outcome evidence keeps the case explicitly non-calm.",
+    },
+    workbenchPosture: "read_only",
+    dominantActionLabel: "Clarify or record the unmatched outcome",
+    checkpointQuestion:
+      "Which incoming outcome fields are trustworthy enough to reconcile, and which mismatches must stay explicit until reviewed?",
+    watchWindowSummary:
+      "Outcome reconciliation watch window remains active until the unmatched evidence is clarified or formally recorded.",
+    reopenSummary:
+      "Closure remains frozen while the outcome is unmatched; the same shell keeps the latest safe context visible.",
+    supportSummary:
+      "Promoted support region becomes an unmatched-outcome assurance summary with explicit confidence and close blockers.",
+    providerLabel: "Harbour Pharmacy",
+    pathwayLabel: "UTI treatment pathway",
+    dueLabel: "Clarify by 15:40",
+    defaultCheckpointId: "outcome",
+    defaultLineItemId: "PHC-2168-L1",
+    checkpoints: [
+      {
+        checkpointId: "consent",
+        label: "Consent",
+        state: "satisfied",
+        summary: "Consent remains current for the chosen pharmacy.",
+        evidenceLabel: "Satisfied",
+      },
+      {
+        checkpointId: "validation",
+        label: "Validation",
+        state: "watch",
+        summary: "Validation remains reference-only while the outcome tuple is clarified.",
+        evidenceLabel: "Clarification watch",
+      },
+      {
+        checkpointId: "inventory",
+        label: "Inventory",
+        state: "watch",
+        summary: "Inventory evidence stays visible in table-first review mode.",
+        evidenceLabel: "Reference inventory only",
+      },
+      {
+        checkpointId: "dispatch",
+        label: "Dispatch",
+        state: "watch",
+        summary: "Dispatch history remains visible but cannot settle the unmatched outcome.",
+        evidenceLabel: "Historical proof only",
+      },
+      {
+        checkpointId: "outcome",
+        label: "Outcome",
+        state: "review_required",
+        summary: "No trusted case tuple currently supports closure.",
+        evidenceLabel: "Unmatched",
+      },
+    ],
+    lineItems: [
+      {
+        lineItemId: "PHC-2168-L1",
+        medicationLabel: "Nitrofurantoin 100mg",
+        instructionLabel: "One course held for reference",
+        requestedUnits: 1,
+        reservedUnits: 1,
+        availableUnits: 2,
+        posture: "manual_review",
+        summary: "Medication context remains visible, but the unmatched outcome is the current blocker.",
+        reconciliationLabel: "Outcome clarification, not stock, is the governing blocker.",
+      },
+      {
+        lineItemId: "PHC-2168-L2",
+        medicationLabel: "Outcome note",
+        instructionLabel: "Imported summary note",
+        requestedUnits: 1,
+        reservedUnits: 1,
+        availableUnits: 12,
+        posture: "manual_review",
+        summary: "The imported note stays visible as provenance until the unmatched evidence is resolved.",
+        reconciliationLabel: "Imported note remains explicit as read-only evidence.",
+      },
+    ],
+    gapRefs: [truthfulOutcomeGap],
+  },
+  {
+    pharmacyCaseId: "PHC-2232",
+    patientLabel: "Case 2232 / waiting for patient choice",
+    scenario: "clarification_required",
+    queueLane: "Waiting for patient choice",
+    queueTone: "watch",
+    queueSummary:
+      "The ranked provider set is still valid, but the warned-choice acknowledgement has not yet been confirmed, so the case must stay operationally open.",
+    caseSummary:
+      "This case proves the console can hold a genuine waiting-for-choice posture without collapsing back into a vague pending queue.",
+    consentState: "clarification_required",
+    consentSummary:
+      "Consent checkpoint is waiting for the warned-choice acknowledgement and may not silently drift into a calm state.",
+    inventoryPosture: "live",
+    inventorySummary:
+      "Inventory truth remains current for the shortlisted provider, but no release work may start until the choice contract is affirmed.",
+    proofState: "proof_pending",
+    proofSummary:
+      "Dispatch proof remains intentionally pending while the patient-choice contract is unfinished.",
+    outcomeTruth: {
+      outcomeTruthState: "outcome_pending",
+      matchConfidenceLabel: "Outcome pending",
+      manualReviewState: "clear",
+      summary:
+        "Outcome remains pending because the case is still upstream of provider confirmation and release.",
+    },
+    dispatchTruth: {
+      transportAcceptanceState: "pending",
+      providerAcceptanceState: "pending",
+      authoritativeProofState: "proof_pending",
+      deadlineRisk: "watch",
+      summary:
+        "The workbench preserves queue position and ranked-provider truth while waiting for the patient-choice burden to clear.",
+    },
+    workbenchPosture: "guarded",
+    dominantActionLabel: "Confirm the warned-choice acknowledgement",
+    checkpointQuestion:
+      "Which warning or override acknowledgement is still outstanding before the ranked provider can become the governed choice?",
+    watchWindowSummary:
+      "Choice acknowledgement watch window stays open for another 22 minutes and keeps the case pinned to the same shell.",
+    reopenSummary:
+      "No reopen posture is active, but the queue must stay explicit while the patient-choice contract is incomplete.",
+    supportSummary:
+      "Promoted support region keeps the current inventory truth visible while the case waits on choice, not transport.",
+    providerLabel: "City Quays Pharmacy",
+    pathwayLabel: "Minor illness choice pathway",
+    dueLabel: "Choice acknowledgement by 15:52",
+    defaultCheckpointId: "consent",
+    defaultLineItemId: "PHC-2232-L1",
+    checkpoints: [
+      {
+        checkpointId: "consent",
+        label: "Choice checkpoint",
+        state: "review_required",
+        summary: "Warned-choice acknowledgement is still missing.",
+        evidenceLabel: "Acknowledgement pending",
+      },
+      {
+        checkpointId: "validation",
+        label: "Validation",
+        state: "watch",
+        summary: "Clinical validation is ready to continue once the choice contract is confirmed.",
+        evidenceLabel: "Awaiting patient choice",
+      },
+      {
+        checkpointId: "inventory",
+        label: "Inventory",
+        state: "satisfied",
+        summary: "Current stock tuple stays visible for the shortlisted provider.",
+        evidenceLabel: "Fresh inventory truth",
+      },
+      {
+        checkpointId: "dispatch",
+        label: "Dispatch",
+        state: "pending",
+        summary: "Dispatch cannot progress while the provider choice is unfinished.",
+        evidenceLabel: "Pending choice contract",
+      },
+      {
+        checkpointId: "outcome",
+        label: "Outcome",
+        state: "pending",
+        summary: "Outcome remains upstream of dispatch and provider selection.",
+        evidenceLabel: "Pending",
+      },
+    ],
+    lineItems: [
+      {
+        lineItemId: "PHC-2232-L1",
+        medicationLabel: "Sore throat relief pack",
+        instructionLabel: "One course held for the recommended provider",
+        requestedUnits: 1,
+        reservedUnits: 1,
+        availableUnits: 3,
+        posture: "clarification_required",
+        summary: "The pack is currently held, but release remains fenced until the warned-choice contract is confirmed.",
+        reconciliationLabel:
+          "Choice acknowledgement, not stock, is the active blocker on this line.",
+      },
+      {
+        lineItemId: "PHC-2232-L2",
+        medicationLabel: "Choice explanation note",
+        instructionLabel: "Provider warning summary",
+        requestedUnits: 1,
+        reservedUnits: 1,
+        availableUnits: 8,
+        posture: "manual_review",
+        summary: "The explanation note remains the visible safe artifact while the patient confirms the choice.",
+        reconciliationLabel:
+          "The warning copy stays pinned to the same case and line anchor.",
+      },
+    ],
+    operationsStateRefs: [
+      "active_case",
+      "waiting_for_patient_choice",
+      "validation_due",
+    ],
+    providerHealthState: "nominal",
+    watchWindowState: "watch",
+    blockingReasonCodes: [
+      "warned_choice_acknowledgement_required",
+      "consent_checkpoint_pending",
+    ],
+    recoveryOwnerLabel: "Practice coordination desk",
+    gapRefs: [truthfulConsentGap, futureFlowGap],
+  },
+  {
+    pharmacyCaseId: "PHC-2244",
+    patientLabel: "Case 2244 / provider outage hold",
+    scenario: "proof_pending",
+    queueLane: "Provider outage",
+    queueTone: "critical",
+    queueSummary:
+      "The chosen provider is in a temporary outage posture, so the case stays visible in one bounded queue row instead of disappearing behind a silent retry.",
+    caseSummary:
+      "This case proves provider-health failure can stay legible in the same shell without tearing the operator into a second outage tool.",
+    consentState: "satisfied",
+    consentSummary:
+      "Consent remains valid for the chosen provider, but the outage blocks any new handoff release work.",
+    inventoryPosture: "live",
+    inventorySummary:
+      "Inventory truth is current and ready, yet the case stays gated by provider-health posture rather than local stock.",
+    proofState: "proof_pending",
+    proofSummary:
+      "Transport proof stays provisional because the provider outage pauses the governed handoff window.",
+    outcomeTruth: {
+      outcomeTruthState: "outcome_pending",
+      matchConfidenceLabel: "Outcome pending",
+      manualReviewState: "pending",
+      summary:
+        "Outcome remains pending because the case cannot leave the outage hold posture yet.",
+    },
+    dispatchTruth: {
+      transportAcceptanceState: "pending",
+      providerAcceptanceState: "pending",
+      authoritativeProofState: "proof_pending",
+      deadlineRisk: "breach_risk",
+      summary:
+        "Provider-health outage keeps settlement and handoff posture explicit while the queue row remains operationally visible.",
+    },
+    workbenchPosture: "guarded",
+    dominantActionLabel: "Review the provider outage hold",
+    checkpointQuestion:
+      "Which provider-health or transport condition still blocks the current handoff window, and what is the safest next action while the outage holds?",
+    watchWindowSummary:
+      "Handoff watch window is blocked by provider-health outage and remains pinned to the current case.",
+    reopenSummary:
+      "No reopen posture is active, but quiet continuation is forbidden while the outage hold persists.",
+    supportSummary:
+      "Promoted support region becomes a handoff-readiness board with explicit outage and settlement posture.",
+    providerLabel: "Marina East Pharmacy",
+    pathwayLabel: "Respiratory support pathway",
+    dueLabel: "Outage review in 12m",
+    defaultCheckpointId: "dispatch",
+    defaultLineItemId: "PHC-2244-L1",
+    checkpoints: [
+      {
+        checkpointId: "consent",
+        label: "Consent",
+        state: "satisfied",
+        summary: "Consent remains current for the chosen provider.",
+        evidenceLabel: "Satisfied",
+      },
+      {
+        checkpointId: "validation",
+        label: "Validation",
+        state: "satisfied",
+        summary: "Validation packet is still current and ready when the outage clears.",
+        evidenceLabel: "Ready / outage gated",
+      },
+      {
+        checkpointId: "inventory",
+        label: "Inventory",
+        state: "satisfied",
+        summary: "Held stock remains current for the active line item.",
+        evidenceLabel: "Fresh stock held",
+      },
+      {
+        checkpointId: "dispatch",
+        label: "Dispatch",
+        state: "blocked",
+        summary: "Provider outage blocks handoff and keeps the queue row explicit.",
+        evidenceLabel: "Provider outage hold",
+      },
+      {
+        checkpointId: "outcome",
+        label: "Outcome",
+        state: "pending",
+        summary: "Outcome remains pending until the outage posture clears.",
+        evidenceLabel: "Pending",
+      },
+    ],
+    lineItems: [
+      {
+        lineItemId: "PHC-2244-L1",
+        medicationLabel: "Salbutamol relief pack",
+        instructionLabel: "One pack fully held",
+        requestedUnits: 1,
+        reservedUnits: 1,
+        availableUnits: 4,
+        posture: "ready",
+        summary: "Stock and validation are ready, but the outage keeps the line inside release hold.",
+        reconciliationLabel:
+          "Provider-health posture, not stock, is the current blocker.",
+      },
+      {
+        lineItemId: "PHC-2244-L2",
+        medicationLabel: "Outage contingency note",
+        instructionLabel: "Transport contingency plan",
+        requestedUnits: 1,
+        reservedUnits: 1,
+        availableUnits: 9,
+        posture: "manual_review",
+        summary: "The contingency note remains visible while the chosen provider is unavailable.",
+        reconciliationLabel:
+          "Escalation guidance stays attached to the same case and line anchor.",
+      },
+    ],
+    operationsStateRefs: [
+      "active_case",
+      "provider_outage",
+      "handoff_blocked",
+    ],
+    providerHealthState: "outage",
+    watchWindowState: "blocked",
+    blockingReasonCodes: [
+      "provider_connectivity_outage",
+      "handoff_window_paused",
+    ],
+    recoveryOwnerLabel: "Pharmacy operations supervisor",
+    gapRefs: [providerSpecificGap],
+  },
 ] as const;
+
+export function derivePharmacyOperationsStateRefs(
+  caseSeed: PharmacyCaseSeed,
+): readonly PharmacyOperationsStateRef[] {
+  if (caseSeed.operationsStateRefs?.length) {
+    return caseSeed.operationsStateRefs;
+  }
+
+  const states = new Set<PharmacyOperationsStateRef>(["active_case"]);
+  switch (caseSeed.scenario) {
+    case "proof_pending":
+      states.add("waiting_for_outcome");
+      break;
+    case "contradictory_proof":
+      states.add("transport_failure");
+      states.add("handoff_blocked");
+      break;
+    case "partial_supply":
+      states.add("stock_risk");
+      break;
+    case "clarification_required":
+      states.add("validation_due");
+      break;
+    case "urgent_return":
+      states.add("bounce_back");
+      states.add("handoff_blocked");
+      break;
+    case "weak_match_outcome":
+    case "manual_review_debt":
+    case "unmatched_outcome":
+      states.add("waiting_for_outcome");
+      states.add("validation_due");
+      break;
+    case "ready_to_dispatch":
+    default:
+      break;
+  }
+
+  if (caseSeed.inventoryPosture === "partial_supply" || caseSeed.inventoryPosture === "blocked") {
+    states.add("stock_risk");
+  }
+  if (caseSeed.dispatchTruth.authoritativeProofState === "contradictory_proof") {
+    states.add("handoff_blocked");
+  }
+  return [...states];
+}
+
+export function derivePharmacyProviderHealthState(
+  caseSeed: PharmacyCaseSeed,
+): PharmacyProviderHealthState {
+  if (caseSeed.providerHealthState) {
+    return caseSeed.providerHealthState;
+  }
+  if (
+    caseSeed.scenario === "contradictory_proof" ||
+    caseSeed.scenario === "urgent_return"
+  ) {
+    return "degraded";
+  }
+  return "nominal";
+}
+
+export function derivePharmacyWatchWindowState(
+  caseSeed: PharmacyCaseSeed,
+): PharmacyWatchWindowState {
+  if (caseSeed.watchWindowState) {
+    return caseSeed.watchWindowState;
+  }
+  switch (caseSeed.workbenchPosture) {
+    case "ready":
+      return "clear";
+    case "guarded":
+      return "watch";
+    case "read_only":
+    case "reopen_for_safety":
+      return "blocked";
+  }
+}
+
+export function derivePharmacyBlockingReasonCodes(
+  caseSeed: PharmacyCaseSeed,
+): readonly string[] {
+  if (caseSeed.blockingReasonCodes?.length) {
+    return caseSeed.blockingReasonCodes;
+  }
+  switch (caseSeed.scenario) {
+    case "proof_pending":
+      return ["authoritative_proof_pending"];
+    case "contradictory_proof":
+      return ["transport_confirmation_drift", "authoritative_proof_disputed"];
+    case "partial_supply":
+      return ["inventory_partial_supply"];
+    case "clarification_required":
+      return ["provider_choice_clarification_required"];
+    case "urgent_return":
+      return ["bounce_back_return_signal_active", "quiet_closure_suppressed"];
+    case "weak_match_outcome":
+      return ["outcome_match_confidence_low"];
+    case "manual_review_debt":
+      return ["manual_review_debt_open"];
+    case "unmatched_outcome":
+      return ["outcome_unmatched_review"];
+    case "ready_to_dispatch":
+    default:
+      return [];
+  }
+}
+
+export function derivePharmacyRecoveryOwnerLabel(
+  caseSeed: PharmacyCaseSeed,
+): string {
+  if (caseSeed.recoveryOwnerLabel) {
+    return caseSeed.recoveryOwnerLabel;
+  }
+  switch (caseSeed.scenario) {
+    case "contradictory_proof":
+      return "Dispatch proof steward";
+    case "urgent_return":
+      return "Pharmacy recovery lead";
+    case "weak_match_outcome":
+    case "manual_review_debt":
+    case "unmatched_outcome":
+      return "Outcome assurance desk";
+    case "clarification_required":
+      return "Pharmacy validation desk";
+    case "partial_supply":
+      return "Stock reconciliation pharmacist";
+    case "proof_pending":
+      return "On-duty pharmacist";
+    case "ready_to_dispatch":
+    default:
+      return "Pharmacy console";
+  }
+}
 
 const casesById = new Map(
   pharmacyCases.map((caseSeed) => [caseSeed.pharmacyCaseId, caseSeed] as const),
@@ -1377,6 +2123,7 @@ function macroStateForCase(caseSeed: PharmacyCaseSeed): StatusTruthInput["author
       return "recovery_required";
     case "weak_match_outcome":
     case "manual_review_debt":
+    case "unmatched_outcome":
       return "in_review";
   }
 }
@@ -1393,6 +2140,7 @@ function trustStateForCase(
     case "clarification_required":
     case "weak_match_outcome":
     case "manual_review_debt":
+    case "unmatched_outcome":
       return "degraded";
     case "contradictory_proof":
     case "urgent_return":
@@ -1412,6 +2160,7 @@ function freshnessStateForCase(
     case "clarification_required":
     case "weak_match_outcome":
     case "manual_review_debt":
+    case "unmatched_outcome":
       return "stale_review";
     case "contradictory_proof":
     case "urgent_return":
@@ -1431,6 +2180,7 @@ function transportStateForCase(
     case "clarification_required":
     case "weak_match_outcome":
     case "manual_review_debt":
+    case "unmatched_outcome":
       return "paused";
     case "contradictory_proof":
     case "urgent_return":
@@ -1467,6 +2217,7 @@ function recoveryPostureForCase(
   }
   if (
     caseSeed.scenario === "weak_match_outcome" ||
+    caseSeed.scenario === "unmatched_outcome" ||
     caseSeed.scenario === "manual_review_debt" ||
     caseSeed.scenario === "partial_supply" ||
     caseSeed.scenario === "proof_pending"
@@ -1498,6 +2249,7 @@ function authoritativeOutcomeForCase(
       return "settled";
     case "weak_match":
     case "manual_review_debt":
+    case "unmatched_review":
       return "review_required";
     case "urgent_return":
       return "recovery_required";
@@ -1517,6 +2269,7 @@ function pendingExternalStateForCase(
       return "awaiting_reply";
     case "manual_review_debt":
     case "weak_match_outcome":
+    case "unmatched_outcome":
       return "awaiting_ack";
     default:
       return "none";
@@ -1971,7 +2724,7 @@ export function resolvePharmacyShellSnapshot(
       summarySentence = currentCase.dispatchTruth.summary;
       break;
     case "assurance":
-      summarySentence = currentCase.reopenSummary;
+      summarySentence = currentCase.outcomeTruth.summary;
       break;
     case "validate":
       summarySentence = currentCase.checkpointQuestion;
@@ -2045,6 +2798,20 @@ export const pharmacyMockProjectionExamples: readonly PharmacyMockProjectionExam
     summary: "Urgent return reopens the case for safety inside the same shell.",
   },
   {
+    exampleId: "PHARMACY_ROUTINE_REOPEN",
+    path: "/workspace/pharmacy/PHC-2204/assurance",
+    pharmacyCaseId: "PHC-2204",
+    scenario: "urgent_return",
+    summary: "Routine return keeps the original request anchor visible inside the same shell recovery board.",
+  },
+  {
+    exampleId: "PHARMACY_LOOP_RISK_ESCALATION",
+    path: "/workspace/pharmacy/PHC-2215/assurance",
+    pharmacyCaseId: "PHC-2215",
+    scenario: "urgent_return",
+    summary: "Repeated bounce-backs escalate loop risk and freeze auto-retry inside the same shell recovery board.",
+  },
+  {
     exampleId: "PHARMACY_WEAK_MATCH_OUTCOME",
     path: "/workspace/pharmacy/PHC-2124/resolve",
     pharmacyCaseId: "PHC-2124",
@@ -2057,6 +2824,13 @@ export const pharmacyMockProjectionExamples: readonly PharmacyMockProjectionExam
     pharmacyCaseId: "PHC-2146",
     scenario: "manual_review_debt",
     summary: "Manual-review debt keeps the case open and observe-only without degrading into generic broken UI.",
+  },
+  {
+    exampleId: "PHARMACY_UNMATCHED_OUTCOME",
+    path: "/workspace/pharmacy/PHC-2168/assurance",
+    pharmacyCaseId: "PHC-2168",
+    scenario: "unmatched_outcome",
+    summary: "Unmatched outcome posture stays explicit inside the assurance child state instead of disappearing into closure posture.",
   },
 ] as const;
 
@@ -2116,6 +2890,26 @@ export const pharmacyRouteContractSeedRows: readonly PharmacyRouteContractSeedRo
     continuityKey: pharmacyClaim.continuityKey,
     selectedAnchorPolicy: "Urgent return and reopen-for-safety remain inside the same shell continuity frame.",
     summary: "Assurance route keeps reopen-for-safety and watch-window posture explicit.",
+  },
+  {
+    path: "/workspace/pharmacy/PHC-2204/assurance",
+    routeFamilyRef: "rf_pharmacy_console",
+    routeKey: "assurance",
+    continuityKey: pharmacyClaim.continuityKey,
+    selectedAnchorPolicy:
+      "Routine reopen keeps the original request anchor, line item, and return contract visible in one shell.",
+    summary:
+      "Assurance route keeps routine bounce-back diff, patient message preview, and original-request return action explicit.",
+  },
+  {
+    path: "/workspace/pharmacy/PHC-2215/assurance",
+    routeFamilyRef: "rf_pharmacy_console",
+    routeKey: "assurance",
+    continuityKey: pharmacyClaim.continuityKey,
+    selectedAnchorPolicy:
+      "Loop-risk escalation keeps supervisor review, contact repair, and prior proof inside the same shell.",
+    summary:
+      "Assurance route keeps repeated bounce-back escalation explicit instead of allowing another silent retry.",
   },
 ] as const;
 

@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:vecells:phase9:461:operational-destination-binding",
+  "title": "OperationalDestinationBinding",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "bindingId",
+    "destinationClass",
+    "tenantRef",
+    "environmentRef",
+    "audience",
+    "purpose",
+    "eventClass",
+    "severityThreshold",
+    "receiverRef",
+    "endpointLabel",
+    "secretRef",
+    "secretHandleRef",
+    "secretMaterialInline",
+    "redactionPolicyHash",
+    "retryPolicy",
+    "idempotencyStrategy",
+    "failClosedPolicy",
+    "lastVerification",
+    "route",
+    "settlement"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "461.phase9.operational-destination-binding.v1"
+    },
+    "bindingId": {
+      "type": "string",
+      "pattern": "^dest-[a-z0-9-]+$"
+    },
+    "destinationClass": {
+      "enum": [
+        "service_level_breach_risk_alert",
+        "projection_stale_quarantined_alert",
+        "incident_creation_severity_escalation",
+        "near_miss_intake_notification",
+        "reportability_assessment_pending_overdue",
+        "release_freeze_recovery_disposition",
+        "resilience_posture_blocked_stale",
+        "assurance_graph_blocked_stale",
+        "evidence_gap_owner_notification",
+        "destination_delivery_failure_fallback"
+      ]
+    },
+    "tenantRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "environmentRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "audience": {
+      "type": "string",
+      "minLength": 1
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 1
+    },
+    "eventClass": {
+      "type": "string",
+      "minLength": 1
+    },
+    "severityThreshold": {
+      "enum": ["watch", "caution", "critical", "overdue", "blocked"]
+    },
+    "receiverRef": {
+      "type": "string",
+      "pattern": "^fake-receiver:"
+    },
+    "endpointLabel": {
+      "type": "string",
+      "not": {
+        "pattern": "https?://"
+      }
+    },
+    "secretRef": {
+      "type": "string"
+    },
+    "secretHandleRef": {
+      "type": "string"
+    },
+    "secretMaterialInline": {
+      "const": false
+    },
+    "redactionPolicyHash": {
+      "type": "string",
+      "pattern": "^sha256:"
+    },
+    "retryPolicy": {
+      "type": "object",
+      "required": ["maxAttempts", "backoff", "deadLetterAfter"],
+      "properties": {
+        "maxAttempts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "backoff": {
+          "const": "fixed_30s_then_2m_cap_5m"
+        },
+        "deadLetterAfter": {
+          "const": "verification_failure_or_scope_denied"
+        }
+      },
+      "additionalProperties": false
+    },
+    "idempotencyStrategy": {
+      "type": "object",
+      "required": ["naturalKey", "replayPolicy", "dedupeWindow"],
+      "properties": {
+        "naturalKey": {
+          "type": "string",
+          "minLength": 1
+        },
+        "replayPolicy": {
+          "const": "upsert_same_natural_key"
+        },
+        "dedupeWindow": {
+          "const": "24h"
+        }
+      },
+      "additionalProperties": false
+    },
+    "failClosedPolicy": {
+      "type": "object",
+      "required": [
+        "staleSecret",
+        "staleRedactionPolicy",
+        "staleRuntimePublication",
+        "missingVerification"
+      ],
+      "properties": {
+        "staleSecret": {
+          "const": true
+        },
+        "staleRedactionPolicy": {
+          "const": true
+        },
+        "staleRuntimePublication": {
+          "const": true
+        },
+        "missingVerification": {
+          "const": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "lastVerification": {
+      "type": "object",
+      "required": [
+        "verificationId",
+        "bindingId",
+        "status",
+        "receiverRef",
+        "syntheticPayloadHash",
+        "redactionPolicyHash",
+        "secretRef",
+        "receiverObserved"
+      ],
+      "properties": {
+        "verificationId": {
+          "type": "string"
+        },
+        "bindingId": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "verified",
+            "missing_secret",
+            "denied_scope",
+            "stale",
+            "failed",
+            "blocked",
+            "permission_denied"
+          ]
+        },
+        "receiverRef": {
+          "type": "string"
+        },
+        "syntheticPayloadHash": {
+          "type": "string",
+          "pattern": "^sha256:"
+        },
+        "redactionPolicyHash": {
+          "type": "string",
+          "pattern": "^sha256:"
+        },
+        "secretRef": {
+          "type": "string"
+        },
+        "receiverObserved": {
+          "type": "boolean"
+        }
+      }
+    },
+    "route": {
+      "type": "object",
+      "required": ["routeId", "bindingId", "routeFamily", "consumedBy", "readinessState"],
+      "properties": {
+        "routeId": {
+          "type": "string"
+        },
+        "bindingId": {
+          "type": "string"
+        },
+        "routeFamily": {
+          "type": "string"
+        },
+        "consumedBy": {
+          "type": "array",
+          "items": {
+            "enum": ["operations", "incident", "assurance", "release", "resilience"]
+          },
+          "minItems": 1
+        },
+        "readinessState": {
+          "enum": ["ready", "blocked", "stale", "permission_denied"]
+        }
+      }
+    },
+    "settlement": {
+      "type": "object",
+      "required": ["settlementId", "bindingId", "idempotencyKey", "result", "fallbackTriggered"],
+      "properties": {
+        "settlementId": {
+          "type": "string"
+        },
+        "bindingId": {
+          "type": "string"
+        },
+        "idempotencyKey": {
+          "type": "string"
+        },
+        "result": {
+          "enum": ["delivered", "blocked", "failed", "stale", "permission_denied"]
+        },
+        "fallbackTriggered": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

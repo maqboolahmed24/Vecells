@@ -312,7 +312,7 @@ export function ApprovalInboxRoute({
       <header className="staff-shell__control-room-topline">
         <div>
           <span className="staff-shell__eyebrow">Quiet_Escalation_Control_Room</span>
-          <h2>Approval inbox</h2>
+          <h2 data-testid="approvals-route">Approval inbox</h2>
           <p>{projection.queueHealthSummary}</p>
         </div>
         <div className="staff-shell__control-room-summary">
@@ -644,7 +644,7 @@ export function EscalationWorkspaceRoute({
       <header className="staff-shell__control-room-topline">
         <div>
           <span className="staff-shell__eyebrow">Quiet_Escalation_Control_Room</span>
-          <h2>Escalations</h2>
+          <h2 data-testid="escalations-route">Escalations</h2>
           <p>{projection.queueHealthSummary}</p>
         </div>
         <div className="staff-shell__control-room-summary">

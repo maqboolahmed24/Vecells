@@ -1,0 +1,161 @@
+{
+  "taskId": "par_415",
+  "schemaVersion": "415.monitoring-and-trust-projection.v1",
+  "packageName": "@vecells/domain-assistive-monitoring",
+  "services": [
+    {
+      "serviceName": "ShadowComparisonRunService",
+      "owns": ["ShadowComparisonRun"],
+      "contract": "Records offline_gold, live_shadow, and post_visible evidence by refs and metric windows."
+    },
+    {
+      "serviceName": "AssistiveDriftDetectionOrchestrator",
+      "owns": ["DriftSignal"],
+      "contract": "Requires detector type, effect size, and sequential evidence before block-level drift can fire."
+    },
+    {
+      "serviceName": "FairnessSliceMetricService",
+      "owns": ["BiasSliceMetric"],
+      "contract": "Materializes Wilson or Beta-Binomial interval metrics with minimum-sample and shrinkage-aware behavior."
+    },
+    {
+      "serviceName": "ReleaseGuardThresholdService",
+      "owns": ["ReleaseGuardThreshold"],
+      "contract": "Versioned release, visible, insert, and commit guard thresholds with interval and sequential detector policy refs."
+    },
+    {
+      "serviceName": "AssistiveIncidentLinkService",
+      "owns": ["AssistiveIncidentLink"],
+      "contract": "Links assistive sessions to incident systems and disclosure-fence failures without PHI payloads."
+    },
+    {
+      "serviceName": "AssistiveCapabilityWatchTupleRegistry",
+      "owns": ["AssistiveCapabilityWatchTuple"],
+      "contract": "Publishes immutable watch tuple truth for capability, model, prompt, policy, threshold, route, cohort, calibration, conformal, and runtime refs."
+    },
+    {
+      "serviceName": "AssistiveCapabilityTrustProjectionEngine",
+      "owns": ["AssistiveCapabilityTrustProjection"],
+      "contract": "Computes the monotonic normalized penalty model and conservative trust state from current evidence."
+    },
+    {
+      "serviceName": "AssistiveCurrentPostureResolver",
+      "owns": ["AssistiveCapabilityRolloutVerdict", "AssistiveCurrentPosture"],
+      "contract": "Publishes exact route and cohort visibility, insert, approval, fallback, and blocker ceilings."
+    }
+  ],
+  "persistedObjects": [
+    "ShadowComparisonRun",
+    "DriftSignal",
+    "BiasSliceMetric",
+    "ReleaseGuardThreshold",
+    "AssistiveIncidentLink",
+    "AssistiveCapabilityWatchTuple",
+    "AssistiveCapabilityTrustProjection",
+    "AssistiveCapabilityRolloutVerdict",
+    "AssistiveCurrentPosture",
+    "AssistiveMonitoringAuditRecord"
+  ],
+  "watchTuplePolicy": {
+    "identity": "AssistiveCapabilityWatchTuple",
+    "immutable": true,
+    "requiredRefs": [
+      "capabilityCode",
+      "releaseCandidateRef",
+      "rolloutLadderPolicyRef",
+      "modelVersionRef",
+      "promptBundleHash",
+      "policyBundleRef",
+      "releaseCohortRef",
+      "surfaceRouteContractRefs",
+      "runtimePublicationBundleRef",
+      "calibrationBundleRef",
+      "uncertaintySelectorVersionRef",
+      "conformalBundleRef",
+      "thresholdSetRef"
+    ]
+  },
+  "metricPolicy": {
+    "binaryRates": "Use Wilson or Beta-Binomial intervals rather than point estimates.",
+    "driftSignals": "Block-level drift requires both effect-size floor and sequential evidence boundary.",
+    "smallSlices": "Small noisy slices are insufficient_evidence or watch-only; they are not silently healthy."
+  },
+  "trustProjectionPolicy": {
+    "formula": "trustScore = published * runtime_current * no_hard_freeze * exp(-sum(weight_i * delta_i))",
+    "states": ["trusted", "degraded", "quarantined", "shadow_only", "frozen"],
+    "hardBlockers": [
+      "surface_publication_not_published",
+      "runtime_bundle_not_current",
+      "assistive_kill_switch_blocks_capability",
+      "release_freeze_active",
+      "disclosure_fence_below_floor",
+      "release_guard_threshold_block",
+      "active_high_severity_incident_link"
+    ],
+    "conservativeDefault": "Missing calibration, uncertainty, outcome, or visible evidence resolves shadow_only."
+  },
+  "posturePolicy": {
+    "routeAndCohortBound": true,
+    "laterConsumers": ["416", "418", "422", "423", "429", "430"],
+    "legalQuestionsAnswered": [
+      "active watch tuple",
+      "threshold breaches",
+      "current trust state",
+      "visibility ceiling",
+      "insert ceiling",
+      "approval ceiling",
+      "incident links",
+      "blocking reasons"
+    ]
+  },
+  "invariants": [
+    {
+      "code": "watch_tuple_pins_model_prompt_policy_runtime",
+      "description": "Capability truth is pinned to one immutable watch tuple."
+    },
+    {
+      "code": "watch_tuple_immutable",
+      "description": "A changed capability, model, prompt, policy, threshold, route, cohort, or runtime member requires a fresh tuple."
+    },
+    {
+      "code": "interval_aware_thresholds",
+      "description": "Rate metrics use interval bounds rather than point estimates."
+    },
+    {
+      "code": "drift_requires_effect_and_evidence",
+      "description": "Drift block requires both effect size and sequential evidence."
+    },
+    {
+      "code": "fairness_small_slices_not_healthy",
+      "description": "Small slices cannot be promoted as healthy by absence of evidence."
+    },
+    {
+      "code": "trust_projection_monotonic_penalty",
+      "description": "Trust projection is a monotonic normalized penalty model."
+    },
+    {
+      "code": "current_posture_fail_closed",
+      "description": "Route/cohort posture cannot widen beyond current trust and evidence."
+    },
+    {
+      "code": "kill_switch_current_state_not_history",
+      "description": "Trust consumes current kill-switch state, not historical command records."
+    },
+    {
+      "code": "incident_links_downgrade_trust",
+      "description": "Open severe incidents and disclosure-fence failures downgrade trust."
+    },
+    {
+      "code": "monitoring_phi_safe_refs_only",
+      "description": "Monitoring stores refs, counts, intervals, hashes, and blockers rather than raw PHI."
+    },
+    {
+      "code": "route_cohort_posture_authoritative",
+      "description": "Later tasks consume authoritative current posture rather than recomputing health."
+    },
+    {
+      "code": "missing_visible_evidence_shadow_only",
+      "description": "Missing visible readiness resolves to shadow-only or blocked posture."
+    }
+  ]
+}

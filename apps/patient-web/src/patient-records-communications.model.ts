@@ -2,6 +2,10 @@ import {
   makePatientRequestReturnBundle215,
   type PatientRequestReturnBundle,
 } from "./patient-home-requests-detail-routes.model";
+import {
+  pharmacyProductMergePreviewCases,
+  resolvePharmacyProductMergePreviewForMessageCluster,
+} from "../../../packages/domains/pharmacy/src/phase6-pharmacy-product-merge-preview";
 import { tryResolvePhase3PatientWorkspaceConversationBundle } from "@vecells/domain-kernel";
 
 export const PATIENT_RECORDS_COMMUNICATIONS_TASK_ID =
@@ -317,10 +321,13 @@ export interface PatientConversationCluster {
   readonly clusterRef: string;
   readonly governingObjectRef: string;
   readonly careEpisodeLabel: string;
+  readonly linkedPharmacyCaseId: string | null;
+  readonly authoritativeStatusLabel: string | null;
   readonly selectedAnchorRef: string;
   readonly clusterRouteRef: string;
   readonly previewDigest: PatientConversationPreviewDigest;
   readonly visibility: PatientCommunicationVisibilityProjection;
+  readonly sourceProjectionRefs: readonly string[];
 }
 
 export interface ConversationThreadProjection {
@@ -696,6 +703,21 @@ const communicationClusters: readonly PatientConversationCluster[] = [
     visibilityMode: "suppressed_recovery_only",
     updatedLabel: "15 Apr",
   }),
+  ...pharmacyProductMergePreviewCases.map((preview) =>
+    makeCluster({
+      clusterRef: preview.messageClusterRef,
+      title: preview.messageClusterTitle,
+      preview: preview.messageClusterPreview,
+      state: preview.messageClusterState,
+      route: `/messages/${preview.messageClusterRef}`,
+      action:
+        preview.mergeState === "dispatch_pending"
+          ? "await_authoritative_outcome"
+          : "open_cluster",
+      visibilityMode: preview.messageVisibilityMode,
+      updatedLabel: preview.freshnessLabel,
+    }),
+  ),
 ];
 
 function requestRefForCluster(clusterRef: string): string | null {
@@ -703,7 +725,9 @@ function requestRefForCluster(clusterRef: string): string | null {
     tryResolvePhase3PatientWorkspaceConversationBundle({
       clusterRef,
       routeKey: "conversation_messages",
-    })?.requestRef ?? null
+    })?.requestRef ??
+    resolvePharmacyProductMergePreviewForMessageCluster(clusterRef)?.requestRef ??
+    null
   );
 }
 
@@ -732,18 +756,24 @@ function makeCluster(input: {
   visibilityMode: MessagePreviewMode;
   updatedLabel: string;
 }): PatientConversationCluster {
+  const requestRef = requestRefForCluster(input.clusterRef);
+  const pharmacyMerge = resolvePharmacyProductMergePreviewForMessageCluster(input.clusterRef);
   const placeholder =
     input.visibilityMode === "step_up_required" ||
     input.visibilityMode === "suppressed_recovery_only";
   return {
     projectionName: "PatientConversationCluster",
     clusterRef: input.clusterRef,
-    governingObjectRef: requestRefForCluster(input.clusterRef) ?? input.clusterRef,
-    careEpisodeLabel: requestRefForCluster(input.clusterRef) === "request_211_a"
-      ? "Dermatology"
-      : requestRefForCluster(input.clusterRef) === "request_215_callback"
-        ? "Callback follow-up"
-        : "Practice communications",
+    governingObjectRef: requestRef ?? input.clusterRef,
+    careEpisodeLabel: pharmacyMerge
+      ? pharmacyMerge.childLabel
+      : requestRef === "request_211_a"
+        ? "Dermatology"
+        : requestRef === "request_215_callback"
+          ? "Callback follow-up"
+          : "Practice communications",
+    linkedPharmacyCaseId: pharmacyMerge?.pharmacyCaseId ?? null,
+    authoritativeStatusLabel: pharmacyMerge?.patientNotification.stateLabel ?? null,
     selectedAnchorRef: `${input.clusterRef}_anchor`,
     clusterRouteRef: input.route,
     previewDigest: {
@@ -784,11 +814,17 @@ function makeCluster(input: {
             : "visible",
       stepUpRequirementRef:
         input.visibilityMode === "step_up_required" ? "step_up_214_message_preview" : null,
-      visibilityTier: placeholder ? "placeholder_only" : "authenticated",
+      visibilityTier: placeholder
+        ? "placeholder_only"
+        : input.visibilityMode === "public_safe_summary"
+          ? "public_safe"
+          : "authenticated",
       summarySafetyTier:
-        input.visibilityMode === "suppressed_recovery_only"
-          ? "recovery_only"
-          : "same_patient_detail",
+        input.visibilityMode === "public_safe_summary"
+          ? "public_safe_summary"
+          : input.visibilityMode === "suppressed_recovery_only"
+            ? "recovery_only"
+            : "same_patient_detail",
       minimumNecessaryContractRef: "minimum_necessary_patient_message_preview",
       previewVisibilityContractRef: `preview_visibility_${input.clusterRef}`,
       visibleSnippetRefs: placeholder ? [] : [`snippet_${input.clusterRef}`],
@@ -801,6 +837,7 @@ function makeCluster(input: {
       experienceContinuityEvidenceRef: `conversation_continuity_${input.clusterRef}`,
       computedAt: "2026-04-16T12:35:00.000Z",
     },
+    sourceProjectionRefs: pharmacyMerge?.sourceProjectionRefs ?? [],
   };
 }
 
@@ -906,6 +943,7 @@ export function resolveRecordsCommunicationsEntry(
         ? "delivery_failure"
         : "pending";
   const requestRef = requestRefForCluster(cluster.clusterRef) ?? "request_211_a";
+  const pharmacyMerge = resolvePharmacyProductMergePreviewForMessageCluster(cluster.clusterRef);
   const returnBundle = {
     ...makePatientRequestReturnBundle215(requestRef, "all", "soft_navigation"),
     disclosurePosture: "child_route" as const,
@@ -1146,7 +1184,9 @@ export function resolveRecordsCommunicationsEntry(
             ? "failed"
             : "clear",
       receiptLabel:
-        receiptKind === "disputed"
+        pharmacyMerge?.mergeState === "completed"
+          ? pharmacyMerge.patientNotification.stateLabel
+          : receiptKind === "disputed"
           ? "Provider dispute visible"
           : receiptKind === "delivery_failure"
             ? "Reminder delivery failed"
@@ -1155,13 +1195,18 @@ export function resolveRecordsCommunicationsEntry(
     commandSettlement: {
       projectionName: "ConversationCommandSettlement",
       commandSettlementRef: `settlement_${cluster.clusterRef}`,
-      authoritativeOutcomeState:
-        cluster.previewDigest.state === "awaiting_review"
+      authoritativeOutcomeState: pharmacyMerge
+        ? pharmacyMerge.mergeState === "completed"
+          ? "settled"
+          : pharmacyMerge.mergeState === "urgent_return"
+            ? "recovery_required"
+            : "awaiting_review"
+        : cluster.previewDigest.state === "awaiting_review"
           ? "awaiting_review"
           : repair
             ? "recovery_required"
             : "pending",
-      calmSettledLanguageAllowed: false,
+      calmSettledLanguageAllowed: pharmacyMerge?.mergeState === "completed",
     },
     composerLease: {
       projectionName: "PatientComposerLease",
@@ -1205,6 +1250,7 @@ export function resolveRecordsCommunicationsEntry(
       "ConversationCommandSettlement",
       "PatientComposerLease",
       "ConversationTimelineAnchor",
+      ...cluster.sourceProjectionRefs,
     ],
   };
 }
@@ -1213,6 +1259,7 @@ function makeSubthreads(
   cluster: PatientConversationCluster,
   receiptKind: PatientReceiptEnvelope["deliveryEvidenceState"],
 ): readonly ConversationSubthreadProjection[] {
+  const pharmacyMerge = resolvePharmacyProductMergePreviewForMessageCluster(cluster.clusterRef);
   return [
     {
       projectionName: "ConversationSubthreadProjection",
@@ -1224,7 +1271,7 @@ function makeSubthreads(
       title: cluster.previewDigest.title,
       body: cluster.visibility.placeholderContractRef
         ? "Preview is limited by the current visibility envelope. The item stays visible as a governed placeholder."
-        : cluster.previewDigest.preview,
+        : pharmacyMerge?.patientNotification.body ?? cluster.previewDigest.preview,
       visibilityProjectionRef: cluster.visibility.communicationVisibilityProjectionId,
       receiptEnvelopeRef: cluster.visibility.latestReceiptEnvelopeRef,
     },
@@ -1236,13 +1283,17 @@ function makeSubthreads(
         receiptKind === "delivery_failure" || receiptKind === "disputed" ? "reminder" : "receipt",
       timestampLabel: "Receipt state",
       title:
-        receiptKind === "disputed"
+        pharmacyMerge?.mergeState === "completed"
+          ? pharmacyMerge.patientNotification.title
+          : receiptKind === "disputed"
           ? "Provider-channel dispute visible"
           : receiptKind === "delivery_failure"
             ? "Reminder delivery failed"
             : "Reply is awaiting review",
       body:
-        receiptKind === "pending"
+        pharmacyMerge
+          ? pharmacyMerge.patientNotification.body
+          : receiptKind === "pending"
           ? "Local acknowledgement is not final settlement. The shell waits for the authoritative outcome."
           : "The delivery issue remains in the same chronology until repaired.",
       visibilityProjectionRef: cluster.visibility.communicationVisibilityProjectionId,

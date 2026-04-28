@@ -16,7 +16,7 @@ import {
   trackExternalRequests,
   wait,
   writeAccessibilitySnapshot,
-} from "./255_workspace_shell_helpers";
+} from "./255_workspace_shell_helpers.ts";
 
 export const WORKSPACE_HARDENING_LAB_PATH = "/docs/frontend/276_workspace_hardening_assurance_lab.html";
 const SAFE_FIXTURE = "hardening_safe";

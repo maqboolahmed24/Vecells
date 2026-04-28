@@ -429,6 +429,14 @@ function classifyBeginReservationOutcome(input: {
             recoveryMode: "policy_reconciliation_required",
           };
     case "confirmation_pending":
+      if (input.policy.authoritativeReadMode === "read_after_write") {
+        return {
+          outcome: "confirmation_pending",
+          reasonCode:
+            input.dispatchOutcome.blockerReasonCode ?? "awaiting_authoritative_read",
+          recoveryMode: input.dispatchOutcome.recoveryMode ?? "awaiting_authoritative_read",
+        };
+      }
       return input.policy.supportsAsyncCommitConfirmation
         ? {
             outcome: "confirmation_pending",
@@ -498,6 +506,13 @@ function classifyObservationReservationOutcome(input: {
     };
   }
   if (input.observationKind === "confirmation_pending") {
+    if (input.policy.authoritativeReadMode === "read_after_write") {
+      return {
+        outcome: "confirmation_pending",
+        reasonCode: input.blockerReasonCode ?? "awaiting_authoritative_read",
+        recoveryMode: "awaiting_authoritative_read",
+      };
+    }
     return input.policy.supportsAsyncCommitConfirmation
       ? {
           outcome: "confirmation_pending",

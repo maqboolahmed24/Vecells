@@ -1,0 +1,935 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Phase6BounceBackContracts",
+  "description": "Frozen Phase 6 bounce-back, urgent-return, reopen-priority, and reachability-safety contract pack.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "taskId",
+    "contractVersion",
+    "bounceBackTypes",
+    "thresholdFamily",
+    "directUrgentRouteRequiredTypes",
+    "eventVocabulary"
+  ],
+  "properties": {
+    "taskId": {
+      "const": "seq_344_phase6_freeze_bounce_back_urgent_return_and_practice_visibility_contracts"
+    },
+    "contractVersion": {
+      "const": "344.phase6.return-status-visibility-freeze.v1"
+    },
+    "bounceBackTypes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "urgent_gp_return",
+          "routine_gp_return",
+          "patient_not_contactable",
+          "patient_declined",
+          "pharmacy_unable_to_complete",
+          "referral_expired",
+          "safeguarding_concern"
+        ]
+      }
+    },
+    "thresholdFamily": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "B_loop",
+        "tau_loop",
+        "tau_reopen_secondary",
+        "tau_contact_return",
+        "nu_clinical",
+        "nu_contact",
+        "nu_provider",
+        "nu_consent",
+        "nu_timing"
+      ],
+      "properties": {
+        "B_loop": {
+          "const": 3
+        },
+        "tau_loop": {
+          "const": 0.65
+        },
+        "tau_reopen_secondary": {
+          "const": 0.6
+        },
+        "tau_contact_return": {
+          "const": 0.7
+        },
+        "nu_clinical": {
+          "const": 0.35
+        },
+        "nu_contact": {
+          "const": 0.2
+        },
+        "nu_provider": {
+          "const": 0.15
+        },
+        "nu_consent": {
+          "const": 0.15
+        },
+        "nu_timing": {
+          "const": 0.15
+        }
+      }
+    },
+    "directUrgentRouteRequiredTypes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "urgent_gp_return",
+          "safeguarding_concern"
+        ]
+      }
+    },
+    "bounceBackAsWorkflowObjectLaw": {
+      "const": true
+    },
+    "urgentReturnDistinctFromRoutineLaw": {
+      "const": true
+    },
+    "timerTruthInferenceForbidden": {
+      "const": true
+    },
+    "calmPostureBlockedByReturnDebt": {
+      "const": true
+    },
+    "eventVocabulary": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "pharmacy.case.bounce_back",
+          "pharmacy.return.urgent_activated",
+          "pharmacy.return.routine_activated",
+          "pharmacy.reachability.plan.refreshed",
+          "pharmacy.loop_risk.escalated"
+        ]
+      }
+    },
+    "algorithm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "materialChange",
+        "loopRisk",
+        "reopenSignal",
+        "reopenPriorityBand"
+      ],
+      "properties": {
+        "materialChange": {
+          "const": "materialChange(b,l) = 1 - product_j (1 - nu_j * delta_j(b,l))"
+        },
+        "loopRisk": {
+          "const": "loopRisk(b,l) = min(bounceCount_l / B_loop, 1) * (1 - materialChange(b,l))"
+        },
+        "reopenSignal": {
+          "const": "reopenSignal(b,l) = max(u_urgent(b), u_unable(b), u_contact(b), u_decline(b))"
+        },
+        "reopenPriorityBand": {
+          "const": "reopenPriorityBand = max(originPriorityBand_l, 3 * 1[u_urgent(b) = 1], 2 * 1[max(u_unable(b), u_contact(b)) >= tau_reopen_secondary], 1 * 1[loopRisk(b,l) >= tau_loop])"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "PharmacyBounceBackEvidenceEnvelope": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "PharmacyBounceBackEvidenceEnvelope",
+      "description": "Immutable normalized bounce-back evidence envelope.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pharmacyBounceBackEvidenceEnvelopeId",
+        "pharmacyCaseRef",
+        "sourceKind",
+        "sourceOutcomeOrDispatchRef",
+        "normalizedBounceBackType",
+        "normalizedEvidenceRefs",
+        "trustClass",
+        "evidenceSummaryRef",
+        "receivedAt",
+        "normalizedAt"
+      ],
+      "properties": {
+        "pharmacyBounceBackEvidenceEnvelopeId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Bounce-back evidence envelope identifier."
+        },
+        "pharmacyCaseRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Owning pharmacy case.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyCase"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_342"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "sourceKind": {
+          "type": "string",
+          "enum": [
+            "outcome_observation",
+            "dispatch_failure",
+            "pharmacy_message",
+            "manual_capture",
+            "reachability_failure"
+          ],
+          "description": "Source kind for the normalized bounce-back evidence."
+        },
+        "sourceOutcomeOrDispatchRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Source outcome or dispatch settlement reference. variant",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyOutcomeSettlement"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_343"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Source outcome or dispatch settlement reference. variant",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyDispatchSettlement"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_343"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Source outcome or dispatch settlement reference."
+        },
+        "normalizedBounceBackType": {
+          "type": "string",
+          "enum": [
+            "urgent_gp_return",
+            "routine_gp_return",
+            "patient_not_contactable",
+            "patient_declined",
+            "pharmacy_unable_to_complete",
+            "referral_expired",
+            "safeguarding_concern"
+          ],
+          "description": "Normalized bounce-back type."
+        },
+        "normalizedEvidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Normalized evidence reference."
+          },
+          "description": "Normalized evidence references."
+        },
+        "trustClass": {
+          "type": "string",
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ],
+          "description": "Trust class of the normalized evidence."
+        },
+        "evidenceSummaryRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Evidence summary reference."
+        },
+        "receivedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Receipt timestamp."
+        },
+        "normalizedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Normalization timestamp."
+        }
+      }
+    },
+    "UrgentReturnDirectRouteProfile": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "UrgentReturnDirectRouteProfile",
+      "description": "Direct urgent route profile and safety-net fallback rules.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "urgentReturnDirectRouteProfileId",
+        "bounceBackType",
+        "routeClass",
+        "directRouteRef",
+        "fallbackRouteRef",
+        "updateRecordForbidden",
+        "monitoredSafetyNetRequired",
+        "contractSourceRef",
+        "routeEvidenceRequirementRef",
+        "calmCopyForbidden",
+        "reviewedAt"
+      ],
+      "properties": {
+        "urgentReturnDirectRouteProfileId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Urgent return direct route profile identifier."
+        },
+        "bounceBackType": {
+          "type": "string",
+          "enum": [
+            "urgent_gp_return",
+            "safeguarding_concern"
+          ],
+          "description": "Bounce-back type requiring the direct route."
+        },
+        "routeClass": {
+          "type": "string",
+          "enum": [
+            "dedicated_professional_number",
+            "urgent_care_escalation",
+            "monitored_email_fallback"
+          ],
+          "description": "Direct route class."
+        },
+        "directRouteRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Direct urgent route reference."
+        },
+        "fallbackRouteRef": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Fallback route reference."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fallback route reference."
+        },
+        "updateRecordForbidden": {
+          "const": true,
+          "description": "Whether Update Record is forbidden for this route."
+        },
+        "monitoredSafetyNetRequired": {
+          "type": "boolean",
+          "description": "Whether a monitored safety-net fallback is required."
+        },
+        "contractSourceRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Contract source reference."
+        },
+        "routeEvidenceRequirementRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Route evidence requirement reference."
+        },
+        "calmCopyForbidden": {
+          "const": true,
+          "description": "Whether calm routine copy is forbidden while this route is active."
+        },
+        "reviewedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Review timestamp."
+        }
+      }
+    },
+    "PharmacyReachabilityPlan": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "PharmacyReachabilityPlan",
+      "description": "Reachability plan governing pharmacy contact, outcome confirmation, and urgent return dependencies.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pharmacyReachabilityPlanId",
+        "pharmacyCaseRef",
+        "patientContactRouteRef",
+        "pharmacyContactDependencyRef",
+        "outcomeConfirmationDependencyRef",
+        "urgentReturnDependencyRef",
+        "currentReachabilityAssessmentRef",
+        "currentContactRouteSnapshotRef",
+        "contactRepairJourneyRef",
+        "routeAuthorityState",
+        "deliveryRiskState",
+        "repairState",
+        "dominantBrokenDependency",
+        "lastValidatedAt",
+        "refreshedAt"
+      ],
+      "properties": {
+        "pharmacyReachabilityPlanId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reachability plan identifier."
+        },
+        "pharmacyCaseRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Owning pharmacy case.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyCase"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_342"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "patientContactRouteRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Current patient contact route reference."
+        },
+        "pharmacyContactDependencyRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Pharmacy contact dependency reference."
+        },
+        "outcomeConfirmationDependencyRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Outcome confirmation dependency reference."
+        },
+        "urgentReturnDependencyRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Urgent return dependency reference."
+        },
+        "currentReachabilityAssessmentRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Current reachability assessment reference."
+        },
+        "currentContactRouteSnapshotRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Current contact route snapshot reference."
+        },
+        "contactRepairJourneyRef": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Contact repair journey reference."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Contact repair journey reference."
+        },
+        "routeAuthorityState": {
+          "type": "string",
+          "enum": [
+            "current",
+            "stale_verification",
+            "stale_demographics",
+            "disputed",
+            "superseded"
+          ],
+          "description": "Route authority state."
+        },
+        "deliveryRiskState": {
+          "type": "string",
+          "enum": [
+            "clear",
+            "at_risk",
+            "likely_failed",
+            "disputed"
+          ],
+          "description": "Delivery risk state."
+        },
+        "repairState": {
+          "type": "string",
+          "enum": [
+            "clear",
+            "repair_required",
+            "recovering",
+            "rebound_pending",
+            "blocked_identity"
+          ],
+          "description": "Repair state."
+        },
+        "dominantBrokenDependency": {
+          "type": "string",
+          "enum": [
+            "none",
+            "pharmacy_contact",
+            "outcome_confirmation",
+            "urgent_return"
+          ],
+          "description": "Dominant broken dependency."
+        },
+        "lastValidatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last validation timestamp."
+        },
+        "refreshedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Refresh timestamp."
+        }
+      }
+    },
+    "PharmacyBounceBackRecord": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "PharmacyBounceBackRecord",
+      "description": "First-class bounce-back workflow object for unresolved or urgent pharmacy return.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bounceBackRecordId",
+        "pharmacyCaseRef",
+        "bounceBackEvidenceEnvelopeRef",
+        "bounceBackType",
+        "normalizedEvidenceRefs",
+        "urgencyCarryFloor",
+        "materialChange",
+        "loopRisk",
+        "reopenSignal",
+        "reopenPriorityBand",
+        "sourceOutcomeOrDispatchRef",
+        "reachabilityDependencyRef",
+        "patientInstructionRef",
+        "practiceVisibilityRef",
+        "supervisorReviewState",
+        "directUrgentRouteRef",
+        "gpActionRequired",
+        "reopenedCaseStatus",
+        "currentReachabilityPlanRef",
+        "wrongPatientFreezeState",
+        "autoRedispatchBlocked",
+        "autoCloseBlocked",
+        "returnedTaskRef",
+        "reopenByAt",
+        "patientInformedAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "bounceBackRecordId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Bounce-back record identifier."
+        },
+        "pharmacyCaseRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Owning pharmacy case.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyCase"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_342"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "bounceBackEvidenceEnvelopeRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Normalized bounce-back evidence envelope reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyBounceBackEvidenceEnvelope"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_344"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "bounceBackType": {
+          "type": "string",
+          "enum": [
+            "urgent_gp_return",
+            "routine_gp_return",
+            "patient_not_contactable",
+            "patient_declined",
+            "pharmacy_unable_to_complete",
+            "referral_expired",
+            "safeguarding_concern"
+          ],
+          "description": "Bounce-back type."
+        },
+        "normalizedEvidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Normalized evidence reference."
+          },
+          "description": "Normalized evidence references."
+        },
+        "urgencyCarryFloor": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3,
+          "description": "Urgency carry floor for reopened work."
+        },
+        "materialChange": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Material change score."
+        },
+        "loopRisk": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Loop risk score."
+        },
+        "reopenSignal": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Reopen signal score."
+        },
+        "reopenPriorityBand": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3,
+          "description": "Reopen priority band."
+        },
+        "sourceOutcomeOrDispatchRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Source outcome or dispatch settlement reference. variant",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyOutcomeSettlement"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_343"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Source outcome or dispatch settlement reference. variant",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyDispatchSettlement"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_343"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Source outcome or dispatch settlement reference."
+        },
+        "reachabilityDependencyRef": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Reachability dependency reference."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Reachability dependency reference."
+        },
+        "patientInstructionRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Patient instruction projection reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyPatientStatusProjection"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_344"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "practiceVisibilityRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Practice visibility projection reference.",
+          "properties": {
+            "targetFamily": {
+              "const": "PharmacyPracticeVisibilityProjection"
+            },
+            "refId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownerTask": {
+              "const": "seq_344"
+            }
+          },
+          "required": [
+            "targetFamily",
+            "refId",
+            "ownerTask"
+          ]
+        },
+        "supervisorReviewState": {
+          "type": "string",
+          "enum": [
+            "not_required",
+            "required",
+            "in_review",
+            "resolved"
+          ],
+          "description": "Supervisor review state."
+        },
+        "directUrgentRouteRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Direct urgent route profile reference.",
+              "properties": {
+                "targetFamily": {
+                  "const": "UrgentReturnDirectRouteProfile"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_344"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Direct urgent route profile reference."
+        },
+        "gpActionRequired": {
+          "type": "boolean",
+          "description": "Whether GP action is required."
+        },
+        "reopenedCaseStatus": {
+          "type": "string",
+          "enum": [
+            "unresolved_returned",
+            "urgent_bounce_back",
+            "no_contact_return_pending"
+          ],
+          "description": "Resulting reopened case status."
+        },
+        "currentReachabilityPlanRef": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Current reachability plan reference.",
+              "properties": {
+                "targetFamily": {
+                  "const": "PharmacyReachabilityPlan"
+                },
+                "refId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerTask": {
+                  "const": "seq_344"
+                }
+              },
+              "required": [
+                "targetFamily",
+                "refId",
+                "ownerTask"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Current reachability plan reference."
+        },
+        "wrongPatientFreezeState": {
+          "type": "string",
+          "enum": [
+            "clear",
+            "identity_repair_active"
+          ],
+          "description": "Wrong-patient freeze state."
+        },
+        "autoRedispatchBlocked": {
+          "type": "boolean",
+          "description": "Whether automatic redispatch is blocked."
+        },
+        "autoCloseBlocked": {
+          "type": "boolean",
+          "description": "Whether automatic close is blocked."
+        },
+        "returnedTaskRef": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Returned task reference."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Returned or reopened task reference."
+        },
+        "reopenByAt": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "description": "Reopen-by timestamp."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Reopen-by timestamp."
+        },
+        "patientInformedAt": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "description": "Patient informed timestamp."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Patient informed timestamp."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Update timestamp."
+        }
+      }
+    }
+  },
+  "x-vecells-task-id": "seq_344_phase6_freeze_bounce_back_urgent_return_and_practice_visibility_contracts",
+  "x-vecells-contract-version": "344.phase6.return-status-visibility-freeze.v1"
+}

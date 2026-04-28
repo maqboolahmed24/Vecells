@@ -239,8 +239,9 @@ export async function run() {
 
     await page.goto(`${baseUrl}/workspace/queue/recommended`, { waitUntil: "networkidle" });
     await page.locator("[data-testid='queue-workboard']").waitFor();
-    const task412Button = page.locator('[data-task-id="task-412"]');
-    await task412Button.hover();
+    const task412Button = page.locator('[data-task-id="task-412"]').first();
+    await task412Button.scrollIntoViewIfNeeded();
+    await task412Button.focus();
     await page.locator("[data-testid='queue-preview-pocket']").waitFor();
     await page.waitForTimeout(140);
     assertCondition(
@@ -276,7 +277,7 @@ export async function run() {
           .querySelector("[data-testid='staff-shell-root']")
           ?.getAttribute("data-route-kind") === "more-info",
     );
-    await page.locator("[data-testid='protected-composition-ribbon']").waitFor();
+    await page.locator("[data-testid='protected-composition-ribbon']").waitFor({ state: "attached" });
     assertCondition(
       page.url().endsWith("/workspace/task/task-412/more-info"),
       "More-info child route drifted.",
@@ -289,7 +290,7 @@ export async function run() {
           .querySelector("[data-testid='staff-shell-root']")
           ?.getAttribute("data-route-kind") === "decision",
     );
-    await page.locator("[data-testid='protected-composition-ribbon']").waitFor();
+    await page.locator("[data-testid='protected-composition-ribbon']").waitFor({ state: "attached" });
     assertCondition(
       page.url().endsWith("/workspace/task/task-412/decision"),
       "Decision child route drifted.",

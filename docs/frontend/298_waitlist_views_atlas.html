@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>298 Waitlist Views Atlas</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f4f7fb;
+        --panel: #ffffff;
+        --stroke: #d7e0ea;
+        --text: #334155;
+        --text-strong: #0f172a;
+        --muted: #64748b;
+        --primary: #2457ff;
+        --waiting: #2563eb;
+        --held: #0f766e;
+        --fallback: #b7791f;
+        --expired: #b42318;
+        --repair: #6d28d9;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 32px;
+        background:
+          radial-gradient(circle at top left, rgba(36, 87, 255, 0.08), transparent 30%),
+          var(--canvas);
+        color: var(--text-strong);
+        font: 16px/1.5 Inter, "Segoe UI", sans-serif;
+      }
+
+      h1, h2, h3, p, pre {
+        margin: 0;
+      }
+
+      .atlas {
+        display: grid;
+        gap: 20px;
+      }
+
+      .panel {
+        border: 1px solid var(--stroke);
+        border-radius: 22px;
+        background: var(--panel);
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+      }
+
+      .hero {
+        display: grid;
+        gap: 8px;
+      }
+
+      .eyebrow {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+      }
+
+      .card {
+        border: 1px solid var(--stroke);
+        border-radius: 18px;
+        padding: 16px;
+        display: grid;
+        gap: 10px;
+        background: linear-gradient(180deg, rgba(248, 250, 252, 0.92), #ffffff);
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .chip.primary { background: rgba(36, 87, 255, 0.1); color: var(--primary); }
+      .chip.waiting { background: rgba(37, 99, 235, 0.1); color: var(--waiting); }
+      .chip.held { background: rgba(15, 118, 110, 0.1); color: var(--held); }
+      .chip.fallback { background: rgba(183, 121, 31, 0.12); color: var(--fallback); }
+      .chip.expired { background: rgba(180, 35, 24, 0.1); color: var(--expired); }
+      .chip.repair { background: rgba(109, 40, 217, 0.1); color: var(--repair); }
+
+      pre {
+        padding: 16px;
+        border-radius: 18px;
+        border: 1px solid var(--stroke);
+        background: #f8fafc;
+        overflow: auto;
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="atlas" data-testid="PatientWaitlistViewsAtlas">
+      <section class="panel hero">
+        <span class="eyebrow">Waitlist_Continuation_Studio</span>
+        <h1>Waitlist continuation views atlas</h1>
+        <p>
+          Lightweight same-shell waitlist join, waiting, live offer, expiry, fallback, secure-link, and contact-repair states.
+        </p>
+      </section>
+
+      <section class="panel">
+        <span class="eyebrow">Scenario atlas</span>
+        <div class="grid" id="scenario-grid"></div>
+      </section>
+
+      <section class="panel">
+        <span class="eyebrow">Continuation ladder</span>
+        <pre>Join
+  -> Waiting
+  -> Offer available
+     -> Accepted pending booking
+     -> Expired provenance
+     -> Superseded provenance
+  -> Fallback due
+     -> Callback expected
+  -> Contact-route repair (same-shell morph)</pre>
+      </section>
+    </main>
+
+    <script>
+      const scenarios = [
+        ["booking_case_298_join_sheet", "join_sheet", "pre_join", "none", "none", "stay_local_waitlist", "same_shell"],
+        ["booking_case_298_waiting", "manage_status", "waiting_for_offer", "on_track", "none", "stay_local_waitlist", "same_shell"],
+        ["booking_case_298_waiting_at_risk", "manage_status", "waiting_for_offer", "at_risk", "none", "stay_local_waitlist", "same_shell"],
+        ["booking_case_298_offer_nonexclusive", "offer_actionable", "offer_available", "on_track", "truthful_nonexclusive", "stay_local_waitlist", "same_shell"],
+        ["booking_case_298_offer_held", "offer_actionable", "offer_available", "on_track", "exclusive_held", "stay_local_waitlist", "same_shell"],
+        ["booking_case_298_offer_pending", "accepted_pending", "accepted_pending_booking", "on_track", "pending_confirmation", "stay_local_waitlist", "same_shell"],
+        ["booking_case_298_offer_expired", "expired_outcome", "expired", "on_track", "expired", "stay_local_waitlist", "same_shell"],
+        ["booking_case_298_offer_superseded", "expired_outcome", "offer_available", "on_track", "released", "stay_local_waitlist", "same_shell"],
+        ["booking_case_298_fallback_due", "fallback_due", "waiting_for_offer", "fallback_due", "none", "callback", "same_shell"],
+        ["booking_case_298_overdue_callback", "fallback_due", "callback_expected", "overdue", "none", "callback", "same_shell"],
+        ["booking_case_298_contact_repair", "contact_repair", "offer_available", "on_track", "truthful_nonexclusive", "stay_local_waitlist", "same_shell"],
+        ["booking_case_298_secure_link_offer", "offer_actionable", "offer_available", "at_risk", "truthful_nonexclusive", "stay_local_waitlist", "secure_link"]
+      ].map(([scenarioId, viewKind, visible, risk, truth, fallback, entryMode]) => ({
+        scenarioId,
+        viewKind,
+        visible,
+        risk,
+        truth,
+        fallback,
+        entryMode
+      }));
+
+      window.__patientWaitlistViewsAtlasData = scenarios;
+
+      const grid = document.getElementById("scenario-grid");
+      for (const scenario of scenarios) {
+        const card = document.createElement("article");
+        card.className = "card";
+        const truthTone =
+          scenario.truth === "exclusive_held" ? "held" :
+          scenario.truth === "truthful_nonexclusive" ? "waiting" :
+          scenario.truth === "expired" || scenario.truth === "released" ? "expired" :
+          scenario.visible === "callback_expected" ? "fallback" :
+          scenario.entryMode === "secure_link" ? "repair" : "primary";
+        card.innerHTML = `
+          <span class="eyebrow">${scenario.scenarioId}</span>
+          <h3>${scenario.viewKind}</h3>
+          <div class="chips">
+            <span class="chip ${truthTone}">${scenario.truth}</span>
+            <span class="chip primary">${scenario.visible}</span>
+            <span class="chip ${scenario.risk === "fallback_due" || scenario.risk === "overdue" ? "fallback" : "waiting"}">${scenario.risk}</span>
+            <span class="chip ${scenario.entryMode === "secure_link" ? "repair" : "primary"}">${scenario.entryMode}</span>
+          </div>
+          <p>Fallback route: ${scenario.fallback.replaceAll("_", " ")}</p>
+        `;
+        grid.appendChild(card);
+      }
+    </script>
+  </body>
+</html>

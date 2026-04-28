@@ -1270,14 +1270,24 @@ class Phase3MoreInfoKernelServiceImpl implements MoreInfoKernelService {
             : null,
         updatedAt: evaluatedAt,
       });
+      const scheduleSnapshot = schedule.toSnapshot();
       const updatedSchedule =
-        nextCheckpointState === "expired" && schedule.toSnapshot().scheduleState !== "cancelled"
+        nextCheckpointState === "expired" && scheduleSnapshot.scheduleState !== "cancelled"
           ? schedule.update({
               scheduleState: "completed",
               completedAt: evaluatedAt,
               updatedAt: evaluatedAt,
             })
-          : schedule.update({ updatedAt: evaluatedAt });
+          : nextCheckpointState === "late_review" &&
+              (scheduleSnapshot.scheduleState === "scheduled" ||
+                scheduleSnapshot.scheduleState === "suppressed")
+            ? schedule.update({
+                scheduleState: "suppressed",
+                nextQuietHoursReleaseAt: null,
+                suppressedReasonRef: "late_review_reached",
+                updatedAt: evaluatedAt,
+              })
+            : schedule.update({ updatedAt: evaluatedAt });
       const updatedCycle = cycle.update({
         state:
           nextCheckpointState === "expired"

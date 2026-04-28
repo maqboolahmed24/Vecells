@@ -1,0 +1,150 @@
+{
+  "taskId": "par_413",
+  "schemaVersion": "413.feedback-chain-final-human-artifact.v1",
+  "packageName": "@vecells/domain-assistive-feedback-chain",
+  "services": [
+    {
+      "serviceName": "AssistiveFeedbackChainService",
+      "responsibility": "materialize one live chain per visible artifact revision and review tuple"
+    },
+    {
+      "serviceName": "AssistiveArtifactActionLedger",
+      "responsibility": "persist every visible human gesture on the current chain"
+    },
+    {
+      "serviceName": "ActionGestureIdempotencyGuard",
+      "responsibility": "make actionGestureKey the exact idempotency boundary"
+    },
+    {
+      "serviceName": "OverrideRecordService",
+      "responsibility": "capture material override records and deterministic reason requirements"
+    },
+    {
+      "serviceName": "HumanApprovalGateEngine",
+      "responsibility": "compute approval burden, trust gate, continuity gate, and commit readiness"
+    },
+    {
+      "serviceName": "DistinctApproverPolicyGuard",
+      "responsibility": "enforce independent human approvers and ignore model-output generators"
+    },
+    {
+      "serviceName": "FinalHumanArtifactBinder",
+      "responsibility": "bind final human artifacts only after authoritative workflow settlement"
+    },
+    {
+      "serviceName": "AssistiveFeedbackChainSupersessionService",
+      "responsibility": "supersede chains for regenerate, artifact-hash drift, incident, or final artifact supersession"
+    }
+  ],
+  "persistedObjects": [
+    "AssistiveFeedbackChain",
+    "AssistiveArtifactActionRecord",
+    "OverrideRecord",
+    "HumanApprovalGateAssessment",
+    "FinalHumanArtifact",
+    "AssistiveFeedbackAuditRecord"
+  ],
+  "gesturePolicy": {
+    "idempotencyBoundary": "actionGestureKey",
+    "forbiddenFork": "action_gesture_cannot_fork_chains",
+    "supportedActionTypes": [
+      "accept_unchanged",
+      "accept_after_edit",
+      "reject_to_alternative",
+      "abstained_by_human",
+      "insert_draft",
+      "regenerate",
+      "dismiss_suggestion",
+      "acknowledge_abstain",
+      "stale_recovery"
+    ]
+  },
+  "overridePolicy": {
+    "optionalReasonScope": "style_only cosmetic wording edits",
+    "requiredReasonConditions": [
+      "content_material",
+      "policy_exception",
+      "trust_recovery",
+      "accepted_after_edit",
+      "rejected_to_alternative",
+      "abstained_by_human",
+      "low-confidence acceptance",
+      "high expected harm",
+      "low trust score",
+      "session freshness penalty",
+      "non-trusted continuity validation"
+    ],
+    "freeTextTelemetryRule": "routine telemetry stores refs and reason codes only, not raw override text"
+  },
+  "approvalPolicy": {
+    "dualReviewRule": "externally consequential or irreversible commits require two distinct approvers when high risk, high expected harm, low trust, policy exception, or hard-stop override applies",
+    "commitGate": [
+      "all_fences_valid",
+      "sessionFreshnessPenalty = 0",
+      "continuityValidationState = trusted",
+      "trustScoreAtGate >= tau_commit",
+      "completionAdjacencyState = allowed",
+      "currentApproverCount >= requiredApproverCount"
+    ],
+    "noSelfApprovalRule": "the same actor re-approving cannot satisfy the second review",
+    "modelGeneratorRule": "model_output_generator_cannot_approve"
+  },
+  "finalArtifactPolicy": {
+    "settlementAuthority": "FinalHumanArtifact",
+    "blockedShortcut": "assistive_acceptance_is_not_workflow_settlement",
+    "requiredSettlementState": "settled",
+    "requiredRefs": [
+      "assistiveFeedbackChainRef",
+      "approvalGateAssessmentRef",
+      "sourceAssistiveRefs",
+      "authoritativeWorkflowSettlementRef",
+      "taskCompletionSettlementEnvelopeRef"
+    ]
+  },
+  "downstreamInputsFor414": {
+    "publishedRefs": [
+      "assistiveFeedbackChainId",
+      "actionRecordRefs",
+      "overrideRecordRefs",
+      "approvalGateAssessmentRefs",
+      "currentFinalHumanArtifactRef",
+      "incidentLinkRefs",
+      "authoritativeWorkflowSettlementRef"
+    ],
+    "doesNotCompute": "FeedbackEligibilityFlag heuristics or trainability labels"
+  },
+  "invariants": [
+    {
+      "code": "one_feedback_chain_per_artifact_revision",
+      "severity": "blocker"
+    },
+    {
+      "code": "action_gesture_key_idempotency_boundary",
+      "severity": "blocker"
+    },
+    {
+      "code": "material_override_reason_code_required",
+      "severity": "blocker"
+    },
+    {
+      "code": "dual_review_required_for_high_risk_low_trust_external_commit",
+      "severity": "blocker"
+    },
+    {
+      "code": "distinct_approver_required",
+      "severity": "blocker"
+    },
+    {
+      "code": "final_human_artifact_requires_authoritative_settlement",
+      "severity": "blocker"
+    },
+    {
+      "code": "assistive_acceptance_is_not_workflow_settlement",
+      "severity": "blocker"
+    },
+    {
+      "code": "feedback_chain_outputs_for_414_only",
+      "severity": "major"
+    }
+  ]
+}

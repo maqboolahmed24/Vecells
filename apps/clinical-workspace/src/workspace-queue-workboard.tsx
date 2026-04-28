@@ -27,6 +27,13 @@ import {
   WORKSPACE_FOCUS_TARGET_IDS,
   buildWorkspaceSurfaceAttributes,
 } from "./workspace-accessibility";
+import {
+  AssistiveQueueContextPocket,
+  AssistiveQueueCue,
+  AssistiveQueueOpenToStageBridge,
+  buildAssistiveQueueAndAssuranceMergeState,
+  type AssistiveQueueAndAssuranceMergeState,
+} from "./assistive-queue-assurance-merge";
 
 export function QueueToolbar({
   route,
@@ -211,11 +218,19 @@ export function QueueRow({
   const secondaryId = `${rowId}-secondary`;
   const noteId = `${rowId}-note`;
   const selected = row.taskId === selectedTaskId;
+  const assistiveMergeState = buildAssistiveQueueAndAssuranceMergeState({
+    task,
+    row,
+    routeKind: "queue",
+    runtimeScenario,
+    selectedAnchorRef: row.anchorRef,
+    queueKey: task.queueKey,
+  });
   return (
     <article
       id={rowId}
       className="staff-shell__queue-row"
-      data-active={row.rowState === "selected" || row.rowState === "task_open" ? "true" : "false"}
+      data-active={selected || row.rowState === "task_open" ? "true" : "false"}
       data-previewing={row.rowState === "preview_peek" || row.rowState === "preview_pinned" ? "true" : "false"}
       data-row-state={row.rowState}
       data-movement-state={row.movementState}
@@ -227,7 +242,6 @@ export function QueueRow({
       aria-describedby={`${secondaryId} ${noteId}`}
       aria-posinset={rowIndex + 1}
       aria-setsize={rowCount}
-      onMouseEnter={() => onHover(row.taskId)}
       {...buildWorkspaceSurfaceAttributes({
         surface: "queue_workboard",
         surfaceState: row.rowState,
@@ -244,6 +258,7 @@ export function QueueRow({
         data-anchor-ref={row.anchorRef}
         tabIndex={-1}
         onClick={() => onSelect(row.taskId)}
+        onMouseEnter={() => onHover(row.taskId)}
         onFocus={() => onHover(row.taskId)}
       >
         <div className="staff-shell__queue-copy">
@@ -257,6 +272,7 @@ export function QueueRow({
         </div>
       </button>
       <div className="staff-shell__queue-status-cluster">
+        <AssistiveQueueCue state={assistiveMergeState} />
         <span className="staff-shell__queue-status-chip" data-state={task.state}>
           {row.statusChipLabel}
         </span>
@@ -293,19 +309,25 @@ export function QueueRow({
 export function QueuePreviewPocket({
   task,
   digest,
+  assistiveMergeState,
   mergeDigest,
   previewMode,
   runtimeScenario,
   onOpenAction,
   onPinToggle,
+  onPointerEnter,
+  onPointerLeave,
 }: {
   task: StaffQueueCase | null;
   digest: QueuePreviewDigestProjection | null;
+  assistiveMergeState: AssistiveQueueAndAssuranceMergeState | null;
   mergeDigest: QueueCallbackAdminMergeDigestProjection | null;
   previewMode: QueueWorkbenchProjection["previewMode"];
   runtimeScenario: StaffShellLedger["runtimeScenario"];
   onOpenAction: (taskId: string, action: QueueMergeLaunchAction) => void;
-  onPinToggle: () => void;
+  onPinToggle: (taskId: string | null) => void;
+  onPointerEnter: () => void;
+  onPointerLeave: () => void;
 }) {
   if (!task || !digest || !mergeDigest) {
     return (
@@ -317,6 +339,8 @@ export function QueuePreviewPocket({
         tabIndex={-1}
         role="complementary"
         aria-labelledby="workspace-preview-heading"
+        onMouseEnter={onPointerEnter}
+        onMouseLeave={onPointerLeave}
         {...buildWorkspaceSurfaceAttributes({
           surface: "queue_preview",
           surfaceState: "idle",
@@ -341,6 +365,8 @@ export function QueuePreviewPocket({
       tabIndex={-1}
       role="complementary"
       aria-labelledby="workspace-preview-heading"
+      onMouseEnter={onPointerEnter}
+      onMouseLeave={onPointerLeave}
       {...buildWorkspaceSurfaceAttributes({
         surface: "queue_preview",
         surfaceState: previewMode,
@@ -390,10 +416,38 @@ export function QueuePreviewPocket({
             {action.label}
           </button>
         ))}
-        <button type="button" className="staff-shell__utility-button" onClick={onPinToggle}>
+        <button
+          type="button"
+          className="staff-shell__utility-button"
+          onMouseDown={(event) => {
+            event.preventDefault();
+            onPinToggle(task.id);
+          }}
+          onClick={(event) => {
+            if (event.detail === 0) {
+              onPinToggle(task.id);
+            }
+          }}
+        >
           {previewMode === "pinned_summary" ? "Unpin preview" : "Pin preview"}
         </button>
       </div>
+      {assistiveMergeState ? (
+        <>
+          <AssistiveQueueContextPocket state={assistiveMergeState} />
+          <AssistiveQueueOpenToStageBridge
+            state={assistiveMergeState}
+            onOpenStage={() => {
+              const stageAction =
+                mergeDigest.launchActions.find((action) => action.routeKind === "task") ??
+                mergeDigest.launchActions[0];
+              if (stageAction) {
+                onOpenAction(task.id, stageAction);
+              }
+            }}
+          />
+        </>
+      ) : null}
     </section>
   );
 }
@@ -408,7 +462,11 @@ export function QueueWorkboardFrame({
   onRowSelect,
   onRowOpen,
   onListKeyDown,
+  onListPointerEnter,
+  onListPointerLeave,
   onPreviewPinToggle,
+  onPreviewPointerEnter,
+  onPreviewPointerLeave,
   onPreviewAction,
 }: {
   projection: QueueWorkbenchProjection;
@@ -420,7 +478,11 @@ export function QueueWorkboardFrame({
   onRowSelect: (taskId: string) => void;
   onRowOpen: (taskId: string) => void;
   onListKeyDown: (event: ReactKeyboardEvent<HTMLDivElement>) => void;
-  onPreviewPinToggle: () => void;
+  onListPointerEnter: () => void;
+  onListPointerLeave: () => void;
+  onPreviewPinToggle: (taskId: string | null) => void;
+  onPreviewPointerEnter: () => void;
+  onPreviewPointerLeave: () => void;
   onPreviewAction: (taskId: string, action: QueueMergeLaunchAction) => void;
 }) {
   const selectedTaskId =
@@ -442,6 +504,16 @@ export function QueueWorkboardFrame({
     ? Math.min(projection.rows.length, windowStart + windowSize)
     : projection.rows.length;
   const renderedRows = projection.rows.slice(windowStart, windowEnd);
+  const previewAssistiveState =
+    previewTask && projection.queuePreviewDigest
+      ? buildAssistiveQueueAndAssuranceMergeState({
+          task: previewTask,
+          routeKind: "queue",
+          runtimeScenario,
+          selectedAnchorRef: projection.queuePreviewDigest.rankEntryRef,
+          queueKey: previewTask.queueKey,
+        })
+      : null;
   return (
     <section
       className="staff-shell__queue-frame"
@@ -470,6 +542,8 @@ export function QueueWorkboardFrame({
         aria-describedby="workspace-workboard-keyboard-model"
         aria-activedescendant={activeDescendantId}
         data-row-count={projection.rows.length}
+        onMouseEnter={onListPointerEnter}
+        onMouseLeave={onListPointerLeave}
         onKeyDown={onListKeyDown}
       >
         {renderedRows.map((row, index) => (
@@ -491,11 +565,14 @@ export function QueueWorkboardFrame({
       <QueuePreviewPocket
         task={previewTask}
         digest={projection.queuePreviewDigest}
+        assistiveMergeState={previewAssistiveState}
         mergeDigest={previewTask ? mergeDigests[previewTask.id] ?? null : null}
         previewMode={projection.previewMode}
         runtimeScenario={runtimeScenario}
         onOpenAction={onPreviewAction}
         onPinToggle={onPreviewPinToggle}
+        onPointerEnter={onPreviewPointerEnter}
+        onPointerLeave={onPreviewPointerLeave}
       />
     </section>
   );
@@ -536,6 +613,10 @@ export function QueueScanManager({
   const [searchQuery, setSearchQuery] = useState(route.kind === "search" ? ledger.searchQuery : "");
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const explicitPinTaskRef = useRef<string | null>(previewPinned ? previewTaskId : null);
+  const lastHoveredTaskRef = useRef<string | null>(previewTaskId);
+  const previewPocketTaskRef = useRef<string | null>(previewTaskId);
+  const previewPointerLockRef = useRef(false);
+  const previewGuardUntilRef = useRef(0);
   const listRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -559,7 +640,18 @@ export function QueueScanManager({
       return;
     }
     const selectedNode = listNode.querySelector<HTMLElement>(`[data-anchor-ref="${ledger.selectedAnchorId}"]`);
-    selectedNode?.scrollIntoView({ block: "nearest" });
+    if (!selectedNode) {
+      return;
+    }
+    const listRect = listNode.getBoundingClientRect();
+    const selectedRect = selectedNode.getBoundingClientRect();
+    if (selectedRect.top < listRect.top) {
+      listNode.scrollTop += selectedRect.top - listRect.top;
+      return;
+    }
+    if (selectedRect.bottom > listRect.bottom) {
+      listNode.scrollTop += selectedRect.bottom - listRect.bottom;
+    }
   }, [ledger.selectedAnchorId, route.path]);
 
   const projection = useMemo(
@@ -592,22 +684,27 @@ export function QueueScanManager({
   );
 
   const schedulePreview = (taskId: string) => {
-    if (explicitPinTaskRef.current === taskId) {
+    if (
+      explicitPinTaskRef.current === taskId ||
+      previewPinned ||
+      previewPointerLockRef.current ||
+      Date.now() < previewGuardUntilRef.current
+    ) {
       return;
     }
-    if (previewPinned && previewTaskId === taskId) {
-      return;
-    }
+    lastHoveredTaskRef.current = taskId;
     if (hoverTimerRef.current) {
       clearTimeout(hoverTimerRef.current);
     }
     hoverTimerRef.current = setTimeout(() => {
       onPreviewTaskChange(taskId);
       onPreviewPinnedChange(false);
+      previewGuardUntilRef.current = Date.now() + 1_500;
     }, 100);
   };
 
   const selectRow = (taskId: string) => {
+    lastHoveredTaskRef.current = taskId;
     if (hoverTimerRef.current) {
       clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = null;
@@ -759,7 +856,51 @@ export function QueueScanManager({
         onRowSelect={selectRow}
         onRowOpen={openRow}
         onListKeyDown={onListKeyDown}
-        onPreviewPinToggle={() => onPreviewPinnedChange(!previewPinned)}
+        onListPointerEnter={() => {
+          previewPointerLockRef.current = false;
+        }}
+        onListPointerLeave={() => {
+          previewPointerLockRef.current = true;
+          if (hoverTimerRef.current) {
+            clearTimeout(hoverTimerRef.current);
+            hoverTimerRef.current = null;
+          }
+        }}
+        onPreviewPinToggle={(taskId) => {
+          if (hoverTimerRef.current) {
+            clearTimeout(hoverTimerRef.current);
+            hoverTimerRef.current = null;
+          }
+          if (!previewPinned) {
+            const pinnedTaskId =
+              taskId ??
+              previewPocketTaskRef.current ??
+              previewTaskId ??
+              lastHoveredTaskRef.current;
+            if (pinnedTaskId) {
+              selectRow(pinnedTaskId);
+              return;
+            }
+          }
+          if (!previewPinned && previewTaskId) {
+            selectRow(previewTaskId);
+            return;
+          }
+          explicitPinTaskRef.current = null;
+          onPreviewPinnedChange(false);
+        }}
+        onPreviewPointerEnter={() => {
+          previewPointerLockRef.current = true;
+          previewPocketTaskRef.current = previewTaskId;
+          if (hoverTimerRef.current) {
+            clearTimeout(hoverTimerRef.current);
+            hoverTimerRef.current = null;
+          }
+        }}
+        onPreviewPointerLeave={() => {
+          previewPointerLockRef.current = false;
+          previewPocketTaskRef.current = null;
+        }}
         onPreviewAction={openPreviewAction}
       />
     </aside>

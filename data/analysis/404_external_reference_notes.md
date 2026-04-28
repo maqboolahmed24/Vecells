@@ -1,0 +1,23 @@
+# 404 External Reference Notes
+
+Reviewed on 2026-04-27. These sources support the local Phase 8 contract; they do not override the repository blueprints.
+
+## Official Sources Reviewed
+
+| Source | Borrowed into 404 | Rejected or constrained |
+| --- | --- | --- |
+| [NHS England guidance on AI-enabled ambient scribing products](https://www.england.nhs.uk/publication/guidance-on-the-use-of-ai-enabled-ambient-scribing-products/) | Reinforced that ambient and generative documentation support needs explicit safety, regulatory, assurance, maintenance, and adoption controls. This supported the hard split between shadow evidence, human final artifact settlement, and visible-use feedback. | Did not copy a product procurement workflow into the contract. 404 stays at replay, evidence, feedback, and export law. |
+| [NHS Transformation Directorate information-governance guidance for AI-enabled ambient scribing](https://transform.england.nhs.uk/information-governance/guidance/using-ai-enabled-ambient-scribing-products-in-health-and-care-settings/) | Borrowed the posture that organisations adopting ambient scribes need explicit IG controls before use. This shaped `patient_objection_or_ig_exclusion`, disclosure fence requirements, and non-default raw export rules. | Did not treat patient or consultation data as casually reusable training material. Eligibility remains settlement-backed and revocable. |
+| [NHS England Digital IM1 Pairing integration](https://digital.nhs.uk/services/digital-services-for-integrated-care/im1-pairing-integration) | Borrowed the distinction between integration assurance, RFC change control, and local responsibility for AI-specific technical assurance. This supported prompt/model/version pins and non-silent changes to trainability posture. | Did not assume IM1 pairing itself assures model quality, algorithmic safety, or AI-specific risk. 404 freezes local evaluation and feedback law instead. |
+| [NHS England Digital SCAL process for APIs and services](https://digital.nhs.uk/developer/assurance/scal-process-for-apis-and-services) | Borrowed the document-evidence posture across technical conformance, clinical safety, information governance, security, and organisational risk. This supported summary-first `EvaluationExportArtifact` and evidence refs in replay bundles. | Did not make SCAL a runtime approval switch. It is treated as assurance context, not a substitute for frozen shadow evidence or human settlement. |
+| [NHS England Digital clinical risk management standards](https://digital.nhs.uk/services/clinical-safety/clinical-risk-management-standards) | Borrowed the manufacturer/deployment split between DCB0129 and DCB0160 clinical risk management duties. This supported separate model/prompt registry refs, release safety handoffs, incident linkage, and hazard-sensitive revocation. | Did not decide medical-device classification inside 404. Classification and release safety case work belongs to task `405`. |
+| [NHS England Digital DCB0129 and DCB0160 applicability step-by-step guidance](https://digital.nhs.uk/services/clinical-safety/applicability-of-dcb-0129-and-dcb-0160/step-by-step-guidance) | Borrowed the conservative posture that digital products supporting health or social care should treat clinical risk management as applicable or best practice where relevant. This shaped high-risk and dual-review routing. | Did not convert every assistive feature into visible clinical decision support. 403 capability boundaries and human-control law remain the local source of truth. |
+| [MHRA software and AI as a medical device guidance](https://www.gov.uk/government/publications/software-and-artificial-intelligence-ai-as-a-medical-device/software-and-artificial-intelligence-ai-as-a-medical-device) | Borrowed the need to reason about intended purpose, software/AI medical-device risk, post-market vigilance, and change control. This supported `medicalDeviceAssessmentRef`, incident-driven revocation, and prompt/model recall rules. | Did not classify Vecells outputs as medical devices in this task. 404 only preserves evidence and change-control hooks for safety-case work. |
+
+## Contract Implications
+
+- Shadow evidence must be internally reviewable but invisible to end users.
+- Model, prompt, dataset, and runtime changes need replayable version identity.
+- Feedback is not trainable until final human artifact settlement, downstream workflow settlement, label quality, counterfactual completeness, and exclusion checks pass.
+- Incident linkage and later supersession must revoke previously eligible feedback by creating append-only history.
+- Evaluation export must default to a summary-first, disclosure-governed artifact rather than raw replay dumps or detached PHI-bearing files.

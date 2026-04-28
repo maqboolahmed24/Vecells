@@ -1,0 +1,367 @@
+{
+  "taskId": "par_404",
+  "schemaVersion": "404.assistive-evaluation-contracts.v1",
+  "contractFamily": "assistive_evaluation_shadow_feedback",
+  "sourceGateRef": "data/contracts/403_phase8_track_readiness_registry.json",
+  "launchPacketRef": "data/launchpacks/403_track_launch_packet_404.json",
+  "sourceLaunchVerdict": "open_phase8_now",
+  "ownedBy": "assistive_evaluation_contracts",
+  "datasetPartitions": [
+    {
+      "partitionId": "gold",
+      "purpose": "protected release-gate regression and hard safety evaluation",
+      "allowedWriters": ["evaluation_data_steward", "clinical_safety_lead"],
+      "allowedReaders": ["replay_harness", "release_gate", "clinical_safety_review"],
+      "mutability": "immutable_after_publication",
+      "visibility": "internal_evaluation_only",
+      "trainingUse": "forbidden_as_default_tuning_bucket",
+      "lifecycleStates": ["draft", "candidate", "published", "superseded", "revoked"],
+      "minimumBindings": [
+        "datasetPartitionManifestRef",
+        "goldSetVersionRef",
+        "caseReplayBundleRefs",
+        "adjudicatedTruthRefs",
+        "publicationHash",
+        "accessPolicyRef"
+      ],
+      "invariants": ["INV404_001", "INV404_002", "INV404_003"]
+    },
+    {
+      "partitionId": "shadow_live",
+      "purpose": "workflow-linked evidence captured while assistive output remains invisible to end users",
+      "allowedWriters": ["shadow_dataset_capture_job"],
+      "allowedReaders": ["replay_harness", "evaluation_workbench", "monitoring_pipeline"],
+      "mutability": "append_only_with_versioned_cuts",
+      "visibility": "internal_shadow_only",
+      "trainingUse": "not_trainable_until_promoted_through_feedback_law",
+      "lifecycleStates": ["open_cut", "closed_cut", "published_cut", "stale", "blocked", "superseded"],
+      "minimumBindings": [
+        "requestRef",
+        "taskRef",
+        "evidenceSnapshotRefs",
+        "surfaceRouteContractRef",
+        "surfacePublicationRef",
+        "runtimePublicationBundleRef",
+        "telemetryDisclosureFenceRef"
+      ],
+      "invariants": ["INV404_002", "INV404_006", "INV404_007"]
+    },
+    {
+      "partitionId": "feedback",
+      "purpose": "settled human-reviewed visible-use artifacts eligible only under FeedbackEligibilityFlag law",
+      "allowedWriters": ["feedback_chain_settlement_job"],
+      "allowedReaders": ["evaluation_workbench", "adjudication_queue", "training_eligibility_export"],
+      "mutability": "append_only_with_revocation",
+      "visibility": "internal_feedback_governed",
+      "trainingUse": "requires_feedback_eligibility_flag_state_eligible",
+      "lifecycleStates": ["pending_settlement", "requires_adjudication", "eligible", "excluded", "revoked"],
+      "minimumBindings": [
+        "assistiveFeedbackChainRef",
+        "finalHumanArtifactRef",
+        "authoritativeWorkflowSettlementRef",
+        "feedbackEligibilityFlagRef",
+        "labelQualityState",
+        "counterfactualCompletenessState"
+      ],
+      "invariants": ["INV404_004", "INV404_005"]
+    }
+  ],
+  "objectContracts": [
+    {
+      "objectName": "CaseReplayBundle",
+      "objectRole": "deterministic replay unit for assistive evaluation",
+      "requiredFields": [
+        "replayBundleId",
+        "requestRef",
+        "taskRef",
+        "requestLineageRef",
+        "taskLineageRef",
+        "evidenceSnapshotRefs",
+        "evidenceCaptureBundleRefs",
+        "evidenceDerivationPackageRefs",
+        "expectedOutputsRef",
+        "featureSnapshotRefs",
+        "promptTemplateVersionRef",
+        "modelRegistryEntryRef",
+        "outputSchemaVersionRef",
+        "runtimeConfigHash",
+        "datasetPartition",
+        "sensitivityTag",
+        "surfaceRouteContractRef",
+        "surfacePublicationRef",
+        "runtimePublicationBundleRef",
+        "telemetryDisclosureFenceRef",
+        "bundleHash",
+        "bundleState",
+        "createdAt"
+      ],
+      "states": ["draft", "frozen", "published", "superseded", "quarantined", "revoked"],
+      "dependencyRules": [
+        "datasetPartition must be one of gold, shadow_live, feedback",
+        "bundleHash must be computed from frozen refs and pinned version ids",
+        "published bundles may not reference mutable current task state",
+        "feedback bundles must also reference FeedbackEligibilityFlag"
+      ]
+    },
+    {
+      "objectName": "GroundTruthLabel",
+      "objectRole": "annotator-authored label that may feed adjudication",
+      "requiredFields": [
+        "labelId",
+        "replayBundleId",
+        "labelType",
+        "labelValueRef",
+        "labelSchemaVersionRef",
+        "annotatorRef",
+        "annotatorRole",
+        "labelProvenanceRef",
+        "errorTaxonomyRefs",
+        "adjudicationState",
+        "supersedesLabelRef",
+        "labelState",
+        "createdAt"
+      ],
+      "states": ["draft", "submitted", "superseded", "excluded", "revoked"],
+      "dependencyRules": [
+        "submitted labels require annotatorRole",
+        "raw labels are not final truth until adjudicationState is not_required or adjudicated",
+        "revoked labels remain addressable for replay history"
+      ]
+    },
+    {
+      "objectName": "LabelAdjudicationRecord",
+      "objectRole": "separate final truth record for label conflicts and high-risk review",
+      "requiredFields": [
+        "adjudicationId",
+        "replayBundleId",
+        "candidateLabelRefs",
+        "adjudicatorRef",
+        "adjudicatorRole",
+        "adjudicationReasonCodes",
+        "finalLabelRef",
+        "decisionRationaleRef",
+        "adjudicationState",
+        "supersedesAdjudicationRef",
+        "createdAt"
+      ],
+      "states": ["not_required", "pending", "in_review", "adjudicated", "disputed", "superseded", "revoked"],
+      "dependencyRules": [
+        "high-risk, incident-linked, policy-exception, and conflicting labels must route to adjudication",
+        "finalLabelRef must point to a submitted GroundTruthLabel or adjudicator-authored replacement",
+        "supersession preserves the old adjudication record"
+      ]
+    },
+    {
+      "objectName": "ErrorTaxonomyRecord",
+      "objectRole": "typed error and safety finding classification for replay outputs",
+      "requiredFields": [
+        "errorId",
+        "replayBundleId",
+        "capabilityCode",
+        "errorClass",
+        "severity",
+        "sourceStage",
+        "reviewOutcome",
+        "evidenceSpanRefs",
+        "harmPotential",
+        "routingDisposition",
+        "createdAt"
+      ],
+      "states": ["draft", "confirmed", "disputed", "superseded", "revoked"],
+      "dependencyRules": [
+        "confirmed critical or high severity records require adjudication routing",
+        "errorClass must map to the active error taxonomy version",
+        "evidenceSpanRefs must not expose raw PHI in routine exports"
+      ]
+    },
+    {
+      "objectName": "PromptTemplateVersion",
+      "objectRole": "pinned prompt package identity for deterministic replay",
+      "requiredFields": [
+        "templateVersionId",
+        "capabilityCode",
+        "promptBundleHash",
+        "schemaVersion",
+        "allowedUseProfiles",
+        "effectiveFrom",
+        "retiredAt",
+        "immutabilityState"
+      ],
+      "states": ["draft", "approved", "retired", "revoked"],
+      "dependencyRules": [
+        "approved prompt versions are immutable",
+        "replay bundles must reference an approved or retired-but-replayable prompt version",
+        "revoked prompt versions block new replay publication"
+      ]
+    },
+    {
+      "objectName": "ModelRegistryEntry",
+      "objectRole": "pinned model identity and runtime configuration",
+      "requiredFields": [
+        "modelVersionId",
+        "provider",
+        "modelName",
+        "deploymentRegion",
+        "runtimeConfigHash",
+        "approvedUseProfiles",
+        "medicalDeviceAssessmentRef",
+        "subprocessorAssuranceRefs",
+        "modelState",
+        "registeredAt"
+      ],
+      "states": ["candidate", "approved_for_shadow", "approved_for_visible", "retired", "suspended", "revoked"],
+      "dependencyRules": [
+        "shadow replay may use approved_for_shadow or approved_for_visible entries",
+        "visible feedback replay may not use suspended or revoked entries",
+        "subprocessor assurance refs must be current for release-gate use"
+      ]
+    },
+    {
+      "objectName": "FeatureSnapshot",
+      "objectRole": "frozen feature and context input for replay",
+      "requiredFields": [
+        "featureSnapshotId",
+        "requestRef",
+        "taskRef",
+        "sourceEvidenceSnapshotRefs",
+        "featureVectorRef",
+        "featureSchemaVersionRef",
+        "snapshotTimestamp",
+        "generationVersion",
+        "snapshotHash",
+        "snapshotState"
+      ],
+      "states": ["captured", "frozen", "superseded", "quarantined", "revoked"],
+      "dependencyRules": [
+        "frozen snapshots cannot be regenerated in place",
+        "schema migration creates a new feature snapshot",
+        "quarantined snapshots block complete shadow evidence state"
+      ]
+    },
+    {
+      "objectName": "AssistiveEvaluationSurfaceBinding",
+      "objectRole": "runtime truth binding for internal evaluation, annotation, replay, and export surfaces",
+      "requiredFields": [
+        "assistiveEvaluationSurfaceBindingId",
+        "routeFamilyRef",
+        "surfaceRouteContractRef",
+        "surfacePublicationRef",
+        "runtimePublicationBundleRef",
+        "requiredTrustRefs",
+        "releaseRecoveryDispositionRef",
+        "telemetryDisclosureFenceRef",
+        "validatedAt",
+        "bindingState"
+      ],
+      "states": ["live", "observe_only", "recovery_only", "blocked", "withdrawn"],
+      "dependencyRules": [
+        "stale publication downgrades bindingState to observe_only or recovery_only",
+        "missing telemetry disclosure fence blocks export and approval-like controls",
+        "bindingState live is required before adjudication workbench actions imply current posture"
+      ]
+    },
+    {
+      "objectName": "EvaluationExportArtifact",
+      "objectRole": "summary-first internal evaluation export and handoff artifact",
+      "requiredFields": [
+        "evaluationExportArtifactId",
+        "replayBundleRef",
+        "artifactPresentationContractRef",
+        "outboundNavigationGrantPolicyRef",
+        "surfaceRouteContractRef",
+        "surfacePublicationRef",
+        "runtimePublicationBundleRef",
+        "visibilityTier",
+        "summarySafetyTier",
+        "placeholderContractRef",
+        "redactionTransformHash",
+        "artifactState",
+        "createdAt"
+      ],
+      "states": ["summary_only", "inline_renderable", "external_handoff_ready", "recovery_only", "blocked", "revoked"],
+      "dependencyRules": [
+        "summary_only is the default export posture",
+        "external_handoff_ready requires an outbound navigation grant",
+        "PHI-bearing CSV or raw replay dump must resolve to blocked"
+      ]
+    },
+    {
+      "objectName": "DatasetPartitionManifest",
+      "objectRole": "versioned manifest for gold, shadow_live, and feedback partitions",
+      "requiredFields": [
+        "datasetPartitionManifestId",
+        "partitionId",
+        "partitionVersion",
+        "caseReplayBundleRefs",
+        "labelSetRefs",
+        "adjudicationSetRefs",
+        "accessPolicyRef",
+        "manifestHash",
+        "publicationState",
+        "publishedAt"
+      ],
+      "states": ["draft", "candidate", "published", "superseded", "revoked"],
+      "dependencyRules": [
+        "published manifests are immutable",
+        "gold manifests require adjudicated truth refs",
+        "feedback manifests require eligible feedback flag refs"
+      ]
+    },
+    {
+      "objectName": "ShadowEvidenceCompletenessRecord",
+      "objectRole": "derived completeness assessment consumed by rollout and monitoring work",
+      "requiredFields": [
+        "shadowCompletenessRecordId",
+        "capabilityCode",
+        "datasetPartitionManifestRef",
+        "requiredMetricFamilyRefs",
+        "freshnessWindowRef",
+        "minimumCaseCount",
+        "observedCaseCount",
+        "surfacePublicationRef",
+        "runtimePublicationBundleRef",
+        "telemetryDisclosureFenceRef",
+        "completenessState",
+        "blockingRefs",
+        "evaluatedAt"
+      ],
+      "states": ["complete", "stale", "missing", "blocked"],
+      "dependencyRules": [
+        "missing partition or metric families produce missing",
+        "expired freshness produces stale",
+        "publication, runtime, disclosure, or trust blockers produce blocked"
+      ]
+    }
+  ],
+  "invariants": [
+    {
+      "invariantId": "INV404_001",
+      "statement": "A gold-set bundle is immutable once published."
+    },
+    {
+      "invariantId": "INV404_002",
+      "statement": "A replay bundle may not point at mutable current task state in place of frozen evidence snapshots."
+    },
+    {
+      "invariantId": "INV404_003",
+      "statement": "A raw label entry is not final adjudicated truth."
+    },
+    {
+      "invariantId": "INV404_004",
+      "statement": "A feedback eligibility flag cannot become eligible without authoritative human settlement."
+    },
+    {
+      "invariantId": "INV404_005",
+      "statement": "Revocation supersedes prior eligibility instead of mutating history in place."
+    },
+    {
+      "invariantId": "INV404_006",
+      "statement": "An evaluation export may not bypass artifact-presentation, disclosure, runtime-publication, or outbound-navigation law."
+    },
+    {
+      "invariantId": "INV404_007",
+      "statement": "Shadow evidence remains invisible to end users."
+    }
+  ],
+  "downstreamConsumers": ["par_406", "par_408", "par_409", "par_413", "par_414", "par_415"]
+}

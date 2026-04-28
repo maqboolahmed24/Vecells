@@ -9,6 +9,56 @@ import {
   type UiTelemetryEnvelopeExample,
   type UiTelemetryEventClass,
 } from "@vecells/persistent-shell";
+import { resolvePharmacyProductMergePreviewForOpsAnomaly } from "../../../packages/domains/pharmacy/src/phase6-pharmacy-product-merge-preview";
+import {
+  createOpsOverviewProjection,
+  defaultAnomalyIdForOverviewState,
+  defaultHealthCellForOverviewState,
+  deltaGateStateForOverviewState,
+  normalizeOpsOverviewScenarioState,
+  type OpsOverviewFreshnessStrip,
+  type OpsOverviewNorthStarMetric,
+  type OpsOverviewProjection,
+  type OpsOverviewScenarioState,
+  type OpsOverviewServiceHealthCell,
+  type OpsStableServiceDigest,
+} from "./operations-overview-phase9.model";
+import {
+  createOpsAllocationProjection,
+  type OpsActionEligibilityState,
+  type OpsAllocationProjection,
+  type OpsAllocationRouteLens,
+} from "./operations-allocation-phase9.model";
+import {
+  createOpsAssuranceProjection,
+  type OpsAssuranceExportControlState,
+  type OpsAssuranceProjection,
+} from "./operations-assurance-phase9.model";
+import {
+  createComplianceLedgerProjection,
+  type ComplianceLedgerProjection,
+} from "./compliance-ledger-phase9.model";
+import {
+  createCrossPhaseConformanceScorecardProjection,
+  type BAUSignoffActionState,
+  type ConformanceScorecardScenarioState,
+  type CrossPhaseConformanceScorecardProjection,
+} from "./conformance-scorecard-phase9.model";
+import {
+  createOpsIncidentsProjection,
+  type OpsIncidentActionControlState,
+  type OpsIncidentsProjection,
+} from "./operations-incidents-phase9.model";
+import {
+  createOpsInvestigationProjection,
+  type OpsInvestigationOriginLens,
+  type OpsInvestigationProjection,
+} from "./operations-investigation-phase9.model";
+import {
+  createOpsResilienceProjection,
+  type OpsRecoveryControlState,
+  type OpsResilienceProjection,
+} from "./operations-resilience-phase9.model";
 
 export const OPS_SHELL_TASK_ID = "par_117";
 export const OPS_SHELL_VISUAL_MODE = "Operations_Shell_Seed_Routes";
@@ -24,6 +74,7 @@ export type OpsLens =
   | "dependencies"
   | "audit"
   | "assurance"
+  | "conformance"
   | "incidents"
   | "resilience";
 export type OpsChildRouteKind = "investigations" | "interventions" | "compare" | "health";
@@ -42,21 +93,9 @@ export interface OpsLocation {
   opsRouteIntentId: string | null;
 }
 
-export interface OpsNorthStarMetric {
-  metricId: string;
-  label: string;
-  value: string;
-  changeLabel: string;
-  interpretation: string;
-}
-
-export interface OpsServiceHealthRow {
-  serviceRef: string;
-  serviceLabel: string;
-  state: "healthy" | "degraded" | "blocked";
-  trustState: "authoritative" | "buffered" | "stale";
-  summary: string;
-}
+export type { OpsOverviewScenarioState } from "./operations-overview-phase9.model";
+export type OpsNorthStarMetric = OpsOverviewNorthStarMetric;
+export type OpsServiceHealthRow = OpsOverviewServiceHealthCell;
 
 export interface OpsCohortImpactRow {
   cohortRef: string;
@@ -77,7 +116,11 @@ export interface OpsAnomaly {
   trustSummary: string;
   evidenceBasis: string;
   continuityQuestion: string;
-  promotedSurfaceRef: "BottleneckRadar" | "CapacityAllocator" | "ServiceHealthGrid" | "CohortImpactMatrix";
+  promotedSurfaceRef:
+    | "BottleneckRadar"
+    | "CapacityAllocator"
+    | "ServiceHealthGrid"
+    | "CohortImpactMatrix";
   recommendedAction: string;
   confidenceLabel: string;
   blockerSummary: string;
@@ -98,6 +141,10 @@ export interface OpsSelectionLease {
   leaseState: "active" | "held" | "frozen";
   promotionLockReason: "none" | "delta_buffered" | "stale_truth" | "table_only_parity";
   continuityKey: string;
+  boardTupleHash: string;
+  selectedHealthCellRef: string;
+  selectedHealthCellTupleHash: string;
+  actionEligibilityState: OpsFenceState;
   expiresAt: string;
 }
 
@@ -115,9 +162,19 @@ export interface OpsReturnToken {
   returnTokenId: string;
   originPath: string;
   selectedAnomalyId: string;
+  selectedHealthCellRef: string;
   lens: OpsLens;
   timeHorizon: string;
+  boardScopeRef: string;
+  scopePolicyRef: string;
+  shellContinuityKey: string;
+  boardStateDigestRef: string;
+  boardTupleHash: string;
+  freshnessState: string;
+  focusAnchorRef: string;
+  scrollAnchorRef: string;
   issuedAt: string;
+  expiresAt: string;
 }
 
 export interface OpsRouteIntent {
@@ -141,6 +198,23 @@ export interface OpsGovernanceHandoff {
 export interface OpsBoardStateSnapshot {
   snapshotId: string;
   location: OpsLocation;
+  overviewState: OpsOverviewScenarioState;
+  overviewProjection: OpsOverviewProjection;
+  allocationProjection: OpsAllocationProjection;
+  assuranceProjection: OpsAssuranceProjection;
+  complianceLedgerProjection: ComplianceLedgerProjection;
+  conformanceProjection: CrossPhaseConformanceScorecardProjection;
+  incidentsProjection: OpsIncidentsProjection;
+  investigationProjection: OpsInvestigationProjection;
+  resilienceProjection: OpsResilienceProjection;
+  shellContinuityKey: string;
+  boardStateDigestRef: string;
+  boardTupleHash: string;
+  boardScopeRef: string;
+  timeHorizon: string;
+  scopePolicyRef: string;
+  selectedHealthCell: OpsServiceHealthRow;
+  selectedHealthCellRef: string;
   selectedAnomaly: OpsAnomaly;
   anomalyRanking: readonly OpsAnomaly[];
   northStarBand: readonly OpsNorthStarMetric[];
@@ -150,6 +224,8 @@ export interface OpsBoardStateSnapshot {
   routeIntent: OpsRouteIntent | null;
   governanceHandoff: OpsGovernanceHandoff | null;
   serviceHealth: readonly OpsServiceHealthRow[];
+  freshnessStrip: OpsOverviewFreshnessStrip;
+  stableServiceDigest: OpsStableServiceDigest | null;
   cohortImpact: readonly OpsCohortImpactRow[];
   frameMode: OpsBoardFrameMode;
   workbenchState: OpsFenceState;
@@ -161,6 +237,8 @@ export interface OpsShellState {
   location: OpsLocation;
   continuitySnapshot: ContinuitySnapshot;
   selectedAnomalyId: string;
+  selectedHealthCellRef: string;
+  overviewState: OpsOverviewScenarioState;
   deltaGateState: OpsDeltaGateState;
   returnToken: OpsReturnToken | null;
   governanceHandoff: OpsGovernanceHandoff | null;
@@ -204,6 +282,7 @@ export const opsLensOrder: readonly OpsLens[] = [
   "dependencies",
   "audit",
   "assurance",
+  "conformance",
   "incidents",
   "resilience",
 ] as const;
@@ -217,8 +296,48 @@ export const opsChildRouteOrder: readonly OpsChildRouteKind[] = [
 
 const opsBoardClaim = getPersistentShellRouteClaim("rf_operations_board");
 const opsDrilldownClaim = getPersistentShellRouteClaim("rf_operations_drilldown");
+const pharmacyUrgentReturnOpsMerge =
+  resolvePharmacyProductMergePreviewForOpsAnomaly("ops-route-pharmacy-2103");
 
 export const opsAnomalies: readonly OpsAnomaly[] = [
+  {
+    anomalyId: "ops-route-pharmacy-2103",
+    lens: "overview",
+    title:
+      pharmacyUrgentReturnOpsMerge?.ops.title ??
+      "PHC-2103 urgent return reopened the original request",
+    severity: "critical",
+    queuePressure: 99,
+    capacityGap: 10,
+    summary:
+      pharmacyUrgentReturnOpsMerge?.ops.summary ??
+      "PHC-2103 has reopened request_215_callback with one authoritative urgent-return lineage across triage, patient messaging, and pharmacy recovery.",
+    trustSummary:
+      "The same urgent-return lineage now feeds ops, request detail, patient messages, and pharmacy recovery without a second local status copy.",
+    evidenceBasis:
+      pharmacyUrgentReturnOpsMerge?.supportReplaySummary ??
+      "Bounce-back truth, request-anchor preservation, and pharmacy recovery all point at one reopened lineage chain.",
+    continuityQuestion:
+      "Which team should resume the reopened request first without dropping the urgent-return proof, patient-safe messaging, or pharmacy recovery context?",
+    promotedSurfaceRef: "BottleneckRadar",
+    recommendedAction:
+      "Resume request_215_callback from the preserved anchor, keep PHC-2103 visible in operations, and route urgent review through the same recovery law.",
+    confidenceLabel: "0.86 confidence / urgent-return lineage bound",
+    blockerSummary:
+      "Do not calm, archive, or silently reroute the request while urgent-return review, pharmacy recovery, and GP-action evidence remain open.",
+    eligibilityFenceState: "live",
+    compareSummary:
+      pharmacyUrgentReturnOpsMerge?.reentrySummary ??
+      "Compare the reopened request anchor against the bounce-back evidence chain before any closure or reassignment decision.",
+    healthSummary:
+      pharmacyUrgentReturnOpsMerge?.patientNotification.body ??
+      "Urgent-return posture remains visibly non-calm across patient and staff surfaces until the reopened work is resolved.",
+    ownerLabel: "Pharmacy loop operations",
+    cohortFocus: "Urgent return / reopened request cohort",
+    timeHorizon: "Now",
+    governanceHandoffLabel: "Launch urgent-return coordination note",
+    gapRefs: [],
+  },
   {
     anomalyId: "ops-route-07",
     lens: "queues",
@@ -235,12 +354,16 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
     continuityQuestion:
       "Which confirmation lane can absorb relief without dropping the currently selected backlog proof basis?",
     promotedSurfaceRef: "BottleneckRadar",
-    recommendedAction: "Shift two confirmation reviewers into the priority repair lane for the next 90 minutes.",
+    recommendedAction:
+      "Shift two confirmation reviewers into the priority repair lane for the next 90 minutes.",
     confidenceLabel: "0.82 confidence / guardrails green",
-    blockerSummary: "Requires staffing tuple to stay live and release freeze to remain scoped away from queue rebalancing.",
+    blockerSummary:
+      "Requires staffing tuple to stay live and release freeze to remain scoped away from queue rebalancing.",
     eligibilityFenceState: "live",
-    compareSummary: "Compare queue growth against the preserved 06:00 baseline and the latest delta digest.",
-    healthSummary: "Confirmation essential function is degraded but still serviceable if relief lands in the current window.",
+    compareSummary:
+      "Compare queue growth against the preserved 06:00 baseline and the latest delta digest.",
+    healthSummary:
+      "Confirmation essential function is degraded but still serviceable if relief lands in the current window.",
     ownerLabel: "Operations queue control",
     cohortFocus: "High-priority referral cohort",
     timeHorizon: "90m",
@@ -263,12 +386,16 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
     continuityQuestion:
       "Can the team reduce user-facing lag without overclaiming a recovered supplier state?",
     promotedSurfaceRef: "ServiceHealthGrid",
-    recommendedAction: "Hold non-essential outbound retries and route only priority confirmations through the protected path.",
+    recommendedAction:
+      "Hold non-essential outbound retries and route only priority confirmations through the protected path.",
     confidenceLabel: "0.74 confidence / dependency guardrail active",
-    blockerSummary: "Automatic replay remains blocked while supplier ambiguity and cache freshness stay above the bound.",
+    blockerSummary:
+      "Automatic replay remains blocked while supplier ambiguity and cache freshness stay above the bound.",
     eligibilityFenceState: "buffered_hold",
-    compareSummary: "Compare supplier latency drift against the last fully published runtime publication bundle.",
-    healthSummary: "Notification delivery function is degraded and must present table-first posture if parity drops further.",
+    compareSummary:
+      "Compare supplier latency drift against the last fully published runtime publication bundle.",
+    healthSummary:
+      "Notification delivery function is degraded and must present table-first posture if parity drops further.",
     ownerLabel: "Runtime dependency watch",
     cohortFocus: "Outbound notification cohort",
     timeHorizon: "2h",
@@ -291,12 +418,16 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
     continuityQuestion:
       "What changed after the preserved proof basis, and does the action plane stay diagnostic-only until that drift is explained?",
     promotedSurfaceRef: "BottleneckRadar",
-    recommendedAction: "Freeze promoted action state, open investigation mode, and preserve the current proof basis for compare.",
+    recommendedAction:
+      "Freeze promoted action state, open investigation mode, and preserve the current proof basis for compare.",
     confidenceLabel: "0.91 confidence / action fence frozen",
-    blockerSummary: "Intervention is blocked until replay lineage and continuity evidence settle on the same checkpoint hash.",
+    blockerSummary:
+      "Intervention is blocked until replay lineage and continuity evidence settle on the same checkpoint hash.",
     eligibilityFenceState: "frozen",
-    compareSummary: "Side-by-side preserved proof vs live delta is required; silent rebasing is forbidden.",
-    healthSummary: "Continuity control envelope is blocked for calm posture, but evidence remains readable.",
+    compareSummary:
+      "Side-by-side preserved proof vs live delta is required; silent rebasing is forbidden.",
+    healthSummary:
+      "Continuity control envelope is blocked for calm posture, but evidence remains readable.",
     ownerLabel: "Continuity evidence control",
     cohortFocus: "Cross-surface continuity ledger",
     timeHorizon: "4h",
@@ -319,11 +450,14 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
     continuityQuestion:
       "Which surface needs rebinding so the operator can trust one settled explanation again?",
     promotedSurfaceRef: "CohortImpactMatrix",
-    recommendedAction: "Re-publish the assurance-backed summary bundle and keep intervention posture observe-only meanwhile.",
+    recommendedAction:
+      "Re-publish the assurance-backed summary bundle and keep intervention posture observe-only meanwhile.",
     confidenceLabel: "0.69 confidence / assurance rebinding pending",
-    blockerSummary: "Summary calmness is suppressed until the board explanation and slice tuple realign.",
+    blockerSummary:
+      "Summary calmness is suppressed until the board explanation and slice tuple realign.",
     eligibilityFenceState: "observe_only",
-    compareSummary: "Compare assurance-backed and board-local narratives instead of the underlying outcome.",
+    compareSummary:
+      "Compare assurance-backed and board-local narratives instead of the underlying outcome.",
     healthSummary: "Assurance function is stable; only the shell explanation is drifted.",
     ownerLabel: "Assurance publication steward",
     cohortFocus: "Settled mitigation cohort",
@@ -344,15 +478,18 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
       "Runtime freeze verdict is authoritative; the workbench must look intentionally frozen, not secretly commit-ready.",
     evidenceBasis:
       "Release watch tuple, runtime freeze verdict, and affected service-health rows agree on the freeze boundary.",
-    continuityQuestion:
-      "What relief options remain lawful while the freeze stays active?",
+    continuityQuestion: "What relief options remain lawful while the freeze stays active?",
     promotedSurfaceRef: "CapacityAllocator",
-    recommendedAction: "Prepare the manual fallback package and keep every execution step fenced behind governance handoff.",
+    recommendedAction:
+      "Prepare the manual fallback package and keep every execution step fenced behind governance handoff.",
     confidenceLabel: "0.88 confidence / release freeze active",
-    blockerSummary: "All automated relief remains blocked until freeze verdict clears or governance opens an exception lane.",
+    blockerSummary:
+      "All automated relief remains blocked until freeze verdict clears or governance opens an exception lane.",
     eligibilityFenceState: "frozen",
-    compareSummary: "Compare frozen release posture against the last pre-freeze admissible action set.",
-    healthSummary: "Affected essential functions are guarded, not healthy, even where customer impact is currently low.",
+    compareSummary:
+      "Compare frozen release posture against the last pre-freeze admissible action set.",
+    healthSummary:
+      "Affected essential functions are guarded, not healthy, even where customer impact is currently low.",
     ownerLabel: "Release watch coordinator",
     cohortFocus: "Freeze-affected service cluster",
     timeHorizon: "12h",
@@ -375,11 +512,14 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
     continuityQuestion:
       "Which recovery tier needs rehearsal before the shell can show more confidence?",
     promotedSurfaceRef: "ServiceHealthGrid",
-    recommendedAction: "Schedule the next bounded restore rehearsal and keep workbench posture observe-only until it settles.",
+    recommendedAction:
+      "Schedule the next bounded restore rehearsal and keep workbench posture observe-only until it settles.",
     confidenceLabel: "0.63 confidence / rehearsal debt open",
-    blockerSummary: "Recovery control posture suppresses stronger action authority until rehearsal coverage rises.",
+    blockerSummary:
+      "Recovery control posture suppresses stronger action authority until rehearsal coverage rises.",
     eligibilityFenceState: "observe_only",
-    compareSummary: "Compare current readiness against the last green rehearsal tier, not against ideal target state alone.",
+    compareSummary:
+      "Compare current readiness against the last green rehearsal tier, not against ideal target state alone.",
     healthSummary: "Recovery posture is guarded but not blocked.",
     ownerLabel: "Resilience baseline steward",
     cohortFocus: "Tier-2 recovery map",
@@ -403,12 +543,16 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
     continuityQuestion:
       "What would move this watchpoint into a promoted anomaly, and what should stay merely visible?",
     promotedSurfaceRef: "CohortImpactMatrix",
-    recommendedAction: "Keep the watch visible, expand the compare slice only if variance persists through the next observation window.",
+    recommendedAction:
+      "Keep the watch visible, expand the compare slice only if variance persists through the next observation window.",
     confidenceLabel: "0.58 confidence / watch posture only",
-    blockerSummary: "No manual intervention yet; the lane remains observe-only until variance persists.",
+    blockerSummary:
+      "No manual intervention yet; the lane remains observe-only until variance persists.",
     eligibilityFenceState: "observe_only",
-    compareSummary: "Compare the partner watchpoint only against the current observation band, not against hard-failure tuples.",
-    healthSummary: "Supplier cohort remains watch-level and should not dominate the board by default.",
+    compareSummary:
+      "Compare the partner watchpoint only against the current observation band, not against hard-failure tuples.",
+    healthSummary:
+      "Supplier cohort remains watch-level and should not dominate the board by default.",
     ownerLabel: "Partner dependency watch",
     cohortFocus: "Partner-origin acknowledgement cohort",
     timeHorizon: "8h",
@@ -417,62 +561,22 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
   },
 ] as const;
 
-export const opsNorthStarBand: readonly OpsNorthStarMetric[] = [
-  {
-    metricId: "north-star-backlog",
-    label: "Priority backlog at risk",
-    value: "18 cases",
-    changeLabel: "+6 in 90m",
-    interpretation: "Backlog grew faster than the protected queue can absorb.",
-  },
-  {
-    metricId: "north-star-trust",
-    label: "Board trust envelope",
-    value: "Guarded live",
-    changeLabel: "3 buffered lanes",
-    interpretation: "One promoted anomaly is live; three others remain visible but fenced.",
-  },
-  {
-    metricId: "north-star-readiness",
-    label: "Operational readiness drift",
-    value: "Tier 2 guarded",
-    changeLabel: "Restore debt +1",
-    interpretation: "Recovery posture is serviceable, but rehearsal debt suppresses stronger action claims.",
-  },
-] as const;
+export const opsNorthStarBand: readonly OpsNorthStarMetric[] =
+  createOpsOverviewProjection("normal").northStarBand;
 
-export const opsServiceHealthRows: readonly OpsServiceHealthRow[] = [
-  {
-    serviceRef: "svc_confirmation",
-    serviceLabel: "Confirmation service",
-    state: "degraded",
-    trustState: "authoritative",
-    summary: "Queue stress is authoritative and remains the dominant blocker.",
-  },
-  {
-    serviceRef: "svc_notification",
-    serviceLabel: "Notification delivery",
-    state: "degraded",
-    trustState: "buffered",
-    summary: "Supplier latency is buffered; action posture stays guarded.",
-  },
-  {
-    serviceRef: "svc_continuity",
-    serviceLabel: "Continuity evidence",
-    state: "blocked",
-    trustState: "stale",
-    summary: "Preserved proof is readable, but live rebinding is blocked pending replay alignment.",
-  },
-  {
-    serviceRef: "svc_resilience",
-    serviceLabel: "Recovery readiness",
-    state: "healthy",
-    trustState: "authoritative",
-    summary: "Coverage is serviceable, though debt remains visible.",
-  },
-] as const;
+export const opsServiceHealthRows: readonly OpsServiceHealthRow[] =
+  createOpsOverviewProjection("normal").serviceHealth;
 
 export const opsCohortImpactRows: readonly OpsCohortImpactRow[] = [
+  {
+    cohortRef: "cohort_pharmacy_reentry",
+    cohortLabel: "Urgent pharmacy re-entry",
+    variance: "+1 reopened",
+    direction: "up",
+    summary:
+      pharmacyUrgentReturnOpsMerge?.changedSinceSeenLabel ??
+      "Urgent return reopened the original request anchor and raised a new changed-since-seen event.",
+  },
   {
     cohortRef: "cohort_referrals",
     cohortLabel: "Priority referrals",
@@ -589,7 +693,11 @@ export function rankOpsAnomalies(
   return [...opsAnomalies].sort((left, right) => {
     const leftLensBonus = left.lens === lens || lens === "overview" ? 3 : 0;
     const rightLensBonus = right.lens === lens || lens === "overview" ? 3 : 0;
-    const leftScore = severityWeight(left.severity) * 100 + leftLensBonus * 10 + left.queuePressure - deltaPenalty(deltaGateState);
+    const leftScore =
+      severityWeight(left.severity) * 100 +
+      leftLensBonus * 10 +
+      left.queuePressure -
+      deltaPenalty(deltaGateState);
     const rightScore =
       severityWeight(right.severity) * 100 +
       rightLensBonus * 10 +
@@ -616,7 +724,8 @@ export function createOpsDeltaGate(deltaGateState: OpsDeltaGateState): OpsDeltaG
       return {
         deltaGateId: "ODG_LIVE",
         gateState: "live",
-        summary: "Live updates may refresh secondary summaries, but the promoted anomaly lease remains pinned.",
+        summary:
+          "Live updates may refresh secondary summaries, but the promoted anomaly lease remains pinned.",
         freshnessState: "fresh",
         visualizationMode: "chart_plus_table",
         trustState: "authoritative",
@@ -626,7 +735,8 @@ export function createOpsDeltaGate(deltaGateState: OpsDeltaGateState): OpsDeltaG
       return {
         deltaGateId: "ODG_BUFFERED",
         gateState: "buffered",
-        summary: "New deltas are buffered into a digest so the selected anomaly is not stolen mid-analysis.",
+        summary:
+          "New deltas are buffered into a digest so the selected anomaly is not stolen mid-analysis.",
         freshnessState: "buffered",
         visualizationMode: "chart_plus_table",
         trustState: "guarded",
@@ -636,7 +746,8 @@ export function createOpsDeltaGate(deltaGateState: OpsDeltaGateState): OpsDeltaG
       return {
         deltaGateId: "ODG_STALE",
         gateState: "stale",
-        summary: "The board preserves the last safe explanation and freezes the action plane until freshness recovers.",
+        summary:
+          "The board preserves the last safe explanation and freezes the action plane until freshness recovers.",
         freshnessState: "stale",
         visualizationMode: "summary_only",
         trustState: "diagnostic_only",
@@ -646,7 +757,8 @@ export function createOpsDeltaGate(deltaGateState: OpsDeltaGateState): OpsDeltaG
       return {
         deltaGateId: "ODG_TABLE_ONLY",
         gateState: "table_only",
-        summary: "Visualization parity has degraded, so every evidence panel falls back to table-first posture.",
+        summary:
+          "Visualization parity has degraded, so every evidence panel falls back to table-first posture.",
         freshnessState: "buffered",
         visualizationMode: "table_only",
         trustState: "guarded",
@@ -658,6 +770,8 @@ export function createOpsDeltaGate(deltaGateState: OpsDeltaGateState): OpsDeltaG
 export function createOpsSelectionLease(
   anomaly: OpsAnomaly,
   deltaGateState: OpsDeltaGateState,
+  overviewProjection: OpsOverviewProjection = createOpsOverviewProjection("normal"),
+  actionEligibilityState: OpsFenceState = anomaly.eligibilityFenceState,
 ): OpsSelectionLease {
   return {
     leaseId: `OSL_${anomaly.anomalyId.toUpperCase()}`,
@@ -674,6 +788,10 @@ export function createOpsSelectionLease(
             ? "stale_truth"
             : "table_only_parity",
     continuityKey: opsBoardClaim.continuityKey,
+    boardTupleHash: overviewProjection.boardTupleHash,
+    selectedHealthCellRef: overviewProjection.selectedHealthCellRef,
+    selectedHealthCellTupleHash: overviewProjection.selectedHealthCellTupleHash,
+    actionEligibilityState,
     expiresAt: "2026-04-14T13:45:00Z",
   };
 }
@@ -681,6 +799,7 @@ export function createOpsSelectionLease(
 export function createOpsReturnToken(
   location: OpsLocation,
   anomaly: OpsAnomaly,
+  overviewProjection: OpsOverviewProjection = createOpsOverviewProjection("normal"),
 ): OpsReturnToken {
   return {
     returnTokenId: `ORT_${anomaly.anomalyId.toUpperCase()}`,
@@ -689,9 +808,19 @@ export function createOpsReturnToken(
         ? location.pathname
         : rootPathForOpsLens(location.lens),
     selectedAnomalyId: anomaly.anomalyId,
+    selectedHealthCellRef: overviewProjection.selectedHealthCellRef,
     lens: location.lens,
-    timeHorizon: anomaly.timeHorizon,
+    timeHorizon: overviewProjection.timeHorizon,
+    boardScopeRef: overviewProjection.boardScopeRef,
+    scopePolicyRef: overviewProjection.scopePolicyRef,
+    shellContinuityKey: overviewProjection.shellContinuityKey,
+    boardStateDigestRef: overviewProjection.boardStateDigestRef,
+    boardTupleHash: overviewProjection.boardTupleHash,
+    freshnessState: overviewProjection.freshnessStrip.freshnessState,
+    focusAnchorRef: overviewProjection.returnFocusAnchorRef,
+    scrollAnchorRef: "ops-service-health-grid",
     issuedAt: "2026-04-14T13:00:00Z",
+    expiresAt: "2026-04-14T13:45:00Z",
   };
 }
 
@@ -806,18 +935,149 @@ function runtimeScenarioForDeltaGate(deltaGateState: OpsDeltaGateState): Runtime
   }
 }
 
+function allocationLensForOpsLens(lens: OpsLens): OpsAllocationRouteLens {
+  return lens === "capacity" ? "capacity" : "queues";
+}
+
+function investigationOriginLensForOpsLens(lens: OpsLens): OpsInvestigationOriginLens {
+  switch (lens) {
+    case "queues":
+    case "capacity":
+    case "audit":
+    case "overview":
+      return lens;
+    default:
+      return "overview";
+  }
+}
+
+function workbenchStateForAllocationEligibility(
+  eligibilityState: OpsActionEligibilityState,
+): OpsFenceState {
+  switch (eligibilityState) {
+    case "executable":
+      return "live";
+    case "handoff_required":
+      return "buffered_hold";
+    case "observe_only":
+    case "read_only_recovery":
+      return "observe_only";
+    case "stale_reacquire":
+    case "blocked":
+    default:
+      return "frozen";
+  }
+}
+
+function workbenchStateForAssuranceControl(
+  controlState: OpsAssuranceExportControlState,
+): OpsFenceState {
+  switch (controlState) {
+    case "live_export":
+      return "live";
+    case "attestation_required":
+      return "observe_only";
+    case "diagnostic_only":
+    case "recovery_only":
+      return "observe_only";
+    case "blocked":
+    default:
+      return "frozen";
+  }
+}
+
+function workbenchStateForIncidentControl(
+  controlState: OpsIncidentActionControlState,
+): OpsFenceState {
+  switch (controlState) {
+    case "live_control":
+      return "live";
+    case "governed_recovery":
+      return "buffered_hold";
+    case "diagnostic_only":
+      return "observe_only";
+    case "blocked":
+    default:
+      return "frozen";
+  }
+}
+
+function workbenchStateForRecoveryControl(controlState: OpsRecoveryControlState): OpsFenceState {
+  switch (controlState) {
+    case "live_control":
+      return "live";
+    case "diagnostic_only":
+      return "observe_only";
+    case "governed_recovery":
+      return "buffered_hold";
+    case "blocked":
+    default:
+      return "frozen";
+  }
+}
+
+function workbenchStateForConformanceControl(controlState: BAUSignoffActionState): OpsFenceState {
+  switch (controlState) {
+    case "ready":
+      return "live";
+    case "diagnostic_only":
+      return "observe_only";
+    case "permission_denied":
+    case "blocked":
+    default:
+      return "frozen";
+  }
+}
+
+function conformanceScenarioForOverviewState(
+  overviewState: OpsOverviewScenarioState,
+): ConformanceScorecardScenarioState {
+  switch (overviewState) {
+    case "stale":
+    case "degraded":
+    case "settlement_pending":
+      return "stale";
+    case "blocked":
+    case "quarantined":
+    case "freeze":
+      return "blocked";
+    case "permission_denied":
+      return "permission_denied";
+    default:
+      return "exact";
+  }
+}
+
+function stricterWorkbenchState(left: OpsFenceState, right: OpsFenceState): OpsFenceState {
+  const order: Record<OpsFenceState, number> = {
+    live: 0,
+    buffered_hold: 1,
+    observe_only: 2,
+    frozen: 3,
+  };
+  return order[right] > order[left] ? right : left;
+}
+
 export function createInitialOpsShellState(
   pathname: string = OPS_DEFAULT_PATH,
   options: {
     deltaGateState?: OpsDeltaGateState;
     selectedAnomalyId?: string;
+    selectedHealthCellRef?: string;
+    overviewState?: OpsOverviewScenarioState | string;
   } = {},
 ): OpsShellState {
   const location = parseOpsPath(pathname);
-  const deltaGateState = options.deltaGateState ?? "live";
+  const overviewState = normalizeOpsOverviewScenarioState(options.overviewState);
+  const selectedHealthCellRef =
+    options.selectedHealthCellRef ?? defaultHealthCellForOverviewState(overviewState);
+  const overviewProjection = createOpsOverviewProjection(overviewState, selectedHealthCellRef);
+  const deltaGateState = options.deltaGateState ?? deltaGateStateForOverviewState(overviewState);
   const selectedAnomalyId = resolveSelectedOpsAnomalyId(
     location.lens,
-    location.opsRouteIntentId ?? options.selectedAnomalyId,
+    location.opsRouteIntentId ??
+      options.selectedAnomalyId ??
+      defaultAnomalyIdForOverviewState(overviewState),
     deltaGateState,
   );
   const anomaly = anomalyForId(selectedAnomalyId) ?? opsAnomalies[0]!;
@@ -826,16 +1086,22 @@ export function createInitialOpsShellState(
     createOpsTelemetryEnvelope(location.routeFamilyRef, "surface_enter", {
       routeFamilyRef: location.routeFamilyRef,
       selectedAnomalyId,
+      selectedHealthCellRef: overviewProjection.selectedHealthCellRef,
       pathname: location.pathname,
       deltaGateState,
+      overviewState,
     }),
   ] as const;
   return {
     location,
     continuitySnapshot,
     selectedAnomalyId,
+    selectedHealthCellRef: overviewProjection.selectedHealthCellRef,
+    overviewState,
     deltaGateState,
-    returnToken: location.childRouteKind ? createOpsReturnToken(location, anomaly) : null,
+    returnToken: location.childRouteKind
+      ? createOpsReturnToken(location, anomaly, overviewProjection)
+      : null,
     governanceHandoff: null,
     runtimeScenario: runtimeScenarioForDeltaGate(deltaGateState),
     telemetry,
@@ -853,12 +1119,14 @@ function appendTelemetry(
   ];
 }
 
-export function selectOpsAnomaly(
-  state: OpsShellState,
-  anomalyId: string,
-): OpsShellState {
-  const anomaly = anomalyForId(anomalyId) ?? anomalyForId(state.selectedAnomalyId) ?? opsAnomalies[0]!;
-  const continuitySnapshot = nextContinuitySnapshot(state.continuitySnapshot, state.location, anomaly);
+export function selectOpsAnomaly(state: OpsShellState, anomalyId: string): OpsShellState {
+  const anomaly =
+    anomalyForId(anomalyId) ?? anomalyForId(state.selectedAnomalyId) ?? opsAnomalies[0]!;
+  const continuitySnapshot = nextContinuitySnapshot(
+    state.continuitySnapshot,
+    state.location,
+    anomaly,
+  );
   return {
     ...state,
     selectedAnomalyId: anomaly.anomalyId,
@@ -871,27 +1139,58 @@ export function selectOpsAnomaly(
   };
 }
 
+export function selectOpsHealthCell(
+  state: OpsShellState,
+  selectedHealthCellRef: string,
+): OpsShellState {
+  const overviewProjection = createOpsOverviewProjection(
+    state.overviewState,
+    selectedHealthCellRef,
+  );
+  return {
+    ...state,
+    selectedHealthCellRef: overviewProjection.selectedHealthCellRef,
+    telemetry: appendTelemetry(state, "selected_anchor_changed", {
+      selectedHealthCellRef: overviewProjection.selectedHealthCellRef,
+      selectedHealthCellTupleHash: overviewProjection.selectedHealthCellTupleHash,
+      boardStateDigestRef: overviewProjection.boardStateDigestRef,
+    }),
+  };
+}
+
 export function setOpsDeltaGateState(
   state: OpsShellState,
   deltaGateState: OpsDeltaGateState,
 ): OpsShellState {
   const runtimeScenario = runtimeScenarioForDeltaGate(deltaGateState);
+  const overviewState =
+    deltaGateState === "stale"
+      ? "stale"
+      : deltaGateState === "buffered"
+        ? "settlement_pending"
+        : deltaGateState === "table_only"
+          ? "degraded"
+          : "normal";
+  const overviewProjection = createOpsOverviewProjection(
+    overviewState,
+    state.selectedHealthCellRef,
+  );
   return {
     ...state,
     deltaGateState,
+    overviewState,
+    selectedHealthCellRef: overviewProjection.selectedHealthCellRef,
     runtimeScenario,
     telemetry: appendTelemetry(state, "visibility_freshness_downgrade", {
       deltaGateState,
+      overviewState,
       blockedMutation: createOpsDeltaGate(deltaGateState).blockedMutation,
       visualizationMode: createOpsDeltaGate(deltaGateState).visualizationMode,
     }),
   };
 }
 
-export function navigateOpsShell(
-  state: OpsShellState,
-  pathname: string,
-): OpsShellState {
+export function navigateOpsShell(state: OpsShellState, pathname: string): OpsShellState {
   const location = parseOpsPath(pathname);
   const nextSelectedAnomalyId = resolveSelectedOpsAnomalyId(
     location.lens,
@@ -900,10 +1199,17 @@ export function navigateOpsShell(
   );
   const anomaly = anomalyForId(nextSelectedAnomalyId) ?? opsAnomalies[0]!;
   const continuitySnapshot = nextContinuitySnapshot(state.continuitySnapshot, location, anomaly);
+  const overviewProjection = createOpsOverviewProjection(
+    state.overviewState,
+    state.selectedHealthCellRef,
+  );
   const nextReturnToken =
-    location.childRouteKind ||
-    state.location.routeFamilyRef === "rf_operations_board"
-      ? createOpsReturnToken(state.location, anomalyForId(state.selectedAnomalyId) ?? anomaly)
+    location.childRouteKind || state.location.routeFamilyRef === "rf_operations_board"
+      ? createOpsReturnToken(
+          state.location,
+          anomalyForId(state.selectedAnomalyId) ?? anomaly,
+          overviewProjection,
+        )
       : state.returnToken;
   return {
     ...state,
@@ -916,6 +1222,7 @@ export function navigateOpsShell(
       pathname: location.pathname,
       routeFamilyRef: location.routeFamilyRef,
       selectedAnomalyId: nextSelectedAnomalyId,
+      selectedHealthCellRef: overviewProjection.selectedHealthCellRef,
       returnTokenRef: nextReturnToken?.returnTokenId ?? null,
     }),
   };
@@ -938,7 +1245,12 @@ export function returnFromOpsChildRoute(state: OpsShellState): OpsShellState {
 
 export function openOpsGovernanceHandoff(state: OpsShellState): OpsShellState {
   const anomaly = anomalyForId(state.selectedAnomalyId) ?? opsAnomalies[0]!;
-  const returnToken = state.returnToken ?? createOpsReturnToken(state.location, anomaly);
+  const overviewProjection = createOpsOverviewProjection(
+    state.overviewState,
+    state.selectedHealthCellRef,
+  );
+  const returnToken =
+    state.returnToken ?? createOpsReturnToken(state.location, anomaly, overviewProjection);
   return {
     ...state,
     governanceHandoff: createOpsGovernanceHandoff(anomaly, returnToken),
@@ -964,11 +1276,63 @@ export function resolveOpsBoardSnapshot(
   state: OpsShellState,
   viewportWidth: number,
 ): OpsBoardStateSnapshot {
+  const overviewProjection = createOpsOverviewProjection(
+    state.overviewState,
+    state.selectedHealthCellRef,
+  );
+  const effectiveDeltaGateState =
+    state.overviewState === "normal" || state.overviewState === "stable_service"
+      ? state.deltaGateState
+      : deltaGateStateForOverviewState(state.overviewState);
   const selectedAnomaly = anomalyForId(state.selectedAnomalyId) ?? opsAnomalies[0]!;
-  const anomalyRanking = rankOpsAnomalies(state.location.lens, state.deltaGateState);
-  const deltaGate = createOpsDeltaGate(state.deltaGateState);
-  const selectionLease = createOpsSelectionLease(selectedAnomaly, state.deltaGateState);
-  const returnToken = state.returnToken ?? createOpsReturnToken(state.location, selectedAnomaly);
+  const anomalyRanking = rankOpsAnomalies(state.location.lens, effectiveDeltaGateState);
+  const allocationProjection = createOpsAllocationProjection(
+    allocationLensForOpsLens(state.location.lens),
+    state.overviewState,
+    selectedAnomaly.anomalyId,
+  );
+  const assuranceProjection = createOpsAssuranceProjection(state.overviewState);
+  const complianceLedgerProjection = createComplianceLedgerProjection({
+    scenarioState: state.overviewState,
+    selectedFrameworkCode: assuranceProjection.selectedFrameworkCode,
+    selectedControlRef: assuranceProjection.selectedControlCode,
+  });
+  const conformanceProjection = createCrossPhaseConformanceScorecardProjection({
+    scenarioState: conformanceScenarioForOverviewState(state.overviewState),
+  });
+  const incidentsProjection = createOpsIncidentsProjection({ scenarioState: state.overviewState });
+  const investigationProjection = createOpsInvestigationProjection(
+    investigationOriginLensForOpsLens(state.location.lens),
+    state.overviewState,
+    selectedAnomaly.anomalyId,
+    overviewProjection.selectedHealthCellRef,
+  );
+  const resilienceProjection = createOpsResilienceProjection(
+    state.overviewState,
+    overviewProjection.selectedHealthCellRef,
+  );
+  const baseDeltaGate = createOpsDeltaGate(effectiveDeltaGateState);
+  const deltaGate: OpsDeltaGate = {
+    ...baseDeltaGate,
+    summary: overviewProjection.freshnessStrip.summary,
+    freshnessState:
+      overviewProjection.freshnessStrip.freshnessState === "fresh"
+        ? "fresh"
+        : overviewProjection.freshnessStrip.freshnessState === "watch"
+          ? "buffered"
+          : "stale",
+    trustState:
+      overviewProjection.freshnessStrip.publicationState === "live"
+        ? baseDeltaGate.trustState
+        : overviewProjection.freshnessStrip.publicationState === "blocked"
+          ? "diagnostic_only"
+          : "guarded",
+    blockedMutation:
+      baseDeltaGate.blockedMutation ||
+      overviewProjection.freshnessStrip.liveControlState !== "live",
+  };
+  const returnToken =
+    state.returnToken ?? createOpsReturnToken(state.location, selectedAnomaly, overviewProjection);
   const routeIntent = createOpsRouteIntent(state.location, selectedAnomaly, returnToken);
   const governanceHandoff = state.governanceHandoff;
   const frameMode: OpsBoardFrameMode =
@@ -977,34 +1341,111 @@ export function resolveOpsBoardSnapshot(
       : state.location.childRouteKind === "compare" || state.location.lens === "incidents"
         ? "three_plane"
         : "two_plane";
+  const selectedHealthCell =
+    overviewProjection.serviceHealth.find(
+      (cell) => cell.serviceRef === overviewProjection.selectedHealthCellRef,
+    ) ?? overviewProjection.serviceHealth[0]!;
+  const overviewWorkbenchState: OpsFenceState =
+    overviewProjection.freshnessStrip.publicationState === "blocked" ||
+    selectedHealthCell.mitigationAuthorityState === "blocked"
+      ? "frozen"
+      : overviewProjection.freshnessStrip.liveControlState === "read_only"
+        ? "observe_only"
+        : deltaGate.blockedMutation && selectedAnomaly.eligibilityFenceState === "live"
+          ? "buffered_hold"
+          : effectiveDeltaGateState === "stale"
+            ? "frozen"
+            : effectiveDeltaGateState === "table_only"
+              ? "observe_only"
+              : selectedAnomaly.eligibilityFenceState;
+  const allocationWorkbenchState = workbenchStateForAllocationEligibility(
+    allocationProjection.actionEligibilityFence.eligibilityState,
+  );
+  const assuranceWorkbenchState: OpsFenceState =
+    state.location.lens === "assurance"
+      ? workbenchStateForAssuranceControl(
+          assuranceProjection.actionRail[0]?.controlState ?? "blocked",
+        )
+      : "live";
+  const investigationWorkbenchState: OpsFenceState =
+    state.location.childRouteKind === "investigations" &&
+    investigationProjection.drawerSession.deltaState !== "aligned"
+      ? investigationProjection.drawerSession.deltaState === "blocked"
+        ? "frozen"
+        : "observe_only"
+      : "live";
+  const incidentsWorkbenchState: OpsFenceState =
+    state.location.lens === "incidents"
+      ? workbenchStateForIncidentControl(incidentsProjection.runtimeBinding.actionControlState)
+      : "live";
+  const resilienceWorkbenchState: OpsFenceState =
+    state.location.lens === "resilience"
+      ? workbenchStateForRecoveryControl(resilienceProjection.recoveryControlPosture.postureState)
+      : "live";
+  const conformanceWorkbenchState: OpsFenceState =
+    state.location.lens === "conformance"
+      ? workbenchStateForConformanceControl(conformanceProjection.bauSignoffReadiness.actionState)
+      : "live";
+  const workbenchState = stricterWorkbenchState(
+    stricterWorkbenchState(
+      stricterWorkbenchState(
+        stricterWorkbenchState(
+          overviewWorkbenchState,
+          stricterWorkbenchState(allocationWorkbenchState, assuranceWorkbenchState),
+        ),
+        stricterWorkbenchState(investigationWorkbenchState, incidentsWorkbenchState),
+      ),
+      resilienceWorkbenchState,
+    ),
+    conformanceWorkbenchState,
+  );
+  const selectionLease = createOpsSelectionLease(
+    selectedAnomaly,
+    effectiveDeltaGateState,
+    overviewProjection,
+    workbenchState,
+  );
 
   return {
-    snapshotId: `OBS_${selectedAnomaly.anomalyId.toUpperCase()}_${state.deltaGateState.toUpperCase()}`,
+    snapshotId: `OBS_${selectedAnomaly.anomalyId.toUpperCase()}_${effectiveDeltaGateState.toUpperCase()}_${state.overviewState.toUpperCase()}`,
     location: state.location,
+    overviewState: state.overviewState,
+    overviewProjection,
+    allocationProjection,
+    assuranceProjection,
+    complianceLedgerProjection,
+    conformanceProjection,
+    incidentsProjection,
+    investigationProjection,
+    resilienceProjection,
+    shellContinuityKey: overviewProjection.shellContinuityKey,
+    boardStateDigestRef: overviewProjection.boardStateDigestRef,
+    boardTupleHash: overviewProjection.boardTupleHash,
+    boardScopeRef: overviewProjection.boardScopeRef,
+    timeHorizon: overviewProjection.timeHorizon,
+    scopePolicyRef: overviewProjection.scopePolicyRef,
+    selectedHealthCell,
+    selectedHealthCellRef: selectedHealthCell.serviceRef,
     selectedAnomaly,
     anomalyRanking,
-    northStarBand: opsNorthStarBand,
+    northStarBand: overviewProjection.northStarBand,
     selectionLease,
     deltaGate,
     returnToken,
     routeIntent,
     governanceHandoff,
-    serviceHealth: opsServiceHealthRows,
+    serviceHealth: overviewProjection.serviceHealth,
+    freshnessStrip: overviewProjection.freshnessStrip,
+    stableServiceDigest: overviewProjection.stableServiceDigest,
     cohortImpact: opsCohortImpactRows,
     frameMode,
-    workbenchState:
-      deltaGate.blockedMutation && selectedAnomaly.eligibilityFenceState === "live"
-        ? "buffered_hold"
-        : state.deltaGateState === "stale"
-          ? "frozen"
-          : state.deltaGateState === "table_only"
-            ? "observe_only"
-            : selectedAnomaly.eligibilityFenceState,
+    workbenchState,
     visualizationMode: deltaGate.visualizationMode,
-    summarySentence:
-      state.location.childRouteKind
-        ? `${selectedAnomaly.title} stays pinned while ${state.location.childRouteKind} preserves the same continuity question and return token.`
-        : `${selectedAnomaly.title} remains the dominant anomaly while the action plane stays bounded by the current delta gate.`,
+    summarySentence: state.location.childRouteKind
+      ? `${selectedAnomaly.title} stays pinned while ${state.location.childRouteKind} preserves the same continuity question and return token.`
+      : overviewProjection.stableServiceDigest
+        ? overviewProjection.surfaceSummary
+        : `${selectedAnomaly.title} remains the dominant anomaly while ${selectedHealthCell.serviceLabel} stays bound to ${overviewProjection.boardStateDigestRef}.`,
   };
 }
 
@@ -1013,7 +1454,8 @@ export const opsMockProjectionExamples: readonly OpsMockProjectionExample[] = [
     exampleId: "OPS_OVERVIEW_LIVE",
     path: "/ops/overview",
     deltaGateState: "live",
-    summary: "Desktop overview keeps one dominant backlog anomaly and a live intervention workbench.",
+    summary:
+      "Desktop overview keeps one dominant backlog anomaly and a live intervention workbench.",
     selectedAnomalyId: "ops-route-07",
     childRouteKind: null,
   },
@@ -1021,7 +1463,8 @@ export const opsMockProjectionExamples: readonly OpsMockProjectionExample[] = [
     exampleId: "OPS_QUEUES_BUFFERED",
     path: "/ops/queues",
     deltaGateState: "buffered",
-    summary: "Queue lens buffers new deltas instead of re-ranking away from the preserved backlog selection.",
+    summary:
+      "Queue lens buffers new deltas instead of re-ranking away from the preserved backlog selection.",
     selectedAnomalyId: "ops-route-07",
     childRouteKind: null,
   },
@@ -1029,7 +1472,8 @@ export const opsMockProjectionExamples: readonly OpsMockProjectionExample[] = [
     exampleId: "OPS_DEPENDENCIES_TABLE_ONLY",
     path: "/ops/dependencies",
     deltaGateState: "table_only",
-    summary: "Dependency lens downgrades visualization parity to table-only posture while preserving the same shell.",
+    summary:
+      "Dependency lens downgrades visualization parity to table-only posture while preserving the same shell.",
     selectedAnomalyId: "ops-route-04",
     childRouteKind: null,
   },
@@ -1037,7 +1481,8 @@ export const opsMockProjectionExamples: readonly OpsMockProjectionExample[] = [
     exampleId: "OPS_AUDIT_INVESTIGATION",
     path: "/ops/audit/investigations/ops-route-12",
     deltaGateState: "stale",
-    summary: "Audit investigation keeps preserved proof basis visible and action posture frozen under stale continuity truth.",
+    summary:
+      "Audit investigation keeps preserved proof basis visible and action posture frozen under stale continuity truth.",
     selectedAnomalyId: "ops-route-12",
     childRouteKind: "investigations",
   },
@@ -1045,7 +1490,8 @@ export const opsMockProjectionExamples: readonly OpsMockProjectionExample[] = [
     exampleId: "OPS_INCIDENT_COMPARE",
     path: "/ops/incidents/compare/ops-route-15",
     deltaGateState: "buffered",
-    summary: "Incident compare route opens the only allowed three-plane posture and preserves the same anomaly selection.",
+    summary:
+      "Incident compare route opens the only allowed three-plane posture and preserves the same anomaly selection.",
     selectedAnomalyId: "ops-route-15",
     childRouteKind: "compare",
   },
@@ -1053,7 +1499,8 @@ export const opsMockProjectionExamples: readonly OpsMockProjectionExample[] = [
     exampleId: "OPS_RESILIENCE_HEALTH",
     path: "/ops/resilience/health/ops-route-18",
     deltaGateState: "live",
-    summary: "Resilience health drill keeps essential-function health visible beside restore debt context.",
+    summary:
+      "Resilience health drill keeps essential-function health visible beside restore debt context.",
     selectedAnomalyId: "ops-route-18",
     childRouteKind: "health",
   },
@@ -1101,9 +1548,9 @@ export function createOpsRouteMapMermaid(): string {
     '  root --> health["/ops/:lens/health/:opsRouteIntentId"]',
     '  investigations --> returnLaw["OpsReturnToken return"]',
     '  interventions --> governance["Bounded governance handoff stub"]',
-    '  compare --> returnLaw',
-    '  health --> returnLaw',
-    '  governance --> returnLaw',
+    "  compare --> returnLaw",
+    "  health --> returnLaw",
+    "  governance --> returnLaw",
   ].join("\n");
 }
 

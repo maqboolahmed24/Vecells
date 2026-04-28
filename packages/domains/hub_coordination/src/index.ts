@@ -1,3 +1,15 @@
+export * from "./phase5-hub-case-kernel";
+export * from "./phase5-acting-context-visibility-kernel";
+export * from "./phase5-enhanced-access-policy-engine";
+export * from "./phase5-network-capacity-pipeline";
+export * from "./phase5-hub-queue-engine";
+export * from "./phase5-alternative-offer-engine";
+export * from "./phase5-hub-commit-engine";
+export * from "./phase5-practice-continuity-engine";
+export * from "./phase5-hub-fallback-engine";
+export * from "./phase5-reminders-manage-visibility-engine";
+export * from "./phase5-hub-background-integrity-engine";
+
 export interface OwnedObjectFamily {
   canonicalName: string;
   objectKind: string;
@@ -36,6 +48,7 @@ export const packageContract = {
     "packages/event-contracts",
     "packages/authz-policy",
     "packages/observability",
+    "packages/domains/identity_access public exports",
   ],
   forbiddenDependencies: [
     "packages/domains/* sibling internals",
@@ -47,8 +60,9 @@ export const packageContract = {
     "CBC_041_DOMAIN_PACKAGES_TO_DOMAIN_KERNEL",
     "CBC_041_DOMAIN_PACKAGES_TO_EVENT_CONTRACTS",
     "CBC_041_DOMAIN_PACKAGES_TO_POLICY_AND_OBSERVABILITY",
+    "PHASE5_320_HUB_OFFERS_TO_IDENTITY_ACCESS_PUBLIC_EXPORTS_ONLY",
   ],
-  objectFamilyCount: 49,
+  objectFamilyCount: 58,
   contractFamilyCount: 0,
   sourceContexts: ["hub_coordination"],
 } as const satisfies PackageContract;
@@ -255,6 +269,22 @@ export const ownedObjectFamilies = [
       "phase-5-the-network-horizon.md#5G. No-slot handling, urgent bounce-back, callback fallback, and reopen mechanics / Backend work / HubCoordinationException",
   },
   {
+    canonicalName: "HubExceptionAuditRow",
+    objectKind: "record",
+    boundedContext: "hub_coordination",
+    authoritativeOwner: "Hub coordination domain",
+    sourceRef:
+      "phase-5-the-network-horizon.md#5F. Native hub booking commit, practice continuity, and cross-org messaging / Backend work / typed hub exception processing",
+  },
+  {
+    canonicalName: "HubExceptionWorkItem",
+    objectKind: "record",
+    boundedContext: "hub_coordination",
+    authoritativeOwner: "Hub coordination domain",
+    sourceRef:
+      "phase-5-the-network-horizon.md#5F. Native hub booking commit, practice continuity, and cross-org messaging / Backend work / typed hub exception processing",
+  },
+  {
     canonicalName: "HubEscalationBannerProjection",
     objectKind: "projection",
     boundedContext: "hub_coordination",
@@ -277,6 +307,30 @@ export const ownedObjectFamilies = [
     authoritativeOwner: "Hub coordination domain",
     sourceRef:
       "phase-5-the-network-horizon.md#5H. Patient communications, network reminders, manage flows, and practice visibility / Backend work / HubManageSettlement",
+  },
+  {
+    canonicalName: "HubProjectionBackfillCursor",
+    objectKind: "record",
+    boundedContext: "hub_coordination",
+    authoritativeOwner: "Hub coordination domain",
+    sourceRef:
+      "phase-5-the-network-horizon.md#5F. Native hub booking commit, practice continuity, and cross-org messaging / Backend work / projection backfill",
+  },
+  {
+    canonicalName: "HubCommitReconciliationRecord",
+    objectKind: "record",
+    boundedContext: "hub_coordination",
+    authoritativeOwner: "Hub coordination domain",
+    sourceRef:
+      "phase-5-the-network-horizon.md#5F. Native hub booking commit, practice continuity, and cross-org messaging / Backend work / reconciliation worker",
+  },
+  {
+    canonicalName: "HubImportedConfirmationCorrelation",
+    objectKind: "record",
+    boundedContext: "hub_coordination",
+    authoritativeOwner: "Hub coordination domain",
+    sourceRef:
+      "phase-5-the-network-horizon.md#5F. Native hub booking commit, practice continuity, and cross-org messaging / Backend work / imported confirmation correlation",
   },
   {
     canonicalName: "HubOfferToConfirmationTruthProjection",
@@ -357,6 +411,38 @@ export const ownedObjectFamilies = [
     authoritativeOwner: "Hub coordination domain",
     sourceRef:
       "phase-5-the-network-horizon.md#5F. Native hub booking commit, practice continuity, and cross-org messaging / Backend work / HubSupplierMirrorState",
+  },
+  {
+    canonicalName: "HubSupplierDriftHook",
+    objectKind: "record",
+    boundedContext: "hub_coordination",
+    authoritativeOwner: "Hub coordination domain",
+    sourceRef:
+      "phase-5-the-network-horizon.md#5F. Native hub booking commit, practice continuity, and cross-org messaging / Backend work / HubSupplierMirrorState",
+  },
+  {
+    canonicalName: "HubSupplierMirrorCheckpoint",
+    objectKind: "record",
+    boundedContext: "hub_coordination",
+    authoritativeOwner: "Hub coordination domain",
+    sourceRef:
+      "phase-5-the-network-horizon.md#5F. Native hub booking commit, practice continuity, and cross-org messaging / Backend work / HubSupplierMirrorState",
+  },
+  {
+    canonicalName: "HubSupplierObservation",
+    objectKind: "record",
+    boundedContext: "hub_coordination",
+    authoritativeOwner: "Hub coordination domain",
+    sourceRef:
+      "phase-5-the-network-horizon.md#5F. Native hub booking commit, practice continuity, and cross-org messaging / Backend work / HubSupplierMirrorState",
+  },
+  {
+    canonicalName: "HubReconciliationWorkLease",
+    objectKind: "record",
+    boundedContext: "hub_coordination",
+    authoritativeOwner: "Hub coordination domain",
+    sourceRef:
+      "phase-5-the-network-horizon.md#5F. Native hub booking commit, practice continuity, and cross-org messaging / Backend work / reconciliation worker",
   },
   {
     canonicalName: "HubVarianceWindowPolicy",
@@ -485,12 +571,84 @@ export const aggregateFamilies = [
 
 export const domainServiceFamilies = [
   {
+    canonicalName: "AlternativeOfferOptimisationEngine",
+    objectKind: "other",
+    boundedContext: "hub_coordination",
+    authoritativeOwner: "Hub coordination domain",
+    sourceRef:
+      "phase-5-the-network-horizon.md#5E. Alternative offers, patient choice, and network-facing UX / Backend work / alternative-offer optimisation engine",
+  },
+  {
+    canonicalName: "HubCommitOrchestrationEngine",
+    objectKind: "other",
+    boundedContext: "hub_coordination",
+    authoritativeOwner: "Hub coordination domain",
+    sourceRef:
+      "phase-5-the-network-horizon.md#5F. Native hub booking commit, practice continuity, and cross-org messaging / Backend work / HubBookingCommit flow",
+  },
+  {
+    canonicalName: "HubFallbackDecisionEngine",
+    objectKind: "other",
+    boundedContext: "hub_coordination",
+    authoritativeOwner: "Hub coordination domain",
+    sourceRef:
+      "phase-5-the-network-horizon.md#5G. No-slot handling, urgent bounce-back, callback fallback, and reopen mechanics / Backend work / fallback decision engine",
+  },
+  {
+    canonicalName: "HubQueueRankingEngine",
+    objectKind: "other",
+    boundedContext: "hub_coordination",
+    authoritativeOwner: "Hub coordination domain",
+    sourceRef:
+      "phase-5-the-network-horizon.md#5D. Coordination queue, candidate ranking, and SLA engine / Backend work / queue risk-ranking engine",
+  },
+  {
     canonicalName: "HubServiceObligationPolicy",
     objectKind: "policy",
     boundedContext: "hub_coordination",
     authoritativeOwner: "Hub coordination domain",
     sourceRef:
       "phase-5-the-network-horizon.md#5A. Network coordination contract, case model, and state machine / Backend work / HubServiceObligationPolicy",
+  },
+  {
+    canonicalName: "ActingContextEnvelope",
+    objectKind: "other",
+    boundedContext: "hub_coordination",
+    authoritativeOwner: "Hub coordination domain",
+    sourceRef:
+      "phase-5-the-network-horizon.md#5B. Staff identity, organisation boundaries, and acting context / Backend work / ActingContext",
+  },
+  {
+    canonicalName: "VisibilityTierEnforcement",
+    objectKind: "other",
+    boundedContext: "hub_coordination",
+    authoritativeOwner: "Hub coordination domain",
+    sourceRef:
+      "phase-5-the-network-horizon.md#5B. Staff identity, organisation boundaries, and acting context / Backend work / CrossOrganisationVisibilityEnvelope",
+  },
+  {
+    canonicalName: "MinimumNecessaryProjectionGuard",
+    objectKind: "other",
+    boundedContext: "hub_coordination",
+    authoritativeOwner: "Hub coordination domain",
+    sourceRef:
+      "phase-0-the-foundation-protocol.md#MinimumNecessaryContract",
+  },
+  {
+    canonicalName: "NetworkReminderManageVisibilityEngine",
+    objectKind: "other",
+    boundedContext: "hub_coordination",
+    authoritativeOwner: "Hub coordination domain",
+    sourceRef:
+      "phase-5-the-network-horizon.md#5H. Patient communications, network reminders, manage flows, and practice visibility / Backend work / reminder, manage, and practice-visibility engine",
+  },
+  {
+    canonicalName: "HubBackgroundIntegrityEngine",
+    objectKind: "other",
+    boundedContext: "hub_coordination",
+    authoritativeOwner: "Hub coordination domain",
+    sourceRef:
+      "phase-5-the-network-horizon.md#5F. Native hub booking commit, practice continuity, and cross-org messaging / Backend work / reconciliation, supplier mirror, and exception workers",
   },
 ] as const satisfies readonly OwnedObjectFamily[];
 

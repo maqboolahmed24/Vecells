@@ -160,6 +160,7 @@ function focusEntryForRoute(kind: StaffRouteKind) {
     case "approvals":
     case "escalations":
     case "changed":
+    case "bookings":
     case "support-handoff":
       return WORKSPACE_FOCUS_TARGET_IDS.peerRoute;
   }
@@ -594,6 +595,8 @@ export function resolveWorkspaceKeyboardModelDescription(kind: StaffRouteKind) {
   const orderedLabels =
     kind === "task" || kind === "more-info" || kind === "decision"
       ? "workboard, task canvas, decision dock, then context region"
+      : kind === "bookings"
+        ? "the booking exception queue, case summary, slot compare stage, then recovery and settlement controls"
       : kind === "home" || kind === "queue" || kind === "search"
         ? "workboard, then the current route surface"
         : "the current route surface";

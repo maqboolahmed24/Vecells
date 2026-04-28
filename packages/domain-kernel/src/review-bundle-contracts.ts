@@ -355,9 +355,9 @@ export function renderDeterministicReviewSummary(input: {
   return {
     templateVersion: input.templateVersion,
     rulesVersion: input.rulesVersion,
-    summaryLines: sections,
+    summaryLines: input.visibilityState === "suppressed" ? [] : sections,
     summaryText: input.visibilityState === "authoritative" ? baseText : null,
-    provisionalText: input.visibilityState === "authoritative" ? null : baseText,
+    provisionalText: input.visibilityState === "provisional" ? baseText : null,
     summaryDigest,
     visibilityState: input.visibilityState,
     suppressionReasonCodes: [...(input.suppressionReasonCodes ?? [])],
