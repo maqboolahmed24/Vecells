@@ -1,6 +1,6 @@
 # Internal Test Closeout
 
-Status: prepared for Prompt 10; internal hosted test has not started from the repo-visible state.
+Status: hosted internal environment active; human tester rollout has not been recorded yet.
 
 Date: 2026-04-29
 
@@ -8,38 +8,41 @@ This is an internal test record only. It is not an official launch record, does 
 
 ## Current Environment State
 
-- Environment state: not confirmed active.
-- Hosted Render service URL: `<RENDER_INTERNAL_URL>`.
-- Render service dashboard: `<RENDER_SERVICE_DASHBOARD_URL>`.
+- Environment state: active.
+- Hosted Render service URL: `https://vecells-internal-entrypoint.onrender.com`.
+- Render service dashboard: `https://dashboard.render.com/web/srv-d7ou1rbeo5us738giuqg`.
+- Render service ID: `srv-d7ou1rbeo5us738giuqg`.
+- Render Blueprint ID: `exs-d7ou0hgg4nts7386d6t0`.
 - Internal test owner: `<internal-test-owner>`.
 - Technical owner: `<technical-owner>`.
 - Feedback collection location: `<private-team-channel-or-doc>`.
-- Test window start: `<start-date-time>`.
+- Test window start: hosted environment deployed on 2026-04-29; human tester window not recorded.
 - Test window end: `<end-date-time>`.
 
-The current repository has the Blueprint, protected entrypoint, rollout docs, and local smoke report. It does not contain evidence that the Render Blueprint has been applied, that a hosted URL exists, or that internal testers have started.
+The current repository has the Blueprint, protected entrypoint, rollout docs, local smoke report, and hosted smoke report. It does not contain evidence that human internal testers have started.
 
 ## What Was Deployed Or Prepared
 
 - Branch: `main`.
-- Latest pushed commit: `8c6cb3a` (`Add internal tester rollout pack`).
+- Latest pushed commit at deploy time: `b40b0ca` (`Add internal test closeout record`).
 - Runtime deployment baseline commit: `5ea6c4c` (`Prepare Render internal deployment`).
 - Render Blueprint: `render.yaml`.
 - Render service name in Blueprint: `vecells-internal-entrypoint`.
+- Render service ID: `srv-d7ou1rbeo5us738giuqg`.
 - Data mode: synthetic/disposable.
 - Public access model: one protected entrypoint with a shared internal password stored outside Git.
 - Database: none for the first internal deployment.
 
-Hosted deployment status: pending external Render Dashboard apply and secret entry.
+Hosted deployment status: active on Render Free plan.
 
 ## Who Tested
 
-No hosted internal tester list is recorded yet.
+No human internal tester list is recorded yet.
 
 Known validation so far:
 
 - Local protected-entrypoint smoke passed.
-- Hosted Render smoke is pending.
+- Hosted Render smoke passed.
 - Internal tester rollout pack is prepared.
 
 ## Monitoring Plan
@@ -69,9 +72,9 @@ Do not paste secrets, passwords, session cookies, or real patient data into feed
 
 Current last-known-good references:
 
-- Last known pushed `main`: `8c6cb3a`.
+- Last known pushed `main`: `b40b0ca`.
 - Last known runtime baseline: `5ea6c4c`.
-- Last known good Render deploy: not available from repo-visible state because no hosted deployment is recorded.
+- Last known good Render deploy: first deploy for `b40b0ca`, service `srv-d7ou1rbeo5us738giuqg`.
 
 If a critical issue appears during the internal test:
 
@@ -99,14 +102,14 @@ When testing is complete:
 7. Check that screenshots and notes contain no secrets or real patient data.
 8. Confirm Render billing/resources match team intent.
 
-Access closeout status: not performed because no hosted Render environment is recorded as active.
+Access closeout status: not performed. Environment remains active for internal testing.
 
 ## Validation Status
 
-- Protected entrypoint no longer allows old password: not applicable yet; no hosted password rotation/removal is recorded.
+- Protected entrypoint no longer allows old password: not applicable yet; access remains active for the initial internal test password.
 - No test data remains after wipe: not applicable; no Render database is configured for the first deployment.
-- Render billing/resources match team intent: not verified; requires Render Dashboard access.
-- Hosted smoke passed: not verified; requires deployed Render URL.
+- Render billing/resources match team intent: observed service is on Render Free plan; final team billing intent should still be confirmed by the owner.
+- Hosted smoke passed: verified on 2026-04-29.
 
 ## What Passed
 
@@ -117,36 +120,34 @@ Access closeout status: not performed because no hosted Render environment is re
 - Synthetic/disposable data mode was selected.
 - `render.yaml` was authored and locally validated.
 - Local runtime smoke passed.
+- Render Blueprint was applied.
+- Hosted Render service became live.
+- Hosted Render smoke passed.
 - Tester rollout pack was created.
 
 ## What Failed Or Remains Unproven
 
-- No hosted Render deploy is recorded.
-- No hosted Render smoke is recorded.
-- No tester feedback is recorded.
-- Password rotation/removal cannot be verified without the hosted Render environment.
-- Render service logs and billing/resources cannot be verified from local Git state alone.
+- No human tester feedback is recorded.
+- Password rotation/removal has not been performed because the environment is intentionally active.
+- Render billing/resources should be confirmed by the owner even though the service was observed on the Free plan.
 
 ## Unresolved Risks
 
-- Render Blueprint may still need Dashboard confirmation and service creation.
-- `INTERNAL_TEST_PASSWORD_HASH` must be set outside Git before the hosted service can start safely.
-- Hosted smoke must pass before testers receive the URL.
+- The environment is active and must not be left open indefinitely.
+- The shared internal password must be distributed only outside Git and rotated after the test window.
 - Free-tier cold starts may create tester confusion.
 - Internal testers may accidentally include secrets or real data in screenshots unless reminded.
 - No production readiness claim can be made from local smoke or internal smoke alone.
 
 ## Recommended Next Engineering Tasks
 
-1. Apply the Render Blueprint from `main`.
-2. Set `INTERNAL_TEST_PASSWORD_HASH` outside Git.
-3. Confirm `SESSION_SECRET` is generated or set only in Render.
-4. Run hosted smoke and update `deployment-docs/internal-render-smoke-report.md`.
-5. Fill in owner, service URL, dashboard URL, and test window fields in this file.
-6. Send the tester guide and feedback template through the private rollout channel.
-7. During the test window, monitor status/logs and tag feedback daily.
-8. At closeout, rotate/remove access and update this file with final results.
+1. Fill in owner, feedback location, and test window end fields in this file.
+2. Send the tester guide and feedback template through the private rollout channel.
+3. Share the internal test password only in the private rollout channel.
+4. During the test window, monitor status/logs and tag feedback daily.
+5. At closeout, rotate/remove access and update this file with final results.
+6. Decide whether the Free plan is acceptable for the full test window.
 
 ## Final Status Statement
 
-The internal environment is not confirmed active and is not confirmed closed. From repo-visible evidence, it remains pending first hosted Render deploy, hosted smoke, tester rollout, and final access closeout.
+The internal environment is active and not closed. Hosted smoke passed, human tester rollout is not recorded yet, and final access closeout remains pending.

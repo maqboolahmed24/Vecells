@@ -37,5 +37,6 @@ Commands passed after fixes:
 - `NX_TUI=false pnpm test`
 - `pnpm --dir tests/playwright test`
 - Local internal-entrypoint HTTP smoke on `127.0.0.1:7300`
+- Hosted Render smoke on `https://vecells-internal-entrypoint.onrender.com`
 
-Remaining deployment blockers are not local test failures. The first deployment still requires applying the Blueprint in Render, entering `INTERNAL_TEST_PASSWORD_HASH`, and running post-deploy smoke checks before testers receive the URL.
+The internal Render environment is active and hosted smoke passed. Remaining work is operational: share the URL and password outside Git, monitor the internal test window, collect feedback, and rotate/remove access at closeout.

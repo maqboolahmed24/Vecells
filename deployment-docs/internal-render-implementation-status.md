@@ -62,5 +62,7 @@ Mode A: synthetic/disposable.
 ## Smoke Status
 
 - Local internal-entrypoint smoke passed on `127.0.0.1:7300`.
-- Hosted Render smoke is pending first Blueprint apply because no Render service URL exists yet.
+- Hosted Render smoke passed on `https://vecells-internal-entrypoint.onrender.com`.
+- Render service ID: `srv-d7ou1rbeo5us738giuqg`.
+- Render Blueprint ID: `exs-d7ou0hgg4nts7386d6t0`.
 - See `internal-render-smoke-report.md` for the route-level checks.

@@ -1,12 +1,14 @@
 # Internal Smoke Report
 
-Status: local runtime smoke passed; hosted Render smoke is pending first Blueprint apply.
+Status: local runtime smoke passed; hosted Render smoke passed.
 
 The detailed smoke record is maintained in `deployment-docs/internal-render-smoke-report.md`.
 
-Current boundary:
+Current status:
 
 - Local protected entrypoint smoke passed.
-- Hosted Render service URL is not recorded in this repo.
-- Hosted smoke cannot be marked passed until the Render Blueprint is applied, `INTERNAL_TEST_PASSWORD_HASH` is set outside Git, and the deployed URL is tested.
+- Hosted Render protected entrypoint smoke passed.
+- Hosted Render service URL: `https://vecells-internal-entrypoint.onrender.com`.
+- `INTERNAL_TEST_PASSWORD_HASH` was set outside Git.
+- `SESSION_SECRET` is managed by Render from the Blueprint.
 - This smoke status does not prove production readiness.
