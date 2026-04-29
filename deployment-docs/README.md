@@ -21,6 +21,9 @@ For internal testers, expose one easy public web entrypoint protected by an app-
 - `07-verified-links.md` - official links checked before writing these docs.
 - `internal-render-implementation-status.md` - implementation status for the preserved baseline, runtime readiness, protected entrypoint, and synthetic data mode.
 - `internal-render-smoke-report.md` - local runtime smoke results and hosted Render smoke boundary.
+- `internal-tester-guide.md` - nontechnical tester instructions with one URL placeholder and password-handling rules.
+- `internal-feedback-template.md` - feedback format for internal testers.
+- `internal-support-runbook.md` - support, rotation, disable, redeploy, rollback, and closeout steps for the internal test window.
 
 ## Validation Snapshot
 
