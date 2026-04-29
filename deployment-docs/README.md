@@ -21,9 +21,11 @@ For internal testers, expose one easy public web entrypoint protected by an app-
 - `07-verified-links.md` - official links checked before writing these docs.
 - `internal-render-implementation-status.md` - implementation status for the preserved baseline, runtime readiness, protected entrypoint, and synthetic data mode.
 - `internal-render-smoke-report.md` - local runtime smoke results and hosted Render smoke boundary.
+- `internal-smoke-report.md` - compatibility smoke summary for prompts that expect this filename.
 - `internal-tester-guide.md` - nontechnical tester instructions with one URL placeholder and password-handling rules.
 - `internal-feedback-template.md` - feedback format for internal testers.
 - `internal-support-runbook.md` - support, rotation, disable, redeploy, rollback, and closeout steps for the internal test window.
+- `internal-test-closeout.md` - Prompt 10 monitoring, rollback, unresolved risks, and closeout status record.
 
 ## Validation Snapshot
 
@@ -36,4 +38,4 @@ Commands passed after fixes:
 - `pnpm --dir tests/playwright test`
 - Local internal-entrypoint HTTP smoke on `127.0.0.1:7300`
 
-Remaining deployment blockers are not local test failures. The first deployment still requires pushing `main`, applying the Blueprint in Render, entering `INTERNAL_TEST_PASSWORD_HASH`, and running post-deploy smoke checks before testers receive the URL.
+Remaining deployment blockers are not local test failures. The first deployment still requires applying the Blueprint in Render, entering `INTERNAL_TEST_PASSWORD_HASH`, and running post-deploy smoke checks before testers receive the URL.
