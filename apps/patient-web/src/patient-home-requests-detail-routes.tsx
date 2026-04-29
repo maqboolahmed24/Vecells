@@ -9,12 +9,13 @@ import {
 } from "react";
 import { VecellLogoWordmark } from "@vecells/design-system";
 import { resolvePortalSupportPhase2Context } from "../../../packages/domain-kernel/src/patient-support-phase2-integration";
-import { tryResolvePhase3PatientWorkspaceConversationBundle } from "@vecells/domain-kernel";
+import { tryResolvePhase3PatientWorkspaceConversationBundle } from "../../../packages/domain-kernel/src/phase3-patient-workspace-conversation-bundle";
 import {
   PATIENT_HOME_REQUESTS_DETAIL_TASK_ID,
   PATIENT_HOME_REQUESTS_DETAIL_VISUAL_MODE,
   isPatientHomeRequestsDetailPath,
   makePatientRequestReturnBundle215,
+  normalizePatientHomeRequestsDetailPath,
   resolvePatientHomeRequestsDetailEntry,
   type PatientCaseworkRouteKey,
   type PatientHomeCompactPanel,
@@ -29,10 +30,30 @@ import {
 } from "./patient-home-requests-detail-routes.model";
 import { PatientSupportPhase2Bridge } from "./patient-support-phase2-bridge";
 import { PatientRequestDownstreamWorkRail } from "./patient-appointment-family-workspace";
+import { SIGNED_IN_REQUEST_START_ENTRY } from "./signed-in-request-start-restore.model";
 
 export { isPatientHomeRequestsDetailPath };
 
 const RETURN_BUNDLE_STORAGE_KEY = "patient-home-requests-detail-215::return-bundle";
+
+function publicRequestText(value: string): string {
+  return value
+    .replace(/\bsame[- ]lineage\b/gi, "same request")
+    .replace(/\blineage\b/gi, "history")
+    .replace(/\btuple\b/gi, "details")
+    .replace(/\btruth\b/gi, "confirmed information")
+    .replace(/\bposture\b/gi, "status")
+    .replace(/\bstub\b/gi, "summary")
+    .replace(/\brequest_211_a\b/g, "dermatology request")
+    .replace(/\brequest_211_b\b/g, "booking request")
+    .replace(/\brequest_215_callback\b/g, "callback request")
+    .replace(/\bcanonical_request_truth::[a-z0-9_:-]+\b/gi, "confirmed request information")
+    .replace(/\btuple_[a-z0-9]+\b/gi, "selected request details")
+    .replace(/\bpatient_[a-z0-9_:.-]+\b/gi, "patient request details")
+    .replace(/\b[a-z]+(?:_[a-z0-9]+)+\b/g, (token) =>
+      token.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase()),
+    );
+}
 
 function safeWindow(): Window | undefined {
   return typeof window === "undefined" ? undefined : window;
@@ -40,6 +61,20 @@ function safeWindow(): Window | undefined {
 
 function safeDocument(): Document | undefined {
   return typeof document === "undefined" ? undefined : document;
+}
+
+function normalizedOwnerPathname(ownerWindow: Window | undefined): string {
+  return normalizePatientHomeRequestsDetailPath(ownerWindow?.location.pathname ?? "/home");
+}
+
+function replaceInvalidOwnerPathname(ownerWindow: Window | undefined): void {
+  if (!ownerWindow) {
+    return;
+  }
+  const normalizedPathname = normalizePatientHomeRequestsDetailPath(ownerWindow.location.pathname);
+  if (normalizedPathname !== ownerWindow.location.pathname) {
+    ownerWindow.history.replaceState({}, "", normalizedPathname);
+  }
 }
 
 function readReturnBundle(): PatientRequestReturnBundle | null {
@@ -79,7 +114,7 @@ function usePatientCaseworkController() {
   const storedBundleRef = useRef<PatientRequestReturnBundle | null>(readReturnBundle());
   const [entry, setEntry] = useState<PatientHomeRequestsDetailEntryProjection>(() =>
     resolvePatientHomeRequestsDetailEntry({
-      pathname: ownerWindow?.location.pathname ?? "/home",
+      pathname: normalizedOwnerPathname(ownerWindow),
       search: ownerWindow?.location.search,
       restoredBundle: storedBundleRef.current,
       restoredBy: storedBundleRef.current ? "refresh_replay" : "soft_navigation",
@@ -92,16 +127,21 @@ function usePatientCaseworkController() {
   const mainHeadingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
+    replaceInvalidOwnerPathname(ownerWindow);
+  }, [ownerWindow]);
+
+  useEffect(() => {
     const activeBundle = entry.requestDetail?.returnBundle ?? entry.returnBundle;
     writeReturnBundle({ ...activeBundle, restoredBy: "refresh_replay" });
   }, [entry]);
 
   useEffect(() => {
     const onPopState = () => {
+      replaceInvalidOwnerPathname(ownerWindow);
       const restoredBundle = readReturnBundle();
       startTransition(() => {
         const nextEntry = resolvePatientHomeRequestsDetailEntry({
-          pathname: ownerWindow?.location.pathname ?? "/home",
+          pathname: normalizedOwnerPathname(ownerWindow),
           search: ownerWindow?.location.search,
           selectedFilterRef: restoredBundle?.selectedFilterRef ?? selectedFilterRef,
           restoredBundle,
@@ -133,7 +173,7 @@ function usePatientCaseworkController() {
     filterRef = selectedFilterRef,
   ): PatientHomeRequestsDetailEntryProjection {
     return resolvePatientHomeRequestsDetailEntry({
-      pathname,
+      pathname: normalizePatientHomeRequestsDetailPath(pathname),
       search: ownerWindow?.location.search,
       selectedFilterRef: filterRef,
       restoredBundle: bundle,
@@ -144,7 +184,7 @@ function usePatientCaseworkController() {
   function navigate(pathname: string, bundle?: PatientRequestReturnBundle): void {
     if (pathname.startsWith("#")) {
       safeDocument()?.querySelector<HTMLElement>(pathname)?.focus({ preventScroll: false });
-      setAnnouncement("Governed placeholder focused.");
+      setAnnouncement("Approved summary focused.");
       return;
     }
     if (!isPatientHomeRequestsDetailPath(pathname)) {
@@ -257,7 +297,7 @@ export function PatientShellFrame({
       data-cause-class={phase2Context.causeClass}
       data-recovery-class={phase2Context.recoveryClass}
       data-canonical-status-label={phase2Context.canonicalStatusLabel}
-      data-supported-testids="home-spotlight-card quiet-home-panel home-compact-grid request-index-rail request-summary-row request-detail-hero request-lineage-strip case-pulse-panel decision-dock governed-placeholder-card"
+      data-supported-testids="home-spotlight-card quiet-home-panel home-compact-grid request-index-rail request-summary-row request-detail-hero request-history-strip case-pulse-panel decision-dock approved-summary-card"
       data-supported-testids-368="pharmacy-child-card request-row-pharmacy-chip"
     >
       <header className="patient-casework__top-band" data-testid="patient-shell-top-band">
@@ -337,15 +377,26 @@ export function HomeSpotlightCard({
       <div className="patient-casework__kicker">One thing to do</div>
       <h2 id="home-spotlight-heading">{decision.headline}</h2>
       <p>{decision.body}</p>
-      <button
-        type="button"
-        className="patient-casework__primary-action"
-        data-testid="home-spotlight-primary-action"
-        onClick={() => onNavigate(decision.selectedActionRouteRef ?? "/requests")}
-      >
-        <Icon name="action" />
-        <span>{decision.selectedActionLabel ?? "Review requests"}</span>
-      </button>
+      <div className="patient-casework__home-actions">
+        <button
+          type="button"
+          className="patient-casework__primary-action"
+          data-testid="home-spotlight-primary-action"
+          onClick={() => onNavigate(decision.selectedActionRouteRef ?? "/requests")}
+        >
+          <Icon name="action" />
+          <span>{decision.selectedActionLabel ?? "Review requests"}</span>
+        </button>
+        <button
+          type="button"
+          className="patient-casework__secondary-action"
+          data-testid="home-start-new-request"
+          onClick={() => onNavigate(SIGNED_IN_REQUEST_START_ENTRY)}
+        >
+          <Icon name="action" />
+          <span>Start new request</span>
+        </button>
+      </div>
       <dl className="patient-casework__projection-proof">
         <div>
           <dt>Source</dt>
@@ -378,15 +429,26 @@ export function QuietHomePanel({
       <div className="patient-casework__kicker">Quiet home</div>
       <h2 id="quiet-home-heading">{home.spotlightDecision.headline}</h2>
       <p>{home.quietHomeDecision.explanation}</p>
-      <button
-        type="button"
-        className="patient-casework__secondary-action"
-        data-testid="quiet-home-review-requests"
-        onClick={() => onNavigate("/requests")}
-      >
-        <Icon name="requests" />
-        <span>Review request summaries</span>
-      </button>
+      <div className="patient-casework__home-actions">
+        <button
+          type="button"
+          className="patient-casework__secondary-action"
+          data-testid="quiet-home-review-requests"
+          onClick={() => onNavigate("/requests")}
+        >
+          <Icon name="requests" />
+          <span>Review request summaries</span>
+        </button>
+        <button
+          type="button"
+          className="patient-casework__secondary-action"
+          data-testid="quiet-home-start-new-request"
+          onClick={() => onNavigate(SIGNED_IN_REQUEST_START_ENTRY)}
+        >
+          <Icon name="action" />
+          <span>Start new request</span>
+        </button>
+      </div>
     </section>
   );
 }
@@ -650,21 +712,21 @@ export function RequestLineageStrip({ detail }: { detail: PatientRequestDetailPr
       aria-labelledby="request-lineage-heading"
     >
       <div>
-        <div className="patient-casework__kicker">Lineage and freshness</div>
+        <div className="patient-casework__kicker">History and freshness</div>
         <h2 id="request-lineage-heading">Same request context</h2>
       </div>
       <ol>
         <li>
-          <strong>{detail.lineage.requestRef}</strong>
-          <span>{detail.lineage.currentStageRef}</span>
+          <strong>{detail.title}</strong>
+          <span>{publicRequestText(detail.lineage.currentStageRef)}</span>
         </li>
         <li>
-          <strong>{detail.returnBundle.selectedAnchorTupleHash}</strong>
-          <span>Selected anchor tuple</span>
+          <strong>Selected request</strong>
+          <span>Selected request anchor</span>
         </li>
         <li>
           <strong>{detail.casePulse.freshnessLabel}</strong>
-          <span>{detail.statusRibbon.canonicalTruthRef}</span>
+          <span>{publicRequestText(detail.statusRibbon.canonicalTruthRef)}</span>
         </li>
       </ol>
     </section>
@@ -725,20 +787,20 @@ export function CasePulsePanel({ detail }: { detail: PatientRequestDetailProject
       data-projection-name={detail.casePulse.projectionName}
       aria-labelledby="case-pulse-heading"
     >
-      <div className="patient-casework__kicker">Case pulse</div>
+      <div className="patient-casework__kicker">Request status</div>
       <h2 id="case-pulse-heading">Current trust</h2>
       <dl>
         <div>
           <dt>Freshness</dt>
-          <dd>{detail.casePulse.freshnessLabel}</dd>
+          <dd>{publicRequestText(detail.casePulse.freshnessLabel)}</dd>
         </div>
         <div>
           <dt>Trust</dt>
-          <dd>{detail.casePulse.trustLabel}</dd>
+          <dd>{publicRequestText(detail.casePulse.trustLabel)}</dd>
         </div>
         <div>
           <dt>Receipt</dt>
-          <dd>{detail.casePulse.receiptLabel}</dd>
+          <dd>{publicRequestText(detail.casePulse.receiptLabel)}</dd>
         </div>
       </dl>
     </aside>
@@ -762,7 +824,7 @@ export function DecisionDock({
       data-projection-name={detail.nextAction.projectionName}
       aria-labelledby="decision-dock-heading"
     >
-      <div className="patient-casework__kicker">Decision dock</div>
+      <div className="patient-casework__kicker">Next step</div>
       <h2 id="decision-dock-heading">Next safe action</h2>
       <p>{detail.nextAction.actionLabel}</p>
       <button
@@ -778,11 +840,11 @@ export function DecisionDock({
       <dl className="patient-casework__projection-proof">
         <div>
           <dt>Routing</dt>
-          <dd>{detail.actionRouting.routeTargetRef}</dd>
+          <dd>{primaryChild ? publicRequestText(primaryChild.label) : publicRequestText(detail.nextAction.actionLabel)}</dd>
         </div>
         <div>
           <dt>Return</dt>
-          <dd>{detail.returnBundle.returnRouteRef}</dd>
+          <dd>Requests</dd>
         </div>
       </dl>
     </aside>
@@ -814,8 +876,12 @@ export function GovernedPlaceholderCard({
           {child.authoritativeState.replaceAll("_", " ")}
         </span>
         <h3 id={`${child.childRef}-title`}>{child.label}</h3>
-        <p>{child.summary}</p>
-        <small>{child.placeholderReasonRefs.join(" | ")}</small>
+        <p>{publicRequestText(child.summary)}</p>
+        <small>
+          {child.placeholderReasonRefs.length
+            ? `${child.placeholderReasonRefs.length} readiness checks`
+            : "Ready"}
+        </small>
         {actionable ? (
           <div className="patient-casework__detail-hero-actions">
             <button
@@ -860,14 +926,14 @@ function PharmacyContinuationCard({
       <div>
         <span className="patient-casework__panel-state">{child.authoritativeState}</span>
         <h3 id={`${child.childRef}-title`}>{child.label}</h3>
-        <p>{child.summary}</p>
+        <p>{publicRequestText(child.summary)}</p>
         <dl className="patient-casework__pharmacy-meta">
           <div>
             <dt>Case</dt>
             <dd>{pharmacyChild.pharmacyCaseId}</dd>
           </div>
           <div>
-            <dt>Lineage</dt>
+            <dt>History</dt>
             <dd>{pharmacyChild.requestLineageLabel}</dd>
           </div>
           <div>
@@ -910,10 +976,10 @@ function TrustSummary({ detail }: { detail: PatientRequestDetailProjection }) {
       aria-labelledby="request-trust-heading"
     >
       <div className="patient-casework__kicker">Receipts and trust</div>
-      <h2 id="request-trust-heading">What this route proves</h2>
+      <h2 id="request-trust-heading">What stays consistent</h2>
       <ul>
         {detail.trustSummaries.map((summary) => (
-          <li key={summary}>{summary}</li>
+          <li key={summary}>{publicRequestText(summary)}</li>
         ))}
       </ul>
     </section>
@@ -933,7 +999,7 @@ function DetailRoute({
   onOpenConversation?: (() => void) | null;
   onNavigate: (pathname: string) => void;
 }) {
-  const visibleChildren = detail.downstream.filter((child) => child.childType !== "booking");
+  const visibleChildren = detail.downstream;
 
   return (
     <div className="patient-casework__detail" data-testid="patient-request-detail-route">
@@ -947,7 +1013,7 @@ function DetailRoute({
         <PatientRequestDownstreamWorkRail requestRef={detail.requestRef} onNavigate={onNavigate} />
         <section
           className="patient-casework__placeholder-grid"
-          aria-label="Governed child surfaces"
+          aria-label="Approved child surfaces"
         >
           {visibleChildren.map((child) =>
             child.childType === "pharmacy" ? (

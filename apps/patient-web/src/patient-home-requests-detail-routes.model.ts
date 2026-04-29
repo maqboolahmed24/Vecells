@@ -356,6 +356,12 @@ export interface PatientHomeRequestsDetailEntryProjection {
   readonly returnBundle: PatientRequestReturnBundle;
 }
 
+export type PatientHomeRequestsDetailPath =
+  | "/home"
+  | "/home/quiet"
+  | "/requests"
+  | `/requests/${string}`;
+
 export const patientRequestSummaries215: readonly PatientRequestSummaryProjection[] = [
   {
     projectionName: "PatientRequestSummaryProjection",
@@ -652,7 +658,7 @@ function compactPanels(): readonly PatientHomeCompactPanel[] {
       kind: "appointments",
       label: "Appointments",
       summary:
-        "Start booking from the home shell with the return contract and home anchor preserved before the booking workspace becomes interactive.",
+        "Start booking from the home account with the return path and home anchor preserved before the booking workspace becomes interactive.",
       stateLabel: "Book or rebook",
       path: bookingEntryPath(PATIENT_BOOKING_ENTRY_IDS.homeReady),
       tone: "info",
@@ -839,7 +845,7 @@ function downstreamFor(
         childRef: "case_211_callback",
         patientLabelRef: "callback_case",
         label: "Callback status",
-        summary: "Callback posture is visible as a governed placeholder, not hidden.",
+        summary: "Callback status is visible as a saved summary, not hidden.",
         authoritativeState: "queued",
         awaitingParty: "practice",
         visibilityTier: "placeholder_only",
@@ -1114,7 +1120,7 @@ function detailFor(
           ? pharmacyMerge.authoritativeStateLabel
           : request.bucket === "complete"
           ? "Authoritative outcome settled"
-          : "Same-lineage context preserved",
+          : "Same request context preserved",
       latestMeaningfulUpdateLabel: request.latestMeaningfulUpdateAt,
       sourceProjectionRefs: [
         "PatientActionSettlementProjection",
@@ -1154,6 +1160,14 @@ export function isPatientHomeRequestsDetailPath(pathname: string): boolean {
   );
 }
 
+export function normalizePatientHomeRequestsDetailPath(
+  pathname: string,
+): PatientHomeRequestsDetailPath {
+  return isPatientHomeRequestsDetailPath(pathname)
+    ? (pathname as PatientHomeRequestsDetailPath)
+    : "/home";
+}
+
 export function resolvePatientHomeRequestsDetailEntry(input: {
   readonly pathname: string;
   readonly search?: string;
@@ -1161,22 +1175,23 @@ export function resolvePatientHomeRequestsDetailEntry(input: {
   readonly restoredBy?: PatientRestoreMode;
   readonly restoredBundle?: PatientRequestReturnBundle | null;
 }): PatientHomeRequestsDetailEntryProjection {
+  const pathname = normalizePatientHomeRequestsDetailPath(input.pathname);
   const selectedFilterRef =
     input.selectedFilterRef ??
     input.restoredBundle?.selectedFilterRef ??
-    (input.pathname === "/requests" ? "all" : "all");
+    (pathname === "/requests" ? "all" : "all");
   const restoredBy = input.restoredBy ?? "soft_navigation";
   const search = new URLSearchParams(input.search ?? "");
-  const quietMode = input.pathname === "/home/quiet" || search.get("mode") === "quiet";
+  const quietMode = pathname === "/home/quiet" || search.get("mode") === "quiet";
   const routeKey: PatientCaseworkRouteKey =
-    input.pathname === "/home" || input.pathname === "/home/quiet"
+    pathname === "/home" || pathname === "/home/quiet"
       ? quietMode
         ? "quiet_home"
         : "home"
-      : input.pathname === "/requests"
+      : pathname === "/requests"
         ? "requests_index"
         : "request_detail";
-  const detailMatch = input.pathname.match(/^\/requests\/([^/]+)$/);
+  const detailMatch = pathname.match(/^\/requests\/([^/]+)$/);
   const selectedRequestRef =
     detailMatch?.[1] ??
     input.restoredBundle?.requestRef ??
@@ -1205,7 +1220,7 @@ export function resolvePatientHomeRequestsDetailEntry(input: {
   return {
     projectionName: "PatientHomeRequestsDetailEntryProjection",
     routeKey,
-    pathname: input.pathname,
+    pathname,
     visualMode: PATIENT_HOME_REQUESTS_DETAIL_VISUAL_MODE,
     home,
     requestsIndex,

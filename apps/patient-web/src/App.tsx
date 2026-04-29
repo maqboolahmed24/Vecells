@@ -5,7 +5,6 @@ import "@vecells/design-system/pharmacy-patient-status-surfaces.css";
 import "@vecells/design-system/pharmacy-eligibility-surfaces.css";
 import "@vecells/persistent-shell/persistent-shell.css";
 import "@vecells/surface-postures/surface-postures.css";
-import "./patient-shell-seed.css";
 import "./patient-intake-mission-frame.css";
 import "./auth-callback-recovery.css";
 import "./authenticated-home-status-tracker.css";
@@ -33,7 +32,6 @@ import "./embedded-accessibility-responsive.css";
 import "./embedded-design-convergence.css";
 import "./nhs-app-embedded-channel-486.css";
 import type { ReactNode } from "react";
-import PatientShellSeedApp from "./patient-shell-seed";
 import PatientIntakeMissionFrameApp, {
   isPatientIntakeMissionFramePath,
 } from "./patient-intake-mission-frame";
@@ -58,6 +56,7 @@ import CrossChannelReceiptStatusParityApp, {
 import PatientHomeRequestsDetailRoutesApp, {
   isPatientHomeRequestsDetailPath,
 } from "./patient-home-requests-detail-routes";
+import { PatientAppointmentFamilyWorkspace } from "./patient-appointment-family-workspace";
 import PatientBookingWorkspaceApp, {
   isPatientBookingWorkspacePath,
 } from "./patient-booking-workspace";
@@ -105,19 +104,9 @@ function renderEmbeddedRoute(routeFamily: EmbeddedAccessibilityRouteFamily, chil
   );
 }
 
-function shouldUsePatientShellSeedHarness(): boolean {
-  if (typeof window === "undefined") {
-    return false;
-  }
-  return window.localStorage.getItem("patient-shell-seed-routes") === "true";
-}
-
 export default function App() {
   const pathname = typeof window === "undefined" ? "/home" : window.location.pathname;
   const search = typeof window === "undefined" ? "" : window.location.search;
-  if (shouldUsePatientShellSeedHarness()) {
-    return <PatientShellSeedApp />;
-  }
   const isEmbeddedShellRouteRequest =
     new URLSearchParams(search).get("phase7") === "embedded_shell";
   if (isEmbeddedEntryCorridorPath(pathname)) {
@@ -180,6 +169,9 @@ export default function App() {
   if (isPatientHomeRequestsDetailPath(pathname)) {
     return <PatientHomeRequestsDetailRoutesApp />;
   }
+  if (pathname === "/appointments") {
+    return <PatientAppointmentFamilyWorkspace />;
+  }
   if (isPatientBookingEntryPath(pathname)) {
     return <PatientBookingEntryApp />;
   }
@@ -198,5 +190,5 @@ export default function App() {
   if (isPatientBookingWorkspacePath(pathname)) {
     return <PatientBookingWorkspaceApp />;
   }
-  return <PatientShellSeedApp />;
+  return <PatientHomeRequestsDetailRoutesApp />;
 }

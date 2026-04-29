@@ -114,7 +114,7 @@ export async function run(): Promise<void> {
     );
     await page.getByTestId("booking-entry-primary-action").click();
     await page.waitForURL(`${baseUrl}/appointments`);
-    await page.getByTestId("patient-appointments-route").waitFor();
+    await page.getByTestId("PatientAppointmentFamilyWorkspace").waitFor();
 
     await openBookingEntryRoute(
       page,

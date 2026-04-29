@@ -16,7 +16,7 @@ const REQUIRED_FILES = [
   path.join(ROOT, "apps", "patient-web", "src", "patient-appointment-family-workspace.model.ts"),
   path.join(ROOT, "apps", "patient-web", "src", "patient-appointment-family-workspace.tsx"),
   path.join(ROOT, "apps", "patient-web", "src", "patient-appointment-family-workspace.css"),
-  path.join(ROOT, "apps", "patient-web", "src", "patient-shell-seed.tsx"),
+  path.join(ROOT, "apps", "patient-web", "src", "App.tsx"),
   path.join(ROOT, "apps", "patient-web", "src", "patient-home-requests-detail-routes.tsx"),
   path.join(ROOT, "apps", "patient-web", "src", "patient-network-alternative-choice.tsx"),
   path.join(ROOT, "docs", "architecture", "337_network_local_booking_and_patient_manage_merge.md"),
@@ -80,10 +80,10 @@ function validateFrontendFiles(): void {
   const model = read(
     path.join(ROOT, "apps", "patient-web", "src", "patient-appointment-family-workspace.model.ts"),
   );
+  const app = read(path.join(ROOT, "apps", "patient-web", "src", "App.tsx"));
   const view = read(
     path.join(ROOT, "apps", "patient-web", "src", "patient-appointment-family-workspace.tsx"),
   );
-  const shell = read(path.join(ROOT, "apps", "patient-web", "src", "patient-shell-seed.tsx"));
   const requestDetail = read(
     path.join(ROOT, "apps", "patient-web", "src", "patient-home-requests-detail-routes.tsx"),
   );
@@ -118,8 +118,9 @@ function validateFrontendFiles(): void {
   }
 
   requireCondition(
-    shell.includes("PatientAppointmentFamilyWorkspace"),
-    "PATIENT_SHELL_APPOINTMENT_FAMILY_INTEGRATION_MISSING",
+    app.includes("PatientAppointmentFamilyWorkspace") &&
+      app.includes('pathname === "/appointments"'),
+    "PATIENT_APP_APPOINTMENT_FAMILY_ROUTE_MISSING",
   );
   requireCondition(
     requestDetail.includes("PatientRequestDownstreamWorkRail"),
@@ -346,4 +347,3 @@ function main(): void {
 }
 
 main();
-

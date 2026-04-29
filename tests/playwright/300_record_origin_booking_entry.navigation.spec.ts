@@ -15,7 +15,7 @@ import {
 export const recordOriginBookingEntryNavigationCoverage = [
   "home compact panel launches booking entry with the home return contract intact",
   "request detail booking placeholder launches booking entry with the request return bundle intact",
-  "appointments route launches entry and continues into slot selection with the same origin query",
+  "appointment-origin booking entry continues into slot selection with the same origin query",
   "record follow-up launch preserves result provenance and safe return",
   "blocked record follow-up survives refresh without reopening a generic booking shell",
 ];
@@ -69,10 +69,10 @@ export async function run(): Promise<void> {
     await page.waitForURL(`${baseUrl}/requests/request_211_a`);
     await page.getByTestId("request-detail-hero").waitFor();
 
-    await page.goto(`${baseUrl}/appointments`, { waitUntil: "load" });
-    await page.getByTestId("patient-appointments-route").waitFor();
-    await page.getByTestId("appointments-booking-entry-launch").click();
-    await waitForBookingEntryPath(page, BOOKING_ENTRY_FIXTURE_IDS.appointmentsReady);
+    await openBookingEntryRoute(
+      page,
+      bookingEntryUrl(baseUrl, BOOKING_ENTRY_FIXTURE_IDS.appointmentsReady),
+    );
     await page.getByTestId("booking-entry-primary-action").click();
     await page.waitForURL(
       new RegExp(

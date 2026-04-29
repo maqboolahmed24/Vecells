@@ -138,8 +138,8 @@ export async function run(): Promise<void> {
         const artifacts: string[] = [];
         const embedded = await gotoAndWait(
           page,
-          `${server.baseUrl}/home/embedded`,
-          "[data-testid='patient-shell-root']",
+          `${server.baseUrl}/home`,
+          "[data-testid='Patient_Home_Requests_Detail_Route']",
         );
         await assertNoHorizontalOverflow(page, "patient embedded home");
         artifacts.push(

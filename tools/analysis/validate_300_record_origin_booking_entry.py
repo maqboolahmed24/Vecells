@@ -18,7 +18,7 @@ WORKSPACE_MODEL = ROOT / "apps" / "patient-web" / "src" / "patient-booking-works
 HOME_REQUESTS_MODEL = ROOT / "apps" / "patient-web" / "src" / "patient-home-requests-detail-routes.model.ts"
 HOME_REQUESTS_ROUTE = ROOT / "apps" / "patient-web" / "src" / "patient-home-requests-detail-routes.tsx"
 RECORDS_ROUTE = ROOT / "apps" / "patient-web" / "src" / "patient-records-communications.tsx"
-SHELL_ROUTE = ROOT / "apps" / "patient-web" / "src" / "patient-shell-seed.tsx"
+APPOINTMENT_FAMILY_ROUTE = ROOT / "apps" / "patient-web" / "src" / "patient-appointment-family-workspace.tsx"
 
 SPEC_DOC = ROOT / "docs" / "frontend" / "300_record_origin_booking_entry_spec.md"
 ATLAS = ROOT / "docs" / "frontend" / "300_record_origin_booking_entry_atlas.html"
@@ -112,7 +112,7 @@ def validate_source() -> None:
     home_requests_model = read(HOME_REQUESTS_MODEL)
     home_requests_route = read(HOME_REQUESTS_ROUTE)
     records_route = read(RECORDS_ROUTE)
-    shell_route = read(SHELL_ROUTE)
+    appointment_family_route = read(APPOINTMENT_FAMILY_ROUTE)
 
     require_markers(
         "booking entry model",
@@ -183,7 +183,7 @@ def validate_source() -> None:
                 home_requests_model,
                 home_requests_route,
                 records_route,
-                shell_route,
+                appointment_family_route,
             ]
         ),
         {
@@ -193,7 +193,7 @@ def validate_source() -> None:
             "\"booking\"",
             "governed-placeholder-open-",
             "record-follow-up-booking-launch",
-            "appointments-booking-entry-launch",
+            "PatientAppointmentFamilyWorkspace",
             "PATIENT_BOOKING_ENTRY_IDS.requestsReady",
             "PATIENT_BOOKING_ENTRY_IDS.recordOriginReady",
             "PATIENT_BOOKING_ENTRY_IDS.recordOriginRecovery",
@@ -315,7 +315,7 @@ def validate_tests() -> None:
             "RecordOriginBookingEntrySurface",
             "BookingEntryContextRibbon",
             "record-follow-up-booking-launch",
-            "appointments-booking-entry-launch",
+            "BOOKING_ENTRY_FIXTURE_IDS.appointmentsReady",
             "governed-placeholder-open-booking",
             "trace",
             "ariaSnapshot",

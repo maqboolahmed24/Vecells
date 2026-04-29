@@ -200,8 +200,8 @@ export async function run(): Promise<void> {
 
         const embeddedHome = await gotoAndWait(
           page,
-          `${patient.baseUrl}/home/embedded`,
-          "[data-testid='patient-shell-root']",
+          `${patient.baseUrl}/home`,
+          "[data-testid='Patient_Home_Requests_Detail_Route']",
         );
         await assertNoHorizontalOverflow(page, "patient embedded mobile home");
         artifacts.push(

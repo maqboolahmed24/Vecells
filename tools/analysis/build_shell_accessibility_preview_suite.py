@@ -134,7 +134,7 @@ SHELL_FAMILY_CONFIG = {
         "launchPath": "/home",
         "suppressionPath": "/home/embedded",
         "appDir": "apps/patient-web",
-        "rootTestId": "patient-shell-root",
+        "rootTestId": "Patient_Home_Requests_Detail_Route",
         "primaryRouteFamilyRef": "rf_patient_home",
         "embeddedRouteFamilyRef": "rf_patient_embedded_channel",
         "previewSharedRouteFamilies": {
