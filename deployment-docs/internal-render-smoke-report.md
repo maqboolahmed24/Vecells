@@ -1,6 +1,6 @@
 # Internal Render smoke report
 
-Status: local runtime smoke passed; hosted Render smoke passed.
+Status: local runtime smoke passed; hosted Render smoke passed before suspension.
 
 Date: 2026-04-29
 
@@ -69,5 +69,11 @@ Visible Render logs showed:
 - no visible plaintext password, password hash, or session secret.
 
 ## Remaining Smoke Boundary
+
+Current hosted state:
+
+- The Render web service was suspended on 2026-04-29 at 13:13 UTC.
+- Public `/health` now returns `503` with Render's service-suspended page.
+- Resume the service in Render before sending the URL to testers.
 
 This is still an internal smoke only. It does not prove production readiness, does not validate real provider integrations, and does not authorize real patient data.

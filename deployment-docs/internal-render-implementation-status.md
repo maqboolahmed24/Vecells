@@ -65,4 +65,5 @@ Mode A: synthetic/disposable.
 - Hosted Render smoke passed on `https://vecells-internal-entrypoint.onrender.com`.
 - Render service ID: `srv-d7ou1rbeo5us738giuqg`.
 - Render Blueprint ID: `exs-d7ou0hgg4nts7386d6t0`.
+- Current hosted service state: suspended as of 2026-04-29 13:13 UTC.
 - See `internal-render-smoke-report.md` for the route-level checks.

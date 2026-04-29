@@ -39,4 +39,4 @@ Commands passed after fixes:
 - Local internal-entrypoint HTTP smoke on `127.0.0.1:7300`
 - Hosted Render smoke on `https://vecells-internal-entrypoint.onrender.com`
 
-The internal Render environment is active and hosted smoke passed. Remaining work is operational: share the URL and password outside Git, monitor the internal test window, collect feedback, and rotate/remove access at closeout.
+The internal Render environment deployed successfully and hosted smoke passed. The web service is currently suspended, so public access is paused until the service is resumed in Render.

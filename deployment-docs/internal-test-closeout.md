@@ -1,6 +1,6 @@
 # Internal Test Closeout
 
-Status: hosted internal environment active; human tester rollout has not been recorded yet.
+Status: hosted internal environment suspended; human tester rollout has not been recorded yet.
 
 Date: 2026-04-29
 
@@ -8,7 +8,7 @@ This is an internal test record only. It is not an official launch record, does 
 
 ## Current Environment State
 
-- Environment state: active.
+- Environment state: suspended.
 - Hosted Render service URL: `https://vecells-internal-entrypoint.onrender.com`.
 - Render service dashboard: `https://dashboard.render.com/web/srv-d7ou1rbeo5us738giuqg`.
 - Render service ID: `srv-d7ou1rbeo5us738giuqg`.
@@ -18,8 +18,9 @@ This is an internal test record only. It is not an official launch record, does 
 - Feedback collection location: `<private-team-channel-or-doc>`.
 - Test window start: hosted environment deployed on 2026-04-29; human tester window not recorded.
 - Test window end: `<end-date-time>`.
+- Suspension time: 2026-04-29 13:13 UTC.
 
-The current repository has the Blueprint, protected entrypoint, rollout docs, local smoke report, and hosted smoke report. It does not contain evidence that human internal testers have started.
+The current repository has the Blueprint, protected entrypoint, rollout docs, local smoke report, hosted smoke report, and suspension record. It does not contain evidence that human internal testers have started.
 
 ## What Was Deployed Or Prepared
 
@@ -33,7 +34,7 @@ The current repository has the Blueprint, protected entrypoint, rollout docs, lo
 - Public access model: one protected entrypoint with a shared internal password stored outside Git.
 - Database: none for the first internal deployment.
 
-Hosted deployment status: active on Render Free plan.
+Hosted deployment status: suspended on Render Free plan.
 
 ## Who Tested
 
@@ -102,14 +103,15 @@ When testing is complete:
 7. Check that screenshots and notes contain no secrets or real patient data.
 8. Confirm Render billing/resources match team intent.
 
-Access closeout status: not performed. Environment remains active for internal testing.
+Access closeout status: partially performed. The service is suspended, but password/session rotation or deletion has not been performed.
 
 ## Validation Status
 
-- Protected entrypoint no longer allows old password: not applicable yet; access remains active for the initial internal test password.
+- Protected entrypoint no longer allows old password: not applicable yet; the service is suspended rather than password-rotated.
 - No test data remains after wipe: not applicable; no Render database is configured for the first deployment.
 - Render billing/resources match team intent: observed service is on Render Free plan; final team billing intent should still be confirmed by the owner.
 - Hosted smoke passed: verified on 2026-04-29.
+- Hosted service suspended: verified on 2026-04-29 by `/health` returning `503` with Render's service-suspended page.
 
 ## What Passed
 
@@ -123,17 +125,18 @@ Access closeout status: not performed. Environment remains active for internal t
 - Render Blueprint was applied.
 - Hosted Render service became live.
 - Hosted Render smoke passed.
+- Hosted Render service was suspended on request.
 - Tester rollout pack was created.
 
 ## What Failed Or Remains Unproven
 
 - No human tester feedback is recorded.
-- Password rotation/removal has not been performed because the environment is intentionally active.
+- Password rotation/removal has not been performed; the service is currently paused by suspension.
 - Render billing/resources should be confirmed by the owner even though the service was observed on the Free plan.
 
 ## Unresolved Risks
 
-- The environment is active and must not be left open indefinitely.
+- The environment is suspended but still exists in Render.
 - The shared internal password must be distributed only outside Git and rotated after the test window.
 - Free-tier cold starts may create tester confusion.
 - Internal testers may accidentally include secrets or real data in screenshots unless reminded.
@@ -141,13 +144,14 @@ Access closeout status: not performed. Environment remains active for internal t
 
 ## Recommended Next Engineering Tasks
 
-1. Fill in owner, feedback location, and test window end fields in this file.
-2. Send the tester guide and feedback template through the private rollout channel.
-3. Share the internal test password only in the private rollout channel.
-4. During the test window, monitor status/logs and tag feedback daily.
-5. At closeout, rotate/remove access and update this file with final results.
-6. Decide whether the Free plan is acceptable for the full test window.
+1. Decide whether to resume the suspended service for testers or keep it paused.
+2. Fill in owner, feedback location, and test window end fields in this file.
+3. If testing resumes, send the tester guide and feedback template through the private rollout channel.
+4. Share the internal test password only in the private rollout channel.
+5. During the test window, monitor status/logs and tag feedback daily.
+6. At closeout, rotate/remove access and update this file with final results.
+7. Decide whether the Free plan is acceptable for the full test window.
 
 ## Final Status Statement
 
-The internal environment is active and not closed. Hosted smoke passed, human tester rollout is not recorded yet, and final access closeout remains pending.
+The internal environment is suspended and not deleted. Hosted smoke passed before suspension, human tester rollout is not recorded yet, and final access closeout remains pending.
