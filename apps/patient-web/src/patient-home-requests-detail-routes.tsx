@@ -31,6 +31,7 @@ import { PatientSupportPhase2Bridge } from "./patient-support-phase2-bridge";
 import { PatientRequestDownstreamWorkRail } from "./patient-appointment-family-workspace";
 import { PatientPortalTopBar } from "./patient-portal-top-bar";
 import { SIGNED_IN_REQUEST_START_ENTRY } from "./signed-in-request-start-restore.model";
+import { CONTACT_TRUTH_ENTRY } from "./contact-truth-preference-ui.model";
 
 export { isPatientHomeRequestsDetailPath };
 
@@ -342,7 +343,13 @@ export function PatientShellFrame({
       data-supported-testids-368="pharmacy-child-card request-row-pharmacy-chip"
     >
       <PatientPortalTopBar
-        current={entry.routeKey === "home" || entry.routeKey === "quiet_home" ? "home" : "requests"}
+        current={
+          entry.routeKey === "account"
+            ? "account"
+            : entry.routeKey === "home" || entry.routeKey === "quiet_home"
+              ? "home"
+              : "requests"
+        }
         patientRef={entry.home.maskedPatientRef}
         testId="patient-shell-top-band"
         onNavigate={onNavigate}
@@ -354,7 +361,9 @@ export function PatientShellFrame({
             ? entry.requestDetail?.title
             : entry.routeKey === "requests_index"
               ? "Requests"
-              : entry.home.spotlightDecision.headline}
+              : entry.routeKey === "account"
+                ? "Account"
+                : entry.home.spotlightDecision.headline}
         </h1>
         <div className="patient-casework__route" data-testid="patient-shell-route-region">
           {children}
@@ -521,6 +530,58 @@ function HomeRoute({
         {home.compactPanels.map((panel) => (
           <CompactHomePanel key={panel.panelRef} panel={panel} onNavigate={onNavigate} />
         ))}
+      </section>
+    </div>
+  );
+}
+
+function AccountRoute({
+  home,
+  onNavigate,
+}: {
+  home: PatientHomeProjection;
+  onNavigate: (pathname: string) => void;
+}) {
+  return (
+    <div className="patient-casework__account" data-testid="patient-account-route">
+      <section className="patient-casework__account-hero" aria-labelledby="patient-account-heading">
+        <div>
+          <div className="patient-casework__kicker">Account</div>
+          <h2 id="patient-account-heading">Account details</h2>
+          <p>
+            NHS login, identity, and communication preferences stay in the same patient portal
+            layout.
+          </p>
+        </div>
+        <dl>
+          <div>
+            <dt>Patient</dt>
+            <dd>{home.patientLabel}</dd>
+          </div>
+          <div>
+            <dt>Reference</dt>
+            <dd>{home.maskedPatientRef}</dd>
+          </div>
+        </dl>
+      </section>
+      <section className="patient-casework__account-grid" aria-label="Account sections">
+        <article className="patient-casework__account-card">
+          <div className="patient-casework__kicker">NHS login</div>
+          <h3>Signed-in account</h3>
+          <p>Your identity is verified by NHS login. Account claims are shown separately.</p>
+        </article>
+        <article className="patient-casework__account-card">
+          <div className="patient-casework__kicker">Contact preferences</div>
+          <h3>Communication settings</h3>
+          <p>Review how this service uses messages, callbacks, and reminders.</p>
+          <button
+            type="button"
+            className="patient-casework__primary-action"
+            onClick={() => onNavigate(CONTACT_TRUTH_ENTRY)}
+          >
+            Review contact preferences
+          </button>
+        </article>
       </section>
     </div>
   );
@@ -1080,6 +1141,8 @@ export default function PatientHomeRequestsDetailRoutesApp() {
     >
       {entry.routeKey === "home" || entry.routeKey === "quiet_home" ? (
         <HomeRoute home={entry.home} routeKey={entry.routeKey} onNavigate={navigate} />
+      ) : entry.routeKey === "account" ? (
+        <AccountRoute home={entry.home} onNavigate={navigate} />
       ) : entry.routeKey === "requests_index" ? (
         <RequestsRoute
           index={entry.requestsIndex}

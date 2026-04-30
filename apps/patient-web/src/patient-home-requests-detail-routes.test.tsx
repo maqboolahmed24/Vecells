@@ -40,6 +40,18 @@ describe("patient home requests detail routes", () => {
     );
   });
 
+  it("keeps the account route in the canonical patient shell", () => {
+    const entry = resolvePatientHomeRequestsDetailEntry({ pathname: "/portal/account" });
+
+    expect(normalizePatientHomeRequestsDetailPath("/portal/account")).toBe("/portal/account");
+    expect(entry.routeKey).toBe("account");
+    expect(entry.home.portalNavigation.items.find((item) => item.id === "account")).toMatchObject({
+      path: "/portal/account",
+      ariaCurrent: true,
+      placeholder: false,
+    });
+  });
+
   it("keeps request bucket counts while hiding inactive filtered buckets", () => {
     const entry = resolvePatientHomeRequestsDetailEntry({
       pathname: "/requests",

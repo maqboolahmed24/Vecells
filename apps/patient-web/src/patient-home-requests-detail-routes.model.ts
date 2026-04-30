@@ -1,14 +1,16 @@
-import {
-  PATIENT_BOOKING_ENTRY_IDS,
-  bookingEntryPath,
-} from "./patient-booking-entry.paths";
+import { PATIENT_BOOKING_ENTRY_IDS, bookingEntryPath } from "./patient-booking-entry.paths";
 import { resolvePharmacyProductMergePreviewForRequest } from "../../../packages/domains/pharmacy/src/phase6-pharmacy-product-merge-preview";
 
 export const PATIENT_HOME_REQUESTS_DETAIL_TASK_ID =
   "par_215_crosscutting_track_Playwright_or_other_appropriate_tooling_frontend_build_patient_home_requests_and_request_detail_routes";
 export const PATIENT_HOME_REQUESTS_DETAIL_VISUAL_MODE = "Quiet_Casework_Premium";
 
-export type PatientCaseworkRouteKey = "home" | "quiet_home" | "requests_index" | "request_detail";
+export type PatientCaseworkRouteKey =
+  | "home"
+  | "quiet_home"
+  | "requests_index"
+  | "request_detail"
+  | "account";
 export type PatientRequestBucket = "needs_attention" | "in_progress" | "complete";
 export type PatientRequestActionability = "live" | "secondary" | "read_only" | "blocked";
 export type PatientCaseworkTone = "attention" | "info" | "success" | "blocked" | "quiet";
@@ -98,7 +100,7 @@ export interface PatientNavUrgencyDigest {
 export interface PatientNavReturnContract {
   readonly projectionName: "PatientNavReturnContract";
   readonly contractRef: string;
-  readonly originRouteRef: "/home" | "/requests" | `/requests/${string}`;
+  readonly originRouteRef: "/home" | "/requests" | "/portal/account" | `/requests/${string}`;
   readonly returnRouteRef: "/home" | "/requests";
   readonly selectedEntityRef: string | null;
   readonly selectedCandidateRef: string | null;
@@ -108,7 +110,7 @@ export interface PatientNavReturnContract {
 
 export interface PatientPortalNavigationProjection {
   readonly projectionName: "PatientPortalNavigationProjection";
-  readonly activeRouteRef: "/home" | "/requests" | `/requests/${string}`;
+  readonly activeRouteRef: "/home" | "/requests" | "/portal/account" | `/requests/${string}`;
   readonly items: readonly {
     readonly id: "home" | "requests" | "messages" | "account";
     readonly label: string;
@@ -359,6 +361,7 @@ export interface PatientHomeRequestsDetailEntryProjection {
 export type PatientHomeRequestsDetailPath =
   | "/home"
   | "/home/quiet"
+  | "/portal/account"
   | "/requests"
   | `/requests/${string}`;
 
@@ -519,6 +522,7 @@ function navigationFor(
 ): PatientPortalNavigationProjection {
   const activeHome = routeKey === "home" || routeKey === "quiet_home";
   const activeRequests = routeKey === "requests_index" || routeKey === "request_detail";
+  const activeAccount = routeKey === "account";
   return {
     projectionName: "PatientPortalNavigationProjection",
     activeRouteRef,
@@ -550,10 +554,10 @@ function navigationFor(
       {
         id: "account",
         label: "Account",
-        path: "#account-placeholder",
+        path: "/portal/account",
         badgeLabel: null,
-        ariaCurrent: false,
-        placeholder: true,
+        ariaCurrent: activeAccount,
+        placeholder: false,
       },
     ],
   };
@@ -1047,7 +1051,7 @@ function detailFor(
     routeTargetRef:
       request.dominantActionRef === "respond_more_info"
         ? `/requests/${request.requestRef}/more-info`
-        : pharmacyMerge?.patientRouteRef ?? `/requests/${request.requestRef}`,
+        : (pharmacyMerge?.patientRouteRef ?? `/requests/${request.requestRef}`),
     blockedReasonRef: null,
   };
 
@@ -1066,7 +1070,7 @@ function detailFor(
     patientSafeDetail:
       request.requestRef === "request_211_a"
         ? "The team is waiting for one patient-safe reply about photo timing. Clinical reasoning and staff-only notes stay outside this route."
-        : pharmacyMerge?.childSummary ?? request.patientSummary,
+        : (pharmacyMerge?.childSummary ?? request.patientSummary),
     summary: request,
     lineage,
     downstream,
@@ -1101,10 +1105,9 @@ function detailFor(
       pulseRef: `patient_case_pulse::${request.requestRef}`,
       freshnessLabel: request.updatedLabel,
       trustLabel: request.trustCueRef.replaceAll("_", " "),
-      receiptLabel:
-        pharmacyMerge
-          ? pharmacyMerge.authoritativeStateLabel
-          : request.bucket === "complete"
+      receiptLabel: pharmacyMerge
+        ? pharmacyMerge.authoritativeStateLabel
+        : request.bucket === "complete"
           ? "Outcome recorded"
           : "Request details kept together",
       latestMeaningfulUpdateLabel: request.latestMeaningfulUpdateAt,
@@ -1141,6 +1144,7 @@ export function isPatientHomeRequestsDetailPath(pathname: string): boolean {
   return (
     pathname === "/home" ||
     pathname === "/home/quiet" ||
+    pathname === "/portal/account" ||
     pathname === "/requests" ||
     /^\/requests\/[^/]+$/.test(pathname)
   );
@@ -1174,21 +1178,23 @@ export function resolvePatientHomeRequestsDetailEntry(input: {
       ? quietMode
         ? "quiet_home"
         : "home"
-      : pathname === "/requests"
-        ? "requests_index"
-        : "request_detail";
+      : pathname === "/portal/account"
+        ? "account"
+        : pathname === "/requests"
+          ? "requests_index"
+          : "request_detail";
   const detailMatch = pathname.match(/^\/requests\/([^/]+)$/);
   const selectedRequestRef =
     detailMatch?.[1] ??
-    (routeKey === "requests_index"
-      ? null
-      : (input.restoredBundle?.requestRef ?? "request_211_a"));
+    (routeKey === "requests_index" ? null : (input.restoredBundle?.requestRef ?? "request_211_a"));
   const activeRouteRef =
     routeKey === "request_detail" && selectedRequestRef
       ? (`/requests/${selectedRequestRef}` as const)
       : routeKey === "requests_index"
         ? "/requests"
-        : "/home";
+        : routeKey === "account"
+          ? "/portal/account"
+          : "/home";
   const home = homeProjectionFor(routeKey, activeRouteRef, quietMode ? "quiet" : "attention");
   const requestsIndex = requestsIndexFor(selectedFilterRef, selectedRequestRef);
   const requestDetail =

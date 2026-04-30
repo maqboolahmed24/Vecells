@@ -31,4 +31,21 @@ describe("patient app routing", () => {
     expect(html).toContain('data-testid="Patient_Home_Requests_Detail_Route"');
     expect(html).not.toContain('data-testid="Authenticated_Patient_Home_Status_Tracker_Route"');
   });
+
+  it("keeps the portal account route on the canonical patient UI", () => {
+    vi.stubGlobal("window", {
+      location: { pathname: "/portal/account", search: "" },
+      sessionStorage: {
+        getItem: () => null,
+        setItem: () => undefined,
+        removeItem: () => undefined,
+      },
+    });
+
+    const html = renderToStaticMarkup(<App />);
+
+    expect(html).toContain('data-testid="Patient_Home_Requests_Detail_Route"');
+    expect(html).toContain('data-testid="patient-account-route"');
+    expect(html).not.toContain('data-testid="Authenticated_Patient_Home_Status_Tracker_Route"');
+  });
 });

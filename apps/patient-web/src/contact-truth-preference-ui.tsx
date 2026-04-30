@@ -6,8 +6,10 @@ import {
   useState,
   type RefObject,
 } from "react";
-import { VecellLogoWordmark } from "@vecells/design-system";
 import {
+  CONTACT_TRUTH_ENTRY,
+  CONTACT_TRUTH_EXTERNAL_OFF_ENTRY,
+  CONTACT_TRUTH_REPAIR_ENTRY,
   CONTACT_TRUTH_TASK_ID,
   ContactTruthWorkspaceResolver,
   isContactTruthPreferencePath,
@@ -17,6 +19,7 @@ import {
   type PatientPreferenceStateProjection,
   type SourceTruthDescriptor,
 } from "./contact-truth-preference-ui.model";
+import { PatientPortalTopBar } from "./patient-portal-top-bar";
 
 function safeWindow(): Window | undefined {
   return typeof window === "undefined" ? undefined : window;
@@ -306,7 +309,7 @@ export function ContactRepairEntryCard({
 }
 
 function useContactTruthController() {
-  const initialPathname = safeWindow()?.location.pathname ?? "/portal/account/contact";
+  const initialPathname = safeWindow()?.location.pathname ?? CONTACT_TRUTH_ENTRY;
   const [projection, setProjection] = useState<ContactTruthWorkspaceRouteProjection>(() =>
     ContactTruthWorkspaceResolver(initialPathname),
   );
@@ -392,6 +395,51 @@ function useContactTruthController() {
 
 export { isContactTruthPreferencePath };
 
+function ContactTruthViewTabs({
+  projection,
+  onNavigate,
+}: {
+  projection: ContactTruthWorkspaceRouteProjection;
+  onNavigate: (pathname: string) => void;
+}) {
+  const tabs = [
+    {
+      id: "ledger",
+      label: "Contact ledger",
+      pathname: CONTACT_TRUTH_ENTRY,
+      selected: projection.mode === "contact_truth_workspace",
+    },
+    {
+      id: "repair",
+      label: "Repair path",
+      pathname: CONTACT_TRUTH_REPAIR_ENTRY,
+      selected: projection.mode === "repair_required",
+    },
+    {
+      id: "external-off",
+      label: "External sources",
+      pathname: CONTACT_TRUTH_EXTERNAL_OFF_ENTRY,
+      selected: projection.mode === "external_sources_unavailable",
+    },
+  ] as const;
+
+  return (
+    <nav className="contact-truth__view-tabs" aria-label="Contact detail views">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          type="button"
+          data-testid={`contact-truth-view-${tab.id}`}
+          aria-current={tab.selected ? "page" : undefined}
+          onClick={() => onNavigate(tab.pathname)}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
 export default function ContactTruthPreferenceApp() {
   const {
     projection,
@@ -421,24 +469,9 @@ export default function ContactTruthPreferenceApp() {
       data-same-shell-return={String(returned)}
       data-supported-testids="account-details-header history-badge-row-nhs-login history-badge-row-vecells-preferences history-badge-row-pds history-badge-row-gp-system source-truth-card-nhs-login preference-ledger-card demographic-source-card-pds demographic-source-card-gp reachability-risk-panel contact-repair-entry-card contact-repair-action contact-return-action preference-review-action"
     >
-      <header className="contact-truth__top-band" data-testid="contact-truth-top-band">
-        <div>
-          <VecellLogoWordmark aria-hidden="true" className="contact-truth__wordmark" />
-          <span>Contact details and communication preferences</span>
-        </div>
-        <nav aria-label="Contact detail views">
-          <button type="button" onClick={() => navigate("/portal/account/contact")}>
-            Ledger
-          </button>
-          <button type="button" onClick={() => navigate("/portal/account/contact/repair")}>
-            Repair path
-          </button>
-          <button type="button" onClick={() => navigate("/portal/account/contact/external-off")}>
-            External-off view
-          </button>
-        </nav>
-      </header>
+      <PatientPortalTopBar current="account" testId="contact-truth-top-band" />
       <main className="contact-truth__shell" aria-labelledby="contact-truth-title">
+        <ContactTruthViewTabs projection={projection} onNavigate={navigate} />
         <section className="contact-truth__workspace">
           <div className="contact-truth__main-column">
             <AccountDetailsHeader projection={projection} titleRef={titleRef} />

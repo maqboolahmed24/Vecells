@@ -155,7 +155,7 @@ export default function App() {
   if (isContactTruthPreferencePath(pathname)) {
     return <ContactTruthPreferenceApp />;
   }
-  if (pathname === "/portal" || pathname === "/portal/home") {
+  if (pathname === "/portal" || pathname === "/portal/home" || pathname === "/portal/account") {
     return <PatientHomeRequestsDetailRoutesApp />;
   }
   if (isAuthenticatedHomeStatusTrackerPath(pathname)) {
