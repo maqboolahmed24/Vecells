@@ -262,6 +262,16 @@ function serveSurface(
   send(response, 503, renderMissingBuild(surface));
 }
 
+function servePatientWebRoute(response: ServerResponse, config: InternalEntrypointConfig): boolean {
+  const patientSurface = config.surfaces.find((surface) => surface.id === "patient-web");
+  if (!patientSurface) {
+    return false;
+  }
+
+  serveSurface(response, patientSurface.pathPrefix, patientSurface, config);
+  return true;
+}
+
 export function createInternalEntrypointServer(config: InternalEntrypointConfig): http.Server {
   return http.createServer(async (request, response) => {
     const method = request.method?.toUpperCase() ?? "GET";
@@ -330,6 +340,10 @@ export function createInternalEntrypointServer(config: InternalEntrypointConfig)
     const surface = config.surfaces.find((item) => pathname.startsWith(item.pathPrefix));
     if (surface && method === "GET") {
       serveSurface(response, pathname, surface, config);
+      return;
+    }
+
+    if (method === "GET" && servePatientWebRoute(response, config)) {
       return;
     }
 

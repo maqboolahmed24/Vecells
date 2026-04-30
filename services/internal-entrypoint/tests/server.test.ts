@@ -150,6 +150,36 @@ describe("internal entrypoint", () => {
     expect(await asset.text()).toContain("dataset.loaded");
   });
 
+  it("serves authenticated root-level patient SPA routes through the patient web bundle", async () => {
+    const anonymous = await fetch(`${baseUrl}/portal/start-request`);
+    const anonymousBody = await anonymous.text();
+    expect(anonymous.status).toBe(200);
+    expect(anonymousBody).toContain("Internal test access");
+    expect(anonymousBody).not.toContain("App shell");
+
+    const login = await fetch(`${baseUrl}/login`, {
+      method: "POST",
+      body: new URLSearchParams({ password: "correct-password" }),
+      redirect: "manual",
+    });
+    const cookie = login.headers.get("set-cookie") ?? "";
+
+    for (const route of [
+      "/portal/start-request",
+      "/start-request",
+      "/intake/start",
+      "/requests/request_123",
+    ]) {
+      const app = await fetch(`${baseUrl}${route}`, { headers: { cookie } });
+      const appBody = await app.text();
+
+      expect(app.status).toBe(200);
+      expect(appBody).toContain("App shell");
+      expect(appBody).toContain("/apps/patient-web/assets/app.js");
+      expect(appBody).not.toContain("Not found");
+    }
+  });
+
   it("clears the session on logout", async () => {
     const login = await fetch(`${baseUrl}/login`, {
       method: "POST",
