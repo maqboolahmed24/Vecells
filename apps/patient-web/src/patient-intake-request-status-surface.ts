@@ -211,19 +211,19 @@ function summaryForState(
   surfacePosture: RequestStatusSurfacePosture,
 ): string {
   if (surfacePosture === "recovery_only") {
-    return "This page is narrowed while we recover the safest status truth for this request. The shell and request lineage still stay intact.";
+    return "This page is limited while we confirm the safest status for this request.";
   }
   switch (macroState) {
     case "received":
       return "The request was captured and is waiting for the first routine review step.";
     case "in_review":
-      return "The first routine review pass is under way and this view stays intentionally minimal until the patient-safe state changes.";
+      return "The first routine review is under way. We will update this page when there is a safe status change.";
     case "we_need_you":
-      return "The review may need a follow-up detail, so the status surface now carries one clear action-needed cue.";
+      return "The review may need a follow-up detail, so this page now shows one clear action.";
     case "completed":
-      return "The routine review path is complete, so this page now acts as a quiet reference and next-step pulse.";
+      return "The routine review is complete. Keep this page as a reference if you need it.";
     case "urgent_action":
-      return "Routine tracking is narrowed because a faster or safer follow-up path is now required.";
+      return "Routine tracking has changed because a faster or safer follow-up path is now required.";
   }
 }
 
@@ -238,7 +238,7 @@ function lastMeaningfulUpdateLineForState(macroState: ReceiptMacroState): string
     case "completed":
       return "Last meaningful update: the routine review path reached a completed state.";
     case "urgent_action":
-      return "Last meaningful update: routine tracking narrowed to an urgent follow-up posture.";
+      return "Last meaningful update: routine tracking changed to urgent follow-up.";
   }
 }
 
@@ -262,13 +262,13 @@ function currentStateBody(macroState: ReceiptMacroState): string {
     case "received":
       return "We have the request and have not yet moved it beyond the first received state.";
     case "in_review":
-      return "A clinician or coordinator is reviewing the request details in the same request lineage.";
+      return "A clinician or coordinator is reviewing the request details.";
     case "we_need_you":
-      return "The review may pause for a follow-up detail. This surface stays read only and does not reopen a second dashboard or queue view.";
+      return "The review may pause for a follow-up detail. This page stays read only until we ask for something specific.";
     case "completed":
-      return "The routine review path is complete and there is no new patient action to take from this surface right now.";
+      return "The routine review is complete and there is no new patient action to take right now.";
     case "urgent_action":
-      return "Routine tracking can no longer stay calm, so the page narrows to the urgent or recovery path that best matches the safest next step.";
+      return "Routine tracking can no longer stay calm, so this page shows the urgent next step.";
   }
 }
 
@@ -294,13 +294,13 @@ function buildTimeline(macroState: ReceiptMacroState): readonly RequestStatusTim
         {
           key: "received",
           label: "Received",
-          description: "The request has been captured in the same request lineage.",
+          description: "The request has been received.",
           state: "current",
         },
         {
           key: "in_review",
           label: "In review",
-          description: "The first review begins when the routine queue reaches this request.",
+          description: "The first review begins when the practice reaches this request.",
           state: "pending",
         },
         {
@@ -342,7 +342,7 @@ function buildTimeline(macroState: ReceiptMacroState): readonly RequestStatusTim
         {
           key: "in_review",
           label: "In review",
-          description: "The first review pass began before the status narrowed to one action-needed cue.",
+          description: "The first review began before this status changed to action needed.",
           state: "complete",
         },
         {
@@ -390,13 +390,13 @@ function buildTimeline(macroState: ReceiptMacroState): readonly RequestStatusTim
         {
           key: "in_review",
           label: "In review",
-          description: "The initial review moved the request into a narrower follow-up path.",
+          description: "The initial review moved the request into a more urgent follow-up path.",
           state: "complete",
         },
         {
           key: "urgent_action",
           label: "Urgent action",
-          description: "Routine tracking is now narrowed to the urgent or recovery path.",
+          description: "Routine tracking now shows the urgent next step.",
           state: "current",
         },
       ];
@@ -433,7 +433,7 @@ function buildActionNeededCard(
     case "we_need_you":
       return {
         title: "Keep this request ready",
-        body: "We may need one more detail. Review the saved request and keep the same reference close rather than looking for a second status page.",
+        body: "We may need one more detail. Keep this reference available and review the saved request if we ask for more.",
         label: "Review this request",
         dataTestId: "track-action-needed-cta",
         targetPathname: statusReceiptPath(aliasSource, draftPublicId, requestPublicId),
@@ -444,7 +444,7 @@ function buildActionNeededCard(
     case "urgent_action":
       return {
         title: "Open urgent guidance",
-        body: "Routine tracking is no longer the safest place to stop. Use the urgent guidance route for the next action.",
+        body: "Routine tracking is no longer the safest place to stop. Use urgent guidance for the next action.",
         label: "Open urgent guidance",
         dataTestId: "track-action-needed-cta",
         targetPathname: urgentGuidancePath(aliasSource, draftPublicId, requestPublicId),
@@ -614,12 +614,12 @@ export function buildRequestStatusSurface(
     currentStateBody: currentStateBody(receiptState.macroState),
     nextStepMessage: nextStepMessage(receiptState.macroState),
     etaVisible,
-    etaNoteTitle: etaVisible ? "Expected review window" : "Expected review window is narrowed",
+    etaNoteTitle: etaVisible ? "Expected review window" : "Expected review window is temporarily unavailable",
     etaNoteBody: etaVisible
-      ? `${receiptBucketLabel(receiptState.receiptBucket)}. Promise state: ${promiseStateLabel(
+      ? `${receiptBucketLabel(receiptState.receiptBucket)}. Current estimate: ${promiseStateLabel(
           receiptState.promiseState,
-        )}. This is a patient-safe bucket, not an exact time.`
-      : "The ETA bucket is temporarily withheld while the status truth is narrowed to a recovery-only posture.",
+        )}. This is a review window, not an exact time.`
+      : "The expected review window is temporarily hidden while we confirm the safest status.",
     timelineHeading: "Status timeline",
     timeline: buildTimeline(receiptState.macroState),
     actionNeededCard,
@@ -638,7 +638,7 @@ export function buildRequestStatusSurface(
         : null,
     liveRegionMessage:
       statusState.surfacePosture === "recovery_only"
-        ? "Tracking narrowed to a recovery-only posture."
+        ? "Tracking is limited while we confirm the safest status."
         : `Tracking ready. Current state: ${macroStateLabel(receiptState.macroState)}.`,
   };
 }

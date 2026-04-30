@@ -54,6 +54,40 @@ const PAGE_ORDER: readonly Page[] = [
   "Live_Gates_and_Spend_Controls",
 ];
 
+function publicRefLabel(value: string): string {
+  return value
+    .replace(/^MOCK:/i, "test ")
+    .replace(/^NUM_TEL_/i, "")
+    .replace(/^(rec|wh|ivr)_/i, "")
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function publicCopy(value: string | undefined): string {
+  return (value ?? "")
+    .replace(/\bVoice_Fabric_Lab\b/g, "Voice Fabric Lab")
+    .replace(/\bMOCK_TELEPHONY_LAB\b/g, "Telephony Lab")
+    .replace(/\bposture\b/gi, "status")
+    .replace(/\bcontract\b/gi, "rules")
+    .replace(/\blineage\b/gi, "history")
+    .replace(/\btruth\b/gi, "status")
+    .replace(/\bbounded\b/gi, "limited")
+    .replace(/\bAccessGrant\b/g, "access approval");
+}
+
+function recordingPolicyLabel(ref: string): string {
+  return (
+    telephonyLabPack.recording_policies.find((row) => row.recording_policy_ref === ref)?.label ??
+    publicRefLabel(ref)
+  );
+}
+
+function numberProfileLabel(row: NumberRow): string {
+  return publicRefLabel(row.number_id);
+}
+
 function scenarioById(id: string): ScenarioRow {
   return telephonyLabPack.call_scenarios.find((row) => row.scenario_id === id)!;
 }
@@ -217,7 +251,7 @@ function nextAdvanceState(call: LiveCall): LiveCall {
       tone: call.status === "evidence_pending" ? "success" : "success",
       detail: call.status === "evidence_pending"
         ? "The call is now ready to feed the canonical intake convergence path."
-        : "The scenario reached its terminal mock posture.",
+        : "The scenario reached its terminal mock status.",
       at: new Date().toISOString(),
     }),
   };
@@ -245,7 +279,7 @@ function nextRetryState(call: LiveCall): LiveCall {
         state: "webhook_dispatch_recovered",
         label: "webhook dispatch recovered",
         tone: "success",
-        detail: "Recovered callback remains transport evidence only until Vecells settlement runs.",
+        detail: "Recovered callback remains transport evidence only until local settlement runs.",
         at: new Date(Date.now() + 60000).toISOString(),
       },
     ),
@@ -318,6 +352,9 @@ function App() {
     [calls, appState.selectedCallId],
   );
   const selectedScenario = scenarioById(appState.selectedScenarioId);
+  const selectedRecordingPolicy = telephonyLabPack.recording_policies.find(
+    (row) => row.recording_policy_ref === selectedNumber.recording_policy_ref,
+  );
 
   async function tryCarrierMutation(path: string, body: object): Promise<any | null> {
     try {
@@ -453,8 +490,8 @@ function App() {
             <VecellLogoLockup aria-hidden="true" className="wordmark" />
             <div className="brand-copy">
               <div className="ribbon-row">
-                <span className="mock-ribbon">MOCK_TELEPHONY_LAB</span>
-                <span className="mono-chip">{telephonyLabPack.visual_mode}</span>
+                <span className="mock-ribbon">telephony lab test mode</span>
+                <span className="mono-chip">{publicCopy(telephonyLabPack.visual_mode)}</span>
               </div>
               <div>
                 <h1>Voice Fabric Lab</h1>
@@ -487,8 +524,8 @@ function App() {
         <aside className="panel guard-panel">
           <div className="panel-header">
             <div>
-              <h2>Mode and posture</h2>
-              <p className="subhead">Current real-provider posture stays blocked while the foundation gate is withheld.</p>
+              <h2>Mode and status</h2>
+              <p className="subhead">Current real-provider status stays blocked while the foundation gate is withheld.</p>
             </div>
             <span className="status-chip" data-testid="reduced-motion-indicator">{reducedMotionLabel}</span>
           </div>
@@ -537,16 +574,16 @@ function App() {
                 onClick={() => setAppState((current) => ({ ...current, selectedNumberId: row.number_id }))}
                 type="button"
               >
-                <strong>{row.number_id}</strong>
-                <small className="number-meta">{row.e164_or_placeholder}</small>
+                <strong>{numberProfileLabel(row)}</strong>
+                <small className="number-meta">{publicRefLabel(row.e164_or_placeholder)}</small>
                 <div className="number-capability-row">
-                  <span className="mono-chip">{row.environment}</span>
-                  <span className="mono-chip">{row.direction}</span>
+                  <span className="mono-chip">{publicRefLabel(row.environment)}</span>
+                  <span className="mono-chip">{publicRefLabel(row.direction)}</span>
                   <span className={`tone-chip ${row.voice_enabled === "yes" ? "tone-success" : "tone-blocked"}`}>
-                    voice {row.voice_enabled}
+                    voice {row.voice_enabled === "yes" ? "enabled" : "off"}
                   </span>
                   <span className={`tone-chip ${row.sms_enabled === "yes" ? "tone-review" : "tone-blocked"}`}>
-                    sms {row.sms_enabled}
+                    sms {row.sms_enabled === "yes" ? "enabled" : "off"}
                   </span>
                 </div>
               </button>
@@ -573,10 +610,10 @@ function App() {
           <section className="panel panel-stack" data-testid="flow-editor">
             <div className="panel-header">
               <div>
-                <h2>{appState.page.replace(/_/g, " ")}</h2>
-                <p className="subhead">{selectedNumber.notes}</p>
+              <h2>{appState.page.replace(/_/g, " ")}</h2>
+                <p className="subhead">{publicCopy(selectedNumber.notes)}</p>
               </div>
-              <span className="mono-chip">{selectedNumber.webhook_profile_ref}</span>
+                  <span className="mono-chip">{publicRefLabel(selectedNumber.webhook_profile_ref)}</span>
             </div>
 
             {appState.page === "Number_Inventory" && (
@@ -601,28 +638,28 @@ function App() {
                     <tbody>
                       <tr>
                         <td>IVR</td>
-                        <td>{selectedNumber.ivr_profile_ref}</td>
+                        <td>{publicRefLabel(selectedNumber.ivr_profile_ref)}</td>
                         <td>Menu and DTMF choreography stay bound to the number profile.</td>
                       </tr>
                       <tr>
                         <td>Recording</td>
-                        <td>{selectedNumber.recording_policy_ref}</td>
+                        <td>{recordingPolicyLabel(selectedNumber.recording_policy_ref)}</td>
                         <td>Recording remains weaker than evidence readiness.</td>
                       </tr>
                       <tr>
                         <td>Webhook</td>
-                        <td>{selectedNumber.webhook_profile_ref}</td>
+                        <td>{publicRefLabel(selectedNumber.webhook_profile_ref)}</td>
                         <td>Transport callbacks always land on internal endpoints first.</td>
                       </tr>
                       <tr>
                         <td>Urgent preemption</td>
-                        <td>{selectedNumber.urgent_preemption_mode}</td>
-                        <td>The number carries the urgent-live contract, not just routing metadata.</td>
+                        <td>{publicRefLabel(selectedNumber.urgent_preemption_mode)}</td>
+                        <td>The number carries the urgent-live rules, not just routing metadata.</td>
                       </tr>
                       <tr>
                         <td>Assignment</td>
-                        <td>{selectedNumber.assignment_state}</td>
-                        <td>{selectedNumber.assigned_to || "Unassigned in the local lab."}</td>
+                        <td>{publicRefLabel(selectedNumber.assignment_state)}</td>
+                        <td>{selectedNumber.assigned_to ? publicRefLabel(selectedNumber.assigned_to) : "Unassigned in the local lab."}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -675,16 +712,16 @@ function App() {
                   <div className="panel-header">
                     <div>
                       <h3>{selectedScenario.label}</h3>
-                      <p className="subhead">{selectedScenario.summary}</p>
+                      <p className="subhead">{publicCopy(selectedScenario.summary)}</p>
                     </div>
                     <span className={`tone-chip ${eventTone(selectedScenario.terminal_state)}`}>
-                      {selectedScenario.terminal_state}
+                      {publicRefLabel(selectedScenario.terminal_state)}
                     </span>
                   </div>
                   <div className="flow-track" style={{ marginTop: 16 }}>
                     {selectedScenario.state_path.map((state, index) => (
                       <div key={state} className="flow-track">
-                        <span className={`flow-node ${eventTone(state)}`}>{state.replace(/_/g, " ")}</span>
+                        <span className={`flow-node ${eventTone(state)}`}>{publicRefLabel(state)}</span>
                         {index < selectedScenario.state_path.length - 1 ? (
                           <span className="flow-arrow">-&gt;</span>
                         ) : null}
@@ -709,10 +746,10 @@ function App() {
                   <tbody>
                     {telephonyLabPack.webhook_matrix.map((row) => (
                       <tr key={row.webhook_row_id}>
-                        <td>{row.endpoint_kind}</td>
+                        <td>{publicRefLabel(row.endpoint_kind)}</td>
                         <td>{row.provider_vendor}</td>
-                        <td>{row.signature_scheme}</td>
-                        <td>{row.replay_guard}</td>
+                        <td>{publicRefLabel(row.signature_scheme)}</td>
+                        <td>{publicRefLabel(row.replay_guard)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -724,23 +761,23 @@ function App() {
               <div className="flow-grid">
                 <article className="fact-card">
                   <strong>Recording state</strong>
-                  <p>{selectedCall?.recording_state ?? "n/a"}</p>
+                  <p>{selectedCall ? publicRefLabel(selectedCall.recording_state) : "n/a"}</p>
                   <small>Recording availability must never be mistaken for evidence readiness.</small>
                 </article>
                 <article className="fact-card">
                   <strong>Transcript state</strong>
-                  <p>{selectedCall?.transcript_state ?? "n/a"}</p>
-                  <small>Transcript remains derivative, not source truth.</small>
+                  <p>{selectedCall ? publicRefLabel(selectedCall.transcript_state) : "n/a"}</p>
+                  <small>Transcript remains supporting context, not the source record.</small>
                 </article>
                 <article className="fact-card">
                   <strong>Continuation state</strong>
-                  <p>{selectedCall?.continuation_state ?? "n/a"}</p>
+                  <p>{selectedCall ? publicRefLabel(selectedCall.continuation_state) : "n/a"}</p>
                   <small>Continuation may be eligible or sent without routine submit being safe.</small>
                 </article>
                 <article className="fact-card">
                   <strong>Urgent state</strong>
-                  <p>{selectedCall?.urgent_state ?? "n/a"}</p>
-                  <small>Urgent-live posture stays independent from routine promotion readiness.</small>
+                  <p>{selectedCall ? publicRefLabel(selectedCall.urgent_state) : "n/a"}</p>
+                  <small>Urgent-live status stays independent from routine promotion readiness.</small>
                 </article>
               </div>
             )}
@@ -777,7 +814,7 @@ function App() {
                       value={appState.actualInputs.targetEnvironment}
                       onChange={(event) => updateActualInput("targetEnvironment", event.target.value)}
                     >
-                      <option value="provider_like_preprod">provider_like_preprod</option>
+                      <option value="provider_like_preprod">provider-like pre-production</option>
                       <option value="production">production</option>
                     </select>
                   </label>
@@ -798,7 +835,7 @@ function App() {
                     >
                       {telephonyLabPack.recording_policies.map((row) => (
                         <option key={row.recording_policy_ref} value={row.recording_policy_ref}>
-                          {row.recording_policy_ref}
+                          {row.label}
                         </option>
                       ))}
                     </select>
@@ -812,7 +849,7 @@ function App() {
                     >
                       {telephonyLabPack.number_inventory.map((row) => (
                         <option key={row.number_id} value={row.number_id}>
-                          {row.number_id}
+                          {numberProfileLabel(row)}
                         </option>
                       ))}
                     </select>
@@ -826,7 +863,7 @@ function App() {
                     />
                   </label>
                   <label>
-                    Webhook secret ref
+                    Webhook secret handle
                     <input
                       data-testid="actual-field-webhook-secret-ref"
                       value={appState.actualInputs.webhookSecretRef}
@@ -871,8 +908,8 @@ function App() {
                     <tbody>
                       {telephonyLabPack.live_gate_pack.live_gates.map((row) => (
                         <tr key={row.gate_id}>
-                          <td>{row.gate_id}</td>
-                          <td>{row.status}</td>
+                          <td>{publicRefLabel(row.gate_id)}</td>
+                          <td>{publicRefLabel(row.status)}</td>
                           <td>{row.reason}</td>
                         </tr>
                       ))}
@@ -889,7 +926,7 @@ function App() {
                 <h2>Event stream</h2>
                 <p className="subhead">One canonical call timeline, even when provider callbacks arrive out of order.</p>
               </div>
-              <span className="mono-chip">{selectedCall?.call_id ?? "no-call"}</span>
+              <span className="mono-chip">{selectedCall ? publicRefLabel(selectedCall.call_id) : "No call"}</span>
             </div>
             <div className="call-list">
               {calls.map((row) => (
@@ -900,11 +937,11 @@ function App() {
                   onClick={() => setAppState((current) => ({ ...current, selectedCallId: row.call_id }))}
                   type="button"
                 >
-                  <strong>{row.call_id}</strong>
-                  <small>{row.summary}</small>
+                  <strong>{publicRefLabel(row.call_id)}</strong>
+                  <small>{publicCopy(row.summary)}</small>
                   <div className="number-capability-row">
-                    <span className="mono-chip">{row.status}</span>
-                    <span className={`tone-chip ${eventTone(row.webhook_state)}`}>{row.webhook_state}</span>
+                    <span className="mono-chip">{publicRefLabel(row.status)}</span>
+                    <span className={`tone-chip ${eventTone(row.webhook_state)}`}>{publicRefLabel(row.webhook_state)}</span>
                   </div>
                 </button>
               ))}
@@ -914,9 +951,9 @@ function App() {
                 <article key={event.event_id} className="event-card">
                   <div className="call-card-header">
                     <strong>{event.label}</strong>
-                    <span className={`tone-chip ${eventTone(event.state)}`}>{event.state}</span>
+                    <span className={`tone-chip ${eventTone(event.state)}`}>{publicRefLabel(event.state)}</span>
                   </div>
-                  <p>{event.detail}</p>
+                  <p>{publicCopy(event.detail)}</p>
                   <small className="muted">{event.at}</small>
                 </article>
               ))}
@@ -927,13 +964,13 @@ function App() {
             <div className="panel-header">
               <div>
                 <h2>Continuity line</h2>
-                <p className="subhead">The lower strip keeps the same request-lineage truth visible.</p>
+                <p className="subhead">The lower strip keeps the same request-history verified details visible.</p>
               </div>
             </div>
             <div className="diagram-line" data-testid="lower-diagram">
               {["inbound_call", "ivr", "verification", "recording", "transcript_hook", "continuation_or_triage"].map((label, index, array) => (
                 <div key={label} className="flow-track">
-                  <span className="diagram-node">{label}</span>
+                  <span className="diagram-node">{publicRefLabel(label)}</span>
                   {index < array.length - 1 ? <span className="flow-arrow">-&gt;</span> : null}
                 </div>
               ))}
@@ -945,31 +982,31 @@ function App() {
           <div className="panel-header">
             <div>
               <h2>Inspector</h2>
-              <p className="subhead">Recording, continuation, and security posture for the current selection.</p>
+              <p className="subhead">Recording, continuation, and security status for the current selection.</p>
             </div>
-            <span className="mono-chip">{selectedNumber.number_id}</span>
+            <span className="mono-chip">{numberProfileLabel(selectedNumber)}</span>
           </div>
           <article className="fact-card">
             <strong>Webhook profile</strong>
-            <p>{selectedNumber.webhook_profile_ref}</p>
-            <small>{selectedNumber.notes}</small>
+            <p>{publicRefLabel(selectedNumber.webhook_profile_ref)}</p>
+            <small>{publicCopy(selectedNumber.notes)}</small>
           </article>
           <article className="fact-card">
             <strong>Recording policy</strong>
-            <p>{selectedNumber.recording_policy_ref}</p>
-            <small>{telephonyLabPack.recording_policies.find((row) => row.recording_policy_ref === selectedNumber.recording_policy_ref)?.notes}</small>
+            <p>{recordingPolicyLabel(selectedNumber.recording_policy_ref)}</p>
+            <small>{publicCopy(selectedRecordingPolicy?.notes)}</small>
           </article>
           <article className="fact-card">
-            <strong>Continuation and urgent posture</strong>
-            <p>{selectedNumber.urgent_preemption_mode}</p>
-            <small>Continuation remains bounded and separate from routine submission.</small>
+            <strong>Continuation and urgent status</strong>
+            <p>{publicRefLabel(selectedNumber.urgent_preemption_mode)}</p>
+            <small>Continuation remains limited and separate from routine submission.</small>
           </article>
           <article className="fact-card">
             <strong>Current call states</strong>
-            <p>recording `{selectedCall?.recording_state ?? "n/a"}`</p>
-            <p>transcript `{selectedCall?.transcript_state ?? "n/a"}`</p>
-            <p>continuation `{selectedCall?.continuation_state ?? "n/a"}`</p>
-            <p>webhook `{selectedCall?.webhook_state ?? "n/a"}`</p>
+            <p>recording {selectedCall ? publicRefLabel(selectedCall.recording_state) : "n/a"}</p>
+            <p>transcript {selectedCall ? publicRefLabel(selectedCall.transcript_state) : "n/a"}</p>
+            <p>continuation {selectedCall ? publicRefLabel(selectedCall.continuation_state) : "n/a"}</p>
+            <p>webhook {selectedCall ? publicRefLabel(selectedCall.webhook_state) : "n/a"}</p>
           </article>
           <article className="fact-card">
             <strong>Selected risks</strong>
@@ -977,8 +1014,8 @@ function App() {
               {telephonyLabPack.selected_risks.map((row) => (
                 <div key={row.risk_id}>
                   <div className="call-card-header">
-                    <span className="mono-chip">{row.risk_id}</span>
-                    <span className={`tone-chip ${row.severity === "high" ? "tone-blocked" : "tone-caution"}`}>{row.severity}</span>
+                    <span className="mono-chip">{publicRefLabel(row.risk_id)}</span>
+                    <span className={`tone-chip ${row.severity === "high" ? "tone-blocked" : "tone-caution"}`}>{publicRefLabel(row.severity)}</span>
                   </div>
                   <small>{row.trigger_summary}</small>
                 </div>

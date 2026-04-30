@@ -484,7 +484,7 @@ export function SelfCareAdminViewsRoute({
       <header className="staff-shell__consequence-route-head">
         <div>
           <span className="staff-shell__eyebrow">Bounded_Consequence_Studio</span>
-          <h2>Self-care and bounded admin consequence</h2>
+          <h2>Self-care and limited admin consequence</h2>
           <p>{projection.queueHealthSummary}</p>
         </div>
         <button
@@ -585,7 +585,7 @@ export function SelfCareAdminViewsRoute({
 
               <section className="staff-shell__consequence-panel staff-shell__consequence-panel--source">
                 <header className="staff-shell__task-stack-header">
-                  <span className="staff-shell__eyebrow">Lineage-visible source context</span>
+                  <span className="staff-shell__eyebrow">History-visible source context</span>
                   <h3>Why this consequence is classified this way</h3>
                 </header>
                 <div className="staff-shell__consequence-recovery-list">

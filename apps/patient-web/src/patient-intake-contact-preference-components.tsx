@@ -98,13 +98,13 @@ export function ChannelPreferenceStack({
       aria-labelledby="contact-channel-stack-title"
     >
       <div className="patient-intake-mission-frame__contact-section-head">
-        <span id="contact-channel-stack-title">Preferred route</span>
-        <p>Choose the route we should prefer later if it is still available and safe.</p>
+        <span id="contact-channel-stack-title">Preferred contact method</span>
+        <p>Choose the contact method we should try first if it is still available and safe.</p>
       </div>
       <div
         className="patient-intake-mission-frame__channel-grid"
         role="group"
-        aria-label="Preferred contact route"
+        aria-label="Preferred contact method"
       >
         {CONTACT_CHANNELS.map((channel) => (
           <button
@@ -125,20 +125,6 @@ export function ChannelPreferenceStack({
               <ContactSelectionGlyph channel={channel} />
             </span>
             <strong>{channelLabel(channel)}</strong>
-            <p>
-              {channel === "sms"
-                ? "Good for short updates and calm, brief confirmation wording."
-                : channel === "phone"
-                  ? "Best when timing, discussion, or accessibility support needs a live handoff."
-                  : "Good when written detail is easier to review later."}
-            </p>
-            <small>
-              {channel === "sms"
-                ? "Requires a mobile number."
-                : channel === "phone"
-                  ? "Can include voicemail guidance."
-                  : "Ordinary summaries will only show a masked address."}
-            </small>
           </button>
         ))}
       </div>
@@ -176,9 +162,9 @@ export function RouteEntryPanel({
       aria-labelledby="contact-route-entry-title"
     >
       <div className="patient-intake-mission-frame__contact-section-head">
-        <span id="contact-route-entry-title">Route details</span>
+        <span id="contact-route-entry-title">Contact details</span>
         <p>
-          Enter the routes you want us to keep on file. Only masked versions appear in summaries
+          Enter the contact details you want us to keep on file. Only masked versions appear in summaries
           elsewhere.
         </p>
       </div>
@@ -199,8 +185,8 @@ export function RouteEntryPanel({
                   <strong>{channelLabel(channel)}</strong>
                   <p>
                     {isPreferred
-                      ? "This route is currently preferred."
-                      : "Keep this as an alternate masked route if you want a fallback available later."}
+                      ? "This contact method is currently preferred."
+                      : "Keep this as an alternate masked contact method if you want a fallback available later."}
                   </p>
                 </div>
                 {isPreferred ? (
@@ -227,7 +213,7 @@ export function RouteEntryPanel({
                   placeholder={
                     channel === "email"
                       ? "name@example.com"
-                      : "Enter the route exactly as you use it"
+                      : "Enter the contact detail exactly as you use it"
                   }
                   onFocus={() => onFocusField(fieldKey)}
                   onBlur={onBlurField}
@@ -297,7 +283,7 @@ export function CommunicationNeedsPanel({
       <div className="patient-intake-mission-frame__contact-section-head">
         <span id="contact-communication-needs-title">Timing and communication needs</span>
         <p>
-          Tell us what should shape later route choice without turning this step into an account
+          Tell us what should shape later contact choice without turning this step into an account
           settings page.
         </p>
       </div>
@@ -313,6 +299,7 @@ export function CommunicationNeedsPanel({
             <button
               key={state}
               type="button"
+              aria-pressed={value.followUpPermission === state}
               data-active={value.followUpPermission === state ? "true" : "false"}
               data-testid={`contact-follow-up-${state}`}
               onClick={() =>
@@ -351,6 +338,7 @@ export function CommunicationNeedsPanel({
             <button
               key={windowValue}
               type="button"
+              aria-pressed={value.contactWindow === windowValue}
               data-active={value.contactWindow === windowValue ? "true" : "false"}
               data-testid={`contact-window-${windowValue}`}
               onClick={() =>
@@ -519,14 +507,11 @@ export function RouteMaskedSummaryCard({ summaryView }: { summaryView: ContactSu
     >
       <div className="patient-intake-mission-frame__contact-section-head">
         <span>Masked summary</span>
-        <p>
-          Every ordinary surface outside the active inputs stays masked, even while you edit this
-          step.
-        </p>
+        <p>Summaries outside this step stay masked, even while you edit contact details.</p>
       </div>
       <div className="patient-intake-mission-frame__summary-card">
         <div className="patient-intake-mission-frame__summary-row">
-          <span>Preferred route</span>
+          <span>Preferred contact</span>
           <strong>{summaryView.preferredRouteLabel}</strong>
         </div>
         <div className="patient-intake-mission-frame__summary-row">
@@ -623,19 +608,18 @@ export function TrustBoundaryNote({
       className="patient-intake-mission-frame__trust-boundary-note"
       data-testid="contact-trust-boundary-note"
     >
-      <strong>Privacy and route truth</strong>
+      <strong>Privacy and contact details</strong>
       <p>
-        Ordinary summaries stay masked. This step records what you chose, not whether the route is
+        Ordinary summaries stay masked. This step records what you chose, not whether the contact method is
         verified or whether a message was delivered.
       </p>
       <p>
-        Current preview: <strong>{preview.state.replaceAll("_", " ")}</strong>. Later receipt and
-        notification surfaces may add evidence, but they may not flatten that boundary.
+        Current preview: <strong>{preview.state.replaceAll("_", " ")}</strong>. The receipt may add
+        delivery details later, but it will still keep private details masked.
       </p>
       {summaryView.hasSafetyRelevantDelta ? (
         <p className="patient-intake-mission-frame__trust-boundary-note--review">
-          Review this change before you submit because the route, timing, or support posture
-          changed.
+          Review this change before you submit because the contact method, timing, or support needs changed.
         </p>
       ) : null}
     </aside>

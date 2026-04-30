@@ -1781,6 +1781,9 @@ export function buildSignalAtlasLiveMarkSvg(): string {
 }
 
 export function buildFoundationStylesheet(): string {
+  const defaultPalette = buildResolvedPalette("light", "standard");
+  const defaultDensity = buildDensityValues("balanced");
+  const defaultMotion = buildMotionValues("reduced");
   const themeRules = THEME_MODES.flatMap((theme) =>
     CONTRAST_MODES.map((contrast) => {
       const palette = buildResolvedPalette(theme, contrast);
@@ -1858,6 +1861,48 @@ body,
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background: var(--sys-surface-canvas);
   color: var(--sys-text-default);
+  --sys-surface-canvas: ${defaultPalette.surfaceCanvas.oklch};
+  --sys-surface-shell: ${defaultPalette.surfaceShell.oklch};
+  --sys-surface-panel: ${defaultPalette.surfacePanel.oklch};
+  --sys-surface-inset: ${defaultPalette.surfaceInset.oklch};
+  --sys-text-strong: ${defaultPalette.textStrong.oklch};
+  --sys-text-default: ${defaultPalette.textDefault.oklch};
+  --sys-text-muted: ${defaultPalette.textMuted.oklch};
+  --sys-border-subtle: ${defaultPalette.borderSubtle.oklch};
+  --sys-border-default: ${defaultPalette.borderDefault.oklch};
+  --sys-border-strong: ${defaultPalette.borderStrong.oklch};
+  --sys-focus-ring: ${defaultPalette.focusRing.oklch};
+  --sys-state-neutral-container: ${defaultPalette.state.neutral.container.oklch};
+  --sys-state-neutral-border: ${defaultPalette.state.neutral.border.oklch};
+  --sys-state-active-container: ${defaultPalette.state.active.container.oklch};
+  --sys-state-active-border: ${defaultPalette.state.active.border.oklch};
+  --sys-state-review-container: ${defaultPalette.state.review.container.oklch};
+  --sys-state-review-border: ${defaultPalette.state.review.border.oklch};
+  --sys-state-insight-container: ${defaultPalette.state.insight.container.oklch};
+  --sys-state-insight-border: ${defaultPalette.state.insight.border.oklch};
+  --sys-state-success-container: ${defaultPalette.state.success.container.oklch};
+  --sys-state-success-border: ${defaultPalette.state.success.border.oklch};
+  --sys-state-danger-container: ${defaultPalette.state.danger.container.oklch};
+  --sys-state-danger-border: ${defaultPalette.state.danger.border.oklch};
+  --state-accent-active-hex: ${defaultPalette.state.active.border.hex};
+  --state-accent-review-hex: ${defaultPalette.state.review.border.hex};
+  --state-accent-insight-hex: ${defaultPalette.state.insight.border.hex};
+  --state-accent-success-hex: ${defaultPalette.state.success.border.hex};
+  --state-accent-danger-hex: ${defaultPalette.state.danger.border.hex};
+  --comp-control-height-public: ${defaultDensity.controlHeightPublic};
+  --comp-control-height-professional: ${defaultDensity.controlHeightProfessional};
+  --comp-passive-row-height: ${defaultDensity.passiveRowHeight};
+  --comp-pad-inline: ${defaultDensity.padInline};
+  --comp-pad-block: ${defaultDensity.padBlock};
+  --density-step: ${defaultDensity.densityStep};
+  --motion-duration-attention: ${defaultMotion.durationAttention};
+  --motion-duration-reveal: ${defaultMotion.durationReveal};
+  --motion-duration-settle: ${defaultMotion.durationSettle};
+  --motion-duration-overlay: ${defaultMotion.durationOverlay};
+  --motion-translate-distance: ${defaultMotion.translateDistance};
+  --motion-opacity-delta: ${defaultMotion.opacityDelta};
+  --motion-scale-from: ${defaultMotion.scaleFrom};
+  --motion-profile-state: ${defaultMotion.motionProfileState};
   --shadow-z1: 0 14px 30px rgba(15, 23, 32, 0.08);
   --shadow-z2: 0 22px 50px rgba(15, 23, 32, 0.12);
   --shadow-z3: 0 32px 72px rgba(15, 23, 32, 0.16);

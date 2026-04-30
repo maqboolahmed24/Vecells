@@ -133,7 +133,7 @@ export function UrgentPathwayFrame({
           data-testid="urgent-handoff-note"
           data-handoff-active={handoffActive ? "true" : "false"}
         >
-          <span>Governed handoff</span>
+          <span>Approved handoff</span>
           <p>{outcome.handoffNote}</p>
         </div>
       </section>
@@ -249,7 +249,7 @@ export function FailedSafeSafetyRecoveryCard({
           data-testid="failed-safe-handoff-note"
           data-handoff-active={handoffActive ? "true" : "false"}
         >
-          <span>Governed handoff</span>
+          <span>Approved handoff</span>
           <p>{outcome.handoffNote}</p>
         </div>
       </section>

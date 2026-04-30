@@ -113,7 +113,7 @@ export async function run(): Promise<void> {
       "history route should keep linked context in history mode",
     );
 
-    await page.locator("[data-testid='SupportSegmentTabs']").getByRole("tab", { name: "Knowledge" }).click();
+    await page.locator(".support-workspace__left-rail").getByRole("button", { name: "Knowledge", exact: true }).click();
     await page.locator("[data-testid='SupportKnowledgeRoute']").waitFor();
     assertCondition(
       new URL(page.url()).pathname === "/ops/support/tickets/support_ticket_218_delivery_failure/knowledge",

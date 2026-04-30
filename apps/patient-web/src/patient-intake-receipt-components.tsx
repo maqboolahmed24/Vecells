@@ -128,13 +128,10 @@ export function TrackRequestAnchorCard({
       <div className="patient-intake-mission-frame__receipt-section-head">
         <div>
           <span>Next place to look</span>
-          <h4>Track this request in the same shell</h4>
+          <h4>Track this request</h4>
         </div>
       </div>
-      <p>
-        The tracking view keeps the same request lineage and shows the same ETA and promise state
-        contract without turning into a dashboard.
-      </p>
+      <p>Use the tracking page for the current state, review window, and any next step.</p>
       <button
         type="button"
         className="patient-intake-mission-frame__receipt-track-action"

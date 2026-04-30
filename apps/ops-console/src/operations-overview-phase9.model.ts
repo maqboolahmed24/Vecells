@@ -244,11 +244,11 @@ const baseNorthStarBand: readonly OpsOverviewNorthStarMetric[] = [
   },
   {
     metricId: "north-star-trust-posture",
-    label: "Trust posture",
+    label: "Trust status",
     value: "Guarded",
     unit: "live",
     changeLabel: "1 freeze clear",
-    interpretation: "Runtime publication is live, with one guarded dependency lane.",
+    interpretation: "Runtime release is live, with one guarded dependency lane.",
     stateLabel: "degraded_but_operating",
     freshnessLabel: "5m fresh",
     confidenceLabel: "binding exact",

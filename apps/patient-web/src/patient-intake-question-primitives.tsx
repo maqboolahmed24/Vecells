@@ -25,25 +25,39 @@ function glyphAccent(requestType: ProgressiveQuestionUiProfile["requestType"]): 
 }
 
 function SignalGlyph({ requestType }: { requestType: ProgressiveQuestionUiProfile["requestType"] }) {
-  const stroke = glyphAccent(requestType);
-  const path =
-    requestType === "Symptoms"
-      ? "M18 46c9-14 20-21 34-21 11 0 18 3 28 11M18 58c8-10 20-15 34-15 13 0 22 4 28 12M31 21c7 4 11 10 12 18"
-      : requestType === "Meds"
-        ? "M22 24h20m0 0c0 9 7 16 16 16v0c9 0 16-7 16-16v0H42zm7 34h36M33 50l20-20"
-        : requestType === "Admin"
-          ? "M22 18h32l12 12v28a8 8 0 0 1-8 8H22a8 8 0 0 1-8-8V26a8 8 0 0 1 8-8zm28 2v12h12M24 50h30"
-          : "M18 54c10-18 24-28 42-30m-42 30h44m-32 12c8-4 15-6 22-6m6-22 12 12";
+  const style = { color: glyphAccent(requestType) };
+  if (requestType === "Symptoms") {
+    return (
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false" style={style}>
+        <path d="M10 34h9l5-14 12 26 6-12h12" />
+        <circle cx="32" cy="32" r="22" />
+      </svg>
+    );
+  }
+  if (requestType === "Meds") {
+    return (
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false" style={style}>
+        <rect x="13" y="24" width="38" height="18" rx="9" transform="rotate(-35 32 33)" />
+        <path d="M31 21 41 36" />
+        <path d="M18 48h28" />
+      </svg>
+    );
+  }
+  if (requestType === "Admin") {
+    return (
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false" style={style}>
+        <path d="M18 10h22l8 8v36H18Z" />
+        <path d="M40 10v10h8" />
+        <path d="M25 34h16" />
+        <path d="M25 43h10" />
+      </svg>
+    );
+  }
   return (
-    <svg viewBox="0 0 88 88" aria-hidden="true">
-      <path
-        d={path}
-        fill="none"
-        stroke={stroke}
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false" style={style}>
+      <path d="M16 12h32v40H16Z" />
+      <path d="M24 39 31 31l6 5 9-13" />
+      <path d="M24 46h20" />
     </svg>
   );
 }
@@ -228,6 +242,8 @@ export function QuestionFieldRenderer({
             <button
               key={option.value}
               type="button"
+              role="radio"
+              aria-checked={value === option.value}
               className="patient-intake-mission-frame__answer-pill"
               data-active={value === option.value ? "true" : "false"}
               onFocus={() => onFocusField(field.questionKey)}
@@ -276,6 +292,7 @@ export function QuestionFieldRenderer({
               <button
                 key={option.value}
                 type="button"
+                aria-pressed={active}
                 className="patient-intake-mission-frame__answer-pill"
                 data-active={active ? "true" : "false"}
                 onFocus={() => onFocusField(field.questionKey)}
@@ -330,6 +347,8 @@ export function QuestionFieldRenderer({
             <button
               key={String(entry)}
               type="button"
+              role="radio"
+              aria-checked={value === entry}
               className="patient-intake-mission-frame__answer-pill"
               data-active={value === entry ? "true" : "false"}
               onFocus={() => onFocusField(field.questionKey)}

@@ -20,7 +20,7 @@ function render(pathname: string, viewportWidth: number) {
 }
 
 describe("pharmacy shell accessibility surface", () => {
-  it("renders the expected landmarks, shared shell truth, and route contract surfaces", () => {
+  it("renders the expected landmarks and keeps diagnostic matrices out of the default shell", () => {
     const html = render("/workspace/pharmacy", 1440);
 
     expect(html).toContain('role="banner"');
@@ -28,7 +28,9 @@ describe("pharmacy shell accessibility surface", () => {
     expect(html).toContain('data-testid="pharmacy-shell-root"');
     expect(html).toContain('data-testid="shared-status-strip"');
     expect(html).toContain('data-testid="case-pulse"');
-    expect(html).toContain("Checkpoint and proof matrix");
+    expect(html).toContain("Checkpoint rail");
+    expect(html).not.toContain("Checkpoint and proof matrix");
+    expect(html).not.toContain('data-testid="pharmacy-telemetry-log"');
   });
 
   it("keeps table-only inventory review explicit inside the same shell", () => {

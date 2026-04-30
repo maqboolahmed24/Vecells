@@ -78,8 +78,8 @@ export function QuestionSetPicker({
 }) {
   return (
     <section className="staff-shell__capture-block" data-testid="QuestionSetPicker">
-      <span className="staff-shell__capture-label">QuestionSetPicker</span>
-      <div className="staff-shell__picker-grid" role="listbox" aria-label="Question set picker">
+      <span className="staff-shell__capture-label">Question sets</span>
+      <div className="staff-shell__picker-grid" role="listbox" aria-label="Question sets">
         {questionSets.map((questionSet) => (
           <button
             key={questionSet}
@@ -278,7 +278,7 @@ export function QuickCaptureTray({
         onSelect={onQuestionSetSelect}
       />
       <MacroRow
-        label="Reusable macros"
+        label="Saved phrases"
         values={tray.macros}
         selectedValue={draft.selectedMacro}
         disabled={disabled}
@@ -294,8 +294,8 @@ export function QuickCaptureTray({
       <RapidEntryNoteField draft={draft} disabled={disabled} onChange={onNoteChange} />
 
       <div className="staff-shell__tray-footer">
-        <span>Review action lease</span>
-        <strong>{tray.reviewActionLeaseRef}</strong>
+        <span>Review action</span>
+        <strong data-review-action-lease-ref={tray.reviewActionLeaseRef}>Ready</strong>
       </div>
 
       {route.kind !== "task" && (
@@ -362,11 +362,11 @@ export function MoreInfoInlineSideStage({
         <strong>{stage.patientConversationRouteRef}</strong>
       </div>
       <div className="staff-shell__task-stack-inline">
-        <span>Delivery posture</span>
+        <span>Delivery status</span>
         <strong>{stage.deliveryPosture}</strong>
       </div>
       <div className="staff-shell__task-stack-inline">
-        <span>Repair posture</span>
+        <span>Repair status</span>
         <strong>{stage.repairPosture}</strong>
       </div>
       <div className="staff-shell__reasoning-list">
@@ -495,7 +495,7 @@ export function ProtectedCompositionFreezeFrame({
         ))}
       </ul>
       <div className="staff-shell__freeze-preserved">
-        <strong>Frozen provenance</strong>
+        <strong>Frozen history</strong>
         <span>{freezeFrame.preservedDraftSummary}</span>
         <span>{freezeFrame.preservedAnchorRef}</span>
         <span>{freezeFrame.preservedDecisionEpochRef}</span>

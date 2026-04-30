@@ -132,7 +132,7 @@ const appointmentRowsBase = [
 ] as const satisfies readonly CrossOrgSummaryRow[];
 
 const bookedEvidenceRows = [
-  { label: "Truth tuple", value: "truth_tuple::hub-case-104::v6" },
+  { label: "Confirmed booking", value: "Current confirmed details" },
   { label: "Supplier confirmation", value: "CONF-104-2 / authoritative" },
   { label: "Patient wording", value: "Appointment confirmed" },
   { label: "Practice continuity", value: "VIS-104 generation 6" },
@@ -144,10 +144,10 @@ const continuityBase = {
   summary:
     "One drawer keeps dispatch, delivery, acknowledgement generation, and patient wording together.",
   evidenceRows: [
-    { label: "Continuity evidence", value: "CNT-104-6 / trusted same-shell bundle" },
+    { label: "Continuity summary", value: "CNT-104-6 / trusted same-case summary" },
     { label: "Practice dispatch", value: "MESH queued 10:21 / delivered 10:23" },
     { label: "Patient notification", value: "Patient notice published 10:24" },
-    { label: "Visibility envelope", value: "env.practice.min-necessary.v3" },
+    { label: "Visibility summary", value: "Practice minimum necessary" },
   ],
   notificationPreview: {
     title: "Practice notification preview",
@@ -163,14 +163,14 @@ const continuityBase = {
 const manualProof = {
   proofBundleRef: "manual-proof-104-1",
   reviewHeading: "Manual native booking proof",
-  reviewSummary: "Structured proof stays review-first. Free text is not accepted as booking truth.",
+  reviewSummary: "Structured proof stays review-first. Free text is not accepted as confirmed booking information.",
   checklist: [
-    "Patient binding reviewed against the live tuple",
+    "Patient binding reviewed against the current confirmed details",
     "Site, start time, and clinician checked against the call outcome",
     "Manual reference captured before booked calmness is widened",
   ],
   reviewRows: [
-    { label: "Native path", value: "manual_pending_confirmation" },
+    { label: "Native path", value: "Manual confirmation pending" },
     { label: "Operator", value: "J. Malik / North Shore Hub" },
     { label: "Supplier reference", value: "TEL-104-8813" },
     { label: "Booked time", value: "Today at 10:20" },
@@ -183,25 +183,25 @@ const importedReview = {
   reviewBundleRef: "import-review-087-1",
   heading: "Imported confirmation review",
   summary:
-    "Imported evidence exists, but the live tuple and supplier reference still contradict it, so booked calmness remains blocked.",
+    "Imported evidence exists, but the current booking details and supplier reference still contradict it, so booked calmness remains blocked.",
   contradictionRows: [
     { label: "Imported file", value: "CSV_IMPORT_087 / line 44" },
     { label: "Imported reference", value: "EXT-44122" },
-    { label: "Live tuple", value: "truth_tuple::hub-case-087::v4" },
+    { label: "Current booking", value: "Current booking details" },
     { label: "Contradiction", value: "Imported time 11:05 disagrees with current held slot 10:20" },
   ],
   resolutionActions: [
     "Keep patient copy provisional",
     "Request supplier-side re-correlation",
-    "Reopen practice continuity only after the live tuple is proven",
+    "Reopen practice continuity only after the current booking details are confirmed",
   ],
 } satisfies ImportedConfirmationReviewProjection;
 
 const supplierDriftBanner = {
   bannerRef: "supplier-drift-041",
-  heading: "Supplier drift freezes stale manage posture",
+  heading: "Supplier change freezes stale manage actions",
   summary:
-    "A later supplier observation changed the live tuple. Manage stays frozen and practice acknowledgement debt reopens until review settles.",
+    "A later supplier observation changed the current booking details. Manage stays frozen and practice acknowledgement debt reopens until review settles.",
   blockedActions: [
     "No live manage CTA",
     "No calm booked receipt",
@@ -210,12 +210,6 @@ const supplierDriftBanner = {
 } satisfies SupplierDriftBannerProjection329;
 
 function buildTimelineRows(posture: CrossOrgCommitPosture): readonly CrossOrgTimelineRow[] {
-  const bookedLaneState: CrossOrgStepState =
-    posture === "booked"
-      ? "complete"
-      : posture === "booked_pending_practice_ack"
-        ? "current"
-        : "upcoming";
   const practiceLaneState: CrossOrgStepState =
     posture === "booked"
       ? "complete"
@@ -246,7 +240,7 @@ function buildTimelineRows(posture: CrossOrgCommitPosture): readonly CrossOrgTim
         posture === "native_booking_pending"
           ? "Native commit is in progress and structured manual proof can be reviewed."
           : posture === "disputed"
-            ? "Imported evidence exists but does not correlate to the current tuple."
+            ? "Imported evidence exists but does not correlate to the current booking."
             : "Commit attempt BTX-104-2 remains the active booking attempt record.",
       state:
         posture === "candidate_revalidation"
@@ -267,12 +261,12 @@ function buildTimelineRows(posture: CrossOrgCommitPosture): readonly CrossOrgTim
         posture === "confirmation_pending"
           ? "Supplier confirmation is still pending; patient calmness remains provisional."
           : posture === "disputed"
-            ? "Imported supplier file contradicts the live booking tuple."
+            ? "Imported supplier file contradicts the current booking."
             : posture === "supplier_drift"
-              ? "Later supplier observation drifted away from the last safe booked tuple."
-              : posture === "candidate_revalidation" || posture === "native_booking_pending"
+              ? "Later supplier observation drifted away from the last safe booking."
+            : posture === "candidate_revalidation" || posture === "native_booking_pending"
                 ? "No authoritative supplier confirmation is attached yet."
-                : "Supplier confirmation cleared the live tuple and minted booked truth.",
+                : "Supplier confirmation cleared the current booking and confirmed the appointment.",
       state:
         posture === "confirmation_pending"
           ? "current"
@@ -296,8 +290,8 @@ function buildTimelineRows(posture: CrossOrgCommitPosture): readonly CrossOrgTim
       detail:
         posture === "booked" || posture === "booked_pending_practice_ack"
           ? "Appointment confirmed is now lawful patient reassurance."
-          : posture === "supplier_drift" || posture === "disputed"
-            ? "Patient view stays in review posture while the contradiction is open."
+        : posture === "supplier_drift" || posture === "disputed"
+            ? "Patient view stays in review status while the contradiction is open."
             : "Patient copy remains provisional while confirmation is pending.",
       state:
         posture === "booked" || posture === "booked_pending_practice_ack"
@@ -322,7 +316,7 @@ function buildTimelineRows(posture: CrossOrgCommitPosture): readonly CrossOrgTim
             ? "Practice was informed, but the current acknowledgement generation is still open."
             : posture === "supplier_drift"
               ? "Drift reopened acknowledgement debt on a newer generation."
-              : "Practice visibility remains secondary until booked truth is current.",
+              : "Practice visibility remains secondary until confirmed booking information is current.",
       state: practiceLaneState,
       evidenceRef: posture === "supplier_drift" ? "VIS-041-7" : "VIS-104-6",
       timeLabel:
@@ -404,10 +398,10 @@ function buildPatientView(
     ],
     manageStubLabel: blocked ? "Manage is temporarily frozen" : "Manage or contact follow-on",
     manageStubSummary: blocked
-      ? "Manage controls stay frozen while continuity and supplier truth are under review."
+      ? "Manage controls stay frozen while continuity and supplier confirmation are under review."
       : confirmed
         ? "Manage stays available only while the current confirmation and continuity bundle remain live."
-        : "Manage opens after confirmation truth and continuity both settle.",
+        : "Manage opens after confirmation and continuity both settle.",
     patientFacingReference: confirmed ? "Appointment confirmed" : "Confirmation pending",
   };
 }
@@ -511,12 +505,12 @@ function buildScenario(
           : posture === "confirmation_pending"
             ? "Structured proof exists, but supplier confirmation is still the governing blocker."
             : posture === "booked_pending_practice_ack"
-              ? "Booked truth is durable. Practice informed is current. Practice acknowledgement is still open."
+              ? "Booked details are durable. Practice informed is current. Practice acknowledgement is still open."
               : posture === "booked"
-                ? "Booked truth, patient reassurance, and practice acknowledgement are aligned on the live generation."
+                ? "Booked details, patient reassurance, and practice acknowledgement are aligned on the live generation."
                 : posture === "disputed"
-                  ? "Imported evidence contradicts the live tuple. The shell stays in review posture."
-                  : "A later supplier observation drifted the live tuple and froze stale manage posture.",
+                  ? "Imported evidence contradicts the current booking. The workspace stays in review status."
+                  : "A later supplier observation drifted the current booking and froze stale manage actions.",
     tone:
       posture === "booked"
         ? "confirmed"
@@ -542,7 +536,7 @@ function buildScenario(
                 ? "Revalidation only"
                 : posture === "disputed"
                   ? "Imported evidence disputed"
-                  : "Drift blocks stale truth reuse",
+                  : "Drift blocks stale booking reuse",
     managePosture:
       posture === "booked"
         ? "live"
@@ -554,23 +548,23 @@ function buildScenario(
     evidenceRows:
       posture === "disputed"
         ? [
-            { label: "Current truth", value: "Pending review / imported contradiction open" },
+            { label: "Current status", value: "Pending review / imported contradiction open" },
             { label: "Imported file", value: "CSV_IMPORT_087 / awaiting re-correlation" },
             { label: "Patient wording", value: "Reviewing your appointment" },
             { label: "Practice wording", value: "No new booked notice issued" },
           ]
         : posture === "supplier_drift"
           ? [
-              { label: "Current truth", value: "Blocked by drift" },
-              { label: "Mirror observation", value: "MIR-041-5 / tuple drifted at 10:27" },
+              { label: "Current status", value: "Blocked by drift" },
+              { label: "Mirror observation", value: "MIR-041-5 / changed at 10:27" },
               { label: "Patient wording", value: "We’re reviewing this appointment" },
               { label: "Practice wording", value: "Generation 7 reopened" },
             ]
           : bookedEvidenceRows,
     settlementReceiptRows: [
-      { label: "Confirmation truth", value: truthLabel },
+      { label: "Confirmation status", value: truthLabel },
       {
-        label: "Manage posture",
+        label: "Manage status",
         value:
           posture === "booked"
             ? "Live"

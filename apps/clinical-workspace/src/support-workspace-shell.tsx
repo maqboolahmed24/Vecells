@@ -491,7 +491,6 @@ export interface SupportTimelineEvent {
   readonly maskReason: string | null;
   readonly nextActionHint: string;
   readonly clusterLabel: string;
-  readonly placeholderLines: readonly string[];
 }
 
 interface SupportActionView {
@@ -768,7 +767,7 @@ export const SUPPORT_ROUTE_REGISTRY: Record<SupportWorkspaceRouteKey, SupportMas
     shellFamily: "staff_entry_same_shell",
     continuityKey: "support.workspace.tickets",
     selectedAnchorPolicy: "action-workbench-persists",
-    dominantActionLabel: "Stage one bounded support action at a time",
+    dominantActionLabel: "Stage one limited support action at a time",
     testId: "SupportActionRoute",
     shellMode: "route_bound",
     requiresMaskScope: true,
@@ -780,7 +779,7 @@ export const SUPPORT_ROUTE_REGISTRY: Record<SupportWorkspaceRouteKey, SupportMas
     shellFamily: "staff_entry_same_shell",
     continuityKey: "support.workspace.tickets",
     selectedAnchorPolicy: "observe-session-anchor-persists",
-    dominantActionLabel: "Keep observe-only posture visible and same-shell",
+    dominantActionLabel: "Keep observe-only status visible and same-shell",
     testId: "SupportObserveRoute",
     shellMode: "observe_only",
     requiresMaskScope: true,
@@ -1131,106 +1130,101 @@ function buildTimelineEvents(
 ): readonly SupportTimelineEvent[] {
   const repairSummary =
     shellMode === "read_only_recovery"
-      ? "Repair preview remains visible, but only the governed summary survives until continuity is reacquired."
+      ? "Repair is paused while the ticket refreshes."
       : shellMode === "replay"
-        ? "Replay keeps the preview as frozen evidence and excludes later mutable draft work."
+        ? "Replay shows the saved review point."
         : scenario === "blocked"
-          ? "Preview is held while continuity evidence rechecks the current tuple."
-          : "Repair preview is ready with the current dispatch, thread gate, and idempotency budget.";
+          ? "Repair is held while the ticket is rechecked."
+          : "Current message and callback details are ready.";
 
   return [
     {
       eventId: "event_subject_reply",
       anchorRef: "envelope_214_reply",
-      laneLabel: "Subject lane",
+      laneLabel: "Patient",
       channel: "secure_message",
-      title: "Subject reply reopened the thread",
-      summary: "Subject reports the secure-link email never arrived and asks for a callback-safe path.",
-      actor: "Subject ending 214",
+      title: "Patient reported a missing email",
+      summary: "Secure-link email did not arrive. Callback requested.",
+      actor: "Patient",
       timeLabel: "08:41",
       state: "authoritative",
       maskedState: "summary_only",
-      maskReason: "Quoted reply bytes remain outside the current support-safe summary scope.",
-      nextActionHint: "Review the latest delivery proof before reissuing.",
+      maskReason: "Message text hidden.",
+      nextActionHint: "Review delivery proof",
       clusterLabel: "Current exchange",
-      placeholderLines: ["masked quote block", "masked callback detail"],
     },
     {
       eventId: "event_delivery_failure",
       anchorRef: "delivery_failure_bundle",
-      laneLabel: "Delivery evidence",
+      laneLabel: "Email",
       channel: "email",
-      title: "SendGrid delivery evidence marked the email as failed",
-      summary: "Latest delivery evidence bundle shows a hard failure after the confirmation message left the dispatch rail.",
-      actor: "Delivery evidence",
+      title: "Email delivery failed",
+      summary: "Confirmation email failed after send.",
+      actor: "System",
       timeLabel: "08:44",
       state: "authoritative",
       maskedState: "none",
       maskReason: null,
-      nextActionHint: "Repair can proceed because the chronology chain is canonical.",
+      nextActionHint: "Proceed with repair",
       clusterLabel: "Repair evidence",
-      placeholderLines: [],
     },
     {
       eventId: "event_callback_summary",
       anchorRef: "callback_summary_214",
-      laneLabel: "Callback lane",
+      laneLabel: "Callback",
       channel: "callback",
-      title: "Callback promise captured by support",
+      title: "Same-day callback promised",
       summary:
         shellMode === "replay"
-          ? "Replay preserves the callback promise as a frozen checkpoint summary only."
-          : "Support promised a same-day callback if the next outbound route remains disputed.",
+          ? "Callback promise remains visible in replay."
+          : "Callback stays active while the contact route is checked.",
       actor: "Marta Singh",
       timeLabel: "08:48",
       state: "authoritative",
       maskedState: "summary_only",
-      maskReason: "Specific callback availability tokens are masked while chronology remains visible.",
-      nextActionHint: "Keep callback promise visible in the active action summary.",
+      maskReason: "Callback details hidden.",
+      nextActionHint: "Keep callback visible",
       clusterLabel: "Shared chronology",
-      placeholderLines: ["masked callback window", "masked route token"],
     },
     {
       eventId: "event_repair_preview",
       anchorRef: "repair_preview_219",
-      laneLabel: "Repair action",
+      laneLabel: "Action",
       channel: "workflow",
-      title: shellMode === "replay" ? "Controlled resend preview froze at replay entry" : "Controlled resend preview is staged",
+      title: shellMode === "replay" ? "Resend review point saved" : "Resend ready for review",
       summary: repairSummary,
-      actor: shellMode === "replay" ? "Replay checkpoint" : "Support action preview",
+      actor: "Support",
       timeLabel: "08:51",
       state: shellMode === "read_only_recovery" || scenario === "blocked" ? "blocked" : "provisional",
       maskedState: "limited",
-      maskReason: "Preview content keeps structure and timing, but masked fragments stay placeholder-only.",
+      maskReason: "Preview details hidden.",
       nextActionHint:
         shellMode === "read_only_recovery"
-          ? "Use read-only recovery or reacquire the action lease."
+          ? "Refresh before sending"
           : selectedAnchorRef === "repair_preview_219"
-            ? "Current anchor remains on the staged repair preview."
-            : "Commit only if the current lease remains live.",
+            ? "Check details before sending"
+            : "Send only if details remain valid",
       clusterLabel: "Repair action",
-      placeholderLines: ["masked consequence preview", "masked destination token"],
     },
     {
       eventId: "event_repair_settlement",
       anchorRef: "settlement_219",
-      laneLabel: "Settlement lane",
+      laneLabel: "Outcome",
       channel: "internal_note",
-      title: "Latest support settlement keeps repair attached to one ticket chain",
+      title: "Latest action recorded",
       summary:
         shellMode === "read_only_recovery"
-          ? "Settlement summary stays visible while live controls remain unavailable."
+          ? "Last action remains visible while live controls are paused."
           : scenario === "provisional"
-            ? "Settlement is still provisional and the patient receipt has not caught up."
-            : "Settlement confirms the latest repair step and pins the return path for replay-safe continuation.",
-      actor: "Support settlement",
+            ? "Action is pending receipt update."
+            : "Repair step is complete and linked to this ticket.",
+      actor: "Support",
       timeLabel: "08:54",
       state: shellMode === "read_only_recovery" ? "blocked" : scenario === "provisional" ? "provisional" : "authoritative",
       maskedState: "none",
       maskReason: null,
-      nextActionHint: "Use the continuity stub to preserve the active anchor before changing routes.",
-      clusterLabel: "Settlement",
-      placeholderLines: [],
+      nextActionHint: "Complete",
+      clusterLabel: "Outcome",
     },
   ];
 }
@@ -1256,14 +1250,14 @@ function createFallbackProjection(
     fallbackReason === "observe_session_drift"
       ? [
           {
-            title: "Reopen observe posture",
+            title: "Reopen observe status",
             summary: "Mint a fresh observe session against the same ticket anchor and disclosure ceiling.",
             routePath: basePaths.observe,
             routeLabel: "Observe route",
           },
           {
             title: "Return to live summary",
-            summary: "Drop back to the governed ticket overview without widening detail.",
+            summary: "Drop back to the approved ticket overview without widening detail.",
             routePath: basePaths.liveTicket,
             routeLabel: "Ticket overview",
           },
@@ -1290,7 +1284,7 @@ function createFallbackProjection(
             },
             {
               title: "Return to repair inbox",
-              summary: "Preserve the pinned queue stub while replay restore remains blocked.",
+              summary: "Preserve the pinned queue summary while replay restore remains blocked.",
               routePath: basePaths.queue,
               routeLabel: "Repair inbox",
             },
@@ -1298,7 +1292,7 @@ function createFallbackProjection(
         : fallbackReason === "disclosure_drift"
           ? [
               {
-                title: "Re-request governed history widen",
+                title: "Re-request approved history widen",
                 summary: "Require a fresh disclosure record before exposing deeper history rows.",
                 routePath: `/ops/support/tickets/${route.supportTicketId}/history`,
                 routeLabel: "History route",
@@ -1331,7 +1325,7 @@ function createFallbackProjection(
               },
               {
                 title: "Return to repair inbox",
-                summary: "Keep the governed inbox stub visible while writable posture remains unavailable.",
+                summary: "Keep the approved inbox summary visible while writable status remains unavailable.",
                 routePath: basePaths.queue,
                 routeLabel: "Repair inbox",
               },
@@ -1351,7 +1345,7 @@ function createFallbackProjection(
         ? "Replay keeps the settlement and latest delivery artifact visible, but live restore remains blocked."
         : "The latest delivery failure bundle remains the strongest confirmed artifact still safe to display.",
     strongestConfirmedArtifactState: "recovery_only",
-    heldActionSummary: `${actionLabel} remains summary-only until the current support posture is reacquired.`,
+    heldActionSummary: `${actionLabel} remains summary-only until the current support status is reacquired.`,
     queueReturnPath: "/ops/support/inbox/repair",
     queueReturnLabel: "Return to repair inbox",
     reacquirePaths,
@@ -1440,45 +1434,45 @@ function createSupportWorkspaceDataset(
     controlled_resend: {
       actionKey: "controlled_resend",
       label: "Controlled resend",
-      summary: "Resend the current communication using the canonical dispatch and thread evidence chain.",
-      previewLabel: "Preview shows current delivery failure, callback promise, and dispatch chain.",
-      confirmationLabel: "Commit will mint one bounded support action settlement when the lease is still live.",
+      summary: "Resend the current message and keep the callback promise visible.",
+      previewLabel: "Preview shows the failed delivery, callback promise, and message destination.",
+      confirmationLabel: "Send only after the current contact details and patient reply step are still valid.",
       nextStepLabel:
         shellMode === "read_only_recovery"
-          ? "Reacquire continuity before commit."
-          : "Review consequence preview, then commit or hold.",
+          ? "Refresh the ticket before sending."
+          : "Review the preview, then send or hold.",
     },
     channel_change: {
       actionKey: "channel_change",
       label: "Channel change",
-      summary: "Switch the outbound route to SMS while preserving the same chronology and callback promise.",
-      previewLabel: "Preview swaps provider lane to Twilio and keeps the same support mutation attempt chain.",
-      confirmationLabel: "Confirmation remains blocked if contact-route truth is disputed.",
-      nextStepLabel: "Confirm the route authority and callback fallback before sending.",
+      summary: "Switch the outbound route to SMS while keeping the callback promise visible.",
+      previewLabel: "Preview shows the SMS destination and the current delivery risk.",
+      confirmationLabel: "Sending stays blocked if the contact details are disputed.",
+      nextStepLabel: "Confirm the contact route and callback fallback before sending.",
     },
     callback_reschedule: {
       actionKey: "callback_reschedule",
       label: "Callback reschedule",
-      summary: "Adjust the callback promise without losing the current support anchor or subject summary.",
-      previewLabel: "Preview carries the active callback lane and current delivery risk state.",
-      confirmationLabel: "Settlement remains support-local until the canonical callback record settles.",
-      nextStepLabel: "Update the callback promise and return to the current exchange.",
+      summary: "Adjust the callback promise from this ticket.",
+      previewLabel: "Preview shows the callback route and current delivery risk.",
+      confirmationLabel: "Confirm the callback update before returning to the conversation.",
+      nextStepLabel: "Update the callback promise and return to the current message.",
     },
     attachment_recovery: {
       actionKey: "attachment_recovery",
       label: "Attachment recovery",
-      summary: "Recover access to the required attachment while staying in the current support shell.",
-      previewLabel: "Preview keeps the active evidence anchor and attachment provenance in one place.",
-      confirmationLabel: "Commit is held if the artifact parity contract is not current.",
-      nextStepLabel: "Confirm artifact parity, then reopen the attachment route.",
+      summary: "Recover access to the required attachment from this ticket.",
+      previewLabel: "Preview shows the attachment issue and the latest patient message.",
+      confirmationLabel: "Sending stays blocked if the attachment details are out of date.",
+      nextStepLabel: "Confirm the attachment details, then reopen the attachment route.",
     },
     identity_correction: {
       actionKey: "identity_correction",
       label: "Identity correction",
-      summary: "Prepare a bounded identity-correction request without widening beyond the current ticket context.",
-      previewLabel: "Preview surfaces the identity repair freeze and the current binding hash only.",
-      confirmationLabel: "Only the authority chain can settle the binding correction.",
-      nextStepLabel: "Collect evidence and hand off through the authority workflow.",
+      summary: "Prepare an identity correction request for the current ticket.",
+      previewLabel: "Preview shows the identity issue and the information already checked.",
+      confirmationLabel: "Only send once the identity evidence is ready.",
+      nextStepLabel: "Collect evidence and hand off for approval.",
     },
   };
 
@@ -1497,9 +1491,9 @@ function createSupportWorkspaceDataset(
     title: "Latest confirmed delivery artifact",
     summary:
       shellMode === "replay"
-        ? "Replay exposes the delivery-failure summary and settlement lineage, but keeps later mutable content outside the boundary."
+        ? "Replay exposes the delivery-failure summary and settlement history, but keeps later mutable content outside the boundary."
         : shellMode === "read_only_recovery"
-          ? "Recovery posture keeps only the strongest confirmed delivery artifact inline."
+          ? "Recovery status keeps only the strongest confirmed delivery artifact inline."
           : "Inline summary confirms the latest delivery failure bundle and the attached settlement chain.",
     artifactState:
       shellMode === "read_only_recovery"
@@ -1639,12 +1633,12 @@ function createSupportWorkspaceDataset(
     result: patientReceiptParity,
     settlementHint:
       shellMode === "read_only_recovery"
-        ? "Live commit is unavailable. The last authoritative settlement remains visible for orientation."
+        ? "Live changes are unavailable. The last completed action remains visible."
         : shellMode === "replay"
-          ? "Settlement remains frozen at replay entry until restore law revalidates live posture."
+          ? "Replay is active. Live changes resume after restore."
           : query.scenario === "provisional"
-            ? "Preview staged, awaiting authoritative settlement."
-            : "Authoritative settlement keeps the ticket anchored.",
+            ? "Preview staged. Waiting for completion."
+            : "Latest action completed and tied to this ticket.",
     recordedAtLabel: "08:54",
   };
 
@@ -1694,14 +1688,14 @@ function createSupportWorkspaceDataset(
     {
       recommendationRef: "knowledge_delivery_failure_playbook",
       kind: "playbook",
-      title: "Delivery failure repair playbook",
-      whyNow: "Matches the current delivery evidence bundle, callback promise, and staged resend preview.",
+      title: "Repair steps",
+      whyNow: "Use current email failure and callback details.",
       freshness: knowledgeBindingState === "stale" ? "review overdue 3d" : "reviewed 2h ago",
       owner: "Support reliability",
       policyMarker: "Policy pack 24.6",
-      previewLabel: "Preview the governed resend sequence and callback-safe fallback wording.",
-      applyLabel: knowledgeLeaseState === "executable" ? "Launch playbook" : "Preview only",
-      permittedDisclosure: "Summary-safe with governed detail only after disclosure",
+      previewLabel: "Review resend steps and callback wording.",
+      applyLabel: knowledgeLeaseState === "executable" ? "Open" : "Preview",
+      permittedDisclosure: "Uses summary detail unless full history is opened",
       state:
         knowledgeBindingState === "blocked"
           ? "blocked"
@@ -1714,14 +1708,14 @@ function createSupportWorkspaceDataset(
     {
       recommendationRef: "knowledge_callback_macro",
       kind: "macro",
-      title: "Callback-safe explanation macro",
-      whyNow: "Use when the subject needs a short, non-leaking explanation while the email route is disputed.",
+      title: "Reply wording",
+      whyNow: "Short message for a disputed email route.",
       freshness: knowledgeBindingState === "stale" ? "review overdue 6d" : "reviewed 1d ago",
       owner: "Messaging policy",
       policyMarker: "Channel caveat",
-      previewLabel: "Preview the governed callback and resend wording without arming a send.",
-      applyLabel: knowledgeLeaseState === "executable" ? "Preview macro" : "Summary only",
-      permittedDisclosure: "Summary-safe only",
+      previewLabel: "Check callback and resend wording.",
+      applyLabel: knowledgeLeaseState === "executable" ? "Preview" : "Summary",
+      permittedDisclosure: "Uses summary detail only",
       state:
         knowledgeBindingState === "blocked"
           ? "blocked"
@@ -1734,13 +1728,13 @@ function createSupportWorkspaceDataset(
     {
       recommendationRef: "knowledge_runtime_notice",
       kind: "outage_note",
-      title: "Runtime publication watch note",
-      whyNow: "Highlights why a stale publication or replay drift should collapse to read-only recovery instead of a generic access error.",
+      title: "Pause note",
+      whyNow: "Use if live actions pause during refresh.",
       freshness: "published now",
       owner: "Release control",
-      policyMarker: "Runtime publication",
-      previewLabel: "Explains the current fallback and the shortest safe reacquire path.",
-      applyLabel: "Read note",
+      policyMarker: "Service note",
+      previewLabel: "Explain the current pause and refresh path.",
+      applyLabel: "View",
       permittedDisclosure: "Summary-safe",
       state:
         knowledgeBindingState === "blocked"
@@ -1904,7 +1898,7 @@ function createSupportWorkspaceDataset(
     {
       historyRef: "history_duplicate_signal",
       timeLabel: "Last week",
-      title: "Duplicate-safe context links the same request lineage",
+      title: "Duplicate-safe context links the same request history",
       summary: "A prior duplicate review tied the same request and message thread together without widening subject detail.",
       maskedState: query.disclosureState === "expanded" ? "expanded" : "limited",
       disclosureClass: "linked_object_detail",
@@ -1987,7 +1981,7 @@ function createSupportWorkspaceDataset(
           investigationQuestion: "Why did the secure-link email failure require a callback-safe resend path?",
           queueAnchorRef: "repair_queue_anchor",
           selectedTimelineAnchorRef: query.selectedAnchorRef,
-          returnRouteLabel: "Return to governed ticket summary",
+          returnRouteLabel: "Return to approved ticket summary",
         } satisfies SupportReplaySession
       : null;
 
@@ -2100,7 +2094,7 @@ function createSupportWorkspaceDataset(
                 : "preserve",
           settlementSummary:
             restoreState === "ready"
-              ? "Restore can return to live work because the current ticket, anchor, mask scope, and held draft posture still match."
+              ? "Restore can return to live work because the current ticket, anchor, mask scope, and held draft status still match."
               : restoreState === "restored"
                 ? "Live work was re-armed against the same ticket anchor after replay validation completed."
                 : restoreState === "blocked"
@@ -2187,8 +2181,8 @@ function createSupportWorkspaceDataset(
               ? "Replay freezes the ticket chronology and buffers later live changes into queued delta review."
               : "Replay freezes the ticket chronology against the current evidence boundary."
           : query.scenario === "provisional"
-            ? "Provisional posture keeps current chronology visible while live confirmation catches up."
-            : "Live support posture remains same-shell and anchor preserving.";
+            ? "Provisional status keeps current chronology visible while live confirmation catches up."
+            : "Live support status remains same-shell and anchor preserving.";
 
   return {
     phase2Context,
@@ -2205,24 +2199,24 @@ function createSupportWorkspaceDataset(
     actionView,
     ownershipLabel:
       shellMode === "observe_only"
-        ? "Observe only / Marta Singh"
+        ? "Marta Singh (observe)"
         : shellMode === "replay"
-          ? "Replay checkpoint / Marta Singh"
-          : "Assigned to Marta Singh",
-    queueContextLabel: `Repair inbox / ${phase2Context.fixture.requestRef}`,
+          ? "Marta Singh (replay)"
+          : "Marta Singh",
+    queueContextLabel: "Repair inbox",
     disclosureLabel:
       query.disclosureState === "expanded"
-        ? "Governed history widen active"
-        : query.disclosureState === "expired"
-          ? "Disclosure expired"
+        ? "Full history open"
+      : query.disclosureState === "expired"
+          ? "History access expired"
           : query.disclosureState === "revoked"
-            ? "Disclosure revoked"
-            : "Bounded support summary",
+            ? "History access revoked"
+            : "Limited history",
     settlementHint: actionSettlement.settlementHint,
     extensionLabel:
       shellMode === "read_only_recovery"
-        ? "Summary remains compact while the shortest safe reacquire path stays visible."
-        : "Subject summary stays compact until a governed history or linked-object widen is active.",
+        ? "Refresh before live changes."
+        : "Full history opens only when approved.",
     effectiveMaskScopeRef,
     fallbackProjection,
     strongestArtifact,
@@ -2425,37 +2419,11 @@ export function SupportTicketHeader({
 }) {
   return (
     <header className="support-workspace__header" data-testid="SupportTicketHeader">
-      <div className="support-workspace__header-main">
-        <p className="support-workspace__eyebrow">Support ticket workspace</p>
-        <h1>{dataset.ticketWorkspace.supportTicketId}</h1>
-        <p className="support-workspace__lede">
-          {dataset.ticketWorkspace.ticketHeader.maskedSubjectLabel} remains attached to one canonical lineage, one chronology, and one governed mask scope. Patient-facing status stays{" "}
-          {dataset.phase2Context.canonicalStatusLabel.toLowerCase()} across portal and support surfaces.
-        </p>
+      <div className="support-workspace__header-top">
+        <p className="support-workspace__eyebrow">Support</p>
         <div className="support-workspace__chip-row">
-          <MaskScopeBadge
-            label={labelize(dataset.effectiveMaskScopeRef)}
-            tone={
-              dataset.shellMode === "observe_only"
-                ? "observe"
-                : dataset.shellMode === "replay"
-                  ? "replay"
-                  : dataset.shellMode === "read_only_recovery"
-                    ? "blocked"
-                    : "neutral"
-            }
-            detail="Mask scope remains visible across header, timeline, history, and knowledge."
-          />
           <StatusChip
-            label={`shell: ${labelize(dataset.shellMode)}`}
-            tone={dataset.shellMode === "live" ? "authoritative" : dataset.shellMode === "read_only_recovery" ? "blocked" : "provisional"}
-          />
-          <StatusChip
-            label={`freshness: ${labelize(dataset.timelineProjection.freshness)}`}
-            tone={dataset.timelineProjection.freshness === "live" ? "authoritative" : dataset.timelineProjection.freshness === "read_only" ? "blocked" : "provisional"}
-          />
-          <StatusChip
-            label={`status: ${dataset.phase2Context.canonicalStatusLabel}`}
+            label={dataset.phase2Context.canonicalStatusLabel}
             tone={
               dataset.phase2Context.causeClass === "session_current"
                 ? "authoritative"
@@ -2465,6 +2433,24 @@ export function SupportTicketHeader({
                   : "blocked"
             }
           />
+          <StatusChip
+            label={dataset.shellMode === "live" ? "Ready" : labelize(dataset.shellMode)}
+            tone={dataset.shellMode === "live" ? "authoritative" : dataset.shellMode === "read_only_recovery" ? "blocked" : "provisional"}
+          />
+          <StatusChip
+            label={dataset.timelineProjection.freshness === "live" ? "Live" : labelize(dataset.timelineProjection.freshness)}
+            tone={dataset.timelineProjection.freshness === "live" ? "authoritative" : dataset.timelineProjection.freshness === "read_only" ? "blocked" : "provisional"}
+          />
+        </div>
+      </div>
+      <div className="support-workspace__header-title-row">
+        <div className="support-workspace__header-main">
+          <h1>{dataset.ticketWorkspace.ticketHeader.maskedSubjectLabel}</h1>
+          <p className="support-workspace__lede">Email failed; reply needed.</p>
+        </div>
+        <div className="support-workspace__header-action">
+          <span>Next</span>
+          <strong>{dataset.phase2Context.patientActionLabel}</strong>
         </div>
       </div>
       <div className="support-workspace__header-meta">
@@ -2473,24 +2459,12 @@ export function SupportTicketHeader({
           <strong>{dataset.queueContextLabel}</strong>
         </div>
         <div>
-          <span>Ownership</span>
+          <span>Owner</span>
           <strong>{dataset.ownershipLabel}</strong>
         </div>
         <div>
-          <span>Canonical status</span>
-          <strong>{dataset.phase2Context.canonicalStatusLabel}</strong>
-        </div>
-        <div>
-          <span>Patient next action</span>
-          <strong>{dataset.phase2Context.patientActionLabel}</strong>
-        </div>
-        <div>
-          <span>Disclosure</span>
+          <span>Details</span>
           <strong>{dataset.disclosureLabel}</strong>
-        </div>
-        <div>
-          <span>Settlement</span>
-          <strong>{dataset.settlementHint}</strong>
         </div>
       </div>
     </header>
@@ -2511,7 +2485,7 @@ export function TicketLineageStrip({
   return (
     <section className="support-workspace__lineage-strip" data-testid="TicketLineageStrip">
       <div>
-        <span>Lineage</span>
+        <span>History</span>
         <strong>{continuityEvidence.supportLineageBindingRef}</strong>
       </div>
       <div>
@@ -2550,7 +2524,7 @@ export function ObserveReplayBreadcrumb({
 
   const summary =
     dataset.shellMode === "observe_only"
-      ? "Observe-only posture keeps the same ticket shell, but suppresses reply, resend, and identity-correction controls."
+      ? "Observe-only status keeps the same ticket shell, but suppresses reply, resend, and identity-correction controls."
       : dataset.shellMode === "replay"
         ? "Replay keeps the evidence boundary and selected anchor visible while mutable work stays outside the frozen proof."
         : dataset.routeModeSummary;
@@ -2558,18 +2532,18 @@ export function ObserveReplayBreadcrumb({
   return (
     <section className="support-workspace__mode-bar" data-testid="ObserveReplayBreadcrumb" role="status" aria-live="polite">
       <div className="support-workspace__mode-copy">
-        <p className="support-workspace__eyebrow">Constrained posture</p>
+        <p className="support-workspace__eyebrow">View mode</p>
         <h2>{modeLabel}</h2>
         <p>{summary}</p>
       </div>
       <div className="support-workspace__mode-chips">
         <MaskScopeBadge label={labelize(dataset.effectiveMaskScopeRef)} tone={dataset.shellMode === "replay" ? "replay" : dataset.shellMode === "observe_only" ? "observe" : "blocked"} />
         <StatusChip
-          label={`continuity: ${dataset.continuityEvidence.validationState}`}
+          label={dataset.continuityEvidence.validationState === "trusted" ? "Verified" : labelize(dataset.continuityEvidence.validationState)}
           tone={dataset.continuityEvidence.validationState === "trusted" ? "authoritative" : dataset.continuityEvidence.validationState === "blocked" ? "blocked" : "provisional"}
         />
         <StatusChip
-          label={`actions: ${dataset.shellMode === "read_only_recovery" ? "suppressed" : "preview only"}`}
+          label={dataset.shellMode === "read_only_recovery" ? "Actions paused" : "Preview only"}
           tone={dataset.shellMode === "read_only_recovery" ? "blocked" : "provisional"}
         />
       </div>
@@ -2606,14 +2580,16 @@ export function TimelineAnchorNavigator({
 export function MaskAwareTimelineCell({
   event,
   selected,
-  maskScopeRef,
 }: {
   event: SupportTimelineEvent;
   selected: boolean;
-  maskScopeRef: string;
 }) {
   const tone =
     event.state === "blocked" ? "blocked" : event.state === "provisional" ? "provisional" : "authoritative";
+  const statusLabel =
+    event.state === "authoritative" ? "Done" : event.state === "provisional" ? "Review" : "Blocked";
+  const maskLabel =
+    event.maskedState === "summary_only" ? "Summary" : event.maskedState === "limited" ? "Limited" : null;
 
   return (
     <article
@@ -2621,33 +2597,22 @@ export function MaskAwareTimelineCell({
       data-selected={selected ? "true" : "false"}
       data-masked={event.maskedState === "none" ? "false" : "true"}
       data-testid="MaskAwareTimelineCell"
-      aria-label={`${event.title}. ${event.maskedState === "none" ? "Unmasked summary." : `Masked ${labelize(event.maskedState)} summary.`}`}
+      aria-label={`${event.title}. ${event.maskedState === "none" ? "Full summary." : `${labelize(event.maskedState)} detail. ${event.maskReason ?? ""}`}`}
     >
       <div className="support-workspace__timeline-meta">
         <span className="support-workspace__timeline-time">{event.timeLabel}</span>
         <StatusChip label={event.laneLabel} tone="neutral" />
-        <StatusChip label={labelize(event.channel)} tone="neutral" />
-        <StatusChip label={event.state} tone={tone} />
-        {event.maskedState !== "none" ? (
+        <StatusChip label={statusLabel} tone={tone} />
+        {maskLabel ? (
           <MaskScopeBadge
-            label={`masked: ${labelize(event.maskedState)}`}
+            label={maskLabel}
             tone="blocked"
-            detail={event.maskReason ?? `Mask scope ${maskScopeRef} is limiting the visible content.`}
+            detail={event.maskReason ?? "Some content is hidden in this view."}
           />
         ) : null}
       </div>
       <h3>{event.title}</h3>
       <p>{event.summary}</p>
-      {event.placeholderLines.length > 0 ? (
-        <div className="support-workspace__mask-placeholder-group" aria-label="Masked fragments preserved as governed placeholders">
-          {event.placeholderLines.map((line) => (
-            <span key={`${event.eventId}-${line}`} className="support-workspace__mask-placeholder-line">
-              {line}
-            </span>
-          ))}
-        </div>
-      ) : null}
-      {event.maskReason ? <p className="support-workspace__mask-reason">{event.maskReason}</p> : null}
       <div className="support-workspace__timeline-footer">
         <span>{event.actor}</span>
         <span>{event.nextActionHint}</span>
@@ -2659,13 +2624,11 @@ export function MaskAwareTimelineCell({
 export function TimelineEventCard({
   event,
   selected,
-  maskScopeRef,
 }: {
   event: SupportTimelineEvent;
   selected: boolean;
-  maskScopeRef: string;
 }) {
-  return <MaskAwareTimelineCell event={event} selected={selected} maskScopeRef={maskScopeRef} />;
+  return <MaskAwareTimelineCell event={event} selected={selected} />;
 }
 
 export function OmnichannelTimeline({
@@ -2679,18 +2642,17 @@ export function OmnichannelTimeline({
     <section className="support-workspace__timeline" data-testid="OmnichannelTimeline">
       <div className="support-workspace__section-heading">
         <div>
-          <p className="support-workspace__eyebrow">Omnichannel timeline</p>
-          <h2>Chronology stays visible even when masking, replay, or fallback narrows the content.</h2>
+          <p className="support-workspace__eyebrow">Timeline</p>
+          <h2>Latest contact events</h2>
           <p>{dataset.phase2Context.communicationStateLabel}</p>
         </div>
         <div className="support-workspace__timeline-status">
-          <MaskScopeBadge label={labelize(dataset.effectiveMaskScopeRef)} tone={dataset.shellMode === "replay" ? "replay" : dataset.shellMode === "observe_only" ? "observe" : dataset.shellMode === "read_only_recovery" ? "blocked" : "neutral"} />
           <StatusChip
-            label={`freshness: ${labelize(dataset.timelineProjection.freshness)}`}
+            label={labelize(dataset.timelineProjection.freshness)}
             tone={dataset.timelineProjection.freshness === "live" ? "authoritative" : dataset.timelineProjection.freshness === "read_only" ? "blocked" : "provisional"}
           />
           <StatusChip
-            label={`receipt: ${dataset.timelineProjection.patientReceiptParity}`}
+            label={dataset.timelineProjection.patientReceiptParity === "authoritative" ? "Receipt current" : labelize(dataset.timelineProjection.patientReceiptParity)}
             tone={
               dataset.timelineProjection.patientReceiptParity === "authoritative"
                 ? "authoritative"
@@ -2707,7 +2669,6 @@ export function OmnichannelTimeline({
             key={event.eventId}
             event={event}
             selected={event.anchorRef === selectedAnchorRef}
-            maskScopeRef={dataset.effectiveMaskScopeRef}
           />
         ))}
       </div>
@@ -2792,7 +2753,7 @@ export function ReadOnlyFallbackHero({
         ))}
       </div>
       <div className="support-workspace__queue-return">
-        <span>Queue return stub</span>
+        <span>Queue return summary</span>
         <button type="button" className="support-workspace__rail-home" onClick={() => onNavigate(fallbackProjection.queueReturnPath)}>
           {fallbackProjection.queueReturnLabel}
         </button>
@@ -2810,7 +2771,7 @@ export function DisclosureGatePrompt({
 }) {
   const message =
     dataset.subjectContextBinding.bindingState === "expanded"
-      ? "Expanded history remains governed by the current disclosure record."
+      ? "Expanded history remains approved by the current disclosure record."
       : dataset.subjectContextBinding.bindingState === "stale"
         ? "The prior history widen expired. The shell collapsed back to summary while keeping the current anchor."
         : dataset.subjectContextBinding.bindingState === "blocked"
@@ -2821,7 +2782,7 @@ export function DisclosureGatePrompt({
     <section className="support-workspace__disclosure-prompt" data-testid="DisclosureGatePrompt">
       <div>
         <p className="support-workspace__eyebrow">Disclosure gate</p>
-        <h2>History stays summary-first until governed detail is lawful.</h2>
+        <h2>History stays summary-first until approved detail is lawful.</h2>
         <p>{message}</p>
       </div>
       <button
@@ -2830,7 +2791,7 @@ export function DisclosureGatePrompt({
         onClick={onExpand}
         disabled={dataset.shellMode === "read_only_recovery" || dataset.shellMode === "replay"}
       >
-        {dataset.subjectContextBinding.bindingState === "expanded" ? "Disclosure active" : "Request governed history widen"}
+        {dataset.subjectContextBinding.bindingState === "expanded" ? "Disclosure active" : "Request approved history widen"}
       </button>
     </section>
   );
@@ -2863,7 +2824,7 @@ export function SubjectHistorySummaryPanel({
         </article>
         <article>
           <strong>Repeat patterns</strong>
-          <span>Same request lineage reappeared within 48 hours.</span>
+          <span>Same request history reappeared within 48 hours.</span>
         </article>
         <article>
           <strong>Relevant prior contacts</strong>
@@ -2902,36 +2863,17 @@ export function PlaybookAssistCard({
   leaseState: SupportKnowledgeAssistLeaseState;
 }) {
   const disabled = leaseState === "blocked" || card.state === "blocked";
+  const actionLabel = disabled ? "Unavailable" : leaseState === "executable" ? card.applyLabel : "Preview";
+
   return (
     <article className="support-workspace__knowledge-card" data-testid="PlaybookAssistCard" data-state={card.state}>
-      <div className="support-workspace__timeline-meta">
-        <StatusChip label={labelize(card.kind)} tone="neutral" />
-        <StatusChip
-          label={card.state === "live" ? "live" : labelize(card.state)}
-          tone={card.state === "live" ? "authoritative" : card.state === "blocked" ? "blocked" : "provisional"}
-        />
+      <div className="support-workspace__knowledge-card-head">
+        <h3>{card.title}</h3>
+        <button type="button" className="support-workspace__rail-link" disabled={disabled}>
+          {actionLabel}
+        </button>
       </div>
-      <h3>{card.title}</h3>
       <p>{card.whyNow}</p>
-      <dl className="support-workspace__knowledge-meta">
-        <div>
-          <dt>Freshness</dt>
-          <dd>{card.freshness}</dd>
-        </div>
-        <div>
-          <dt>Owner</dt>
-          <dd>{card.owner}</dd>
-        </div>
-        <div>
-          <dt>Policy</dt>
-          <dd>{card.policyMarker}</dd>
-        </div>
-      </dl>
-      <p className="support-workspace__knowledge-preview">{card.previewLabel}</p>
-      <p className="support-workspace__knowledge-preview">{card.permittedDisclosure}</p>
-      <button type="button" className="support-workspace__rail-link" disabled={disabled}>
-        {disabled ? "Blocked in current posture" : leaseState === "executable" ? card.applyLabel : "Preview only"}
-      </button>
     </article>
   );
 }
@@ -2945,11 +2887,11 @@ export function KnowledgeStackRail({
     <section className="support-workspace__knowledge-rail" data-testid="KnowledgeStackRail">
       <div className="support-workspace__section-heading">
         <div>
-          <p className="support-workspace__eyebrow">Contextual knowledge</p>
-          <h2>Ranked, bounded guidance tied to the current ticket anchor.</h2>
+          <p className="support-workspace__eyebrow">Guidance</p>
+          <h2>Recommended help</h2>
         </div>
         <StatusChip
-          label={`assist: ${labelize(dataset.knowledgeAssistLease.leaseState)}`}
+          label={dataset.knowledgeAssistLease.leaseState === "executable" ? "Ready" : labelize(dataset.knowledgeAssistLease.leaseState)}
           tone={
             dataset.knowledgeAssistLease.leaseState === "executable"
               ? "authoritative"
@@ -2977,44 +2919,39 @@ export function Subject360SummaryPanel({
   extensionLabel: string;
   phase2Context: PortalSupportPhase2Context;
 }) {
+  const caseSummary =
+    projection.currentRiskSummary === phase2Context.communicationStateLabel
+      ? "Email failed; reply needed."
+      : projection.currentRiskSummary;
+  const contactRows = [
+    ["Auth claim", "NHS login current"],
+    ["Identity evidence", "Ownership verified"],
+    ["Demographic evidence", "PDS masked"],
+    ["Patient preference", "Secure message first"],
+    ["Support reachability", "Email failed; callback active"],
+  ] as const;
+
   return (
     <section className="support-workspace__summary-panel" data-testid="Subject360SummaryPanel">
-      <p className="support-workspace__eyebrow">Subject summary</p>
-      <h2>{projection.maskedSubjectLabel}</h2>
-      <p>{projection.currentRiskSummary}</p>
-      <dl className="support-workspace__summary-grid">
+      <div className="support-workspace__summary-head">
         <div>
-          <dt>Repeat contact</dt>
-          <dd>{projection.repeatContactSignal}</dd>
+          <p className="support-workspace__eyebrow">Case snapshot</p>
+          <h2>{projection.maskedSubjectLabel}</h2>
         </div>
-        <div>
-          <dt>Channels</dt>
-          <dd>{projection.currentChannels.join(", ")}</dd>
-        </div>
-        <div>
-          <dt>Linked refs</dt>
-          <dd>{projection.linkedRefs.join(", ")}</dd>
-        </div>
-        <div>
-          <dt>Auth claim</dt>
-          <dd>{phase2Context.contactDomains.authClaim}</dd>
-        </div>
-        <div>
-          <dt>Identity evidence</dt>
-          <dd>{phase2Context.contactDomains.identityEvidence}</dd>
-        </div>
-        <div>
-          <dt>Demographic evidence</dt>
-          <dd>{phase2Context.contactDomains.demographicEvidence}</dd>
-        </div>
-        <div>
-          <dt>Patient preference</dt>
-          <dd>{phase2Context.contactDomains.communicationPreference}</dd>
-        </div>
-        <div>
-          <dt>Support reachability</dt>
-          <dd>{phase2Context.contactDomains.supportReachability}</dd>
-        </div>
+        <StatusChip label={phase2Context.canonicalStatusLabel} tone="provisional" />
+      </div>
+      <p className="support-workspace__summary-note">{caseSummary}</p>
+      <div className="support-workspace__summary-chips">
+        <StatusChip label={projection.repeatContactSignal} tone="neutral" />
+        <StatusChip label={`${projection.currentChannels.length} channels`} tone="neutral" />
+      </div>
+      <dl className="support-workspace__summary-grid support-workspace__summary-grid--compact">
+        {contactRows.map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
       </dl>
       <p className="support-workspace__extension-note">{extensionLabel}</p>
     </section>
@@ -3030,7 +2967,7 @@ export function GovernedChildRoutePlaceholder({
 }) {
   return (
     <section className="support-workspace__placeholder" data-testid="GovernedChildRoutePlaceholder">
-      <p className="support-workspace__eyebrow">Governed placeholder</p>
+      <p className="support-workspace__eyebrow">Approved summary</p>
       <h2>{routeLabel}</h2>
       <p>{summary}</p>
     </section>
@@ -3052,18 +2989,26 @@ export function ActionWorkbenchDock({
     replayGateActive
       ? "Return to replay restore"
       : dataset.shellMode === "read_only_recovery"
-      ? "Read-only fallback"
+      ? "Read only"
       : dataset.shellMode === "observe_only"
         ? "Observe only"
         : dataset.shellMode === "replay"
-          ? "Replay frozen"
+          ? "Replay mode"
           : dataset.actionView.controlsState === "blocked"
-            ? "Action blocked"
+            ? "Unavailable"
             : dataset.actionView.controlsState === "read_only"
-              ? "Read-only preview"
+              ? "Preview only"
               : routeKey === "ticket-conversation"
-                ? "Open bounded action"
-                : "Stage bounded action";
+                ? "Open action"
+                : "Prepare action";
+
+  const reachabilityState = dataset.timelineProjection.supportReachabilityPostureProjection.postureState;
+  const reachabilityLabel =
+    reachabilityState === "confirmed"
+      ? "Contact confirmed"
+      : reachabilityState === "blocked"
+        ? "Contact blocked"
+        : "Contact pending";
 
   const disabled =
     replayGateActive ||
@@ -3075,49 +3020,46 @@ export function ActionWorkbenchDock({
 
   return (
     <aside className="support-workspace__action-dock" data-testid="ActionWorkbenchDock">
-      <p className="support-workspace__eyebrow">Action workbench</p>
-      <h2>{routeKey === "ticket-conversation" ? "Current conversation posture" : dataset.actionView.label}</h2>
+      <p className="support-workspace__eyebrow">Next action</p>
+      <h2>{routeKey === "ticket-conversation" ? "Conversation status" : dataset.actionView.label}</h2>
       <p>
         {replayGateActive
-          ? "A replay restore settlement is still pending for this ticket. The dock stays visible, but live mutation authority remains gated until replay restore completes."
+          ? "This ticket is waiting for replay restore before live changes can resume."
           : dataset.shellMode === "read_only_recovery"
-          ? "Fallback keeps the decision dock visible, but removes writable authority until the current support tuple is reacquired."
+          ? "Live changes are paused until the ticket is refreshed."
           : dataset.shellMode === "observe_only"
-            ? "Observe-only posture keeps context visible while reply, resend, and identity-correction controls stay suppressed."
+            ? "This view is read-only. Reply, resend, and correction controls are unavailable."
             : dataset.shellMode === "replay"
-              ? "Replay keeps the current action summary visible as frozen evidence, not live authority."
+              ? "Replay shows the current action summary without changing the ticket."
               : routeKey === "ticket-conversation"
-                ? "Reply and note posture stay bounded inside the same shell, even while chronology updates."
+                ? "Reply and note status stay attached to this ticket."
                 : dataset.actionView.summary}
       </p>
       <div className="support-workspace__dock-metrics">
         <StatusChip
-          label={`lease: ${dataset.actionLease.leaseState}`}
+          label={dataset.actionLease.leaseState === "live" ? "Ready" : labelize(dataset.actionLease.leaseState)}
           tone={dataset.actionLease.leaseState === "live" ? "authoritative" : dataset.actionLease.leaseState === "blocked" ? "blocked" : "provisional"}
         />
         <StatusChip
-          label={`reachability: ${dataset.timelineProjection.supportReachabilityPostureProjection.postureState}`}
-          tone={dataset.timelineProjection.supportReachabilityPostureProjection.postureState === "confirmed" ? "authoritative" : dataset.timelineProjection.supportReachabilityPostureProjection.postureState === "blocked" ? "blocked" : "provisional"}
+          label={reachabilityLabel}
+          tone={reachabilityState === "confirmed" ? "authoritative" : reachabilityState === "blocked" ? "blocked" : "provisional"}
         />
       </div>
-      <section className="support-workspace__dock-section">
-        <h3>Preview</h3>
-        <p>{dataset.actionView.previewLabel}</p>
-      </section>
-      <section className="support-workspace__dock-section">
-        <h3>Confirmation</h3>
-        <p>{dataset.actionView.confirmationLabel}</p>
-      </section>
-      <section className="support-workspace__dock-section">
-        <h3>Settlement</h3>
-        <p>{dataset.actionSettlement.settlementHint}</p>
-        <small>{dataset.actionSettlement.recordedAtLabel}</small>
-      </section>
-      <section className="support-workspace__dock-section">
-        <h3>Cross-product parity</h3>
-        <p>{dataset.phase2Context.patientActionLabel}</p>
-        <small>{dataset.phase2Context.supportActionLabel}</small>
-      </section>
+      <div className="support-workspace__dock-checks" aria-label="Action checks">
+        <div>
+          <span>Preview</span>
+          <p>{dataset.actionView.previewLabel}</p>
+        </div>
+        <div>
+          <span>Check</span>
+          <p>{dataset.actionView.confirmationLabel}</p>
+        </div>
+        <div>
+          <span>Last outcome</span>
+          <p>{dataset.actionSettlement.settlementHint}</p>
+          <small>{dataset.actionSettlement.recordedAtLabel}</small>
+        </div>
+      </div>
       <button type="button" className="support-workspace__primary-action" data-testid="support-action-cta" disabled={disabled}>
         {buttonLabel}
       </button>
@@ -3179,7 +3121,7 @@ function KnowledgeRoutePanel({
       <PlaybookAssistCard card={dominantCard} leaseState={dataset.knowledgeAssistLease.leaseState} />
       <GovernedChildRoutePlaceholder
         routeLabel="Knowledge assist boundaries"
-        summary="Preview can remain visible without execution. Any apply, playbook launch, or fallback-channel suggestion remains fenced by the current knowledge assist lease and support action posture."
+        summary="Preview can remain visible without execution. Any apply, playbook launch, or fallback-channel suggestion remains fenced by the current knowledge assist lease and support action status."
       />
     </section>
   );
@@ -3195,10 +3137,10 @@ function ObserveRoutePanel({
       <div className="support-workspace__section-heading">
         <div>
           <p className="support-workspace__eyebrow">Observe route</p>
-          <h2>Observe-only inspection keeps the current shell but removes writable authority.</h2>
+          <h2>Read-only inspection</h2>
         </div>
         <StatusChip
-          label={`observe: ${dataset.observeSession?.observeState ?? "inactive"}`}
+          label={dataset.observeSession?.observeState === "active" ? "Active" : "Inactive"}
           tone={dataset.observeSession?.observeState === "active" ? "authoritative" : "blocked"}
         />
       </div>
@@ -3248,7 +3190,7 @@ function ReplayBoundaryPanel({
         </article>
         <article>
           <strong>Return route</strong>
-          <span>{dataset.replaySession?.returnRouteLabel ?? "Return to governed ticket summary"}</span>
+          <span>{dataset.replaySession?.returnRouteLabel ?? "Return to approved ticket summary"}</span>
         </article>
       </div>
     </section>
@@ -3312,7 +3254,7 @@ export function SupportHistoryView({
       </div>
       {compact && onExpand ? (
         <button type="button" className="support-workspace__rail-link" onClick={onExpand}>
-          {dataset.subjectContextBinding.bindingState === "expanded" ? "History widened" : "Request governed widen"}
+          {dataset.subjectContextBinding.bindingState === "expanded" ? "Full history shown" : "Show full history"}
         </button>
       ) : null}
     </section>
@@ -3343,10 +3285,10 @@ export function SupportKnowledgeView({
       <div className="support-workspace__section-heading">
         <div>
           <p className="support-workspace__eyebrow">Support knowledge</p>
-          <h2>{compact ? "Ranked linked guidance" : "Knowledge stays route-bound, not detached."}</h2>
+          <h2>{compact ? "Ranked guidance" : "Ticket guidance"}</h2>
         </div>
         <StatusChip
-          label={`assist: ${labelize(dataset.knowledgeAssistLease.leaseState)}`}
+          label={dataset.knowledgeAssistLease.leaseState === "executable" ? "Ready" : labelize(dataset.knowledgeAssistLease.leaseState)}
           tone={
             dataset.knowledgeAssistLease.leaseState === "executable"
               ? "authoritative"
@@ -3778,7 +3720,7 @@ function SupportWorkspaceShell({
             Inbox
           </button>
           <div className="support-workspace__rail-stack">
-            <p className="support-workspace__eyebrow">Ticket shell</p>
+            <p className="support-workspace__eyebrow">Ticket</p>
             <button
               type="button"
               className="support-workspace__rail-link"
@@ -3821,7 +3763,7 @@ function SupportWorkspaceShell({
             </button>
           </div>
           <div className="support-workspace__rail-stack">
-            <p className="support-workspace__eyebrow">Constrained posture</p>
+            <p className="support-workspace__eyebrow">Review modes</p>
             <button
               type="button"
               className="support-workspace__rail-link"
@@ -3840,15 +3782,15 @@ function SupportWorkspaceShell({
             </button>
           </div>
           <div className="support-workspace__rail-stack">
-            <p className="support-workspace__eyebrow">Anchor</p>
+            <p className="support-workspace__eyebrow">Timeline</p>
             <TimelineAnchorNavigator
               anchors={dataset.ticketWorkspace.timelineEntryPoints}
               selectedAnchorRef={queryState.selectedAnchorRef}
               onSelect={onAnchorSelect}
             />
           </div>
-          <div className="support-workspace__rail-stack">
-            <p className="support-workspace__eyebrow">Scenario</p>
+          <div className="support-workspace__rail-stack" hidden>
+            <p className="support-workspace__eyebrow">State</p>
             <div className="support-workspace__scenario-row">
               {(["calm", "active", "provisional", "degraded", "blocked"] as const).map((candidate) => (
                 <ScenarioPill key={candidate} label={scenarioLabel(candidate)} active={queryState.scenario === candidate} onClick={() => onScenarioChange(candidate)} />
@@ -3856,14 +3798,14 @@ function SupportWorkspaceShell({
             </div>
           </div>
           <div className="support-workspace__rail-stack">
-            <p className="support-workspace__eyebrow">History disclosure</p>
+            <p className="support-workspace__eyebrow">Details</p>
             <button
               type="button"
               className="support-workspace__rail-link"
               data-active={queryState.disclosureState === "expanded" ? "true" : "false"}
               onClick={onDisclosureExpand}
             >
-              {queryState.disclosureState === "expanded" ? "Expanded history" : "Request governed widen"}
+              {queryState.disclosureState === "expanded" ? "Full history" : "Limited history"}
             </button>
           </div>
           {route.routeKey !== "ticket-overview" ? (
@@ -3888,13 +3830,6 @@ function SupportWorkspaceShell({
           ) : null}
 
           <SupportTicketHeader dataset={dataset} />
-
-          <TicketLineageStrip
-            continuityEvidence={dataset.continuityEvidence}
-            runtimeBinding={dataset.runtimeBinding}
-            actionLease={dataset.actionLease}
-            effectiveMaskScopeRef={dataset.effectiveMaskScopeRef}
-          />
 
           {replayGateActive && replayGate ? (
             <SupportReplayRestoreBridge
@@ -3933,8 +3868,8 @@ function SupportWorkspaceShell({
                   heldDraftDisposition: "preserve",
                   settlementSummary:
                     replayGate.restoreState === "blocked"
-                      ? "A prior replay session still holds this ticket in restore review. Live controls stay inert until support returns to the replay bridge."
-                      : "Replay restore is still required. The current ticket shell stays visible, but writable authority does not return yet.",
+                      ? "A prior replay session still holds this ticket in restore review. Live controls stay paused until support returns to replay."
+                      : "Replay restore is still required. The current ticket stays visible, but live changes remain paused.",
                 }
               }
               onRestore={onRestoreFromReplay}
@@ -3952,62 +3887,7 @@ function SupportWorkspaceShell({
             />
           ) : null}
 
-          <div className="support-workspace__segment-tabs" role="tablist" aria-label="Support ticket routes" data-testid="SupportSegmentTabs">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={route.routeKey === "ticket-overview"}
-              data-active={route.routeKey === "ticket-overview" ? "true" : "false"}
-              onClick={() => onNavigate(`/ops/support/tickets/${route.supportTicketId}`)}
-            >
-              Ticket
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={route.routeKey === "ticket-conversation"}
-              data-active={route.routeKey === "ticket-conversation" ? "true" : "false"}
-              onClick={() => onNavigate(`/ops/support/tickets/${route.supportTicketId}/conversation`)}
-            >
-              Conversation
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={route.routeKey === "ticket-history"}
-              data-active={route.routeKey === "ticket-history" ? "true" : "false"}
-              onClick={() => onNavigate(`/ops/support/tickets/${route.supportTicketId}/history`)}
-            >
-              History
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={route.routeKey === "ticket-knowledge"}
-              data-active={route.routeKey === "ticket-knowledge" ? "true" : "false"}
-              onClick={() => onNavigate(`/ops/support/tickets/${route.supportTicketId}/knowledge`)}
-            >
-              Knowledge
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={route.routeKey === "ticket-action"}
-              data-active={route.routeKey === "ticket-action" ? "true" : "false"}
-              onClick={() => onNavigate(`/ops/support/tickets/${route.supportTicketId}/actions/${actionKey}`)}
-            >
-              Action dock
-            </button>
-          </div>
-
           {children}
-
-          <ContinuityStubBar
-            continuityEvidence={dataset.continuityEvidence}
-            runtimeBinding={dataset.runtimeBinding}
-            selectedAnchorRef={queryState.selectedAnchorRef}
-            shellMode={dataset.shellMode}
-          />
         </main>
 
         <div className="support-workspace__right-rail">
@@ -4079,7 +3959,7 @@ function ConversationRoute({
         dataset={dataset}
         routeKey="ticket-conversation"
         title="Conversation stays same-shell and anchor preserving."
-        summary="Support can review the current exchange without leaving the governed ticket shell or widening beyond the current mask scope."
+        summary="Support can review the current exchange without leaving the approved ticket shell or widening beyond the current mask scope."
         topology="two_plane"
         mainContent={<OmnichannelTimeline dataset={dataset} selectedAnchorRef={selectedAnchorRef} />}
         promotedRegion={
@@ -4113,7 +3993,7 @@ function HistoryRoute({
         dataset={dataset}
         routeKey="ticket-history"
         title="History detail remains same-shell and disclosure-bound."
-        summary="Wider history never becomes a detached utility page. The same anchor, ticket lineage, and mask scope remain visible throughout."
+        summary="Wider history never becomes a detached utility page. The same anchor, ticket history, and mask scope remain visible throughout."
         topology="two_plane"
         mainContent={<OmnichannelTimeline dataset={dataset} selectedAnchorRef={selectedAnchorRef} />}
         promotedRegion={<SupportHistoryView dataset={dataset} onExpand={onDisclosureExpand} />}
@@ -4168,7 +4048,7 @@ function ActionRoute({
         ) : null}
         <GovernedChildRoutePlaceholder
           routeLabel="Action route"
-          summary="Action child routes stay same-shell and bounded. Choose one governed action from the active lease before widening the dock."
+          summary="Action child routes stay same-shell and limited. Choose one approved action from the active lease before widening the dock."
         />
       </div>
     );
@@ -4183,13 +4063,13 @@ function ActionRoute({
         dataset={dataset}
         routeKey="ticket-action"
         title={`${labelize(actionKey)} stays governed by the current ticket tuple.`}
-        summary="The action child route keeps the same chronology and selected anchor while the workbench stages one bounded action at a time."
+        summary="The action child route keeps the same chronology and selected anchor while the workbench stages one limited action at a time."
         topology="two_plane"
         mainContent={<OmnichannelTimeline dataset={dataset} selectedAnchorRef={selectedAnchorRef} />}
         promotedRegion={
           <GovernedChildRoutePlaceholder
             routeLabel={`${labelize(actionKey)} route`}
-            summary="This action child route keeps the same chronology and selected anchor while the sticky workbench stages one bounded action at a time."
+            summary="This action child route keeps the same chronology and selected anchor while the sticky workbench stages one limited action at a time."
           />
         }
       />
@@ -4214,8 +4094,8 @@ function ObserveRoute({
       <SupportTicketChildRouteShell
         dataset={dataset}
         routeKey="ticket-observe"
-        title="Observe mode keeps the same shell while writable authority is suppressed."
-        summary="Support can inspect the current chronology and linked context without silently widening or re-arming mutation controls."
+        title="Observe mode keeps the same ticket in read-only view."
+        summary="Support can inspect the current timeline and linked context without enabling live actions."
         topology="two_plane"
         mainContent={<OmnichannelTimeline dataset={dataset} selectedAnchorRef={selectedAnchorRef} />}
         promotedRegion={<ObserveRoutePanel dataset={dataset} />}
@@ -4243,7 +4123,7 @@ function ReplayRoute({
       <SupportTicketChildRouteShell
         dataset={dataset}
         routeKey="ticket-replay"
-        title="Replay is a governed forensic deck, not a detached log viewer."
+        title="Replay is a approved forensic deck, not a detached log viewer."
         summary="The shell freezes the selected anchor, shows the exact evidence boundary, buffers later live changes into delta review, and restores live work only after explicit revalidation."
         topology="three_plane"
         mainContent={<OmnichannelTimeline dataset={dataset} selectedAnchorRef={selectedAnchorRef} />}
@@ -4334,7 +4214,7 @@ export function SupportWorkspaceApp() {
           ? "/Users/test/Code/V/output/playwright/269-workspace-support-event-chains-support.png"
           : "/Users/test/Code/V/output/playwright/269-validation-board-support-integrity.png",
       interactionMode: "system",
-      maskedContactDescriptor: route.routeKey === "ticket-action" ? "m***@vecells.invalid" : null,
+      maskedContactDescriptor: route.routeKey === "ticket-action" ? "m***@service.invalid" : null,
       ...validationSettlementProfileForSupport(dataset.shellMode, queryState.scenario),
     });
     lastSupportRouteEventKeyRef.current = routeEventKey;
@@ -4375,7 +4255,7 @@ export function SupportWorkspaceApp() {
       releaseTupleRef: dataset.runtimeBinding.frontendContractManifestRef,
       evidenceLinkPath: "/Users/test/Code/V/output/playwright/269-workspace-support-event-chains-support.png",
       interactionMode: "system",
-      maskedContactDescriptor: "m***@vecells.invalid",
+      maskedContactDescriptor: "m***@service.invalid",
       ...validationSettlementProfileForSupport(dataset.shellMode, queryState.scenario),
     });
     lastSupportRecoveryEventKeyRef.current = recoveryEventKey;
@@ -4440,7 +4320,7 @@ export function SupportWorkspaceApp() {
       releaseTupleRef: dataset.runtimeBinding.frontendContractManifestRef,
       evidenceLinkPath: "/Users/test/Code/V/output/playwright/269-workspace-support-event-chains-support.png",
       interactionMode: "pointer",
-      maskedContactDescriptor: "m***@vecells.invalid",
+      maskedContactDescriptor: "m***@service.invalid",
       ...validationSettlementProfileForSupport(dataset.shellMode, queryState.scenario),
     });
     clearSupportReplayGate();

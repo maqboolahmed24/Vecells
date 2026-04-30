@@ -18,7 +18,7 @@ function ActivationStrip({ projection }: { readonly projection: NHSAppActivation
   return (
     <section className="nhs-activation-486__strip" aria-label="Activation settlement">
       <div>
-        <span>Manifest</span>
+        <span>Release list</span>
         <strong>{projection.manifestVersionRef}</strong>
       </div>
       <div>
@@ -83,11 +83,11 @@ function RouteCoverageTable({
           <caption>Embedded route activation coverage after NHS App channel activation</caption>
           <thead>
             <tr>
-              <th scope="col">Route family</th>
+              <th scope="col">Journey group</th>
               <th scope="col">Journey paths</th>
               <th scope="col">Coverage</th>
               <th scope="col">Safe return</th>
-              <th scope="col">Artifact posture</th>
+              <th scope="col">Artifact status</th>
               <th scope="col">Freeze</th>
             </tr>
           </thead>
@@ -193,7 +193,7 @@ export function NHSAppChannelActivation486() {
         <header className="nhs-activation-486__masthead">
           <div>
             <p className="ops-panel__eyebrow">NHS App channel</p>
-            <h1>Manifest activation</h1>
+            <h1>Release list activation</h1>
           </div>
           <span>{projection.releaseCandidateRef}</span>
         </header>

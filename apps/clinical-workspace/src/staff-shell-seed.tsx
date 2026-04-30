@@ -116,6 +116,27 @@ const CALLBACK_OPERATIONS_DECK = "Callback_Operations_Deck";
 const THREAD_REPAIR_STUDIO = "Thread_Repair_Studio";
 const BOUNDED_CONSEQUENCE_STUDIO = "Bounded_Consequence_Studio";
 
+function staffPublicStatusLabel(value: string): string {
+  switch (value) {
+    case "live":
+      return "Ready";
+    case "stale_review":
+      return "Needs review";
+    case "read_only":
+      return "Read only";
+    case "recovery_only":
+      return "Recovery support";
+    case "blocked":
+      return "Blocked";
+    default:
+      return value
+        .split(/[-_\s]/g)
+        .filter(Boolean)
+        .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+        .join(" ");
+  }
+}
+
 function validationPublicationPosture(
   runtimeScenario: StaffShellLedger["runtimeScenario"],
 ): "live" | "projection_visible" | "recovery_only" | "blocked" {
@@ -250,6 +271,10 @@ function actionFamilyForRoute(route: StaffShellRoute): ValidationActionFamily | 
 
 function safeWindow(): Window | undefined {
   return typeof window === "undefined" ? undefined : window;
+}
+
+function staffDiagnosticsEnabled(): boolean {
+  return safeWindow()?.location.search.includes("diagnostics=staff-shell") ?? false;
 }
 
 function classNames(...values: Array<string | false | null | undefined>) {
@@ -444,6 +469,7 @@ const PRESERVED_ROUTE_QUERY_KEYS = [
   "assistiveRecovery",
   "assistiveStage",
   "assistiveMerge",
+  "diagnostics",
 ] as const;
 
 function buildBrowserRouteUrl(path: string, search: string): string {
@@ -658,7 +684,7 @@ function InterruptionModule({
 function SupportStub() {
   return (
     <section className="staff-shell__support-stub" data-testid="support-handoff-stub">
-      <span className="staff-shell__eyebrow">Bounded support stub</span>
+      <span className="staff-shell__eyebrow">Limited support summary</span>
       <h3>Support remains a separate shell family</h3>
       <p>
         This placeholder keeps the clinical workspace in control while naming the future support
@@ -700,9 +726,9 @@ export function WorkspaceNavRail({
       })}
     >
       <div className="staff-shell__nav-rail-head">
-        <span className="staff-shell__eyebrow">WorkspaceNavRail</span>
+        <span className="staff-shell__eyebrow">Workspace navigation</span>
         <strong>Quiet clinical mission control</strong>
-        <p>One shell family for queue scanning, active review, and bounded child-route work.</p>
+        <p>One workspace for queue scanning, active review, and limited child-route work.</p>
       </div>
 
       <nav className="staff-shell__nav-groups" aria-label="Clinical workspace sections">
@@ -813,42 +839,44 @@ export function WorkspaceHeaderBand({
     <header className="staff-shell__masthead" data-testid="WorkspaceHeaderBand">
       <div className="staff-shell__brand">
         <StaffInsignia />
-        <div>
-          <span className="staff-shell__eyebrow">WorkspaceHeaderBand</span>
-          <h1 id="workspace-shell-heading">Staff workspace route family</h1>
-          <p>
-            Home, queue, task, and child-route review stay inside one same-shell staff workbench
-            with typed continuity and trust posture.
-          </p>
+        <div className="staff-shell__brand-copy">
+          <h1 id="workspace-shell-heading" className="sr-only">
+            Clinical workspace
+          </h1>
+          <span className="staff-shell__eyebrow">Staff workspace</span>
         </div>
       </div>
 
       <div className="staff-shell__header-summary">
         <div className="staff-shell__meta">
           <span>{route.title}</span>
-          <span>{authority.manifest.frontendContractManifestId}</span>
-          <span>{authority.guardDecision.effectivePosture.replaceAll("_", " ")}</span>
+          <span>{staffPublicStatusLabel(runtimeScenario)}</span>
+          <span>{staffPublicStatusLabel(authority.guardDecision.effectivePosture)}</span>
         </div>
         <div className="staff-shell__continuity-grid">
-          <div>
-            <strong>workspaceShellContinuityKey</strong>
-            <span>{workspaceShellContinuityKey}</span>
+          <div data-workspace-continuity-key={workspaceShellContinuityKey}>
+            <strong>Care workspace</strong>
+            <span>Current</span>
           </div>
-          <div>
-            <strong>entityContinuityKey</strong>
-            <span>{entityContinuityKey}</span>
+          <div data-entity-continuity-key={entityContinuityKey}>
+            <strong>Patient context</strong>
+            <span>Preserved</span>
           </div>
-          <div>
-            <strong>Selected anchor</strong>
-            <span>{selectedAnchorId}</span>
+          <div data-selected-anchor={selectedAnchorId}>
+            <strong>Selected work</strong>
+            <span>
+              {route.kind === "task" || route.kind === "decision" || route.kind === "more-info"
+                ? "Task open"
+                : "Queue view"}
+            </span>
           </div>
-          <div>
-            <strong>Restore epoch</strong>
-            <span>{restoreStorageKey}</span>
+          <div data-restore-storage-key={restoreStorageKey}>
+            <strong>Return support</strong>
+            <span>Ready</span>
           </div>
         </div>
         <label className="staff-shell__header-select">
-          <span>Route posture</span>
+          <span>Workspace status</span>
           <select
             data-testid="runtime-scenario-select"
             value={runtimeScenario}
@@ -904,13 +932,13 @@ export function WorkspaceStatusStrip({
           <strong>Dominant action</strong>
           {dominantActionLabel}
         </span>
-        <span>
-          <strong>Anchor posture</strong>
-          {anchorPosture}
+        <span data-anchor-status={anchorPosture}>
+          <strong>Anchor status</strong>
+          Current work preserved
         </span>
-        <span>
-          <strong>Design contract state</strong>
-          {designContractState}
+        <span data-design-rules-state={designContractState}>
+          <strong>Design rules state</strong>
+          Checked
         </span>
       </div>
     </section>
@@ -1073,6 +1101,7 @@ export function WorkspaceShell({
 
 export function WorkspaceRouteFamilyController() {
   const initialRouteRef = useRef(initialRoute());
+  const showDiagnostics = staffDiagnosticsEnabled();
   const persistedLedger = readPersistedLedger();
   const restorePeerSelection =
     Boolean(persistedLedger) &&
@@ -2324,17 +2353,19 @@ export function WorkspaceRouteFamilyController() {
                 {assistiveStageState && assistiveStageState.stageMode === "summary_stub" && (
                   <AssistiveWorkspaceStageHost state={assistiveStageState} />
                 )}
-                <section className="staff-shell__telemetry-card" data-testid="telemetry-log">
-                  <span className="staff-shell__eyebrow">UI telemetry envelopes</span>
-                  <ol>
-                    {telemetryLog.map((entry, index) => (
-                      <li key={`${entry.envelopeId}:${index}`}>
-                        <strong>{entry.eventClass}</strong>
-                        <span>{entry.payloadDigestRef}</span>
-                      </li>
-                    ))}
-                  </ol>
-                </section>
+                {showDiagnostics ? (
+                  <section className="staff-shell__telemetry-card" data-testid="telemetry-log">
+                    <span className="staff-shell__eyebrow">Developer activity data</span>
+                    <ol>
+                      {telemetryLog.map((entry, index) => (
+                        <li key={`${entry.envelopeId}:${index}`}>
+                          <strong>{entry.eventClass}</strong>
+                          <span>{entry.payloadDigestRef}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </section>
+                ) : null}
               </>
             )}
 
@@ -2533,32 +2564,36 @@ export function WorkspaceRouteFamilyController() {
 
           {!isActiveTaskRoute && (
             <aside className="staff-shell__dock-pane">
-              <section className="staff-shell__authority-card" data-testid="route-authority-card">
-                <span className="staff-shell__eyebrow">Route authority</span>
-                <strong>{authority.guardDecision.effectivePosture.replaceAll("_", " ")}</strong>
-                <p>
-                  Manifest validation: {authority.verdict.validationState}. Safe to consume:{" "}
-                  {String(authority.verdict.safeToConsume)}.
-                </p>
-                <p>
-                  Digest drift: {authority.verdict.driftState}. Runtime bundle:{" "}
-                  {authority.manifest.runtimePublicationBundleRef}.
-                </p>
-              </section>
+              {showDiagnostics ? (
+                <section className="staff-shell__authority-card" data-testid="route-authority-card">
+                  <span className="staff-shell__eyebrow">Route details</span>
+                  <strong>{authority.guardDecision.effectivePosture.replaceAll("_", " ")}</strong>
+                  <p>
+                    Manifest validation: {authority.verdict.validationState}. Safe to consume:{" "}
+                    {String(authority.verdict.safeToConsume)}.
+                  </p>
+                  <p>
+                    Digest drift: {authority.verdict.driftState}. Runtime bundle:{" "}
+                    {authority.manifest.runtimePublicationBundleRef}.
+                  </p>
+                </section>
+              ) : null}
 
               <AssistiveQueueAndAssuranceMergeAdapter state={assistiveQueueAssuranceState} />
 
-              <section className="staff-shell__telemetry-card" data-testid="telemetry-log">
-                <span className="staff-shell__eyebrow">UI telemetry envelopes</span>
-                <ol>
-                  {telemetryLog.map((entry, index) => (
-                    <li key={`${entry.envelopeId}:${index}`}>
-                      <strong>{entry.eventClass}</strong>
-                      <span>{entry.payloadDigestRef}</span>
-                    </li>
-                  ))}
-                </ol>
-              </section>
+              {showDiagnostics ? (
+                <section className="staff-shell__telemetry-card" data-testid="telemetry-log">
+                  <span className="staff-shell__eyebrow">Developer activity data</span>
+                  <ol>
+                    {telemetryLog.map((entry, index) => (
+                      <li key={`${entry.envelopeId}:${index}`}>
+                        <strong>{entry.eventClass}</strong>
+                        <span>{entry.payloadDigestRef}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+              ) : null}
             </aside>
           )}
         </div>

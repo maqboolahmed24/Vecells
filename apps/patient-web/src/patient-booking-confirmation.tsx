@@ -207,7 +207,7 @@ export function SelectedSlotProvenanceCard({
         onOpenCompare={() => undefined}
         compareActionMode="hidden"
         eyebrow="SelectedSlotProvenanceCard"
-        title={projection.viewKind === "confirmed" ? "Confirmed slot summary" : "Selected slot provenance"}
+        title={projection.viewKind === "confirmed" ? "Confirmed slot summary" : "Selected slot history"}
       />
       <p className="patient-booking__confirmation-provenance-note">{projection.provenanceNote}</p>
     </section>
@@ -235,7 +235,7 @@ export function BookingConfirmReviewStage({
         <SummaryList title="Contact route" rows={projection.contactRows} />
         <SummaryList title="Reminder preferences" rows={projection.reminderRows} />
       </div>
-      <SummaryList title="Confirm posture" rows={projection.stateRows} />
+      <SummaryList title="Confirm status" rows={projection.stateRows} />
       <div className="patient-booking__confirmation-actions">
         {projection.primaryAction ? (
           <ActionButton
@@ -363,7 +363,7 @@ export function ReconciliationRecoveryState({
       </div>
       <p className="patient-booking__confirmation-copy">{projection.stateBody}</p>
       <p className="patient-booking__confirmation-note">{projection.supportingNote}</p>
-      <SummaryList title="Recovery posture" rows={projection.stateRows} />
+      <SummaryList title="Recovery status" rows={projection.stateRows} />
       <div className="patient-booking__confirmation-actions">
         {projection.primaryAction ? (
           <ActionButton
@@ -483,8 +483,8 @@ export function RecoveryActionPanel({
       </div>
       <p className="patient-booking__confirmation-muted">
         {projection.routeFreezeState === "live"
-          ? "This panel keeps the next safe action nearby when booking truth is still pending or disputed."
-          : "Route freeze and release-recovery posture keep live controls suppressed while preserving safe context."}
+          ? "This panel keeps the next safe action nearby when booking verified details is still pending or disputed."
+          : "Route freeze and release-recovery status keep live controls suppressed while preserving safe context."}
       </p>
       {actions.length > 0 ? (
         <div className="patient-booking__confirmation-actions patient-booking__confirmation-actions--stacked">
@@ -559,7 +559,7 @@ export function ArtifactSummaryStub({
         <p className="patient-booking__confirmation-muted">
           {responsive.embeddedMode === "nhs_app"
             ? "This embedded host keeps artifact actions summary-only. Browser handoff, print, and export stay visible as summary context only."
-            : "Artifact controls stay summary-only until the current confirmation and route posture permit handoff."}
+            : "Artifact controls stay summary-only until the current confirmation and route status permit handoff."}
         </p>
       )}
     </section>
@@ -722,8 +722,8 @@ export function BookingConfirmationStage({
         <BookingResponsiveStage
           stageName="BookingConfirmationStage"
           testId="booking-confirmation-responsive-stage"
-          railToggleLabel="View booking summary and artifact posture"
-          railTitle="Booking summary and artifact posture"
+          railToggleLabel="View booking summary and artifact status"
+          railTitle="Booking summary and artifact status"
           foldedPinned={
             <>
               <SelectedSlotProvenanceCard projection={projection} />

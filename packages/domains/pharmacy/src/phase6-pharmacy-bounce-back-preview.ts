@@ -555,7 +555,7 @@ export const pharmacyBounceBackRecoveryPreviewCases = [
         tone: "critical",
         title: "Urgent return has reopened this case and quiet completion is forbidden",
         summary:
-          "The shell must show an urgent recovery posture until the GP route and monitored safety net are re-established.",
+          "The shell must show an urgent recovery status until the GP route and monitored safety net are re-established.",
         detail:
           "The last dispatch proof remains visible for reference only. Every action now routes through the urgent return control path.",
         statusPill: "Urgent return active",
@@ -622,7 +622,7 @@ export const pharmacyBounceBackRecoveryPreviewCases = [
       returnMessagePreview: {
         title: "Patient return message preview",
         summary:
-          "This is the current patient-safe wording, frozen against the emitted return contract and queue anchor.",
+          "This is the current patient-safe wording, held against the emitted return agreement and queue item.",
         headline: "Please contact your GP practice urgently about your pharmacy referral",
         body:
           "We have reopened your referral because the pharmacy cannot complete it safely through the original path. Your GP team is being contacted now.",
@@ -631,12 +631,12 @@ export const pharmacyBounceBackRecoveryPreviewCases = [
         notificationStateLabel: "Emitted",
         channelHintLabel: "Secure message",
         anchorLabel: notificationBinding.selectedAnchorRef,
-        contractLabel: notificationBinding.activeReturnContractRef ?? "No active return contract",
+        contractLabel: notificationBinding.activeReturnContractRef ? "Active return agreement" : "No active return agreement",
       },
       reopenDiffStrip: {
         title: "Reopen diff",
         summary:
-          "The recovery strip shows what changed from the last calm-safe posture to the current reopened state.",
+          "The recovery strip shows what changed from the last calm-safe status to the current reopened state.",
         rows: [
           {
             diffId: "proof",
@@ -654,7 +654,7 @@ export const pharmacyBounceBackRecoveryPreviewCases = [
           },
           {
             diffId: "patient",
-            label: "Patient posture",
+            label: "Patient status",
             previousValue: "Action in progress",
             currentValue: "Urgent action",
             implication: "The patient message must stay explicit and non-calm.",
@@ -663,7 +663,7 @@ export const pharmacyBounceBackRecoveryPreviewCases = [
       },
       loopRiskEscalationCard: {
         tone: loopRiskTone(loopSupervisorBinding.loopRisk ?? 0),
-        title: "Loop-risk posture",
+        title: "Loop-risk status",
         summary:
           "This urgent return is not yet in supervisor escalation, but the shell still makes the loop-risk score visible so repeat returns can be spotted early.",
         loopRiskLabel: `${percent(loopSupervisorBinding.loopRisk ?? 0)} / ${loopRiskBand(
@@ -856,7 +856,7 @@ export const pharmacyBounceBackRecoveryPreviewCases = [
       returnMessagePreview: {
         title: "Patient return message preview",
         summary:
-          "This preview is tied to the current return contract and the existing case anchor so the wording stays truthful when the reopen is released.",
+          "This preview is tied to the current return agreement and the existing case item so the wording stays clear when the reopen is released.",
         headline: "We need to review your pharmacy referral before the next step can continue",
         body:
           "Your referral has been reopened because the pharmacy could not continue the original route as planned. We are reviewing the next safe step now.",
@@ -864,7 +864,7 @@ export const pharmacyBounceBackRecoveryPreviewCases = [
         notificationStateLabel: "Ready to send",
         channelHintLabel: "SMS",
         anchorLabel: notificationBinding.selectedAnchorRef,
-        contractLabel: notificationBinding.activeReturnContractRef ?? "No active return contract",
+        contractLabel: notificationBinding.activeReturnContractRef ? "Active return agreement" : "No active return agreement",
       },
       reopenDiffStrip: {
         title: "Reopen diff",
@@ -896,7 +896,7 @@ export const pharmacyBounceBackRecoveryPreviewCases = [
       },
       loopRiskEscalationCard: {
         tone: loopRiskTone(loopSupervisorBinding.loopRisk ?? 0),
-        title: "Loop-risk posture",
+        title: "Loop-risk status",
         summary:
           "Loop risk is low enough to avoid supervisor escalation, but it remains visible so repeated returns can be spotted without reading logs.",
         loopRiskLabel: `${percent(loopSupervisorBinding.loopRisk ?? 0)} / ${loopRiskBand(
@@ -1047,7 +1047,7 @@ export const pharmacyBounceBackRecoveryPreviewCases = [
             itemId: "supervisor",
             label: "Supervisor review required",
             state: "current",
-            summary: "Escalation is now part of the dominant recovery posture.",
+            summary: "Escalation is now part of the dominant recovery status.",
             detail: "A supervisor must either allow redispatch, keep the block, or dismiss the return as material noise.",
           },
           {
@@ -1090,7 +1090,7 @@ export const pharmacyBounceBackRecoveryPreviewCases = [
         notificationStateLabel: "Suppressed",
         channelHintLabel: "No release channel",
         anchorLabel: "contact-route-repair",
-        contractLabel: "No active return contract until repair settles",
+        contractLabel: "No active return agreement until repair settles",
       },
       reopenDiffStrip: {
         title: "Reopen diff",

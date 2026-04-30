@@ -493,7 +493,7 @@ export function InventoryTruthPanel(props: {
     >
       <header className="pharmacy-workbench-card__header">
         <div>
-          <p className="pharmacy-workbench-kicker">Inventory truth</p>
+          <p className="pharmacy-workbench-kicker">Inventory verified details</p>
           <h3>{props.panel.title}</h3>
         </div>
         <div className="pharmacy-workbench-pill-cluster">

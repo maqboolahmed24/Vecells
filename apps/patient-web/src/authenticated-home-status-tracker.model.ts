@@ -7,6 +7,8 @@ export type AuthenticatedPortalRouteKey =
   | "requests_index"
   | "request_detail"
   | "request_detail_narrowed"
+  | "messages"
+  | "account"
   | "reachability_blocker"
   | "session_expiring"
   | "session_expired";
@@ -425,6 +427,8 @@ function navigationFor(routeKey: AuthenticatedPortalRouteKey): PatientPortalNavi
     routeKey === "session_expiring" ||
     routeKey === "session_expired";
   const activeRequests = routeKey === "requests_index" || routeKey.startsWith("request_detail");
+  const activeMessages = routeKey === "messages";
+  const activeAccount = routeKey === "account";
 
   return {
     projectionName: "PatientPortalNavigationProjection",
@@ -449,14 +453,14 @@ function navigationFor(routeKey: AuthenticatedPortalRouteKey): PatientPortalNavi
         label: "Messages",
         path: "/portal/messages",
         badgeLabel: null,
-        ariaCurrent: false,
+        ariaCurrent: activeMessages,
       },
       {
         id: "account",
         label: "Account",
         path: "/portal/account",
         badgeLabel: null,
-        ariaCurrent: false,
+        ariaCurrent: activeAccount,
       },
     ],
   };
@@ -629,7 +633,7 @@ function homeProjectionFor(
       {
         id: "account_details",
         label: "Account details",
-        body: "NHS login and Vecells contact preference rows stay separate.",
+        body: "NHS login and local contact preference rows stay separate.",
         path: "/portal/account",
         tone: "quiet",
       },
@@ -723,6 +727,12 @@ function routeKeyForPath(pathname: string): AuthenticatedPortalRouteKey {
   }
   if (pathname === "/portal/requests") {
     return "requests_index";
+  }
+  if (pathname === "/portal/messages") {
+    return "messages";
+  }
+  if (pathname === "/portal/account") {
+    return "account";
   }
   if (pathname === "/portal/reachability-blocker") {
     return "reachability_blocker";

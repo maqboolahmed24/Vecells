@@ -85,7 +85,7 @@ export const im1PairingPack = {
   "assumptions": [
     {
       "assumption_id": "ASSUMPTION_IM1_STAGE_ONE_SCAL_FIELDS",
-      "summary": "The public IM1 pages do not enumerate every stage-one SCAL column, so the derived SCAL input fields below model the minimum product, capability, evidence, and safety inputs Vecells must already have ready before submission.",
+      "summary": "The public IM1 pages do not enumerate every stage-one SCAL column, so the derived SCAL input fields below model the minimum product, capability, evidence, and safety inputs Service must already have ready before submission.",
       "consequence": "The pack distinguishes exact public prerequisites-form fields from derived stage-one SCAL dossier fields."
     },
     {
@@ -414,7 +414,7 @@ export const im1PairingPack = {
       "label": "Name",
       "field_type": "text",
       "origin_class": "exact_public_form",
-      "mock_value": "Vecells interoperability lead",
+      "mock_value": "Service interoperability lead",
       "actual_placeholder": "Named form submitter full name.",
       "required_for": [
         "product_profile_defined",
@@ -430,7 +430,7 @@ export const im1PairingPack = {
       "label": "Email",
       "field_type": "email",
       "origin_class": "exact_public_form",
-      "mock_value": "interoperability@vecells.example",
+      "mock_value": "interoperability@service.example",
       "actual_placeholder": "Named form submitter email address.",
       "required_for": [
         "product_profile_defined",
@@ -446,7 +446,7 @@ export const im1PairingPack = {
       "label": "Organisation name",
       "field_type": "text",
       "origin_class": "exact_public_form",
-      "mock_value": "Vecells Ltd",
+      "mock_value": "Service Ltd",
       "actual_placeholder": "Consumer supplier legal entity name approved for submission.",
       "required_for": [
         "product_profile_defined",
@@ -462,7 +462,7 @@ export const im1PairingPack = {
       "label": "Product name",
       "field_type": "text",
       "origin_class": "exact_public_form",
-      "mock_value": "Vecells",
+      "mock_value": "Service",
       "actual_placeholder": "Named IM1 product or system name exactly as submitted.",
       "required_for": [
         "product_profile_defined",
@@ -848,7 +848,7 @@ export const im1PairingPack = {
         "prompt/026.md",
         "official_im1_prerequisites_form"
       ],
-      "notes": "Names the bounded Vecells IM1 use case and explicitly excludes Phase 2 identity shortcuts."
+      "notes": "Names the bounded Service IM1 use case and explicitly excludes Phase 2 identity shortcuts."
     },
     {
       "artifact_id": "ART_PROVIDER_CAPABILITY_MATRIX_DIGEST",
@@ -1154,7 +1154,7 @@ export const im1PairingPack = {
       "stage_class": "internal_rehearsal",
       "entry_conditions": [
         "The exact public prerequisites-form fields are mapped.",
-        "Clinical safety and IG prerequisites are linked to current Vecells artifacts."
+        "Clinical safety and IG prerequisites are linked to current Service artifacts."
       ],
       "required_artifacts": [
         "ART_CLINICAL_SAFETY_DECLARATION",
@@ -1209,7 +1209,7 @@ export const im1PairingPack = {
         "Interoperability lead confirms the stage-one stub stays aligned to the bounded use case."
       ],
       "browser_automation_possible": "yes",
-      "mock_now_action": "Generate the internal stage-one SCAL skeleton and link every claim back to a Vecells artifact.",
+      "mock_now_action": "Generate the internal stage-one SCAL skeleton and link every claim back to a Service artifact.",
       "actual_later_action": "Freeze the dossier so a future form run can populate product information without reinterpreting the architecture.",
       "outputs": [
         "Stage-one SCAL stub",
@@ -1673,7 +1673,7 @@ export const im1PairingPack = {
       "risk_refs": [
         "RISK_EXT_IM1_SCAL_DELAY"
       ],
-      "notes": "Issued by the external process, not by Vecells.",
+      "notes": "Issued by the external process, not by Service.",
       "source_refs": [
         "official_im1_pairing_process"
       ],
@@ -2009,7 +2009,7 @@ export const im1PairingPack = {
         "provider_supplier_name": "Optum (EMISWeb)",
         "supplier_code": "OPTUM_EMISWEB",
         "current_public_status": "listed_on_im1_pairing_page_2026_04_09",
-        "targeted_for_vecells": true,
+        "targeted_for_service": true,
         "roster_source_url": "https://digital.nhs.uk/services/digital-services-for-integrated-care/im1-pairing-integration",
         "notes": [
           "Current official pairing page names Optum (EMISWeb) as one of the 2 existing provider suppliers.",
@@ -2025,7 +2025,7 @@ export const im1PairingPack = {
         "provider_supplier_name": "TPP (SystmOne)",
         "supplier_code": "TPP_SYSTMONE",
         "current_public_status": "listed_on_im1_pairing_page_2026_04_09",
-        "targeted_for_vecells": true,
+        "targeted_for_service": true,
         "roster_source_url": "https://digital.nhs.uk/services/digital-services-for-integrated-care/im1-pairing-integration",
         "notes": [
           "Current official pairing page names TPP (SystmOne) as one of the 2 existing provider suppliers.",
@@ -2228,7 +2228,7 @@ export const im1PairingPack = {
         "licence_row_id": "lic_optum_placeholder",
         "provider_supplier_id": "ps_optum_emisweb",
         "licence_state": "placeholder_only",
-        "consumer_entity_placeholder": "VECELLS_CONSUMER_ENTITY_PLACEHOLDER",
+        "consumer_entity_placeholder": "SERVICE_CONSUMER_ENTITY_PLACEHOLDER",
         "provider_entity_placeholder": "OPTUM_PROVIDER_ENTITY_PLACEHOLDER",
         "consumer_signatory_role": "ROLE_COMMERCIAL_OWNER",
         "provider_signatory_role": "provider_supplier_signatory",
@@ -2239,7 +2239,7 @@ export const im1PairingPack = {
         "licence_row_id": "lic_tpp_placeholder",
         "provider_supplier_id": "ps_tpp_systmone",
         "licence_state": "placeholder_only",
-        "consumer_entity_placeholder": "VECELLS_CONSUMER_ENTITY_PLACEHOLDER",
+        "consumer_entity_placeholder": "SERVICE_CONSUMER_ENTITY_PLACEHOLDER",
         "provider_entity_placeholder": "TPP_PROVIDER_ENTITY_PLACEHOLDER",
         "consumer_signatory_role": "ROLE_COMMERCIAL_OWNER",
         "provider_signatory_role": "provider_supplier_signatory",

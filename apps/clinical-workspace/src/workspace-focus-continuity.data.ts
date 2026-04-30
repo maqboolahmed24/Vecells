@@ -213,7 +213,7 @@ function focusSubjectFor(
       }
       return route.kind === "decision"
         ? `Endpoint consequence draft for ${task.patientLabel}`
-        : `Approval or commit posture for ${task.patientLabel}`;
+        : `Approval or commit status for ${task.patientLabel}`;
     case "delta_review":
       return `Returned-evidence comparison for ${task.patientLabel}`;
     case "dispute_review":
@@ -292,8 +292,8 @@ function buildBufferedQueueChangeTray(input: {
     trayState: ledger.bufferedQueueTrayState,
     batchState: impactClass === "review_required" ? "review_required" : "buffered",
     queueRef: task.launchQueue,
-    sourceRankSnapshotRef: `queue_rank_snapshot::${task.launchQueue}::source`,
-    targetRankSnapshotRef: `queue_rank_snapshot::${task.launchQueue}::target`,
+    sourceRankSnapshotRef: "Current queue order",
+    targetRankSnapshotRef: "Recommended queue order",
     preservedAnchorRef: ledger.selectedAnchorId,
     focusConflictState,
     impactClass,
@@ -301,7 +301,7 @@ function buildBufferedQueueChangeTray(input: {
     summary:
       focusConflictState === "clear"
         ? `${totalCount} queued background changes are ready for explicit review. Nothing will apply itself.`
-        : `${totalCount} queued background changes are held while the current composition or compare posture remains protected.`,
+        : `${totalCount} queued background changes are held while the current composition or compare status remains protected.`,
     applyLabel: "Apply buffered queue changes",
     applyEnabled,
     applyReason: applyEnabled
@@ -330,7 +330,7 @@ function buildBufferedQueueChangeTray(input: {
         groupId: "blocking-changes",
         label: "Blocking changes",
         count: blockingCount,
-        detail: "Rows that now require escalation or blocking-only posture.",
+        detail: "Rows that now require escalation or blocked-only status.",
         tone: "critical",
       },
       {
@@ -374,7 +374,7 @@ function buildRecoveryProjection(input: {
     recoveryState: focusState === "recovery_only" ? "recovery_only" : "stale_recoverable",
     headline:
       focusState === "recovery_only"
-        ? "Protected work is preserved in recovery-only posture"
+        ? "Protected work is preserved in recovery-only status"
         : "Protected work is preserved and waiting for drift recovery",
     summary:
       freezeFrame?.summary ??
@@ -462,8 +462,8 @@ function buildNextTaskPostureCard(input: {
   const candidate =
     queueGroupRows(task).find((row) => row.id !== task.id) ?? listQueueCases(task.launchQueue).find((row) => row.id !== task.id) ?? null;
   const sourceRankSnapshotRef = ledger.queuedBatchPending
-    ? `queue_rank_snapshot::${task.launchQueue}::source`
-    : `queue_rank_snapshot::${task.launchQueue}::target`;
+    ? "Current queue order"
+    : "Recommended queue order";
   const prefetchWindowRef = `next_task_prefetch_window::${task.launchQueue}::${candidate?.id ?? "none"}`;
   const launchLeaseRef = `next_task_launch_lease::${task.launchQueue}::${candidate?.id ?? "none"}`;
   const blockingReasons: string[] = [];
@@ -540,8 +540,8 @@ function buildDepartureReturnStub(input: {
     lastQuietRegionLabel: ledger.lastQuietRegionLabel,
     quietReturnTargetRef: taskProjection?.taskCanvasFrame.quietReturnTargetRef ?? `quiet_return::${task.id}::summary`,
     sourceRankSnapshotRef: ledger.queuedBatchPending
-      ? `queue_rank_snapshot::${task.launchQueue}::source`
-      : `queue_rank_snapshot::${task.launchQueue}::target`,
+      ? "Current queue order"
+      : "Recommended queue order",
   };
 }
 
@@ -586,7 +586,7 @@ export function buildWorkspaceFocusContinuityProjection(input: {
         `protected_composition_state::${task.id}::${route.kind}`,
       title:
         focusState === "recovery_only"
-          ? "Protected work is frozen in recovery-only posture"
+          ? "Protected work is frozen in recovery-only status"
           : focusState === "invalidated"
             ? "Protected work is preserved while drift is reconciled"
             : "Protected work is holding the current shell steady",

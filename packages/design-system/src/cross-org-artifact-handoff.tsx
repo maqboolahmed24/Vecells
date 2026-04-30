@@ -158,7 +158,7 @@ export function NetworkConfirmationArtifactStage(props: {
         </dl>
         {props.previewTitle || props.previewSummary || props.truthRows?.length ? (
           <section className="cross-org-artifact-stage__preview">
-            <h5>{props.previewTitle ?? "Governed summary"}</h5>
+            <h5>{props.previewTitle ?? "Approved summary"}</h5>
             {props.previewSummary ? <p>{props.previewSummary}</p> : null}
             {props.truthRows?.length ? (
               <dl className="cross-org-artifact-grid cross-org-artifact-grid--compact">
@@ -225,7 +225,7 @@ export function GovernedPlaceholderSummary(props: {
 }) {
   return (
     <section
-      className="cross-org-artifact-panel cross-org-artifact-panel--placeholder"
+      className="cross-org-artifact-panel cross-org-artifact-panel--summary"
       data-testid="GovernedPlaceholderSummary"
       data-placeholder-reason={props.reasonLabel}
     >

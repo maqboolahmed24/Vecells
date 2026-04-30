@@ -185,7 +185,7 @@ function stateForPosture(
         actionabilityState: "observe_only",
         confidencePostureState: "suppressed",
         postureName: "Observe-only",
-        headline: "Readable assistive context, no write posture",
+        headline: "Readable assistive context, no write status",
         reason: {
           code: "workspace_read_only",
           label: "Workspace read-only",
@@ -193,17 +193,17 @@ function stateForPosture(
         },
         dominantAction: {
           label: "Continue manual review",
-          detail: "Use the primary task canvas as the writable source of truth.",
+          detail: "Use the primary task canvas as the writable source of record.",
           kind: "continue_review",
           enabled: false,
         },
-        allowedActions: ["Read summary", "Read provenance"],
+        allowedActions: ["Read summary", "Read history"],
         suppressedActions: sharedSuppressed,
         helperRows: [
           {
             code: "completion_adjacent_blocked",
             label: "Completion cues blocked",
-            detail: "The rail may not imply settlement or final action while in observe-only posture.",
+            detail: "The rail may not imply settlement or final action while in observe-only status.",
           },
         ],
         severity: "watch",
@@ -219,30 +219,30 @@ function stateForPosture(
         actionabilityState: "regenerate_only",
         confidencePostureState: "suppressed",
         postureName: "Degraded",
-        headline: "Trust degraded with bounded recovery available",
+        headline: "Trust degraded with limited recovery available",
         reason: {
           code: "trust_projection_degraded",
           label: "Trust projection degraded",
-          detail: "Monitoring permits provenance and recovery guidance, but not fresh insert or acceptance controls.",
+          detail: "Monitoring permits history and recovery guidance, but not fresh insert or acceptance controls.",
         },
         dominantAction: {
           label: "Review recovery options",
-          detail: "Open bounded recovery detail without leaving the current task shell.",
+          detail: "Open limited recovery detail without leaving the current task shell.",
           kind: "recover",
           enabled: true,
         },
-        allowedActions: ["Read provenance", "Review recovery options"],
+        allowedActions: ["Read history", "Review recovery options"],
         suppressedActions: ["Insert draft", "Accept artifact", "Export artifact", "Complete task"],
         helperRows: [
           {
             code: "current_posture_fail_closed",
-            label: "Current posture fails closed",
-            detail: "The browser may narrow the posture, but it may not widen beyond the current trust envelope.",
+            label: "Current status fails closed",
+            detail: "The browser may narrow the status, but it may not widen beyond the current trust envelope.",
           },
           {
             code: "provenance_allowed",
-            label: "Provenance remains visible",
-            detail: "The provenance footer can stay readable because policy still allows bounded context.",
+            label: "History remains visible",
+            detail: "The history footer can stay readable because policy still allows limited context.",
           },
         ],
         severity: "caution",
@@ -258,24 +258,24 @@ function stateForPosture(
         actionabilityState: "blocked",
         confidencePostureState: "hidden",
         postureName: "Quarantined",
-        headline: "Contained to provenance only",
+        headline: "Contained to history only",
         reason: {
           code: "incident_or_threshold_containment",
           label: "Containment active",
           detail: "The capability is quarantined by trust or safety containment and cannot drive visible assertions.",
         },
         dominantAction: {
-          label: "Use provenance only",
-          detail: "Treat the artifact as lineage context until governed replay clears containment.",
+          label: "Use history only",
+          detail: "Treat the artifact as history context until approved replay clears containment.",
           kind: "provenance_only",
           enabled: false,
         },
-        allowedActions: ["Read provenance refs"],
+        allowedActions: ["Read history refs"],
         suppressedActions: ["Insert draft", "Accept artifact", "Regenerate", "Export artifact", "Complete task"],
         helperRows: [
           {
             code: "deterministic_replay_required",
-            label: "Governed replay required",
+            label: "Approved replay required",
             detail: "Quarantined outputs require explicit recovery and replay before reuse.",
           },
         ],
@@ -299,12 +299,12 @@ function stateForPosture(
           detail: "The assistive artifact is preserved in place while write and completion controls remain frozen.",
         },
         dominantAction: {
-          label: "Wait for governed recovery",
+          label: "Wait for approved recovery",
           detail: "Continue reviewing manually; stale recovery is handled by the recovery surface.",
           kind: "wait",
           enabled: false,
         },
-        allowedActions: ["Read preserved text", "Read provenance"],
+        allowedActions: ["Read preserved text", "Read history"],
         suppressedActions: ["Insert draft", "Accept artifact", "Regenerate", "Export artifact", "Complete task"],
         helperRows: [
           {
@@ -375,13 +375,13 @@ function stateForPosture(
           kind: "continue_review",
           enabled: false,
         },
-        allowedActions: ["Read bounded summary stub"],
+        allowedActions: ["Read limited summary summary"],
         suppressedActions: sharedSuppressed,
         helperRows: [
           {
             code: "no_local_widening",
             label: "No local widening",
-            detail: "Client-side toggles may not promote shadow-only capability into a richer posture.",
+            detail: "Client-side toggles may not promote shadow-only capability into a richer status.",
           },
         ],
         severity: "neutral",
@@ -477,7 +477,7 @@ function AssistiveActionRows({ state }: { state: AssistiveTrustPostureState }) {
         <dd>{state.actionabilityState.replaceAll("_", " ")}</dd>
       </div>
       <div>
-        <dt>Confidence posture</dt>
+        <dt>Confidence status</dt>
         <dd>{state.confidencePostureState.replaceAll("_", " ")}</dd>
       </div>
     </dl>
@@ -516,7 +516,7 @@ export function AssistiveShadowOnlyNotice({ state }: { state: AssistiveTrustPost
 export function AssistiveObserveOnlyNotice({ state }: { state: AssistiveTrustPostureState }) {
   return (
     <section className="assistive-trust__notice" data-testid="AssistiveObserveOnlyNotice">
-      <h4>Observe-only posture</h4>
+      <h4>Observe-only status</h4>
       <p>{state.reason.detail}</p>
     </section>
   );
@@ -677,7 +677,7 @@ export function AssistiveTrustStateFrame({ state }: { state: AssistiveTrustPostu
       />
       <header className="assistive-trust__header">
         <div>
-          <span className="assistive-trust__label">Assistive trust posture</span>
+          <span className="assistive-trust__label">Assistive trust status</span>
           <h3 id={headingId}>{state.headline}</h3>
         </div>
         <AssistiveTrustStateChip state={state} />

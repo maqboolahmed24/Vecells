@@ -437,7 +437,7 @@ function App() {
           <div className="panel-header">
             <div>
               <p className="eyebrow">Live-gate digest</p>
-              <h2>Current actual-provider posture</h2>
+              <h2>Current actual-provider status</h2>
             </div>
             <span className="status-chip blocked">{blockedGateCount} blockers</span>
           </div>
@@ -597,20 +597,20 @@ function App() {
               <p>{providerLabel(selectedProviderRow.provider_supplier_id)}</p>
             </div>
             <div>
-              <span>Route family</span>
+              <span>Journey group</span>
               <p>{selectedProviderRow.route_family_name}</p>
             </div>
             <div>
-              <span>Current mock posture</span>
+              <span>Current mock status</span>
               <p>{selectedProviderRow.current_mock_position}</p>
             </div>
             <div>
-              <span>Actual-provider posture</span>
+              <span>Actual-provider status</span>
               <p>{selectedProviderRow.actual_later_position}</p>
             </div>
           </div>
           <div className="callout">
-            <strong>Truth guardrail</strong>
+            <strong>Confirmed information guardrail</strong>
             <p>{selectedProviderRow.truth_guardrail}</p>
           </div>
         </article>
@@ -727,7 +727,7 @@ function App() {
           <div className="panel-header">
             <div>
               <p className="eyebrow">Licence and RFC watch</p>
-              <h2>Placeholder-only legal posture</h2>
+              <h2>Summary-only legal status</h2>
             </div>
           </div>
           <div className="table-wrap">
@@ -969,7 +969,7 @@ function App() {
           <div className="panel-header">
             <div>
               <p className="eyebrow">Provider compatibility matrix</p>
-              <h2>Route family to provider supplier posture</h2>
+              <h2>Journey group to provider supplier status</h2>
             </div>
           </div>
           <div className="table-wrap">
@@ -977,9 +977,9 @@ function App() {
               <thead>
                 <tr>
                   <th>Provider supplier</th>
-                  <th>Route family</th>
+                  <th>Journey group</th>
                   <th>IM1 role</th>
-                  <th>Mock posture</th>
+                  <th>Mock status</th>
                 </tr>
               </thead>
               <tbody>
@@ -1045,19 +1045,19 @@ function App() {
                   <td>Exact public form plus internal evidence mapping.</td>
                 </tr>
                 <tr>
-                  <td>stage_one_scal</td>
-                  <td>Document stub and supplier/product/service dossier.</td>
+                  <td>stage one SCAL</td>
+                  <td>Document summary and supplier/product/service dossier.</td>
                 </tr>
                 <tr>
                   <td>licence</td>
-                  <td>Placeholder-only until named signatories exist.</td>
+                  <td>Summary-only until named signatories exist.</td>
                 </tr>
                 <tr>
-                  <td>provider_mock_api</td>
-                  <td>Unsupported-test rehearsal only, never live truth.</td>
+                  <td>provider test API</td>
+                  <td>Unsupported-test rehearsal only, never a live record.</td>
                 </tr>
                 <tr>
-                  <td>supported_test</td>
+                  <td>supported test</td>
                   <td>Blocked until full SCAL and later live gates pass.</td>
                 </tr>
                 <tr>

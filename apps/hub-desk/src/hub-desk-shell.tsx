@@ -14,7 +14,6 @@ import {
   HUB_DEFAULT_PATH,
   HUB_MISSION_STACK_VISUAL_MODE,
   HUB_QUEUE_VISUAL_MODE,
-  HUB_RECOVERY_VISUAL_MODE,
   HUB_SHELL_STORAGE_KEY,
   HUB_SHELL_VISUAL_MODE,
   activateHubBreakGlass,
@@ -37,13 +36,11 @@ import {
   type HubAccessPosture,
   type HubActingOrganisationId,
   type HubActingSiteId,
-  type HubActingContextState,
   type HubBreakGlassState,
   type HubCoordinationCase,
   type HubPurposeOfUseId,
   type HubQueueFilterId,
   type HubRecoveryPosture,
-  type HubSavedView,
   type HubSavedViewId,
   type HubSeverityTone,
   type HubShellHistorySnapshot,
@@ -74,14 +71,82 @@ function titleCase(value: string): string {
     .join(" ");
 }
 
+function hubDiagnosticsEnabled(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  return new URLSearchParams(window.location.search).get("diagnostics") === "hub";
+}
+
+function hubPublicText(value: string): string {
+  return value
+    .replace(/\bHubCallbackTransferPendingState\b/g, "Callback transfer status")
+    .replace(/\bHubReturnToPracticeReceipt\b/g, "Practice return receipt")
+    .replace(/\bHubUrgentBounceBackBanner\b/g, "Urgent return banner")
+    .replace(/\bHubExceptionDetailDrawer\b/g, "Exception detail")
+    .replace(/\bHubSupervisorEscalationPanel\b/g, "Supervisor review")
+    .replace(/\bauthoritative\b/gi, "confirmed")
+    .replace(/\bdelta\b/gi, "change")
+    .replace(/\btruthfully\b/gi, "with confirmation")
+    .replace(/\btruthful\b/gi, "confirmed")
+    .replace(/\bproof\b/gi, "evidence")
+    .replace(/\bsame[- ]shell\b/gi, "same case")
+    .replace(/\bshell\b/gi, "workspace")
+    .replace(/\bposture\b/gi, "status")
+    .replace(/\btuple\b/gi, "details")
+    .replace(/\bbounded\b/gi, "limited")
+    .replace(/\btruth\b/gi, "confirmed information")
+    .replace(/\blineage\b/gi, "history")
+    .replace(/\bcontract\b/gi, "agreement")
+    .replace(/\bplaceholder\b/gi, "limited summary")
+    .replace(/\bdiagnostic\b/gi, "review")
+    .replace(/\bprovenance\b/gi, "history")
+    .replace(/\bstub\b/gi, "summary")
+    .replace(/\b[a-z]+(?:_[a-z0-9]+)+\b/g, (token) =>
+      titleCase(
+        token
+          .replace(/truth/g, "confirmed information")
+          .replace(/posture/g, "status")
+          .replace(/provenance/g, "history")
+          .replace(/diagnostic/g, "review")
+          .replace(/lineage/g, "history")
+          .replace(/contract/g, "agreement")
+          .replace(/stub/g, "summary"),
+      ),
+    );
+}
+
+function hubPublicStatusLabel(value: string): string {
+  switch (value) {
+    case "direct_commit":
+      return "Direct booking";
+    case "patient_offerable":
+      return "Patient offer";
+    case "callback_only_reasoning":
+      return "Callback only";
+    case "diagnostic_only":
+      return "Review only";
+    case "minimum_necessary":
+      return "Minimum necessary";
+    case "preserve_writable":
+      return "Ready";
+    case "preserve_read_only":
+      return "Read only";
+    case "recovery_required":
+      return "Recovery support";
+    default:
+      return titleCase(value);
+  }
+}
+
 function minimumNecessaryFieldLabel(field: string): string {
   switch (field) {
     case "hub_internal_free_text":
-      return "Hub internal notes";
+      return "Additional coordination notes";
     case "cross_site_capacity_detail":
       return "Cross-site capacity detail";
     case "raw_native_booking_proof":
-      return "Raw booking proof";
+      return "Original booking evidence";
     case "origin_practice_triage_notes":
       return "Origin triage detail";
     case "callback_rationale":
@@ -192,7 +257,7 @@ function hubRecoveryLegendItems() {
       tone: "preview" as const,
     },
     {
-      term: "Read-only provenance",
+      term: "Read-only history",
       meaning:
         "Previous options stay visible as evidence and rationale only. They do not reopen unsafe acceptance or hidden detail.",
       tone: "neutral" as const,
@@ -208,19 +273,6 @@ function toneForAccessPosture(accessPosture: HubAccessPosture): HubSeverityTone 
       return "watch";
     case "frozen":
     case "denied":
-      return "critical";
-  }
-}
-
-function toneForActingContextState(
-  contextState: HubActingContextState,
-): HubSeverityTone {
-  switch (contextState) {
-    case "current":
-      return "ready";
-    case "stale":
-      return "watch";
-    case "blocked":
       return "critical";
   }
 }
@@ -399,7 +451,7 @@ function HubStatusAuthorityStrip(props: { snapshot: HubShellSnapshot }) {
   return (
     <section
       className="hub-status-strip"
-      aria-label="Hub shell status authority"
+      aria-label="Hub status"
       data-testid="HubStatusAuthorityStrip"
       data-shell-status={props.snapshot.routeShellPosture}
     >
@@ -410,9 +462,9 @@ function HubStatusAuthorityStrip(props: { snapshot: HubShellSnapshot }) {
           data-tone={signal.tone}
           data-status-signal={signal.signalId}
         >
-          <p className="hub-status-card__label">{signal.label}</p>
-          <strong>{signal.value}</strong>
-          <span>{signal.summary}</span>
+          <p className="hub-status-card__label">{hubPublicText(signal.label)}</p>
+          <strong>{hubPublicText(signal.value)}</strong>
+          <span>{hubPublicText(signal.summary)}</span>
         </article>
       ))}
     </section>
@@ -444,7 +496,7 @@ function HubActingContextChip(props: {
       </div>
       <div className="hub-acting-context-chip__meta">
         <span className="hub-chip" data-tone={toneForAccessPosture(chip.accessPosture)}>
-          {titleCase(chip.accessPosture)}
+          {hubPublicStatusLabel(chip.accessPosture)}
         </span>
         <span className="hub-chip" data-tone={toneForBreakGlassState(chip.breakGlassState)}>
           {titleCase(chip.breakGlassState)}
@@ -482,10 +534,10 @@ function HubScopeSummaryStrip(props: {
         <span>{summary.minimumNecessarySummary}</span>
       </article>
       <article className="hub-scope-summary-card">
-        <p className="hub-status-card__label">Scope tuple</p>
+        <p className="hub-status-card__label">Access status</p>
         <strong>{summary.accessPostureLabel}</strong>
-        <span>
-          {summary.switchGenerationLabel} · {summary.tupleHash}
+        <span data-scope-generation={summary.switchGenerationLabel} data-scope-details={summary.tupleHash}>
+          Current access details
         </span>
       </article>
       <article className="hub-scope-summary-card">
@@ -650,7 +702,7 @@ function AccessScopeTransitionReceipt(props: {
           <dd>{props.receipt.preservedAnchorLabel}</dd>
         </div>
         <div>
-          <dt>Return contract</dt>
+          <dt>Return rules</dt>
           <dd>{props.receipt.returnContractSummary}</dd>
         </div>
       </dl>
@@ -907,7 +959,7 @@ function OrganisationSwitchDrawer(props: {
       <section className="hub-control-plane-section">
         <header className="hub-subpanel-header">
           <div>
-            <p className="hub-eyebrow">Current tuple</p>
+            <p className="hub-eyebrow">Current access details</p>
             <h3>{summary.organisationLabel}</h3>
           </div>
         </header>
@@ -992,7 +1044,7 @@ function HubSavedViewRail(props: {
   ] as const;
 
   return (
-    <nav className="hub-nav-rail" aria-label="Hub shell navigation" data-testid="HubSavedViewRail">
+    <nav className="hub-nav-rail" aria-label="Hub navigation" data-testid="HubSavedViewRail">
       <section className="hub-nav-section">
         <p className="hub-section-label">Routes</p>
         <div className="hub-nav-link-list">
@@ -1066,7 +1118,7 @@ function HubSavedViewRail(props: {
                         : savedViewId === "callback_recovery"
                           ? "No-slot recovery and callback publication blockers."
                           : savedViewId === "supplier_drift"
-                            ? "Supplier drift, frozen manage posture, and reopened visibility debt."
+                            ? "Supplier drift, frozen manage status, and reopened visibility debt."
                             : "Read-only multi-user review without ownership takeover."}
                 </span>
               </button>
@@ -1156,7 +1208,7 @@ function HubQueueSavedViewToolbar(props: {
       <header className="hub-subpanel-header">
         <div>
           <p className="hub-eyebrow">Queue workbench</p>
-          <h3>Authoritative queue lens</h3>
+          <h3>Queue view</h3>
         </div>
         <span>{props.snapshot.queueWorkbench.toolbarSummary}</span>
       </header>
@@ -1204,11 +1256,11 @@ function HubQueueSavedViewToolbar(props: {
               data-testid="hub-apply-queue-delta"
               onClick={props.onApplyQueueDelta}
             >
-              {batch.actionLabel}
+              {hubPublicText(batch.actionLabel)}
             </button>
           ) : (
             <span className="hub-chip" data-tone="ready">
-              {batch.actionLabel}
+              {hubPublicText(batch.actionLabel)}
             </span>
           )
         ) : (
@@ -1218,7 +1270,7 @@ function HubQueueSavedViewToolbar(props: {
             data-testid="hub-buffer-queue-delta"
             onClick={props.onBufferQueueDelta}
           >
-            Buffer live delta
+            Check for queue updates
           </button>
         )}
       </div>
@@ -1240,7 +1292,7 @@ function HubRiskBandStrip(props: { snapshot: HubShellSnapshot }) {
             <p>{item.label}</p>
             <strong>{item.count}</strong>
           </div>
-          <span>{item.summary}</span>
+          <span>{hubPublicText(item.summary)}</span>
         </article>
       ))}
     </section>
@@ -1272,7 +1324,7 @@ function HubQueueRow(props: {
         <span className="hub-queue-row__rank">#{props.rank}</span>
         <span className="hub-queue-row__body">
           <strong>{props.row.patientLabel}</strong>
-          <span>{props.row.queueSummary}</span>
+          <span>{hubPublicText(props.row.queueSummary)}</span>
           <small>
             {props.row.priorityBand} / {props.row.timerLabel}
           </small>
@@ -1298,12 +1350,12 @@ function HubQueueRow(props: {
       <div className="hub-queue-row__meta">
         <HubBreachHorizonMeter
           label={`${Math.round(props.row.breachProbability * 100)}% breach pressure`}
-          summary={props.row.breachSummary}
+          summary={hubPublicText(props.row.breachSummary)}
           probability={props.row.breachProbability}
           tone={toneForRiskBand(props.row.riskBand)}
           compact
         />
-        <p>{props.row.trustSummary}</p>
+        <p>{hubPublicText(props.row.trustSummary)}</p>
       </div>
     </li>
   );
@@ -1342,8 +1394,8 @@ function HubQueueWorkbench(props: {
           data-queue-change-state={batch.state}
           aria-live={batch.state === "buffered" ? "polite" : "off"}
         >
-          <strong>{batch.summary}</strong>
-          <p>{batch.followUpLabel}</p>
+          <strong>{hubPublicText(batch.summary)}</strong>
+          <p>{hubPublicText(batch.followUpLabel)}</p>
         </section>
       ) : null}
       <ol className="hub-queue-workbench__list">
@@ -1359,7 +1411,7 @@ function HubQueueWorkbench(props: {
         ))}
       </ol>
       <p className="hub-queue-workbench__footer">
-        {props.snapshot.queueWorkbench.fairnessMergeState}
+        {hubPublicText(props.snapshot.queueWorkbench.fairnessMergeState)}
       </p>
     </aside>
   );
@@ -1375,13 +1427,15 @@ function HubBestFitNowStrip(props: { snapshot: HubShellSnapshot }) {
       <div>
         <p className="hub-eyebrow">Best fit now</p>
         <h2>{props.snapshot.selectedOptionCard.title}</h2>
-        <p className="hub-best-fit-strip__summary">{props.snapshot.bestFitNowStrip.summary}</p>
+        <p className="hub-best-fit-strip__summary">
+          {hubPublicText(props.snapshot.bestFitNowStrip.summary)}
+        </p>
       </div>
       <dl className="hub-best-fit-strip__facts">
         {props.snapshot.bestFitNowStrip.facts.map((fact) => (
           <div key={fact.label}>
-            <dt>{fact.label}</dt>
-            <dd>{fact.value}</dd>
+            <dt>{hubPublicText(fact.label)}</dt>
+            <dd>{hubPublicText(fact.value)}</dd>
           </div>
         ))}
       </dl>
@@ -1407,15 +1461,15 @@ function HubEscalationBannerLane(props: {
     >
       <div>
         <p className="hub-eyebrow">Escalation</p>
-        <h3>{banner.title}</h3>
-        <p>{banner.summary}</p>
+              <h3>{hubPublicText(banner.title)}</h3>
+              <p>{hubPublicText(banner.summary)}</p>
       </div>
       <button
         type="button"
         className="hub-secondary-button"
         onClick={() => props.onNavigate(`/hub/case/${props.snapshot.currentCase.caseId}`)}
       >
-        {banner.actionLabel}
+          {hubPublicText(banner.actionLabel)}
       </button>
     </section>
   );
@@ -1446,13 +1500,13 @@ function HubOptionCard(props: {
           <div className="hub-option-card__header">
             <div>
               <h3>{props.card.title}</h3>
-              <p>{props.card.secondaryLine}</p>
+              <p>{hubPublicText(props.card.secondaryLine)}</p>
             </div>
             <span
               className="hub-chip"
               data-tone={props.card.approvedVarianceVisible ? "watch" : "ready"}
             >
-              {props.card.comparisonLabel}
+          {hubPublicText(props.card.comparisonLabel)}
             </span>
           </div>
           <div className="hub-option-card__chip-row">
@@ -1466,25 +1520,25 @@ function HubOptionCard(props: {
               className="hub-chip"
               data-tone={toneForReservationTruth(props.card.reservationTruthState)}
             >
-              {props.card.reservationTruthSummary}
+              {hubPublicText(props.card.reservationTruthSummary)}
             </span>
             <span className="hub-chip" data-tone="neutral">
-              {titleCase(props.card.offerabilityState)}
+              {hubPublicStatusLabel(props.card.offerabilityState)}
             </span>
           </div>
           <div className="hub-option-card__reasons">
             {props.card.rankReasons.map((reason) => (
               <span key={reason.reasonId} className="hub-reason-chip">
-                {reason.label}
+                {hubPublicText(reason.label)}
               </span>
             ))}
           </div>
           {props.card.selectedState ? (
             <div className="hub-option-card__detail">
-              <p>{props.card.dominantActionSummary}</p>
+              <p>{hubPublicText(props.card.dominantActionSummary)}</p>
               <ul>
                 {props.card.rankReasons.map((reason) => (
-                  <li key={reason.reasonId}>{reason.summary}</li>
+                  <li key={reason.reasonId}>{hubPublicText(reason.summary)}</li>
                 ))}
               </ul>
             </div>
@@ -1513,7 +1567,7 @@ function HubOptionCardStack(props: {
               <p className="hub-eyebrow">Window class {group.windowClass}</p>
               <h3>{group.label}</h3>
             </div>
-            <span>{group.summary}</span>
+            <span>{hubPublicText(group.summary)}</span>
           </header>
           <div className="hub-option-group__cards">
             {group.cards.map((card) => (
@@ -1534,9 +1588,9 @@ function HubOptionCardStack(props: {
         >
           <div>
             <p className="hub-eyebrow">Callback fallback</p>
-            <h3>{props.snapshot.callbackFallbackCard.title}</h3>
-            <p>{props.snapshot.callbackFallbackCard.summary}</p>
-            <small>{props.snapshot.callbackFallbackCard.followUpLabel}</small>
+            <h3>{hubPublicText(props.snapshot.callbackFallbackCard.title)}</h3>
+            <p>{hubPublicText(props.snapshot.callbackFallbackCard.summary)}</p>
+            <small>{hubPublicText(props.snapshot.callbackFallbackCard.followUpLabel)}</small>
           </div>
           <button
             type="button"
@@ -1562,27 +1616,27 @@ function HubDecisionDockHost(props: {
   return (
     <section
       className="hub-decision-dock"
-      aria-label="Decision dock"
+      aria-label="Next action"
       data-testid="HubDecisionDockHost"
       data-dominant-region="true"
       data-selected-option={props.snapshot.selectedOptionCard.optionCardId}
     >
       <header className="hub-subpanel-header">
         <div>
-          <p className="hub-eyebrow">DecisionDock</p>
-          <h3>{decisionDockHost.title}</h3>
+          <p className="hub-eyebrow">Next action</p>
+          <h3>{hubPublicText(decisionDockHost.title)}</h3>
         </div>
         <span
           className="hub-chip"
           data-tone={toneForRecoveryPosture(props.snapshot.recoveryPosture)}
         >
-          {decisionDockHost.posture}
+          {hubPublicText(decisionDockHost.posture)}
         </span>
       </header>
-      <p className="hub-decision-dock__summary">{decisionDockHost.summary}</p>
+      <p className="hub-decision-dock__summary">{hubPublicText(decisionDockHost.summary)}</p>
       <ul className="hub-highlight-list hub-highlight-list--dock">
         {decisionDockHost.consequenceItems.map((item) => (
-          <li key={item}>{item}</li>
+          <li key={item}>{hubPublicText(item)}</li>
         ))}
       </ul>
       <dl className="hub-fact-grid">
@@ -1657,12 +1711,12 @@ function HubNoSlotResolutionPanel(props: {
           {props.panel.outcomeLabel}
         </span>
       </header>
-      <p className="hub-recovery-panel__summary">{props.panel.summary}</p>
+      <p className="hub-recovery-panel__summary">{hubPublicText(props.panel.summary)}</p>
       <dl className="hub-fact-grid">
         {props.panel.rationaleRows.map((row) => (
           <div key={row.label}>
-            <dt>{row.label}</dt>
-            <dd>{row.value}</dd>
+            <dt>{hubPublicText(row.label)}</dt>
+            <dd>{hubPublicText(row.value)}</dd>
           </div>
         ))}
       </dl>
@@ -1721,12 +1775,12 @@ function HubCallbackTransferPendingState(props: {
       </dl>
       <div className="hub-recovery-note-grid">
         <article className="hub-recovery-note">
-          <p className="hub-eyebrow">Patient truth</p>
-          <strong>{props.panel.patientCopy}</strong>
+          <p className="hub-eyebrow">Patient verified details</p>
+          <strong>{hubPublicText(props.panel.patientCopy)}</strong>
         </article>
         <article className="hub-recovery-note">
           <p className="hub-eyebrow">Next safe action</p>
-          <strong>{props.panel.nextSafeAction}</strong>
+          <strong>{hubPublicText(props.panel.nextSafeAction)}</strong>
         </article>
       </div>
     </section>
@@ -1749,22 +1803,24 @@ function HubReturnToPracticeReceipt(props: {
       <header className="hub-subpanel-header">
         <div>
           <p className="hub-eyebrow">Return</p>
-          <h3>{props.panel.title}</h3>
+          <h3>{hubPublicText(props.panel.title)}</h3>
         </div>
         <span className="hub-chip" data-tone="critical">
           Linked receipt
         </span>
       </header>
-      <p className="hub-recovery-panel__summary">{props.panel.summary}</p>
+      <p className="hub-recovery-panel__summary">{hubPublicText(props.panel.summary)}</p>
       <dl className="hub-fact-grid">
         {props.panel.receiptRows.map((row) => (
           <div key={row.label}>
-            <dt>{row.label}</dt>
-            <dd>{row.value}</dd>
+            <dt>{hubPublicText(row.label)}</dt>
+            <dd>{hubPublicText(row.value)}</dd>
           </div>
         ))}
       </dl>
-      <p className="hub-recovery-panel__footer-copy">{props.panel.reopenLinkageSummary}</p>
+      <p className="hub-recovery-panel__footer-copy">
+        {hubPublicText(props.panel.reopenLinkageSummary)}
+      </p>
     </section>
   );
 }
@@ -1785,19 +1841,19 @@ function HubUrgentBounceBackBanner(props: {
     >
       <div>
         <p className="hub-eyebrow">Urgent bounce-back</p>
-        <h3>{props.banner.title}</h3>
-        <p>{props.banner.summary}</p>
+        <h3>{hubPublicText(props.banner.title)}</h3>
+        <p>{hubPublicText(props.banner.summary)}</p>
       </div>
       <div className="hub-recovery-banner__actions">
         <span className="hub-chip" data-tone="critical">
-          {props.banner.dueLabel}
+          {hubPublicText(props.banner.dueLabel)}
         </span>
         <button
           type="button"
           className="hub-secondary-button"
           onClick={() => props.onNavigate("/hub/exceptions")}
         >
-          {props.banner.actionLabel}
+          {hubPublicText(props.banner.actionLabel)}
         </button>
       </div>
     </section>
@@ -1820,20 +1876,20 @@ function HubRecoveryDiffStrip(props: {
       <header className="hub-subpanel-header">
         <div>
           <p className="hub-eyebrow">Reopen diff</p>
-          <h3>{props.panel.title}</h3>
+          <h3>{hubPublicText(props.panel.title)}</h3>
         </div>
       </header>
-      <p className="hub-recovery-panel__summary">{props.panel.summary}</p>
+      <p className="hub-recovery-panel__summary">{hubPublicText(props.panel.summary)}</p>
       <div className="hub-recovery-diff__rows">
         {props.panel.diffRows.map((row) => (
           <article key={row.label} className="hub-recovery-diff__row">
-            <strong>{row.label}</strong>
+            <strong>{hubPublicText(row.label)}</strong>
             <div>
-              <span>{row.previousValue}</span>
+              <span>{hubPublicText(row.previousValue)}</span>
               <span aria-hidden="true">→</span>
-              <span>{row.nextValue}</span>
+              <span>{hubPublicText(row.nextValue)}</span>
             </div>
-            <p>{row.explanation}</p>
+            <p>{hubPublicText(row.explanation)}</p>
           </article>
         ))}
       </div>
@@ -1849,26 +1905,26 @@ function HubReopenProvenanceStub(props: {
   }
   return (
     <section
-      className="hub-recovery-panel hub-recovery-panel--provenance"
+      className="hub-recovery-panel hub-recovery-panel--history"
       data-hub-recovery="true"
       data-testid="HubReopenProvenanceStub"
     >
       <header className="hub-subpanel-header">
         <div>
-          <p className="hub-eyebrow">Provenance</p>
-          <h3>{props.panel.title}</h3>
+          <p className="hub-eyebrow">History</p>
+          <h3>{hubPublicText(props.panel.title)}</h3>
         </div>
       </header>
-      <p className="hub-recovery-panel__summary">{props.panel.summary}</p>
+      <p className="hub-recovery-panel__summary">{hubPublicText(props.panel.summary)}</p>
       <dl className="hub-fact-grid">
         {props.panel.preservedRows.map((row) => (
           <div key={row.label}>
-            <dt>{row.label}</dt>
-            <dd>{row.value}</dd>
+            <dt>{hubPublicText(row.label)}</dt>
+            <dd>{hubPublicText(row.value)}</dd>
           </div>
         ))}
       </dl>
-      <p className="hub-recovery-panel__footer-copy">{props.panel.lawSummary}</p>
+      <p className="hub-recovery-panel__footer-copy">{hubPublicText(props.panel.lawSummary)}</p>
     </section>
   );
 }
@@ -1945,8 +2001,8 @@ function HubRecoveryCaseCanvas(props: {
         </span>
       </header>
       <GovernedPlaceholderSummary
-        title="Why some cross-organisation detail stays bounded"
-        summary="Recovery keeps the current fallback, provenance, and return rationale visible, but it does not widen hidden operational detail without a lawful need."
+        title="Why some cross-organisation detail stays limited"
+        summary="Recovery keeps the current fallback, history, and return rationale visible, but it does not widen hidden operational detail without a lawful need."
         rows={[
           {
             label: "Fallback type",
@@ -1964,14 +2020,14 @@ function HubRecoveryCaseCanvas(props: {
             value:
               recoveryCase.noSlotResolutionPanel?.practicePreview.summary ??
               recoveryCase.returnToPracticeReceipt?.reopenLinkageSummary ??
-              "Practice-facing detail remains bounded until the current recovery linkage is lawful.",
+              "Practice-facing detail remains limited until the current recovery linkage is lawful.",
           },
         ]}
         reasonLabel={titleCase(recoveryCase.fallbackType)}
       />
       <CrossOrgContentLegend
         title="Recovery wording legend"
-        summary="Recovery, callback, and return wording remain explicit about what is pending, linked, or provenance-only."
+        summary="Recovery, callback, and return wording remain explicit about what is pending, linked, or history-only."
         items={hubRecoveryLegendItems()}
       />
       <HubUrgentBounceBackBanner banner={recoveryCase.urgentBounceBackBanner} onNavigate={props.onNavigate} />
@@ -1999,18 +2055,18 @@ function HubExceptionDetailDrawer(props: {
       <header className="hub-subpanel-header">
         <div>
           <p className="hub-eyebrow">Detail drawer</p>
-          <h3 id="hub-exception-drawer-title">{props.detail.title}</h3>
+          <h3 id="hub-exception-drawer-title">{hubPublicText(props.detail.title)}</h3>
         </div>
         <span className="hub-chip" data-tone="watch">
-          {titleCase(props.detail.fallbackType)}
+          {hubPublicText(titleCase(props.detail.fallbackType))}
         </span>
       </header>
-      <p className="hub-recovery-panel__summary">{props.detail.summary}</p>
+      <p className="hub-recovery-panel__summary">{hubPublicText(props.detail.summary)}</p>
       <dl className="hub-fact-grid">
         {props.detail.blockerRows.map((row) => (
           <div key={`blocker-${row.label}`}>
-            <dt>{row.label}</dt>
-            <dd>{row.value}</dd>
+            <dt>{hubPublicText(row.label)}</dt>
+            <dd>{hubPublicText(row.value)}</dd>
           </div>
         ))}
       </dl>
@@ -2024,8 +2080,8 @@ function HubExceptionDetailDrawer(props: {
         <dl className="hub-fact-grid">
           {props.detail.evidenceRows.map((row) => (
             <div key={`evidence-${row.label}`}>
-              <dt>{row.label}</dt>
-              <dd>{row.value}</dd>
+              <dt>{hubPublicText(row.label)}</dt>
+              <dd>{hubPublicText(row.value)}</dd>
             </div>
           ))}
         </dl>
@@ -2034,15 +2090,17 @@ function HubExceptionDetailDrawer(props: {
         <header className="hub-subpanel-header">
           <div>
             <p className="hub-eyebrow">Next safe actions</p>
-            <h4>Bounded recovery steps</h4>
+            <h4>Limited recovery steps</h4>
           </div>
         </header>
         <ul className="hub-highlight-list">
           {props.detail.nextSafeActions.map((action) => (
-            <li key={action}>{action}</li>
+            <li key={action}>{hubPublicText(action)}</li>
           ))}
         </ul>
-        <p className="hub-recovery-panel__footer-copy">{props.detail.escalationSummary}</p>
+        <p className="hub-recovery-panel__footer-copy">
+          {hubPublicText(props.detail.escalationSummary)}
+        </p>
       </section>
       <button
         type="button"
@@ -2279,7 +2337,7 @@ function HubNarrowStatusAuthorityStrip(props: {
       <header className="hub-subpanel-header">
         <div>
           <p className="hub-eyebrow">Mission stack</p>
-          <h2>Current shell authority</h2>
+          <h2>Current status</h2>
         </div>
         <button
           type="button"
@@ -2332,15 +2390,17 @@ function HubCasePulseCompact(props: { snapshot: HubShellSnapshot }) {
           </span>
         </div>
       </header>
-      <p className="hub-case-pulse-compact__summary">{props.snapshot.currentCase.queueSummary}</p>
+      <p className="hub-case-pulse-compact__summary">
+        {hubPublicText(props.snapshot.currentCase.queueSummary)}
+      </p>
       <dl className="hub-case-pulse-compact__facts">
         <div>
           <dt>Checkpoint</dt>
-          <dd>{props.snapshot.currentCase.currentCheckpointLabel}</dd>
+          <dd>{hubPublicText(props.snapshot.currentCase.currentCheckpointLabel)}</dd>
         </div>
         <div>
           <dt>Freshness</dt>
-          <dd>{props.snapshot.currentCase.freshestEvidenceLabel}</dd>
+          <dd>{hubPublicText(props.snapshot.currentCase.freshestEvidenceLabel)}</dd>
         </div>
         <div>
           <dt>Selected option</dt>
@@ -2348,7 +2408,7 @@ function HubCasePulseCompact(props: { snapshot: HubShellSnapshot }) {
         </div>
         <div>
           <dt>Trust</dt>
-          <dd>{props.snapshot.selectedOptionCard.sourceTrustSummary}</dd>
+          <dd>{hubPublicText(props.snapshot.selectedOptionCard.sourceTrustSummary)}</dd>
         </div>
       </dl>
     </section>
@@ -2476,7 +2536,7 @@ function HubNarrowQueueWorkbench(props: {
               <strong>{chip.count}</strong>
               <span>{chip.label}</span>
             </div>
-            <p>{chip.summary}</p>
+            <p>{hubPublicText(chip.summary)}</p>
           </article>
         ))}
       </div>
@@ -2487,22 +2547,22 @@ function HubNarrowQueueWorkbench(props: {
           data-queue-change-state={batch.state}
           aria-live={batch.state === "buffered" ? "polite" : "off"}
         >
-          <strong>{batch.summary}</strong>
-          <p>{batch.followUpLabel}</p>
+          <strong>{hubPublicText(batch.summary)}</strong>
+          <p>{hubPublicText(batch.followUpLabel)}</p>
           <div className="hub-control-plane-actions">
             <button
               type="button"
               className="hub-secondary-button"
               onClick={props.onBufferQueueDelta}
             >
-              Rehearse delta
+              Preview change
             </button>
             <button
               type="button"
               className="hub-primary-button"
               onClick={props.onApplyQueueDelta}
             >
-              Apply delta
+              Apply update
             </button>
           </div>
         </section>
@@ -2528,13 +2588,13 @@ function HubNarrowQueueWorkbench(props: {
               </div>
               <div className="hub-narrow-queue-row__body">
                 <strong>{row.patientLabel}</strong>
-                <span>{row.queueSummary}</span>
+                <span>{hubPublicText(row.queueSummary)}</span>
                 <div className="hub-narrow-queue-row__signals">
                   <span className="hub-chip" data-tone={toneForRiskBand(row.riskBand)}>
-                    {row.breachSummary}
+                    {hubPublicText(row.breachSummary)}
                   </span>
                   <span className="hub-chip" data-tone="neutral">
-                    {row.trustSummary}
+                    {hubPublicText(row.trustSummary)}
                   </span>
                   <span className="hub-chip" data-tone="neutral">
                     {row.freshnessLabel}
@@ -2596,13 +2656,13 @@ function HubOptionCardCompactStack(props: {
                   </div>
                   <div className="hub-option-compact-card__copy">
                     <strong>{card.title}</strong>
-                    <span>{card.secondaryLine}</span>
+                  <span>{hubPublicText(card.secondaryLine)}</span>
                   </div>
                   <span
                     className="hub-chip"
                     data-tone={card.approvedVarianceVisible ? "watch" : "ready"}
                   >
-                    {card.comparisonLabel}
+                    {hubPublicText(card.comparisonLabel)}
                   </span>
                 </div>
                 <div className="hub-option-compact-card__chips">
@@ -2616,18 +2676,20 @@ function HubOptionCardCompactStack(props: {
                     className="hub-chip"
                     data-tone={toneForReservationTruth(card.reservationTruthState)}
                   >
-                    {card.reservationTruthSummary}
+                    {hubPublicText(card.reservationTruthSummary)}
                   </span>
                 </div>
                 <div className="hub-option-compact-card__reasons">
                   {card.rankReasons.map((reason) => (
                     <span key={reason.reasonId} className="hub-reason-chip">
-                      {reason.label}
+                      {hubPublicText(reason.label)}
                     </span>
                   ))}
                 </div>
                 {card.selectedState ? (
-                  <p className="hub-option-compact-card__summary">{card.dominantActionSummary}</p>
+                  <p className="hub-option-compact-card__summary">
+                    {hubPublicText(card.dominantActionSummary)}
+                  </p>
                 ) : null}
               </button>
             ))}
@@ -2824,7 +2886,7 @@ function HubDecisionDockBar(props: {
   const blocked =
     props.snapshot.actingContextControlPlane.accessDeniedState ||
     props.snapshot.actingContextControlPlane.accessPosture === "frozen";
-  const dockTitle = blocked ? "DecisionDock recovery" : props.snapshot.decisionDockHost.title;
+  const dockTitle = blocked ? "Recovery action" : props.snapshot.decisionDockHost.title;
   const dockSummary = blocked
     ? props.snapshot.actingContextControlPlane.accessDeniedState?.summary ??
       props.snapshot.actingContextControlPlane.scopeDriftFreezeBanner?.summary ??
@@ -2844,14 +2906,14 @@ function HubDecisionDockBar(props: {
       data-selected-option={props.snapshot.selectedOptionCard.optionCardId}
     >
       <div className="hub-decision-dock-bar__copy">
-        <p className="hub-eyebrow">DecisionDock</p>
-        <strong>{dockTitle}</strong>
-        <span>{dockSummary}</span>
+        <p className="hub-eyebrow">Next action</p>
+        <strong>{hubPublicText(dockTitle)}</strong>
+        <span>{hubPublicText(dockSummary)}</span>
       </div>
       <div className="hub-decision-dock-bar__facts">
         {props.snapshot.decisionDockHost.supportingFacts.slice(0, 2).map((fact) => (
           <span key={fact.label} className="hub-chip" data-tone="neutral">
-            {fact.label}: {fact.value}
+            {hubPublicText(fact.label)}: {hubPublicText(fact.value)}
           </span>
         ))}
       </div>
@@ -3115,17 +3177,17 @@ function HubStartOfDayResumeCard(props: {
           label={props.snapshot.currentCase.ownershipLabel}
         />
       </div>
-      <p className="hub-resume-card__summary">{resumeCard.summary}</p>
+      <p className="hub-resume-card__summary">{hubPublicText(resumeCard.summary)}</p>
       <dl className="hub-fact-grid">
         {resumeCard.supportingFacts.map((fact) => (
           <div key={fact.label}>
-            <dt>{fact.label}</dt>
-            <dd>{fact.value}</dd>
+            <dt>{hubPublicText(fact.label)}</dt>
+            <dd>{hubPublicText(fact.value)}</dd>
           </div>
         ))}
       </dl>
       <div className="hub-resume-card__footer">
-        <p>{resumeCard.dominantActionSummary}</p>
+        <p>{hubPublicText(resumeCard.dominantActionSummary)}</p>
         <button
           type="button"
           className="hub-primary-button"
@@ -3179,7 +3241,7 @@ function HubQueueEntryStrip(props: {
               </span>
               <span className="hub-queue-entry-row__body">
                 <strong>{row.patientLabel}</strong>
-                <span>{row.queueSummary}</span>
+                <span>{hubPublicText(row.queueSummary)}</span>
                 <small>{row.metaLine}</small>
               </span>
             </button>
@@ -3219,7 +3281,7 @@ function HubInterruptionDigestPanel(props: {
       <header className="hub-subpanel-header">
         <div>
           <p className="hub-eyebrow">Interruption digest</p>
-          <h3>Bounded blockers</h3>
+          <h3>Limited blockers</h3>
         </div>
         <span>{props.snapshot.interruptionRows.length} items</span>
       </header>
@@ -3270,7 +3332,7 @@ function HubCaseStageHost(props: {
       <header className="hub-subpanel-header">
         <div>
           <p className="hub-eyebrow">Case stage host</p>
-          <h3>{caseStageHost.title}</h3>
+          <h3>{hubPublicText(caseStageHost.title)}</h3>
         </div>
         {showReturn ? (
           <button
@@ -3283,14 +3345,14 @@ function HubCaseStageHost(props: {
           </button>
         ) : null}
       </header>
-      <p className="hub-case-stage-host__summary">{caseStageHost.summary}</p>
+      <p className="hub-case-stage-host__summary">{hubPublicText(caseStageHost.summary)}</p>
       <div className="hub-case-stage-host__prompt">
-        <strong>{caseStageHost.primaryPrompt}</strong>
-        <p>{caseStageHost.secondaryPrompt}</p>
+        <strong>{hubPublicText(caseStageHost.primaryPrompt)}</strong>
+        <p>{hubPublicText(caseStageHost.secondaryPrompt)}</p>
       </div>
       <ul className="hub-highlight-list">
         {caseStageHost.highlights.map((highlight) => (
-          <li key={highlight}>{highlight}</li>
+          <li key={highlight}>{hubPublicText(highlight)}</li>
         ))}
       </ul>
       <div className="hub-case-stage-host__actions">
@@ -3306,7 +3368,7 @@ function HubCaseStageHost(props: {
           }
           onClick={() => props.onNavigate(caseStageHost.primaryActionPath)}
         >
-          {caseStageHost.primaryActionLabel}
+          {hubPublicText(caseStageHost.primaryActionLabel)}
         </button>
         {location.viewMode === "case" ? (
           <button
@@ -3333,18 +3395,18 @@ function HubRightRailHost(props: { snapshot: HubShellSnapshot }) {
       <header className="hub-subpanel-header">
         <div>
           <p className="hub-eyebrow">Right rail host</p>
-          <h3>{props.snapshot.rightRailHost.title}</h3>
+          <h3>{hubPublicText(props.snapshot.rightRailHost.title)}</h3>
         </div>
         <span data-tone={toneForRecoveryPosture(props.snapshot.recoveryPosture)}>
-          {titleCase(props.snapshot.recoveryPosture)}
+          {hubPublicStatusLabel(props.snapshot.recoveryPosture)}
         </span>
       </header>
-      <p className="hub-right-rail-host__summary">{props.snapshot.rightRailHost.summary}</p>
+      <p className="hub-right-rail-host__summary">{hubPublicText(props.snapshot.rightRailHost.summary)}</p>
       <dl className="hub-fact-grid">
         {props.snapshot.rightRailHost.items.map((item) => (
           <div key={item.label}>
-            <dt>{item.label}</dt>
-            <dd>{item.value}</dd>
+            <dt>{hubPublicText(item.label)}</dt>
+            <dd>{hubPublicText(item.value)}</dd>
           </div>
         ))}
       </dl>
@@ -3357,6 +3419,7 @@ function HubShellContinuityBinder(props: {
   state: HubShellState;
   focusRestoreAttributes: Readonly<Record<string, string>>;
 }) {
+  const showDiagnostics = hubDiagnosticsEnabled();
   return (
     <div
       className="hub-visually-hidden"
@@ -3375,17 +3438,19 @@ function HubShellContinuityBinder(props: {
         data-testid="hub-focus-restore-marker"
         data-dom-marker="focus-restore"
         {...props.focusRestoreAttributes}
-      >
-        {props.state.continuitySnapshot.focusRestoreTargetRef}
-      </span>
-      <ol data-testid="hub-telemetry-log">
-        {props.state.telemetry.slice(-10).map((entry) => (
-          <li key={entry.envelopeId}>
-            {entry.eventName}:
-            {String(entry.payload.caseId ?? entry.payload.pathname ?? entry.eventCode)}
-          </li>
-        ))}
-      </ol>
+        hidden
+        aria-hidden="true"
+      />
+      {showDiagnostics ? (
+        <ol data-testid="hub-telemetry-log">
+          {props.state.telemetry.slice(-10).map((entry) => (
+            <li key={entry.envelopeId}>
+              {entry.eventName}:
+              {String(entry.payload.caseId ?? entry.payload.pathname ?? entry.eventCode)}
+            </li>
+          ))}
+        </ol>
+      ) : null}
     </div>
   );
 }
@@ -3650,7 +3715,7 @@ function HubDeskShellDocument(props: {
             style={{ width: 168, height: "auto" }}
           />
           <div>
-            <p className="hub-eyebrow">Phase 5 hub shell</p>
+            <p className="hub-eyebrow">Current programme hub shell</p>
             <h1>Hub desk mission control</h1>
             <p className="hub-desk-shell__lead">
               One saved view, one current queue anchor, and one calm resume path before deeper
@@ -3661,7 +3726,7 @@ function HubDeskShellDocument(props: {
         <div className="hub-desk-shell__masthead-meta">
           <HubActingContextChip snapshot={snapshot} onOpenDrawer={props.onOpenScopeDrawer} />
           <span className="hub-chip" data-tone={toneForRecoveryPosture(snapshot.recoveryPosture)}>
-            {titleCase(snapshot.recoveryPosture)}
+            {hubPublicStatusLabel(snapshot.recoveryPosture)}
           </span>
           <HubOwnershipContextChip
             ownershipState={snapshot.currentCase.ownershipState}

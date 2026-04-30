@@ -93,16 +93,15 @@ async function startStaticServer() {
       response.end("not found");
       return;
     }
-    const contentType =
-      filePath.endsWith(".html")
-        ? "text/html; charset=utf-8"
-        : filePath.endsWith(".json")
-          ? "application/json; charset=utf-8"
-          : filePath.endsWith(".csv")
-            ? "text/csv; charset=utf-8"
-            : filePath.endsWith(".css")
-              ? "text/css; charset=utf-8"
-              : "text/plain; charset=utf-8";
+    const contentType = filePath.endsWith(".html")
+      ? "text/html; charset=utf-8"
+      : filePath.endsWith(".json")
+        ? "application/json; charset=utf-8"
+        : filePath.endsWith(".csv")
+          ? "text/csv; charset=utf-8"
+          : filePath.endsWith(".css")
+            ? "text/css; charset=utf-8"
+            : "text/plain; charset=utf-8";
     response.writeHead(200, { "Content-Type": contentType });
     response.end(fs.readFileSync(filePath));
   });
@@ -200,7 +199,10 @@ export async function run() {
   assertCondition(fs.existsSync(GALLERY_PATH), "Governance shell gallery HTML is missing.");
   assertCondition(MOCK_DATA.task_id === "par_119", "Governance shell mock data task drifted.");
   assertCondition(MOCK_DATA.summary.route_count === 15, "Governance shell route count drifted.");
-  assertCondition(MOCK_DATA.summary.mock_projection_count === 6, "Governance shell projection count drifted.");
+  assertCondition(
+    MOCK_DATA.summary.mock_projection_count === 6,
+    "Governance shell projection count drifted.",
+  );
 
   const playwright = await importPlaywright();
   if (!playwright) {
@@ -238,8 +240,9 @@ export async function run() {
     );
     await galleryPage.getByRole("button", { name: "scope_drift" }).click();
     assertCondition(
-      (await galleryPage.locator("[data-testid='governance-gallery-stage']").getAttribute("data-runtime")) ===
-        "scope_drift",
+      (await galleryPage
+        .locator("[data-testid='governance-gallery-stage']")
+        .getAttribute("data-runtime")) === "scope_drift",
       "Gallery runtime selector failed to switch to scope_drift.",
     );
     assertCondition(
@@ -263,7 +266,6 @@ export async function run() {
     await page.locator("[data-testid='governance-route-config_bundles']").click();
     await page.waitForURL(`${baseUrl}/ops/config/bundles`);
     await page.locator("[data-testid='governance-change-envelope']").waitFor();
-    const telemetryBefore = await telemetryCount(page);
     await page.locator("[data-testid='governance-open-review']").click();
     await page.waitForURL(`${baseUrl}/ops/config/promotions`);
     await page.locator("[data-testid='governance-review-notice']").waitFor();
@@ -285,7 +287,10 @@ export async function run() {
     await page.locator("[data-testid='governance-compliance-ledger']").waitFor();
     await page.locator("[data-testid='governance-route-governance_records']").click();
     await page.waitForURL(`${baseUrl}/ops/governance/records`);
-    await page.locator("[data-testid='governance-records-lifecycle']").waitFor();
+    const recordsSurface = page.locator("[data-testid='records-governance']");
+    await recordsSurface.waitFor();
+    await expectAttribute(recordsSurface, "data-route-mode", "records");
+    await page.locator("[data-testid='lifecycle-ledger']").waitFor();
     await page.locator("[data-testid='governance-scope-ribbon']").waitFor();
 
     await page.locator("[data-testid='governance-disposition-scope_drift']").click();
@@ -296,13 +301,18 @@ export async function run() {
     await page.setViewportSize({ width: 720, height: 1280 });
     await page.waitForTimeout(150);
     await expectAttribute(root, "data-layout-mode", "mission_stack");
-    await page.locator("[data-testid='governance-focus-restore']").waitFor();
+    await assertHidden(page, "[data-testid='governance-focus-restore']");
 
-    const telemetryAfter = await telemetryCount(page);
     assertCondition(
-      telemetryAfter > telemetryBefore,
-      "Telemetry log did not accumulate the expected governance events.",
+      (await telemetryCount(page)) === 0,
+      "Telemetry log is visible on the default governance route.",
     );
+    await page.goto(`${baseUrl}/governance?diagnostics=governance`, { waitUntil: "networkidle" });
+    assertCondition(
+      (await telemetryCount(page)) > 0,
+      "Diagnostics telemetry did not render behind the governance flag.",
+    );
+    await page.locator("[data-testid='governance-focus-restore']").waitFor();
     assertCondition(
       appExternal.size === 0,
       `Unexpected external requests: ${Array.from(appExternal).join(", ")}`,
@@ -318,7 +328,9 @@ export async function run() {
       .locator("[data-testid='governance-disposition-writable']")
       .evaluate((element) => window.getComputedStyle(element).transitionDuration);
     assertCondition(
-      transitionDuration.includes("0.01ms") || transitionDuration.includes("1e-05s"),
+      transitionDuration.includes("0s") ||
+        transitionDuration.includes("0.01ms") ||
+        transitionDuration.includes("1e-05s"),
       `Reduced-motion transition did not collapse as expected: ${transitionDuration}`,
     );
     await reducedContext.close();

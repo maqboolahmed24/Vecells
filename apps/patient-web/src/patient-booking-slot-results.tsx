@@ -781,7 +781,7 @@ export function BookingSlotResultsStage({
           <p>
             {projection.viewState === "no_supply_confirmed"
               ? "The snapshot finished cleanly for this policy. Continue using the support route rather than assuming more local supply is hiding behind filters."
-              : "This route no longer supports self-service booking from the current supplier posture. Use the assisted continuation below."}
+              : "This route no longer supports self-service booking from the current supplier status. Use the assisted continuation below."}
           </p>
         </div>
       ) : null}

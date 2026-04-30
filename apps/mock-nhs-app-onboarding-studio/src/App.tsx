@@ -305,8 +305,8 @@ export default function App() {
     <main className="app-shell" data-testid="atelier-shell">
       <div className="phase7-banner" data-testid="phase7-deferred-banner">
         <VecellLogoWordmark aria-hidden="true" className="vecells-mark" />
-        <strong>MOCK_NHS_APP_ONBOARDING</strong>
-        <span>Phase 7 remains deferred. This studio rehearses readiness; it does not open current-baseline delivery.</span>
+        <strong>nhs app onboarding test mode</strong>
+        <span>Current programme remains deferred. This studio rehearses readiness; it does not open current-baseline delivery.</span>
       </div>
 
       <header className="topbar">
@@ -582,9 +582,9 @@ export default function App() {
 
                   {state.previewMode === "standalone" ? (
                     <div className="shell-chrome">
-                      <div className="shell-header">vecell patient portal header</div>
+                      <div className="shell-header">Patient portal header</div>
                       <div className="shell-body">
-                        <PreviewFact label="Shell posture" value={currentPreview.standalone_state} />
+                        <PreviewFact label="Shell status" value={currentPreview.standalone_state} />
                         <PreviewFact label="Continuity" value={currentPreview.continuity_rule} />
                         <PreviewFact label="Selected anchor" value={currentPreview.selected_anchor} mono />
                       </div>
@@ -661,7 +661,7 @@ export default function App() {
                 </div>
                 <div className="actual-notice" data-testid="actual-submission-notice">
                   <strong>Actual provider strategy stays fail-closed.</strong>
-                  <span>Phase 7 remains deferred, the external-readiness gate is withheld, and live-provider mutation requires explicit flags and named ownership.</span>
+                  <span>Current programme remains deferred, the external-readiness gate is withheld, and live-provider mutation requires explicit flags and named ownership.</span>
                 </div>
 
                 <FieldGroup title="Live-control fields">
@@ -762,7 +762,7 @@ export default function App() {
             <h3>{currentRoute.route_family}</h3>
             <p>{currentRoute.continuity_expectations}</p>
             <ul className="detail-list">
-              <li><strong>Route family:</strong> <span className="mono-meta">{currentRoute.route_family_id}</span></li>
+              <li><strong>Journey group:</strong> <span className="mono-meta">{currentRoute.route_family_id}</span></li>
               <li><strong>Channel profile:</strong> {currentRoute.channel_profiles}</li>
               <li><strong>Allowed mutations:</strong> {currentRoute.allowed_mutations}</li>
               <li><strong>Degraded recovery:</strong> {currentRoute.degraded_recovery_states}</li>

@@ -82,7 +82,7 @@ export function BufferedQueueChangeTray({
     >
       <header className="staff-shell__buffered-queue-head">
         <div>
-          <span className="staff-shell__eyebrow">QueueChangeBatch</span>
+          <span className="staff-shell__eyebrow">Queue update</span>
           <strong>{projection.title}</strong>
           <p>{projection.summary}</p>
         </div>
@@ -94,16 +94,16 @@ export function BufferedQueueChangeTray({
 
       <div className="staff-shell__buffered-queue-meta">
         <span>
-          <strong>Source snapshot</strong>
-          {projection.sourceRankSnapshotRef}
+          <strong>Current queue</strong>
+          Preserved
         </span>
         <span>
-          <strong>Target snapshot</strong>
-          {projection.targetRankSnapshotRef}
+          <strong>Updated queue</strong>
+          Ready
         </span>
         <span>
-          <strong>Preserved anchor</strong>
-          {projection.preservedAnchorRef}
+          <strong>Selected row</strong>
+          Preserved
         </span>
       </div>
 
@@ -162,21 +162,23 @@ export function ProtectedCompositionRecovery({
       data-recovery-state={projection.recoveryState}
     >
       <header className="staff-shell__task-stack-header">
-        <span className="staff-shell__eyebrow">ProtectedCompositionRecovery</span>
+        <span className="staff-shell__eyebrow">Recovery support</span>
         <h3>{projection.headline}</h3>
         <p>{projection.summary}</p>
       </header>
       <div className="staff-shell__task-stack-inline">
-        <span>Preserved anchor</span>
-        <strong>{projection.preservedAnchorRef}</strong>
+        <span>Preserved item</span>
+        <strong data-preserved-anchor-ref={projection.preservedAnchorRef}>Current task</strong>
       </div>
       <div className="staff-shell__task-stack-inline">
-        <span>Decision epoch</span>
-        <strong>{projection.preservedDecisionEpochRef}</strong>
+        <span>Decision</span>
+        <strong data-preserved-decision-epoch-ref={projection.preservedDecisionEpochRef}>
+          Current review
+        </strong>
       </div>
       <div className="staff-shell__task-stack-inline">
-        <span>Quiet return</span>
-        <strong>{projection.quietReturnTargetRef}</strong>
+        <span>Return target</span>
+        <strong data-quiet-return-target-ref={projection.quietReturnTargetRef}>Task summary</strong>
       </div>
       <ul className="staff-shell__recovery-list">
         {projection.blockingReasons.map((reason) => (
@@ -205,26 +207,32 @@ export function CompletionContinuityStage({
       data-stage-state={projection.stageState}
     >
       <header className="staff-shell__task-stack-header">
-        <span className="staff-shell__eyebrow">TaskCompletionSettlementEnvelope</span>
+        <span className="staff-shell__eyebrow">Completion status</span>
         <h3>{projection.headline}</h3>
         <p>{projection.summary}</p>
       </header>
       <div className="staff-shell__continuity-grid">
         <div>
-          <strong>Settlement envelope</strong>
-          <span>{projection.taskCompletionSettlementEnvelopeRef}</span>
+          <strong>Settlement</strong>
+          <span data-task-completion-settlement-envelope-ref={projection.taskCompletionSettlementEnvelopeRef}>
+            Pending
+          </span>
         </div>
         <div>
-          <strong>Continuity evidence</strong>
-          <span>{projection.workspaceContinuityEvidenceProjectionRef}</span>
+          <strong>Continuity</strong>
+          <span data-workspace-continuity-evidence-projection-ref={projection.workspaceContinuityEvidenceProjectionRef}>
+            Ready
+          </span>
         </div>
         <div>
-          <strong>Prefetch window</strong>
-          <span>{projection.latestPrefetchWindowRef}</span>
+          <strong>Next task</strong>
+          <span data-latest-prefetch-window-ref={projection.latestPrefetchWindowRef}>Prepared</span>
         </div>
         <div>
-          <strong>Launch lease</strong>
-          <span>{projection.latestNextTaskLaunchLeaseRef}</span>
+          <strong>Launch</strong>
+          <span data-latest-next-task-launch-lease-ref={projection.latestNextTaskLaunchLeaseRef}>
+            Manual start
+          </span>
         </div>
       </div>
     </section>
@@ -248,21 +256,21 @@ export function NextTaskPostureCard({
       data-auto-advance={noAutoAdvancePolicy}
     >
       <header className="staff-shell__task-stack-header">
-        <span className="staff-shell__eyebrow">NextTaskLaunchLease</span>
+        <span className="staff-shell__eyebrow">Next task</span>
         <h3>{projection.headline}</h3>
         <p>{projection.summary}</p>
       </header>
       <div className="staff-shell__task-stack-inline">
         <span>Candidate</span>
-        <strong>{projection.candidatePatientLabel ?? "No governed candidate"}</strong>
+        <strong>{projection.candidatePatientLabel ?? "No approved candidate"}</strong>
       </div>
       <div className="staff-shell__task-stack-inline">
-        <span>Source snapshot</span>
-        <strong>{projection.sourceRankSnapshotRef}</strong>
+        <span>Queue status</span>
+        <strong>Preserved</strong>
       </div>
       <div className="staff-shell__task-stack-inline">
         <span>Prefetch window</span>
-        <strong>{projection.prefetchWindowRef}</strong>
+        <strong data-prefetch-window-ref={projection.prefetchWindowRef}>Prepared</strong>
       </div>
       {!projection.launchEnabled && projection.blockingReasons.length > 0 && (
         <ul className="staff-shell__next-task-blockers">
@@ -291,7 +299,7 @@ export function DepartureReturnStub({
   return (
     <section className="staff-shell__departure-return-stub" data-testid="DepartureReturnStub">
       <header className="staff-shell__task-stack-header">
-        <span className="staff-shell__eyebrow">DepartureReturnStub</span>
+        <span className="staff-shell__eyebrow">Return support</span>
         <h3>{projection.title}</h3>
         <p>{projection.summary}</p>
       </header>
@@ -300,16 +308,16 @@ export function DepartureReturnStub({
         <strong>{projection.queueRef}</strong>
       </div>
       <div className="staff-shell__task-stack-inline">
-        <span>Preserved anchor</span>
-        <strong>{projection.preservedAnchorRef}</strong>
+        <span>Preserved item</span>
+        <strong data-preserved-anchor-ref={projection.preservedAnchorRef}>Current task</strong>
       </div>
       <div className="staff-shell__task-stack-inline">
-        <span>Quiet region</span>
+        <span>Visible region</span>
         <strong>{projection.lastQuietRegionLabel}</strong>
       </div>
       <div className="staff-shell__task-stack-inline">
-        <span>Quiet return target</span>
-        <strong>{projection.quietReturnTargetRef}</strong>
+        <span>Return target</span>
+        <strong data-quiet-return-target-ref={projection.quietReturnTargetRef}>Task summary</strong>
       </div>
     </section>
   );

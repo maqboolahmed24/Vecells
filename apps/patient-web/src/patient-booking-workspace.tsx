@@ -1,11 +1,4 @@
-import {
-  startTransition,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import { VecellLogoWordmark } from "@vecells/design-system";
+import { startTransition, useEffect, useRef, useState, type ReactNode } from "react";
 import { resolvePortalSupportPhase2Context } from "../../../packages/domain-kernel/src/patient-support-phase2-integration";
 import {
   PATIENT_BOOKING_WORKSPACE_TASK_ID,
@@ -44,6 +37,7 @@ import {
   PATIENT_BOOKING_RESPONSIVE_VISUAL_MODE,
 } from "./patient-booking-responsive.model";
 import { PatientSupportPhase2Bridge } from "./patient-support-phase2-bridge";
+import { PatientPortalTopBar } from "./patient-portal-top-bar";
 
 export { isPatientBookingWorkspacePath };
 
@@ -115,7 +109,7 @@ function restoreScroll(scrollStateRef: string | null): void {
   }
   const scrollY = Number(scrollStateRef.slice(2));
   if (Number.isFinite(scrollY)) {
-    safeWindow()?.scrollTo({ top: scrollY, behavior: "instant" as ScrollBehavior });
+    safeWindow()?.scrollTo({ top: scrollY, behavior: "auto" });
   }
 }
 
@@ -130,9 +124,7 @@ function usePatientBookingWorkspaceController() {
       restoredBy: storedBundleRef.current ? "refresh_replay" : "query",
     }),
   );
-  const [announcement, setAnnouncement] = useState(
-    "Appointment scheduling workspace loaded.",
-  );
+  const [announcement, setAnnouncement] = useState("Appointment scheduling workspace loaded.");
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
@@ -230,7 +222,7 @@ function usePatientBookingWorkspaceController() {
 
   function focusProvenance(): void {
     focusByAnchor("booking-provenance-card");
-    setAnnouncement("Booking provenance focused.");
+    setAnnouncement("Booking history focused.");
   }
 
   function runDominantAction(actionRef: BookingWorkspaceActionScope): void {
@@ -320,9 +312,7 @@ function StatusChip({
   label: string;
   tone: "primary" | "safe" | "warn" | "blocked" | "neutral";
 }) {
-  return (
-    <span className={`patient-booking__chip patient-booking__chip--${tone}`}>{label}</span>
-  );
+  return <span className={`patient-booking__chip patient-booking__chip--${tone}`}>{label}</span>;
 }
 
 function BookingCasePulseHeader({
@@ -353,7 +343,7 @@ function BookingCasePulseHeader({
         </svg>
       </div>
       <div>
-        <span className="patient-booking__eyebrow">BookingCasePulse</span>
+        <span className="patient-booking__eyebrow">Appointment update</span>
         <h2>{workspace.heading}</h2>
         <p>{workspace.subheading}</p>
       </div>
@@ -414,7 +404,7 @@ function NotificationEntryBanner({
       tabIndex={-1}
     >
       <div className="patient-booking__section-head">
-        <span className="patient-booking__eyebrow">NotificationEntryBanner</span>
+        <span className="patient-booking__eyebrow">Appointment message</span>
         <h3>{notification.title}</h3>
       </div>
       <div className="patient-booking__capability-copy">
@@ -426,11 +416,7 @@ function NotificationEntryBanner({
   );
 }
 
-function NeedWindowRibbon({
-  workspace,
-}: {
-  workspace: PatientAppointmentWorkspaceProjection293;
-}) {
+function NeedWindowRibbon({ workspace }: { workspace: PatientAppointmentWorkspaceProjection293 }) {
   return (
     <section
       className="patient-booking__window"
@@ -440,7 +426,7 @@ function NeedWindowRibbon({
       tabIndex={-1}
     >
       <div className="patient-booking__section-head">
-        <span className="patient-booking__eyebrow">NeedWindowRibbon</span>
+        <span className="patient-booking__eyebrow">Timing</span>
         <h3 id="need-window-title">Target window</h3>
       </div>
       <div className="patient-booking__window-track">
@@ -469,7 +455,7 @@ function BookingNeedSummary({
       tabIndex={-1}
     >
       <div className="patient-booking__section-head">
-        <span className="patient-booking__eyebrow">BookingNeedSummary</span>
+        <span className="patient-booking__eyebrow">Appointment details</span>
         <h3 id="booking-need-summary-title">Appointment need</h3>
       </div>
       <dl className="patient-booking__summary-list">
@@ -498,7 +484,7 @@ function BookingPreferenceSummaryCard({
       tabIndex={-1}
     >
       <div className="patient-booking__section-head">
-        <span className="patient-booking__eyebrow">BookingPreferenceSummaryCard</span>
+        <span className="patient-booking__eyebrow">Preferences</span>
         <h3 id="booking-preference-summary-title">Preference summary</h3>
       </div>
       <dl className="patient-booking__summary-list">
@@ -553,11 +539,14 @@ function BookingCapabilityPosturePanel({
       tabIndex={-1}
     >
       <div className="patient-booking__section-head">
-        <span className="patient-booking__eyebrow">BookingCapabilityPosturePanel</span>
+        <span className="patient-booking__eyebrow">Next step</span>
         <h3 id="booking-capability-posture-title">Current next step</h3>
       </div>
       <div className="patient-booking__capability-copy">
-        <StatusChip label={humanize(workspace.capabilityProjection.surfaceState)} tone={capabilityTone} />
+        <StatusChip
+          label={humanize(workspace.capabilityProjection.surfaceState)}
+          tone={capabilityTone}
+        />
         <strong>{dominantAction.label}</strong>
         <p>{dominantAction.body}</p>
       </div>
@@ -659,7 +648,7 @@ function BookingContentStage({
       tabIndex={-1}
     >
       <div className="patient-booking__section-head">
-        <span className="patient-booking__eyebrow">BookingContentStage</span>
+        <span className="patient-booking__eyebrow">Choose appointment</span>
         <h3 id="booking-content-stage-title">{entry.stageHeading}</h3>
       </div>
       <p className="patient-booking__stage-copy">{entry.stageCopy}</p>
@@ -674,7 +663,7 @@ function BookingContentStage({
           data-anchor-ref="booking-provenance-card"
           tabIndex={-1}
         >
-          <small>Preserved provenance</small>
+          <small>Preserved history</small>
           <strong>{workspace.provenanceCard.title}</strong>
           <p>{workspace.provenanceCard.summary}</p>
           <span>{workspace.provenanceCard.meta}</span>
@@ -724,34 +713,34 @@ function BookingContentStage({
       ) : (
         <div className="patient-booking__stage-grid">
           <StageCard
-            kicker="slot_results_host"
-            title="Results child surface"
-            copy="Task 294 mounts snapshot-backed availability here without taking over the surrounding shell."
+            kicker="Availability"
+            title="Available appointments"
+            copy="Choose from the current appointment options."
           />
           <StageCard
-            kicker="truthful_selection_host"
-            title="Selection and hold posture"
-            copy="Task 295 mounts truthful selection, compare, and reservation posture here while reusing the same summary and support rails."
+            kicker="Selection"
+            title="Your selected option"
+            copy="Review the appointment before it is held for you."
           />
           <StageCard
-            kicker="confirmation_host"
-            title="Confirmation, pending, and recovery"
-            copy="Task 296 mounts confirmation review, pending proof, and disputed recovery here while the shell remains stable."
+            kicker="Confirmation"
+            title="Confirm appointment"
+            copy="Check the details and confirm when everything looks right."
           />
           <StageCard
-            kicker="manage_host"
-            title="Appointment detail and manage"
-            copy="Task 297 mounts the booked summary, reminder posture, cancel, reschedule, and same-shell recovery here."
+            kicker="Manage"
+            title="Appointment details"
+            copy="View reminders, reschedule, or cancel if needed."
           />
           <StageCard
-            kicker="waitlist_host"
-            title="Waitlist continuation"
-            copy="Task 298 mounts join-waitlist, waitlist management, live offer acceptance, expiry, fallback, and contact-route repair here."
+            kicker="Waitlist"
+            title="Waitlist options"
+            copy="Join or manage the waitlist when no suitable slot is available."
           />
           <StageCard
-            kicker="artifact_host"
-            title="Booking artifact frame"
-            copy="Task 303 mounts the summary-first receipt, print, calendar, and governed handoff surfaces here."
+            kicker="Summary"
+            title="Booking summary"
+            copy="Open the receipt, print view, or calendar details."
           />
         </div>
       )}
@@ -775,7 +764,7 @@ function BookingQuietReturnStub({
       tabIndex={-1}
     >
       <div className="patient-booking__section-head">
-        <span className="patient-booking__eyebrow">BookingQuietReturnStub</span>
+        <span className="patient-booking__eyebrow">Return</span>
         <h3 id="booking-return-title">Return and continuity</h3>
       </div>
       <dl className="patient-booking__summary-list patient-booking__summary-list--compact">
@@ -784,23 +773,25 @@ function BookingQuietReturnStub({
           <dd>{workspace.returnContract.originLabel}</dd>
         </div>
         <div className="patient-booking__summary-row">
-          <dt>Selected anchor</dt>
+          <dt>Current section</dt>
           <dd>{workspace.continuityEvidence.selectedAnchorLabel}</dd>
         </div>
         <div className="patient-booking__summary-row">
-          <dt>Continuity</dt>
+          <dt>Saved progress</dt>
           <dd>{humanize(workspace.continuityEvidence.continuityState)}</dd>
         </div>
         <div className="patient-booking__summary-row">
-          <dt>Publication</dt>
+          <dt>Status</dt>
           <dd>{humanize(workspace.continuityEvidence.routePublicationState)}</dd>
         </div>
       </dl>
       {workspace.continuityEvidence.publicationReason ? (
-        <p className="patient-booking__return-note">{workspace.continuityEvidence.publicationReason}</p>
+        <p className="patient-booking__return-note">
+          {workspace.continuityEvidence.publicationReason}
+        </p>
       ) : (
         <p className="patient-booking__return-note">
-          Return memory stays attached to the same booking shell, even when the route becomes read-only.
+          Your return path stays attached to this appointment.
         </p>
       )}
       <button
@@ -842,10 +833,7 @@ function PatientBookingWorkspaceShell({
   const artifactRoute = entry.routeKey === "artifacts";
   const waitlistRoute = entry.routeKey === "waitlist";
   const stickyTrayVisible =
-    !manageRoute &&
-    !artifactRoute &&
-    !waitlistRoute &&
-    responsive.missionStackState === "folded";
+    !manageRoute && !artifactRoute && !waitlistRoute && responsive.missionStackState === "folded";
 
   return (
     <div className="patient-booking__shell" data-testid="patient-booking-workspace-shell">
@@ -889,8 +877,8 @@ function PatientBookingWorkspaceShell({
             !waitlistRoute ? (
               <section className="patient-booking__panel patient-booking__panel--alt">
                 <div className="patient-booking__section-head">
-                  <span className="patient-booking__eyebrow">Mission stack summary</span>
-                  <h3>Appointment need and current posture</h3>
+                  <span className="patient-booking__eyebrow">Appointment summary</span>
+                  <h3>Appointment need and current status</h3>
                 </div>
                 <dl className="patient-booking__summary-list patient-booking__summary-list--compact">
                   <div className="patient-booking__summary-row">
@@ -902,7 +890,7 @@ function PatientBookingWorkspaceShell({
                     <dd>{workspace.capabilityProjection.dominantAction.label}</dd>
                   </div>
                   <div className="patient-booking__summary-row">
-                    <dt>Selected anchor</dt>
+                    <dt>Current section</dt>
                     <dd>{workspace.continuityEvidence.selectedAnchorLabel}</dd>
                   </div>
                 </dl>
@@ -910,7 +898,7 @@ function PatientBookingWorkspaceShell({
             ) : (
               <section className="patient-booking__panel patient-booking__panel--alt">
                 <div className="patient-booking__section-head">
-                  <span className="patient-booking__eyebrow">Mission stack summary</span>
+                  <span className="patient-booking__eyebrow">Appointment summary</span>
                   <h3>Waitlist continuity</h3>
                 </div>
                 <dl className="patient-booking__summary-list patient-booking__summary-list--compact">
@@ -919,7 +907,7 @@ function PatientBookingWorkspaceShell({
                     <dd>{entry.stageHeading}</dd>
                   </div>
                   <div className="patient-booking__summary-row">
-                    <dt>Selected anchor</dt>
+                    <dt>Current section</dt>
                     <dd>{workspace.continuityEvidence.selectedAnchorLabel}</dd>
                   </div>
                 </dl>
@@ -1033,23 +1021,14 @@ function PatientBookingWorkspaceAppInner() {
     >
       <EmbeddedBookingChromeAdapter
         topBand={
-          <header className="patient-booking__top-band" data-testid="patient-booking-top-band">
-            <a className="patient-booking__brand" href="/home">
-              <span>
-                <VecellLogoWordmark aria-hidden="true" className="patient-booking__brand-wordmark" />
-                <small>Signed-in patient shell</small>
-              </span>
-            </a>
-            <nav aria-label="Patient booking navigation" className="patient-booking__nav">
-              <a href="/home">Home</a>
-              <a href="/requests">Requests</a>
-              <a href="/appointments">Appointments</a>
-              <a href="/messages">Messages</a>
-            </nav>
-          </header>
+          <PatientPortalTopBar
+            current="appointments"
+            testId="patient-booking-top-band"
+            ariaLabel="Patient booking navigation"
+          />
         }
       >
-        <PatientSupportPhase2Bridge context={phase2Context} />
+        <PatientSupportPhase2Bridge context={phase2Context} collapsible defaultCollapsed />
         <BookingReturnContractBinder restoreBundle={entry.restoreBundle} />
         <main className="patient-booking__main">
           <h1 ref={controller.headingRef} tabIndex={-1} className="patient-booking__route-title">
@@ -1057,9 +1036,9 @@ function PatientBookingWorkspaceAppInner() {
               ? "Manage appointment"
               : entry.routeKey === "artifacts"
                 ? "Appointment artifact"
-              : entry.routeKey === "waitlist"
-                ? "Waitlist continuation"
-                : "Appointment scheduling"}
+                : entry.routeKey === "waitlist"
+                  ? "Waitlist continuation"
+                  : "Appointment scheduling"}
           </h1>
           <PatientBookingWorkspaceShell
             entry={entry}

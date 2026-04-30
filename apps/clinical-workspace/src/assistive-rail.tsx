@@ -152,7 +152,7 @@ function stateForScenario(
         trustState: "frozen",
         actionabilityState: "blocked",
         postureLabel: "Frozen",
-        freezeNote: "Assistive posture is frozen until the blocking trust envelope clears.",
+        freezeNote: "Assistive status is frozen until the blocking trust envelope clears.",
       };
     case "stale_review":
       return {
@@ -201,7 +201,7 @@ export function AssistiveRailStateAdapter({
         ? {
             trustState: scenarioState.trustState === "frozen" ? "frozen" : "degraded",
             actionabilityState: scenarioState.actionabilityState,
-            postureLabel: scenarioState.postureLabel === "Frozen" ? "Frozen" : "Placeholder",
+            postureLabel: scenarioState.postureLabel === "Frozen" ? "Frozen" : "Summary",
           }
         : presentationState === "observe_only"
           ? {
@@ -262,7 +262,7 @@ export function AssistiveRailStateAdapter({
       presentationState === "shadow_summary"
         ? "Shadow output is shown as evidence-bearing awareness only."
         : presentationState === "observe_only"
-          ? "Observe-only posture keeps prior context readable without insert or completion cues."
+          ? "Observe-only status keeps prior context readable without insert or completion cues."
           : presentationState === "hidden_ready"
             ? "Rail host is ready and collapsed until explicitly opened."
             : "The rail keeps its footprint stable while trust, publication, or continuity resolves.",
@@ -417,7 +417,7 @@ export function AssistiveSummaryStubCard({ state }: { state: AssistiveRailShellS
       data-testid="AssistiveSummaryStubCard"
       aria-labelledby="assistive-summary-stub-heading"
     >
-      <div className="assistive-rail__section-label">Summary stub</div>
+      <div className="assistive-rail__section-label">Summary summary</div>
       <h3 id="assistive-summary-stub-heading">{state.summaryHeadline}</h3>
       <p>{state.summaryBody}</p>
       <dl className="assistive-rail__summary-facts">
@@ -446,7 +446,7 @@ export function AssistiveShadowModePanel({ state }: { state: AssistiveRailShellS
       <h3 id={headingId}>Non-authoritative comparison</h3>
       <p>{state.rationaleLine}</p>
       <ul className="assistive-rail__guard-list">
-        <li>No final workflow truth is inferred from this output.</li>
+        <li>No final workflow verified details is inferred from this output.</li>
         <li>Insert and completion controls are reserved for later leased states.</li>
         <li>The case canvas remains the primary review surface.</li>
       </ul>
@@ -463,12 +463,12 @@ export function AssistiveObserveOnlyPlaceholder({ state }: { state: AssistiveRai
       aria-labelledby={headingId}
     >
       <div className="assistive-rail__section-label">
-        {state.presentationState === "placeholder" ? "Placeholder" : "Observe-only"}
+        {state.presentationState === "placeholder" ? "Summary" : "Observe-only"}
       </div>
       <h3 id={headingId}>
         {state.presentationState === "placeholder"
           ? "Assistive detail held back"
-          : "Read-only assistive posture"}
+          : "Read-only assistive status"}
       </h3>
       <p>{state.rationaleLine}</p>
       {state.freezeNote && <p className="assistive-rail__freeze-note">{state.freezeNote}</p>}
@@ -501,9 +501,9 @@ export function AssistiveProvenanceFooterStub({ state }: { state: AssistiveRailS
     <footer
       className="assistive-rail__provenance-footer"
       data-testid="AssistiveProvenanceFooterStub"
-      aria-label="Assistive provenance summary"
+      aria-label="Support history summary"
     >
-      <span>Provenance stub</span>
+      <span>History summary</span>
       <dl>
         <div>
           <dt>Freshness</dt>
@@ -515,7 +515,7 @@ export function AssistiveProvenanceFooterStub({ state }: { state: AssistiveRailS
         </div>
         <div>
           <dt>Publication</dt>
-          <dd>{state.provenance.publicationRef}</dd>
+          <dd data-publication-ref={state.provenance.publicationRef}>Current</dd>
         </div>
       </dl>
     </footer>

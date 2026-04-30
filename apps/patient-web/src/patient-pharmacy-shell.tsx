@@ -343,7 +343,7 @@ function statusInputForSnapshot(
     saveState: "saved",
     dominantActionLabel: snapshot.currentCase.dominantActionLabel,
     lastChangedAt: "2026-04-24T09:32:00Z",
-    provenanceLabel: "Phase 6 patient pharmacy shell seed",
+    provenanceLabel: "Current programme patient pharmacy shell seed",
   };
 }
 
@@ -361,7 +361,7 @@ function casePulseForSnapshot(
     subheadline: snapshot.currentCase.shellSummary,
     primaryNextActionLabel: snapshot.currentCase.dominantActionLabel,
     ownershipOrActorSummary:
-      "The chosen provider anchor and request lineage stay visible while the patient moves between pharmacy child routes.",
+      "The chosen provider anchor and request history stay visible while the patient moves between pharmacy child routes.",
     urgencyBand:
       snapshot.currentCase.recoveryPosture === "recovery_only"
         ? "Recovery required"
@@ -389,9 +389,9 @@ function casePulseForSnapshot(
       },
       {
         key: "trust",
-        label: "Request lineage",
+        label: "Request history",
         value: snapshot.currentCase.requestLineageLabel,
-        detail: "Lineage stays bound to the same patient shell continuity key.",
+        detail: "History stays connected to the same patient pharmacy journey.",
       },
       {
         key: "urgency",
@@ -401,7 +401,7 @@ function casePulseForSnapshot(
       },
       {
         key: "interaction",
-        label: "Recovery posture",
+        label: "Recovery status",
         value: titleCase(snapshot.currentCase.recoveryPosture),
         detail: snapshot.currentCase.checkpointSummary,
       },
@@ -420,7 +420,7 @@ function PatientRequestLineageAnchor({
       data-testid="PatientRequestLineageAnchor"
       data-anchor-kind="request_lineage"
     >
-      <p className="patient-pharmacy-shell__eyebrow">Request lineage</p>
+      <p className="patient-pharmacy-shell__eyebrow">Request history</p>
       <h2>{snapshot.currentCase.requestLineageLabel}</h2>
       <p>{snapshot.currentCase.checkpointSummary}</p>
     </section>
@@ -493,7 +493,7 @@ function PatientPharmacyCheckpointRail({
     {
       checkpointId: "consent",
       label: "Provider choice",
-      summary: "Chosen provider and route lineage stay bound to the same shell.",
+      summary: "Chosen provider and route history stay bound to the same shell.",
     },
     {
       checkpointId: "dispatch",
@@ -503,7 +503,7 @@ function PatientPharmacyCheckpointRail({
     {
       checkpointId: "outcome",
       label: "Status",
-      summary: "Status stays explicit about pending, review, or recovery posture.",
+      summary: "Status stays explicit about pending, review, or recovery status.",
     },
   ] as const;
 
@@ -745,7 +745,7 @@ export function PharmacyPatientSupportRegionHost({
             ) : (
               <article className="patient-pharmacy-shell__support-note">
                 <strong>Next owner</strong>
-                <p>Later Phase 6 tasks can replace this host region without replacing the shell.</p>
+                <p>Later Current programme tasks can replace this host region without replacing the shell.</p>
               </article>
             )}
           </div>
@@ -844,7 +844,7 @@ export function PharmacyDecisionDockHost({
             : "route_navigation")
       }
     >
-      <p className="patient-pharmacy-shell__eyebrow">DecisionDock</p>
+      <p className="patient-pharmacy-shell__eyebrow">Next action</p>
       <h2>
         {choiceDecision?.headline ??
           statusHeadline ??
@@ -951,7 +951,7 @@ function PatientPharmacyMainRegion({
         <PharmacyAccessibleStatusBadge
           label={titleCase(snapshot.currentCase.recoveryPosture)}
           tone={snapshot.currentCase.recoveryPosture === "live" ? "ready" : "read_only"}
-          contextLabel="Recovery posture"
+          contextLabel="Recovery status"
           compact
           className="patient-pharmacy-shell__chip"
         />
@@ -1157,7 +1157,7 @@ export function PharmacyPatientShell() {
             style={{ width: 152, height: "auto" }}
           />
           <div>
-            <p className="patient-pharmacy-shell__eyebrow">Phase 6 patient pharmacy shell</p>
+            <p className="patient-pharmacy-shell__eyebrow">Current programme patient pharmacy shell</p>
             <h1>One shell for choice, instructions, and status</h1>
             <p>{snapshot.currentCase.shellSummary}</p>
           </div>
@@ -1173,7 +1173,7 @@ export function PharmacyPatientShell() {
       />
       <PharmacyFocusRouteMap
         title="Patient pharmacy continuity"
-        routeFamilyLabel="rf_patient_pharmacy"
+        routeFamilyLabel="Patient pharmacy journey"
         currentRouteLabel={titleCase(snapshot.location.routeKey)}
         selectedAnchorLabel={selectedProviderAnchorRef}
         focusReturnLabel={`Patient pharmacy route ${titleCase(snapshot.location.routeKey)}`}

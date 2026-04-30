@@ -642,7 +642,7 @@ export function buildMergePlanRecord(input: {
       serverLabel: "Newer saved place",
       serverValue: `${serverStep} · ${input.serverPathname}`,
       selectedResolution: "use_server",
-      systemReason: "We preselected the newer saved route marker so the shell keeps one lawful anchor.",
+      systemReason: "We preselected the newer saved place so the request keeps the safest return point.",
     });
   }
 
@@ -686,21 +686,21 @@ function recoveryExplanation(reason: RecoveryReason): string {
     case "lease_superseded":
       return "A newer writable session took over this draft. Review the last safe state before this tab continues.";
     case "identity_rebind_required":
-      return "The resume proof drifted away from the last safe browser lane. Rebind the same request before more edits are accepted.";
+      return "The resume link no longer matches the last safe browser session. Confirm the same request before more edits are accepted.";
     case "storage_degraded":
       return "The safe draft store degraded during save. Resume from the last confirmed state before more edits continue.";
     case "manifest_drift":
-      return "The route or release tuple drifted from the saved continuity proof. Resume safely before continuing.";
+      return "The saved route no longer matches this session. Resume safely before continuing.";
     case "channel_frozen":
       return "This channel is temporarily frozen for safe continuation. Resume from the last safe state instead of editing in place.";
     case "promoted_request_available":
-      return "This draft has already been promoted to a request. Continue through the bounded same-lineage route instead of reopening a mutable draft.";
+      return "This draft has already been sent. Continue to the submitted request instead of reopening the draft.";
     case "grant_scope_drift":
       return "The resume token or route scope drifted. Resume from the last safe state before new edits continue.";
     case "grant_superseded":
-      return "The previous resume proof is no longer valid. Resume safely before continuing.";
+      return "The previous resume link is no longer valid. Resume safely before continuing.";
     case "continuity_blocked":
-      return "Continuity proof is blocked for this draft right now. Resume through the last safe context before more edits continue.";
+      return "This draft needs a quick safety check. Resume through the last safe point before more edits continue.";
     default:
       return "Resume this request through the last safe state before continuing.";
   }
@@ -780,7 +780,7 @@ export function createNeutralTruth(): DraftSaveTruthView {
     contractId: FRONTEND_SAVE_TRUTH_CONTRACT_ID,
     state: "neutral",
     label: "Nothing saved yet",
-    detail: "The shell will create a calm resume point after the first authoritative draft settlement.",
+    detail: "A safe resume point will be created after the first draft save.",
     meta: "No settled draft evidence yet",
     actionLabel: null,
     actionTone: "neutral",
@@ -821,7 +821,7 @@ export function deriveDraftSaveTruth(input: {
       contractId: FRONTEND_SAVE_TRUTH_CONTRACT_ID,
       state: "review changes",
       label: "Review changes",
-      detail: "A newer saved draft exists for this lineage. Review the grouped differences in place.",
+      detail: "A newer saved draft exists. Review the differences before continuing.",
       meta: `Draft versions ${input.mergePlan?.expectedDraftVersion ?? settlement?.authoritativeDraftVersion ?? "?"} and ${input.mergePlan?.actualDraftVersion ?? settlement?.authoritativeDraftVersion ?? "?"} need one selected result.`,
       actionLabel: "Review changes",
       actionTone: "review",
@@ -846,7 +846,7 @@ export function deriveDraftSaveTruth(input: {
       contractId: FRONTEND_SAVE_TRUTH_CONTRACT_ID,
       state: "resume safely",
       label: "Resume safely",
-      detail: recovery?.explanation ?? "Continuity proof must be rebound before more edits continue.",
+      detail: recovery?.explanation ?? "Confirm this saved request before more edits continue.",
       meta:
         recovery?.reasonCodes.join(" · ") ??
         projection?.resumeBlockedReasonCodes.join(" · ") ??
@@ -866,11 +866,11 @@ export function deriveDraftSaveTruth(input: {
       contractId: FRONTEND_SAVE_TRUTH_CONTRACT_ID,
       state: "saving",
       label: "Saving",
-      detail: "Local changes are queued for authoritative draft settlement.",
+      detail: "Your changes are being saved.",
       meta:
         projection?.lastSavedAt != null
           ? formatRelativeSaveLabel(projection.lastSavedAt, input.nowIso)
-          : "Awaiting first settlement",
+          : "Waiting for the first save",
       actionLabel: null,
       actionTone: "neutral",
       stateMarkTone: "neutral",
@@ -886,7 +886,7 @@ export function deriveDraftSaveTruth(input: {
       contractId: FRONTEND_SAVE_TRUTH_CONTRACT_ID,
       state: "saved",
       label: "Saved",
-      detail: "This draft has one authoritative settlement and the continuity proof still matches it.",
+      detail: "Your draft is saved and ready to continue.",
       meta: formatRelativeSaveLabel(projection.lastSavedAt, input.nowIso),
       actionLabel: null,
       actionTone: "safe",
@@ -902,12 +902,12 @@ export function deriveDraftSaveTruth(input: {
     contractId: FRONTEND_SAVE_TRUTH_CONTRACT_ID,
     state: "resume safely",
     label: "Resume safely",
-    detail: "Saved posture is suppressed because the continuity tuple is incomplete or stale.",
-    meta: "Saved is withheld until settlement and continuity align",
+    detail: "We need to confirm this saved request before more edits continue.",
+    meta: "Saved status is paused until this request is confirmed",
     actionLabel: "Resume safely",
     actionTone: "continuity",
     stateMarkTone: "continuity",
-    liveAnnouncement: "Resume safely. Saved is withheld until continuity aligns.",
+    liveAnnouncement: "Resume safely. Saved status is paused until this request is confirmed.",
     announcementKey: `suppressed:${settlement?.settlementId ?? "none"}`,
     shouldWarnOnHardExit: false,
     suppressSavedReason: "saved_withheld_until_continuity_aligns",

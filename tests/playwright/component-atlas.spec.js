@@ -8,7 +8,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..", "..");
 const HTML_PATH = path.join(ROOT, "docs", "architecture", "105_component_atlas.html");
-const PUBLICATION_PATH = path.join(ROOT, "data", "analysis", "component_primitive_publication.json");
+const PUBLICATION_PATH = path.join(
+  ROOT,
+  "data",
+  "analysis",
+  "component_primitive_publication.json",
+);
 const AUTOMATION_PATH = path.join(
   ROOT,
   "data",
@@ -125,8 +130,7 @@ export async function run() {
     "Component publication summary drifted.",
   );
   assertCondition(
-    AUTOMATION.summary.component_count === 38 &&
-      AUTOMATION.summary.route_family_count === 9,
+    AUTOMATION.summary.component_count === 38 && AUTOMATION.summary.route_family_count === 9,
     "Automation summary drifted.",
   );
 
@@ -217,8 +221,7 @@ export async function run() {
       .locator("[data-testid='visualization-table'] tbody tr")
       .count();
     assertCondition(
-      tableRowCount === 4 &&
-        summaryBeforeModeShift.includes("Gateway BFF"),
+      tableRowCount === 4 && summaryBeforeModeShift.includes("Gateway BFF"),
       "Visualization panel lost summary text or table fallback parity.",
     );
 
@@ -246,11 +249,13 @@ export async function run() {
     fs.mkdirSync(screenshotDir, { recursive: true });
 
     await page.locator("[data-specimen-id='Patient_Mission_Frame']").click();
+    await page.locator("[data-testid='specimen-root-Patient_Mission_Frame']").waitFor();
     const patientShot = await page.locator("[data-testid='specimen-stage']").screenshot({
       path: path.join(screenshotDir, "patient-stage.png"),
     });
 
     await page.locator("[data-specimen-id='Operations_Control_Room_Preview']").click();
+    await page.locator("[data-testid='specimen-root-Operations_Control_Room_Preview']").waitFor();
     const operationsShot = await page.locator("[data-testid='specimen-stage']").screenshot({
       path: path.join(screenshotDir, "operations-stage.png"),
     });

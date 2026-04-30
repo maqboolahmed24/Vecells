@@ -29,7 +29,7 @@ describe("operations shell accessibility surface", () => {
     expect(html).toContain("Service health fallback");
   });
 
-  it("keeps table-only posture explicit inside the same shell", () => {
+  it("keeps table-only posture explicit without default diagnostic logs", () => {
     const state = createInitialOpsShellState("/ops/dependencies", {
       deltaGateState: "table_only",
       selectedAnomalyId: "ops-route-04",
@@ -48,7 +48,8 @@ describe("operations shell accessibility surface", () => {
     );
 
     expect(html).toContain('data-parity-mode="table_only"');
-    expect(html).toContain("Telemetry log");
+    expect(html).not.toContain('data-testid="ops-telemetry-log"');
+    expect(html).not.toContain("Recent board-state events");
   });
 
   it("folds to mission_stack on narrow layouts without losing the same shell root", () => {

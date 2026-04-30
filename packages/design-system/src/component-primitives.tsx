@@ -488,7 +488,7 @@ function buildKernelBindings(routeFamilyRefs: readonly string[]): PrimitiveKerne
         bindingKind: "surface_state",
         routeFamilyRef,
         ref: binding.kernelBinding.surfaceStateKernelBindingId,
-        note: `${binding.scenario.label} surface-state kernel binding`,
+        note: `${binding.scenario.label} status binding`,
       },
       {
         bindingKind: "automation_anchor",
@@ -661,7 +661,7 @@ const componentContractSeeds = [
       "accessibility",
     ],
     accessibilitySummary:
-      "The shell frame carries the root semantic surfaces, keyboard scope markers, and reduced-motion equivalence contract.",
+      "The shell frame carries the root semantic surfaces, keyboard scope markers, and reduced-motion equivalence rules.",
   },
   {
     componentId: "ShellRail",
@@ -687,7 +687,7 @@ const componentContractSeeds = [
     ],
     apiSignature: "ShellRail({ title, items, eyebrow, footer })",
     accentPolicy: "Secondary emphasis only; never competes with the specimen dominant action.",
-    densityPolicy: "Balanced or compact depending on shell profile; list-first posture only.",
+    densityPolicy: "Balanced or compact depending on shell profile; list-first status only.",
     visualizationParity: "not_applicable",
     automationSlotNames: ["selected_anchor", "continuity_key", "accessibility"],
     accessibilitySummary:
@@ -736,7 +736,7 @@ const componentContractSeeds = [
     atlasSectionId: "shell-plane",
     surfaceRoleLabel: "status-strip",
     description:
-      "Canonical quiet strip that combines ambient state, freshness, and settlement posture without adding a second command band.",
+      "Canonical quiet strip that combines ambient state, freshness, and settlement status without adding a second command band.",
     shellTypes: ["patient", "staff", "operations", "governance"],
     routeFamilyRefs: [
       "rf_patient_home",
@@ -764,7 +764,7 @@ const componentContractSeeds = [
     visualizationParity: "not_applicable",
     automationSlotNames: ["surface_state", "artifact_mode", "accessibility"],
     accessibilitySummary:
-      "Status strip carries the live-summary state, freshness accessibility contract, and artifact posture marker.",
+      "Status strip carries the live-summary state, freshness accessibility rules, and artifact status marker.",
   },
   {
     componentId: "PromotedSupportRegionFrame",
@@ -794,7 +794,7 @@ const componentContractSeeds = [
     visualizationParity: "not_applicable",
     automationSlotNames: ["selected_anchor", "artifact_mode", "continuity_key", "accessibility"],
     accessibilitySummary:
-      "Promoted support regions preserve return-anchor and artifact-mode posture without duplicating dominant-action markers.",
+      "Promoted support regions preserve return-anchor and artifact-mode status without duplicating dominant-action markers.",
   },
   {
     componentId: "CasePulse",
@@ -927,7 +927,7 @@ const componentContractSeeds = [
     visualizationParity: "not_applicable",
     automationSlotNames: ["surface_state", "accessibility"],
     accessibilitySummary:
-      "FreshnessChip reflects freshness accessibility contracts and communicates replay posture without color-only semantics.",
+      "FreshnessChip reflects freshness accessibility contracts and communicates replay status without color-only semantics.",
   },
   {
     componentId: "AmbientStateRibbon",
@@ -936,7 +936,7 @@ const componentContractSeeds = [
     atlasSectionId: "semantic-working",
     surfaceRoleLabel: "status-strip",
     description:
-      "Primary status ribbon for current trust, state, or review posture. Always present when the shell exposes state risk.",
+      "Primary status ribbon for current trust, state, or review status. Always present when the shell exposes state risk.",
     shellTypes: ["patient", "staff", "operations", "governance"],
     routeFamilyRefs: [
       "rf_patient_home",
@@ -967,7 +967,7 @@ const componentContractSeeds = [
   },
   {
     componentId: "SelectedAnchorStub",
-    displayName: "Selected Anchor Stub",
+    displayName: "Selected Anchor Summary",
     primitiveFamily: "semantic-working",
     atlasSectionId: "semantic-working",
     surfaceRoleLabel: "artifact",
@@ -982,10 +982,10 @@ const componentContractSeeds = [
     ],
     stateVariants: ["ready", "review", "blocked"],
     tokenBindings: [
-      { tokenRef: "ref.color.surface.inset", cssVar: "--sys-surface-inset", purpose: "Anchor stub surface" },
-      { tokenRef: "ref.type.role.body.sm", cssVar: "--cp-anchor-type", purpose: "Anchor stub typography" },
-      { tokenRef: "ref.radius.md", cssVar: "--cp-anchor-radius", purpose: "Anchor stub radius" },
-      { tokenRef: "ref.color.border.default", cssVar: "--sys-border-default", purpose: "Anchor stub outline" },
+      { tokenRef: "ref.color.surface.inset", cssVar: "--sys-surface-inset", purpose: "Anchor summary surface" },
+      { tokenRef: "ref.type.role.body.sm", cssVar: "--cp-anchor-type", purpose: "Anchor summary typography" },
+      { tokenRef: "ref.radius.md", cssVar: "--cp-anchor-radius", purpose: "Anchor summary radius" },
+      { tokenRef: "ref.color.border.default", cssVar: "--sys-border-default", purpose: "Anchor summary outline" },
     ],
     apiSignature: "SelectedAnchorStub({ markerRef, label, detail })",
     accentPolicy: "Anchor stubs use neutral treatment and a hairline accent only.",
@@ -1032,7 +1032,7 @@ const componentContractSeeds = [
     atlasSectionId: "card",
     surfaceRoleLabel: "card",
     description:
-      "True card role for spotlight or bounded supporting content. Not a universal wrapper.",
+      "True card role for spotlight or limited supporting content. Not a universal wrapper.",
     shellTypes: ["patient", "staff", "governance"],
     routeFamilyRefs: ["rf_patient_home", "rf_staff_workspace", "rf_governance_shell"],
     specimenIds: [
@@ -1053,7 +1053,7 @@ const componentContractSeeds = [
     visualizationParity: "not_applicable",
     automationSlotNames: ["surface_state", "accessibility"],
     accessibilitySummary:
-      "CardSurface stays semantically bounded and inherits announcement scope from its parent route.",
+      "CardSurface stays semantically limited and inherits announcement scope from its parent route.",
   },
   {
     componentId: "TaskSurface",
@@ -1062,7 +1062,7 @@ const componentContractSeeds = [
     atlasSectionId: "task",
     surfaceRoleLabel: "task",
     description:
-      "Focused task area with explicit action posture, different from a passive card or board grouping.",
+      "Focused task area with explicit action status, different from a passive card or board grouping.",
     shellTypes: ["staff", "operations", "governance"],
     routeFamilyRefs: ["rf_staff_workspace", "rf_operations_board", "rf_governance_shell"],
     specimenIds: [
@@ -1200,7 +1200,7 @@ const componentContractSeeds = [
     atlasSectionId: "table",
     surfaceRoleLabel: "table",
     description:
-      "Dense tabular surface for health grids, bounded data views, and parity-first visual summaries.",
+      "Dense tabular surface for health grids, limited data views, and parity-first visual summaries.",
     shellTypes: ["operations", "governance", "pharmacy"],
     routeFamilyRefs: ["rf_operations_board", "rf_governance_shell", "rf_pharmacy_console"],
     specimenIds: ["Operations_Control_Room_Preview", "Governance_Approval_Frame"],
@@ -1212,12 +1212,12 @@ const componentContractSeeds = [
       { tokenRef: "ref.color.border.default", cssVar: "--sys-border-default", purpose: "Table rules" },
     ],
     apiSignature: "TableSurface({ caption, columns, rows, summary })",
-    accentPolicy: "Table surfaces use accent only in bounded summary or row markers.",
+    accentPolicy: "Table surfaces use accent only in limited summary or row markers.",
     densityPolicy: "Compact by default.",
     visualizationParity: "not_applicable",
     automationSlotNames: ["selected_anchor", "artifact_mode", "accessibility"],
     accessibilitySummary:
-      "TableSurface keeps caption, row headers, and table fallback parity for bounded visualizations.",
+      "TableSurface keeps caption, row headers, and table fallback parity for limited visualizations.",
   },
   {
     componentId: "ArtifactSurface",
@@ -1226,7 +1226,7 @@ const componentContractSeeds = [
     atlasSectionId: "artifact",
     surfaceRoleLabel: "artifact",
     description:
-      "Artifact or evidence viewing surface that explicitly exposes summary-only, preview, or blocked posture.",
+      "Artifact or evidence viewing surface that explicitly exposes summary-only, preview, or blocked status.",
     shellTypes: ["patient", "operations", "governance"],
     routeFamilyRefs: ["rf_patient_home", "rf_operations_board", "rf_governance_shell"],
     specimenIds: [
@@ -1241,13 +1241,13 @@ const componentContractSeeds = [
       { tokenRef: "ref.radius.lg", cssVar: "--cp-artifact-radius", purpose: "Artifact radius" },
       { tokenRef: "ref.color.border.default", cssVar: "--sys-border-default", purpose: "Artifact outline" },
     ],
-    apiSignature: "ArtifactSurface({ title, posture, metadata, children })",
+    apiSignature: "ArtifactSurface({ title, status, metadata, children })",
     accentPolicy: "Artifact surfaces stay neutral and lean on metadata rather than large semantic fills.",
     densityPolicy: "Balanced or compact depending on metadata density.",
     visualizationParity: "not_applicable",
     automationSlotNames: ["artifact_mode", "continuity_key", "selected_anchor", "accessibility"],
     accessibilitySummary:
-      "ArtifactSurface keeps summary-only and preview posture explicit, with stable return-anchor law.",
+      "ArtifactSurface keeps summary-only and preview status explicit, with stable return-anchor law.",
   },
   {
     componentId: "QuietPrimaryButton",
@@ -1358,7 +1358,7 @@ const componentContractSeeds = [
     atlasSectionId: "controls",
     surfaceRoleLabel: "control",
     description:
-      "Segmented tabs for bounded view changes inside a surface without changing shell continuity.",
+      "Segmented tabs for limited view changes inside a surface without changing shell continuity.",
     shellTypes: ["patient", "staff", "operations", "governance"],
     routeFamilyRefs: ["rf_patient_home", "rf_staff_workspace", "rf_operations_board"],
     specimenIds: [
@@ -1418,7 +1418,7 @@ const componentContractSeeds = [
     atlasSectionId: "controls",
     surfaceRoleLabel: "control",
     description:
-      "Interactive pill for bounded filter sets with count badges and keyboard-first toggling.",
+      "Interactive pill for limited filter sets with count badges and keyboard-first toggling.",
     shellTypes: ["staff", "hub", "operations", "support"],
     routeFamilyRefs: ["rf_staff_workspace", "rf_operations_board", "rf_support_ticket_workspace"],
     specimenIds: ["Workspace_Quiet_Mission_Control", "Operations_Control_Room_Preview"],
@@ -1455,7 +1455,7 @@ const componentContractSeeds = [
       { tokenRef: "ref.radius.sm", cssVar: "--cp-input-radius", purpose: "Input radius" },
       { tokenRef: "ref.density.control.public", cssVar: "--comp-control-height-public", purpose: "Input height" },
     ],
-    apiSignature: "InputFieldFrame({ label, value, placeholder, state, hint })",
+    apiSignature: "InputFieldFrame({ label, value, summary, state, hint })",
     accentPolicy: "Focus ring uses canonical token; validation tone is local only.",
     densityPolicy: "Public or relaxed height only.",
     visualizationParity: "not_applicable",
@@ -1481,7 +1481,7 @@ const componentContractSeeds = [
       { tokenRef: "ref.radius.md", cssVar: "--cp-input-radius", purpose: "Textarea radius" },
       { tokenRef: "ref.space.12", cssVar: "--cp-field-pad", purpose: "Textarea spacing" },
     ],
-    apiSignature: "TextareaFrame({ label, value, placeholder, state, hint })",
+    apiSignature: "TextareaFrame({ label, value, summary, state, hint })",
     accentPolicy: "Validation tone is local and never changes the shell accent.",
     densityPolicy: "Balanced only.",
     visualizationParity: "not_applicable",
@@ -1496,7 +1496,7 @@ const componentContractSeeds = [
     atlasSectionId: "controls",
     surfaceRoleLabel: "control",
     description:
-      "Quiet select frame for bounded, explicit option sets.",
+      "Quiet select frame for limited, explicit option sets.",
     shellTypes: ["patient", "staff", "governance"],
     routeFamilyRefs: ["rf_patient_home", "rf_staff_workspace", "rf_governance_shell"],
     specimenIds: [
@@ -1552,7 +1552,7 @@ const componentContractSeeds = [
     atlasSectionId: "state-postures",
     surfaceRoleLabel: "state",
     description:
-      "Calm loading placeholder that keeps spatial continuity and avoids decorative motion.",
+      "Calm loading summary that keeps spatial continuity and avoids decorative motion.",
     shellTypes: ["patient", "staff", "operations", "governance"],
     routeFamilyRefs: [
       "rf_patient_home",
@@ -1626,7 +1626,7 @@ const componentContractSeeds = [
     visualizationParity: "not_applicable",
     automationSlotNames: ["surface_state", "accessibility"],
     accessibilitySummary:
-      "Stale states keep review posture explicit and preserve reduced-motion summary equivalence.",
+      "Stale states keep review status explicit and preserve reduced-motion summary equivalence.",
   },
   {
     componentId: "BlockedStateFrame",
@@ -1661,7 +1661,7 @@ const componentContractSeeds = [
     atlasSectionId: "state-postures",
     surfaceRoleLabel: "state",
     description:
-      "Recovery-only state frame for read-only or guided continuation posture.",
+      "Recovery-only state frame for read-only or guided continuation status.",
     shellTypes: ["patient", "support", "governance"],
     routeFamilyRefs: [
       "rf_patient_secure_link_recovery",
@@ -1682,33 +1682,33 @@ const componentContractSeeds = [
     visualizationParity: "not_applicable",
     automationSlotNames: ["surface_state", "selected_anchor", "accessibility"],
     accessibilitySummary:
-      "Recovery states preserve restore and resume posture without overloading the command lane.",
+      "Recovery states preserve restore and resume status without overloading the command lane.",
   },
   {
     componentId: "PlaceholderArtifactFrame",
-    displayName: "Placeholder Artifact Frame",
+    displayName: "Summary Artifact Frame",
     primitiveFamily: "calm-state",
     atlasSectionId: "state-postures",
     surfaceRoleLabel: "artifact",
     description:
-      "Summary-only artifact placeholder for absent preview, handoff-only, or pending evidence surfaces.",
+      "Summary-only artifact summary for absent preview, handoff-only, or pending evidence surfaces.",
     shellTypes: ["patient", "operations", "governance"],
     routeFamilyRefs: ["rf_patient_home", "rf_operations_board", "rf_governance_shell"],
     specimenIds: [],
     stateVariants: ["summary_only", "handoff_only", "blocked"],
     tokenBindings: [
-      { tokenRef: "ref.color.surface.inset", cssVar: "--sys-surface-inset", purpose: "Placeholder surface" },
-      { tokenRef: "ref.radius.lg", cssVar: "--cp-artifact-radius", purpose: "Placeholder radius" },
-      { tokenRef: "ref.type.role.mono.sm", cssVar: "--cp-artifact-type", purpose: "Placeholder metadata" },
-      { tokenRef: "ref.color.border.default", cssVar: "--sys-border-default", purpose: "Placeholder border" },
+      { tokenRef: "ref.color.surface.inset", cssVar: "--sys-surface-inset", purpose: "Summary surface" },
+      { tokenRef: "ref.radius.lg", cssVar: "--cp-artifact-radius", purpose: "Summary radius" },
+      { tokenRef: "ref.type.role.mono.sm", cssVar: "--cp-artifact-type", purpose: "Summary metadata" },
+      { tokenRef: "ref.color.border.default", cssVar: "--sys-border-default", purpose: "Summary border" },
     ],
     apiSignature: "PlaceholderArtifactFrame({ title, postureLabel, metadata })",
-    accentPolicy: "No semantic fill; posture is communicated through labels and metadata.",
+    accentPolicy: "No semantic fill; status is communicated through labels and metadata.",
     densityPolicy: "Compact or balanced.",
     visualizationParity: "not_applicable",
     automationSlotNames: ["artifact_mode", "continuity_key", "accessibility"],
     accessibilitySummary:
-      "Placeholder artifact frames keep summary-only posture explicit and machine-readable.",
+      "Summary artifact frames keep summary-only status explicit and machine-readable.",
   },
   {
     componentId: "ComparisonLedger",
@@ -1738,12 +1738,12 @@ const componentContractSeeds = [
   },
   {
     componentId: "BoundedVisualizationPanel",
-    displayName: "Bounded Visualization Panel",
+    displayName: "Limited Visualization Panel",
     primitiveFamily: "visualization",
     atlasSectionId: "visualization",
     surfaceRoleLabel: "table",
     description:
-      "Bounded chart primitive that must always ship with summary text and a table fallback from the same data.",
+      "Limited chart primitive that must always ship with summary text and a table fallback from the same data.",
     shellTypes: ["operations", "governance"],
     routeFamilyRefs: ["rf_operations_board", "rf_governance_shell"],
     specimenIds: ["Operations_Control_Room_Preview", "Governance_Approval_Frame"],
@@ -1761,7 +1761,7 @@ const componentContractSeeds = [
     visualizationParity: "summary_and_table_fallback",
     automationSlotNames: ["artifact_mode", "selected_anchor", "accessibility"],
     accessibilitySummary:
-      "Bounded visualizations must preserve summary text, table fallback, and parity projection refs from the same data source.",
+      "Limited visualizations must preserve summary text, table fallback, and parity projection refs from the same data source.",
   },
 ] as const satisfies readonly ComponentSeed[];
 
@@ -1775,14 +1775,14 @@ export const COMPONENT_GAP_RESOLUTIONS = [
   },
   {
     gapId: "GAP_RESOLUTION_COMPONENT_API_DECISION_DOCK_ACTIONS_V1",
-    title: "DecisionDock command slots were implied but not typed",
+    title: "Next-action command slots were implied but not typed",
     resolution:
-      "DecisionDock now requires one `primaryActionLabel` plus optional secondary and utility labels, which encodes the one-dominant-action law into the API instead of leaving it to shell-local conventions.",
+      "Next-action controls now require one `primaryActionLabel` plus optional secondary and utility labels, which keeps one dominant action explicit.",
     source_refs: ["prompt/105.md", "blueprint/ux-quiet-clarity-redesign.md"],
   },
   {
     gapId: "GAP_RESOLUTION_COMPONENT_API_VISUALIZATION_PARITY_V1",
-    title: "Visualization parity needed an explicit primitive contract",
+    title: "Visualization parity needed an explicit primitive rules",
     resolution:
       "BoundedVisualizationPanel requires `summary`, `tableCaption`, and `data` props together so chart and table parity cannot be skipped or added ad hoc by specimen code.",
     source_refs: ["prompt/105.md", "blueprint/accessibility-and-content-system-contract.md"],
@@ -1833,8 +1833,8 @@ export const componentPrimitiveContractFamily = {
   contractFamilyId: "CF_105_SHARED_COMPONENT_PRIMITIVES",
   label: "Shared component primitives and route-safe specimen compositions",
   description:
-    "Typed component primitives bound to token and kernel law so later shells compose the same semantic, automation, and accessibility truth.",
-  versioningPosture: "Published additive component contract family with route-safe token and kernel bindings.",
+    "Typed component primitives bound to token and core law so later shells compose the same semantic, automation, and accessibility details.",
+  versioningPosture: "Published additive component rules family with route-safe token and core bindings.",
   consumerContractIds: ["CBC_041_SHELLS_TO_DESIGN_SYSTEM"],
   consumerOwnerCodes: [
     "governance_admin",
@@ -1879,7 +1879,7 @@ export const specimenCompositions = [
     atlasSectionId: "board",
     headline: "Patient_Mission_Frame",
     summary:
-      "Calm section entry with a spotlight card, quiet action row, bounded record excerpt, and one promoted support region.",
+      "Calm section entry with a spotlight card, quiet action row, limited record excerpt, and one promoted support region.",
     dominantAccentTokenRef: "ref.color.accent.active",
     dominantActionLabel: "Continue today’s request",
     promotedSupportRegionLabel: "Support snapshot",
@@ -1909,7 +1909,7 @@ export const specimenCompositions = [
     atlasSectionId: "task",
     headline: "Workspace_Quiet_Mission_Control",
     summary:
-      "Compact queue spine, preview pocket, active task surface, decision dock, and interruption digest stub.",
+      "Compact queue spine, preview pocket, active task surface, decision dock, and interruption digest summary.",
     dominantAccentTokenRef: "ref.color.accent.insight",
     dominantActionLabel: "Advance active review",
     promotedSupportRegionLabel: "Preview pocket",
@@ -1939,7 +1939,7 @@ export const specimenCompositions = [
     atlasSectionId: "table",
     headline: "Operations_Control_Room_Preview",
     summary:
-      "North-star band, one table-first health grid, one bounded chart with summary and table fallback, and intervention workbench stub.",
+      "North-star band, one table-first health grid, one limited chart with summary and table fallback, and intervention workbench summary.",
     dominantAccentTokenRef: "ref.color.accent.review",
     dominantActionLabel: "Inspect anomaly summary",
     promotedSupportRegionLabel: "Intervention workbench",
@@ -2003,7 +2003,7 @@ export const componentAtlasSections = [
     summary: "Mission state, decision, freshness, and anchor primitives.",
   },
   { sectionId: "board", label: "Board", summary: "Open mission board surfaces." },
-  { sectionId: "card", label: "Card", summary: "Bounded spotlight or support cards only." },
+  { sectionId: "card", label: "Card", summary: "Limited spotlight or support cards only." },
   { sectionId: "task", label: "Task", summary: "Focused action surfaces." },
   { sectionId: "rail", label: "Rail", summary: "Dense vertical evidence or queue rails." },
   { sectionId: "drawer", label: "Drawer", summary: "Elevated preview and support drawers." },
@@ -2013,7 +2013,7 @@ export const componentAtlasSections = [
   { sectionId: "artifact", label: "Artifact", summary: "Evidence and summary-only artifact planes." },
   { sectionId: "controls", label: "Controls", summary: "Buttons, chips, tabs, and field frames." },
   { sectionId: "state-postures", label: "State postures", summary: "Calm loading, empty, stale, blocked, and recovery states." },
-  { sectionId: "visualization", label: "Visualization", summary: "Comparison and bounded chart primitives with fallback parity." },
+  { sectionId: "visualization", label: "Visualization", summary: "Comparison and limited chart primitives with fallback parity." },
 ] as const;
 
 type MarkerProps = {
@@ -3058,7 +3058,7 @@ export function BoundedVisualizationPanel({
       data-surface-role="table"
       data-testid={testId}
     >
-      <SectionHeading eyebrow="Bounded visualization" title={title} summary={summary} />
+      <SectionHeading eyebrow="Limited visualization" title={title} summary={summary} />
       <p data-testid="visualization-summary">{summary}</p>
       <div className="cp-chart" aria-hidden="true">
         {data.map((row) => (
@@ -3257,7 +3257,7 @@ function renderPatientMissionFrame(binding: ResolvedPrimitiveRouteBinding) {
       binding={binding}
       specimen={specimenCompositions[0]}
       headline="Patient_Mission_Frame"
-      summary="Calm mission entry keeps one primary action, one support pocket, and a bounded status strip."
+      summary="Calm mission entry keeps one primary action, one support pocket, and a limited status strip."
       dominantActionLabel={binding.scenario.dominantActionLabel}
       promotedSupportRegion="Support snapshot"
     >
@@ -3265,7 +3265,7 @@ function renderPatientMissionFrame(binding: ResolvedPrimitiveRouteBinding) {
         eyebrow="Authenticated shell"
         title="Continue with one quiet path"
         summary="The spotlight card is the only amplified region. Support stays tucked into a single evidence pocket."
-        chips={["Signal Atlas Live", "Quiet posture", "Route-safe"]}
+        chips={["Signal Atlas Live", "Quiet status", "Route-safe"]}
       >
         <CasePulse label="Current mission" value="1" detail="One open request remains in view." />
       </ShellHeader>
@@ -3280,7 +3280,7 @@ function renderPatientMissionFrame(binding: ResolvedPrimitiveRouteBinding) {
         <BoardSurface
           eyebrow="Mission board"
           title="Today’s request"
-          summary="A single spotlight card leads, followed by bounded history and a quiet action row."
+          summary="A single spotlight card leads, followed by limited history and a quiet action row."
         >
           <CardSurface
             eyebrow="Spotlight"
@@ -3377,7 +3377,7 @@ function renderWorkspaceQuietMissionControl(binding: ResolvedPrimitiveRouteBindi
           <ShellHeader
             eyebrow="Clinical workspace"
             title="Maintain one mission at a time"
-            summary="The active task stays centered while the preview pocket remains bounded and reversible."
+            summary="The active task stays centered while the preview pocket remains limited and reversible."
             chips={["Triage", "Buffered replay", "Same shell"]}
           />
           <SharedStatusStrip
@@ -3414,7 +3414,7 @@ function renderWorkspaceQuietMissionControl(binding: ResolvedPrimitiveRouteBindi
           </TaskSurface>
           <ListSurface
             eyebrow="Interruption digest"
-            title="Bounded side signals"
+            title="Limited side signals"
             summary="Side signals remain list-first and do not become a second decision lane."
             rows={rows.listRows ?? []}
           />
@@ -3422,7 +3422,7 @@ function renderWorkspaceQuietMissionControl(binding: ResolvedPrimitiveRouteBindi
         <DrawerSurface
           eyebrow="Preview pocket"
           title="Attached patient context"
-          summary="The preview pocket is elevated, bounded, and safe to dismiss without route drift."
+          summary="The preview pocket is elevated, limited, and safe to dismiss without route drift."
         >
           <SelectedAnchorStub
             markerRef={binding.automation.selectedAnchorMarkerRef}
@@ -3431,7 +3431,7 @@ function renderWorkspaceQuietMissionControl(binding: ResolvedPrimitiveRouteBindi
           />
           <ArtifactSurface
             title="Interruption witness"
-            posture="Contract permitted preview"
+            posture="Rules permitted preview"
             metadata={["summary_only", binding.automation.artifactMarkerRef]}
           >
             <PlaceholderArtifactFrame
@@ -3459,15 +3459,15 @@ function renderOperationsControlRoomPreview(binding: ResolvedPrimitiveRouteBindi
       binding={binding}
       specimen={specimenCompositions[2]}
       headline="Operations_Control_Room_Preview"
-      summary="North-star status, one health grid, one bounded chart with parity fallback, and one intervention workbench."
+      summary="North-star status, one health grid, one limited chart with parity fallback, and one intervention workbench."
       dominantActionLabel={binding.scenario.dominantActionLabel}
       promotedSupportRegion="Intervention workbench"
     >
       <ShellHeader
         eyebrow="Operations shell"
         title="Watch the platform without adding another dashboard layer"
-        summary="The board stays table-first. Visuals are bounded and always fall back to summary plus table."
-        chips={["Summary-only", "Watch lane", "Bounded chart"]}
+        summary="The board stays table-first. Visuals are limited and always fall back to summary plus table."
+        chips={["Summary-only", "Watch lane", "Limited chart"]}
       >
         <AmbientStateRibbon
           tone="review"
@@ -3485,20 +3485,20 @@ function renderOperationsControlRoomPreview(binding: ResolvedPrimitiveRouteBindi
       <div className="cp-specimen-grid cp-specimen-grid--operations">
         <BoardSurface
           eyebrow="Health board"
-          title="Bounded availability grid"
-          summary="A dense table carries the primary operational truth."
+          title="Limited availability grid"
+          summary="A dense table carries the primary operational details."
           tone="review"
         >
           <TableSurface
             caption="Runtime watch grid"
-            summary="Dense grid for runtime watch posture."
-            columns={["Runtime", "Availability", "Posture"]}
+            summary="Dense grid for runtime watch status."
+            columns={["Runtime", "Availability", "Status"]}
             rows={rows.tableRows ?? []}
           />
         </BoardSurface>
         <BoundedVisualizationPanel
           title="Service availability watch"
-          summary="Gateway BFF and preview environment reset remain the only watch items below 92%, so the console stays in summary-only review posture."
+          summary="Gateway BFF and preview environment reset remain the only watch items below 92%, so the console stays in summary-only review status."
           tableCaption="Availability table fallback"
           data={chartData}
           tone="review"
@@ -3507,7 +3507,7 @@ function renderOperationsControlRoomPreview(binding: ResolvedPrimitiveRouteBindi
         <DrawerSurface
           eyebrow="Intervention workbench"
           title="Blocked intervention pocket"
-          summary="Workbench stays bounded while live action is blocked."
+          summary="Workbench stays limited while live action is blocked."
         >
           <ComparisonLedger
             title="Current versus proposed intervention"
@@ -3520,7 +3520,7 @@ function renderOperationsControlRoomPreview(binding: ResolvedPrimitiveRouteBindi
           />
           <BlockedStateFrame
             title="Live intervention is blocked"
-            body="Artifact posture is summary-only and the route binding is blocked, so the workbench cannot promote an action yet."
+            body="Artifact status is summary-only and the route binding is blocked, so the workbench cannot promote an action yet."
             recoveryActionLabel="Inspect anomaly summary"
             recoveryActionMarkerRef={binding.automation.dominantActionMarkerRef}
           />
@@ -3568,7 +3568,7 @@ function renderGovernanceApprovalFrame(binding: ResolvedPrimitiveRouteBinding) {
           <CardSurface
             eyebrow="Scope ribbon"
             title="Change envelope"
-            summary="One bounded envelope holds the proposed release and scope guardrails."
+            summary="One limited envelope holds the proposed release and scope guardrails."
             tone="review"
           >
             <ComparisonLedger
@@ -3603,12 +3603,12 @@ function renderGovernanceApprovalFrame(binding: ResolvedPrimitiveRouteBinding) {
             />
           </TaskSurface>
           <FormSurface
-            eyebrow="Approval posture"
+            eyebrow="Approval status"
             title="Review acknowledgement"
             summary="Form controls stay inside the review shell and do not become a second dominant lane."
           >
             <SelectFrame
-              label="Review posture"
+              label="Review status"
               value="Summary only"
               options={["Summary only", "Preview verified", "Blocked"]}
               state="read_only"
@@ -3674,8 +3674,8 @@ export function renderAtlasSupplementalShelf() {
           </div>
           <InputFieldFrame label="Case note" value="Ready for callback review" />
           <TextareaFrame
-            label="Bounded note"
-            value="Component shelf demonstrates form contract parity with the same token bindings."
+            label="Limited note"
+            value="Component shelf demonstrates form rules parity with the same token bindings."
           />
           <SelectFrame label="Scope" value="Patient" options={["Patient", "Operations", "Governance"]} />
           <CheckboxRadioFrame
@@ -3690,7 +3690,7 @@ export function renderAtlasSupplementalShelf() {
         <SectionHeading
           eyebrow="State shelf"
           title="Calm state transitions"
-          summary="Loading, empty, stale, blocked, recovery, and placeholder states keep quiet structure and explicit semantics."
+          summary="Loading, empty, stale, blocked, recovery, and summary states keep quiet structure and explicit semantics."
         />
         <div className="cp-state-shelf">
           <LoadingSkeleton label="Loading queue summary" />

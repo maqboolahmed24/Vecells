@@ -255,7 +255,7 @@ function freshnessLabel(envelope: ProjectionFreshnessEnvelope): string {
     envelope.actionabilityState === "live" &&
     envelope.transportState === "live"
   ) {
-    return "Fresh truth";
+    return "Fresh verified details";
   }
   if (envelope.projectionFreshnessState === "fresh") {
     return "Fresh but guarded";
@@ -300,7 +300,7 @@ export function validateStatusTruthInput(input: StatusTruthInput): readonly Stat
       code: "STATUS_FRESHNESS_ACTIONABILITY_CONFLICT",
       severity: "error",
       message:
-        "Fresh truth cannot be rendered while the freshness envelope keeps the shell guarded, frozen, or recovery only.",
+        "Fresh verified details cannot be rendered while the freshness envelope keeps the shell guarded, frozen, or recovery only.",
     });
   }
 
@@ -325,7 +325,7 @@ export function validateStatusTruthInput(input: StatusTruthInput): readonly Stat
       code: "STATUS_LOCAL_AND_AUTHORITATIVE_OVERLAP",
       severity: "warning",
       message:
-        "The strip should collapse overlapping local, processing, and authoritative cues into one shell-truth sentence.",
+        "The strip should collapse overlapping local, processing, and authoritative cues into one clear status sentence.",
     });
   }
 
@@ -378,22 +378,22 @@ export function composeStatusSentence(input: StatusTruthInput): StatusSentence {
     stateSummary = audienceCopy(
       input.audience,
       "Recovery is required before you continue.",
-      "Recovery required before the shell can resume governed work.",
+      "Recovery required before the shell can resume approved work.",
     );
     pendingDetail = audienceCopy(
       input.audience,
       "The last trustworthy summary stays visible while the recovery path catches up.",
-      "Keep the last trustworthy summary visible while the recovery path or blocked truth settles.",
+      "Keep the last trustworthy summary visible while the recovery path or blocked verified details settles.",
     );
     ribbonLabel = audienceCopy(
       input.audience,
       "Recovery required",
-      trustBlocked ? "Blocked truth" : "Recovery required",
+      trustBlocked ? "Blocked verified details" : "Recovery required",
     );
     ribbonDetail = audienceCopy(
       input.audience,
       "The shell stays honest instead of implying that work is complete.",
-      "The shell is bounded to recovery posture until freshness, trust, and settlement align again.",
+      "The shell is limited to recovery status until freshness, trust, and settlement align again.",
     );
     tone = trustBlocked ? "critical" : "critical";
     renderMode = "promoted_banner";
@@ -407,8 +407,8 @@ export function composeStatusSentence(input: StatusTruthInput): StatusSentence {
     );
     pendingDetail = audienceCopy(
       input.audience,
-      "We are keeping the same shell summary visible, but the truth needs review first.",
-      "Keep the same shell truth visible while stale or degraded projection state is reviewed.",
+      "We are keeping the same shell summary visible, but the verified details needs review first.",
+      "Keep the same shell verified details visible while stale or degraded projection state is reviewed.",
     );
     ribbonLabel = audienceCopy(
       input.audience,
@@ -418,7 +418,7 @@ export function composeStatusSentence(input: StatusTruthInput): StatusSentence {
     ribbonDetail = audienceCopy(
       input.audience,
       "Recent transport activity does not clear the need for review.",
-      "Transport health alone cannot restore writable posture or quiet success language.",
+      "Transport health alone cannot restore writable status or quiet success language.",
     );
     tone = "caution";
     liveAnnounce = "assertive";
@@ -457,7 +457,7 @@ export function composeStatusSentence(input: StatusTruthInput): StatusSentence {
           ? audienceCopy(
               input.audience,
               "We are updating the latest safe summary.",
-              "Projection refresh in progress while shell truth stays calm.",
+              "Projection refresh in progress while shell verified details stays calm.",
             )
           : audienceCopy(
               input.audience,
@@ -475,7 +475,7 @@ export function composeStatusSentence(input: StatusTruthInput): StatusSentence {
         : audienceCopy(input.audience, "Local acknowledgement", "Local acknowledgement");
     ribbonDetail = audienceCopy(
       input.audience,
-      "The shell remains in one truth strip instead of adding a second save banner.",
+      "The shell remains in one verified details strip instead of adding a second save banner.",
       "The strip suppresses duplicate save, sync, and processing banners.",
     );
     tone = "neutral";
@@ -488,7 +488,7 @@ export function composeStatusSentence(input: StatusTruthInput): StatusSentence {
     pendingDetail = audienceCopy(
       input.audience,
       "The latest shell summary matches the settled outcome.",
-      "Fresh projection truth, current settlement, and shell interpretation are aligned.",
+      "Fresh projection verified details, current settlement, and shell interpretation are aligned.",
     );
     ribbonLabel = audienceCopy(input.audience, "Confirmed", "Authoritative settlement");
     ribbonDetail = audienceCopy(
@@ -859,7 +859,7 @@ function createSpecimen(config: {
     saveState: config.saveState,
     dominantActionLabel: config.dominantActionLabel,
     lastChangedAt: "2026-04-13T16:21:00Z",
-    provenanceLabel: "Governed by one shared shell truth tuple.",
+    provenanceLabel: "Approved by one shared shell record.",
   };
   const pulse: CasePulseContract = {
     entityRef: `entity::${config.id}`,
@@ -918,7 +918,7 @@ export const statusTruthSpecimens = [
     dominantActionLabel: "Review appointment options",
     headline: "Booking support request",
     subheadline: "One calm shell keeps the request, its trust cue, and the next action visible.",
-    ownershipSummary: "Patient-safe summary, same continuity key",
+    ownershipSummary: "Patient-safe summary, same care reference",
     urgencyBand: "Routine follow-up",
     confirmationPosture: "Pending confirmation",
     changedSinceSeen: "Updated since last seen: slot guidance refined",
@@ -939,7 +939,7 @@ export const statusTruthSpecimens = [
         key: "trust",
         label: "Trust",
         value: "Trusted",
-        detail: "Fresh projection truth still supports the current explanation.",
+        detail: "Fresh projection verified details still supports the current explanation.",
       },
       {
         key: "urgency",
@@ -972,7 +972,7 @@ export const statusTruthSpecimens = [
     saveState: "saved",
     dominantActionLabel: "Recheck decisive delta",
     headline: "Task 014 / referral review",
-    subheadline: "Queue continuity stays pinned while the shell truth shifts to review-required.",
+    subheadline: "Queue continuity stays pinned while the shell verified details shifts to review-required.",
     ownershipSummary: "Assigned to clinical workspace",
     urgencyBand: "Guarded review",
     confirmationPosture: "Review required",
@@ -994,7 +994,7 @@ export const statusTruthSpecimens = [
         key: "trust",
         label: "Trust",
         value: "Degraded",
-        detail: "Fresh transport activity does not clear stale truth.",
+        detail: "Fresh transport activity does not clear stale source status.",
       },
       {
         key: "urgency",
@@ -1006,7 +1006,7 @@ export const statusTruthSpecimens = [
         key: "interaction",
         label: "Interaction",
         value: "Frozen",
-        detail: "Commit posture stays visibly frozen until recheck is complete.",
+        detail: "Commit status stays visibly frozen until recheck is complete.",
       },
     ],
   }),
@@ -1080,9 +1080,9 @@ export const statusTruthSpecimens = [
     pendingExternalState: "none",
     authoritativeOutcomeState: "failed",
     saveState: "failed",
-    dominantActionLabel: "Open governed recovery path",
+    dominantActionLabel: "Open approved recovery path",
     headline: "Delayed queue anomaly",
-    subheadline: "The shell promotes one blocker without pretending that transport health restored the truth.",
+    subheadline: "The shell promotes one blocker without pretending that transport health restored the source record.",
     ownershipSummary: "Operations intervention lane",
     urgencyBand: "Critical anomaly",
     confirmationPosture: "Recovery only",
@@ -1116,7 +1116,7 @@ export const statusTruthSpecimens = [
         key: "interaction",
         label: "Interaction",
         value: "Recovery only",
-        detail: "Only the governed recovery path remains actionable.",
+        detail: "Only the approved recovery path remains actionable.",
       },
     ],
   }),
@@ -1137,7 +1137,7 @@ export const statusTruthSpecimens = [
     saveState: "idle",
     dominantActionLabel: "Request evidence completion",
     headline: "Access policy delta",
-    subheadline: "Governance review keeps settled evidence visible without implying writable approval posture.",
+    subheadline: "Governance review keeps settled evidence visible without implying writable approval status.",
     ownershipSummary: "Governance scope diff",
     urgencyBand: "Review gate held",
     confirmationPosture: "Read-only until parity recheck",
@@ -1147,7 +1147,7 @@ export const statusTruthSpecimens = [
         key: "lifecycle",
         label: "Lifecycle",
         value: "Settled",
-        detail: "A settled outcome exists, but it is still subordinate to current shell truth.",
+        detail: "A settled outcome exists, but it is still subordinate to current shell status.",
       },
       {
         key: "ownership",
@@ -1159,7 +1159,7 @@ export const statusTruthSpecimens = [
         key: "trust",
         label: "Trust",
         value: "Partial",
-        detail: "Settlement alone cannot restore writable posture after evidence drift.",
+        detail: "Settlement alone cannot restore writable status after evidence drift.",
       },
       {
         key: "urgency",
@@ -1192,7 +1192,7 @@ export const statusTruthSpecimens = [
     saveState: "failed",
     dominantActionLabel: "Start checkpoint recovery",
     headline: "Referral validation case",
-    subheadline: "Checkpoint truth stays visible while the console narrows to one recovery path.",
+    subheadline: "Checkpoint verified details stays visible while the console narrows to one recovery path.",
     ownershipSummary: "Pharmacy checkpoint board",
     urgencyBand: "Safety recovery",
     confirmationPosture: "Recovery path only",
@@ -1214,13 +1214,13 @@ export const statusTruthSpecimens = [
         key: "trust",
         label: "Trust",
         value: "Degraded",
-        detail: "The shell cannot imply that referral truth is current enough to release.",
+        detail: "The shell cannot imply that referral verified details is current enough to release.",
       },
       {
         key: "urgency",
         label: "Urgency",
         value: "Safety critical",
-        detail: "One recovery cue wins while the rest of the shell stays bounded.",
+        detail: "One recovery cue wins while the rest of the shell stays limited.",
       },
       {
         key: "interaction",

@@ -1,19 +1,14 @@
-import {
-  startTransition,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
+import { startTransition, useEffect, useState, type ReactNode } from "react";
 
 import "./patient-appointment-family-workspace.css";
 
+import { PatientPortalTopBar } from "./patient-portal-top-bar";
 import {
   AppointmentManageEntryResolver as resolveAppointmentManageEntry,
   NetworkLocalContinuityBinder,
   UnifiedAppointmentFamilyResolver,
   appointmentsWorkspaceHref337,
   clearNetworkLocalContinuityBinderReceipt,
-  type AppointmentFamilyEntrySource337,
   type AppointmentFamilyRow337,
   type AppointmentFamilyStatusProjection337,
   type HubLocalReturnAnchorReceiptProjection337,
@@ -47,11 +42,8 @@ function humanize(value: string): string {
   return value.replaceAll("_", " ");
 }
 
-function replaceQuery(
-  href: string,
-  params: Record<string, string | null | undefined>,
-): string {
-  const url = new URL(href, "https://vecells.local");
+function replaceQuery(href: string, params: Record<string, string | null | undefined>): string {
+  const url = new URL(href, "https://service.local");
   for (const [key, value] of Object.entries(params)) {
     if (value) {
       url.searchParams.set(key, value);
@@ -149,11 +141,7 @@ export function PatientAppointmentFamilyRow({
   );
 }
 
-export function HubFallbackRibbon({
-  fallback,
-}: {
-  fallback: AppointmentFamilyRow337["fallback"];
-}) {
+export function HubFallbackRibbon({ fallback }: { fallback: AppointmentFamilyRow337["fallback"] }) {
   if (!fallback) {
     return null;
   }
@@ -169,11 +157,7 @@ export function HubFallbackRibbon({
   );
 }
 
-export function AppointmentFamilyTimelineBridge({
-  row,
-}: {
-  row: AppointmentFamilyRow337;
-}) {
+export function AppointmentFamilyTimelineBridge({ row }: { row: AppointmentFamilyRow337 }) {
   return (
     <section
       className="appointment-family__timeline"
@@ -262,7 +246,7 @@ export function AppointmentManageEntryResolver({
       <p>{resolution.actionSummary}</p>
       <dl className="appointment-family__summary-grid">
         <div>
-          <dt>Route family</dt>
+          <dt>Journey group</dt>
           <dd>{humanize(resolution.routeFamilyRef)}</dd>
         </div>
         <div>
@@ -270,7 +254,7 @@ export function AppointmentManageEntryResolver({
           <dd>{resolution.returnAnchorLabel}</dd>
         </div>
         <div>
-          <dt>CTA posture</dt>
+          <dt>CTA status</dt>
           <dd>{resolution.staleCtaSuppressed ? "stale CTA suppressed" : "current CTA"}</dd>
         </div>
       </dl>
@@ -375,7 +359,7 @@ export function PatientAppointmentFamilyWorkspace({
     startTransition(() => {
       setWorkspace(
         UnifiedAppointmentFamilyResolver({
-          search: new URL(nextHref, "https://vecells.local").search,
+          search: new URL(nextHref, "https://service.local").search,
           entrySource: workspace.entrySource,
           requestContextRef: workspace.requestContextRef,
           variant: workspace.variant,
@@ -417,6 +401,11 @@ export function PatientAppointmentFamilyWorkspace({
       data-request-context={workspace.requestContextRef ?? "none"}
       data-return-anchor={workspace.returnReceipt ? "restored" : "steady"}
     >
+      <PatientPortalTopBar
+        current="appointments"
+        testId="appointment-family-top-band"
+        ariaLabel="Patient appointment navigation"
+      />
       <HubLocalReturnAnchorReceipt receipt={workspace.returnReceipt} />
       <header className="appointment-family__header">
         <div className="appointment-family__section-heading">
@@ -450,9 +439,7 @@ export function PatientAppointmentFamilyWorkspace({
   );
 }
 
-function requestWorkspace(
-  requestRef: string,
-): PatientAppointmentFamilyWorkspaceProjection337 {
+function requestWorkspace(requestRef: string): PatientAppointmentFamilyWorkspaceProjection337 {
   return UnifiedAppointmentFamilyResolver({
     entrySource: "request_detail",
     requestContextRef: requestRef,

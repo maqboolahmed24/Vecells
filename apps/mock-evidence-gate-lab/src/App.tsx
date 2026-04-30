@@ -121,7 +121,7 @@ function initialState(): AppState {
       retentionPolicyRef: evidenceGateLabPack.retention_policies[0].retention_policy_ref,
       callbackBaseUrl: "https://example.invalid/evidence-gate",
       secretRef: "vault://evidence/provider/webhook",
-      bucketRef: "s3://vecells-evidence-nonprod",
+      bucketRef: "s3://service-evidence-nonprod",
       scanPolicyRef: evidenceGateLabPack.scan_and_quarantine_policy_rows[0].scan_policy_ref,
       targetEnvironment: "provider_like_preprod",
       namedApprover: "",
@@ -394,7 +394,7 @@ function App() {
             style={{ width: 172, height: "auto" }}
           />
           <div>
-            <div className="ribbon">MOCK_EVIDENCE_GATE_LAB</div>
+            <div className="ribbon">evidence gate lab test mode</div>
             <h1>Evidence Gate Lab</h1>
             <p>Transcript readiness and quarantine law stay visible all the way to the live gates.</p>
           </div>
@@ -794,8 +794,8 @@ function App() {
             <section className="surface">
               <div className="section-head">
                 <div>
-                  <h2>Live gates and retention posture</h2>
-                  <p>All fields stay visible now, but real project creation remains blocked while Phase 0 is withheld.</p>
+                  <h2>Live gates and retention status</h2>
+                  <p>All fields stay visible now, but real project creation remains blocked while Current programme is withheld.</p>
                 </div>
                 <div className="gate-summary">
                   <HealthChip label="blocked" value={evidenceGateLabPack.summary.blocking_live_gate_count} tone="quarantine" />

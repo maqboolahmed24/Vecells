@@ -527,7 +527,7 @@ const recordsRows = [
     summary:
       "Hold release is blocked until the superseding disposition assessment and assurance graph complete the same scope.",
     statusTone: "critical",
-    baselineLabel: "Hold scope hash 9A2B",
+    baselineLabel: "Hold scope check 9A2B",
     ownerLabel: "Records governance",
     approvalBurden: "Compliance + legal release review",
     evidenceAge: "13m",
@@ -538,7 +538,7 @@ const recordsRows = [
     objectId: "records-freeze-archive-14",
     label: "Archive freeze AF-14",
     kind: "Retention freeze",
-    summary: "Archive-only posture is exact; delete-ready controls remain correctly suppressed.",
+    summary: "Archive-only status is clear; delete-ready controls remain correctly suppressed.",
     statusTone: "success",
     baselineLabel: "Freeze scope hash 14C7",
     ownerLabel: "Compliance officer",
@@ -552,7 +552,7 @@ const recordsRows = [
     label: "Disposition preview D-31",
     kind: "Disposition job",
     summary:
-      "Candidate rows are present, but one dependency witness keeps the job in review-only posture.",
+      "Candidate rows are present, but one dependency witness keeps the job in review-only status.",
     statusTone: "caution",
     baselineLabel: "Disposition batch 31",
     ownerLabel: "Platform governance",
@@ -747,7 +747,7 @@ const releaseRows = [
   {
     objectId: "release-wave-blue-42",
     label: "Blue wave 42",
-    kind: "Release tuple",
+    kind: "Release package",
     summary:
       "Compile, compatibility, and continuity bundles agree, but the watch cockpit still shows one buffered rollback question.",
     statusTone: "caution",
@@ -755,13 +755,13 @@ const releaseRows = [
     ownerLabel: "Release manager",
     approvalBurden: "Independent promotion + watch review",
     evidenceAge: "8m",
-    nextSafeAction: "Keep the ReleaseFreezeTupleCard pinned until watch posture settles.",
+    nextSafeAction: "Keep the release review visible until watch status settles.",
     gapRefs: ["GAP_APPROVAL_TUPLE_DETAIL_ROLLBACK_WATCH_V1"],
   },
   {
     objectId: "release-wave-amber-12",
     label: "Amber wave 12",
-    kind: "Release tuple",
+    kind: "Release package",
     summary:
       "One recovery disposition is active and correctly suppresses widen and stabilize controls in place.",
     statusTone: "critical",
@@ -770,13 +770,13 @@ const releaseRows = [
     approvalBurden: "Recovery-only observe",
     evidenceAge: "3m",
     nextSafeAction:
-      "Stay in the same shell and review the recovery tuple, not a generic rollout board.",
+      "Stay in the same workspace and review the recovery details, not a generic rollout board.",
     gapRefs: ["GAP_FUTURE_GOVERNANCE_DEPTH_RELEASE_RECOVERY_EVIDENCE_V1"],
   },
   {
     objectId: "release-wave-green-05",
     label: "Green wave 05",
-    kind: "Release tuple",
+    kind: "Release package",
     summary:
       "Quiet state with attested completion, current standards watchlist, and no active freeze conflicts.",
     statusTone: "success",
@@ -798,13 +798,13 @@ const governanceRouteDefinitions = [
     sectionLabel: "Governance foyer",
     title: "Quiet governance studio",
     summary:
-      "Pending approvals, expiring grants, stale evidence, and release-watch posture stay in one governed command foyer.",
+      "Pending approvals, expiring grants, stale evidence, and release-watch status stay in one governed command foyer.",
     anchorKey: "governance-scope",
     supportRegion: "release",
     centerPaneMode: "overview",
     reviewStage: "scope",
     primaryActionLabel: "Inspect the highest-risk governance review",
-    calmNextStep: "Review recent promotions or inspect tenant posture without widening scope.",
+    calmNextStep: "Review recent promotions or inspect tenant status without widening scope.",
     defaultObjectId: "release-wave-blue-42",
   },
   {
@@ -849,7 +849,7 @@ const governanceRouteDefinitions = [
     sectionLabel: "ComplianceLedgerPanel",
     title: "Compliance and evidence",
     summary:
-      "Controls, evidence age, exceptions, and continuity bundles remain summary-first and provenance-aware.",
+      "Controls, evidence age, exceptions, and continuity bundles remain summary-first and history-aware.",
     anchorKey: "governance-diff",
     supportRegion: "evidence",
     centerPaneMode: "detail",
@@ -866,7 +866,7 @@ const governanceRouteDefinitions = [
     sectionLabel: "Records lifecycle",
     title: "Records lifecycle governance",
     summary:
-      "Retention class, legal hold, freeze lineage, and delete eligibility stay on one restricted governance surface.",
+      "Retention class, legal hold, freeze history, and delete eligibility stay on one restricted governance surface.",
     anchorKey: "governance-diff",
     supportRegion: "evidence",
     centerPaneMode: "detail",
@@ -884,7 +884,7 @@ const governanceRouteDefinitions = [
     sectionLabel: "Legal hold queue",
     title: "Records legal holds",
     summary:
-      "Hold scope hashes, freeze lineage, release state, and superseding assessment burden stay pinned in one shell.",
+      "Hold scope checks, freeze history, release state, and superseding assessment burden stay pinned in one workspace.",
     anchorKey: "governance-diff",
     supportRegion: "evidence",
     centerPaneMode: "detail",
@@ -1108,16 +1108,16 @@ const governanceRouteDefinitions = [
     routeKey: "config_promotions",
     cluster: "config",
     routeFamilyRef: "rf_governance_shell",
-    sectionLabel: "ReleaseFreezeTupleCard",
+    sectionLabel: "Release readiness",
     title: "Policy promotions",
     summary:
-      "Compile, simulation, approvals, continuity bundles, and watch posture remain on one continuous promotion surface.",
+      "Compile, simulation, approvals, continuity bundles, and watch status remain on one continuous promotion surface.",
     anchorKey: "governance-approval",
     supportRegion: "approval",
     centerPaneMode: "review",
     reviewStage: "approval",
     primaryActionLabel: "Advance the promotion review in place",
-    calmNextStep: "Acknowledge the promoted review and keep the release tuple visible.",
+    calmNextStep: "Acknowledge the promoted review and keep the release package visible.",
     defaultObjectId: "bundle-routing-core-v7",
   },
   {
@@ -1134,7 +1134,7 @@ const governanceRouteDefinitions = [
     centerPaneMode: "overview",
     reviewStage: "scope",
     primaryActionLabel: "Inspect the selected communications package",
-    calmNextStep: "Keep live, draft, and scheduled posture visible together before editing.",
+    calmNextStep: "Keep live, draft, and scheduled status visible together before editing.",
     defaultObjectId: "template-reminders-v12",
   },
   {
@@ -1145,7 +1145,7 @@ const governanceRouteDefinitions = [
     sectionLabel: "ChangeEnvelope",
     title: "Template reviews",
     summary:
-      "Template diff, preview matrix, fallback branches, and channel-freeze posture remain same-shell and tuple-bound.",
+      "Template diff, preview matrix, fallback branches, and channel-freeze status remain in the same workspace.",
     anchorKey: "governance-diff",
     supportRegion: "impact",
     centerPaneMode: "diff",
@@ -1160,17 +1160,17 @@ const governanceRouteDefinitions = [
     routeKey: "release_home",
     cluster: "release",
     routeFamilyRef: "rf_governance_shell",
-    sectionLabel: "ReleaseFreezeTupleCard",
-    title: "Release and watch posture",
+    sectionLabel: "Release readiness",
+    title: "Release and watch status",
     summary:
-      "Promotion, watch, rollback-readiness, channel freezes, and recovery disposition stay on one governed release surface.",
+      "Promotion, watch, rollback readiness, channel freezes, and recovery disposition stay on one governed release surface.",
     anchorKey: "governance-approval",
     supportRegion: "release",
     centerPaneMode: "review",
     reviewStage: "approval",
-    primaryActionLabel: "Review the current release tuple safely",
+    primaryActionLabel: "Review the current release package safely",
     calmNextStep:
-      "Keep the release tuple and watch cockpit pinned while evaluating rollout posture.",
+      "Keep the release package and watch view pinned while evaluating rollout status.",
     defaultObjectId: "release-wave-blue-42",
   },
 ] as const satisfies readonly GovernanceRouteDefinition[];
@@ -1910,11 +1910,11 @@ export function resolveGovernanceShellSnapshot(
     state.supportRegion === "impact"
       ? "Blast radius, continuity burden, and approval burden stay concise and package-bound."
       : state.supportRegion === "approval"
-        ? "Independent review, acknowledgement burden, and watch posture stay on one ordered rail."
+        ? "Independent review, acknowledgement burden, and watch status stay on one ordered rail."
         : state.supportRegion === "evidence"
-          ? "Continuity evidence, publication parity, and standards posture remain summary-first."
+          ? "Continuity evidence, publication parity, and standards status remain summary-first."
           : state.supportRegion === "release"
-            ? "Freeze, publication, compatibility, and watch posture stay visible beside the review."
+            ? "Freeze, publication, compatibility, and watch status stay visible beside the review."
             : "Operational access meaning stays visible beside the governed role or review package.";
   return {
     location: state.location,

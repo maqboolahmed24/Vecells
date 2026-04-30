@@ -106,7 +106,7 @@ export const siteLinkPack = {
       "official_values_supplied": false,
       "values_source": "placeholder_only",
       "served_origin": "http://127.0.0.1:4181",
-      "domain_placeholder": "links.local.vecells.test",
+      "domain_placeholder": "links.local.service.test",
       "host_status": "local_preview_only",
       "host_notes": "Local hosting proves path shape and asset structure only; it does not prove production DNS or certificate posture.",
       "android_package_name": "__NHS_APP_ANDROID_PACKAGE_LOCAL_MOCK__",
@@ -117,7 +117,7 @@ export const siteLinkPack = {
       "android_relation": "delegate_permission/common.handle_all_urls",
       "cache_control": "public, max-age=60, must-revalidate",
       "content_type_requirement": "application/json",
-      "supplied_by": "Vecells placeholder generator only",
+      "supplied_by": "Service placeholder generator only",
       "notes": "Used for local `.well-known` hosting validation and UI rehearsal."
     },
     {
@@ -127,8 +127,8 @@ export const siteLinkPack = {
       "actual_registration_allowed": false,
       "official_values_supplied": false,
       "values_source": "awaiting_nhs_app_team",
-      "served_origin": "https://links-sandpit.vecells.example",
-      "domain_placeholder": "links-sandpit.vecells.example",
+      "served_origin": "https://links-sandpit.service.example",
+      "domain_placeholder": "links-sandpit.service.example",
       "host_status": "placeholder_only",
       "host_notes": "The real host must be owned, approved, and coordinated with the onboarding team before registration.",
       "android_package_name": "__NHS_APP_ANDROID_PACKAGE_SANDPIT__",
@@ -149,8 +149,8 @@ export const siteLinkPack = {
       "actual_registration_allowed": false,
       "official_values_supplied": false,
       "values_source": "awaiting_nhs_app_team",
-      "served_origin": "https://links-aos.vecells.example",
-      "domain_placeholder": "links-aos.vecells.example",
+      "served_origin": "https://links-aos.service.example",
+      "domain_placeholder": "links-aos.service.example",
       "host_status": "placeholder_only",
       "host_notes": "AOS remains blocked until sandpit evidence and environment-specific values are current.",
       "android_package_name": "__NHS_APP_ANDROID_PACKAGE_AOS__",
@@ -171,8 +171,8 @@ export const siteLinkPack = {
       "actual_registration_allowed": false,
       "official_values_supplied": false,
       "values_source": "awaiting_nhs_app_team",
-      "served_origin": "https://links.vecells.example",
-      "domain_placeholder": "links.vecells.example",
+      "served_origin": "https://links.service.example",
+      "domain_placeholder": "links.service.example",
       "host_status": "placeholder_only",
       "host_notes": "Production registration stays blocked until limited-release readiness, domain ownership proof, and official values all line up.",
       "android_package_name": "__NHS_APP_ANDROID_PACKAGE_LIVE__",
@@ -711,10 +711,10 @@ export const siteLinkPack = {
     "captured_on": "2026-04-09",
     "visual_mode": "Linkloom_Metadata_Studio",
     "placeholder_domains": [
-      "links.local.vecells.test",
-      "links-sandpit.vecells.example",
-      "links-aos.vecells.example",
-      "links.vecells.example"
+      "links.local.service.test",
+      "links-sandpit.service.example",
+      "links-aos.service.example",
+      "links.service.example"
     ],
     "template_tokens": {
       "ANDROID_PACKAGE_NAME": "Environment-specific Android package name supplied by the NHS App team",
@@ -724,9 +724,9 @@ export const siteLinkPack = {
     },
     "host_management_defaults": {
       "local_mock": "127.0.0.1:4181",
-      "sandpit_like": "links-sandpit.vecells.example",
-      "aos_like": "links-aos.vecells.example",
-      "live_placeholder": "links.vecells.example"
+      "sandpit_like": "links-sandpit.service.example",
+      "aos_like": "links-aos.service.example",
+      "live_placeholder": "links.service.example"
     },
     "guardrails": [
       "No real package IDs, fingerprints, or appIDs are stored in repo outputs.",

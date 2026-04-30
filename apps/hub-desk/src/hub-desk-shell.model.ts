@@ -1,7 +1,6 @@
 import {
   createInitialContinuitySnapshot,
   createUiTelemetryEnvelope,
-  getPersistentShellRouteClaim,
   navigateWithinShell,
   selectAnchorInSnapshot,
   type ContinuitySnapshot,
@@ -776,9 +775,6 @@ export interface HubShellStateMatrixRow {
   readOnlyReason: string;
 }
 
-const queueClaim = getPersistentShellRouteClaim("rf_hub_queue");
-const caseClaim = getPersistentShellRouteClaim("rf_hub_case_management");
-
 const hubOrganisationConfigs = {
   north_shore_hub: {
     label: "North Shore Hub",
@@ -1159,7 +1155,7 @@ export const hubCases: readonly HubCoordinationCase[] = [
     dominantActionLabel: "Review supplier drift recovery",
     dominantActionSummary:
       "Keep the case readable for supervision, but visibly read-only until current ownership and repair posture are refreshed.",
-    currentCheckpointLabel: "Manage posture frozen pending review",
+    currentCheckpointLabel: "Manage status frozen pending review",
     auditSummary:
       "Mirror observation MIR-041-5, drift hook DRIFT-041-2, and continuity refresh request CNT-041-3 form the current recovery tuple.",
     caseStageSummary:
@@ -1312,7 +1308,7 @@ export const hubSavedViews: readonly HubSavedView[] = [
     interruptionIds: ["int-041-drift", "int-066-ack"],
     posture: "read_only",
     ownershipSummary: "Observe-only / another coordinator owns mutation",
-    statusSummary: "Route stays readable, but dominant actions are demoted to review-only posture",
+    statusSummary: "Route stays readable, but dominant actions are demoted to review-only status",
   },
 ] as const;
 
@@ -1324,7 +1320,7 @@ export const hubInterruptions: readonly HubInterruptionDigestItem[] = [
     severity: "critical",
     label: "Confirmation pending",
     summary:
-      "Native booking evidence is still weaker than confirmed truth, so the case stays active and patient reassurance remains provisional.",
+      "Native booking confirmation is still incomplete, so the case stays active and patient reassurance remains provisional.",
     dueLabel: "Evidence review due now",
     routePath: "/hub/case/hub-case-087",
     dominantActionLabel: "Inspect pending confirmation",
@@ -1384,7 +1380,7 @@ export const hubInterruptions: readonly HubInterruptionDigestItem[] = [
     severity: "critical",
     label: "Supplier drift risk",
     summary:
-      "Supplier mirror reports a drifted appointment tuple. Manage posture is frozen and practice visibility debt has reopened until recovery settles.",
+      "Supplier mirror reports appointment details have drifted. Manage status is frozen and practice visibility debt has reopened until recovery settles.",
     dueLabel: "Mirror drift observed 7m ago",
     routePath: "/hub/case/hub-case-041",
     dominantActionLabel: "Review supplier drift recovery",
@@ -1999,7 +1995,7 @@ const hubCaseWorkbenchSeeds: readonly HubCaseWorkbenchSeed[] = [
           "0 min travel • 0 min wait • Degraded trust, not a governed slot alternative",
         travelMinutes: 0,
         waitMinutes: 0,
-        manageCapability: "Diagnostic only",
+        manageCapability: "Review only",
         sourceTrustState: "degraded",
         sourceTrustSummary: "Degraded source / visible only for diagnosis and explanation",
         freshnessBand: "stale",
@@ -2372,7 +2368,7 @@ const hubRecoveryCases: readonly HubRecoveryCaseProjectionDescriptor[] = [
     recoveryDiffStrip: null,
     reopenProvenanceStub: {
       stubId: "reopen-prov-052",
-      title: "HubReopenProvenanceStub",
+      title: "Reopen history",
       summary:
         "The last visible alternatives remain attached as read-only context so the fallback never looks like a generic error replacement.",
       preservedRows: [
@@ -2464,7 +2460,7 @@ const hubRecoveryCases: readonly HubRecoveryCaseProjectionDescriptor[] = [
     recoveryDiffStrip: null,
     reopenProvenanceStub: {
       stubId: "reopen-prov-031",
-      title: "HubReopenProvenanceStub",
+      title: "Reopen history",
       summary:
         "The last hub-visible option set remains attached so the urgent bounce-back is anchored to real rejected choices, not a detached escalation label.",
       preservedRows: [
@@ -2508,7 +2504,7 @@ const hubRecoveryCases: readonly HubRecoveryCaseProjectionDescriptor[] = [
         "New capacity and new continuity evidence changed what is now possible. The prior case anchor stays pinned while the shell explains the delta first.",
       diffRows: [
         {
-          label: "Manage posture",
+          label: "Manage status",
           previousValue: "Frozen / stale drift tuple",
           nextValue: "Reopen review with backup candidate visible",
           explanation: "Supplier mirror widened recovery, but did not restore calm booked posture.",
@@ -2529,7 +2525,7 @@ const hubRecoveryCases: readonly HubRecoveryCaseProjectionDescriptor[] = [
     },
     reopenProvenanceStub: {
       stubId: "reopen-prov-041",
-      title: "HubReopenProvenanceStub",
+      title: "Reopen history",
       summary:
         "The current drifted booking and the newly visible backup candidate stay side by side so the operator can see exactly what changed.",
       preservedRows: [
@@ -2923,11 +2919,6 @@ function exceptionForId(
   return exceptionId ? hubExceptionById.get(exceptionId) : undefined;
 }
 
-function clampSavedViewId(savedViewId: string | null | undefined): HubSavedViewId {
-  return (savedViewForId(savedViewId as HubSavedViewId)?.savedViewId ??
-    "resume_today") as HubSavedViewId;
-}
-
 function clampQueueFilterId(
   filterId: HubQueueFilterId | string | null | undefined,
 ): HubQueueFilterId {
@@ -3236,7 +3227,7 @@ function buildQueueRiskSummary(
       label: "Watch closely",
       shortLabel: "Watch",
       count: counts.get("watch") ?? 0,
-      summary: "Operationally risky but not yet in imminent breach or takeover-required posture.",
+    summary: "Operationally risky but not yet in imminent breach or takeover-required status.",
     },
     {
       riskBand: "ready",
@@ -3328,7 +3319,7 @@ function buildOptionCardsForCase(
     : orderedIds[0];
 
   return orderedIds
-    .map((optionCardId, index) => cardsById.get(optionCardId))
+    .map((optionCardId) => cardsById.get(optionCardId))
     .filter((card): card is Omit<HubOptionCardProjectionDescriptor, "selectedState"> =>
       Boolean(card),
     )
@@ -3345,14 +3336,14 @@ function buildOptionCardGroups(
   const windowClassLabels: Record<HubWindowClass, [string, string]> = {
     2: [
       "Clinically preferred now",
-      "Preferred-window candidates stay above approved variance and diagnostic-only reasoning.",
+      "Preferred-window candidates stay above approved variance and review-only reasoning.",
     ],
     1: [
       "Approved variance",
       "Visible because policy allows variance disclosure, not because they outrank preferred-window supply.",
     ],
     0: [
-      "Diagnostic only",
+      "Review only",
       "Keep these visible for explanation or recovery reasoning only. They are not live ranked offers.",
     ],
   };
@@ -3452,7 +3443,7 @@ function buildDecisionDockHost(
         : `/hub/alternatives/${currentCase.offerSessionId}`;
 
   return {
-    title: "DecisionDock",
+    title: "Next action",
     summary:
       queueChangeBatch?.summary ??
       "Keep one dominant action and one consequence preview visible while queue order and rank proof stay authoritative.",
@@ -3479,7 +3470,7 @@ function buildDecisionDockHost(
     supportingFacts: [
       { label: "Selected case", value: currentCase.patientLabel },
       { label: "Selected option", value: selectedOptionCard.title },
-      { label: "Comparison posture", value: selectedOptionCard.comparisonLabel },
+      { label: "Comparison status", value: selectedOptionCard.comparisonLabel },
       { label: "Queue checkpoint", value: currentCase.currentCheckpointLabel },
     ],
   };
@@ -3501,27 +3492,27 @@ function statusSignalsForSnapshot(
     runtimeScenario === "read_only"
       ? {
           signalId: "shell-posture",
-          label: "Shell posture",
+          label: "Workspace status",
           value: "Observe only",
           summary:
-            "Another coordinator owns mutation. The shell stays readable but makes write posture explicit.",
+            "Another coordinator owns changes. The workspace stays readable while write actions are unavailable.",
           tone: "watch",
         }
       : runtimeScenario === "recovery_only"
         ? {
             signalId: "shell-posture",
-            label: "Shell posture",
+            label: "Workspace status",
             value: "Recovery required",
             summary:
-              "The same shell stays open, but dominant action is bounded to recovery or supervision.",
+              "The same case stays open, but the next action is limited to recovery or supervision.",
             tone: "critical",
           }
         : {
             signalId: "shell-posture",
-            label: "Shell posture",
+            label: "Workspace status",
             value: "Live coordination",
             summary:
-              "Shell continuity, acting context, and route publication all currently support writable posture.",
+              "The current case, acting context, and route all currently support write actions.",
             tone: "ready",
           };
 
@@ -3679,13 +3670,13 @@ function buildCaseStageHost(
   return {
     title: "Current case stage",
     summary:
-      "The centre host keeps ranked choices, recovery posture, and downstream proof inside one stable shell instead of rebuilding chrome.",
+      "The centre host keeps ranked choices, recovery status, and downstream proof inside one stable workspace.",
     hostMode: "case_host",
     primaryPrompt: currentCase.stageQuestion,
     secondaryPrompt: currentCase.caseStageSummary,
     highlights: currentCase.caseStageHighlights,
     primaryActionLabel:
-      location.viewMode === "case" ? "Open alternatives stub" : "Return to active case",
+      location.viewMode === "case" ? "Open alternatives" : "Return to active case",
     primaryActionPath:
       location.viewMode === "case"
         ? `/hub/alternatives/${currentCase.offerSessionId}`
@@ -3704,7 +3695,7 @@ function buildRightRailHost(
     items: [
       { label: "Current case", value: currentCase.patientLabel },
       {
-        label: "Route posture",
+        label: "Route status",
         value:
           runtimeScenario === "live"
             ? "Writable"
@@ -3920,7 +3911,7 @@ function buildVisibilityEnvelopeLegend(
         visibleSummary:
           "Macro booking status, callback reason code, and acknowledgement delta stay visible.",
         hiddenSummary:
-          "Hub internal notes, cross-site capacity detail, and raw booking proof remain withheld.",
+          "Additional coordination notes, cross-site capacity detail, and original booking evidence remain withheld.",
         current: audienceTierId === "origin_practice_visibility",
       },
       {
@@ -3944,7 +3935,7 @@ function buildMinimumNecessaryPlaceholders(
     return [
       {
         blockId: "placeholder-origin-notes",
-        title: "Hub internal notes withheld",
+        title: "Additional coordination notes withheld",
         summary:
           "This field is intentionally hidden because origin-practice visibility stops at macro coordination truth.",
         reason: "hidden_by_audience_tier",
@@ -4090,18 +4081,18 @@ function buildActingContextControlPlane(
               ? "Frozen pending scope refresh"
               : "Denied",
       tupleHash,
-      switchGenerationLabel: `switch generation ${tupleHash.length % 7 + 12}`,
+      switchGenerationLabel: `Access update ${tupleHash.length % 7 + 12}`,
       minimumNecessarySummary:
         placeholders.length > 0
-          ? `${placeholders.length} governed placeholder block${placeholders.length === 1 ? "" : "s"} explain withheld detail.`
-          : "No additional placeholder blocks are required under the current audience tier.",
+          ? `${placeholders.length} limited summar${placeholders.length === 1 ? "y explains" : "ies explain"} unavailable detail.`
+          : "No additional limited summaries are required under the current audience tier.",
       visibilityEnvelopeState: accessState.visibilityEnvelopeState,
       breakGlassState,
       breakGlassSummary:
         breakGlassState === "inactive"
           ? "No break-glass is active."
           : breakGlassState === "active"
-            ? "Break-glass is active and bound to the current hub tuple."
+            ? "Break-glass is active and bound to the current hub access details."
             : breakGlassState === "expiring"
               ? "Break-glass is active but expiring soon under the escalation-room lease."
               : breakGlassState === "revoked"
@@ -4111,22 +4102,22 @@ function buildActingContextControlPlane(
     organisationSwitchDrawer: {
       title: "OrganisationSwitchDrawer",
       summary:
-        "Organisation, site, and purpose switches preserve the same shell and selected case anchor while making any freeze or denial explicit.",
+        "Organisation, site, and purpose switches preserve the same workspace and selected case while making any freeze or denial explicit.",
       organisationOptions: buildOrganisationOptions(organisationId),
       actingSiteSwitcher: {
         title: "ActingSiteSwitcher",
-        summary: "Sites can change the lease, expiry posture, or available recovery controls without mutating the route silently.",
+        summary: "Sites can change expiry status or available recovery controls without changing the route silently.",
         options: buildSiteOptions(organisationId, siteId),
       },
       purposePanel: {
         title: "PurposeOfUsePanel",
         summary:
-          "Purpose-of-use changes reissue the acting scope tuple; blocked and pending paths stay explicit instead of behaving like soft navigation filters.",
+          "Purpose-of-use changes recheck acting access details; blocked and pending paths stay explicit instead of behaving like soft navigation filters.",
         options: buildPurposeOptions(organisationId, purposeId),
       },
       breakGlassSummary:
         organisationId === "north_shore_hub"
-          ? "Break-glass may be reason-coded from the hub tuple when the current purpose is direct care coordination."
+          ? "Break-glass may be reason-coded from the current hub access details when the purpose is direct care coordination."
           : "Break-glass cannot be requested from this organisation scope.",
     },
     breakGlassReasonModal: {

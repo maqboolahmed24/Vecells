@@ -57,19 +57,6 @@ import {
   type RequestStatusSurfaceView,
 } from "./patient-intake-request-status-surface";
 import {
-  ACCESS_GRANT_SCOPE_ENVELOPE_REF,
-  ACCESS_GRANT_SUPERSESSION_RECORD_REF,
-  GAP_RESOLVED_ACCESS_POSTURE_COPY_REBIND_V1,
-  GAP_RESOLVED_ACCESS_POSTURE_COPY_SAME_SHELL_V1,
-  GAP_RESOLVED_ACCESS_POSTURE_COPY_STALE_PROMOTION_V1,
-  PATIENT_ACTION_RECOVERY_ENVELOPE_REF,
-  PATIENT_ACTION_RECOVERY_PROJECTION_REF,
-  PATIENT_DEGRADED_MODE_PROJECTION_REF,
-  PATIENT_EMBEDDED_SESSION_PROJECTION_REF,
-  PATIENT_IDENTITY_HOLD_PROJECTION_REF,
-  PATIENT_NAV_RETURN_CONTRACT_REF,
-  PATIENT_SHELL_CONSISTENCY_PROJECTION_REF,
-  RECOVERY_CONTINUATION_TOKEN_REF,
   buildPatientAccessSurface,
   createDefaultPatientAccessSimulation,
   normalizePatientAccessSimulation,
@@ -377,10 +364,10 @@ export const routeStepDescriptors: readonly IntakeRouteStepDescriptor[] = [
     routeKey: "landing",
     stepKey: "landing",
     railLabel: "Begin",
-    eyebrow: "Quiet clarity intake",
-    title: "Start one calm request thread",
+    eyebrow: "Start request",
+    title: "Start a new request",
     helper:
-      "This mission frame keeps the same shell, status strip, and continuity anchor from the first question through review, urgent guidance, and receipt.",
+      "We will ask a few questions, let you add files if they help, confirm how to contact you, and show your receipt in one place.",
     dominantActionLabel: "Start request",
     secondaryActionLabel: "When to use urgent help",
     selectedAnchorKey: "request-start",
@@ -398,7 +385,7 @@ export const routeStepDescriptors: readonly IntakeRouteStepDescriptor[] = [
     eyebrow: "Question one",
     title: "What kind of help do you need today?",
     helper:
-      "Choose the one route that best matches the main thing you need reviewed. The rest of the shell stays calm and unchanged.",
+      "Choose the option that best matches what you need reviewed. We will only ask questions that fit your choice.",
     dominantActionLabel: "Continue",
     secondaryActionLabel: "Back",
     selectedAnchorKey: "request-start",
@@ -415,8 +402,7 @@ export const routeStepDescriptors: readonly IntakeRouteStepDescriptor[] = [
     railLabel: "Detail",
     eyebrow: "Question two",
     title: "Tell us the part we need to act on now",
-    helper:
-      "One bounded answer area keeps the current question, local validation, and recap chips in one reading measure.",
+    helper: "Answer one question at a time. Extra detail appears only when it helps us understand what you need.",
     dominantActionLabel: "Save and continue",
     secondaryActionLabel: "Back",
     selectedAnchorKey: "request-proof",
@@ -431,10 +417,9 @@ export const routeStepDescriptors: readonly IntakeRouteStepDescriptor[] = [
     routeKey: "supporting_files",
     stepKey: "supporting_files",
     railLabel: "Files",
-    eyebrow: "Evidence lane",
+    eyebrow: "Supporting files",
     title: "Add supporting files if they help",
-    helper:
-      "Uploads stay in the same question canvas as a subordinate evidence lane. Scan and preview posture stays local instead of taking over the page.",
+    helper: "Add a photo or document only if it helps explain this request. You can continue without a file.",
     dominantActionLabel: "Continue",
     secondaryActionLabel: "Back",
     selectedAnchorKey: "request-proof",
@@ -449,10 +434,10 @@ export const routeStepDescriptors: readonly IntakeRouteStepDescriptor[] = [
     routeKey: "contact_preferences",
     stepKey: "contact_preferences",
     railLabel: "Contact",
-    eyebrow: "Contact route",
+    eyebrow: "Contact preference",
     title: "How should we contact you about this request?",
     helper:
-      "Preferences stay distinct from verified route truth. The shell only promises what the captured preference can legitimately mean now.",
+      "Choose how you would prefer us to contact you. We only show masked contact details in summaries.",
     dominantActionLabel: "Review your request",
     secondaryActionLabel: "Back",
     selectedAnchorKey: "request-return",
@@ -467,10 +452,9 @@ export const routeStepDescriptors: readonly IntakeRouteStepDescriptor[] = [
     routeKey: "review_submit",
     stepKey: "review_submit",
     railLabel: "Review",
-    eyebrow: "Submit moment",
-    title: "Review the parts that will travel with this request",
-    helper:
-      "The same shell now shows recap sections, one consequence panel, and one dominant submit action. Outcome routes morph in place instead of leaving the frame.",
+    eyebrow: "Review",
+    title: "Check what you are sending",
+    helper: "Review your answers, files, and contact preference before sending the request.",
     dominantActionLabel: "Submit request",
     secondaryActionLabel: "Back",
     selectedAnchorKey: "request-return",
@@ -485,10 +469,9 @@ export const routeStepDescriptors: readonly IntakeRouteStepDescriptor[] = [
     routeKey: "resume_recovery",
     stepKey: "resume_recovery",
     railLabel: "Resume",
-    eyebrow: "Bounded recovery",
+    eyebrow: "Resume request",
     title: "Resume this request safely",
-    helper:
-      "Recovery holds the same shell, the same draft lineage, and one lawful return path. It never turns into a detached expired-link page.",
+    helper: "We found a saved request. Review what is safe to continue and pick up from the right place.",
     dominantActionLabel: "Resume safely",
     secondaryActionLabel: "Return to review",
     selectedAnchorKey: "request-return",
@@ -506,7 +489,7 @@ export const routeStepDescriptors: readonly IntakeRouteStepDescriptor[] = [
     eyebrow: "Urgent pathway",
     title: "Urgent guidance replaces routine completion",
     helper:
-      "Urgent required, urgent issued, and failed-safe recovery each stay source-traceable and same-shell. The canvas changes posture without losing lineage continuity.",
+      "If this request needs urgent help, we will show the safest next step and keep the request details together.",
     dominantActionLabel: "Urgent action",
     secondaryActionLabel: null,
     selectedAnchorKey: "request-return",
@@ -522,9 +505,8 @@ export const routeStepDescriptors: readonly IntakeRouteStepDescriptor[] = [
     stepKey: "receipt_outcome",
     railLabel: "Receipt",
     eyebrow: "Routine receipt",
-    title: "The shell now shows the routine receipt",
-    helper:
-      "The calm receipt keeps the same shell, reference, ETA bucket, promise note, contact summary, and track-request handoff instead of using a detached success page.",
+    title: "Your request has been sent",
+    helper: "Your receipt shows the reference, expected review window, contact summary, and tracking link.",
     dominantActionLabel: "Track request status",
     secondaryActionLabel: "Back to review",
     selectedAnchorKey: "request-return",
@@ -540,9 +522,8 @@ export const routeStepDescriptors: readonly IntakeRouteStepDescriptor[] = [
     stepKey: "request_status",
     railLabel: "Status",
     eyebrow: "Track request",
-    title: "Track this request in the same shell",
-    helper:
-      "Status stays quiet and summary-first: one current state, one next-step message, one compact timeline, and no raw queue telemetry.",
+    title: "Track this request",
+    helper: "See the current state, expected review window, and any next step.",
     dominantActionLabel: "Track request",
     secondaryActionLabel: "Back to receipt",
     selectedAnchorKey: "request-return",
@@ -556,13 +537,13 @@ export const routeStepDescriptors: readonly IntakeRouteStepDescriptor[] = [
 ] as const;
 
 export const missionFrameGalleryRequirements = [
-  "desktop, tablet, and mobile mission-frame layout proofs",
-  "same-shell route alias map for /start-request and /intake contracts",
-  "shell anatomy diagram with table parity",
+  "desktop, tablet, and mobile intake layout checks",
+  "start, draft, receipt, and status paths stay connected",
+  "page anatomy diagram with table parity",
   "journey diagram with table parity",
-  "quiet status strip singularity proof",
+  "quiet status strip consistency check",
   "summary peek panel, drawer, and sheet parity",
-  "urgent and receipt same-shell outcome proof",
+  "urgent guidance and receipt outcome checks",
 ] as const;
 
 function routeStepFor(key: IntakeMissionFrameRouteKey): IntakeRouteStepDescriptor {
@@ -1205,11 +1186,11 @@ export function resolveMissionFrameView(input: {
         : null,
     provenanceNote:
       accessPosture
-        ? `This shell is rendering ${ACCESS_GRANT_SCOPE_ENVELOPE_REF}, ${ACCESS_GRANT_SUPERSESSION_RECORD_REF}, ${PATIENT_NAV_RETURN_CONTRACT_REF}, ${RECOVERY_CONTINUATION_TOKEN_REF}, ${PATIENT_ACTION_RECOVERY_ENVELOPE_REF}, ${PATIENT_SHELL_CONSISTENCY_PROJECTION_REF}, ${PATIENT_EMBEDDED_SESSION_PROJECTION_REF}, ${PATIENT_DEGRADED_MODE_PROJECTION_REF}, ${PATIENT_ACTION_RECOVERY_PROJECTION_REF}, and ${PATIENT_IDENTITY_HOLD_PROJECTION_REF} through the same mission frame. ${GAP_RESOLVED_ACCESS_POSTURE_COPY_SAME_SHELL_V1}, ${GAP_RESOLVED_ACCESS_POSTURE_COPY_REBIND_V1}, and ${GAP_RESOLVED_ACCESS_POSTURE_COPY_STALE_PROMOTION_V1} bound the missing copy slots.`
+        ? "Some details are hidden until this request is safe to show. Your saved place is kept so you can continue from the right point."
         : input.location.aliasSource === "start_request_alias"
-          ? "This shell renders the required /start-request alias while preserving the seq_139 route contract mapping one-to-one."
-          : "This shell is rendering through the seq_139 contract path and the same continuity key.",
-    urgentEscapeLabel: "If you feel suddenly unwell, call 999 now.",
+          ? "Your summary is kept here so you can review the request before sending."
+          : "Your request summary and tracking details stay together.",
+    urgentEscapeLabel: "Call 999 now",
     resumeTokenState: buildResumeTokenState(input.location, input.memory),
     routeResolution: buildRouteResolution(input.location, input.memory),
   };

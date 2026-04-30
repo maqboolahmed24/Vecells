@@ -9,7 +9,6 @@ import {
   GovernedPlaceholderSummary,
   NetworkConfirmationArtifactStage,
   ReturnAnchorReceipt,
-  VecellLogoWordmark,
   type CrossOrgArtifactAction,
   type CrossOrgArtifactGrantState,
   type CrossOrgArtifactStageMode,
@@ -22,7 +21,9 @@ import {
   resolvePatientNetworkManagePath330,
 } from "../../../packages/domain-kernel/src/phase5-network-manage-preview";
 import "./patient-network-confirmation.css";
+import "./patient-portal-unified-system.css";
 import { PatientSupportPhase2Bridge } from "./patient-support-phase2-bridge";
+import { PatientPortalTopBar } from "./patient-portal-top-bar";
 import {
   BookingResponsiveProvider,
   BookingResponsiveStage,
@@ -154,7 +155,7 @@ function resolveConfirmationArtifactState(input: {
       label: "Open preview",
       detail: previewAllowed
         ? "Preview stays inside the same confirmation stage."
-        : "Preview is held until host posture and confirmation truth both permit it.",
+        : "Preview is held until host status and confirmation status both permit it.",
       disabled: !previewAllowed,
       tone: "primary",
     },
@@ -171,7 +172,7 @@ function resolveConfirmationArtifactState(input: {
       label: "Download summary",
       detail: downloadAllowed
         ? "Download keeps the same return anchor and wording."
-        : "Download is not widened from this confirmation posture.",
+        : "Download is not widened from this confirmation status.",
       disabled: !downloadAllowed,
     },
     {
@@ -193,16 +194,15 @@ function resolveConfirmationArtifactState(input: {
       grantState === "active"
         ? "Summary verified"
         : blocked
-          ? "Review posture"
+          ? "Review status"
           : embedded
             ? "Embedded summary-only"
             : "Summary-first only",
-    authorityLabel:
-      blocked
-        ? "Reviewing latest confirmation"
-        : confirmed
-          ? "Current patient-facing wording"
-          : "Pending authoritative confirmation",
+    authorityLabel: blocked
+      ? "Reviewing latest confirmation"
+      : confirmed
+        ? "Current patient-facing wording"
+        : "Pending confirmation",
     placeholderRows: [
       { label: "Current host", value: embedded ? "NHS App embedded shell" : "Standard browser" },
       {
@@ -211,7 +211,7 @@ function resolveConfirmationArtifactState(input: {
           grantState === "active"
             ? "Inline preview allowed on the current generation"
             : blocked
-              ? "Preview blocked while review posture is active"
+              ? "Preview blocked while review status is active"
               : "Summary-first until confirmation settles",
       },
       {
@@ -253,24 +253,24 @@ function PatientConfirmationHero(props: {
       tabIndex={-1}
     >
       <div className="patient-network-confirmation__hero-copy">
-        <span className="patient-booking__eyebrow">PatientNetworkConfirmationView</span>
+        <span className="patient-booking__eyebrow">Confirmation</span>
         <h2>{props.heading}</h2>
         <p>{props.body}</p>
       </div>
       <div className="patient-network-confirmation__hero-badge">
         <strong>
           {props.state === "calm_confirmed"
-            ? "Authoritative confirmation"
+            ? "Confirmed"
             : props.state === "blocked"
-              ? "Review posture"
+              ? "Needs review"
               : "Pending confirmation"}
         </strong>
         <span>
           {props.state === "calm_confirmed"
-            ? "Primary reassurance is lawful."
+            ? "Your booking is confirmed."
             : props.state === "blocked"
-              ? "Calm booked copy is frozen."
-              : "We are keeping this route provisional."}
+              ? "We will keep the last safe details visible."
+              : "We are checking the final confirmation."}
         </span>
       </div>
     </section>
@@ -380,8 +380,8 @@ function HelpCard(props: { onAction: () => void }) {
       <span className="patient-booking__eyebrow">Need help?</span>
       <h3>Contact the service if this time no longer works</h3>
       <p>
-        This route keeps the last safe appointment summary visible. Support stays bounded here
-        instead of sending you to a detached confirmation page.
+        This page keeps the last safe appointment summary visible while support helps with the next
+        step.
       </p>
       <button type="button" className="patient-booking__secondary-action" onClick={props.onAction}>
         Focus support options
@@ -462,7 +462,7 @@ function PatientNetworkConfirmationViewInner() {
     if (action.disabled) {
       setArtifactReceipt({
         actionId: normalizedActionId,
-        title: `${action.label} stayed on the governed summary`,
+        title: `${action.label} stayed on the approved summary`,
         summary: action.detail,
         anchorLabel: "Appointment summary",
         state: artifactState.grantState === "blocked" ? "blocked" : "guarded",
@@ -476,7 +476,7 @@ function PatientNetworkConfirmationViewInner() {
       normalizedActionId === "preview"
         ? "Preview opened in the same confirmation stage."
         : normalizedActionId === "print"
-          ? "Print posture armed from the same confirmation stage."
+          ? "Print status armed from the same confirmation stage."
           : normalizedActionId === "download"
             ? "Download summary prepared without leaving this confirmation route."
             : "External handoff prepared with the same return anchor.";
@@ -519,23 +519,11 @@ function PatientNetworkConfirmationViewInner() {
     >
       <EmbeddedBookingChromeAdapter
         topBand={
-          <header className="patient-booking__top-band" data-testid="patient-booking-top-band">
-            <a className="patient-booking__brand" href="/home">
-              <span>
-                <VecellLogoWordmark
-                  aria-hidden="true"
-                  className="patient-booking__brand-wordmark"
-                />
-                <small>Signed-in patient shell</small>
-              </span>
-            </a>
-            <nav aria-label="Patient booking navigation" className="patient-booking__nav">
-              <a href="/home">Home</a>
-              <a href="/requests">Requests</a>
-              <a href="/appointments">Appointments</a>
-              <a href="/messages">Messages</a>
-            </nav>
-          </header>
+          <PatientPortalTopBar
+            current="appointments"
+            testId="patient-booking-top-band"
+            ariaLabel="Patient booking navigation"
+          />
         }
       >
         <PatientSupportPhase2Bridge context={phase2Context} />
@@ -586,19 +574,24 @@ function PatientNetworkConfirmationViewInner() {
                   body={projection.body}
                   state={projection.state}
                 />
-                <AppointmentSummaryBlock rows={projection.appointmentRows} sectionRef={summaryRef} />
+                <AppointmentSummaryBlock
+                  rows={projection.appointmentRows}
+                  sectionRef={summaryRef}
+                />
                 <CrossOrgArtifactSurfaceFrame
                   testId="patient-confirmation-artifact-frame"
                   contextId="patient_confirmation"
                   visualMode={CROSS_ORG_ARTIFACT_HANDOFF_VISUAL_MODE}
                   tone={artifactState.tone}
-                  eyebrow="Governed artifact stage"
+                  eyebrow="Approved artifact stage"
                   title="Summary-first confirmation artifact"
-                  summary="Confirmation, practice visibility, preview posture, and secondary handoff actions stay inside one governed stage."
+                  summary="Confirmation, practice visibility, preview status, and secondary handoff actions stay inside one approved stage."
                   metadata={
                     <>
                       <span className="cross-org-artifact-chip">{artifactState.parityLabel}</span>
-                      <span className="cross-org-artifact-chip">{artifactState.authorityLabel}</span>
+                      <span className="cross-org-artifact-chip">
+                        {artifactState.authorityLabel}
+                      </span>
                     </>
                   }
                 >
@@ -608,7 +601,7 @@ function PatientNetworkConfirmationViewInner() {
                       summary={
                         artifactState.grantState === "active"
                           ? "The current confirmation route can keep richer artifact modes secondary, scoped, and return-safe."
-                          : "This route stays summary-first until host posture and confirmation truth permit richer movement."
+                          : "This route stays summary-first until host status and confirmation status permit richer movement."
                       }
                       tone={artifactState.tone}
                       parityLabel={artifactState.parityLabel}
@@ -617,7 +610,7 @@ function PatientNetworkConfirmationViewInner() {
                     />
                   </div>
                   <NetworkConfirmationArtifactStage
-                    title="Appointment summary and disclosure truth"
+                    title="Appointment summary and disclosure verified details"
                     summary="The patient summary stays primary while appointment confirmation, practice informed, and practice acknowledged remain visibly separate."
                     stageMode={artifactState.stageMode}
                     identityRows={projection.appointmentRows}
@@ -634,8 +627,8 @@ function PatientNetworkConfirmationViewInner() {
                       artifactState.grantState === "active"
                         ? "Preview, print, and external handoff remain secondary to the summary and are bound to the current return anchor."
                         : artifactState.grantState === "blocked"
-                          ? "Review posture blocks richer artifact movement and keeps the route on the last safe summary."
-                          : "The summary remains the legal surface while preview and handoff stay closed in this posture."
+                          ? "Review status blocks richer artifact movement and keeps the route on the last safe summary."
+                          : "The summary remains the legal surface while preview and handoff stay closed in this status."
                     }
                     grantState={artifactState.grantState}
                     rows={artifactState.grantRows}
@@ -647,7 +640,7 @@ function PatientNetworkConfirmationViewInner() {
                       rows={artifactState.placeholderRows}
                       reasonLabel={
                         artifactState.grantState === "blocked"
-                          ? "review posture"
+                          ? "review status"
                           : responsiveProfile.embeddedMode === "nhs_app"
                             ? "embedded summary-only"
                             : "awaiting confirmation"

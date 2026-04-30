@@ -152,12 +152,12 @@ const ACCESSIBILITY_LABELS: Record<DraftContactAccessibilityNeed, string> = {
 
 export const CONTACT_REASON_CODE_MESSAGES: Record<string, string> = {
   CONTACT_PREF_DESTINATION_REQUIRED_FOR_PREFERRED_CHANNEL:
-    "Add a destination for the route you want us to prefer.",
+    "Add the contact detail you want us to try first.",
   CONTACT_PREF_FOLLOW_UP_PERMISSION_REQUIRED:
-    "Tell us whether routine follow-up is okay on this route.",
-  CONTACT_PREF_CAPTURE_MISSING: "Add a preferred route before you continue to review.",
+    "Tell us whether routine follow-up is okay on this contact method.",
+  CONTACT_PREF_CAPTURE_MISSING: "Add a preferred contact method before you continue to review.",
   CONTACT_PREF_PRIMARY_CHANNEL_CHANGED:
-    "The preferred route changed, so review the contact plan before you submit.",
+    "The preferred contact method changed, so review the contact plan before you submit.",
   CONTACT_PREF_DESTINATION_CHANGED:
     "A saved destination changed. Review the masked summary before you submit.",
   CONTACT_PREF_FOLLOW_UP_PERMISSION_CHANGED:
@@ -167,7 +167,7 @@ export const CONTACT_REASON_CODE_MESSAGES: Record<string, string> = {
   CONTACT_PREF_LANGUAGE_OR_ACCESSIBILITY_CHANGED:
     "Language or accessibility support changed. Review before you submit.",
   CONTACT_PREF_ROUTE_DELTA_POTENTIALLY_CONTACT_SAFETY_RELEVANT:
-    "This contact change may affect the safest route to use later.",
+    "This contact change may affect the safest contact method to use later.",
 };
 
 function sanitizeString(value: unknown): string {
@@ -362,7 +362,7 @@ function fallbackRowValue(summary: ContactSummaryView): string {
       summary.destinations[channel].state === "present_masked",
   );
   if (!alternate) {
-    return "If this route is not available later, a protected recovery path can be used instead.";
+    return "If this contact method is not available later, we can use a safer backup step instead.";
   }
   return `${summary.destinations[alternate].label}: ${summary.destinations[alternate].maskedValue}`;
 }
@@ -486,7 +486,7 @@ export function buildContactSummaryView(input: {
 export function buildContactSummaryChip(summaryView: ContactSummaryView): string {
   const routeValue =
     summaryView.preferredDestinationMasked === "Not added"
-      ? "Needs route"
+      ? "Needs contact detail"
       : summaryView.preferredDestinationMasked;
   return `${summaryView.preferredRouteLabel} · ${routeValue}`;
 }
@@ -509,19 +509,19 @@ export function buildConfirmationCopyPreview(input: {
   const summaryView = input.summaryView;
   const lifecycleState = input.lifecycleState ?? "step_preview";
   const routeRow = {
-    label: "Preferred route",
+    label: "Preferred contact",
     value: `${summaryView.preferredRouteLabel} to ${summaryView.preferredDestinationMasked}`,
   };
   const boundaryRow = {
     label: "What we know now",
-    value: "Preference captured only. Route verification and delivery evidence are later checks.",
+    value: "Preference captured only. Delivery is checked later.",
   };
 
   if (summaryView.completenessState !== "complete") {
     return {
       state: "preference_incomplete",
       title: "How we’ll confirm this",
-      body: "Add the missing route details before we can preview the confirmation wording that later receipt and notification surfaces will use.",
+      body: "Add the missing contact details before we can preview the confirmation wording that the receipt may use later.",
       tone: "review",
       rows: [
         routeRow,
@@ -541,7 +541,7 @@ export function buildConfirmationCopyPreview(input: {
     return {
       state: "follow_up_declined",
       title: "How we’ll confirm this",
-      body: "We’ll keep your preference with the request, but no routine follow-up is planned on this route unless you change that before submit.",
+      body: "We’ll keep your preference with the request, but no routine follow-up is planned on this contact method unless you change that before submit.",
       tone: "continuity",
       rows: [
         routeRow,
@@ -551,7 +551,7 @@ export function buildConfirmationCopyPreview(input: {
         },
       ],
       liveAnnouncement:
-        "Confirmation preview updated. Follow-up is not currently permitted on the preferred route.",
+        "Confirmation preview updated. Follow-up is not currently permitted on the preferred contact method.",
     };
   }
 
@@ -559,15 +559,15 @@ export function buildConfirmationCopyPreview(input: {
     return {
       state: "confirmation_queued",
       title: "How we’ll confirm this",
-      body: "A confirmation attempt is queued for the preferred route. That queue state is not delivery evidence.",
+      body: "A confirmation attempt is waiting for the preferred contact method. This does not mean it has been delivered.",
       tone: "continuity",
       rows: [
         routeRow,
         boundaryRow,
         {
-          label: "Next bounded step",
+          label: "Next step",
           value:
-            "Transport acceptance and delivery evidence will be recorded later if they arrive.",
+            "Sending and delivery details will be recorded later if they arrive.",
         },
       ],
       liveAnnouncement: "Confirmation preview updated. A later confirmation attempt is queued.",
@@ -578,17 +578,17 @@ export function buildConfirmationCopyPreview(input: {
     return {
       state: "delivery_pending",
       title: "How we’ll confirm this",
-      body: "A handoff to the preferred route may be in progress, but delivery has not been confirmed yet.",
+      body: "A handoff to the preferred contact method may be in progress, but delivery has not been confirmed yet.",
       tone: "continuity",
       rows: [
         routeRow,
         {
-          label: "Transport",
-          value: "Transport acceptance can happen before delivery evidence arrives.",
+          label: "Sending",
+          value: "Sending can be accepted before delivery is confirmed.",
         },
         {
           label: "Still not claimed",
-          value: "No authoritative delivery outcome yet.",
+          value: "Delivery is not confirmed yet.",
         },
       ],
       liveAnnouncement:
@@ -600,12 +600,12 @@ export function buildConfirmationCopyPreview(input: {
     return {
       state: "delivery_confirmed",
       title: "How we’ll confirm this",
-      body: "Delivery evidence is present for the masked preferred route. This state is only available once the later communication chain confirms it.",
+      body: "Delivery is confirmed for the masked preferred contact method.",
       tone: "safe",
       rows: [
         routeRow,
         {
-          label: "Authoritative outcome",
+          label: "Delivery outcome",
           value: "Delivery confirmed",
         },
       ],
@@ -618,24 +618,24 @@ export function buildConfirmationCopyPreview(input: {
     return {
       state: "recovery_required",
       title: "How we’ll confirm this",
-      body: "The preferred route needs a protected recovery step. Do not assume a confirmation arrived on this route.",
+      body: "The preferred contact method needs a safer recovery step. Do not assume a confirmation arrived there.",
       tone: "blocked",
       rows: [
         routeRow,
         {
           label: "Recovery path",
-          value: "Use a protected route-repair or status path instead of assuming delivery.",
+          value: "Use the recovery or status step instead of assuming delivery.",
         },
       ],
       liveAnnouncement:
-        "Confirmation preview updated. Protected recovery is required for this route.",
+        "Confirmation preview updated. Recovery is required for this contact method.",
     };
   }
 
   return {
     state: "confirmation_attempt_planned",
     title: "How we’ll confirm this",
-    body: "After you submit, we’ll plan to use this preferred route if it is still available and safe. This preview is not delivery confirmation.",
+    body: "After you submit, we’ll plan to use this preferred contact method if it is still available and safe. This preview is not delivery confirmation.",
     tone: summaryView.hasSafetyRelevantDelta ? "review" : "continuity",
     rows: [
       routeRow,

@@ -235,7 +235,7 @@ const baseBottlenecks = [
     trend: [44, 51, 63, 71, 82, 89],
     intervalLabel: "Relief lower bound +4.2 staff-hours",
     reason:
-      "Highest safe relief because the queue tuple is fresh, the selected lane is exact, and staffing movement has bounded downside.",
+      "Highest safe relief because current queue details are fresh, the selected lane is exact, and staffing movement has bounded downside.",
     baseEligibility: "executable",
     sourceSliceEnvelopeRef: "OSE_451_QUEUE_CONFIRMATION",
   },
@@ -368,7 +368,7 @@ const baseCohortRows = [
     promotionState: "eligible",
     lowSample: false,
     safeSummary:
-      "Large enough sample and confidence band support promotion when queue tuple stays live.",
+      "Large enough sample and confidence band support promotion when queue details stay live.",
   },
   {
     cohortRef: "cohort-outbound-confirmations",
@@ -382,7 +382,7 @@ const baseCohortRows = [
     promotionState: "watch",
     lowSample: false,
     safeSummary:
-      "Supplier lag is visible but cannot inherit commit-ready posture from queue pressure.",
+      "Supplier lag is visible but cannot inherit ready-to-commit status from queue pressure.",
   },
   {
     cohortRef: "cohort-urgent-pharmacy-reentry",
@@ -391,7 +391,7 @@ const baseCohortRows = [
     variance: "+1 reopened request",
     effectiveSampleSize: 34,
     confidenceInterval: "Wide interval; operational review only",
-    equityWatch: "Urgent-return lineage must remain non-calm",
+    equityWatch: "Urgent-return history must remain active",
     proposedEffect: "Keep same request anchor visible",
     promotionState: "watch",
     lowSample: false,
@@ -516,11 +516,11 @@ function eligibilityReason(
   }
   switch (eligibilityState) {
     case "executable":
-      return "The source slice is interactive, tuple hashes match, selection lease is live, and release trust is not frozen.";
+      return "The source slice is interactive, selection details match, the selection lease is live, and release trust is not frozen.";
     case "handoff_required":
-      return "The candidate can be prepared, but mutation authority belongs to governance because guardrails or release posture constrain the shell.";
+      return "The candidate can be prepared, but mutation authority belongs to governance because guardrails or release status constrain the shell.";
     case "stale_reacquire":
-      return "The preserved board or continuity tuple is stale; reacquire the selected anomaly before preparing a new action.";
+      return "The preserved board or continuity details are stale; reacquire the selected anomaly before preparing a new action.";
     case "read_only_recovery":
       return "The affected slice is degraded or quarantined, so the allocator renders readable evidence only.";
     case "blocked":

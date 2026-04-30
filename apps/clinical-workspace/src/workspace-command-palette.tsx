@@ -37,7 +37,7 @@ function baseEntries(activeQueueKey: string, activeTaskId: string): readonly Wor
     {
       id: "command-more-info",
       label: "Open more-info child route",
-      summary: "Resume the same task in the bounded more-info stage.",
+      summary: "Resume the same task in the limited more-info stage.",
       route: parseStaffPath(buildStaffPath({ kind: "more-info", taskId: activeTaskId })),
     },
     {
@@ -49,7 +49,7 @@ function baseEntries(activeQueueKey: string, activeTaskId: string): readonly Wor
     {
       id: "command-approvals",
       label: "Open approvals",
-      summary: "Open the governed approval workbench.",
+      summary: "Open the approved approval workbench.",
       route: parseStaffPath("/workspace/approvals"),
     },
     {
@@ -73,7 +73,7 @@ function baseEntries(activeQueueKey: string, activeTaskId: string): readonly Wor
     {
       id: "command-consequences",
       label: "Open consequences",
-      summary: "Open the self-care and bounded admin consequence studio.",
+      summary: "Open the self-care and limited admin consequence studio.",
       route: parseStaffPath("/workspace/consequences"),
     },
     {

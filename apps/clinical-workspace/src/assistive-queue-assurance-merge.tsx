@@ -207,7 +207,7 @@ export function buildAssistiveQueueAndAssuranceMergeState({
       queueContextRef: `assistive_queue_context.427.${effectiveQueueKey}.${task.id}`,
       selectedAnchorRef: selectedAnchor,
       continuityStubLabel: `From ${effectiveQueueKey} queue`,
-      sameShellReturnLabel: "Return keeps queue row and selected anchor traceable",
+      sameShellReturnLabel: "Return keeps the queue row and selected task available.",
     },
     stageBridge: {
       bridgeRef: `assistive_queue_open_to_stage_bridge.427.${task.id}.${selectedAnchor}`,
@@ -220,7 +220,7 @@ export function buildAssistiveQueueAndAssuranceMergeState({
       driftLabel:
         trustPosture === "shadow_only"
           ? "No drift requiring operator action"
-          : "Trust posture narrowed across queue and task",
+          : "Trust status narrowed across queue and task",
       trustEnvelopeRef: `assistive_capability_trust_envelope.427.${task.id}.${selectedAnchor}`,
       monitoringRef: `assistive_monitoring_projection.415.${task.id}.queue_assurance`,
       freezeLabel:
@@ -238,7 +238,7 @@ export function buildAssistiveQueueAndAssuranceMergeState({
       rolloutRungLabel:
         trustPosture === "shadow_only"
           ? "Shadow rung only"
-          : "Rollout held below write posture",
+          : "Rollout held below write status",
       rollbackRef: `rollback_readiness_bundle.417.${task.id}.assistive`,
       vendorAuditRef: "data/config/426_model_audit_baseline.example.json",
       vendorSafetyRef: "data/config/426_model_safety_baseline.example.json",
@@ -256,7 +256,7 @@ export function buildAssistiveQueueAndAssuranceMergeState({
           ? "Completion-adjacent controls stay human-owned"
           : "Assistive widening controls suppressed",
       explanation:
-        "Queue, task, ops, and release surfaces reuse the same posture, provenance, freeze, and recovery grammar.",
+        "Queue, task, ops, and release surfaces reuse the same status, history, freeze, and recovery grammar.",
     },
   };
 }
@@ -315,17 +315,17 @@ export function AssistiveQueueContextPocket({
       data-visual-mode={state.visualMode}
       aria-labelledby={headingId}
     >
-      <span className="assistive-continuum__eyebrow">Assistive queue context</span>
+      <span className="assistive-continuum__eyebrow">Queue context</span>
       <h3 id={headingId}>{state.contextPocket.continuityStubLabel}</h3>
       <p>{state.contextPocket.sameShellReturnLabel}</p>
       <dl>
         <div>
-          <dt>Context ref</dt>
-          <dd>{state.contextPocket.queueContextRef}</dd>
+          <dt>Current queue</dt>
+          <dd>{state.queueKey.replaceAll("_", " ")}</dd>
         </div>
         <div>
-          <dt>Selected anchor</dt>
-          <dd>{state.contextPocket.selectedAnchorRef}</dd>
+          <dt>Selected task</dt>
+          <dd>{state.patientLabel}</dd>
         </div>
       </dl>
     </section>
@@ -344,10 +344,10 @@ export function AssistiveQueueOpenToStageBridge({
       className="assistive-continuum__stage-bridge"
       data-testid="AssistiveQueueOpenToStageBridge"
       data-target-stage={state.stageBridge.targetStageMode}
-      aria-label="Assistive queue to stage bridge"
+      aria-label="Queue support bridge"
     >
       <div>
-        <span className="assistive-continuum__eyebrow">Same-shell bridge</span>
+        <span className="assistive-continuum__eyebrow">Task bridge</span>
         <strong>{state.stageBridge.label}</strong>
         <p>{state.stageBridge.detail}</p>
       </div>
@@ -356,7 +356,9 @@ export function AssistiveQueueOpenToStageBridge({
           Open task
         </button>
       ) : (
-        <span className="assistive-continuum__micro">{state.stageBridge.bridgeRef}</span>
+        <span className="assistive-continuum__micro" data-stage-bridge-ref={state.stageBridge.bridgeRef}>
+          Ready to open task
+        </span>
       )}
     </section>
   );
@@ -375,17 +377,17 @@ export function AssistiveOpsTrustSummaryCard({
       data-posture={state.trustPosture}
       aria-labelledby={headingId}
     >
-      <span className="assistive-continuum__eyebrow">Assistive Ops</span>
+      <span className="assistive-continuum__eyebrow">System support</span>
       <h3 id={headingId}>Trust summary</h3>
       <p>{state.opsTrustSummary.driftLabel}</p>
       <dl>
         <div>
-          <dt>Trust envelope</dt>
-          <dd>{state.opsTrustSummary.trustEnvelopeRef}</dd>
+          <dt>Status</dt>
+          <dd>{state.opsTrustSummary.driftLabel}</dd>
         </div>
         <div>
-          <dt>Monitoring</dt>
-          <dd>{state.opsTrustSummary.monitoringRef}</dd>
+          <dt>Last checked</dt>
+          <dd>{state.opsTrustSummary.incidentLabel}</dd>
         </div>
       </dl>
     </section>
@@ -404,7 +406,7 @@ export function AssistiveOpsIncidentAndFreezeStrip({
       data-testid="AssistiveOpsIncidentAndFreezeStrip"
       data-posture={state.trustPosture}
       role={alerting ? "alert" : "status"}
-      aria-label={`Assistive incident and freeze posture: ${state.opsTrustSummary.freezeLabel}`}
+      aria-label={`System support status: ${state.opsTrustSummary.freezeLabel}`}
     >
       <span>{state.opsTrustSummary.freezeLabel}</span>
       <strong>{state.opsTrustSummary.incidentLabel}</strong>
@@ -442,7 +444,7 @@ export function AssistiveReleaseAssuranceSummaryCard({
     >
       <div className="assistive-continuum__card-head">
         <div>
-          <span className="assistive-continuum__eyebrow">Release Admin</span>
+          <span className="assistive-continuum__eyebrow">Release readiness</span>
           <h3 id={headingId}>Assurance summary</h3>
         </div>
         <AssistiveReleaseCandidateDeltaBadge state={state} />
@@ -450,15 +452,15 @@ export function AssistiveReleaseAssuranceSummaryCard({
       <dl>
         <div>
           <dt>Candidate</dt>
-          <dd>{state.releaseAssurance.candidateRef}</dd>
+          <dd>Ready for review</dd>
         </div>
         <div>
-          <dt>Baseline</dt>
-          <dd>{state.releaseAssurance.baselineSnapshotRef}</dd>
+          <dt>Review basis</dt>
+          <dd>Current assurance snapshot</dd>
         </div>
         <div>
           <dt>Audit</dt>
-          <dd>{state.releaseAssurance.vendorAuditRef}</dd>
+          <dd>Checked</dd>
         </div>
         <div>
           <dt>Safety</dt>
@@ -517,4 +519,3 @@ export function AssistiveQueueAndAssuranceMergeAdapter({
     </section>
   );
 }
-

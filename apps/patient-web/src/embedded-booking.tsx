@@ -174,7 +174,7 @@ export function EmbeddedReservationTruthBadge({
       data-countdown-mode={truth?.countdownMode ?? "none"}
       data-tone={truthTone(truth)}
     >
-      <span>Reservation truth</span>
+      <span>Reservation verified details</span>
       <strong>{truth?.truthState.replaceAll("_", " ") ?? "No selection"}</strong>
       <small>{holdUntil ? `Held until ${holdUntil}` : truth?.dominantCue ?? "Choose an appointment to continue."}</small>
     </div>
@@ -333,7 +333,7 @@ export function EmbeddedAlternativeOfferStack({
         ))}
       </div>
       {context.alternatives.provenanceStub ? (
-        <aside className="embedded-booking__provenance" aria-label="Alternative offer provenance">
+        <aside className="embedded-booking__provenance" aria-label="Alternative offer history">
           <strong>{context.alternatives.provenanceStub.heading}</strong>
           <p>{context.alternatives.provenanceStub.body}</p>
         </aside>

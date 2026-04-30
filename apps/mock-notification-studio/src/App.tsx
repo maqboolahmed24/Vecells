@@ -199,7 +199,7 @@ function initialState(): AppState {
       vendorId: notificationStudioPack.live_gate_pack.allowed_vendor_ids[0] ?? "mailgun_email",
       projectScope: notificationStudioPack.project_scopes[0].project_scope,
       senderRef: notificationStudioPack.sender_and_domain_rows[0].identity_ref,
-      domainRef: "placeholder.vecells.example",
+      domainRef: "summary.service.example",
       callbackBaseUrl: "https://example.invalid/notification",
       webhookSecretRef: "vault://notifications/webhook",
       targetEnvironment: "provider_like_preprod",
@@ -442,13 +442,13 @@ function App() {
             <VecellLogoLockup aria-hidden="true" className="wordmark" />
             <div className="brand-copy">
               <div className="ribbon-row">
-                <span className="mock-ribbon">MOCK_NOTIFICATION_STUDIO</span>
+                <span className="mock-ribbon">notification studio test mode</span>
                 <span className="mono-chip">{notificationStudioPack.visual_mode}</span>
                 <span className="status-chip">{serviceStatus === "healthy" ? "rail connected" : "local only"}</span>
               </div>
               <div>
                 <h1>Quiet Send Studio</h1>
-                <p>Calm, exact notification design work that keeps project setup downstream of delivery truth.</p>
+                <p>Calm, exact notification design work that keeps project setup downstream of delivery records.</p>
               </div>
             </div>
           </div>
@@ -479,7 +479,7 @@ function App() {
           <article className="metric-card">
             <span className="caption">Sender readiness</span>
             <strong>{readinessCount}/{notificationStudioPack.summary.sender_row_count}</strong>
-            <p>Rows already usable in mock or preview posture.</p>
+            <p>Rows already usable in mock or preview status.</p>
           </article>
           <article className="metric-card">
             <span className="caption">Webhook health</span>
@@ -487,7 +487,7 @@ function App() {
             <p>Signed callback issues stay explicit and block quiet success.</p>
           </article>
           <article className="metric-card">
-            <span className="caption">Live posture</span>
+            <span className="caption">Live status</span>
             <strong>{notificationStudioPack.phase0_verdict}</strong>
             <p>Real project or sender mutation stays fail-closed.</p>
           </article>
@@ -993,7 +993,7 @@ function App() {
             <div className="header-row">
               <div>
                 <h2>Inspector</h2>
-                <p>Sender, domain, route, and truth settings for the current selection.</p>
+                <p>Sender, domain, route, and verified details settings for the current selection.</p>
               </div>
               <span className="mono-chip">{selectedTemplate.template_id}</span>
             </div>
@@ -1008,7 +1008,7 @@ function App() {
                 <strong className="mono">{selectedTemplate.sender_identity_ref}</strong>
               </div>
               <div className="inspector-row">
-                <span className="caption">Current message truth</span>
+                <span className="caption">Current message verified details</span>
                 <p>
                   {selectedMessage
                     ? `${selectedMessage.transport_state} / ${selectedMessage.delivery_evidence_state} / ${selectedMessage.authoritative_outcome_state}`

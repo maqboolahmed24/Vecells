@@ -1144,7 +1144,7 @@ export function createOpsIncidentsProjection(
         "investigationKey",
       ],
       telemetryCopy:
-        "UI telemetry carries metadata refs only; summaries, identifiers, route params, artifact fragments, and investigation keys are redacted.",
+        "Activity data keeps only safe metadata; summaries, identifiers, route details, and investigation keys are redacted.",
     },
     actionRail,
     sourceAlgorithmRefs,

@@ -796,7 +796,7 @@ export const nhsAppPack = {
       "kind": "text",
       "required": true,
       "options": [],
-      "default_value": "Vecells",
+      "default_value": "Service",
       "placeholder": "Organisation or supplier name",
       "source_ref": "official_nhs_app_eoi_questions",
       "notes": "EOI section 1 question 1"
@@ -809,7 +809,7 @@ export const nhsAppPack = {
       "kind": "text",
       "required": true,
       "options": [],
-      "default_value": "Vecells patient portal (embedded rehearsal)",
+      "default_value": "Service patient portal (embedded rehearsal)",
       "placeholder": "Product or service name",
       "source_ref": "official_nhs_app_eoi_questions",
       "notes": "EOI section 1 question 2"
@@ -848,7 +848,7 @@ export const nhsAppPack = {
       "kind": "text",
       "required": true,
       "options": [],
-      "default_value": "embedded.channel@vecells.example",
+      "default_value": "embedded.channel@service.example",
       "placeholder": "Named contact email",
       "source_ref": "official_nhs_app_eoi_questions",
       "notes": "EOI section 1 question 5"
@@ -1076,7 +1076,7 @@ export const nhsAppPack = {
       "default_value": "web_application",
       "placeholder": "",
       "source_ref": "official_nhs_app_eoi_questions",
-      "notes": "Vecells remains one responsive web portal reused in embedded mode."
+      "notes": "Service remains one responsive web portal reused in embedded mode."
     },
     {
       "field_id": "q21_demo_environment_available",
@@ -1382,7 +1382,7 @@ export const nhsAppPack = {
       "kind": "text",
       "required": true,
       "options": [],
-      "default_value": "sandpit_placeholder.vecells.example",
+      "default_value": "sandpit_placeholder.service.example",
       "placeholder": "Sandpit target URL",
       "source_ref": "official_nhs_app_web_integration",
       "notes": "Step 4 starts in sandpit and repeats in AOS after sign-off."
@@ -1395,7 +1395,7 @@ export const nhsAppPack = {
       "kind": "text",
       "required": true,
       "options": [],
-      "default_value": "aos_placeholder.vecells.example",
+      "default_value": "aos_placeholder.service.example",
       "placeholder": "AOS target URL",
       "source_ref": "official_nhs_app_web_integration",
       "notes": "AOS values remain placeholders until the NHS App team opens the environment."
@@ -1488,11 +1488,11 @@ export const nhsAppPack = {
     }
   ],
   "draft_values": {
-    "q01_company_name": "Vecells",
-    "q02_product_service_name": "Vecells patient portal (embedded rehearsal)",
+    "q01_company_name": "Service",
+    "q02_product_service_name": "Service patient portal (embedded rehearsal)",
     "q03_product_overview": "Responsive patient portal for requests, status, booking, and pharmacy follow-up. This rehearsal pack preserves one portal with a deferred embedded shell rather than a separate NHS App product.",
     "q04_named_contact": "ROLE_EMBEDDED_CHANNEL_LEAD",
-    "q05_contact_email": "embedded.channel@vecells.example",
+    "q05_contact_email": "embedded.channel@service.example",
     "q06_gp_patients_in_england": "yes",
     "q07_secondary_care_patients": "yes",
     "q08_user_population": "Patients in England using one portal for intake, status, appointments, record views, messages, and deferred embedded-channel reuse.",
@@ -1529,8 +1529,8 @@ export const nhsAppPack = {
     "int04_hidden_header_review": "complete",
     "int05_secure_return_contract": "safe_return_contract_v1",
     "int06_demo_environment_url": "http://127.0.0.1:4180/",
-    "int07_sandpit_target": "sandpit_placeholder.vecells.example",
-    "int08_aos_target": "aos_placeholder.vecells.example",
+    "int07_sandpit_target": "sandpit_placeholder.service.example",
+    "int08_aos_target": "aos_placeholder.service.example",
     "int09_limited_release_target": "limited_release_placeholder",
     "int10_monthly_data_owner": "ROLE_EMBEDDED_CHANNEL_LEAD",
     "int11_annual_assurance_owner": "ROLE_PROGRAMME_ARCHITECT",

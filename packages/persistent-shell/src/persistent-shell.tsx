@@ -172,7 +172,7 @@ function useReducedMotionPreference(): boolean {
 function toneCopy(runtimeScenario: RuntimeScenario): string {
   switch (runtimeScenario) {
     case "live":
-      return "Live posture";
+      return "Live status";
     case "stale_review":
       return "Stale review";
     case "read_only":
@@ -558,7 +558,7 @@ export function PersistentShellApp({
             <label className="persistent-shell__control">
               <span>Runtime</span>
               <select
-                aria-label="Runtime posture"
+                aria-label="Runtime status"
                 data-testid={`${shellSlug}-runtime-scenario`}
                 onChange={(event) =>
                   handleRuntimeScenarioChange(event.currentTarget.value as RuntimeScenario)

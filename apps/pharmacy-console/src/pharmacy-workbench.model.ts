@@ -157,13 +157,13 @@ function currentSupportRegionLabel(routeKey: PharmacyShellSnapshot["location"]["
     case "validate":
       return "Eligibility evidence";
     case "resolve":
-      return "Outcome truth";
+      return "Outcome confirmation";
     case "assurance":
       return "Assurance and recovery";
     case "case":
     case "lane":
     default:
-      return "Inventory truth";
+      return "Inventory status";
   }
 }
 
@@ -197,7 +197,7 @@ function stockRiskChipForLine(
       return {
         tone: "blocked",
         label: "Release blocked",
-        summary: "A blocked line cannot advance until the current fence or recovery posture clears.",
+        summary: "A blocked line cannot advance until the current fence or recovery status clears.",
       };
     case "high":
       return {
@@ -216,7 +216,7 @@ function stockRiskChipForLine(
       return {
         tone: "ready",
         label: "Stock ready",
-        summary: "The current stock tuple is stable enough for routine validation work.",
+        summary: "The current stock details are stable enough for routine validation work.",
       };
   }
 }
@@ -298,7 +298,7 @@ function inventoryFreshnessLabel(caseSeed: PharmacyCaseSeed): string {
 function inventoryTrustLabel(caseSeed: PharmacyCaseSeed): string {
   switch (caseSeed.inventoryPosture) {
     case "live":
-      return "Trusted stock tuple";
+      return "Trusted stock details";
     case "partial_supply":
       return "Trusted with active delta";
     case "stale_review":
@@ -508,14 +508,14 @@ function operationsMetrics(
       metricId: "waiting_outcome",
       label: "Waiting for outcome",
       count: getCount("waiting_for_outcome"),
-      summary: "Cases that remain procedurally open behind proof or outcome truth.",
+      summary: "Cases that remain procedurally open behind proof or outcome confirmation.",
       tone: "watch",
     },
     {
       metricId: "stock_risk",
       label: "Stock risk",
       count: getCount("stock_risk"),
-      summary: "Partial supply, stale compare, or hard-stop inventory posture.",
+      summary: "Partial supply, stale compare, or hard-stop inventory status.",
       tone: "watch",
     },
     {
@@ -611,7 +611,7 @@ export function resolvePharmacyWorkbenchViewModels(
       queueTable: {
         title: "Active pharmacy queue",
         summary:
-          "The queue remains dense, keyboard reachable, and truthful about blocked release and review debt.",
+          "The queue remains dense, keyboard reachable, and clear about blocked release and review debt.",
         selectedCaseId: caseSeed.pharmacyCaseId,
         rows: snapshot.queueCases.map(queueRowForCase),
       },
@@ -637,7 +637,7 @@ export function resolvePharmacyWorkbenchViewModels(
       trustStateLabel: inventoryTrustLabel(caseSeed),
       hardStopLabel:
         caseSeed.inventoryPosture === "blocked"
-          ? "Current posture is read-only: release and substitution remain fenced."
+          ? "Current status is read-only: release and substitution remain fenced."
           : "The strongest confirmed stock artifact remains visible until a compare or release action overrides it.",
       records: buildInventoryTruthRecords(snapshot),
     },
@@ -673,11 +673,11 @@ export function resolvePharmacyWorkbenchViewModels(
         snapshot.recoveryPosture === "live"
           ? "Continuity validated"
           : snapshot.recoveryPosture === "read_only"
-            ? "Continuity held in read-only posture"
+            ? "Continuity held in read-only status"
             : "Recovery continuity active",
       patientCommunicationLabel:
         providerHealthState === "outage"
-          ? "Patient copy held behind outage posture"
+          ? "Patient copy held behind outage status"
           : stockRiskBand === "low"
             ? "Preview ready"
             : "Preview still guarded",
@@ -694,16 +694,16 @@ export function resolvePharmacyWorkbenchViewModels(
       settlementLabel: settlementState,
       continuityLabel:
         snapshot.recoveryPosture === "live"
-          ? "Same-shell continuity confirmed"
+          ? "Same-case continuity confirmed"
           : snapshot.recoveryPosture === "read_only"
-            ? "Continuity preserved in review posture"
+            ? "Continuity preserved in review status"
             : "Recovery-only continuity",
       consequenceTitle: "Action consequence",
       consequenceSummary:
         snapshot.location.routeKey === "inventory"
           ? "The active compare fence and the chosen candidate remain tied to the current line item."
           : snapshot.location.routeKey === "handoff"
-            ? "Release posture stays pending until authoritative proof, settlement, and continuity all agree."
+            ? "Release status stays pending until authoritative proof, settlement, and continuity all agree."
             : "The active case, selected line, and promoted support region stay pinned while the current action completes.",
       closeBlockers: derivePharmacyBlockingReasonCodes(caseSeed),
       primaryAction: {

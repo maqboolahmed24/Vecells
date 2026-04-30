@@ -143,7 +143,7 @@ function WatchlistTable({
               <th scope="col">Risk</th>
               <th scope="col">Owner</th>
               <th scope="col">Review</th>
-              <th scope="col">Lineage</th>
+              <th scope="col">History</th>
             </tr>
           </thead>
           <tbody>
@@ -295,7 +295,7 @@ function SourceLineageDrawer({
       aria-labelledby="ci-489-drawer-title"
     >
       <div>
-        <p className="governance-panel__eyebrow">Source lineage</p>
+        <p className="governance-panel__eyebrow">Source history</p>
         <h2 id="ci-489-drawer-title">{row.title}</h2>
       </div>
       <dl>

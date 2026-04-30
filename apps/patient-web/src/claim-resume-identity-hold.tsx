@@ -43,7 +43,7 @@ function useClaimResumeController() {
   const [announcement, setAnnouncement] = useState(
     restoredPostureRef.current
       ? `Restored ${restoredPostureRef.current.replaceAll("_", " ")} posture.`
-      : "Claim resume posture loaded.",
+      : "Claim resume status loaded.",
   );
   const titleRef = useRef<HTMLHeadingElement>(null);
   const actionRef = useRef<HTMLButtonElement>(null);

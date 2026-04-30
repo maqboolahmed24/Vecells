@@ -11,9 +11,6 @@ import {
   attachmentAcceptAttribute,
   attachmentSelectionSummary,
   attachmentUiCopy,
-  ATTACHMENT_INLINE_PREVIEW_CONTRACT_REF,
-  ATTACHMENT_NAVIGATION_POLICY_REF,
-  ATTACHMENT_PRESENTATION_CONTRACT_REF,
   formatAttachmentBytes,
   type AttachmentFileLike,
   type IntakeAttachmentCard,
@@ -117,7 +114,7 @@ export function EvidenceLaneDropzone({
         }
       >
         <div className="patient-intake-mission-frame__evidence-dropzone-copy">
-          <span className="patient-intake-mission-frame__eyebrow">Evidence lane</span>
+          <span className="patient-intake-mission-frame__eyebrow">Supporting files</span>
           <h3>Choose files that help explain this request</h3>
           <p>
             Files are checked before they are used. Unsupported or unsafe files stay visible here so
@@ -153,6 +150,9 @@ export function EvidenceLaneDropzone({
           type="file"
           multiple
           accept={attachmentAcceptAttribute()}
+          hidden
+          aria-hidden="true"
+          tabIndex={-1}
           className="patient-intake-mission-frame__visually-hidden"
           data-testid="patient-intake-file-input"
           onChange={handlePickerChange}
@@ -162,6 +162,9 @@ export function EvidenceLaneDropzone({
           type="file"
           accept="image/*,.heic,.heif"
           capture="environment"
+          hidden
+          aria-hidden="true"
+          tabIndex={-1}
           className="patient-intake-mission-frame__visually-hidden"
           data-testid="patient-intake-camera-input"
           onChange={handleCaptureChange}
@@ -172,7 +175,7 @@ export function EvidenceLaneDropzone({
         <ul>
           <li>Clear photos of readings, labels, or visible changes.</li>
           <li>PDF letters or results that support the question you already answered.</li>
-          <li>Only the file states shown here can tell you whether evidence is ready, blocked, or needs retry.</li>
+          <li>The file state shown here tells you whether a file is ready, blocked, or needs retry.</li>
         </ul>
       </div>
     </section>
@@ -321,6 +324,9 @@ export function EvidenceCardStack({
               }}
               type="file"
               accept={attachmentAcceptAttribute()}
+              hidden
+              aria-hidden="true"
+              tabIndex={-1}
               className="patient-intake-mission-frame__visually-hidden"
               data-testid={`patient-intake-replace-input-${attachment.attachmentRef}`}
               onChange={(event) => {
@@ -355,7 +361,7 @@ export function GovernedPreviewPanel({
     >
       <div className="patient-intake-mission-frame__preview-panel-head">
         <div>
-          <span>Governed preview</span>
+          <span>Approved preview</span>
           <h3>{attachment.filename}</h3>
         </div>
         <button
@@ -376,15 +382,12 @@ export function GovernedPreviewPanel({
           </svg>
         </div>
         <div className="patient-intake-mission-frame__preview-copy">
-          <strong>One governed route only</strong>
-          <p>
-            Preview and download stay behind {ATTACHMENT_PRESENTATION_CONTRACT_REF} and{" "}
-            {ATTACHMENT_NAVIGATION_POLICY_REF}. The shell never exposes raw storage URLs.
-          </p>
+          <strong>Preview before sending</strong>
+          <p>Only checked files can be previewed here. Private storage links are never shown.</p>
           <dl>
             <div>
-              <dt>Inline preview contract</dt>
-              <dd>{ATTACHMENT_INLINE_PREVIEW_CONTRACT_REF}</dd>
+              <dt>Preview</dt>
+              <dd>Checked file preview</dd>
             </div>
             <div>
               <dt>Safe mode</dt>
@@ -401,7 +404,7 @@ export function GovernedPreviewPanel({
             data-testid="patient-intake-preview-open"
             data-governed-href={openGrant.href}
           >
-            Open governed preview
+            Open preview
           </button>
         ) : null}
         {downloadGrant ? (
@@ -411,7 +414,7 @@ export function GovernedPreviewPanel({
             data-testid="patient-intake-preview-download"
             data-governed-href={downloadGrant.href}
           >
-            Download through grant
+            Download file
           </button>
         ) : null}
       </div>

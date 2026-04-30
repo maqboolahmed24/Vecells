@@ -92,7 +92,7 @@ export function AssistiveVisibleOps485() {
         data-testid="assistive-485-freeze-explanation"
       >
         <p className="assistive-ops-485__eyebrow">Freeze disposition</p>
-        <h2>Suppress write controls, preserve provenance</h2>
+        <h2>Suppress write controls, preserve history</h2>
         <p>{projection.freezeExplanation}</p>
       </section>
     </main>

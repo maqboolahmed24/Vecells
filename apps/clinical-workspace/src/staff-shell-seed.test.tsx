@@ -104,7 +104,7 @@ describe("staff shell seed routes: integration continuity", () => {
 });
 
 describe("staff shell seed routes: accessibility and regression", () => {
-  it("renders the default shell with stable navigation, queue, and telemetry markers", () => {
+  it("renders the default shell with stable navigation and queue markers", () => {
     const html = renderToStaticMarkup(<StaffShellSeedApp />);
 
     expect(html).toContain('data-testid="staff-shell-root"');
@@ -114,7 +114,8 @@ describe("staff shell seed routes: accessibility and regression", () => {
     expect(html).toContain('role="listbox"');
     expect(html).toContain('data-testid="today-workbench-hero"');
     expect(html).not.toContain('data-testid="decision-dock"');
-    expect(html).toContain('data-testid="route-authority-card"');
+    expect(html).not.toContain('data-testid="route-authority-card"');
+    expect(html).not.toContain('data-testid="telemetry-log"');
     expect(html).toContain('data-selected-anchor-ref="hero-recommended-queue"');
     expect(html).toContain('data-automation-surface="rf_staff_workspace"');
   });

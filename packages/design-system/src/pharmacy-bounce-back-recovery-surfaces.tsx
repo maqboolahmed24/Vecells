@@ -335,7 +335,7 @@ export function PharmacyReturnMessagePreview(props: {
             <dd>{props.preview.anchorLabel}</dd>
           </div>
           <div>
-            <dt>Return contract</dt>
+            <dt>Return rules</dt>
             <dd>{props.preview.contractLabel}</dd>
           </div>
         </dl>
@@ -438,7 +438,7 @@ export function PharmacyRecoveryDecisionDock(props: {
     >
       <header className="pharmacy-recovery-card__header">
         <div>
-          <p className="pharmacy-recovery-kicker">DecisionDock</p>
+          <p className="pharmacy-recovery-kicker">Next action</p>
           <h3>{props.dock.title}</h3>
         </div>
         <span className="pharmacy-recovery-pill" data-tone={props.dock.tone}>

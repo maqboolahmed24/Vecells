@@ -200,7 +200,9 @@ async function run() {
       "Shell writable state should reset to pending after local logout.",
     );
     assertCondition(
-      (await page.locator("[data-testid='event-log']").innerText()).includes("Local session terminated inside Vecells."),
+      (await page.locator("[data-testid='event-log']").innerText()).includes(
+        "Local session terminated inside the simulator.",
+      ),
       "Expected explicit local logout evidence in the event log.",
     );
 

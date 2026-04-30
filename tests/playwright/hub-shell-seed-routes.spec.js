@@ -3,10 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import {
-  importPlaywright,
-  waitForHttp,
-} from "./simulator-backplane-test-helpers.js";
+import { importPlaywright, waitForHttp } from "./simulator-backplane-test-helpers.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -66,13 +63,20 @@ async function telemetryCount(page) {
   return await page.locator("[data-testid='hub-telemetry-log'] li").count();
 }
 
+async function telemetryStateCount(page) {
+  return await page.evaluate(() => window.__hubDeskState?.telemetryCount ?? 0);
+}
+
 export async function run() {
   assertCondition(fs.existsSync(ARTIFACT_PATH), "Hub mock projection artifact is missing.");
   assertCondition(fs.existsSync(GALLERY_PATH), "Hub shell gallery HTML is missing.");
   const artifact = JSON.parse(fs.readFileSync(ARTIFACT_PATH, "utf8"));
   assert.equal(artifact.task_id, "par_118", "Hub mock projection artifact drifted off par_118.");
   assert.equal(artifact.visual_mode, "Hub_Shell_Seed_Routes", "Hub shell visual mode drifted.");
-  assertCondition(artifact.examples.length >= 6, "Hub projection examples are unexpectedly sparse.");
+  assertCondition(
+    artifact.examples.length >= 6,
+    "Hub projection examples are unexpectedly sparse.",
+  );
 
   const playwright = await importPlaywright();
   if (!playwright) {
@@ -106,51 +110,94 @@ export async function run() {
     await expectAttribute(root, "data-layout-mode", "two_plane");
     await expectAttribute(root, "data-automation-surface", "rf_hub_queue");
 
-    const telemetryBefore = await telemetryCount(page);
-    await page.locator("[data-testid='hub-option-hub-opt-104-river']").click();
-    await expectAttribute(root, "data-selected-option-id", "hub-opt-104-river");
-    await expectAttribute(root, "data-option-truth-mode", "truthful_nonexclusive");
-    await expectAttribute(root, "data-timer-mode", "response_window");
-    assertCondition((await telemetryCount(page)) > telemetryBefore, "Option selection did not emit telemetry.");
+    const telemetryBefore = await telemetryStateCount(page);
+    const nonexclusiveOption = page.locator(
+      ".hub-option-card[data-option-card='opt-104-north-shore']",
+    );
+    await nonexclusiveOption.locator(".hub-option-card__select").click();
+    await expectAttribute(root, "data-selected-option-card", "opt-104-north-shore");
+    await expectAttribute(nonexclusiveOption, "data-reservation-truth", "truthful_nonexclusive");
+    assertCondition(
+      (await nonexclusiveOption.innerText()).includes("Visible but not exclusive"),
+      "Nonexclusive option did not surface truthful no-hold copy.",
+    );
+    assertCondition(
+      (await telemetryStateCount(page)) > telemetryBefore,
+      "Option selection did not emit telemetry.",
+    );
+
+    await page.locator("[data-testid='hub-open-case-hub-case-104']").click();
+    await expectAttribute(root, "data-current-path", "/hub/case/hub-case-104");
+    await expectAttribute(root, "data-view-mode", "case");
 
     await page.locator("[data-testid='hub-open-alternatives']").click();
-    await page.locator("[data-testid='hub-alternatives-route']").waitFor();
-    await expectAttribute(root, "data-current-path", "/hub/alternatives/ofs_104");
+    await expectAttribute(root, "data-current-path", "/hub/alternatives/offer-session-104");
+    await expectAttribute(root, "data-view-mode", "alternatives");
     await expectAttribute(root, "data-route-family", "rf_hub_case_management");
     await page.locator("[data-testid='hub-return-button']").click();
     await expectAttribute(root, "data-current-path", "/hub/case/hub-case-104");
 
     await page.locator("[data-testid='hub-open-audit']").click();
-    await page.locator("[data-testid='hub-audit-route']").waitFor();
     await expectAttribute(root, "data-current-path", "/hub/audit/hub-case-104");
+    await expectAttribute(root, "data-view-mode", "audit");
     await page.locator("[data-testid='hub-return-button']").click();
     await expectAttribute(root, "data-current-path", "/hub/case/hub-case-104");
 
     await page.locator("[data-testid='hub-nav-exceptions']").click();
-    await page.locator("[data-testid='hub-exceptions-route']").waitFor();
+    await expectAttribute(root, "data-current-path", "/hub/exceptions");
     await expectAttribute(root, "data-view-mode", "exceptions");
     await expectAttribute(root, "data-artifact-mode", "table_only");
-    await page.locator("[data-testid='hub-filter-fallback']").click();
-    await page.locator("[data-testid='hub-open-exception-case-hub-case-052']").click();
+    const callbackException = page.locator("[data-testid='hub-exception-row-exc-callback-052']");
+    await callbackException.click();
+    await expectAttribute(callbackException, "data-fallback-type", "callback_request");
+    await page.locator("[data-testid='HubExceptionDetailDrawer'] .hub-primary-button").click();
     await expectAttribute(root, "data-current-path", "/hub/case/hub-case-052");
-    await expectAttribute(root, "data-option-truth-mode", "callback_only");
+    await expectAttribute(root, "data-selected-option-card", "opt-052-variance");
+    await expectAttribute(
+      page.locator(".hub-option-card[data-option-card='opt-052-variance']"),
+      "data-reservation-truth",
+      "unavailable",
+    );
+    await page.locator("[data-testid='hub-callback-fallback']").waitFor();
 
     await page.locator("[data-testid='hub-nav-queue']").click();
     await page.locator("[data-testid='hub-open-case-hub-case-066']").click();
     await expectAttribute(root, "data-current-path", "/hub/case/hub-case-066");
-    await expectAttribute(root, "data-ack-state", "overdue");
+    await expectAttribute(root, "data-selected-option-card", "opt-066-booked");
+    await expectAttribute(root, "data-dominant-action", "Chase acknowledgement");
+    const bookedOption = page.locator(".hub-option-card[data-option-card='opt-066-booked']");
+    await expectAttribute(bookedOption, "data-reservation-truth", "truthful_nonexclusive");
+    assertCondition(
+      (await bookedOption.innerText()).includes("Acknowledgement debt open"),
+      "Booked acknowledgement case did not surface overdue acknowledgement debt.",
+    );
 
     await page.setViewportSize({ width: 720, height: 1280 });
     await page.waitForTimeout(150);
     await expectAttribute(root, "data-layout-mode", "mission_stack");
 
     const focusRestoreMarker = page.locator("[data-testid='hub-focus-restore-marker']");
-    await focusRestoreMarker.waitFor();
+    await focusRestoreMarker.waitFor({ state: "attached" });
     await expectAttribute(focusRestoreMarker, "data-dom-marker", "focus-restore");
+    assertCondition(
+      await focusRestoreMarker.evaluate((element) => element.hidden),
+      "Hub focus restore marker is visible on the default route.",
+    );
 
-    const telemetryAfter = await telemetryCount(page);
-    assertCondition(telemetryAfter >= 5, "Telemetry log did not accumulate the expected hub events.");
-    assert.equal(externalRequests.size, 0, `Unexpected external requests: ${[...externalRequests].join(", ")}`);
+    assertCondition(
+      (await telemetryCount(page)) === 0,
+      "Telemetry log is visible on the default hub route.",
+    );
+    await page.goto(`${APP_URL}/hub/queue?diagnostics=hub`, { waitUntil: "networkidle" });
+    assertCondition(
+      (await telemetryCount(page)) > 0,
+      "Diagnostics telemetry did not render behind the hub flag.",
+    );
+    assert.equal(
+      externalRequests.size,
+      0,
+      `Unexpected external requests: ${[...externalRequests].join(", ")}`,
+    );
 
     const reducedContext = await browser.newContext({
       viewport: { width: 1280, height: 1080 },
@@ -159,10 +206,12 @@ export async function run() {
     const reducedPage = await reducedContext.newPage();
     await reducedPage.goto(`${APP_URL}/hub/queue`, { waitUntil: "networkidle" });
     const transitionDuration = await reducedPage
-      .locator("[data-testid='hub-option-hub-opt-104-oak']")
+      .locator(".hub-option-card[data-option-card='opt-104-riverside']")
       .evaluate((element) => window.getComputedStyle(element).transitionDuration);
     assertCondition(
-      transitionDuration.includes("0.01ms") || transitionDuration.includes("1e-05s"),
+      transitionDuration.includes("0s") ||
+        transitionDuration.includes("0.01ms") ||
+        transitionDuration.includes("1e-05s"),
       `Reduced-motion transition did not collapse as expected: ${transitionDuration}`,
     );
     await reducedContext.close();

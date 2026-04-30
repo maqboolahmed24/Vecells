@@ -24,7 +24,7 @@ export function RequestPulseHeader({
       data-macro-state={status.macroState}
     >
       <div className="patient-intake-mission-frame__track-pulse-copy">
-        <span className="patient-intake-mission-frame__track-pulse-eyebrow">Request pulse</span>
+        <span className="patient-intake-mission-frame__track-pulse-eyebrow">Request status</span>
         <h3
           className="patient-intake-mission-frame__track-pulse-title"
           data-testid="track-request-title"

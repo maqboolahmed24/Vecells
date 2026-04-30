@@ -143,7 +143,7 @@ function ShellRouteNavigation({
   return (
     <nav
       className="embedded-shell__route-nav"
-      aria-label="Patient shell route tree"
+      aria-label="Patient shell journey list"
       data-testid="EmbeddedShellRouteTreeNav"
       data-route-tree-version={context.routeTreeVersion}
     >
@@ -337,7 +337,7 @@ function SharedRouteContent({ context }: { readonly context: EmbeddedShellContex
       </section>
       {route.errorSummary ? (
         <section className="embedded-shell__error-summary" role="status" aria-label="Route error semantics">
-          <strong>Route guard</strong>
+          <strong>Access check</strong>
           <p>{route.errorSummary}</p>
         </section>
       ) : null}
@@ -465,9 +465,9 @@ export function StandaloneShell({
     >
       <header className="embedded-shell__standalone-header" data-testid="standalone-shell-header">
         <div>
-          <span className="embedded-shell__eyebrow">Vecells patient portal</span>
+          <span className="embedded-shell__eyebrow">Patient portal</span>
           <h1>{context.routeNode.routeTitle}</h1>
-          <p>Standalone portal chrome over the Phase 7 patient route tree.</p>
+          <p>Standalone portal chrome over the Current programme patient journey list.</p>
         </div>
         <ModeSwitch context={context} navigateToRoute={navigateToRoute} />
       </header>
@@ -480,7 +480,7 @@ export function StandaloneShell({
         />
       </div>
       <footer className="embedded-shell__standalone-footer" data-testid="standalone-shell-footer">
-        <span>Same route tree</span>
+        <span>Same journey list</span>
         <strong>{EMBEDDED_PATIENT_ROUTE_TREE.length} NHS App entry routes</strong>
       </footer>
     </main>

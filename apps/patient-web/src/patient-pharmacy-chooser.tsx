@@ -619,7 +619,7 @@ export function PharmacyChosenProviderReview({
         <article className="patient-pharmacy-chooser__selected-card" data-testid="pharmacy-choice-provenance-selection">
           <strong>{previousSelection.label}</strong>
           <span>{previousSelection.summary}</span>
-          <em>Read-only provenance</em>
+          <em>Read-only history</em>
         </article>
       ) : (
         <article className="patient-pharmacy-chooser__selected-card" data-testid="pharmacy-choice-empty-selection">

@@ -9,7 +9,6 @@ import {
   GrantBoundPreviewState,
   GovernedPlaceholderSummary,
   ReturnAnchorReceipt,
-  VecellLogoWordmark,
   type CrossOrgArtifactAction,
   type CrossOrgArtifactGrantState,
   type CrossOrgArtifactStageMode,
@@ -19,7 +18,9 @@ import {
 import "@vecells/design-system/cross-org-artifact-handoff.css";
 import { resolvePortalSupportPhase2Context } from "../../../packages/domain-kernel/src/patient-support-phase2-integration";
 import "./patient-network-manage.css";
+import "./patient-portal-unified-system.css";
 import { PatientSupportPhase2Bridge } from "./patient-support-phase2-bridge";
+import { PatientPortalTopBar } from "./patient-portal-top-bar";
 import {
   BookingResponsiveProvider,
   BookingResponsiveStage,
@@ -69,7 +70,8 @@ function safeDocument(): Document | undefined {
 }
 
 function resolveInitialScenario(): NetworkManageScenarioId330 {
-  const pathname = safeWindow()?.location.pathname ?? "/bookings/network/manage/network_manage_330_live";
+  const pathname =
+    safeWindow()?.location.pathname ?? "/bookings/network/manage/network_manage_330_live";
   return resolvePatientNetworkManageScenarioId(pathname) ?? "network_manage_330_live";
 }
 
@@ -96,10 +98,7 @@ function readRestoreBundle(): NetworkManageRestoreBundle330 | null {
 
 function writeRestoreBundle(bundle: NetworkManageRestoreBundle330, replace = true): void {
   const ownerWindow = safeWindow();
-  ownerWindow?.sessionStorage.setItem(
-    NETWORK_MANAGE_RESTORE_STORAGE_KEY,
-    JSON.stringify(bundle),
-  );
+  ownerWindow?.sessionStorage.setItem(NETWORK_MANAGE_RESTORE_STORAGE_KEY, JSON.stringify(bundle));
   const nextState = {
     ...(ownerWindow?.history.state ?? {}),
     networkManage: bundle,
@@ -140,9 +139,7 @@ function findTimelineRow(
   projection: PatientNetworkManageProjection330,
   selectedTimelineRowId: string,
 ): ReminderTimelineNoticeProjection330 | null {
-  return (
-    flattenTimelineRows(projection).find((row) => row.rowId === selectedTimelineRowId) ?? null
-  );
+  return flattenTimelineRows(projection).find((row) => row.rowId === selectedTimelineRowId) ?? null;
 }
 
 function actionButtonClass(tone: NetworkManageActionProjection330["tone"]): string {
@@ -155,12 +152,7 @@ function actionButtonClass(tone: NetworkManageActionProjection330["tone"]): stri
   return "patient-booking__secondary-action";
 }
 
-type ManageArtifactActionId =
-  | "preview"
-  | "print"
-  | "download"
-  | "export"
-  | "external_handoff";
+type ManageArtifactActionId = "preview" | "print" | "download" | "export" | "external_handoff";
 
 interface ManageArtifactReceipt {
   readonly actionId: ManageArtifactActionId;
@@ -174,20 +166,18 @@ function manageContentLegendItems(): readonly CrossOrgContentLegendItem[] {
   return [
     {
       term: "Manage live",
-      meaning:
-        "The current capability tuple allows changes from this route. This does not change the booked confirmation wording by itself.",
+      meaning: "Changes are available from this page without changing confirmed details first.",
       tone: "verified",
     },
     {
       term: "Provider pending",
-      meaning:
-        "The requested change is visible here, but the provider has not yet settled it authoritatively.",
+      meaning: "The requested change is visible here while the provider finishes checking it.",
       tone: "preview",
     },
     {
       term: "Callback fallback",
       meaning:
-        "Fallback remains a separate bounded route inside the same timeline. It does not replace confirmed appointment truth unless the route says so.",
+        "Fallback remains a separate limited route inside the same timeline. It does not replace confirmed appointment status unless the route says so.",
       tone: "warning",
     },
   ];
@@ -264,8 +254,8 @@ function resolveManageArtifactState(input: {
       actionId: "download",
       label: "Download summary",
       detail: downloadAllowed
-        ? "Download stays tied to the same manage lineage."
-        : "Download is closed in the current host or review posture.",
+        ? "Download stays tied to the same manage history."
+        : "Download is closed in the current host or review status.",
       disabled: !downloadAllowed,
     },
     {
@@ -273,7 +263,7 @@ function resolveManageArtifactState(input: {
       label: "Export timeline summary",
       detail: exportAllowed
         ? "Export preserves the selected timeline row and current appointment anchor."
-        : "Export is not widened from this posture.",
+        : "Export is not widened from this status.",
       disabled: !exportAllowed,
     },
     {
@@ -294,7 +284,7 @@ function resolveManageArtifactState(input: {
       grantState === "active"
         ? "Manage summary verified"
         : grantState === "blocked"
-          ? "Recovery posture"
+          ? "Recovery status"
           : input.embeddedMode === "nhs_app"
             ? "Embedded summary-only"
             : "Read-only summary",
@@ -304,7 +294,7 @@ function resolveManageArtifactState(input: {
         : "Current read-only settlement",
     placeholderRows: [
       {
-        label: "Current posture",
+        label: "Current status",
         value:
           input.projection.capabilityPanel.readOnlyMode === "interactive"
             ? "Interactive manage route"
@@ -313,7 +303,7 @@ function resolveManageArtifactState(input: {
       {
         label: "Reason richer movement is held back",
         value: blocked
-          ? "A current dependency or recovery posture blocks richer artifact movement"
+          ? "A current dependency or recovery status blocks richer artifact movement"
           : input.embeddedMode === "nhs_app"
             ? "Embedded host keeps the route summary-first"
             : "This route preserves summary-first continuity while mutation is paused",
@@ -344,7 +334,7 @@ function ManageSummaryCard(props: {
       tabIndex={-1}
     >
       <div className="patient-network-manage__section-head">
-        <span className="patient-booking__eyebrow">NetworkAppointmentManageView</span>
+        <span className="patient-booking__eyebrow">Appointment</span>
         <h2>{props.projection.appointmentHeading}</h2>
         <p>{props.projection.body}</p>
       </div>
@@ -367,7 +357,10 @@ function ManageSummaryCard(props: {
         </dl>
       </div>
       {props.selectedRow ? (
-        <div className="patient-network-manage__context-strip" data-testid="network-manage-context-strip">
+        <div
+          className="patient-network-manage__context-strip"
+          data-testid="network-manage-context-strip"
+        >
           <span>Current message context</span>
           <strong>{props.selectedRow.anchorLabel}</strong>
           <small>{props.selectedRow.timeLabel}</small>
@@ -381,9 +374,7 @@ function NetworkManageCapabilityPanel(props: {
   projection: NetworkManageCapabilityPanelProjection330;
 }) {
   const capabilityNames =
-    props.projection.capabilityRefs.length > 0
-      ? props.projection.capabilityRefs.join("|")
-      : "none";
+    props.projection.capabilityRefs.length > 0 ? props.projection.capabilityRefs.join("|") : "none";
 
   return (
     <section
@@ -393,7 +384,7 @@ function NetworkManageCapabilityPanel(props: {
       data-capability-refs={capabilityNames}
     >
       <div className="patient-network-manage__section-head">
-        <span className="patient-booking__eyebrow">NetworkManageCapabilityPanel</span>
+        <span className="patient-booking__eyebrow">What you can do</span>
         <h3>{props.projection.heading}</h3>
         <p>{props.projection.body}</p>
       </div>
@@ -419,9 +410,7 @@ function NetworkManageCapabilityPanel(props: {
   );
 }
 
-function ReminderDeliveryStateCard(props: {
-  projection: ReminderDeliveryStateCardProjection330;
-}) {
+function ReminderDeliveryStateCard(props: { projection: ReminderDeliveryStateCardProjection330 }) {
   return (
     <section
       className="patient-network-manage__card patient-network-manage__card--delivery"
@@ -429,7 +418,7 @@ function ReminderDeliveryStateCard(props: {
       data-delivery-state={props.projection.deliveryState}
     >
       <div className="patient-network-manage__section-head">
-        <span className="patient-booking__eyebrow">ReminderDeliveryStateCard</span>
+        <span className="patient-booking__eyebrow">Reminders</span>
         <h3>{props.projection.heading}</h3>
         <p>{props.projection.body}</p>
       </div>
@@ -460,9 +449,7 @@ function ReminderTimelineNotice(props: {
       data-reminder-row={
         props.projection.subthreadType === "reminder" ? props.projection.rowKind : undefined
       }
-      data-callback-fallback={
-        props.projection.rowKind === "callback_fallback" ? "true" : undefined
-      }
+      data-callback-fallback={props.projection.rowKind === "callback_fallback" ? "true" : undefined}
     >
       <button
         type="button"
@@ -528,11 +515,11 @@ function MessageTimelineClusterView(props: {
       tabIndex={-1}
     >
       <div className="patient-network-manage__section-head">
-        <span className="patient-booking__eyebrow">MessageTimelineClusterView</span>
+        <span className="patient-booking__eyebrow">Messages</span>
         <h3>Message timeline</h3>
         <p>
-          Reminder notices, delivery failures, callback fallback, and manage settlements stay in
-          one current conversation grammar.
+          Reminder notices, delivery issues, callbacks, and appointment changes stay in one
+          timeline.
         </p>
       </div>
       <div className="patient-network-manage__timeline-clusters">
@@ -560,7 +547,7 @@ function HubManageSettlementPanel(props: {
       data-manage-settlement={props.projection.settlementResult}
     >
       <div className="patient-network-manage__section-head">
-        <span className="patient-booking__eyebrow">HubManageSettlementPanel</span>
+        <span className="patient-booking__eyebrow">Update result</span>
         <h3>{props.projection.heading}</h3>
         <p>{props.projection.body}</p>
       </div>
@@ -598,7 +585,7 @@ function ContactRouteRepairInlineJourney(props: {
       data-contact-repair={props.projection.repairState}
     >
       <div className="patient-network-manage__section-head">
-        <span className="patient-booking__eyebrow">ContactRouteRepairInlineJourney</span>
+        <span className="patient-booking__eyebrow">Contact details</span>
         <h3>{props.projection.heading}</h3>
         <p>{props.projection.body}</p>
       </div>
@@ -644,7 +631,7 @@ function NetworkManageReadOnlyState(props: {
       data-read-only-reason={props.projection.reason}
     >
       <div className="patient-network-manage__section-head">
-        <span className="patient-booking__eyebrow">NetworkManageReadOnlyState</span>
+        <span className="patient-booking__eyebrow">Limited changes</span>
         <h3>{props.projection.heading}</h3>
         <p>{props.projection.body}</p>
       </div>
@@ -667,7 +654,7 @@ function NetworkManageActionPanel(props: {
   return (
     <section className="patient-network-manage__card" data-testid="NetworkManageActionPanel">
       <div className="patient-network-manage__section-head">
-        <span className="patient-booking__eyebrow">NetworkManageActionPanel</span>
+        <span className="patient-booking__eyebrow">Actions</span>
         <h3>{props.projection.heading}</h3>
         <p>{props.projection.body}</p>
       </div>
@@ -728,7 +715,8 @@ function useNetworkManageController() {
   useEffect(() => {
     const bundle: NetworkManageRestoreBundle330 = {
       projectionName: "NetworkManageRestoreBundle330",
-      pathname: ownerWindow?.location.pathname ?? resolvePatientNetworkManagePath(projection.scenarioId),
+      pathname:
+        ownerWindow?.location.pathname ?? resolvePatientNetworkManagePath(projection.scenarioId),
       search: ownerWindow?.location.search ?? "",
       scenarioId: projection.scenarioId,
       selectedTimelineRowId,
@@ -739,7 +727,8 @@ function useNetworkManageController() {
 
   useEffect(() => {
     const onPopState = () => {
-      const pathname = ownerWindow?.location.pathname ?? resolvePatientNetworkManagePath(projection.scenarioId);
+      const pathname =
+        ownerWindow?.location.pathname ?? resolvePatientNetworkManagePath(projection.scenarioId);
       const scenarioId = resolvePatientNetworkManageScenarioId(pathname) ?? projection.scenarioId;
       const nextProjection = resolvePatientNetworkManageProjectionByScenarioId(scenarioId);
       const restore = readRestoreBundle();
@@ -890,7 +879,7 @@ function PatientNetworkManageViewInner() {
       normalizedActionId === "preview"
         ? "Preview opened in the current manage stage."
         : normalizedActionId === "print"
-          ? "Print posture armed from the current manage stage."
+          ? "Print status armed from the current manage stage."
           : normalizedActionId === "download"
             ? "Download summary prepared from the current manage route."
             : normalizedActionId === "export"
@@ -917,13 +906,11 @@ function PatientNetworkManageViewInner() {
       data-manage-capability-state={controller.projection.capabilityPanel.capabilityState}
       data-manage-read-only-mode={controller.projection.capabilityPanel.readOnlyMode}
       data-selected-timeline-row={controller.selectedTimelineRowId}
-      data-message-context={controller.selectedRow?.anchorLabel ?? controller.projection.messageContextLabel}
-      data-manage-settlement={
-        controller.projection.settlementPanel?.settlementResult ?? "none"
+      data-message-context={
+        controller.selectedRow?.anchorLabel ?? controller.projection.messageContextLabel
       }
-      data-contact-repair={
-        controller.projection.contactRepairJourney?.repairState ?? "hidden"
-      }
+      data-manage-settlement={controller.projection.settlementPanel?.settlementResult ?? "none"}
+      data-contact-repair={controller.projection.contactRepairJourney?.repairState ?? "hidden"}
       data-breakpoint-class={profile.breakpointClass}
       data-mission-stack-state={profile.missionStackState}
       data-safe-area-class={profile.safeAreaClass}
@@ -940,23 +927,11 @@ function PatientNetworkManageViewInner() {
     >
       <EmbeddedBookingChromeAdapter
         topBand={
-          <header className="patient-booking__top-band" data-testid="patient-booking-top-band">
-            <a className="patient-booking__brand" href="/home">
-              <span>
-                <VecellLogoWordmark
-                  aria-hidden="true"
-                  className="patient-booking__brand-wordmark"
-                />
-                <small>Signed-in patient shell</small>
-              </span>
-            </a>
-            <nav aria-label="Patient booking navigation" className="patient-booking__nav">
-              <a href="/home">Home</a>
-              <a href="/requests">Requests</a>
-              <a href="/appointments">Appointments</a>
-              <a href="/messages">Messages</a>
-            </nav>
-          </header>
+          <PatientPortalTopBar
+            current="appointments"
+            testId="patient-booking-top-band"
+            ariaLabel="Patient booking navigation"
+          />
         }
       >
         <PatientSupportPhase2Bridge context={phase2Context} />
@@ -992,10 +967,13 @@ function PatientNetworkManageViewInner() {
             rail={
               <div className="patient-network-manage__rail">
                 <ReminderDeliveryStateCard projection={controller.projection.deliveryStateCard} />
-                <section className="patient-network-manage__card" data-testid="network-manage-support-card">
+                <section
+                  className="patient-network-manage__card"
+                  data-testid="network-manage-support-card"
+                >
                   <div className="patient-network-manage__section-head">
-                    <span className="patient-booking__eyebrow">Current shell context</span>
-                    <h3>Why this route can stay calm or bounded</h3>
+                    <span className="patient-booking__eyebrow">Support</span>
+                    <h3>Why this route can stay calm or limited</h3>
                   </div>
                   <dl className="patient-network-manage__fact-list patient-network-manage__fact-list--compact">
                     {controller.projection.supportRows.map((row) => (
@@ -1024,14 +1002,22 @@ function PatientNetworkManageViewInner() {
                   testId="network-manage-artifact-frame"
                   contextId="network_manage"
                   visualMode={CROSS_ORG_ARTIFACT_HANDOFF_VISUAL_MODE}
-                  tone={artifactState.grantState === "blocked" ? "blocked" : artifactState.grantState === "active" ? "verified" : "warning"}
-                  eyebrow="Governed artifact stage"
+                  tone={
+                    artifactState.grantState === "blocked"
+                      ? "blocked"
+                      : artifactState.grantState === "active"
+                        ? "verified"
+                        : "warning"
+                  }
+                  eyebrow="Approved artifact stage"
                   title="Manage summary and handoff stage"
                   summary="Reminder delivery, current settlement, and secondary artifact actions stay inside one summary-first manage stage."
                   metadata={
                     <>
                       <span className="cross-org-artifact-chip">{artifactState.parityLabel}</span>
-                      <span className="cross-org-artifact-chip">{artifactState.authorityLabel}</span>
+                      <span className="cross-org-artifact-chip">
+                        {artifactState.authorityLabel}
+                      </span>
                     </>
                   }
                 >
@@ -1040,7 +1026,7 @@ function PatientNetworkManageViewInner() {
                     summary={
                       artifactState.grantState === "active"
                         ? "The current manage route can keep preview, print, export, and handoff secondary and return-safe."
-                        : "This route keeps the summary and current message context primary while richer movement stays bounded."
+                        : "This route keeps the summary and current message context primary while richer movement stays limited."
                     }
                     tone={
                       artifactState.grantState === "blocked"
@@ -1059,8 +1045,8 @@ function PatientNetworkManageViewInner() {
                       artifactState.grantState === "active"
                         ? "Preview, print, export, and handoff remain secondary to the current manage summary and selected timeline row."
                         : artifactState.grantState === "blocked"
-                          ? "Recovery posture blocks richer movement and keeps the route on the last safe summary."
-                          : "The route remains summary-first while capability or host posture stays restricted."
+                          ? "Recovery status blocks richer movement and keeps the route on the last safe summary."
+                          : "The route remains summary-first while capability or host status stays restricted."
                     }
                     grantState={artifactState.grantState}
                     rows={artifactState.grantRows}
@@ -1072,7 +1058,7 @@ function PatientNetworkManageViewInner() {
                       rows={artifactState.placeholderRows}
                       reasonLabel={
                         artifactState.grantState === "blocked"
-                          ? "recovery posture"
+                          ? "recovery status"
                           : profile.embeddedMode === "nhs_app"
                             ? "embedded summary-only"
                             : "read-only summary"
@@ -1095,13 +1081,9 @@ function PatientNetworkManageViewInner() {
                     />
                   ) : null}
                 </CrossOrgArtifactSurfaceFrame>
-                <NetworkManageCapabilityPanel
-                  projection={controller.projection.capabilityPanel}
-                />
+                <NetworkManageCapabilityPanel projection={controller.projection.capabilityPanel} />
                 {controller.projection.readOnlyState ? (
-                  <NetworkManageReadOnlyState
-                    projection={controller.projection.readOnlyState}
-                  />
+                  <NetworkManageReadOnlyState projection={controller.projection.readOnlyState} />
                 ) : null}
                 <div id={timelineAnnotationsId}>
                   <AccessibleTimelineStatusAnnotations

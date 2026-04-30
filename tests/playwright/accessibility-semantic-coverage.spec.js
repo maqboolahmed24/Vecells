@@ -39,6 +39,34 @@ function assertCondition(condition, message) {
   }
 }
 
+async function waitForAttribute(locator, name, expected, message, timeoutMs = 3_000) {
+  const startedAt = Date.now();
+  let latest = null;
+  while (Date.now() - startedAt < timeoutMs) {
+    latest = await locator.getAttribute(name);
+    if (latest === expected) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error(`${message} Last observed ${name}: ${latest}`);
+}
+
+async function waitForActiveFocusTarget(page, expected, message, timeoutMs = 3_000) {
+  const startedAt = Date.now();
+  let latest = null;
+  while (Date.now() - startedAt < timeoutMs) {
+    latest = await page.evaluate(() =>
+      document.activeElement?.getAttribute("data-focus-target-ref"),
+    );
+    if (latest === expected) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error(`${message} Last observed active focus target: ${latest}`);
+}
+
 async function importPlaywright() {
   try {
     return await import("playwright");
@@ -175,105 +203,136 @@ export async function run() {
 
     await page.locator("[data-testid='trigger-buffered_update']").focus();
     await page.keyboard.press("Enter");
-    await page.waitForTimeout(250);
-    assertCondition(
-      (await root.getAttribute("data-current-focus-target")) === "focus.current.patient_requests",
+    await waitForAttribute(
+      root,
+      "data-current-focus-target",
+      "focus.current.patient_requests",
       "Buffered update should preserve patient request focus.",
     );
-    let activeFocusTarget = await page.evaluate(
-      () => document.activeElement?.getAttribute("data-focus-target-ref"),
-    );
-    assertCondition(
-      activeFocusTarget === "focus.current.patient_requests",
+    await waitForActiveFocusTarget(
+      page,
+      "focus.current.patient_requests",
       "Buffered update moved actual browser focus unexpectedly.",
     );
 
     await page.locator("[data-testid='trigger-restore']").focus();
     await page.keyboard.press("Enter");
-    await page.waitForTimeout(250);
-    assertCondition(
-      (await root.getAttribute("data-current-focus-target")) ===
-        "focus.selected_anchor.patient_requests",
+    await waitForAttribute(
+      root,
+      "data-current-focus-target",
+      "focus.selected_anchor.patient_requests",
       "Restore should return patient requests to the selected anchor.",
     );
-    activeFocusTarget = await page.evaluate(
-      () => document.activeElement?.getAttribute("data-focus-target-ref"),
-    );
-    assertCondition(
-      activeFocusTarget === "focus.selected_anchor.patient_requests",
+    await waitForActiveFocusTarget(
+      page,
+      "focus.selected_anchor.patient_requests",
       "Restore did not move browser focus to the selected anchor.",
     );
 
     await page.locator("[data-scenario-id='SCN_SUPPORT_BLOCKED_RECOVERY']").focus();
     await page.keyboard.press("Enter");
     await page.locator("[data-focus-target-ref='focus.current.support_replay_observe']").waitFor();
+    await waitForActiveFocusTarget(
+      page,
+      "focus.current.support_replay_observe",
+      "Support scenario should settle initial focus before trigger activation.",
+    );
 
     await page.locator("[data-testid='trigger-same_shell_refresh']").focus();
     await page.keyboard.press("Enter");
-    assertCondition(
-      (await root.getAttribute("data-current-focus-target")) ===
-        "focus.current.support_replay_observe",
+    await waitForAttribute(
+      root,
+      "data-current-focus-target",
+      "focus.current.support_replay_observe",
       "Same-shell refresh should preserve support replay focus.",
+    );
+    await waitForActiveFocusTarget(
+      page,
+      "focus.current.support_replay_observe",
+      "Same-shell refresh should settle focus before the invalidation trigger.",
     );
 
     await page.locator("[data-testid='trigger-invalidation']").focus();
     await page.keyboard.press("Enter");
-    await page.waitForTimeout(250);
-    assertCondition(
-      (await root.getAttribute("data-current-focus-target")) ===
-        "focus.stub.support_replay_observe",
+    await waitForAttribute(
+      root,
+      "data-current-focus-target",
+      "focus.stub.support_replay_observe",
       "Support invalidation should move focus to the recovery stub.",
     );
-    activeFocusTarget = await page.evaluate(
-      () => document.activeElement?.getAttribute("data-focus-target-ref"),
-    );
-    assertCondition(
-      activeFocusTarget === "focus.stub.support_replay_observe",
+    await waitForActiveFocusTarget(
+      page,
+      "focus.stub.support_replay_observe",
       "Support invalidation did not move browser focus to the recovery stub.",
     );
 
     await page.locator("[data-testid='trigger-recovery_return']").focus();
     await page.keyboard.press("Enter");
-    await page.waitForTimeout(250);
-    assertCondition(
-      (await root.getAttribute("data-current-focus-target")) ===
-        "focus.selected_anchor.support_replay_observe",
+    await waitForAttribute(
+      root,
+      "data-current-focus-target",
+      "focus.selected_anchor.support_replay_observe",
       "Recovery return should restore support replay focus to the selected anchor.",
+    );
+    await waitForActiveFocusTarget(
+      page,
+      "focus.selected_anchor.support_replay_observe",
+      "Recovery return should settle selected-anchor focus before changing scenarios.",
     );
 
     await page.locator("[data-scenario-id='SCN_OPERATIONS_PARITY_DOWNGRADE']").focus();
     await page.keyboard.press("Enter");
     const baselineSummary = await page.locator("#summary-sentence").innerText();
+    await waitForActiveFocusTarget(
+      page,
+      "focus.current.operations_board",
+      "Operations scenario should settle initial focus before display toggles.",
+    );
 
     await page.locator("#motion-options button").nth(1).focus();
     await page.keyboard.press("Enter");
-    await page.waitForTimeout(250);
-    assertCondition(
-      (await root.getAttribute("data-motion-mode")) === "reduced",
+    await waitForAttribute(
+      root,
+      "data-motion-mode",
+      "reduced",
       "Reduced-motion toggle did not update the root marker.",
     );
     assertCondition(
       (await page.locator("#summary-sentence").innerText()) === baselineSummary,
       "Reduced motion should preserve the same summary meaning.",
     );
+    await waitForActiveFocusTarget(
+      page,
+      "focus.current.operations_board",
+      "Reduced-motion render should settle focus before zoom is changed.",
+    );
 
     await page.locator("#zoom-options button").nth(1).focus();
     await page.keyboard.press("Enter");
-    await page.waitForTimeout(250);
-    assertCondition(
-      (await root.getAttribute("data-zoom-mode")) === "400",
+    await waitForAttribute(
+      root,
+      "data-zoom-mode",
+      "400",
       "Zoom toggle did not update the root marker.",
     );
-    assertCondition(
-      (await root.getAttribute("data-layout-mode")) === "stacked",
+    await waitForAttribute(
+      root,
+      "data-layout-mode",
+      "stacked",
       "Zoom equivalent reflow should switch the harness into stacked layout mode.",
+    );
+    await waitForActiveFocusTarget(
+      page,
+      "focus.current.operations_board",
+      "Zoom reflow should settle focus before the parity toggle is activated.",
     );
 
     await page.locator("[data-testid='toggle-parity-fallback']").focus();
     await page.keyboard.press("Enter");
-    await page.waitForTimeout(250);
-    assertCondition(
-      (await root.getAttribute("data-parity-state")) === "table_only",
+    await waitForAttribute(
+      root,
+      "data-parity-state",
+      "table_only",
       "Parity toggle should downgrade the operations scenario to table_only.",
     );
     assertCondition(

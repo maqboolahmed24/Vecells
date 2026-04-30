@@ -30,6 +30,28 @@ function stackToneLabel(tone: TaskStackRowProjection["tone"]): string {
   }
 }
 
+function publicChangedReviewText(value: string): string {
+  return value
+    .replace(/\bEvidenceDeltaPacket\b/g, "Evidence update")
+    .replace(/\bInlineChangedRegionMarkers\b/g, "Changed areas")
+    .replace(/\bSupersededContextCompare\b/g, "Previous context review")
+    .replace(/\bauthoritative delta packet\b/gi, "confirmed change")
+    .replace(/\bdelta packet\b/gi, "change update")
+    .replace(/\bdecisive delta\b/gi, "important change")
+    .replace(/\bdelta\b/gi, "change")
+    .replace(/\binvalidated\b/gi, "changed")
+    .replace(/\binvalidates\b/gi, "changes")
+    .replace(/\bauthoritative\b/gi, "confirmed")
+    .replace(/\blineage\b/gi, "history")
+    .replace(/\bposture\b/gi, "status")
+    .replace(/\btruth\b/gi, "confirmed information")
+    .replace(/\btuple\b/gi, "details")
+    .replace(/\bcontract\b/gi, "agreement")
+    .replace(/\b[a-z]+(?:_[a-z0-9]+)+\b/g, (token) =>
+      token.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase()),
+    );
+}
+
 function ExcerptCard({
   eyebrow,
   title,
@@ -131,24 +153,28 @@ export function EvidenceDeltaSummary({
       data-resume-state={projection.reviewState}
     >
       <header className="staff-shell__task-stack-header">
-        <span className="staff-shell__eyebrow">EvidenceDeltaPacket</span>
-        <h3>{projection.summary}</h3>
-        <p>{projection.explanation}</p>
+        <span className="staff-shell__eyebrow">Evidence update</span>
+        <h3>{publicChangedReviewText(projection.summary)}</h3>
+        <p>{publicChangedReviewText(projection.explanation)}</p>
       </header>
       <div className="staff-shell__task-stack-inline">
-        <span>Authoritative delta packet</span>
-        <strong>{projection.authoritativeDeltaPacketRef}</strong>
+        <span>Confirmed change</span>
+        <strong data-authoritative-delta-packet-ref={projection.authoritativeDeltaPacketRef}>
+          Current review
+        </strong>
       </div>
       <div className="staff-shell__task-stack-inline">
-        <span>Primary changed anchor</span>
-        <strong>{projection.primaryChangedAnchorRef}</strong>
+        <span>Changed area</span>
+        <strong data-primary-changed-anchor-ref={projection.primaryChangedAnchorRef}>
+          Current task
+        </strong>
       </div>
       <div className="staff-shell__delta-summary-grid">
         <article>
           <strong>Changed fields</strong>
           <ul>
             {projection.changedFieldRefs.map((item) => (
-              <li key={item}>{item}</li>
+              <li key={item}>{publicChangedReviewText(item)}</li>
             ))}
           </ul>
         </article>
@@ -157,7 +183,7 @@ export function EvidenceDeltaSummary({
           <ul>
             {(projection.contradictionRefs.length ? projection.contradictionRefs : ["None currently promoted."]).map(
               (item) => (
-                <li key={item}>{item}</li>
+                <li key={item}>{publicChangedReviewText(item)}</li>
               ),
             )}
           </ul>
@@ -166,7 +192,7 @@ export function EvidenceDeltaSummary({
           <strong>Invalidated actions</strong>
           <ul>
             {projection.actionInvalidationRefs.map((item) => (
-              <li key={item}>{item}</li>
+              <li key={item}>{publicChangedReviewText(item)}</li>
             ))}
           </ul>
         </article>
@@ -187,8 +213,8 @@ export function InlineChangedRegionMarkers({
   return (
     <section className="staff-shell__changed-markers" data-testid="InlineChangedRegionMarkers">
       <header className="staff-shell__task-stack-header">
-        <span className="staff-shell__eyebrow">InlineChangedRegionMarkers</span>
-        <h3>{projection.headline}</h3>
+        <span className="staff-shell__eyebrow">Changed areas</span>
+        <h3>{publicChangedReviewText(projection.headline)}</h3>
       </header>
       <div className="staff-shell__changed-marker-list">
         {projection.markers.map((marker) => (
@@ -201,8 +227,8 @@ export function InlineChangedRegionMarkers({
             data-selected={selectedAnchorRef === marker.anchorRef ? "true" : "false"}
             onClick={() => onSelectAnchor(marker.anchorRef)}
           >
-            <span>{marker.label}</span>
-            <strong>{marker.summary}</strong>
+            <span>{publicChangedReviewText(marker.label)}</span>
+            <strong>{publicChangedReviewText(marker.summary)}</strong>
           </button>
         ))}
       </div>
@@ -224,28 +250,28 @@ export function SupersededContextCompare({
       data-expanded={expanded ? "true" : "false"}
     >
       <header className="staff-shell__task-stack-header">
-        <span className="staff-shell__eyebrow">SupersededContextCompare</span>
-        <h3>{projection.headline}</h3>
-        <p>{projection.summary}</p>
+        <span className="staff-shell__eyebrow">Previous context review</span>
+        <h3>{publicChangedReviewText(projection.headline)}</h3>
+        <p>{publicChangedReviewText(projection.summary)}</p>
       </header>
       <button
         type="button"
         className="staff-shell__utility-button"
         onClick={() => setExpanded((current) => !current)}
       >
-        {expanded ? "Collapse superseded context" : "Expand superseded context"}
+        {expanded ? "Collapse previous context" : "Expand previous context"}
       </button>
       {expanded && (
         <div className="staff-shell__superseded-compare-list">
           {projection.items.map((item) => (
             <article key={item.itemId} className="staff-shell__superseded-compare-row">
               <div>
-                <strong>{item.label}</strong>
-                <p>{item.previousContext}</p>
+                <strong>{publicChangedReviewText(item.label)}</strong>
+                <p>{publicChangedReviewText(item.previousContext)}</p>
               </div>
               <div>
                 <strong>What changed now</strong>
-                <p>{item.currentMeaning}</p>
+                <p>{publicChangedReviewText(item.currentMeaning)}</p>
               </div>
             </article>
           ))}
@@ -277,8 +303,10 @@ export function ResumeReviewGate({
         <strong>{projection.patientReturnImpact}</strong>
       </div>
       <div className="staff-shell__task-stack-inline">
-        <span>Governing refs</span>
-        <strong>{projection.governingRefs.join(" · ")}</strong>
+        <span>Review checks</span>
+        <strong data-governing-refs={projection.governingRefs.join(" ")}>
+          Current review checks
+        </strong>
       </div>
       <button
         type="button"

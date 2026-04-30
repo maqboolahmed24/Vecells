@@ -245,7 +245,7 @@ export function ApprovalAuthoritySummary({
           <dd>{summary.decisionEpochRef}</dd>
         </div>
         <div>
-          <dt>Commit posture</dt>
+          <dt>Commit status</dt>
           <dd>{summary.commitState.replaceAll("_", " ")}</dd>
         </div>
       </dl>
@@ -462,7 +462,7 @@ export function EscalationCommandSurface({
           <dd>{surface.escalationState.replaceAll("_", " ")}</dd>
         </div>
         <div>
-          <dt>Next governed action</dt>
+          <dt>Next approved action</dt>
           <dd>{surface.actionLabel}</dd>
         </div>
       </dl>
@@ -476,7 +476,7 @@ export function EscalationCommandSurface({
 
       <section className="staff-shell__control-room-card">
         <header className="staff-shell__task-stack-header">
-          <span className="staff-shell__eyebrow">Lineage-visible reopen law</span>
+          <span className="staff-shell__eyebrow">History-visible reopen law</span>
           <h3>{surface.lineageSummary}</h3>
         </header>
         <p>
@@ -589,7 +589,7 @@ export function EscalationOutcomeRecorder({
       <section className="staff-shell__control-room-side-list">
         {recorder.provenanceStrips.map((strip) => (
           <article key={strip}>
-            <strong>Provenance</strong>
+            <strong>History</strong>
             <p>{strip}</p>
           </article>
         ))}

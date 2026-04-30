@@ -215,7 +215,7 @@ function makeReason(code: AssistiveFreezeDriftCategory, refSuffix: string): Assi
     case "trust_drift":
       return {
         code,
-        label: "Trust posture drift",
+        label: "Trust status drift",
         detail:
           "The active AssistiveCapabilityTrustEnvelope no longer authorizes the stale session to keep writable controls live.",
         ref: `assistive_trust_envelope.${refSuffix}.drift`,
@@ -384,7 +384,7 @@ function stateForFixture(
         dominantAction: {
           kind: "observe_only_continue",
           label: "Continue observe-only",
-          detail: "Use preserved context only until governed reclearance is available.",
+          detail: "Use preserved context only until approved reclearance is available.",
           enabled: false,
         },
       };
@@ -571,7 +571,7 @@ export function AssistivePreservedArtifactView({
         {(recovered
           ? [
               "Fresh assistive text is available in the same shell after recovery. It still requires human review before insertion or settlement.",
-              "The prior stale artifact remains represented through provenance rather than writable controls.",
+              "The prior stale artifact remains represented through history rather than writable controls.",
             ]
           : artifact.body
         ).map((paragraph) => (
@@ -579,7 +579,7 @@ export function AssistivePreservedArtifactView({
         ))}
       </div>
       <footer className="assistive-freeze__artifact-provenance">
-        <span>Preserved provenance</span>
+        <span>Preserved history</span>
         <dl>
           {artifact.provenance.map((row) => (
             <div key={row.label}>
@@ -621,7 +621,7 @@ export function AssistiveRecoverableNotice({
 }) {
   return (
     <section className="assistive-freeze__notice" data-testid="AssistiveRecoverableNotice">
-      <h4>{recovered ? "Recovered in this shell" : "Same-shell recovery posture"}</h4>
+      <h4>{recovered ? "Recovered in this shell" : "Same-shell recovery status"}</h4>
       <p>
         {recovered
           ? "The stale frame patched in place and focus stayed inside the assistive recovery region."
@@ -719,7 +719,7 @@ export function AssistiveRecoveryExplanationPanel({
       aria-labelledby={headingId}
       hidden={!open}
     >
-      <h4 id={headingId}>Recovery contract detail</h4>
+      <h4 id={headingId}>Recovery rules detail</h4>
       <dl>
         <div>
           <dt>Freeze frame</dt>

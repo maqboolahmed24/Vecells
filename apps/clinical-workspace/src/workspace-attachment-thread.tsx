@@ -9,6 +9,20 @@ import type {
   ThreadEventRowProjection,
 } from "./workspace-shell.data";
 
+function publicThreadText(value: string): string {
+  return value
+    .replace(/\bPatientResponseThreadPanel\b/g, "Patient response thread")
+    .replace(/\brequest_215_callback\b/g, "callback request")
+    .replace(/\bcluster_214_callback\b/g, "callback conversation")
+    .replace(/\bposture\b/gi, "status")
+    .replace(/\btruth\b/gi, "confirmed information")
+    .replace(/\blineage\b/gi, "history")
+    .replace(/\bstub\b/gi, "summary")
+    .replace(/\b[a-z]+(?:_[a-z0-9]+)+\b/g, (token) =>
+      token.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase()),
+    );
+}
+
 function classNames(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
 }
@@ -118,7 +132,7 @@ export function AttachmentDigestGrid({
     <section className="staff-shell__attachment-grid-frame" data-testid="AttachmentDigestGrid">
       <header className="staff-shell__task-stack-header">
         <span className="staff-shell__eyebrow">AttachmentDigestGrid</span>
-        <h3>{projection.title}</h3>
+        <h3>{publicThreadText(projection.title)}</h3>
         <p>{projection.summary}</p>
       </header>
       <div className="staff-shell__attachment-grid">
@@ -227,8 +241,8 @@ export function ThreadAnchorStub({
   return (
     <div className="staff-shell__thread-anchor-stub" data-testid="ThreadAnchorStub">
       <div>
-        <strong>{stub.title}</strong>
-        <p>{stub.summary}</p>
+        <strong>{stub.title.replace("ThreadAnchorStub", "Thread anchor")}</strong>
+        <p>{publicThreadText(stub.summary)}</p>
       </div>
       <button type="button" className="staff-shell__inline-action" onClick={onReset}>
         {stub.actionLabel}
@@ -268,15 +282,15 @@ export function PatientResponseThreadPanel({
       data-repair-required-state={projection.repairRequiredState}
     >
       <header className="staff-shell__task-stack-header">
-        <span className="staff-shell__eyebrow">PatientResponseThreadPanel</span>
-        <h3>{projection.title}</h3>
-        <p>{projection.summary}</p>
+        <span className="staff-shell__eyebrow">Patient response thread</span>
+        <h3>{publicThreadText(projection.title)}</h3>
+        <p>{publicThreadText(projection.summary)}</p>
       </header>
       <div className="staff-shell__thread-panel-meta">
-        <span>Request {projection.requestRef}</span>
-        <span>Cluster {projection.clusterRef}</span>
-        <span>{projection.authoritativeOutcomeState.replaceAll("_", " ")}</span>
-        <span>{projection.dominantNextActionRef}</span>
+        <span data-request-ref={projection.requestRef}>Request in review</span>
+        <span data-cluster-ref={projection.clusterRef}>Conversation thread</span>
+        <span>{publicThreadText(projection.authoritativeOutcomeState.replaceAll("_", " "))}</span>
+        <span>{publicThreadText(projection.dominantNextActionRef)}</span>
       </div>
       {projection.anchorStub && <ThreadAnchorStub stub={projection.anchorStub} onReset={onResetSelection} />}
       <div className="staff-shell__thread-list">

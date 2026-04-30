@@ -670,11 +670,11 @@ export function useDraftSaveTruth(args: UseDraftSaveTruthArgs): DraftSaveTruthCo
   });
 
   const registerFocusedField = useEffectEvent((fieldKey: string | null) => {
-    setFocusedFieldKey(fieldKey);
+    setFocusedFieldKey((current) => (current === fieldKey ? current : fieldKey));
   });
 
   const registerScrollTop = useEffectEvent((nextScrollTop: number) => {
-    setScrollTop(nextScrollTop);
+    setScrollTop((current) => (current === nextScrollTop ? current : nextScrollTop));
   });
 
   return {

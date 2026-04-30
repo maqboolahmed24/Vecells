@@ -171,7 +171,7 @@ export function AppointmentSummaryCard({
       </div>
       <div className="patient-booking__manage-summary-grid">
         <SummaryList title="Booked summary" rows={projection.appointmentRows} />
-        <SummaryList title="Booking truth" rows={projection.appointmentMetaRows} compact />
+        <SummaryList title="Booking verified details" rows={projection.appointmentMetaRows} compact />
       </div>
       <div className="patient-booking__manage-artifacts" data-artifact-exposure={projection.artifactExposureState}>
         <div>

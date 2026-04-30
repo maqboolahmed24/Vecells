@@ -39,15 +39,15 @@ async function run() {
 
   await page.locator("[data-testid='telephony-shell']").waitFor();
   await page.locator("[data-testid='number-button-NUM_TEL_DUAL_CONTINUITY']").click();
-  await page.locator("text=MOCK:+44-VC-0006").waitFor();
+  await page.locator("text=Test +44-VC-0006").waitFor();
 
   await page.locator("[data-testid='page-tab-IVR_Flow_Studio']").click();
   await page.locator("[data-testid='scenario-select']").selectOption("urgent_live_preemption");
   await page.locator("[data-testid='simulate-call-button']").click();
-  await page.locator("text=urgent live only").waitFor();
+  await page.locator("text=Urgent Live Only").waitFor();
 
   await page.locator("[data-testid='page-tab-Recording_and_Continuation']").click();
-  await page.locator("text=Continuation remains bounded").waitFor();
+  await page.locator("text=Continuation may be eligible").waitFor();
 
   await page.locator("[data-testid='page-tab-Live_Gates_and_Spend_Controls']").click();
   await page.locator("[data-testid='mode-toggle-actual']").click();
@@ -56,7 +56,7 @@ async function run() {
   await page.locator("[data-testid='actual-field-allow-spend']").selectOption("false");
   const disabled = await page.locator("[data-testid='actual-submit-button']").isDisabled();
   if (!disabled) {
-    throw new Error("Actual submit must stay disabled while Phase 0 remains withheld.");
+    throw new Error("Actual submit must stay disabled while the foundation gate remains withheld.");
   }
 
   await page.keyboard.press("Tab");

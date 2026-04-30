@@ -315,62 +315,62 @@ export function attachmentUiCopy(state: AttachmentUiState): AttachmentUiCopy {
     case "selecting":
       return {
         pill: "Selecting",
-        detail: "Preparing one governed evidence slot before anything is trusted.",
+        detail: "Preparing this file before it is used with your request.",
         tone: "upload",
-        helper: "Selected locally. Quarantine upload has not started yet.",
+        helper: "Selected locally. Safety checks have not started yet.",
       };
     case "uploading_to_quarantine":
       return {
-        pill: "Uploading to quarantine",
-        detail: "Moving the file into quarantine so it can be checked before use.",
+        pill: "Uploading for checks",
+        detail: "Uploading the file so it can be checked before use.",
         tone: "upload",
         helper: "This file is not trusted yet.",
       };
     case "scanning":
       return {
         pill: "Scanning",
-        detail: "Checks are still running. The shell keeps your place while we wait.",
+        detail: "Checks are still running. You can stay on this step while we wait.",
         tone: "upload",
         helper: "Keep working in this step. Final meaning is still pending.",
       };
     case "ready_kept":
       return {
-        pill: "Ready / kept",
-        detail: "Checked and kept. Preview stays governed inside the same shell.",
+        pill: "Ready",
+        detail: "Checked and ready to include with this request.",
         tone: "safe",
-        helper: "Safe supporting evidence is ready to travel with this request.",
+        helper: "This supporting file is ready to send with this request.",
       };
     case "preview_unavailable_kept":
       return {
         pill: "Preview unavailable but kept",
         detail: "The file was kept, but inline preview is not available for this safe version.",
         tone: "safe",
-        helper: "A governed placeholder stands in until a safe preview is available.",
+        helper: "You can still send the file even though preview is unavailable.",
       };
     case "retryable_transfer_failure":
       return {
         pill: "Retryable transfer failure",
-        detail: "The upload did not reach quarantine. You can retry without losing this step.",
+        detail: "The upload did not finish. You can retry without losing this step.",
         tone: "retry",
-        helper: "This is not the same as quarantine. The file has not been accepted yet.",
+        helper: "The file has not been accepted yet.",
       };
     case "quarantined_unsupported_type":
       return {
-        pill: "Quarantined unsupported type",
-        detail: "This format is not accepted for Phase 1 evidence, so it stays blocked.",
+        pill: "Unsupported file type",
+        detail: "This format is not accepted, so it stays blocked.",
         tone: "quarantine",
         helper: "Replace it with a JPG, PNG, HEIC, or PDF file.",
       };
     case "quarantined_unreadable":
       return {
-        pill: "Quarantined unreadable / integrity failure",
-        detail: "The file could not be read safely, so it remains fail-closed.",
+        pill: "Cannot read file",
+        detail: "The file could not be read safely, so it will not be used.",
         tone: "quarantine",
-        helper: "Use Replace or Remove. This evidence is not being used.",
+        helper: "Use Replace or Remove. This file is not being used.",
       };
     case "quarantined_malware":
       return {
-        pill: "Quarantined malware",
+        pill: "Unsafe file blocked",
         detail: "The file was blocked as unsafe and will not be used for this request.",
         tone: "quarantine",
         helper: "Remove it or replace it with a clean file.",
@@ -378,16 +378,16 @@ export function attachmentUiCopy(state: AttachmentUiState): AttachmentUiCopy {
     case "removed":
       return {
         pill: "Removed",
-        detail: "This file was removed from the evidence lane and will not travel with the request.",
+        detail: "This file was removed and will not be sent with the request.",
         tone: "removed",
-        helper: "The card stays visible for continuity until the shell changes state.",
+        helper: "It stays visible here so you can see what changed.",
       };
     case "replaced":
       return {
         pill: "Replaced",
-        detail: "A newer file took this slot. This older version is now retained only for continuity.",
+        detail: "A newer file replaced this one.",
         tone: "removed",
-        helper: "The replacement card carries the active evidence state.",
+        helper: "The newer file is the one that will be used.",
       };
   }
 }

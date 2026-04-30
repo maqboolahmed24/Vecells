@@ -7,7 +7,6 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import { VecellLogoWordmark } from "@vecells/design-system";
 import { resolvePortalSupportPhase2Context } from "../../../packages/domain-kernel/src/patient-support-phase2-integration";
 import { tryResolvePhase3PatientWorkspaceConversationBundle } from "../../../packages/domain-kernel/src/phase3-patient-workspace-conversation-bundle";
 import {
@@ -30,6 +29,7 @@ import {
 } from "./patient-home-requests-detail-routes.model";
 import { PatientSupportPhase2Bridge } from "./patient-support-phase2-bridge";
 import { PatientRequestDownstreamWorkRail } from "./patient-appointment-family-workspace";
+import { PatientPortalTopBar } from "./patient-portal-top-bar";
 import { SIGNED_IN_REQUEST_START_ENTRY } from "./signed-in-request-start-restore.model";
 
 export { isPatientHomeRequestsDetailPath };
@@ -53,6 +53,46 @@ function publicRequestText(value: string): string {
     .replace(/\b[a-z]+(?:_[a-z0-9]+)+\b/g, (token) =>
       token.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase()),
     );
+}
+
+function patientSpotlightBody(home: PatientHomeProjection): string {
+  if (home.homeMode === "quiet") {
+    return "There is nothing you need to do right now. You can still review requests or start a new one.";
+  }
+
+  return "Review this request to send the information needed and keep it moving.";
+}
+
+function requestFilterLabel(filter: PatientRequestBucket | "all"): string {
+  switch (filter) {
+    case "needs_attention":
+      return "Needs attention";
+    case "in_progress":
+      return "In progress";
+    case "complete":
+      return "Complete";
+    default:
+      return "All";
+  }
+}
+
+function visibleRequestGroups(
+  index: PatientRequestsIndexProjection,
+): PatientRequestsIndexProjection["groups"] {
+  return index.activeFilterSetRef === "all"
+    ? index.groups
+    : index.groups.filter((group) => group.bucket === index.activeFilterSetRef);
+}
+
+function requestCountForFilter(
+  index: PatientRequestsIndexProjection,
+  filter: PatientRequestBucket | "all",
+): number {
+  if (filter === "all") {
+    return index.groups.reduce((total, group) => total + group.requests.length, 0);
+  }
+
+  return index.groups.find((group) => group.bucket === filter)?.requests.length ?? 0;
 }
 
 function safeWindow(): Window | undefined {
@@ -159,6 +199,7 @@ function usePatientCaseworkController() {
   }, [ownerWindow, selectedFilterRef]);
 
   useEffect(() => {
+    ownerWindow?.scrollTo({ left: 0, top: 0, behavior: "auto" });
     if (entry.routeKey === "requests_index") {
       focusByTestId(entry.returnBundle.focusTestId);
       return;
@@ -300,40 +341,13 @@ export function PatientShellFrame({
       data-supported-testids="home-spotlight-card quiet-home-panel home-compact-grid request-index-rail request-summary-row request-detail-hero request-history-strip case-pulse-panel decision-dock approved-summary-card"
       data-supported-testids-368="pharmacy-child-card request-row-pharmacy-chip"
     >
-      <header className="patient-casework__top-band" data-testid="patient-shell-top-band">
-        <a
-          className="patient-casework__brand"
-          href="/home"
-          onClick={(event) => event.preventDefault()}
-        >
-          <span>
-            <VecellLogoWordmark aria-hidden="true" className="patient-casework__brand-wordmark" />
-            <small>{entry.home.maskedPatientRef}</small>
-          </span>
-        </a>
-        <nav className="patient-casework__nav" aria-label="Patient casework">
-          {entry.home.portalNavigation.items.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className="patient-casework__nav-button"
-              data-testid={`patient-shell-nav-${item.id}`}
-              aria-current={item.ariaCurrent ? "page" : undefined}
-              data-placeholder={String(item.placeholder)}
-              onClick={() => onNavigate(item.path)}
-            >
-              <Icon
-                name={
-                  item.id === "home" ? "home" : item.id === "requests" ? "requests" : "placeholder"
-                }
-              />
-              <span>{item.label}</span>
-              {item.badgeLabel ? <em>{item.badgeLabel}</em> : null}
-            </button>
-          ))}
-        </nav>
-      </header>
-      <PatientSupportPhase2Bridge context={phase2Context} />
+      <PatientPortalTopBar
+        current={entry.routeKey === "home" || entry.routeKey === "quiet_home" ? "home" : "requests"}
+        patientRef={entry.home.maskedPatientRef}
+        testId="patient-shell-top-band"
+        onNavigate={onNavigate}
+      />
+      <PatientSupportPhase2Bridge context={phase2Context} dismissible />
       <main className="patient-casework__main" data-testid="patient-shell-main">
         <h1 ref={mainHeadingRef} className="patient-casework__route-title" tabIndex={-1}>
           {entry.routeKey === "request_detail"
@@ -376,7 +390,7 @@ export function HomeSpotlightCard({
     >
       <div className="patient-casework__kicker">One thing to do</div>
       <h2 id="home-spotlight-heading">{decision.headline}</h2>
-      <p>{decision.body}</p>
+      <p>{patientSpotlightBody(home)}</p>
       <div className="patient-casework__home-actions">
         <button
           type="button"
@@ -399,12 +413,12 @@ export function HomeSpotlightCard({
       </div>
       <dl className="patient-casework__projection-proof">
         <div>
-          <dt>Source</dt>
-          <dd>{decision.sourceProjectionRefs.join(", ")}</dd>
+          <dt>Status</dt>
+          <dd>{decision.selectedActionLabel ? "Reply needed" : "No action needed"}</dd>
         </div>
         <div>
-          <dt>Quiet decision</dt>
-          <dd>{home.quietHomeDecision.reason.replaceAll("_", " ")}</dd>
+          <dt>Next step</dt>
+          <dd>{decision.selectedActionLabel ?? "Review requests"}</dd>
         </div>
       </dl>
     </section>
@@ -428,7 +442,7 @@ export function QuietHomePanel({
     >
       <div className="patient-casework__kicker">Quiet home</div>
       <h2 id="quiet-home-heading">{home.spotlightDecision.headline}</h2>
-      <p>{home.quietHomeDecision.explanation}</p>
+      <p>{patientSpotlightBody(home)}</p>
       <div className="patient-casework__home-actions">
         <button
           type="button"
@@ -477,7 +491,7 @@ function CompactHomePanel({
         aria-label={`${panel.label}: ${panel.stateLabel}`}
       >
         <Icon name={panel.governedPlaceholder ? "placeholder" : "requests"} />
-        <span>{panel.governedPlaceholder ? "Hold place" : "Open"}</span>
+        <span>{panel.governedPlaceholder ? "Coming soon" : "Open"}</span>
       </button>
     </article>
   );
@@ -553,7 +567,10 @@ export function RequestSummaryRow({
       onKeyDown={onKeyDown}
     >
       <span className="patient-casework__row-main">
-        <strong>{request.displayLabel}</strong>
+        <span className="patient-casework__row-heading">
+          <strong>{request.displayLabel}</strong>
+          <em>{request.statusText}</em>
+        </span>
         <span>{request.patientSummary}</span>
         {request.linkedPharmacyCaseId ? (
           <small
@@ -566,10 +583,7 @@ export function RequestSummaryRow({
         ) : null}
       </span>
       <span className="patient-casework__row-meta">
-        <em>{request.statusText}</em>
-        {request.changedSinceSeenLabel ? (
-          <small>{request.changedSinceSeenLabel}</small>
-        ) : null}
+        {request.changedSinceSeenLabel ? <small>{request.changedSinceSeenLabel}</small> : null}
         <small>{request.updatedLabel}</small>
       </span>
     </button>
@@ -587,6 +601,9 @@ export function RequestIndexRail({
   onFilter: (filter: PatientRequestBucket | "all") => void;
   onOpen: (request: PatientRequestSummaryProjection) => void;
 }) {
+  const totalRequestCount = requestCountForFilter(index, "all");
+  const groupsToRender = visibleRequestGroups(index);
+
   function moveFocus(direction: 1 | -1): void {
     const rows = requestRows();
     const activeIndex = rows.findIndex((row) => row === safeDocument()?.activeElement);
@@ -603,9 +620,10 @@ export function RequestIndexRail({
     >
       <div className="patient-casework__rail-header">
         <div>
-          <div className="patient-casework__kicker">PatientRequestsIndexProjection</div>
+          <div className="patient-casework__kicker">Request list</div>
           <h2 id="request-index-heading">Requests</h2>
         </div>
+        <span className="patient-casework__rail-count">{totalRequestCount} total</span>
       </div>
       <div className="patient-casework__filter-bar" role="group" aria-label="Request filters">
         {(["all", "needs_attention", "in_progress", "complete"] as const).map((filter) => (
@@ -617,12 +635,15 @@ export function RequestIndexRail({
             aria-pressed={selectedFilterRef === filter}
             onClick={() => onFilter(filter)}
           >
-            {filter.replaceAll("_", " ")}
+            <span>{requestFilterLabel(filter)}</span>
+            <span className="patient-casework__filter-count">
+              {requestCountForFilter(index, filter)}
+            </span>
           </button>
         ))}
       </div>
       <div className="patient-casework__request-groups">
-        {index.groups.map((group) => (
+        {groupsToRender.map((group) => (
           <section
             key={group.bucket}
             data-testid={`request-bucket-${group.bucket}`}
@@ -652,27 +673,31 @@ export function RequestIndexRail({
 }
 
 function RequestsEmptyDetail({ index }: { index: PatientRequestsIndexProjection }) {
+  const selectedFilter = requestFilterLabel(index.activeFilterSetRef);
+  const requestCount = visibleRequestGroups(index).reduce(
+    (total, group) => total + group.requests.length,
+    0,
+  );
+
   return (
     <section
       className="patient-casework__empty-detail"
       data-testid="requests-empty-detail"
       aria-labelledby="requests-empty-detail-heading"
     >
-      <div className="patient-casework__kicker">Same-shell continuity</div>
-      <h2 id="requests-empty-detail-heading">
-        {index.selectedAnchorRef ? "Selected request will open here" : "Select a request"}
-      </h2>
+      <div className="patient-casework__kicker">Request details</div>
+      <h2 id="requests-empty-detail-heading">Choose a request to view details</h2>
       <p>
-        The index carries a selected anchor, filter, and return bundle before a detail pane opens.
+        Select a request from the list to see its latest update, next step, and related messages.
       </p>
       <dl className="patient-casework__projection-proof">
         <div>
-          <dt>Filter</dt>
-          <dd>{index.activeFilterSetRef.replaceAll("_", " ")}</dd>
+          <dt>Showing</dt>
+          <dd>{selectedFilter}</dd>
         </div>
         <div>
-          <dt>Anchor</dt>
-          <dd>{index.selectedAnchorRef ?? "none"}</dd>
+          <dt>Requests shown</dt>
+          <dd>{requestCount}</dd>
         </div>
       </dl>
     </section>
@@ -713,7 +738,7 @@ export function RequestLineageStrip({ detail }: { detail: PatientRequestDetailPr
     >
       <div>
         <div className="patient-casework__kicker">History and freshness</div>
-        <h2 id="request-lineage-heading">Same request context</h2>
+        <h2 id="request-lineage-heading">Request timeline</h2>
       </div>
       <ol>
         <li>
@@ -721,12 +746,12 @@ export function RequestLineageStrip({ detail }: { detail: PatientRequestDetailPr
           <span>{publicRequestText(detail.lineage.currentStageRef)}</span>
         </li>
         <li>
-          <strong>Selected request</strong>
-          <span>Selected request anchor</span>
+          <strong>Latest update</strong>
+          <span>{detail.summary.updatedLabel}</span>
         </li>
         <li>
-          <strong>{detail.casePulse.freshnessLabel}</strong>
-          <span>{publicRequestText(detail.statusRibbon.canonicalTruthRef)}</span>
+          <strong>Next step</strong>
+          <span>{detail.nextAction.actionLabel}</span>
         </li>
       </ol>
     </section>
@@ -788,19 +813,19 @@ export function CasePulsePanel({ detail }: { detail: PatientRequestDetailProject
       aria-labelledby="case-pulse-heading"
     >
       <div className="patient-casework__kicker">Request status</div>
-      <h2 id="case-pulse-heading">Current trust</h2>
+      <h2 id="case-pulse-heading">Latest update</h2>
       <dl>
         <div>
           <dt>Freshness</dt>
           <dd>{publicRequestText(detail.casePulse.freshnessLabel)}</dd>
         </div>
         <div>
-          <dt>Trust</dt>
-          <dd>{publicRequestText(detail.casePulse.trustLabel)}</dd>
+          <dt>Status</dt>
+          <dd>{detail.statusRibbon.label}</dd>
         </div>
         <div>
-          <dt>Receipt</dt>
-          <dd>{publicRequestText(detail.casePulse.receiptLabel)}</dd>
+          <dt>Updated</dt>
+          <dd>{detail.summary.updatedLabel}</dd>
         </div>
       </dl>
     </aside>
@@ -825,7 +850,7 @@ export function DecisionDock({
       aria-labelledby="decision-dock-heading"
     >
       <div className="patient-casework__kicker">Next step</div>
-      <h2 id="decision-dock-heading">Next safe action</h2>
+      <h2 id="decision-dock-heading">What you can do next</h2>
       <p>{detail.nextAction.actionLabel}</p>
       <button
         type="button"
@@ -839,11 +864,15 @@ export function DecisionDock({
       </button>
       <dl className="patient-casework__projection-proof">
         <div>
-          <dt>Routing</dt>
-          <dd>{primaryChild ? publicRequestText(primaryChild.label) : publicRequestText(detail.nextAction.actionLabel)}</dd>
+          <dt>Opens</dt>
+          <dd>
+            {primaryChild
+              ? publicRequestText(primaryChild.label)
+              : publicRequestText(detail.nextAction.actionLabel)}
+          </dd>
         </div>
         <div>
-          <dt>Return</dt>
+          <dt>Back to</dt>
           <dd>Requests</dd>
         </div>
       </dl>
@@ -877,11 +906,7 @@ export function GovernedPlaceholderCard({
         </span>
         <h3 id={`${child.childRef}-title`}>{child.label}</h3>
         <p>{publicRequestText(child.summary)}</p>
-        <small>
-          {child.placeholderReasonRefs.length
-            ? `${child.placeholderReasonRefs.length} readiness checks`
-            : "Ready"}
-        </small>
+        <small>{child.placeholderReasonRefs.length ? "Not available yet" : "Ready"}</small>
         {actionable ? (
           <div className="patient-casework__detail-hero-actions">
             <button
@@ -890,7 +915,7 @@ export function GovernedPlaceholderCard({
               data-testid={`governed-placeholder-open-${child.childType}`}
               onClick={() => onNavigate?.(child.routeRef)}
             >
-              Open entry
+              Open
             </button>
           </div>
         ) : null}
@@ -929,12 +954,12 @@ function PharmacyContinuationCard({
         <p>{publicRequestText(child.summary)}</p>
         <dl className="patient-casework__pharmacy-meta">
           <div>
-            <dt>Case</dt>
+            <dt>Reference</dt>
             <dd>{pharmacyChild.pharmacyCaseId}</dd>
           </div>
           <div>
-            <dt>History</dt>
-            <dd>{pharmacyChild.requestLineageLabel}</dd>
+            <dt>Request</dt>
+            <dd>{publicRequestText(pharmacyChild.requestLineageLabel)}</dd>
           </div>
           <div>
             <dt>Changed</dt>
@@ -944,14 +969,6 @@ function PharmacyContinuationCard({
             <dt>Notification</dt>
             <dd>{pharmacyChild.notificationStateLabel}</dd>
           </div>
-          <div>
-            <dt>Support</dt>
-            <dd>{pharmacyChild.supportReplaySummary}</dd>
-          </div>
-          <div>
-            <dt>Audit</dt>
-            <dd>{pharmacyChild.auditSummary}</dd>
-          </div>
         </dl>
         <div className="patient-casework__detail-hero-actions">
           <button
@@ -960,7 +977,7 @@ function PharmacyContinuationCard({
             data-testid={`pharmacy-child-open-${pharmacyChild.pharmacyCaseId}`}
             onClick={() => onNavigate(child.routeRef)}
           >
-            Open pharmacy route
+            Open pharmacy status
           </button>
         </div>
       </div>

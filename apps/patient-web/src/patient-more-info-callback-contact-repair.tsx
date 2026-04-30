@@ -289,7 +289,7 @@ export function ContinuityPreservedPanel({ entry }: { entry: WorkflowEntryProjec
           <dd>{entry.returnBundle.requestRef}</dd>
         </div>
         <div>
-          <dt>Lineage</dt>
+          <dt>History</dt>
           <dd>{entry.returnBundle.lineageTupleHash}</dd>
         </div>
         <div>

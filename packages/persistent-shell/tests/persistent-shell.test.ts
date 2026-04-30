@@ -99,8 +99,8 @@ describe("persistent shell framework", () => {
       expect(markup).toContain(`${shell.shellSlug}-shell-root`);
       expect(markup).toContain(shell.shellTitle);
       expect(markup).toContain(firstRoute.dominantActionLabel);
-      expect(markup).toContain("persistent-shell__brand-mark");
-      expect(markup).toContain('viewBox="35 49 889 232"');
+      expect(markup).not.toContain("persistent-shell__brand-mark");
+      expect(markup).not.toContain('viewBox="35 49 889 232"');
     }
   });
 

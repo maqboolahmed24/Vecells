@@ -1208,7 +1208,7 @@ export const staffCases: readonly StaffQueueCase[] = [
       "The patient returned after following the earlier path, so the resumed review must explain the changed evidence before any calm completion can resume.",
     resumeActionLabel: "Recommit after reviewing the decisive delta",
     resumeActionSummary:
-      "The old consequence posture is superseded until the reviewer rechecks the new evidence and recommits intentionally.",
+      "The previous outcome status is paused until the reviewer rechecks the new information and recommits intentionally.",
     supersededContext: [
       "Superseded: self-care advice variant from 09:12 assumed no controller inhaler duplication.",
       "Superseded: prior approval note treated the callback as informational, not blocking.",
@@ -1222,7 +1222,7 @@ export const staffCases: readonly StaffQueueCase[] = [
       {
         label: "Duplicate watch",
         value: "open",
-        detail: "Lineage cluster 7 still needs reviewer acknowledgement before closure.",
+        detail: "History group 7 still needs reviewer acknowledgement before closure.",
       },
       {
         label: "Patient reply",
@@ -1237,7 +1237,7 @@ export const staffCases: readonly StaffQueueCase[] = [
       },
       {
         title: "Support boundary",
-        detail: "If the attachment provenance fails, hand off through the bounded support stub only.",
+        detail: "If the attachment check fails, hand off through support review only.",
       },
     ],
     references: [
@@ -1257,9 +1257,9 @@ export const staffCases: readonly StaffQueueCase[] = [
     ],
     quickCapture: {
       endpoints: ["Clinician callback", "Pharmacy clarification", "Duplicate review lane"],
-      questionSets: ["Inhaler confirmation", "Pharmacy callback", "Duplicate lineage check"],
+      questionSets: ["Inhaler confirmation", "Pharmacy callback", "Duplicate history check"],
       reasonChips: ["Returned evidence", "Contradiction", "Patient safety"],
-      macros: ["Hold commit and reopen delta review", "Late reply acknowledged", "Pharmacy note pending"],
+      macros: ["Hold commit and reopen change review", "Late reply acknowledged", "Pharmacy note pending"],
       duePicks: ["Today 14:30", "Today 16:00", "Tomorrow 09:00"],
     },
     nextQueueRank: 2,
@@ -1361,9 +1361,9 @@ export const staffCases: readonly StaffQueueCase[] = [
     secondaryMeta:
       "Blocked contact route · callback-intent seed · dependency caution · reviewer Tariq Noor",
     previewSummary:
-      "Outbound callback attempts are failing against the current contact route assessment, so the case moved into urgent escalation posture.",
+      "Outbound callback attempts are failing against the current contact route assessment, so the case moved into urgent escalation status.",
     previewTrustNote:
-      "Preview reports the escalation truth only; contact-route repair stays bounded to the task shell.",
+      "Preview reports the escalation status only; contact-route repair stays limited to the task workspace.",
     summaryPoints: [
       "Two callback attempts failed against a stale mobile number.",
       "The current reachability assessment disputes the preferred contact route.",
@@ -1418,17 +1418,17 @@ export const staffCases: readonly StaffQueueCase[] = [
     decisionOptions: [
       "Escalate to urgent callback review",
       "Freeze contact-route mutation",
-      "Handoff to support stub",
+      "Send to support review",
     ],
     moreInfoPrompts: [
       "Ask for a safe alternate callback number.",
       "Confirm if voicemail or text follow-up is acceptable.",
     ],
     quickCapture: {
-      endpoints: ["Urgent callback lane", "Support handoff stub", "Reachability repair"],
+      endpoints: ["Urgent callback lane", "Support review", "Reachability repair"],
       questionSets: ["Alternate number", "Urgency confirmation"],
       reasonChips: ["Urgent escalation", "Contact route disputed", "Callback follow-up"],
-      macros: ["Escalation promoted", "Reachability repair frozen", "Support stub prepared"],
+      macros: ["Escalation promoted", "Reachability repair frozen", "Support review prepared"],
       duePicks: ["In 30 minutes", "Today 13:45", "Today 16:30"],
     },
     nextQueueRank: 1,
@@ -2198,7 +2198,7 @@ const staffThreadSeedsByTask: Record<string, StaffThreadSeed> = {
     clusterRef: "conversation_cluster::task-412",
     threadId: "conversation_thread::task-412",
     title: "Callback repair thread",
-    summary: "Urgent callback work stays visible here, but detailed wording is bounded by contact-route repair posture.",
+    summary: "Urgent callback work stays visible here, but detailed wording is limited by contact-route repair status.",
     previewMode: "step_up_required",
     replyNeededState: "blocked_by_repair",
     awaitingReviewState: "review_pending",
@@ -3349,7 +3349,7 @@ export function buildWorkspaceStatus(
           : "Quiet next step";
   pulse.confirmationPosture =
     runtimeScenario === "live"
-      ? "Writable posture available"
+      ? "Writable status available"
       : runtimeScenario === "recovery_only"
         ? "Recovery posture"
         : runtimeScenario === "blocked"
@@ -3385,7 +3385,7 @@ export function buildWorkspaceStatus(
                 : runtimeScenario === "blocked"
                   ? "Recovery required"
                   : "Review required",
-      detail: "The workspace keeps one current shell while the route family changes.",
+      detail: "The workspace keeps one current view while the route changes.",
     },
     {
       key: "ownership",
@@ -3588,7 +3588,7 @@ function buildDeltaFirstResumeShellProjection(input: {
       compareId: `superseded_context_compare::${task.id}`,
       headline: "Superseded context remains reachable and quieter",
       summary:
-        "Previous reasoning stays visible as collapsed provenance so the reviewer can understand what changed without leaving the shell.",
+        "Previous reasoning stays visible as collapsed history so the reviewer can understand what changed without leaving the workspace.",
       defaultExpanded: false,
       items: task.supersededContext.map((item, index) => ({
         itemId: `superseded-compare::${task.id}::${index + 1}`,
@@ -4748,21 +4748,21 @@ export function buildTaskWorkspaceProjection(input: {
       },
       deltaStack: {
         stackId: `delta_stack::${task.id}`,
-        title: "DeltaStack",
+        title: "Change review",
         headline:
           openingMode === "resumed_review" || openingMode === "handoff_review" || openingMode === "approval_review"
-            ? "Delta-first reopen posture"
-            : "Current delta packet",
+            ? "Review recent changes first"
+            : "Current change update",
         deltaClass: task.deltaClass,
         expandedByDefault: openingMode !== "first_review",
         decisiveMeaning:
           task.deltaClass === "decisive"
-            ? "This delta invalidates the prior path until the reviewer recommits."
+            ? "This change needs a fresh review before the prior path can continue."
             : task.deltaClass === "consequential"
-              ? "This delta changes the consequence posture and must remain visible at commit time."
-              : task.deltaClass === "clerical"
-                ? "This clerical delta stays visible as annotation unless a governing tuple says otherwise."
-                : "This delta stays visible as context without stealing the dominant action.",
+              ? "This change affects the outcome status and must remain visible at commit time."
+            : task.deltaClass === "clerical"
+              ? "This clerical change stays visible as annotation unless a review rule says otherwise."
+                : "This change stays visible as context without stealing the dominant action.",
         authoritativeDeltaPacketRef,
         acknowledgementState:
           openingMode === "first_review"
@@ -4775,14 +4775,14 @@ export function buildTaskWorkspaceProjection(input: {
             id: "delta-summary",
             label: "Changed since seen",
             value: task.deltaSummary,
-            detail: `Authoritative source: ${authoritativeDeltaPacketRef}`,
+            detail: "Source checked for the current change.",
             tone: task.deltaClass === "decisive" ? "critical" : task.deltaClass === "consequential" ? "caution" : "neutral",
           },
           {
             id: "delta-review-mode",
             label: "Opening mode",
             value: openingMode.replaceAll("_", " "),
-            detail: "Resumed and approval review prioritize the delta stack before full history.",
+            detail: "Resumed and approval review prioritize recent changes before full history.",
             tone: "accent",
           },
         ],
@@ -4790,9 +4790,9 @@ export function buildTaskWorkspaceProjection(input: {
       },
       evidenceStack: {
         stackId: `evidence_stack::${task.id}`,
-        title: "EvidenceStack",
+        title: "Evidence",
         headline: "Structured facts and returned evidence",
-        lineageStripLabel: `Lineage ${task.patientRef} • ${task.launchQueue}`,
+        lineageStripLabel: `History ${task.patientRef} • ${task.launchQueue}`,
         rows: task.evidence.map((item) => ({
           id: `evidence-${item.label.toLowerCase().replaceAll(" ", "-")}`,
           label: item.label,
@@ -4807,8 +4807,8 @@ export function buildTaskWorkspaceProjection(input: {
       },
       consequenceStack: {
         stackId: `consequence_stack::${task.id}`,
-        title: "ConsequenceStack",
-        headline: "Consequence preview and next-owner posture",
+        title: "Outcome review",
+        headline: "Outcome preview and next-owner status",
         rows: task.consequences.map((item, index) => ({
           id: `consequence-${index + 1}`,
           label: item.title,
@@ -4821,10 +4821,10 @@ export function buildTaskWorkspaceProjection(input: {
       },
       referenceStack: {
         stackId: `reference_stack::${task.id}`,
-        title: "ReferenceStack",
+        title: "Reference notes",
         headline: "Collapsed by default",
         collapsedByDefault: true,
-        digestLabel: `${attachmentAndThread.attachmentDigest.cards.length} attachment digests · ${attachmentAndThread.communicationDigest.awaitingReviewState.replaceAll("_", " ")} thread posture.`,
+        digestLabel: `${attachmentAndThread.attachmentDigest.cards.length} attachment digests · ${attachmentAndThread.communicationDigest.awaitingReviewState.replaceAll("_", " ")} thread status.`,
         rows: task.references.map((item, index) => ({
           id: `reference-${index + 1}`,
           label: `Reference ${index + 1}`,
@@ -5535,11 +5535,11 @@ function baseQueueRowsForBookings(): readonly string[] {
 }
 
 function queueRankSnapshotRef(queueKey: string, queuedBatchPending: boolean): string {
-  return `queue_rank_snapshot::${queueKey}::${queuedBatchPending ? "source" : "target"}`;
+  return queuedBatchPending ? "Current queue order" : "Recommended queue order";
 }
 
 function queueTargetRankSnapshotRef(queueKey: string): string {
-  return `queue_rank_snapshot::${queueKey}::target`;
+  return "Recommended queue order";
 }
 
 function movementStateForTask(task: StaffQueueCase): QueueRowPresentationContract["movementState"] {

@@ -21,6 +21,7 @@ import "./patient-conversation-surface.css";
 import "./patient-more-info-callback-contact-repair.css";
 import "./patient-records-communications.css";
 import "./patient-support-phase2-bridge.css";
+import "./patient-portal-unified-system.css";
 import "./embedded-shell-split.css";
 import "./embedded-entry-corridor.css";
 import "./embedded-start-request.css";
@@ -153,6 +154,9 @@ export default function App() {
   }
   if (isContactTruthPreferencePath(pathname)) {
     return <ContactTruthPreferenceApp />;
+  }
+  if (pathname === "/portal" || pathname === "/portal/home") {
+    return <PatientHomeRequestsDetailRoutesApp />;
   }
   if (isAuthenticatedHomeStatusTrackerPath(pathname)) {
     return <AuthenticatedHomeStatusTrackerApp />;

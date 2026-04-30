@@ -458,7 +458,7 @@ export default function App() {
           <div className="panel-header">
             <div>
               <h2>Mailroom overview</h2>
-              <p>Transport acceptance is visible immediately, but authoritative downstream proof is a separate contract.</p>
+              <p>Transport acceptance is visible immediately, but authoritative downstream proof is separate.</p>
             </div>
             <div className="chip-row">
               <span className={`status-chip ${validation.ok ? "success" : "blocked"}`}>
@@ -474,7 +474,7 @@ export default function App() {
             <article className="metric-card">
               <span className="eyebrow">Mailboxes</span>
               <strong>{meshExecutionPack.summary.mailbox_count}</strong>
-              <p>Owner ODS and manager posture stay explicit.</p>
+              <p>Owner ODS and manager status stay explicit.</p>
             </article>
             <article className="metric-card">
               <span className="eyebrow">Messages</span>
@@ -489,7 +489,7 @@ export default function App() {
             <article className="metric-card">
               <span className="eyebrow">Workflow health</span>
               <strong>{healthSummary.workflow_count}</strong>
-              <p>Every workflow row is traceable to a bounded-context need.</p>
+              <p>Every workflow row is traceable to a limited-context need.</p>
             </article>
           </div>
         </section>
@@ -520,7 +520,7 @@ export default function App() {
                   <th>Role</th>
                   <th>Direction</th>
                   <th>Proof after send</th>
-                  <th>Approval posture</th>
+                  <th>Approval status</th>
                 </tr>
               </thead>
               <tbody>
@@ -557,7 +557,7 @@ export default function App() {
           <p>{selectedWorkflow.business_flow_summary}</p>
           <div className="fact-list">
             <div>
-              <span className="eyebrow">Acceptance vs truth</span>
+              <span className="eyebrow">Acceptance vs verified details</span>
               <p>{selectedWorkflow.acceptance_vs_authoritative_truth_note}</p>
             </div>
             <div>
@@ -619,7 +619,7 @@ export default function App() {
           </div>
           <div className="inspector-grid">
             <article className="metric-card">
-              <span className="eyebrow">Authoritative truth state</span>
+              <span className="eyebrow">Authoritative verified details state</span>
               <strong>{selectedMessage?.authoritative_truth_state ?? "n/a"}</strong>
             </article>
             <article className="metric-card">
@@ -745,8 +745,8 @@ export default function App() {
                       }))
                     }
                   >
-                    <option value="self_managed">self_managed</option>
-                    <option value="third_party_managed">third_party_managed</option>
+                    <option value="self_managed">self managed</option>
+                    <option value="third_party_managed">third party managed</option>
                   </select>
                 </label>
                 <label className="field">
@@ -1003,7 +1003,7 @@ export default function App() {
         </div>
         <div className="fact-list">
           <article className="fact-card">
-            <span className="eyebrow">Acceptance versus truth</span>
+            <span className="eyebrow">Acceptance versus verified details</span>
             <p>{selectedWorkflow.acceptance_vs_authoritative_truth_note}</p>
           </article>
           <article className="fact-card">
@@ -1027,13 +1027,13 @@ export default function App() {
     const states = meshExecutionPack.timeline_template;
     const activeStates = new Set(selectedMessage?.events.map((row) => row.state) ?? []);
     return (
-      <section className="lineage-strip panel" data-testid="lineage-strip">
+      <section className="history-strip panel" data-testid="lineage-strip">
         {states.map((item, index) => (
           <div className="lineage-step" key={item}>
             <span className={`lineage-node ${activeStates.has(item) ? "active" : ""}`}>{index + 1}</span>
             <div>
               <strong>{item}</strong>
-              <p>{item === "accepted" ? "Transport only" : item === "proof_pending" ? "Business proof debt" : "Governed state"}</p>
+              <p>{item === "accepted" ? "Transport only" : item === "proof_pending" ? "Business proof debt" : "Approved state"}</p>
             </div>
           </div>
         ))}
@@ -1065,12 +1065,12 @@ export default function App() {
             <VecellLogoLockup aria-hidden="true" className="wordmark" />
             <div className="brand-copy">
               <div className="ribbon-row">
-                <span className="mock-ribbon">MOCK_MESH_MAILROOM</span>
+                <span className="mock-ribbon">mesh mailroom test mode</span>
                 <span className="mono-chip">{meshExecutionPack.visual_mode}</span>
                 <span className="mono-chip">Signal_Post_Room</span>
               </div>
               <h1>Signal post room</h1>
-              <p>Industrial-precise transport control without flattening proof into business truth.</p>
+              <p>Industrial-precise transport control without flattening proof into business status.</p>
             </div>
           </div>
           <div className="chip-row">
@@ -1089,7 +1089,7 @@ export default function App() {
           <div className="panel-header">
             <div>
               <span className="eyebrow">Operations</span>
-              <h2>Mailroom posture</h2>
+              <h2>Mailroom status</h2>
             </div>
             <div className="mode-toggle">
               <button

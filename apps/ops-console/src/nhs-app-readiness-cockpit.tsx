@@ -45,7 +45,7 @@ function verdictLabel(verdict: NhsAppReadinessVerdict): string {
     case "conditionally_ready":
       return "Conditional";
     case "placeholder_only":
-      return "Placeholder";
+      return "Summary";
     case "blocked":
       return "Blocked";
     case "evidence_missing":
@@ -193,7 +193,7 @@ function NHSAppFilterRail(props: {
       />
       <SelectControl
         id="nhs-app-family-filter"
-        label="Route family"
+        label="Journey group"
         value={filterStateValue(filters, "routeFamily")}
         options={[
           { value: "all", label: "All families" },
@@ -242,7 +242,7 @@ export function NHSAppEnvironmentTupleRibbon(props: {
         <small>{tuple.stageLabel}</small>
       </div>
       <div className="nhs-app-ribbon__tile">
-        <span>Manifest</span>
+        <span>Release list</span>
         <strong>{tuple.manifestVersionRef}</strong>
         <small>{tuple.releaseApprovalFreezeRef}</small>
       </div>
@@ -437,7 +437,7 @@ export function NHSAppRouteInspector(props: {
         <div role="tabpanel" className="nhs-app-inspector__body" data-testid="InspectorCompatibilityPanel">
           <dl>
             <div>
-              <dt>Compatibility truth</dt>
+              <dt>Compatibility verified details</dt>
               <dd>{titleCase(route.compatibilityTruth)}</dd>
             </div>
             <div>
@@ -455,7 +455,7 @@ export function NHSAppRouteInspector(props: {
         <div role="tabpanel" className="nhs-app-inspector__body" data-testid="InspectorContinuityPanel">
           <dl>
             <div>
-              <dt>Continuity posture</dt>
+              <dt>Continuity status</dt>
               <dd>{titleCase(route.continuityPosture)}</dd>
             </div>
             <div>

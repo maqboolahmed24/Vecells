@@ -1,7 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
-  VECELL_FAVICON_HREF,
   VecellLogoIcon,
   VecellLogoLockup,
   VecellLogoWordmark,
@@ -23,14 +22,12 @@ class MockLinkElement {
 }
 
 describe("vecell branding", () => {
-  it("formats browser titles with optional detail segments", () => {
-    expect(formatVecellTitle("Patient Web")).toBe("vecell | Patient Web");
-    expect(formatVecellTitle("Support Workspace", "TCK-204")).toBe(
-      "vecell | Support Workspace | TCK-204",
-    );
+  it("formats browser titles without a brand segment", () => {
+    expect(formatVecellTitle("Patient Web")).toBe("Patient Web");
+    expect(formatVecellTitle("Support Workspace", "TCK-204")).toBe("Support Workspace | TCK-204");
   });
 
-  it("creates and updates a single favicon link when browser branding is applied", () => {
+  it("updates the document title without injecting a branded favicon by default", () => {
     let faviconLink: MockLinkElement | null = null;
     let appendCount = 0;
 
@@ -44,10 +41,7 @@ describe("vecell branding", () => {
         },
       },
       querySelector: (selector: string) => {
-        if (
-          selector === "link[data-vecell-favicon='true']" ||
-          selector === "link[rel='icon']"
-        ) {
+        if (selector === "link[data-vecell-favicon='true']" || selector === "link[rel='icon']") {
           return faviconLink;
         }
         return null;
@@ -65,28 +59,19 @@ describe("vecell branding", () => {
       surface: "Hub Desk",
     });
 
-    expect(initialTitle).toBe("vecell | Patient Web");
-    expect(updatedTitle).toBe("vecell | Hub Desk | Queue");
-    expect(mockDocument.title).toBe("vecell | Hub Desk | Queue");
-    expect(appendCount).toBe(1);
-    expect(faviconLink?.getAttribute("data-vecell-favicon")).toBe("true");
-    expect(faviconLink?.getAttribute("href")).toBe(VECELL_FAVICON_HREF);
-    expect(faviconLink?.getAttribute("rel")).toBe("icon");
-    expect(faviconLink?.getAttribute("type")).toBe("image/svg+xml");
+    expect(initialTitle).toBe("Patient Web");
+    expect(updatedTitle).toBe("Hub Desk | Queue");
+    expect(mockDocument.title).toBe("Hub Desk | Queue");
+    expect(appendCount).toBe(0);
+    expect(faviconLink).toBeNull();
   });
 
-  it("renders icon, wordmark, and lockup from the same source geometry", () => {
-    expect(renderToStaticMarkup(<VecellLogoIcon aria-hidden />)).toContain(
-      'viewBox="35 49 238 232"',
-    );
-    expect(renderToStaticMarkup(<VecellLogoWordmark aria-hidden />)).toContain(
-      'viewBox="301 113 623 123"',
-    );
-    expect(renderToStaticMarkup(<VecellLogoLockup aria-hidden />)).toContain(
-      'viewBox="35 49 889 232"',
-    );
-    expect(createVecellLogoSvgMarkup("icon")).toContain("<path");
-    expect(createVecellLogoSvgMarkup("wordmark")).toContain("<path");
-    expect(createVecellLogoSvgMarkup("lockup")).toContain("<path");
+  it("suppresses logo markup for icon, wordmark, and lockup slots", () => {
+    expect(renderToStaticMarkup(<VecellLogoIcon aria-hidden />)).toBe("");
+    expect(renderToStaticMarkup(<VecellLogoWordmark aria-hidden />)).toBe("");
+    expect(renderToStaticMarkup(<VecellLogoLockup aria-hidden />)).toBe("");
+    expect(createVecellLogoSvgMarkup("icon")).toBe("");
+    expect(createVecellLogoSvgMarkup("wordmark")).toBe("");
+    expect(createVecellLogoSvgMarkup("lockup")).toBe("");
   });
 });

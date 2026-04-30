@@ -275,7 +275,7 @@ export function EmbeddedRouteFreezeNotice({
       <SummaryRows
         rows={[
           { label: "Freeze disposition", value: context.recoveryTruth.routeFreezeState },
-          { label: "Visible posture", value: context.recoveryTruth.shellDisposition },
+          { label: "Visible status", value: context.recoveryTruth.shellDisposition },
           { label: "Safe route", value: context.preservedContext.lastSafeRoutePath },
         ]}
         testIdPrefix="route-freeze"

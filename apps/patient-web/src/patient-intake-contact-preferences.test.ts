@@ -26,7 +26,7 @@ describe("patient intake contact preferences", () => {
     expect(summaryView.destinations.phone.maskedValue).not.toContain("020 7946 0012");
   });
 
-  it("surfaces a bounded review cue when a saved route changes", () => {
+  it("surfaces a bounded review cue when the saved contact method changes", () => {
     const baseline = createDefaultDraftContactPreferences();
     const changed = buildContactSummaryView({
       preferences: {
@@ -45,7 +45,7 @@ describe("patient intake contact preferences", () => {
     expect(changed.reasonCodes).toContain(
       "CONTACT_PREF_ROUTE_DELTA_POTENTIALLY_CONTACT_SAFETY_RELEVANT",
     );
-    expect(changed.reviewCue).toContain("safest route");
+    expect(changed.reviewCue).toContain("safest contact method");
   });
 
   it("keeps the preview truthful about delivery before later evidence exists", () => {
@@ -59,6 +59,6 @@ describe("patient intake contact preferences", () => {
 
     expect(preview.state).toBe("confirmation_attempt_planned");
     expect(preview.body).toContain("not delivery confirmation");
-    expect(preview.rows.some((row) => row.value.includes("delivery evidence"))).toBe(true);
+    expect(preview.rows.some((row) => row.value.includes("Delivery is checked later"))).toBe(true);
   });
 });

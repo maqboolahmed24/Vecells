@@ -65,7 +65,7 @@ export function BookingExceptionQueuePanel({
         <div>
           <span className="staff-shell__eyebrow">BookingExceptionQueuePanel</span>
           <h3 id="booking-exception-queue-heading">Booking exception queue</h3>
-          <p>Machine-readable reason classes, age, and settlement posture stay visible beside the active case.</p>
+          <p>Machine-readable reason classes, age, and settlement status stay visible beside the active case.</p>
         </div>
         <span className="staff-shell__booking-queue-count">{rows.length}</span>
       </header>
@@ -155,7 +155,7 @@ export function AssistedBookingCaseSummary({
         <section className="staff-shell__booking-card">
           <header className="staff-shell__task-stack-header">
             <span className="staff-shell__eyebrow">Case state</span>
-            <h4>Current lawful posture</h4>
+            <h4>Current lawful status</h4>
           </header>
           <SummaryRows rows={projection.stateRows} />
         </section>
@@ -301,7 +301,7 @@ export function StaffAssistableSlotList({
         <div>
           <span className="staff-shell__eyebrow">StaffAssistableSlotList</span>
           <h3 id="staff-assistable-slot-list-heading">Assistable slot list</h3>
-          <p>Uses the same slot ranking and reservation truth grammar as the patient flow, but with staff-only supply tagged explicitly.</p>
+          <p>Uses the same slot ranking and reservation status wording as the patient flow, but with staff-only supply tagged explicitly.</p>
         </div>
         <div className="staff-shell__booking-signal-cluster">
           <span>Selected: {selectedSlotId ?? "none"}</span>
@@ -367,7 +367,7 @@ function CompareSlotCard({
       ) : (
         <>
           <strong>No compare target pinned</strong>
-          <p>Select a compare anchor to keep a bounded side-by-side review inside the same shell.</p>
+          <p>Select a compare anchor to keep a limited side-by-side review inside the same shell.</p>
         </>
       )}
     </article>

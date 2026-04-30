@@ -190,7 +190,7 @@ export const patientRequests: readonly PatientRequestProjection[] = [
     summary: "The care team needs one photo and your latest flare window before confirming transport help.",
     updatedAt: "2026-04-13T08:12:00Z",
     trustCue:
-      "Reply-needed posture stays visible until a reviewed response is accepted into the request lineage.",
+      "Reply-needed status stays visible until a reviewed response is accepted into the request history.",
     nextStep: "Add the requested photo and confirm the flare timing.",
     lineage: [
       "Submitted on 10 Apr",
@@ -355,7 +355,7 @@ export const patientThreads: readonly PatientThreadProjection[] = [
     preview: "The team needs one clarified photo time and one symptom note before review can continue.",
     updatedAt: "2026-04-13T08:16:00Z",
     trustCue:
-      "Reply-needed posture stays explicit and does not overclaim delivery or clinical review completion.",
+      "Reply-needed status stays explicit and does not overclaim delivery or clinical review completion.",
     threadLines: [
       {
         speaker: "Dermatology team",
@@ -1326,7 +1326,7 @@ function casePulseForLocation(
     confirmationPosture:
       decision.effectivePosture === "live"
         ? "The current summary stays causally honest."
-        : "The shell keeps the last safe summary visible while posture is downgraded in place.",
+        : "The account keeps the last safe summary visible while status is downgraded in place.",
     lastMeaningfulUpdateAt: statusInputForLocation(location, decision, snapshot, memory).lastChangedAt,
     changedSinceSeen:
       location.routeKey === "record_follow_up"
@@ -1358,7 +1358,7 @@ function casePulseForLocation(
             : decision.effectivePosture === "read_only"
               ? "Guarded"
               : "Recovery",
-        detail: "Trust posture is published from the same shell tuple and never guessed from transport alone.",
+        detail: "Trust status is published from the same account details and never guessed from transport alone.",
       },
       {
         key: "urgency",

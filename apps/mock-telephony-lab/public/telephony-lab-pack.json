@@ -132,7 +132,7 @@
       "grounding": [
         "Recording lifecycle is managed through a dedicated resource.",
         "Recording state is separate from request promotion or callback completion.",
-        "Recording events and URLs are transport artefacts that still require Vecells evidence checks."
+        "Recording events and URLs are transport artefacts that still require Service evidence checks."
       ]
     },
     {
@@ -671,12 +671,12 @@
     {
       "webhook_row_id": "HOOK_MOCK_ANSWER",
       "webhook_profile_ref": "wh_mock_inbound_stack",
-      "provider_vendor": "Vecells Internal Voice Twin",
+      "provider_vendor": "Service Internal Voice Twin",
       "environment": "local_mock",
       "endpoint_kind": "answer_or_route_intake",
       "configured_on": "mock carrier number profile",
       "method": "POST",
-      "signature_scheme": "vecells-hmac-sha256",
+      "signature_scheme": "service-hmac-sha256",
       "retry_profile": "immediate_plus_15s_plus_90s",
       "out_of_order_risk": "yes",
       "replay_guard": "effect-key-plus-signature-window",
@@ -687,12 +687,12 @@
     {
       "webhook_row_id": "HOOK_MOCK_STATUS",
       "webhook_profile_ref": "wh_mock_status_and_recording",
-      "provider_vendor": "Vecells Internal Voice Twin",
+      "provider_vendor": "Service Internal Voice Twin",
       "environment": "shared_dev",
       "endpoint_kind": "call_status",
       "configured_on": "mock carrier event emitter",
       "method": "POST",
-      "signature_scheme": "vecells-hmac-sha256",
+      "signature_scheme": "service-hmac-sha256",
       "retry_profile": "duplicate_and_disorder_fixture_enabled",
       "out_of_order_risk": "yes",
       "replay_guard": "adapter-receipt-checkpoint",
@@ -703,12 +703,12 @@
     {
       "webhook_row_id": "HOOK_MOCK_RECORDING",
       "webhook_profile_ref": "wh_mock_status_and_recording",
-      "provider_vendor": "Vecells Internal Voice Twin",
+      "provider_vendor": "Service Internal Voice Twin",
       "environment": "shared_dev",
       "endpoint_kind": "recording_status",
       "configured_on": "mock carrier recording policy",
       "method": "POST",
-      "signature_scheme": "vecells-hmac-sha256",
+      "signature_scheme": "service-hmac-sha256",
       "retry_profile": "15s_plus_120s",
       "out_of_order_risk": "yes",
       "replay_guard": "recording-artifact-hash-plus-call-id",
@@ -719,12 +719,12 @@
     {
       "webhook_row_id": "HOOK_MOCK_TRANSCRIPT",
       "webhook_profile_ref": "wh_mock_status_and_recording",
-      "provider_vendor": "Vecells Internal Voice Twin",
+      "provider_vendor": "Service Internal Voice Twin",
       "environment": "shared_dev",
       "endpoint_kind": "transcript_hook",
       "configured_on": "mock transcript worker",
       "method": "POST",
-      "signature_scheme": "vecells-hmac-sha256",
+      "signature_scheme": "service-hmac-sha256",
       "retry_profile": "60s_plus_manual_replay",
       "out_of_order_risk": "yes",
       "replay_guard": "transcript-job-ref-plus-coverage-hash",
@@ -735,12 +735,12 @@
     {
       "webhook_row_id": "HOOK_MOCK_CONTINUATION",
       "webhook_profile_ref": "wh_mock_continuation_sms",
-      "provider_vendor": "Vecells Internal Signal Fabric",
+      "provider_vendor": "Service Internal Signal Fabric",
       "environment": "local_mock",
       "endpoint_kind": "continuation_sms_dispatch",
       "configured_on": "continuation dispatcher",
       "method": "POST",
-      "signature_scheme": "vecells-hmac-sha256",
+      "signature_scheme": "service-hmac-sha256",
       "retry_profile": "single_retry_then_repair_queue",
       "out_of_order_risk": "no",
       "replay_guard": "access-grant-supersession-check",
@@ -792,7 +792,7 @@
       "retry_profile": "provider-timeout-plus-adapter-dedupe",
       "out_of_order_risk": "yes",
       "replay_guard": "request-signature-plus-causal-window",
-      "authoritative_truth_note": "Answer and event callbacks remain transport observations until Vecells settlement occurs.",
+      "authoritative_truth_note": "Answer and event callbacks remain transport observations until Service settlement occurs.",
       "source_refs": "https://developer.vonage.com/en/getting-started/concepts/webhooks; https://developer.vonage.com/en/application/overview",
       "notes": "Vonage exposes answer_url, event_url, and fallback_answer_url as distinct controls."
     },

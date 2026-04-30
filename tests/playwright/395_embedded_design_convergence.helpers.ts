@@ -32,6 +32,9 @@ export async function openEmbeddedDesignRoute(
   routeFamily: EmbeddedDesignRouteFamily,
 ): Promise<void> {
   await openEmbeddedA11yRoute(page, baseUrl, routeFamily);
+  const url = new URL(page.url());
+  url.searchParams.set("diagnostics", "embedded-design");
+  await page.goto(url.toString(), { waitUntil: "load" });
   const profile = resolveEmbeddedDesignRouteProfile(routeFamily);
   await page.getByTestId("EmbeddedDesignBundleProvider").waitFor();
   await page.waitForFunction(
@@ -143,4 +146,3 @@ export async function assertVisualizationFallbackParity(page: any, label: string
     assertCondition(row.rowHeaders === row.rows, `${label} ${row.surface} missing row headers`);
   }
 }
-

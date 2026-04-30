@@ -66,6 +66,30 @@ function routeStateLabel(kind: StaffRouteKind): string {
   }
 }
 
+function publicTaskText(value: string): string {
+  return value
+    .replace(/\bEvidenceStack\b/g, "Evidence")
+    .replace(/\bDeltaStack\b/g, "Change review")
+    .replace(/\bauthoritative delta packet\b/gi, "confirmed change")
+    .replace(/\bdelta packet\b/gi, "change update")
+    .replace(/\bdecisive delta\b/gi, "important change")
+    .replace(/\bdelta\b/gi, "change")
+    .replace(/\binvalidates\b/gi, "changes")
+    .replace(/\binvalidated\b/gi, "changed")
+    .replace(/\bauthoritative\b/gi, "confirmed")
+    .replace(/\bLineage\b/g, "History")
+    .replace(/\blineage\b/gi, "history")
+    .replace(/\bposture\b/gi, "status")
+    .replace(/\btruth\b/gi, "confirmed information")
+    .replace(/\btuple\b/gi, "details")
+    .replace(/\bstub\b/gi, "summary")
+    .replace(/\brequest_215_callback\b/g, "callback request")
+    .replace(/\bcluster_214_callback\b/g, "callback conversation")
+    .replace(/\b[a-z]+(?:_[a-z0-9]+)+\b/g, (token) =>
+      token.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase()),
+    );
+}
+
 type WorkspaceRuntimeScenario =
   | "live"
   | "stale_review"
@@ -73,7 +97,13 @@ type WorkspaceRuntimeScenario =
   | "recovery_only"
   | "blocked";
 
-function StackRows({ rows }: { rows: readonly TaskStackRowProjection[] }) {
+function StackRows({
+  rows,
+  formatText = (value: string) => value,
+}: {
+  rows: readonly TaskStackRowProjection[];
+  formatText?: (value: string) => string;
+}) {
   return (
     <div className="staff-shell__stack-rows">
       {rows.map((row) => (
@@ -83,10 +113,10 @@ function StackRows({ rows }: { rows: readonly TaskStackRowProjection[] }) {
           data-tone={stackToneLabel(row.tone)}
         >
           <div className="staff-shell__stack-row-head">
-            <span>{row.label}</span>
-            <strong>{row.value}</strong>
+            <span>{formatText(row.label)}</span>
+            <strong>{formatText(row.value)}</strong>
           </div>
-          <p>{row.detail}</p>
+          <p>{formatText(row.detail)}</p>
         </article>
       ))}
     </div>
@@ -121,19 +151,19 @@ export function CasePulseBand({
         </div>
         <div>
           <strong>Decision epoch</strong>
-          <span>{projection.decisionEpochRef}</span>
+          <span data-decision-epoch-ref={projection.decisionEpochRef}>Current decision</span>
         </div>
         <div>
           <strong>Review lease</strong>
-          <span>{projection.reviewActionLeaseRef}</span>
+          <span data-review-action-lease-ref={projection.reviewActionLeaseRef}>Review active</span>
         </div>
         <div>
           <strong>Trust envelope</strong>
-          <span>{projection.workspaceTrustEnvelopeRef}</span>
+          <span data-workspace-trust-envelope-ref={projection.workspaceTrustEnvelopeRef}>Ready</span>
         </div>
         <div>
-          <strong>Selected anchor</strong>
-          <span>{projection.selectedAnchorRef}</span>
+          <strong>Selected item</strong>
+          <span data-selected-anchor-ref={projection.selectedAnchorRef}>Current task</span>
         </div>
       </div>
     </section>
@@ -151,16 +181,20 @@ export function TaskStatusStrip({ projection }: { projection: TaskWorkspaceProje
       <SharedStatusStrip input={projection.statusInput} />
       <div className="staff-shell__task-status-meta">
         <span>
-          <strong>Status tuple</strong>
-          {projection.statusTruthTupleRef}
+          <strong>Status</strong>
+          <span data-status-truth-tuple-ref={projection.statusTruthTupleRef}>Ready</span>
         </span>
         <span>
-          <strong>Dock focus lease</strong>
-          {projection.decisionDockFocusLeaseRef}
+          <strong>Focus</strong>
+          <span data-decision-dock-focus-lease-ref={projection.decisionDockFocusLeaseRef}>
+            Task canvas
+          </span>
         </span>
         <span>
-          <strong>Quiet settlement</strong>
-          {projection.quietSettlementEnvelopeRef}
+          <strong>Review</strong>
+          <span data-quiet-settlement-envelope-ref={projection.quietSettlementEnvelopeRef}>
+            Pending
+          </span>
         </span>
       </div>
     </section>
@@ -193,23 +227,25 @@ export function DeltaStack({ frame }: { frame: TaskCanvasFrameProjection }) {
       data-delta-class={frame.deltaStack.deltaClass}
     >
       <header className="staff-shell__task-stack-header">
-        <span className="staff-shell__eyebrow">{frame.deltaStack.title}</span>
-        <h3>{frame.deltaStack.headline}</h3>
-        <p>{frame.deltaStack.decisiveMeaning}</p>
+        <span className="staff-shell__eyebrow">{publicTaskText(frame.deltaStack.title)}</span>
+        <h3>{publicTaskText(frame.deltaStack.headline)}</h3>
+        <p>{publicTaskText(frame.deltaStack.decisiveMeaning)}</p>
       </header>
       <div className="staff-shell__task-stack-inline">
         <span style={{ textTransform: "none" }}>
-          {`${frame.deltaStack.deltaClass.toUpperCase()} delta packet`}
+          Change summary
         </span>
-        <strong>{frame.deltaStack.authoritativeDeltaPacketRef}</strong>
+        <strong data-delta-packet-ref={frame.deltaStack.authoritativeDeltaPacketRef}>
+          {frame.deltaStack.deltaClass === "decisive" ? "Needs review" : "Updated information"}
+        </strong>
       </div>
-      <StackRows rows={frame.deltaStack.rows} />
+      <StackRows rows={frame.deltaStack.rows} formatText={publicTaskText} />
       <div
         className="staff-shell__superseded-context"
         data-testid="superseded-context"
       >
         {frame.deltaStack.supersededContextRefs.map((item) => (
-          <span key={item}>{item}</span>
+          <span key={item}>{publicTaskText(item)}</span>
         ))}
       </div>
     </section>
@@ -220,9 +256,9 @@ export function EvidenceStack({ frame }: { frame: TaskCanvasFrameProjection }) {
   return (
     <section className="staff-shell__task-stack" data-testid="evidence-stack">
       <header className="staff-shell__task-stack-header">
-        <span className="staff-shell__eyebrow">{frame.evidenceStack.title}</span>
+        <span className="staff-shell__eyebrow">{publicTaskText(frame.evidenceStack.title)}</span>
         <h3>{frame.evidenceStack.headline}</h3>
-        <p>{frame.evidenceStack.lineageStripLabel}</p>
+        <p>{publicTaskText(frame.evidenceStack.lineageStripLabel)}</p>
       </header>
       <StackRows rows={frame.evidenceStack.rows} />
     </section>
@@ -233,13 +269,13 @@ export function ConsequenceStack({ frame }: { frame: TaskCanvasFrameProjection }
   return (
     <section className="staff-shell__task-stack" data-testid="consequence-stack">
       <header className="staff-shell__task-stack-header">
-        <span className="staff-shell__eyebrow">{frame.consequenceStack.title}</span>
-        <h3>{frame.consequenceStack.headline}</h3>
-        <p>{frame.consequenceStack.decisionPreviewSummary}</p>
+        <span className="staff-shell__eyebrow">{publicTaskText(frame.consequenceStack.title)}</span>
+        <h3>{publicTaskText(frame.consequenceStack.headline)}</h3>
+        <p>{publicTaskText(frame.consequenceStack.decisionPreviewSummary)}</p>
       </header>
       <div className="staff-shell__task-stack-inline">
         <span>Current preview</span>
-        <strong>{frame.consequenceStack.decisionPreviewLabel}</strong>
+        <strong>{publicTaskText(frame.consequenceStack.decisionPreviewLabel)}</strong>
       </div>
       <StackRows rows={frame.consequenceStack.rows} />
     </section>
@@ -277,10 +313,10 @@ export function ReferenceStack({
     >
       <summary className="staff-shell__task-stack-summary">
         <div>
-          <span className="staff-shell__eyebrow">{frame.referenceStack.title}</span>
-          <strong>{frame.referenceStack.headline}</strong>
+          <span className="staff-shell__eyebrow">{publicTaskText(frame.referenceStack.title)}</span>
+          <strong>{publicTaskText(frame.referenceStack.headline)}</strong>
         </div>
-        <span>{frame.referenceStack.digestLabel}</span>
+        <span>{publicTaskText(frame.referenceStack.digestLabel)}</span>
       </summary>
       <div className="staff-shell__reference-layer">
         <StackRows rows={frame.referenceStack.rows} />
@@ -335,13 +371,13 @@ export function PromotedSupportRegion({
       })}
     >
       <header className="staff-shell__task-stack-header">
-        <span className="staff-shell__eyebrow">PromotedSupportRegion</span>
+        <span className="staff-shell__eyebrow">Support region</span>
         <h3 id="workspace-context-heading">{region.title}</h3>
         <p>{region.summary}</p>
       </header>
       <div className="staff-shell__task-stack-inline">
-        <span>Quiet return</span>
-        <strong>{region.quietReturnTargetRef}</strong>
+        <span>Return target</span>
+        <strong data-quiet-return-target-ref={region.quietReturnTargetRef}>Task summary</strong>
       </div>
       <div className="staff-shell__task-stack-inline">
         <span>State</span>
@@ -489,22 +525,22 @@ export function DecisionDock({
       })}
     >
       <header className="staff-shell__decision-dock-head">
-        <span className="staff-shell__eyebrow">DecisionDock</span>
+        <span className="staff-shell__eyebrow">Next action</span>
         <h3 id="workspace-decision-dock-heading">{projection.decisionDock.primaryActionLabel}</h3>
         <p>{projection.decisionDock.primaryActionReason}</p>
       </header>
 
       <div className="staff-shell__task-stack-inline">
-        <span>Focus lease</span>
-        <strong>{projection.decisionDock.focusLeaseRef}</strong>
+        <span>Focus</span>
+        <strong data-focus-lease-ref={projection.decisionDock.focusLeaseRef}>Task canvas</strong>
       </div>
       <div className="staff-shell__task-stack-inline">
-        <span>Consequence preview</span>
-        <strong>{projection.decisionDock.consequencePreviewRef}</strong>
+        <span>Outcome preview</span>
+        <strong>{publicTaskText(projection.decisionDock.consequencePreviewRef)}</strong>
       </div>
       <div className="staff-shell__task-stack-inline">
         <span>Recommendation</span>
-        <strong>{projection.decisionDock.recommendationReasonRef}</strong>
+        <strong>{publicTaskText(projection.decisionDock.recommendationReasonRef)}</strong>
       </div>
 
       {projection.decisionDock.blockingReason && (
@@ -600,7 +636,7 @@ export function DecisionDock({
           className="staff-shell__dock-action staff-shell__dock-action--ghost"
           onClick={onOpenSupportStub}
         >
-          Open support handoff stub
+          Open support review
         </button>
       </div>
 
@@ -610,12 +646,12 @@ export function DecisionDock({
           route.kind !== "task" && "staff-shell__dock-support-note--active",
         )}
       >
-        <strong>Same-shell child-state handling</strong>
-        <p>
-          {route.kind === "task"
-            ? "The dock stays dominant while child routes remain secondary states of the same task shell."
-            : "Child-route work stays inside the active shell and keeps the current anchor, delta context, and dock lease visible."}
-        </p>
+          <strong>Child route handling</strong>
+          <p>
+            {route.kind === "task"
+              ? "The next action stays dominant while child routes remain secondary states of the same task."
+              : "Child-route work stays inside the active workspace and keeps the current case context visible."}
+          </p>
       </section>
     </aside>
   );

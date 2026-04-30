@@ -233,19 +233,19 @@ function buildUrgentReturnMerge(
       severity: "critical",
       title: "Urgent pharmacy return reopened the original request",
       summary:
-        "PHC-2103 has reopened request_215_callback with the original anchor preserved, and the urgent return posture must stay visible across ops, triage, and patient routes.",
+        "PHC-2103 has reopened the original callback request with the original anchor preserved, and the urgent return status must stay visible across ops, triage, and patient routes.",
     },
     triageCardLabel: "Urgent pharmacy return",
     triageCountLabel: "1 urgent return",
     triageCardSummary:
-      "The reopened pharmacy case stays bound to request_215_callback so triage and operations can resume the original work instead of a detached follow-on.",
+      "The reopened pharmacy case stays bound to the original callback request so triage and operations can resume the original work instead of a detached follow-on.",
     triageChangedLabel: "Urgent return since seen",
     reentrySummary:
-      "Open-original-request continuity remains bound to request_215_callback, with bounce-back provenance and the urgent-return message preserved.",
+      "Open-original-request continuity remains bound to the original callback request, with bounce-back history and the urgent-return message preserved.",
     supportReplaySummary:
       "Support replay follows PHC-2103, the urgent return notification, and the reopened request anchor through one event chain.",
     auditSummary:
-      "Audit keeps the bounce-back record, urgent return route, and reopened request anchor on the same lineage path.",
+      "Audit keeps the bounce-back record, urgent return route, and reopened request anchor on the same history path.",
     sourceProjectionRefs: [
       status.statusProjection.pharmacyPatientStatusProjectionId,
       recovery.truthBinding.pharmacyBounceBackTruthProjectionId,

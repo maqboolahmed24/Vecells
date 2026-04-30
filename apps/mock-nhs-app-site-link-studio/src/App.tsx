@@ -279,7 +279,7 @@ export default function App() {
   const selectedGateRows = liveGateRows.filter((gate) => selectedGateRefs.has(gate.gate_id));
   const selectedWarnings = [
     selectedRow.allowlist_decision === "rejected"
-      ? "This path is explicitly rejected because it would widen the site-link surface beyond the governed route contract."
+      ? "This path is explicitly rejected because it would widen the site-link surface beyond the approved route rules."
       : "",
     selectedRow.embedded_safe === "conditional"
       ? "This route is conditional in embedded mode. Publication, continuity, and session proof must stay current."
@@ -495,7 +495,7 @@ export default function App() {
           "Android assetlinks preview",
           "json-preview-android",
           androidPreview,
-          "Android App Links remain domain-level in the hosted file. Vecells keeps the path allowlist as a separate first-class contract.",
+          "Android App Links remain domain-level in the hosted file. The path allowlist stays as a separate first-class check.",
           () => void copyPreview("Android preview", androidPreview),
         )}
         <section className="panel content-panel">
@@ -699,7 +699,7 @@ export default function App() {
     <div className="app-shell">
       <div className="top-banner">
         <VecellLogoWordmark aria-hidden="true" className="vecells-mark" />
-        <span className="mock-ribbon">MOCK_SITE_LINKS</span>
+        <span className="mock-ribbon">site links test mode</span>
         <span className="quiet-note">
           Site-link rehearsal only. Real Android/iOS values stay placeholder-only until the NHS App team issues them.
         </span>
@@ -759,7 +759,7 @@ export default function App() {
             <div className="section-heading compact">
               <div>
                 <h2>Platform</h2>
-                <p>Switch JSON preview focus without changing the underlying route contract.</p>
+                <p>Switch JSON preview focus without changing the underlying route rules.</p>
               </div>
             </div>
             <div className="tab-row">
@@ -818,7 +818,7 @@ export default function App() {
         <aside className="panel route-rail" data-testid="route-tree">
           <div className="section-heading compact">
             <div>
-              <h2>Route tree</h2>
+              <h2>Journey list</h2>
               <p>Filter, inspect, and decide which rehearsal paths stay in the metadata previews.</p>
             </div>
           </div>
@@ -830,7 +830,7 @@ export default function App() {
               onChange={(event) =>
                 setState((current) => ({ ...current, filter: event.target.value }))
               }
-              placeholder="Search path, route family, or note"
+              placeholder="Search path, journey group, or note"
             />
           </label>
           <div className="tree-groups">
@@ -882,7 +882,7 @@ export default function App() {
           <div className="section-heading">
             <div>
               <h2>Path policy inspector</h2>
-              <p>Selected route safety, host placeholder management, and later gate bindings.</p>
+              <p>Selected route safety, host summary management, and later gate bindings.</p>
             </div>
           </div>
           <div className="inspector-stack">
@@ -898,7 +898,7 @@ export default function App() {
             </div>
 
             <label className="field-card">
-              <span>Host placeholder</span>
+              <span>Host summary</span>
               <input
                 value={state.hostDrafts[state.envId] ?? currentEnvironment.domain_placeholder}
                 onChange={(event) =>
@@ -917,7 +917,7 @@ export default function App() {
                 <p className="mono-meta">{selectedRow.selected_anchor_ref}</p>
               </article>
               <article className="info-card">
-                <h3>Return contract</h3>
+                <h3>Return rules</h3>
                 <p>{selectedRow.return_contract_ref}</p>
               </article>
             </div>
@@ -931,8 +931,8 @@ export default function App() {
                 ))
               ) : (
                 <article className="info-card">
-                  <h3>Current posture</h3>
-                  <p>This selected route is rehearsal-safe with the current placeholder constraints.</p>
+                  <h3>Current status</h3>
+                  <p>This selected route is rehearsal-safe with the current summary constraints.</p>
                 </article>
               )}
             </div>
@@ -976,22 +976,22 @@ export default function App() {
         </div>
         <div className="diagram-row">
           <div className="diagram-node">
-            <strong>jump_off</strong>
-            <span>NHS App or governed notification entry</span>
+            <strong>open</strong>
+            <span>NHS App or approved notification entry</span>
           </div>
           <div className="diagram-arrow">→</div>
           <div className="diagram-node">
-            <strong>site_link</strong>
+            <strong>site link</strong>
             <span className="mono-meta">{selectedRow.path_pattern}</span>
           </div>
           <div className="diagram-arrow">→</div>
           <div className="diagram-node">
-            <strong>embedded_route</strong>
+            <strong>embedded journey</strong>
             <span>{selectedRow.route_family_label}</span>
           </div>
           <div className="diagram-arrow">→</div>
           <div className="diagram-node">
-            <strong>safe_return</strong>
+            <strong>safe return</strong>
             <span>{selectedRow.return_contract_ref}</span>
           </div>
         </div>

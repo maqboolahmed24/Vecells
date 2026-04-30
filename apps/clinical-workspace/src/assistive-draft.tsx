@@ -191,7 +191,7 @@ function planDiffLines(): AssistiveDraftDiffLine[] {
       label: "Add",
       before: "",
       after: "Advise reliever inhaler use as already prescribed.",
-      intent: "Adds a bounded plan item supported by the medication record.",
+      intent: "Adds a limited plan item supported by the medication record.",
     },
   ];
 }
@@ -321,7 +321,7 @@ function buildBlockedSessionSections(selectedAnchorRef: string): AssistiveDraftS
   };
   const trustReason: AssistiveDraftBlockReason = {
     code: "trust_posture_drift",
-    label: "Trust posture degraded",
+    label: "Trust status degraded",
     detail: "The assistive trust envelope no longer authorizes insert.",
   };
 
@@ -350,7 +350,7 @@ function buildBlockedSessionSections(selectedAnchorRef: string): AssistiveDraftS
       title: "Safety-net plan",
       statusLabel: "Insert blocked",
       statusTone: "blocked",
-      supportLabel: "Governed fallback keeps draft text read-only",
+      supportLabel: "Approved fallback keeps draft text read-only",
       targetSlot: makeTargetSlot(selectedAnchorRef, {
         label: "Decision note - plan slot",
         slotHash: "slot.412.task-311.anchor-plan.v3",
@@ -407,7 +407,7 @@ export function buildAssistiveDraftDeckState({
     draftArtifactRef: `draft_note_artifact.408.${taskRef}.clinician_note.v1`,
     sessionRef: `assistive_session.412.${taskRef}.${selectedAnchorRef}`,
     deckStatus: sections.some((section) => !section.canInsert)
-      ? "Insert blocked until lease truth is refreshed"
+      ? "Insert blocked until lease verified details is refreshed"
       : "Live patch lease available for shown slots",
     sections,
   };

@@ -355,7 +355,7 @@ export function ActiveWaitlistOfferCard({
             rows={[
               { label: "Clinician", value: offer.clinicianLabel },
               { label: "Modality", value: offer.modalityLabel },
-              { label: "Travel", value: offer.travelCue ?? "Standard travel posture" },
+              { label: "Travel", value: offer.travelCue ?? "Standard travel status" },
               { label: "Offer window", value: deadlineLabel ?? "No response window shown" },
             ]}
           />
@@ -392,7 +392,7 @@ export function ExpiryOrSupersessionProvenanceCard({
     >
       <div className="patient-booking__section-head">
         <span className="patient-booking__eyebrow">ExpiryOrSupersessionProvenanceCard</span>
-        <h3>Read-only offer provenance</h3>
+        <h3>Read-only offer history</h3>
       </div>
       <div className="patient-booking__waitlist-offer-head">
         <div>
@@ -433,7 +433,7 @@ export function WaitlistContinuationStatePanel({
     >
       <div className="patient-booking__section-head">
         <span className="patient-booking__eyebrow">WaitlistContinuationStatePanel</span>
-        <h3>Current continuation truth</h3>
+        <h3>Current continuation verified details</h3>
       </div>
       <WaitlistStateStrip projection={projection} />
       <div className="patient-booking__waitlist-chip-row">

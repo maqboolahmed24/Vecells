@@ -329,9 +329,9 @@ function buildCasePulse(config: SurfacePostureSpecimenConfig): CasePulseContract
       config.postureClass === "loading_summary"
         ? "Detail rows are hydrating inside the same shell."
         : config.postureClass === "blocked_recovery"
-          ? "Recovery is required before the next governed step."
+          ? "Recovery is required before the next approved step."
           : config.postureClass === "read_only"
-            ? "Writable posture is suppressed; scope and diff anchor stay visible."
+            ? "Writable status is suppressed; scope and diff anchor stay visible."
             : "The shell summary remains grounded to the same object and question.",
   };
 }
@@ -409,9 +409,9 @@ export const surfacePostureGapResolutions = [
   },
   {
     gapId: "GAP_RESOLUTION_POSTURE_CLASS_BOUNDED_RECOVERY",
-    title: "Bounded recovery stays distinct from blocked recovery.",
+    title: "Limited recovery stays distinct from blocked recovery.",
     resolution:
-      "When one clear recovery path still exists, the shell keeps that single path dominant and preserves context instead of escalating to fatal blocked posture or decorative emptiness.",
+      "When one clear recovery path still exists, the shell keeps that single path dominant and preserves context instead of escalating to fatal blocked status or decorative emptiness.",
   },
 ] as const;
 
@@ -511,7 +511,7 @@ export const surfacePostureSpecimens = [
     withheldSummary: null,
     liveContentSummary: "Queue chooser, filter summary, and safe next step remain visible.",
     rationale:
-      "Calm no-work posture must stay distinct from filter-empty or blocked queue truth.",
+      "Calm no-work status must stay distinct from filter-empty or blocked queue status.",
     minimumHeightPx: 360,
     missionStackFoldSafe: true,
     placeholderSegments: [],
@@ -556,7 +556,7 @@ export const surfacePostureSpecimens = [
     selectedAnchor: {
       anchorId: "hub_watchpoint_north_sector",
       label: "North sector watchpoint",
-      summary: "The current watchpoint remains highlighted even in sparse posture.",
+      summary: "The current watchpoint remains highlighted even in sparse status.",
       returnLabel: "Back to North sector watchpoint",
     },
     preservationSummary: "Keep the current watchpoint and sector scope visible.",
@@ -564,7 +564,7 @@ export const surfacePostureSpecimens = [
     withheldSummary: null,
     liveContentSummary: "Top watchpoint, route context, and one safe next lens stay visible.",
     rationale:
-      "Sparse posture is meaningful residual content, not decorative emptiness.",
+      "Sparse status is meaningful residual content, not decorative emptiness.",
     minimumHeightPx: 340,
     missionStackFoldSafe: true,
     placeholderSegments: [],
@@ -588,7 +588,7 @@ export const surfacePostureSpecimens = [
     audience: "workspace",
     scope: "table",
     regionLabel: "Task workbench",
-    title: "The workbench is partially visible and bounded",
+    title: "The workbench is partially visible and limited",
     summary:
       "The last safe task summary remains interactive only where the visibility envelope still permits it.",
     dominantQuestion: "What remains safe to review while withheld fields catch up?",
@@ -606,11 +606,11 @@ export const surfacePostureSpecimens = [
       returnLabel: "Back to case 311 summary",
     },
     preservationSummary: "Keep the case headline, queue context, and safe summary rows visible.",
-    whatUsuallyAppears: "Task summary, evidence rows, and governed mutation controls.",
+    whatUsuallyAppears: "Task summary, evidence rows, and approved mutation controls.",
     withheldSummary: "Identity-sensitive rows and mutation controls are withheld until visibility recovers.",
     liveContentSummary: "Visible summary rows remain, but gated fields do not pretend to be ready.",
     rationale:
-      "Partial visibility is first-class; calm summary remains visible while withheld fields stay explicitly bounded.",
+      "Partial visibility is first-class; calm summary remains visible while withheld fields stay explicitly limited.",
     minimumHeightPx: 400,
     missionStackFoldSafe: true,
     placeholderSegments: [
@@ -644,9 +644,9 @@ export const surfacePostureSpecimens = [
     audience: "operations",
     scope: "table",
     regionLabel: "Incident board",
-    title: "The board stays visible while projection truth is under review",
+    title: "The board stays visible while projection verified details is under review",
     summary:
-      "Operators keep the last stable anomaly context, but writable posture remains suppressed until freshness catches up.",
+      "Operators keep the last stable anomaly context, but writable status remains suppressed until freshness catches up.",
     dominantQuestion: "Can I trust the current incident board enough to act?",
     nextSafeActionLabel: "Review freshness evidence",
     stateOwner: "OpsBoardSurfaceState",
@@ -717,9 +717,9 @@ export const surfacePostureSpecimens = [
       returnLabel: "Back to dispense line 14",
     },
     preservationSummary: "Preserve the active dispense line, prior checkpoint summary, and case context.",
-    whatUsuallyAppears: "Line-level dispense progress, handoff state, and governed release controls.",
+    whatUsuallyAppears: "Line-level dispense progress, handoff state, and approved release controls.",
     withheldSummary: "Further dispense actions are blocked until reconciliation succeeds.",
-    liveContentSummary: "The last safe case summary stays visible beneath the blocked posture.",
+    liveContentSummary: "The last safe case summary stays visible beneath the blocked status.",
     rationale:
       "Blocked recovery keeps the same shell and current line visible while one dominant repair path takes precedence.",
     minimumHeightPx: 420,
@@ -731,7 +731,7 @@ export const surfacePostureSpecimens = [
       recoveryAction(
         "reconcile_line",
         "Reconcile the blocked line",
-        "Run the governed reconcile path before any release or handoff resumes.",
+        "Run the approved reconcile path before any release or handoff resumes.",
         "dominant",
         "resume",
       ),
@@ -754,10 +754,10 @@ export const surfacePostureSpecimens = [
     audience: "governance",
     scope: "artifact",
     regionLabel: "Policy diff review",
-    title: "The diff remains visible, but writable posture is fenced",
+    title: "The diff remains visible, but writable status is fenced",
     summary:
       "Reviewers keep the scope, verification time, and selected diff anchor while approvals remain read-only.",
-    dominantQuestion: "What can still be reviewed without reopening mutation posture?",
+    dominantQuestion: "What can still be reviewed without reopening mutation status?",
     nextSafeActionLabel: "Review the published diff",
     stateOwner: "GovernanceSurfaceState",
     visibilityState: "full",
@@ -772,11 +772,11 @@ export const surfacePostureSpecimens = [
       returnLabel: "Back to policy paragraph 9",
     },
     preservationSummary: "Keep verification time, scope, and selected diff anchor visible.",
-    whatUsuallyAppears: "Diff canvas, compile verdict, and governed approval controls.",
+    whatUsuallyAppears: "Diff canvas, compile verdict, and approved approval controls.",
     withheldSummary: "Approval and promotion controls stay fenced until trust and publication realign.",
     liveContentSummary: "The published diff and audit summary remain readable.",
     rationale:
-      "Read-only posture must preserve analytical scope without pretending the current surface is writable.",
+      "Read-only status must preserve analytical scope without pretending the current surface is writable.",
     minimumHeightPx: 420,
     missionStackFoldSafe: true,
     placeholderSegments: [
@@ -809,7 +809,7 @@ export const surfacePostureSpecimens = [
     audience: "patient",
     scope: "artifact",
     regionLabel: "Health record result",
-    title: "The record stays structured, but only the governed placeholder is visible",
+    title: "The record stays structured, but only the approved summary is visible",
     summary:
       "The shell preserves the result identity and explanation while previewable content waits for a safer visibility envelope.",
     dominantQuestion: "What is this result, and what is withheld right now?",
@@ -827,16 +827,16 @@ export const surfacePostureSpecimens = [
       returnLabel: "Back to result update from 11 Apr",
     },
     preservationSummary: "Keep the result identity, timing, and return path visible.",
-    whatUsuallyAppears: "Structured summary, record detail, and governed artifact preview.",
+    whatUsuallyAppears: "Structured summary, record detail, and approved artifact preview.",
     withheldSummary: "The result body is withheld until the current visibility envelope allows it.",
     liveContentSummary: "A truthful shell summary remains in place so the page does not jump later.",
     rationale:
-      "Placeholder-only posture must tell the patient what is known and what is still withheld without pretending the record body is ready.",
+      "Summary-only status must tell the patient what is known and what is still withheld without pretending the record body is ready.",
     minimumHeightPx: 420,
     missionStackFoldSafe: true,
     placeholderSegments: [
       placeholder("result-title", "Result title", "Known structure reserved", "line"),
-      placeholder("result-body", "Result body placeholder", "Visibility envelope withheld", "card"),
+      placeholder("result-body", "Result body summary", "Visibility envelope withheld", "card"),
     ],
     recoveryActions: [
       recoveryAction(
@@ -865,7 +865,7 @@ export const surfacePostureSpecimens = [
     audience: "patient",
     scope: "section",
     regionLabel: "Messages",
-    title: "This message thread remains calm but bounded",
+    title: "This message thread remains calm but limited",
     summary:
       "The last trustworthy conversation summary stays visible while the shell suppresses ordinary reassurance until continuity proof returns.",
     dominantQuestion: "What is still safe to understand from this conversation right now?",
@@ -879,7 +879,7 @@ export const surfacePostureSpecimens = [
     selectedAnchor: {
       anchorId: "message_thread_anchor_88",
       label: "Reply summary from care team",
-      summary: "The current thread summary stays visible, but reply posture is suppressed.",
+      summary: "The current thread summary stays visible, but reply status is suppressed.",
       returnLabel: "Back to reply summary",
     },
     preservationSummary: "Preserve the thread summary, sender, and return path while reassurance is suppressed.",
@@ -887,11 +887,11 @@ export const surfacePostureSpecimens = [
     withheldSummary: "Reply readiness and freshness reassurance stay suppressed until continuity proof returns.",
     liveContentSummary: "The patient still sees the current thread summary and safe route context.",
     rationale:
-      "Calm degraded mode preserves the same shell and summary while explicitly suppressing ordinary reassurance or writable posture.",
+      "Calm degraded mode preserves the same shell and summary while explicitly suppressing ordinary reassurance or writable status.",
     minimumHeightPx: 400,
     missionStackFoldSafe: true,
     placeholderSegments: [
-      placeholder("reply-box", "Reply composer", "Writable posture suppressed", "card"),
+      placeholder("reply-box", "Reply composer", "Writable status suppressed", "card"),
     ],
     recoveryActions: [
       recoveryAction(
@@ -913,11 +913,11 @@ export const surfacePostureSpecimens = [
     audience: "hub",
     scope: "region",
     regionLabel: "Transfer coordination",
-    title: "The transfer summary stays visible with one bounded recovery path",
+    title: "The transfer summary stays visible with one limited recovery path",
     summary:
-      "The shell does not reset; it keeps the last safe transfer summary visible and narrows the next move to one governed recovery action.",
+      "The shell does not reset; it keeps the last safe transfer summary visible and narrows the next move to one approved recovery action.",
     dominantQuestion: "Can this transfer recover inside the same shell?",
-    nextSafeActionLabel: "Resume the governed transfer path",
+    nextSafeActionLabel: "Resume the approved transfer path",
     stateOwner: "HubTransferSurfaceState",
     visibilityState: "full",
     freshnessState: "stale_review",
@@ -927,24 +927,24 @@ export const surfacePostureSpecimens = [
     selectedAnchor: {
       anchorId: "transfer_anchor_north_west",
       label: "North west transfer tuple",
-      summary: "The same transfer tuple remains visible while the bounded repair path is armed.",
+      summary: "The same transfer tuple remains visible while the limited repair path is armed.",
       returnLabel: "Back to north west transfer tuple",
     },
     preservationSummary: "Keep the transfer tuple, scope, and last safe summary visible.",
     whatUsuallyAppears: "Transfer readiness, handoff checkpoints, and partner confirmations.",
-    withheldSummary: "Only the governed resume path stays armed until reconciliation succeeds.",
-    liveContentSummary: "The hub keeps the current tuple visible under one bounded resume action.",
+    withheldSummary: "Only the approved resume path stays armed until reconciliation succeeds.",
+    liveContentSummary: "The hub keeps the current tuple visible under one limited resume action.",
     rationale:
-      "Bounded recovery remains distinct from fatal blocked posture when one governed same-shell repair path still exists.",
+      "Limited recovery remains distinct from fatal blocked status when one approved same-shell repair path still exists.",
     minimumHeightPx: 400,
     missionStackFoldSafe: true,
     placeholderSegments: [
-      placeholder("partner-confirmation", "Partner confirmation panel", "Bounded recovery path active", "card"),
+      placeholder("partner-confirmation", "Partner confirmation panel", "Limited recovery path active", "card"),
     ],
     recoveryActions: [
       recoveryAction(
         "resume_transfer",
-        "Resume the governed transfer path",
+        "Resume the approved transfer path",
         "Continue through the only safe recovery path without losing shell context.",
         "dominant",
         "resume",
@@ -1035,7 +1035,7 @@ export function resolveSurfacePostureClass(
       code: "POSTURE_CLASS_MISMATCH",
       severity: "error",
       message:
-        "The declared posture class does not match the shared precedence resolver and may not override the shared taxonomy.",
+        "The declared status class does not match the shared precedence resolver and may not override the shared taxonomy.",
     });
   }
 
@@ -1049,7 +1049,7 @@ export function resolveSurfacePostureClass(
       code: "POSTURE_DOMINANT_ACTION_REQUIRED",
       severity: "error",
       message:
-        "Blocked, bounded-recovery, and empty posture require one dominant safe action.",
+        "Blocked, limited-recovery, and empty status require one dominant safe action.",
     });
   }
 
@@ -1061,7 +1061,7 @@ export function resolveSurfacePostureClass(
       code: "POSTURE_PLACEHOLDER_TRUTH_CONFLICT",
       severity: "warning",
       message:
-        "Placeholder-only posture should reserve truthful known structure so the surface does not jump later.",
+        "Summary-only status should reserve truthful known structure so the surface does not jump later.",
     });
   }
 
@@ -1072,7 +1072,7 @@ export function resolveSurfacePostureClass(
     issues.push({
       code: "POSTURE_READ_ONLY_CONFLICT",
       severity: "error",
-      message: "Read-only posture must fail closed on writable actionability.",
+      message: "Read-only status must fail closed on writable actionability.",
     });
   }
 
@@ -1241,12 +1241,12 @@ export function DegradedModeNoticeStrip({
     contract.postureClass === "blocked_recovery"
       ? "Blocked recovery"
       : contract.postureClass === "bounded_recovery"
-        ? "Bounded recovery"
+        ? "Limited recovery"
         : contract.degradedMode === "calm_degraded"
           ? "Calm degraded mode"
           : contract.postureClass === "stale_review"
             ? "Stale review"
-            : "Same-shell posture";
+            : "Same-shell status";
 
   return (
     <div
@@ -1402,7 +1402,7 @@ export function StaleReviewFrame({ contract }: { contract: SurfacePostureContrac
     <SurfacePostureFrame contract={contract}>
       <FrameBody
         label="Stale review"
-        body="The surface keeps the last stable view visible while freshness evidence is reviewed before action posture returns."
+        body="The surface keeps the last stable view visible while freshness evidence is reviewed before action status returns."
       />
     </SurfacePostureFrame>
   );
@@ -1424,7 +1424,7 @@ export function ReadOnlyFrame({ contract }: { contract: SurfacePostureContract }
     <SurfacePostureFrame contract={contract}>
       <FrameBody
         label="Read-only"
-        body="The analytical or patient-safe summary remains visible, but writable posture is explicitly fenced until trust, freshness, and release proof align."
+        body="The analytical or patient-safe summary remains visible, but writable status is explicitly fenced until trust, freshness, and release proof align."
       />
     </SurfacePostureFrame>
   );
@@ -1434,8 +1434,8 @@ export function PlaceholderOnlyFrame({ contract }: { contract: SurfacePostureCon
   return (
     <SurfacePostureFrame contract={contract}>
       <FrameBody
-        label="Placeholder only"
-        body="Only the governed placeholder footprint is shown, so the shell preserves identity without overclaiming visibility or readiness."
+        label="Summary only"
+        body="Only the approved summary footprint is shown, so the shell preserves identity without overclaiming visibility or readiness."
       />
     </SurfacePostureFrame>
   );

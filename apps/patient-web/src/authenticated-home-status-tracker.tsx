@@ -6,7 +6,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { VecellLogoWordmark } from "@vecells/design-system";
 import {
   AUTHENTICATED_HOME_STATUS_TRACKER_TASK_ID,
   isAuthenticatedHomeStatusTrackerPath,
@@ -20,6 +19,7 @@ import {
   type PatientRequestSummaryProjection,
   type PatientRequestsIndexProjection,
 } from "./authenticated-home-status-tracker.model";
+import { PatientPortalTopBar } from "./patient-portal-top-bar";
 
 const RETURN_BUNDLE_STORAGE_KEY = "authenticated-portal-196::return-bundle";
 
@@ -190,7 +190,7 @@ function SessionExpiryBanner({
           onNavigate(sessionExpiry.state === "expired" ? "/portal/home" : "/portal/session-expired")
         }
       >
-        {sessionExpiry.state === "expired" ? "Resume after sign in" : "Use bounded recovery"}
+        {sessionExpiry.state === "expired" ? "Resume after sign in" : "Use limited recovery"}
       </button>
     </aside>
   );
@@ -356,7 +356,7 @@ function RequestsIndex({
       <div className="authenticated-portal__section-heading">
         <span className="authenticated-portal__eyebrow">Status tracker</span>
         <h1 id="requests-index-title">Your requests</h1>
-        <p>Rows are grouped by canonical request truth, not local route state.</p>
+        <p>Rows are grouped by canonical request verified details, not local route state.</p>
       </div>
       {index.groups.map((group) => (
         <section
@@ -381,6 +381,66 @@ function RequestsIndex({
           </div>
         </section>
       ))}
+    </section>
+  );
+}
+
+function PortalSecondaryRoute({
+  route,
+  home,
+  onNavigate,
+}: {
+  route: "messages" | "account";
+  home: PatientHomeProjection;
+  onNavigate: (pathname: string) => void;
+}) {
+  const isMessages = route === "messages";
+  const title = isMessages ? "Messages and callbacks" : "Account details";
+  const eyebrow = isMessages ? "Patient communications" : "Signed-in account";
+  const body = isMessages
+    ? "Conversation and callback rows stay secondary unless they block the current request action."
+    : "NHS login, identity, and contact preference rows stay readable without replacing request truth.";
+  const primaryLabel = isMessages ? "Review active requests" : "Review request tracker";
+  const secondaryLabel = isMessages ? "Back to home" : "Start a request";
+  const secondaryPath = isMessages ? "/portal/home" : "/portal/start-request";
+
+  return (
+    <section
+      className="authenticated-portal__secondary-route"
+      data-testid={`portal-${route}-route`}
+      aria-labelledby={`portal-${route}-title`}
+    >
+      <div className="authenticated-portal__section-heading">
+        <span className="authenticated-portal__eyebrow">{eyebrow}</span>
+        <h1 id={`portal-${route}-title`}>{title}</h1>
+        <p>{body}</p>
+      </div>
+      <div className="authenticated-portal__secondary-grid">
+        {(isMessages ? home.compactCards.slice(1, 2) : home.compactCards.slice(2, 3)).map(
+          (card) => (
+            <CompactRequestCard key={card.id} card={card} onNavigate={onNavigate} />
+          ),
+        )}
+        <article className="authenticated-portal__detail-card">
+          <h2>{isMessages ? "Current priority" : "Account scope"}</h2>
+          <p>
+            {isMessages
+              ? "The dermatology request remains the promoted action until a message or callback becomes safer to show first."
+              : `${home.patientLabel} - ${home.maskedPatientRef}. Disclosure stays ${home.audienceCoverage.disclosurePosture.replaceAll(
+                  "_",
+                  " ",
+                )}.`}
+          </p>
+          <div className="authenticated-portal__decision-actions">
+            <button type="button" onClick={() => onNavigate("/portal/requests")}>
+              {primaryLabel}
+            </button>
+            <button type="button" onClick={() => onNavigate(secondaryPath)}>
+              {secondaryLabel}
+            </button>
+          </div>
+        </article>
+      </div>
     </section>
   );
 }
@@ -444,7 +504,7 @@ function RequestDetail({
           </ol>
         </section>
         <section className="authenticated-portal__detail-card" data-testid="decision-dock">
-          <h2>DecisionDock</h2>
+          <h2>Next action</h2>
           <div className="authenticated-portal__decision-actions">
             {detail.decisionDock.map((action) => (
               <button key={action.label} type="button" data-actionability={action.actionability}>
@@ -489,6 +549,10 @@ function PortalShell({
         onOpenRequest={onOpenRequest}
       />
     );
+  } else if (entry.routeKey === "messages" || entry.routeKey === "account") {
+    mainContent = (
+      <PortalSecondaryRoute route={entry.routeKey} home={home} onNavigate={onNavigate} />
+    );
   } else {
     mainContent = (
       <div className="authenticated-portal__home-grid" data-testid="authenticated-patient-home">
@@ -531,15 +595,20 @@ function PortalShell({
       data-route-key={entry.routeKey}
       data-visual-mode={entry.visualMode}
     >
-      <header className="authenticated-portal__top-band" data-testid="portal-top-band">
-        <div>
-          <VecellLogoWordmark aria-hidden="true" className="authenticated-portal__wordmark" />
-          <span>
-            {home.patientLabel} - {home.maskedPatientRef}
-          </span>
-        </div>
-        <AudienceCoverageBadge coverage={home.audienceCoverage} />
-      </header>
+      <PatientPortalTopBar
+        current={
+          entry.routeKey === "messages"
+            ? "messages"
+            : entry.routeKey === "account"
+              ? "account"
+              : entry.routeKey === "requests_index"
+                ? "requests"
+                : "home"
+        }
+        patientRef={`${home.patientLabel} - ${home.maskedPatientRef}`}
+        testId="portal-top-band"
+        actions={<AudienceCoverageBadge coverage={home.audienceCoverage} />}
+      />
       <div className="authenticated-portal__layout">
         <nav
           className="authenticated-portal__nav"

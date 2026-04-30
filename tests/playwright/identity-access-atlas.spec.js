@@ -29,6 +29,32 @@ async function importPlaywright() {
   }
 }
 
+async function waitForTestIdFocus(page, testId, message, timeoutMs = 3000) {
+  const startedAt = Date.now();
+  let activeTestId = null;
+  while (Date.now() - startedAt < timeoutMs) {
+    activeTestId = await page.evaluate(() => document.activeElement?.getAttribute("data-testid"));
+    if (activeTestId === testId) {
+      return;
+    }
+    await page.waitForTimeout(50);
+  }
+  throw new Error(`${message} Active test id: ${activeTestId ?? "none"}.`);
+}
+
+async function waitForSelected(locator, message, timeoutMs = 3000) {
+  const startedAt = Date.now();
+  let selected = null;
+  while (Date.now() - startedAt < timeoutMs) {
+    selected = await locator.getAttribute("data-selected");
+    if (selected === "true") {
+      return;
+    }
+    await locator.page().waitForTimeout(50);
+  }
+  throw new Error(`${message} Last data-selected: ${selected ?? "missing"}.`);
+}
+
 function startStaticServer() {
   return new Promise((resolve, reject) => {
     const server = http.createServer((req, res) => {
@@ -124,18 +150,19 @@ async function run() {
     await page.locator("[data-testid='action-scope-filter']").selectOption("all");
     await page.locator("[data-testid='binding-node-IB_068_001']").focus();
     await page.keyboard.press("ArrowDown");
-    const nextBindingSelected = await page
-      .locator("[data-testid='binding-node-IB_068_002']")
-      .getAttribute("data-selected");
-    assertCondition(nextBindingSelected === "true", "ArrowDown did not advance binding selection.");
+    await waitForSelected(
+      page.locator("[data-testid='binding-node-IB_068_002']"),
+      "ArrowDown did not advance binding selection.",
+    );
+    await waitForTestIdFocus(
+      page,
+      "binding-node-IB_068_002",
+      "Binding keyboard navigation did not restore focus.",
+    );
 
-    await page.locator("[data-testid='redemption-row-AGR_068_PUBLIC_STATUS']").focus();
-    await page.keyboard.press("ArrowDown");
-    const nextGrantSelected = await page
-      .locator("[data-testid='redemption-row-AGR_068_CLAIM_STEP_UP']")
-      .getAttribute("data-selected");
-    assertCondition(
-      nextGrantSelected === "true",
+    await page.locator("[data-testid='redemption-row-AGR_068_PUBLIC_STATUS']").press("ArrowDown");
+    await waitForSelected(
+      page.locator("[data-testid='redemption-row-AGR_068_CLAIM_STEP_UP']"),
       "Redemption keyboard navigation did not advance selection.",
     );
 

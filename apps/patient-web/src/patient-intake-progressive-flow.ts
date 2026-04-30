@@ -12,7 +12,10 @@ export type ProgressiveAnswerType =
   | "short_text"
   | "short_text_or_unknown"
   | "long_text";
-export type ProgressiveCompatibilityMode = "resume_compatible" | "review_migration_required" | "blocked";
+export type ProgressiveCompatibilityMode =
+  | "resume_compatible"
+  | "review_migration_required"
+  | "blocked";
 
 export interface ProgressiveQuestionDefinition {
   questionKey: string;
@@ -88,7 +91,11 @@ export interface ProgressiveSummaryChip {
 }
 
 export interface ProgressiveValidationIssue {
-  code: "FIELD_REQUIRED" | "FIELD_TYPE_INVALID" | "FIELD_CARDINALITY_INVALID" | "FIELD_VALUE_NOT_ALLOWED";
+  code:
+    | "FIELD_REQUIRED"
+    | "FIELD_TYPE_INVALID"
+    | "FIELD_CARDINALITY_INVALID"
+    | "FIELD_VALUE_NOT_ALLOWED";
   questionKey: string;
   message: string;
 }
@@ -149,25 +156,39 @@ const questionDefinitions = (
   questionDefinitionContract.questionDefinitions as readonly ProgressiveQuestionDefinition[]
 ).filter((definition) => definition.stepKey === "details");
 
-const requestTypeUiProfiles = progressiveUiContract.requestTypeUiProfiles as readonly ProgressiveQuestionUiProfile[];
+const requestTypeUiProfiles =
+  progressiveUiContract.requestTypeUiProfiles as readonly ProgressiveQuestionUiProfile[];
 
 const summaryRendererLabels = new Map(
   progressiveUiContract.summaryRendererLabels.map((entry) => [entry.summaryRenderer, entry.label]),
 );
+
+const summaryLabelOverridesByQuestionKey: Record<string, string> = {
+  "meds.nameKnown": "Medicine name known",
+  "meds.nameUnknownReason": "Why the name is unknown",
+};
 
 const compatibilitySheets = new Map(
   progressiveUiContract.bundleCompatibilitySheets.map((entry) => [entry.compatibilityMode, entry]),
 );
 
 const requestTypeQuestionKeys = new Map(
-  requestTypeTaxonomyArtifact.questionSets.map((entry) => [entry.requestType as ProgressiveRequestType, entry.questionKeys]),
+  requestTypeTaxonomyArtifact.questionSets.map((entry) => [
+    entry.requestType as ProgressiveRequestType,
+    entry.questionKeys,
+  ]),
 );
 
 const requestTypeGroupProfiles = new Map(
-  progressiveUiContract.questionGroupProfiles.map((entry) => [entry.requestType as ProgressiveRequestType, entry]),
+  progressiveUiContract.questionGroupProfiles.map((entry) => [
+    entry.requestType as ProgressiveRequestType,
+    entry,
+  ]),
 );
 
-const questionDefinitionsByKey = new Map(questionDefinitions.map((definition) => [definition.questionKey, definition]));
+const questionDefinitionsByKey = new Map(
+  questionDefinitions.map((definition) => [definition.questionKey, definition]),
+);
 
 function parsePredicate(expression: string): readonly PredicateClause[] {
   const trimmed = expression.trim();
@@ -201,7 +222,9 @@ const compiledDefinitions = questionDefinitions.map((definition) => ({
   requiredClauses: parsePredicate(definition.requiredWhen),
 }));
 
-const compiledDefinitionByKey = new Map(compiledDefinitions.map((definition) => [definition.questionKey, definition]));
+const compiledDefinitionByKey = new Map(
+  compiledDefinitions.map((definition) => [definition.questionKey, definition]),
+);
 
 function evaluatePredicate(
   clauses: readonly PredicateClause[],
@@ -308,11 +331,11 @@ const answerLabelOverrides: Record<string, Record<string, string>> = {
 
 const helpContentOverrides: Record<string, string> = {
   "help.symptoms.category.v1":
-    "This keeps the request on one symptom schema from the start rather than hiding meaning in free text.",
+    "This keeps the request focused on one symptom from the start rather than hiding meaning in free text.",
   "help.symptoms.chest_location.v1":
     "This answer supports red-flag screening and stays visible for review if the branch changes.",
   "help.symptoms.onset.v1":
-    "Phase 1 allows exact, approximate, or unknown onset without forcing a made-up date.",
+    "You can give an exact date, an approximate date, or say you are not sure.",
   "help.symptoms.severity.v1":
     "We only ask for the clues that change triage, not a long severity questionnaire.",
   "help.free_text.v1":
@@ -324,17 +347,13 @@ const helpContentOverrides: Record<string, string> = {
   "help.meds.issue_type.v1":
     "Use the current medicine problem in your own words, not a full medicine history.",
   "help.admin.support_type.v1":
-    "Pick the one admin outcome you need most. You can add bounded detail next.",
-  "help.admin.deadline.v1":
-    "We only ask for a deadline when you confirm one exists.",
-  "help.admin.reference.v1":
-    "A reference number helps only when you already have one.",
-  "help.results.context.v1":
-    "This keeps the result question tied to one test context.",
+    "Pick the one admin outcome you need most. You can add more detail next.",
+  "help.admin.deadline.v1": "We only ask for a deadline when you confirm one exists.",
+  "help.admin.reference.v1": "A reference number helps only when you already have one.",
+  "help.results.context.v1": "This keeps the result question tied to one test context.",
   "help.results.test_name.v1":
     "A short test name is enough. Do not rewrite the whole result letter.",
-  "help.results.date.v1":
-    "Tell us the date only if you know it. Not sure is an acceptable answer.",
+  "help.results.date.v1": "Tell us the date only if you know it. Not sure is an acceptable answer.",
 };
 
 const branchDependentKeys = new Set<string>();
@@ -412,7 +431,10 @@ function validateAnswerValue(
         message: "This answer is not in the expected format.",
       };
     }
-    if (definition.allowedAnswers && value.some((entry) => !definition.allowedAnswers?.includes(entry))) {
+    if (
+      definition.allowedAnswers &&
+      value.some((entry) => !definition.allowedAnswers?.includes(entry))
+    ) {
       return {
         code: "FIELD_VALUE_NOT_ALLOWED",
         questionKey: definition.questionKey,
@@ -488,7 +510,8 @@ function validateAnswerValue(
 
 function sortQuestionKeys(questionKeys: readonly string[]): string[] {
   return [...questionKeys].sort((left, right) => {
-    const requestType = (questionDefinitionsByKey.get(left)?.requestType ?? "Symptoms") as ProgressiveRequestType;
+    const requestType = (questionDefinitionsByKey.get(left)?.requestType ??
+      "Symptoms") as ProgressiveRequestType;
     const order = requestTypeQuestionKeys.get(requestType) ?? [];
     return order.indexOf(left) - order.indexOf(right);
   });
@@ -502,16 +525,19 @@ function getRootQuestionKeys(requestType: ProgressiveRequestType): readonly stri
   return getGroupProfile(requestType).rootQuestionKeys;
 }
 
-function getDependentQuestionKeys(controllerQuestionKey: string, requestType: ProgressiveRequestType): readonly string[] {
+function getDependentQuestionKeys(
+  controllerQuestionKey: string,
+  requestType: ProgressiveRequestType,
+): readonly string[] {
   const dependency = getGroupProfile(requestType).dependencies.find(
     (entry) => entry.controllerQuestionKey === controllerQuestionKey,
   );
   return dependency?.dependentQuestionKeys ?? [];
 }
 
-function formatAnswerValue(questionKey: string, value: unknown): string {
+function formatAnswerValue(definition: ProgressiveQuestionDefinition, value: unknown): string {
   if (Array.isArray(value)) {
-    return value.map((entry) => formatAnswerValue(questionKey, entry)).join(", ");
+    return value.map((entry) => formatAnswerValue(definition, entry)).join(", ");
   }
   if (typeof value === "boolean") {
     return value ? "Yes" : "No";
@@ -519,7 +545,16 @@ function formatAnswerValue(questionKey: string, value: unknown): string {
   if (typeof value !== "string") {
     return String(value ?? "");
   }
-  return answerLabelOverrides[questionKey]?.[value] ?? humanizeToken(value);
+  if (
+    definition.answerType === "short_text" ||
+    definition.answerType === "short_text_or_unknown" ||
+    definition.answerType === "long_text" ||
+    definition.answerType === "date" ||
+    definition.answerType === "partial_date"
+  ) {
+    return value;
+  }
+  return answerLabelOverrides[definition.questionKey]?.[value] ?? humanizeToken(value);
 }
 
 function buildSummaryChip(questionKey: string, value: unknown): ProgressiveSummaryChip | null {
@@ -529,8 +564,11 @@ function buildSummaryChip(questionKey: string, value: unknown): ProgressiveSumma
   }
   return {
     questionKey,
-    label: summaryRendererLabels.get(definition.summaryRenderer) ?? definition.promptLabel,
-    value: formatAnswerValue(questionKey, value),
+    label:
+      summaryLabelOverridesByQuestionKey[questionKey] ??
+      summaryRendererLabels.get(definition.summaryRenderer) ??
+      definition.promptLabel,
+    value: formatAnswerValue(definition, value),
     rendererRef: definition.summaryRenderer,
   };
 }
@@ -637,7 +675,8 @@ export function ensureProgressiveState<T extends ProgressiveFlowMemoryShape>(mem
     ...memory,
     structuredAnswers,
     supersededAnswers: memory.supersededAnswers ?? [],
-    detailsCursorQuestionKey: memory.detailsCursorQuestionKey ?? fallbackCursorQuestionKey(memory.requestType),
+    detailsCursorQuestionKey:
+      memory.detailsCursorQuestionKey ?? fallbackCursorQuestionKey(memory.requestType),
     pendingRequestTypeChange: memory.pendingRequestTypeChange ?? null,
     bundleCompatibilityMode: memory.bundleCompatibilityMode ?? "resume_compatible",
     bundleCompatibilityScenarioId:
@@ -664,7 +703,8 @@ export function selectRequestType<T extends ProgressiveFlowMemoryShape>(
   }
   const impactedQuestionKeys = sortQuestionKeys(
     Object.keys(currentAnswers).filter(
-      (questionKey) => questionDefinitionsByKey.get(questionKey)?.requestType === current.requestType,
+      (questionKey) =>
+        questionDefinitionsByKey.get(questionKey)?.requestType === current.requestType,
     ),
   );
   if (impactedQuestionKeys.length === 0) {
@@ -725,27 +765,33 @@ export function confirmRequestTypeChange<T extends ProgressiveFlowMemoryShape>(m
     ...current,
     requestType: current.pendingRequestTypeChange.nextRequestType,
     structuredAnswers: {},
-    detailsCursorQuestionKey: fallbackCursorQuestionKey(current.pendingRequestTypeChange.nextRequestType),
+    detailsCursorQuestionKey: fallbackCursorQuestionKey(
+      current.pendingRequestTypeChange.nextRequestType,
+    ),
     supersededAnswers,
     pendingRequestTypeChange: null,
-    deltaNotice: current.pendingRequestTypeChange.safetyRelevantQuestionKeys.length > 0
-      ? {
-          kind: "safety_review_required",
-          title: progressiveUiContract.requestTypeChangePolicy.safetyReviewTitle,
-          body: progressiveUiContract.requestTypeChangePolicy.safetyReviewBody,
-          impactedQuestionKeys: current.pendingRequestTypeChange.safetyRelevantQuestionKeys,
-        }
-      : {
-          kind: "branch_superseded",
-          title: "Request type changed",
-          body: "Earlier branch answers were superseded and removed from the active summary before the new path begins.",
-          impactedQuestionKeys: current.pendingRequestTypeChange.impactedQuestionKeys,
-        },
+    deltaNotice:
+      current.pendingRequestTypeChange.safetyRelevantQuestionKeys.length > 0
+        ? {
+            kind: "safety_review_required",
+            title: progressiveUiContract.requestTypeChangePolicy.safetyReviewTitle,
+            body: progressiveUiContract.requestTypeChangePolicy.safetyReviewBody,
+            impactedQuestionKeys: current.pendingRequestTypeChange.safetyRelevantQuestionKeys,
+          }
+        : {
+            kind: "branch_superseded",
+            title: "Request type changed",
+            body: "Earlier branch answers were superseded and removed from the active summary before the new path begins.",
+            impactedQuestionKeys: current.pendingRequestTypeChange.impactedQuestionKeys,
+          },
     reviewAffirmed: current.pendingRequestTypeChange.safetyRelevantQuestionKeys.length === 0,
   };
 }
 
-export function toggleHelperForQuestion<T extends ProgressiveFlowMemoryShape>(memory: T, questionKey: string): T {
+export function toggleHelperForQuestion<T extends ProgressiveFlowMemoryShape>(
+  memory: T,
+  questionKey: string,
+): T {
   const current = ensureProgressiveState(memory);
   return {
     ...current,
@@ -780,7 +826,8 @@ export function answerProgressiveQuestion<T extends ProgressiveFlowMemoryShape>(
     structuredAnswers: supersession.answers,
     supersededAnswers: supersession.supersededAnswers,
     deltaNotice: supersession.deltaNotice,
-    reviewAffirmed: supersession.safetyRelevantQuestionKeys.length === 0 ? current.reviewAffirmed : false,
+    reviewAffirmed:
+      supersession.safetyRelevantQuestionKeys.length === 0 ? current.reviewAffirmed : false,
   };
 }
 
@@ -846,14 +893,17 @@ function collectContextChips(
     .slice(-3);
 }
 
-export function validateCurrentQuestionFrame(memory: ProgressiveFlowMemoryShape): readonly ProgressiveValidationIssue[] {
+export function validateCurrentQuestionFrame(
+  memory: ProgressiveFlowMemoryShape,
+): readonly ProgressiveValidationIssue[] {
   const current = ensureProgressiveState(memory);
   const answers = current.structuredAnswers ?? {};
   const { visibleKeys, requiredKeys } = getVisibleState(current.requestType, answers);
   const rootQuestionKey = getCurrentRootQuestionKey(current);
-  const fieldKeys = [rootQuestionKey, ...getDependentQuestionKeys(rootQuestionKey, current.requestType)].filter(
-    (questionKey) => visibleKeys.has(questionKey),
-  );
+  const fieldKeys = [
+    rootQuestionKey,
+    ...getDependentQuestionKeys(rootQuestionKey, current.requestType),
+  ].filter((questionKey) => visibleKeys.has(questionKey));
   return fieldKeys
     .map((questionKey) => {
       const definition = questionDefinitionsByKey.get(questionKey);
@@ -881,7 +931,7 @@ export function moveDetailsForward<T extends ProgressiveFlowMemoryShape>(
   memory: T,
 ): { nextMemory: T; complete: boolean; validationIssues: readonly ProgressiveValidationIssue[] } {
   const current = ensureProgressiveState(memory);
-  const nextDeltaNotice = current.reviewAffirmed ? null : current.deltaNotice ?? null;
+  const nextDeltaNotice = current.reviewAffirmed ? null : (current.deltaNotice ?? null);
   const validationIssues = validateCurrentQuestionFrame(current);
   if (validationIssues.length > 0) {
     return {
@@ -918,10 +968,12 @@ export function buildProgressiveFlowView(memory: ProgressiveFlowMemoryShape): Pr
   const answers = current.structuredAnswers ?? {};
   const { visibleKeys, requiredKeys } = getVisibleState(current.requestType, answers);
   const rootQuestionKey = getCurrentRootQuestionKey(current);
-  const revealQuestionKeys = getDependentQuestionKeys(rootQuestionKey, current.requestType).filter((questionKey) =>
+  const revealQuestionKeys = getDependentQuestionKeys(rootQuestionKey, current.requestType).filter(
+    (questionKey) => visibleKeys.has(questionKey),
+  );
+  const fieldKeys = [rootQuestionKey, ...revealQuestionKeys].filter((questionKey) =>
     visibleKeys.has(questionKey),
   );
-  const fieldKeys = [rootQuestionKey, ...revealQuestionKeys].filter((questionKey) => visibleKeys.has(questionKey));
   const rootQuestionDefinition = questionDefinitionsByKey.get(rootQuestionKey)!;
   const rootQuestionKeys = getRootQuestionKeys(current.requestType);
   const validationIssues = validateCurrentQuestionFrame(current);
@@ -931,10 +983,13 @@ export function buildProgressiveFlowView(memory: ProgressiveFlowMemoryShape): Pr
       requestType: current.requestType,
       rootQuestionKey,
       title: rootQuestionDefinition.promptLabel,
-      helper: "Answer one bounded question at a time. Dependent detail appears only when the active answer requires it.",
+      helper:
+        "Answer one question at a time. Extra detail appears only when it helps us understand what you need.",
       currentIndex: Math.max(rootQuestionKeys.indexOf(rootQuestionKey), 0),
       totalGroups: rootQuestionKeys.length,
-      fields: fieldKeys.map((questionKey) => buildFieldView(questionKey, current, visibleKeys, requiredKeys)),
+      fields: fieldKeys.map((questionKey) =>
+        buildFieldView(questionKey, current, visibleKeys, requiredKeys),
+      ),
       contextChips: collectContextChips(current.requestType, answers, visibleKeys, rootQuestionKey),
       summaryChips: collectActiveSummaryChips(current.requestType, answers, visibleKeys),
       revealQuestionKeys,
@@ -964,7 +1019,9 @@ export function projectNarrativeAnswer(memory: ProgressiveFlowMemoryShape): stri
   return typeof narrative === "string" ? narrative : "";
 }
 
-export function buildAnswerOptions(questionKey: string): readonly { value: string; label: string }[] {
+export function buildAnswerOptions(
+  questionKey: string,
+): readonly { value: string; label: string }[] {
   const definition = questionDefinitionsByKey.get(questionKey);
   if (!definition?.allowedAnswers) {
     return [];
@@ -980,6 +1037,28 @@ export function hasRequestTypeAnswers(memory: ProgressiveFlowMemoryShape): boole
   return Object.keys(current.structuredAnswers ?? {}).some(
     (questionKey) => questionDefinitionsByKey.get(questionKey)?.requestType === current.requestType,
   );
+}
+
+function answerList(value: unknown): readonly string[] {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === "string")
+    : [];
+}
+
+export function hasBoundedUrgentDiversionSignal(memory: ProgressiveFlowMemoryShape): boolean {
+  const current = ensureProgressiveState(memory);
+  const answers = current.structuredAnswers ?? {};
+  if (current.requestType === "Symptoms") {
+    const severityClues = answerList(answers["symptoms.severityClues"]);
+    return (
+      answers["symptoms.category"] === "chest_breathing" ||
+      (answers["symptoms.worseningNow"] === true && severityClues.includes("sudden_change"))
+    );
+  }
+  if (current.requestType === "Meds") {
+    return answers["meds.urgency"] === "urgent_today";
+  }
+  return false;
 }
 
 export function isSafetyReviewPending(memory: ProgressiveFlowMemoryShape): boolean {

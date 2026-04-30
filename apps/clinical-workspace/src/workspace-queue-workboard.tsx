@@ -139,10 +139,10 @@ export function QueueChangeBatchBanner({
           focusConflictState: "clear",
           impactClass: batch.batchImpactClass,
           title: batch.summaryMessage,
-          summary: `Preserve ${batch.preservedAnchorRef} until the target snapshot ${batch.targetRankSnapshotRef} is explicitly applied.`,
+          summary: "Keep the selected queue row in place until the reviewed update is applied.",
           applyLabel: "Apply queued changes",
           applyEnabled: true,
-          applyReason: "Compatibility wrapper for the original queue batch banner contract.",
+          applyReason: "Compatibility wrapper for the original queue batch banner rules.",
           reviewLabel: "Review buffered queue changes",
           deferLabel: "Review later",
           totalCount:
@@ -178,7 +178,7 @@ export function QueueAnchorStub({
   return (
     <section className="staff-shell__queue-anchor-stub" data-testid="queue-anchor-stub" data-stub-state={stub.stubState}>
       <div>
-        <span className="staff-shell__eyebrow">QueueAnchorStub</span>
+        <span className="staff-shell__eyebrow">Queue anchor</span>
         <strong>{stub.title}</strong>
         <p>{stub.summary}</p>
       </div>
@@ -389,7 +389,7 @@ export function QueuePreviewPocket({
       </div>
       <dl className="staff-shell__preview-pocket-grid">
         <div>
-          <dt>Delta</dt>
+          <dt>Change</dt>
           <dd>{digest.materialDeltaSummaryRef}</dd>
         </div>
         <div>
@@ -402,7 +402,11 @@ export function QueuePreviewPocket({
         </div>
         <div>
           <dt>Patient expectation</dt>
-          <dd>{mergeDigest.patientExpectationDigest ?? "No patient expectation digest"}</dd>
+          <dd>
+            {mergeDigest.patientExpectationDigest
+              ? mergeDigest.patientExpectationDigest.replaceAll("_", " ")
+              : "No patient expectation digest"}
+          </dd>
         </div>
       </dl>
       <div className="staff-shell__preview-pocket-actions">

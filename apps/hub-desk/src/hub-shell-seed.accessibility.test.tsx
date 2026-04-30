@@ -52,7 +52,7 @@ describe("hub shell accessibility surface", () => {
 
     expect(html).toContain('role="banner"');
     expect(html).toContain('role="main"');
-    expect(html).toContain('aria-label="Hub shell navigation"');
+    expect(html).toContain('aria-label="Hub navigation"');
     expect(html).toContain('data-dominant-region="true"');
     expect(html).toContain('data-hub-start-of-day="true"');
     expect(html).toContain('data-testid="hub-shell-root"');

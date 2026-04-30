@@ -214,7 +214,7 @@ export function PharmacyCaseResumeStub(props: {
       data-visual-mode={PHARMACY_MISSION_STACK_RECOVERY_VISUAL_MODE}
     >
       <div className="pharmacy-case-resume-stub__copy">
-        <p className="pharmacy-mission-stack-kicker">Resume stub</p>
+        <p className="pharmacy-mission-stack-kicker">Resume summary</p>
         <h3>{stub.patientLabel}</h3>
         <p>{stub.summary}</p>
       </div>
@@ -259,13 +259,13 @@ export function PharmacyRecoveryStrip(props: {
       aria-live={strip.tone === "blocked" ? "assertive" : "polite"}
     >
       <div className="pharmacy-recovery-strip-v2__copy">
-        <p className="pharmacy-mission-stack-kicker">Recovery posture</p>
+        <p className="pharmacy-mission-stack-kicker">Recovery status</p>
         <h2>{strip.title}</h2>
         <p>{strip.summary}</p>
       </div>
       <dl className="pharmacy-recovery-strip-v2__facts">
         <div>
-          <dt>Posture</dt>
+          <dt>Status</dt>
           <dd>{strip.postureLabel}</dd>
         </div>
         <div>

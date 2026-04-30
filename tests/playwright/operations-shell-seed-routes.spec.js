@@ -68,6 +68,10 @@ async function telemetryCount(page) {
   return await page.locator("[data-testid='ops-telemetry-log'] li").count();
 }
 
+async function telemetryStateCount(page) {
+  return await page.evaluate(() => window.__opsShellState?.telemetryCount ?? 0);
+}
+
 export async function run() {
   assertCondition(fs.existsSync(ARTIFACT_PATH), "Operations mock projection artifact is missing.");
   assertCondition(fs.existsSync(GALLERY_PATH), "Operations shell gallery HTML is missing.");
@@ -111,10 +115,13 @@ export async function run() {
     await expectAttribute(root, "data-layout-mode", "two_plane");
     await expectAttribute(root, "data-automation-surface", "rf_operations_board");
 
-    const telemetryBefore = await telemetryCount(page);
+    const telemetryBefore = await telemetryStateCount(page);
     await page.locator("[data-testid='ops-anomaly-ops-route-04']").click();
     await expectAttribute(root, "data-selected-anomaly-id", "ops-route-04");
-    assertCondition((await telemetryCount(page)) > telemetryBefore, "Anomaly selection did not emit telemetry.");
+    assertCondition(
+      (await telemetryStateCount(page)) > telemetryBefore,
+      "Anomaly selection did not emit telemetry.",
+    );
 
     await page.locator("[data-testid='ops-delta-buffered']").click();
     await expectAttribute(root, "data-delta-gate", "buffered");
@@ -129,14 +136,17 @@ export async function run() {
     await page.locator("[data-testid='ops-compare-route']").waitFor();
     await expectAttribute(root, "data-layout-mode", "three_plane");
     await page.locator("[data-testid='ops-return-button']").click();
+    await expectAttribute(root, "data-current-path", "/ops/overview");
 
     await page.locator("[data-testid='ops-route-button-interventions']").click();
     await page.locator("[data-testid='ops-intervention-route']").waitFor();
     await page.locator("[data-testid='ops-return-button']").click();
+    await expectAttribute(root, "data-current-path", "/ops/overview");
 
     await page.locator("[data-testid='ops-route-button-health']").click();
     await page.locator("[data-testid='ops-health-route']").waitFor();
     await page.locator("[data-testid='ops-return-button']").click();
+    await expectAttribute(root, "data-current-path", "/ops/overview");
 
     await page.locator("[data-testid='ops-delta-stale']").click();
     await expectAttribute(root, "data-workbench-state", "frozen");
@@ -154,12 +164,18 @@ export async function run() {
     await page.waitForTimeout(150);
     await expectAttribute(root, "data-layout-mode", "mission_stack");
 
+    await assertHidden(page, "[data-testid='ops-focus-restore-marker']");
+
+    assertCondition(
+      (await telemetryCount(page)) === 0,
+      "Telemetry log is visible on the default operations route.",
+    );
+    await page.goto(`${APP_URL}/ops/overview?diagnostics=ops`, { waitUntil: "networkidle" });
+    const diagnosticsTelemetry = await telemetryCount(page);
+    assertCondition(diagnosticsTelemetry > 0, "Diagnostics telemetry did not render behind the ops flag.");
     const focusRestoreMarker = page.locator("[data-testid='ops-focus-restore-marker']");
     await focusRestoreMarker.waitFor();
     await expectAttribute(focusRestoreMarker, "data-dom-marker", "focus-restore");
-
-    const telemetryAfter = await telemetryCount(page);
-    assertCondition(telemetryAfter >= 5, "Telemetry log did not accumulate the expected board-state events.");
     assert.equal(externalRequests.size, 0, `Unexpected external requests: ${[...externalRequests].join(", ")}`);
 
     const reducedContext = await browser.newContext({
@@ -172,7 +188,9 @@ export async function run() {
       .locator("[data-testid='ops-anomaly-ops-route-07']")
       .evaluate((element) => window.getComputedStyle(element).transitionDuration);
     assertCondition(
-      transitionDuration.includes("0.01ms") || transitionDuration.includes("1e-05s"),
+      transitionDuration.includes("0s") ||
+        transitionDuration.includes("0.01ms") ||
+        transitionDuration.includes("1e-05s"),
       `Reduced-motion transition did not collapse as expected: ${transitionDuration}`,
     );
     await reducedContext.close();

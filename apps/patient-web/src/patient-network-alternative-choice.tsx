@@ -1,8 +1,9 @@
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
-import { VecellLogoWordmark } from "@vecells/design-system";
 import { resolvePortalSupportPhase2Context } from "../../../packages/domain-kernel/src/patient-support-phase2-integration";
 import "./patient-network-alternative-choice.css";
+import "./patient-portal-unified-system.css";
 import { PatientSupportPhase2Bridge } from "./patient-support-phase2-bridge";
+import { PatientPortalTopBar } from "./patient-portal-top-bar";
 import {
   BookingResponsiveProvider,
   BookingResponsiveStage,
@@ -32,8 +33,7 @@ import {
 
 export { isPatientNetworkAlternativeChoicePath };
 
-const NETWORK_CHOICE_RESTORE_STORAGE_KEY =
-  "patient-network-choice-328::restore-bundle";
+const NETWORK_CHOICE_RESTORE_STORAGE_KEY = "patient-network-choice-328::restore-bundle";
 
 type NetworkChoiceLocalActionState =
   | "idle"
@@ -98,10 +98,8 @@ function buildReturnContract(
   const params = new URLSearchParams(search);
   const originKey = normalizeOriginKey(params.get("origin"));
   const returnRouteRef = normalizeReturnRoute(params.get("returnRoute"));
-  const selectedAnchorRef =
-    params.get("anchor") ?? projection.session.selectedAnchorRef;
-  const selectedAnchorLabel =
-    params.get("anchorLabel") ?? "Network alternative choice";
+  const selectedAnchorRef = params.get("anchor") ?? projection.session.selectedAnchorRef;
+  const selectedAnchorLabel = params.get("anchorLabel") ?? "Network alternative choice";
 
   return {
     originKey,
@@ -140,10 +138,7 @@ function readRestoreBundle(): NetworkChoiceRestoreBundle | null {
 
 function writeRestoreBundle(bundle: NetworkChoiceRestoreBundle, replace = true): void {
   const ownerWindow = safeWindow();
-  ownerWindow?.sessionStorage.setItem(
-    NETWORK_CHOICE_RESTORE_STORAGE_KEY,
-    JSON.stringify(bundle),
-  );
+  ownerWindow?.sessionStorage.setItem(NETWORK_CHOICE_RESTORE_STORAGE_KEY, JSON.stringify(bundle));
   const nextState = {
     ...(ownerWindow?.history.state ?? {}),
     networkChoice: bundle,
@@ -166,22 +161,19 @@ function focusOfferCard(offerEntryId: string | null): void {
     return;
   }
   safeDocument()
-    ?.querySelector<HTMLElement>(`[data-offer-card='${offerEntryId}'] .patient-network-choice__card-button`)
+    ?.querySelector<HTMLElement>(
+      `[data-offer-card='${offerEntryId}'] .patient-network-choice__card-button`,
+    )
     ?.focus({ preventScroll: true });
 }
 
-function describeOffer(card: AlternativeOfferCardProjection328 | null): string {
-  if (!card) {
-    return "No option selected yet.";
-  }
-  return `${card.siteLabel}, ${card.patientFacingLabel}, ${card.modalityLabel}.`;
-}
-
-function resolveRuntimeTruth(projection: PatientNetworkAlternativeChoiceProjection, actionState: NetworkChoiceLocalActionState) {
+function resolveRuntimeTruth(
+  projection: PatientNetworkAlternativeChoiceProjection,
+  actionState: NetworkChoiceLocalActionState,
+) {
   const truth = projection.truthProjection;
   let offerState: HubOfferProjectionOfferState = truth.offerState;
-  let offerActionabilityState: HubOfferProjectionActionabilityState =
-    truth.offerActionabilityState;
+  let offerActionabilityState: HubOfferProjectionActionabilityState = truth.offerActionabilityState;
   let fallbackLinkState: HubOfferProjectionFallbackLinkState = truth.fallbackLinkState;
   let confirmationTruthState: HubOfferProjectionConfirmationTruthState =
     truth.confirmationTruthState;
@@ -230,11 +222,11 @@ function groupedOfferCards(projection: PatientNetworkAlternativeChoiceProjection
 
 function useNetworkChoiceController() {
   const ownerWindow = safeWindow();
-  const initialPathname = ownerWindow?.location.pathname ?? "/bookings/network/offer_session_328_live";
+  const initialPathname =
+    ownerWindow?.location.pathname ?? "/bookings/network/offer_session_328_live";
   const initialSearch = ownerWindow?.location.search ?? "";
   const initialScenarioId =
-    resolvePatientNetworkAlternativeChoiceScenarioId(initialPathname) ??
-    "offer_session_328_live";
+    resolvePatientNetworkAlternativeChoiceScenarioId(initialPathname) ?? "offer_session_328_live";
   const initialProjection =
     resolvePatientNetworkAlternativeChoiceProjectionByScenarioId(initialScenarioId);
   if (!initialProjection) {
@@ -245,9 +237,9 @@ function useNetworkChoiceController() {
   const initialRestoreBundle = readRestoreBundle();
   const currentScenario =
     initialRestoreBundle?.shellContinuityKey === initialReturnContract.shellContinuityKey
-      ? resolvePatientNetworkAlternativeChoiceProjectionByScenarioId(
+      ? (resolvePatientNetworkAlternativeChoiceProjectionByScenarioId(
           initialRestoreBundle.scenarioId,
-        ) ?? initialProjection
+        ) ?? initialProjection)
       : initialProjection;
 
   const [projection, setProjection] = useState(currentScenario);
@@ -264,9 +256,7 @@ function useNetworkChoiceController() {
       ? initialRestoreBundle.actionState
       : "idle",
   );
-  const [announcement, setAnnouncement] = useState(
-    "Patient network choice route loaded.",
-  );
+  const [announcement, setAnnouncement] = useState("Patient network choice route loaded.");
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   const runtimeTruth = useMemo(
@@ -285,17 +275,22 @@ function useNetworkChoiceController() {
       shellContinuityKey: returnContract.shellContinuityKey,
     };
     writeRestoreBundle(bundle);
-  }, [actionState, ownerWindow, projection.scenarioId, returnContract.shellContinuityKey, selectedOfferEntryId]);
+  }, [
+    actionState,
+    ownerWindow,
+    projection.scenarioId,
+    returnContract.shellContinuityKey,
+    selectedOfferEntryId,
+  ]);
 
   useEffect(() => {
     const onPopState = () => {
-      const pathname = ownerWindow?.location.pathname ?? `/bookings/network/${projection.scenarioId}`;
+      const pathname =
+        ownerWindow?.location.pathname ?? `/bookings/network/${projection.scenarioId}`;
       const scenarioId =
-        resolvePatientNetworkAlternativeChoiceScenarioId(pathname) ??
-        projection.scenarioId;
+        resolvePatientNetworkAlternativeChoiceScenarioId(pathname) ?? projection.scenarioId;
       const nextProjection =
-        resolvePatientNetworkAlternativeChoiceProjectionByScenarioId(scenarioId) ??
-        projection;
+        resolvePatientNetworkAlternativeChoiceProjectionByScenarioId(scenarioId) ?? projection;
       const nextReturnContract = buildReturnContract(
         nextProjection,
         ownerWindow?.location.search ?? "",
@@ -382,7 +377,10 @@ function useNetworkChoiceController() {
   }
 
   function declineAll(): void {
-    if (!projection.declineAllAllowed || runtimeTruth.offerActionabilityState !== "live_open_choice") {
+    if (
+      !projection.declineAllAllowed ||
+      runtimeTruth.offerActionabilityState !== "live_open_choice"
+    ) {
       return;
     }
     setActionState("declined_all");
@@ -403,7 +401,7 @@ function useNetworkChoiceController() {
       return;
     }
     setActionState("callback_pending");
-    setAnnouncement("Callback requested. Ranked options stay visible as provenance.");
+    setAnnouncement("Callback requested. Ranked options stay visible as history.");
   }
 
   function supportAction(): void {
@@ -417,23 +415,18 @@ function useNetworkChoiceController() {
     ownerWindow?.location.assign(returnContract.returnRouteRef);
   }
 
-  function navigateToScenario(
-    scenarioId: NetworkChoiceScenarioId,
-    replace = false,
-  ): void {
-    const nextProjection =
-      resolvePatientNetworkAlternativeChoiceProjectionByScenarioId(scenarioId);
+  function navigateToScenario(scenarioId: NetworkChoiceScenarioId, replace = false): void {
+    const nextProjection = resolvePatientNetworkAlternativeChoiceProjectionByScenarioId(scenarioId);
     if (!nextProjection) {
       return;
     }
     const nextSearch = ownerWindow?.location.search ?? "";
     const nextReturnContract = buildReturnContract(nextProjection, nextSearch);
-    const nextSelectedOfferEntryId =
-      nextProjection.offerCards.some(
-        (card) => card.alternativeOfferEntryId === selectedOfferEntryId,
-      )
-        ? selectedOfferEntryId
-        : nextProjection.selectedOfferEntryId;
+    const nextSelectedOfferEntryId = nextProjection.offerCards.some(
+      (card) => card.alternativeOfferEntryId === selectedOfferEntryId,
+    )
+      ? selectedOfferEntryId
+      : nextProjection.selectedOfferEntryId;
     const nextBundle: NetworkChoiceRestoreBundle = {
       projectionName: "NetworkChoiceRestoreBundle328",
       pathname: `/bookings/network/${scenarioId}`,
@@ -490,7 +483,10 @@ function AlternativeOfferHero({
       data-patient-visibility={runtimeTruth.patientVisibilityState}
       tabIndex={-1}
     >
-      <div className="patient-booking__pulse-mark patient-network-choice__hero-mark" aria-hidden="true">
+      <div
+        className="patient-booking__pulse-mark patient-network-choice__hero-mark"
+        aria-hidden="true"
+      >
         <svg viewBox="0 0 48 48" role="presentation">
           <path
             d="M6 24h8l4-8 6 18 4-8h14"
@@ -503,7 +499,7 @@ function AlternativeOfferHero({
         </svg>
       </div>
       <div className="patient-network-choice__hero-copy">
-        <span className="patient-booking__eyebrow">AlternativeOfferHero</span>
+        <span className="patient-booking__eyebrow">Appointment options</span>
         <h2>{projection.heroTitle}</h2>
         <p>{projection.heroBody}</p>
         {projection.secureLinkNote ? (
@@ -541,7 +537,7 @@ function AlternativeOfferExpiryStrip({
       data-tone={expiryStrip.tone}
     >
       <div>
-        <span className="patient-booking__eyebrow">AlternativeOfferExpiryStrip</span>
+        <span className="patient-booking__eyebrow">Offer timing</span>
         <strong>{expiryStrip.heading}</strong>
       </div>
       <p>{expiryStrip.body}</p>
@@ -638,9 +634,7 @@ function AlternativeOfferCard({
               {card.modalityLabel} · {card.travelLabel} · {card.waitLabel}
             </p>
           </div>
-          <span className="patient-network-choice__card-rank">
-            #{card.rankOrdinal}
-          </span>
+          <span className="patient-network-choice__card-rank">#{card.rankOrdinal}</span>
         </div>
         <AlternativeOfferReasonChipRow chips={card.reasonChips} />
         <p className="patient-network-choice__card-summary">{card.recommendationSummary}</p>
@@ -688,12 +682,10 @@ function CallbackFallbackCard({
       data-choice-actionability={runtimeTruth.offerActionabilityState}
       data-selection-state={selected ? "selected" : projection.eligibilityState}
     >
-      <span className="patient-booking__eyebrow">CallbackFallbackCard</span>
+      <span className="patient-booking__eyebrow">Callback option</span>
       <div className="patient-network-choice__callback-head">
         <h3>{projection.title}</h3>
-        <span className="patient-network-choice__callback-chip">
-          Governed callback fallback
-        </span>
+        <span className="patient-network-choice__callback-chip">Callback available</span>
       </div>
       <p>{projection.body}</p>
       <div className="patient-network-choice__callback-meta">
@@ -718,14 +710,12 @@ function CallbackFallbackCard({
 }
 
 function AlternativeOfferSelectionPanel({
-  projection,
   selectedCard,
   runtimeTruth,
   actionState,
   onAccept,
   onClearSelection,
 }: {
-  projection: PatientNetworkAlternativeChoiceProjection;
   selectedCard: AlternativeOfferCardProjection328 | null;
   runtimeTruth: ReturnType<typeof resolveRuntimeTruth>;
   actionState: NetworkChoiceLocalActionState;
@@ -745,11 +735,11 @@ function AlternativeOfferSelectionPanel({
 
   const body =
     actionState === "accept_pending"
-      ? "The selected option stays visible while confirmation truth moves to the next child route."
+      ? "The selected option stays visible while confirmation status moves to the next child route."
       : actionState === "callback_pending"
-        ? "The ranked set stays visible as provenance while callback linkage completes."
+        ? "The ranked set stays visible as history while callback linkage completes."
         : actionState === "declined_all"
-          ? "The ranked options are now reference only. Callback remains the governed next step."
+          ? "The ranked options are now reference only. Callback remains the approved next step."
           : selectedCard
             ? "Selection is still advisory until you explicitly accept it."
             : "Recommendation chips do not preselect anything. The full live set remains open until you choose one option.";
@@ -766,7 +756,7 @@ function AlternativeOfferSelectionPanel({
       data-selected-offer-entry={selectedCard?.alternativeOfferEntryId ?? ""}
       tabIndex={-1}
     >
-      <span className="patient-booking__eyebrow">AlternativeOfferSelectionPanel</span>
+      <span className="patient-booking__eyebrow">Selected appointment</span>
       <h3>{headline}</h3>
       <p>{body}</p>
       {selectedCard ? (
@@ -779,15 +769,15 @@ function AlternativeOfferSelectionPanel({
       ) : null}
       <dl className="patient-network-choice__selection-facts">
         <div>
-          <dt>Offer actionability</dt>
+          <dt>Offer status</dt>
           <dd>{runtimeTruth.offerActionabilityState.replaceAll("_", " ")}</dd>
         </div>
         <div>
-          <dt>Confirmation truth</dt>
+          <dt>Confirmation</dt>
           <dd>{runtimeTruth.confirmationTruthState.replaceAll("_", " ")}</dd>
         </div>
         <div>
-          <dt>Patient visibility</dt>
+          <dt>Visibility</dt>
           <dd>{runtimeTruth.patientVisibilityState.replaceAll("_", " ")}</dd>
         </div>
       </dl>
@@ -835,7 +825,7 @@ function AlternativeOfferProvenanceStub({
       data-offer-provenance="true"
       tabIndex={-1}
     >
-      <span className="patient-booking__eyebrow">AlternativeOfferProvenanceStub</span>
+      <span className="patient-booking__eyebrow">Offer history</span>
       <h3>{projection.heading}</h3>
       <p>{projection.body}</p>
       <dl className="patient-network-choice__provenance-facts">
@@ -874,7 +864,7 @@ function OfferRouteRepairPanel({
       data-repair-state={projection.repairState}
       tabIndex={-1}
     >
-      <span className="patient-booking__eyebrow">OfferRouteRepairPanel</span>
+      <span className="patient-booking__eyebrow">Help with this offer</span>
       <h3>{projection.heading}</h3>
       <p>{projection.body}</p>
       <dl className="patient-network-choice__provenance-facts">
@@ -921,7 +911,6 @@ function NetworkChoiceSummaryRail({
   return (
     <>
       <AlternativeOfferSelectionPanel
-        projection={projection}
         selectedCard={selectedCard}
         runtimeTruth={runtimeTruth}
         actionState={actionState}
@@ -929,7 +918,7 @@ function NetworkChoiceSummaryRail({
         onClearSelection={onClearSelection}
       />
       <section className="patient-network-choice__summary-card">
-        <span className="patient-booking__eyebrow">Current service context</span>
+        <span className="patient-booking__eyebrow">Service details</span>
         <h3>Need and preferences</h3>
         <dl className="patient-network-choice__summary-facts">
           {projection.serviceRows.map((row) => (
@@ -951,24 +940,16 @@ function NetworkChoiceSummaryRail({
         data-testid="network-choice-help-card"
         tabIndex={-1}
       >
-        <span className="patient-booking__eyebrow">Same-shell support stub</span>
+        <span className="patient-booking__eyebrow">Support</span>
         <h3>{projection.supportStub.heading}</h3>
         <p>{projection.supportStub.body}</p>
         <div className="patient-network-choice__selection-actions">
-          <button
-            type="button"
-            className="patient-booking__secondary-action"
-            onClick={onReturn}
-          >
+          <button type="button" className="patient-booking__secondary-action" onClick={onReturn}>
             {returnContract.originKey === "requests"
               ? "Return to request"
               : projection.supportStub.returnLabel}
           </button>
-          <button
-            type="button"
-            className="patient-booking__secondary-action"
-            onClick={onSupport}
-          >
+          <button type="button" className="patient-booking__secondary-action" onClick={onSupport}>
             {projection.supportStub.supportLabel}
           </button>
         </div>
@@ -1019,9 +1000,8 @@ function PatientNetworkAlternativeChoiceAppInner() {
   const responsiveProfile = responsive.resolveProfile(stickyVisible);
   const offerGroups = groupedOfferCards(projection);
   const selectedCard =
-    projection.offerCards.find(
-      (card) => card.alternativeOfferEntryId === selectedOfferEntryId,
-    ) ?? null;
+    projection.offerCards.find((card) => card.alternativeOfferEntryId === selectedOfferEntryId) ??
+    null;
 
   return (
     <div
@@ -1057,9 +1037,7 @@ function PatientNetworkAlternativeChoiceAppInner() {
       data-safe-area-class={responsiveProfile.safeAreaClass}
       data-sticky-action-posture={responsiveProfile.stickyActionPosture}
       data-embedded-mode={responsiveProfile.embeddedMode}
-      data-motion-profile={
-        prefersReducedMotion() ? "reduced" : "default"
-      }
+      data-motion-profile={prefersReducedMotion() ? "reduced" : "default"}
       data-truth-kernel={phase2Context.truthKernel}
       data-shared-request-ref={phase2Context.fixture.requestRef}
       data-shared-lineage-ref={phase2Context.fixture.requestLineageRef}
@@ -1070,20 +1048,11 @@ function PatientNetworkAlternativeChoiceAppInner() {
     >
       <EmbeddedBookingChromeAdapter
         topBand={
-          <header className="patient-booking__top-band" data-testid="patient-booking-top-band">
-            <a className="patient-booking__brand" href="/home">
-              <span>
-                <VecellLogoWordmark aria-hidden="true" className="patient-booking__brand-wordmark" />
-                <small>Signed-in patient shell</small>
-              </span>
-            </a>
-            <nav aria-label="Patient booking navigation" className="patient-booking__nav">
-              <a href="/home">Home</a>
-              <a href="/requests">Requests</a>
-              <a href="/appointments">Appointments</a>
-              <a href="/messages">Messages</a>
-            </nav>
-          </header>
+          <PatientPortalTopBar
+            current="appointments"
+            testId="patient-booking-top-band"
+            ariaLabel="Patient booking navigation"
+          />
         }
       >
         <PatientSupportPhase2Bridge context={phase2Context} />
@@ -1141,10 +1110,7 @@ function PatientNetworkAlternativeChoiceAppInner() {
             railToggleLabel="Open choice summary"
             main={
               <div className="patient-network-choice__main-column">
-                <AlternativeOfferHero
-                  projection={projection}
-                  runtimeTruth={runtimeTruth}
-                />
+                <AlternativeOfferHero projection={projection} runtimeTruth={runtimeTruth} />
                 <AlternativeOfferExpiryStrip expiryStrip={projection.expiryStrip} />
                 <section
                   className="patient-network-choice__stack"
@@ -1152,10 +1118,8 @@ function PatientNetworkAlternativeChoiceAppInner() {
                 >
                   <div className="patient-network-choice__stack-head">
                     <div>
-                      <span className="patient-booking__eyebrow">Open-choice stack</span>
-                      <h2 id="patient-network-choice-stack-title">
-                        The full current choice set
-                      </h2>
+                      <span className="patient-booking__eyebrow">Appointment options</span>
+                      <h2 id="patient-network-choice-stack-title">The full current choice set</h2>
                     </div>
                     <p>{projection.guidanceLabel}</p>
                   </div>
@@ -1208,11 +1172,11 @@ function PatientNetworkAlternativeChoiceAppInner() {
                     className="patient-network-choice__decline-disclosure"
                     data-testid="decline-all-disclosure"
                   >
-                    <span className="patient-booking__eyebrow">Decline-all route</span>
+                    <span className="patient-booking__eyebrow">Need another option</span>
                     <h3>None of these times can work?</h3>
                     <p>
-                      Declining the ranked options does not hide them or silently pick callback.
-                      It keeps the stack visible and makes the next safe fallback explicit.
+                      Declining the ranked options does not hide them or silently pick callback. It
+                      keeps the stack visible and makes the next safe fallback explicit.
                     </p>
                     <button
                       type="button"

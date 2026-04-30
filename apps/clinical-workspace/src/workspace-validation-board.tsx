@@ -152,7 +152,7 @@ export function WorkspaceValidationRoute({
       <header className="validation-board__north-star" data-testid="ValidationNorthStarBand" id="validation-north-star-band">
         <div>
           <p className="staff-shell__eyebrow">Clinical beta validation</p>
-          <h2>One governed view of route law, settlement truth, and redaction posture</h2>
+          <h2>One approved view of route law, settlement verified details, and redaction status</h2>
           <p>
             The board keeps local acknowledgement, authoritative settlement, recovery posture, and
             disclosure fencing separate so release decisions stay auditable.
@@ -187,7 +187,7 @@ export function WorkspaceValidationRoute({
           <div className="validation-board__panel">
             <p className="staff-shell__eyebrow">Scenario and search</p>
             <label className="validation-board__field">
-              <span>Search event family, route family, defect, or release tuple</span>
+              <span>Search event family, journey group, defect, or release tuple</span>
               <input
                 value={searchValue}
                 onChange={(event) => setSearchValue(event.currentTarget.value)}
@@ -195,7 +195,7 @@ export function WorkspaceValidationRoute({
               />
             </label>
             <label className="validation-board__field">
-              <span>Route family</span>
+              <span>Journey group</span>
               <select
                 data-testid="ValidationRouteFamilySelect"
                 value={routeFilter}
@@ -272,7 +272,7 @@ export function WorkspaceValidationRoute({
             <div className="validation-board__section-head">
               <div>
                 <p className="staff-shell__eyebrow">Event chain inspector</p>
-                <h3>Browser acknowledgement stays separate from authoritative truth</h3>
+                <h3>Browser acknowledgement stays separate from authoritative verified details</h3>
               </div>
               <small>{filteredEventChains.length} visible chains</small>
             </div>
@@ -336,7 +336,7 @@ export function WorkspaceValidationRoute({
           <section className="validation-board__panel" data-testid="RouteContractDriftPanel">
             <div className="validation-board__section-head">
               <div>
-                <p className="staff-shell__eyebrow">Route contract drift</p>
+                <p className="staff-shell__eyebrow">Route rules drift</p>
                 <h3>Automation anchors, semantics, and event names stay locked</h3>
               </div>
               <strong>{model.routeDriftCount}</strong>
@@ -354,7 +354,7 @@ export function WorkspaceValidationRoute({
               {filteredDefects.filter((item) => item.className === "stale_route_contract_mismatch").length === 0 ? (
                 <li>
                   <strong>No route drift under the current filter</strong>
-                  <p>The published contract and the emitted route-family events still agree.</p>
+                  <p>The published rules and the emitted route-family events still agree.</p>
                 </li>
               ) : null}
             </ul>

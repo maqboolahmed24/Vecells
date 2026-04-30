@@ -70,7 +70,7 @@ export interface PatientPreferenceStateProjection {
   sourceId: "vecells-contact-preferences";
   family: "vecells_preference";
   title: string;
-  managedBy: "Vecells";
+  managedBy: "Local service";
   editableHere: true;
   preferredRoute: "sms";
   reminderRoute: "email_paused";
@@ -186,9 +186,9 @@ const nhsLoginClaim: SourceTruthDescriptor = {
   ],
   editableHere: false,
   authorityBoundaryCopy:
-    "These claims are view-only in Vecells and externally managed through NHS login.",
+    "These claims are view-only here and externally managed through NHS login.",
   prohibitedSideEffectCopy:
-    "Changing Vecells preferences does not update NHS login contact claims.",
+    "Changing local preferences does not update NHS login contact claims.",
   provenance: {
     projectionName: "ContactSourceProvenanceDescriptor",
     sourceLabel: "NHS login",
@@ -208,8 +208,8 @@ const vecellsPreference: PatientPreferenceStateProjection = {
   projectionName: "PatientPreferenceStateProjection",
   sourceId: "vecells-contact-preferences",
   family: "vecells_preference",
-  title: "Vecells communication preferences",
-  managedBy: "Vecells",
+  title: "Communication preferences",
+  managedBy: "Local service",
   editableHere: true,
   preferredRoute: "sms",
   reminderRoute: "email_paused",
@@ -217,16 +217,16 @@ const vecellsPreference: PatientPreferenceStateProjection = {
   reviewStatus: "reviewable",
   noExternalWriteSideEffects: true,
   preferenceBoundaryCopy:
-    "Reviewing or editing these preferences changes Vecells communication behavior only. It does not update NHS login, PDS demographic rows, or GP demographic rows.",
+    "Reviewing or editing these preferences changes local communication behavior only. It does not update NHS login, PDS demographic rows, or GP demographic rows.",
   provenance: {
     projectionName: "ContactSourceProvenanceDescriptor",
-    sourceLabel: "Vecells preferences",
+    sourceLabel: "Local preferences",
     verificationState: "patient_reviewed",
     freshnessLabel: "Last reviewed during intake",
     editAuthority: "vecells_patient_preference",
-    editAuthorityLabel: "Editable as Vecells preferences",
+    editAuthorityLabel: "Editable as local preferences",
     badges: [
-      { label: "Source", tone: "preference", text: "Vecells preference" },
+      { label: "Source", tone: "preference", text: "Local preference" },
       { label: "Freshness", tone: "neutral", text: "Patient reviewed" },
       { label: "Edit authority", tone: "preference", text: "Editable here" },
     ],
@@ -305,7 +305,7 @@ function gpDemographicSource(available: boolean): DemographicSourceProjection {
       : [],
     absenceExplanation: available
       ? "GP demographic projection is available as reference only."
-      : "GP demographic contact is not projected in this environment. Vecells does not infer it from preferences.",
+      : "GP demographic contact is not projected in this environment. Local preferences do not infer it.",
     editableHere: false,
     noPreferenceSideEffects: true,
     provenance: {

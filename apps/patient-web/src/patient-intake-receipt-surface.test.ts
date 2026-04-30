@@ -38,7 +38,7 @@ describe("patient intake receipt surface", () => {
       "Within 2 working days",
     );
     expect(receipt.promiseNoteBody).not.toMatch(/\d{1,2}:\d{2}/);
-    expect(receipt.summary).toContain("same shell lineage");
+    expect(receipt.summary).toContain("routine review path");
   });
 
   it("keeps queued and delivered communication semantics separate", () => {
@@ -57,9 +57,11 @@ describe("patient intake receipt surface", () => {
       },
     });
 
-    expect(queued.communicationBridgeNote.toLowerCase()).toContain("queued is not the same as delivered");
-    expect(delivered.communicationBridgeNote.toLowerCase()).toContain("delivery evidence");
-    expect(delivered.communicationBridgeNote.toLowerCase()).not.toContain("queued is not the same as delivered");
+    expect(queued.communicationBridgeNote.toLowerCase()).toContain("does not mean it has been delivered");
+    expect(delivered.communicationBridgeNote.toLowerCase()).toContain("delivery has been confirmed");
+    expect(delivered.communicationBridgeNote.toLowerCase()).not.toContain(
+      "does not mean it has been delivered",
+    );
   });
 
   it("patches the receipt in place from received to in-review without changing the route contract", () => {

@@ -81,7 +81,7 @@ export function usePatientIntakeAttachments(
   const [dropzoneFocusVersion, setDropzoneFocusVersion] = useState(0);
   const [announcement, setAnnouncement] = useState<AttachmentAnnouncement>({
     key: "attachment-lane-idle",
-    message: "Supporting files stay subordinate to the current request question.",
+    message: "Supporting files stay with this request.",
   });
 
   useEffect(() => {

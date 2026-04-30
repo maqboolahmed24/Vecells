@@ -225,7 +225,7 @@ export function AssistiveAnnouncementDedupeBus({
 }: {
   readonly profile: EmbeddedA11yCoverageProfile;
 }) {
-  const [message, setMessage] = useState(`${profile.label} accessibility contract loaded.`);
+  const [message, setMessage] = useState(`${profile.label} accessibility settings loaded.`);
   const [announcementCount, setAnnouncementCount] = useState(1);
   const [duplicateCount, setDuplicateCount] = useState(0);
   const lastMessageRef = useRef(message);
@@ -250,7 +250,7 @@ export function AssistiveAnnouncementDedupeBus({
   }, []);
 
   useEffect(() => {
-    const nextMessage = `${profile.label} accessibility contract loaded.`;
+    const nextMessage = `${profile.label} accessibility settings loaded.`;
     lastMessageRef.current = nextMessage;
     setMessage(nextMessage);
     setAnnouncementCount(1);

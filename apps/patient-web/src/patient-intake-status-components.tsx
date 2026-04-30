@@ -71,7 +71,12 @@ export function AmbientStateRibbon({
       </div>
       <div className="patient-intake-mission-frame__status-cluster patient-intake-mission-frame__status-cluster--center">
         <p data-testid="patient-intake-save-detail">{truth.detail}</p>
-        <span id={liveRegionId} aria-live="polite" aria-atomic="true">
+        <span
+          id={liveRegionId}
+          className="patient-intake-mission-frame__sr-status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           {announcement}
         </span>
         <small>{truth.meta}</small>
@@ -236,7 +241,7 @@ export function MergeReviewSheet({
         <span>Review changes</span>
         <h3>Choose one result for every changed group</h3>
         <p>
-          Another saved draft version now exists. Select the result that should remain authoritative before this shell continues.
+          Another saved draft version now exists. Select the result that should be kept before continuing.
         </p>
       </div>
       {(["answer_fields", "attachments", "step_markers"] as const).map((groupType) => {

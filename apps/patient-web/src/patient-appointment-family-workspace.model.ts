@@ -250,7 +250,7 @@ function appendFamilyQuery(
   pathname: string,
   params: Record<string, string | null | undefined>,
 ): string {
-  const url = new URL(pathname, "https://vecells.local");
+  const url = new URL(pathname, "https://service.local");
   for (const [key, value] of Object.entries(params)) {
     if (value) {
       url.searchParams.set(key, value);

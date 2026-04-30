@@ -282,7 +282,7 @@ export default function App() {
                 <div className="wordmark-row">
                   <VecellLogoLockup aria-hidden="true" className="wordmark-lockup" />
                   <div>
-                    <div className="mono-meta">vecell / Partner_Access_Atelier</div>
+                    <div className="mono-meta">Partner_Access_Atelier</div>
                     <h1>{currentStage.label}</h1>
                   </div>
                 </div>

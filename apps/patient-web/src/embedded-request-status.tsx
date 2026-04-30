@@ -166,7 +166,7 @@ export function EmbeddedRequestHeaderSummary({ context }: { readonly context: Em
           <dd>{context.currentState.nextActionLabel}</dd>
         </div>
         <div>
-          <dt>Truth</dt>
+          <dt>Confirmed information</dt>
           <dd>{context.requestDetail.statusRibbon.canonicalTruthRef}</dd>
         </div>
       </dl>

@@ -241,7 +241,7 @@ export function createGoLiveSmoke481Projection(
   return {
     scenarioState,
     smokeVerdict,
-    releaseCandidateRef: "release-candidate:vecells-2026-04-28.1",
+    releaseCandidateRef: "release-candidate:service-2026-04-28.1",
     runtimePublicationBundleRef: "runtime-publication-bundle:480-final-uat",
     waveManifestRef: "wave-manifest:476-wave-1-smallest-safe-cohort",
     releaseWatchTupleRef: "release-watch-tuple:476-wave-1-observation",

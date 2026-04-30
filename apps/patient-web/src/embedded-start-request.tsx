@@ -644,7 +644,7 @@ export function EmbeddedReviewWorkspace({
       </dl>
       <section className="embedded-intake__submission-envelope" aria-label="Submission boundary">
         <strong>{context.submissionEnvelope.envelopeRef}</strong>
-        <p>Promotion can only happen once and the receipt keeps this same lineage.</p>
+        <p>Promotion can only happen once and the receipt keeps this same history.</p>
       </section>
     </section>
   );
@@ -698,7 +698,7 @@ function ContactPreferencePanel({ context }: { readonly context: EmbeddedStartRe
       <div className="embedded-intake__question-heading">
         <span className="embedded-intake__eyebrow">Contact route</span>
         <h1 id="embedded-contact-title">How should we contact you?</h1>
-        <p>We keep contact preference separate from delivery proof and verified route truth.</p>
+        <p>We keep contact preference separate from delivery proof and verified route status.</p>
       </div>
       <dl>
         <div>

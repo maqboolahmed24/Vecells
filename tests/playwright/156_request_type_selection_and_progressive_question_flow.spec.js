@@ -15,8 +15,18 @@ const GALLERY_PATH = path.join(
   "frontend",
   "156_request_type_and_question_flow_gallery.html",
 );
-const MERMAID_PATH = path.join(ROOT, "docs", "frontend", "156_question_tree_and_anchor_continuity.mmd");
-const UI_CONTRACT_PATH = path.join(ROOT, "data", "contracts", "156_progressive_question_ui_contract.json");
+const MERMAID_PATH = path.join(
+  ROOT,
+  "docs",
+  "frontend",
+  "156_question_tree_and_anchor_continuity.mmd",
+);
+const UI_CONTRACT_PATH = path.join(
+  ROOT,
+  "data",
+  "contracts",
+  "156_progressive_question_ui_contract.json",
+);
 const VISIBILITY_MATRIX_PATH = path.join(
   ROOT,
   "data",
@@ -149,16 +159,15 @@ async function startStaticServer() {
       return;
     }
 
-    const contentType =
-      filePath.endsWith(".html")
-        ? "text/html; charset=utf-8"
-        : filePath.endsWith(".json")
-          ? "application/json; charset=utf-8"
-          : filePath.endsWith(".csv")
-            ? "text/csv; charset=utf-8"
-            : filePath.endsWith(".mmd")
-              ? "text/plain; charset=utf-8"
-              : "text/plain; charset=utf-8";
+    const contentType = filePath.endsWith(".html")
+      ? "text/html; charset=utf-8"
+      : filePath.endsWith(".json")
+        ? "application/json; charset=utf-8"
+        : filePath.endsWith(".csv")
+          ? "text/csv; charset=utf-8"
+          : filePath.endsWith(".mmd")
+            ? "text/plain; charset=utf-8"
+            : "text/plain; charset=utf-8";
     response.writeHead(200, { "Content-Type": contentType });
     response.end(fs.readFileSync(filePath));
   });
@@ -229,6 +238,40 @@ async function rootAttribute(page, name) {
   return await page.locator("[data-testid='patient-intake-mission-frame-root']").getAttribute(name);
 }
 
+async function waitForRootAttribute(page, name, expected, message, timeoutMs = 3_000) {
+  const startedAt = Date.now();
+  let latest = null;
+  while (Date.now() - startedAt < timeoutMs) {
+    latest = await rootAttribute(page, name);
+    if (latest === expected) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error(`${message} Last observed ${name}: ${latest}`);
+}
+
+async function clickPrimaryAndWaitForProgress(page, timeoutMs = 3_000) {
+  const before = await page
+    .locator("[data-testid='patient-intake-mission-frame-root']")
+    .evaluate((root) => ({
+      questionKey: root.getAttribute("data-current-question-key"),
+      routeKey: root.getAttribute("data-route-key"),
+    }));
+  await page.locator("[data-testid='patient-intake-primary-action']").click();
+  await page.waitForFunction(
+    (previous) => {
+      const root = document.querySelector("[data-testid='patient-intake-mission-frame-root']");
+      return (
+        root?.getAttribute("data-route-key") !== previous.routeKey ||
+        root?.getAttribute("data-current-question-key") !== previous.questionKey
+      );
+    },
+    before,
+    { timeout: timeoutMs },
+  );
+}
+
 async function waitForFocusTarget(page, focusTarget) {
   await page.waitForFunction(
     (target) => document.activeElement?.getAttribute("data-focus-target") === target,
@@ -274,6 +317,38 @@ async function summaryPanelText(page) {
   return await page.locator("[data-testid='patient-intake-summary-panel']").innerText();
 }
 
+async function clickSummaryToggle(page) {
+  const toggle = page.locator("[data-testid='patient-intake-summary-toggle']");
+  await toggle.evaluate((node) => node.scrollIntoView({ block: "center", inline: "center" }));
+  await toggle.click({ force: true });
+}
+
+async function waitForSummaryIncludes(page, expectedSnippets, message, timeoutMs = 3_000) {
+  const startedAt = Date.now();
+  let latest = "";
+  while (Date.now() - startedAt < timeoutMs) {
+    latest = await summaryPanelText(page);
+    if (expectedSnippets.every((snippet) => latest.includes(snippet))) {
+      return latest;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error(`${message} Last observed summary: ${latest}`);
+}
+
+async function waitForSummaryExcludes(page, excludedSnippets, message, timeoutMs = 3_000) {
+  const startedAt = Date.now();
+  let latest = "";
+  while (Date.now() - startedAt < timeoutMs) {
+    latest = await summaryPanelText(page);
+    if (excludedSnippets.every((snippet) => !latest.includes(snippet))) {
+      return latest;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error(`${message} Last observed summary: ${latest}`);
+}
+
 async function helperOpenCount(page) {
   return await page.locator("[data-testid='patient-intake-helper-region'][open]").count();
 }
@@ -307,7 +382,8 @@ async function runDesktopMainJourney(page, baseUrl) {
   await page.locator("[data-testid='request-type-card-Symptoms']").focus();
   await page.locator("[data-testid='request-type-card-Symptoms']").press("ArrowRight");
   assertCondition(
-    (await page.locator("[data-testid='request-type-card-Meds']").getAttribute("data-pending")) === "true",
+    (await page.locator("[data-testid='request-type-card-Meds']").getAttribute("data-pending")) ===
+      "true",
     "ArrowRight did not queue the Meds request type as the pending keyboard selection.",
   );
   await page.locator("[data-testid='request-type-change-confirm']").click();
@@ -318,7 +394,8 @@ async function runDesktopMainJourney(page, baseUrl) {
         ?.getAttribute("data-current-question-key") === "meds.queryType",
   );
   assertCondition(
-    (await page.locator("[data-testid='request-type-card-Meds']").getAttribute("data-active")) === "true",
+    (await page.locator("[data-testid='request-type-card-Meds']").getAttribute("data-active")) ===
+      "true",
     "Confirming the request-type change did not activate the Meds card.",
   );
   assertCondition(
@@ -361,12 +438,14 @@ async function runDesktopMainJourney(page, baseUrl) {
     "Unknown medicine posture still renders the medicineName field.",
   );
   await page.locator("[data-testid='patient-intake-helper-region'] summary").first().click();
-  assertCondition((await helperOpenCount(page)) === 1, "Helper disclosures no longer stay bounded to one open region.");
-  await page.locator("[data-testid='answer-meds.nameUnknownReason-label_not_available']").click();
-  const medsSummary = await summaryPanelText(page);
   assertCondition(
-    medsSummary.includes("Repeat supply") &&
-      medsSummary.includes("The label or packaging is not available"),
+    (await helperOpenCount(page)) === 1,
+    "Helper disclosures no longer stay bounded to one open region.",
+  );
+  await page.locator("[data-testid='answer-meds.nameUnknownReason-label_not_available']").click();
+  await waitForSummaryIncludes(
+    page,
+    ["Repeat supply", "The label or packaging is not available"],
     "The active summary stopped reflecting the live Meds branch answers.",
   );
 
@@ -389,10 +468,9 @@ async function runDesktopMainJourney(page, baseUrl) {
     (await currentQuestionKey(page)) === "results.context",
     "Confirm-and-supersede did not reset the flow to the Results root question.",
   );
-  const resultsSummary = await summaryPanelText(page);
-  assertCondition(
-    !resultsSummary.includes("Repeat supply") &&
-      !resultsSummary.includes("The label or packaging is not available"),
+  await waitForSummaryExcludes(
+    page,
+    ["Repeat supply", "The label or packaging is not available"],
     "Superseded Meds answers leaked into the active summary after a request-type change.",
   );
 
@@ -409,7 +487,10 @@ async function runSymptomsSafetyScenario(page, baseUrl, uiContract) {
   await page.locator("[data-testid='question-field-symptoms.category']").waitFor();
   await page.locator("[data-testid='question-field-symptoms.chestPainLocation']").waitFor();
   const beforeSummary = await summaryPanelText(page);
-  assertCondition(beforeSummary.includes("Centre chest"), "Initial symptom summary lost the chest-pain branch context.");
+  assertCondition(
+    beforeSummary.includes("Centre chest"),
+    "Initial symptom summary lost the chest-pain branch context.",
+  );
 
   await page.locator("[data-testid='answer-symptoms.category-general']").click();
   await page.locator("[data-testid='patient-intake-review-delta-notice']").waitFor();
@@ -417,7 +498,9 @@ async function runSymptomsSafetyScenario(page, baseUrl, uiContract) {
     (await page.locator("[data-testid='question-field-symptoms.chestPainLocation']").count()) === 0,
     "Changing the symptom category did not hide the superseded chest-pain branch.",
   );
-  const noticeText = await page.locator("[data-testid='patient-intake-review-delta-notice']").innerText();
+  const noticeText = await page
+    .locator("[data-testid='patient-intake-review-delta-notice']")
+    .innerText();
   assertCondition(
     noticeText.includes(uiContract.requestTypeChangePolicy.safetyReviewTitle),
     "Safety-relevant supersession no longer surfaces the canonical review cue.",
@@ -429,16 +512,18 @@ async function runSymptomsSafetyScenario(page, baseUrl, uiContract) {
   );
 
   for (let index = 0; index < 6 && (await currentRouteKey(page)) === "details"; index += 1) {
-    await page.locator("[data-testid='patient-intake-primary-action']").click();
+    await clickPrimaryAndWaitForProgress(page);
   }
   if ((await currentRouteKey(page)) === "supporting_files") {
-    await page.locator("[data-testid='patient-intake-primary-action']").click();
+    await clickPrimaryAndWaitForProgress(page);
   }
   if ((await currentRouteKey(page)) === "contact_preferences") {
-    await page.locator("[data-testid='patient-intake-primary-action']").click();
+    await clickPrimaryAndWaitForProgress(page);
   }
-  assertCondition(
-    (await currentRouteKey(page)) === "review_submit",
+  await waitForRootAttribute(
+    page,
+    "data-route-key",
+    "review_submit",
     "The Symptoms safety-review scenario failed to reach the review step.",
   );
   await page.locator("[data-testid='patient-intake-review-step']").waitFor();
@@ -469,8 +554,9 @@ async function runAdminTabletScenario(page, baseUrl) {
   await page.locator("[data-testid='question-field-admin.deadlineKnown']").waitFor();
   await page.locator("[data-testid='question-field-admin.deadlineDate']").waitFor();
   assertCondition(
-    (await page.locator("[data-testid='patient-intake-summary-panel']").getAttribute("data-summary-mode")) ===
-      "drawer",
+    (await page
+      .locator("[data-testid='patient-intake-summary-panel']")
+      .getAttribute("data-summary-mode")) === "drawer",
     "Tablet summary mode drifted away from the drawer posture.",
   );
 
@@ -480,9 +566,11 @@ async function runAdminTabletScenario(page, baseUrl) {
     (await page.locator("[data-testid='question-field-admin.deadlineDate']").count()) === 0,
     "Admin deadlineDate did not disappear after switching to no_deadline.",
   );
-  await page.locator("[data-testid='patient-intake-summary-toggle']").click();
+  await clickSummaryToggle(page);
   assertCondition(
-    (await page.locator("[data-testid='patient-intake-summary-panel']").getAttribute("data-open")) === "true",
+    (await page
+      .locator("[data-testid='patient-intake-summary-panel']")
+      .getAttribute("data-open")) === "true",
     "Tablet summary drawer did not open from the summary toggle.",
   );
   const summaryText = await summaryPanelText(page);
@@ -510,20 +598,30 @@ async function runResultsMobileScenario(page, baseUrl) {
   await page.locator("[data-testid='question-field-results.dateKnown']").waitFor();
   await page.locator("[data-testid='question-field-results.resultDate']").waitFor();
   assertCondition(
-    (await page.locator("[data-testid='patient-intake-summary-panel']").getAttribute("data-summary-mode")) ===
-      "sheet",
+    (await page
+      .locator("[data-testid='patient-intake-summary-panel']")
+      .getAttribute("data-summary-mode")) === "sheet",
     "Mobile summary mode drifted away from the sheet posture.",
   );
 
-  await page.locator("[data-testid='answer-results.dateKnown-not_sure']").click();
+  const dateNotSureAnswer = page.locator("[data-testid='answer-results.dateKnown-not_sure']");
+  await dateNotSureAnswer.click({ force: true });
+  await page.waitForFunction(
+    () =>
+      document
+        .querySelector("[data-testid='answer-results.dateKnown-not_sure']")
+        ?.getAttribute("data-active") === "true",
+  );
   await page.locator("[data-testid='patient-intake-review-delta-notice']").waitFor();
   assertCondition(
     (await page.locator("[data-testid='question-field-results.resultDate']").count()) === 0,
     "Results resultDate did not disappear after switching to not_sure.",
   );
-  await page.locator("[data-testid='patient-intake-summary-toggle']").click();
+  await clickSummaryToggle(page);
   assertCondition(
-    (await page.locator("[data-testid='patient-intake-summary-panel']").getAttribute("data-open")) === "true",
+    (await page
+      .locator("[data-testid='patient-intake-summary-panel']")
+      .getAttribute("data-open")) === "true",
     "Mobile summary sheet did not open from the summary toggle.",
   );
   await assertNoOverflow(page, 18);
@@ -565,12 +663,16 @@ async function runCompatibilityScenarios(page, baseUrl, compatibilityRows) {
       (await rootAttribute(page, "data-bundle-compatibility-mode")) === scenario.mode,
       `Root bundle compatibility mode drifted for ${scenario.mode}.`,
     );
-    const sheetText = await page.locator("[data-testid='patient-intake-bundle-compatibility-sheet']").innerText();
+    const sheetText = await page
+      .locator("[data-testid='patient-intake-bundle-compatibility-sheet']")
+      .innerText();
     assertCondition(
       sheetText.includes(compatibility.title),
       `Compatibility sheet lost the canonical title for ${scenario.mode}.`,
     );
-    const primaryLabel = (await page.locator("[data-testid='patient-intake-primary-action']").innerText()).trim();
+    const primaryLabel = (
+      await page.locator("[data-testid='patient-intake-primary-action']").innerText()
+    ).trim();
     assertCondition(
       primaryLabel === compatibility.dominant_action,
       `Recovery primary CTA drifted for ${scenario.mode}.`,
@@ -605,7 +707,8 @@ async function runReducedMotionScenario(page, baseUrl) {
   await page.locator("[data-testid='request-type-card-Symptoms']").focus();
   await page.locator("[data-testid='request-type-card-Symptoms']").press("ArrowRight");
   assertCondition(
-    (await page.locator("[data-testid='request-type-card-Meds']").getAttribute("data-pending")) === "true",
+    (await page.locator("[data-testid='request-type-card-Meds']").getAttribute("data-pending")) ===
+      "true",
     "Reduced-motion mode changed keyboard request-type traversal semantics.",
   );
 }
@@ -618,10 +721,16 @@ export async function run() {
     VISIBILITY_MATRIX_PATH,
     COMPATIBILITY_MATRIX_PATH,
   ]) {
-    assertCondition(fs.existsSync(requiredPath), `Missing required par_156 artifact: ${requiredPath}`);
+    assertCondition(
+      fs.existsSync(requiredPath),
+      `Missing required par_156 artifact: ${requiredPath}`,
+    );
   }
   const expected = loadExpected();
-  assertCondition(expected.requestTypeCount === 4, "The UI contract no longer publishes four request types.");
+  assertCondition(
+    expected.requestTypeCount === 4,
+    "The UI contract no longer publishes four request types.",
+  );
   assertCondition(expected.visibilityRowCount > 0, "Visibility matrix is empty.");
 
   const playwright = await importPlaywright();
@@ -656,9 +765,13 @@ export async function run() {
       (await galleryPage.locator(".signal-card").count()) === expected.requestTypeCount,
       "Gallery request-type signal grid drifted from the canonical request-type count.",
     );
-    const galleryText = await galleryPage.locator("[data-testid='request-type-flow-gallery']").innerText();
+    const galleryText = await galleryPage
+      .locator("[data-testid='request-type-flow-gallery']")
+      .innerText();
     assertCondition(
-      galleryText.includes("/start-request") && galleryText.includes("same-shell") && galleryText.includes("request-proof"),
+      galleryText.includes("/start-request") &&
+        galleryText.includes("same-shell") &&
+        galleryText.includes("request-proof"),
       "Gallery lost the implemented route alias, same-shell language, or request-proof anchor reference.",
     );
     await galleryPage.setViewportSize({ width: 390, height: 844 });

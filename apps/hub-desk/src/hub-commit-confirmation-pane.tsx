@@ -25,6 +25,34 @@ import {
   type CrossOrgCommitPosture,
 } from "../../../packages/domain-kernel/src/phase5-cross-org-confirmation-preview";
 
+function publicCommitText(value: string): string {
+  return value
+    .replace(/\btuple\b/gi, "details")
+    .replace(/\btruth\b/gi, "confirmed information")
+    .replace(/\bposture\b/gi, "status")
+    .replace(/\bsame[- ]shell\b/gi, "same case")
+    .replace(/\bshell\b/gi, "workspace")
+    .replace(/\blineage\b/gi, "history")
+    .replace(/\bcontract\b/gi, "agreement")
+    .replace(/\bprovenance\b/gi, "history")
+    .replace(/\bstub\b/gi, "summary")
+    .replace(/\bmanual_pending_confirmation\b/g, "manual confirmation pending")
+    .replace(/\b[a-z]+(?:_[a-z0-9]+)+\b/g, (token) =>
+      token
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (letter) => letter.toUpperCase()),
+    );
+}
+
+function publicCommitRows(
+  rows: readonly { label: string; value: string }[],
+): readonly { label: string; value: string }[] {
+  return rows.map((row) => ({
+    label: publicCommitText(row.label),
+    value: publicCommitText(row.value),
+  }));
+}
+
 export interface HubCommitUiState {
   readonly postureByCaseId: Readonly<Record<string, CrossOrgCommitPosture>>;
   readonly manualProofCaseId: string | null;
@@ -164,7 +192,7 @@ function hubContentLegendItems(): readonly CrossOrgContentLegendItem[] {
     {
       term: "Practice acknowledged",
       meaning:
-        "The practice confirmed receipt of the current generation. This remains a separate operational truth.",
+        "The practice confirmed receipt of the current generation. This remains a separate operational record.",
       tone: "neutral",
     },
   ];
@@ -244,8 +272,8 @@ function resolveHubArtifactState(input: {
       actionId: "print",
       label: "Print proof summary",
       detail: printAllowed
-        ? "Print uses this same governed stage before any browser step."
-        : "Print remains secondary until the current tuple can arm it lawfully.",
+        ? "Print uses this same approved stage before any browser step."
+        : "Print remains secondary until the current details can support it.",
       disabled: !printAllowed,
     },
     {
@@ -253,7 +281,7 @@ function resolveHubArtifactState(input: {
       label: "Download proof bundle",
       detail: downloadAllowed
         ? "Download keeps the same evidence rows and return anchor."
-        : "Download is blocked while review posture is active.",
+        : "Download is blocked while review status is active.",
       disabled: !downloadAllowed,
     },
     {
@@ -261,7 +289,7 @@ function resolveHubArtifactState(input: {
       label: "Export practice summary",
       detail: exportAllowed
         ? "Export keeps the practice-safe summary separate from patient reassurance."
-        : "Export stays closed in the current posture.",
+        : "Export stays closed in the current status.",
       disabled: !exportAllowed,
     },
     {
@@ -269,7 +297,7 @@ function resolveHubArtifactState(input: {
       label: "Open external handoff",
       detail: handoffAllowed
         ? "Handoff remains scoped, secondary, and return-safe."
-        : "External handoff remains blocked while the current tuple cannot support it.",
+        : "External handoff remains blocked while the current details cannot support it.",
       disabled: !handoffAllowed,
     },
   ];
@@ -290,15 +318,15 @@ function resolveHubArtifactState(input: {
       grantState === "active"
         ? "Summary verified"
         : grantState === "blocked"
-          ? "Recovery posture"
+          ? "Recovery status"
           : input.artifactModeState === "table_only"
             ? "Table-backed summary-only"
             : "Summary-first only",
-    authorityLabel:
-      input.projection.posture === "booked" || input.projection.posture === "booked_pending_practice_ack"
-        ? "Booked truth and continuity bundle"
+      authorityLabel:
+        input.projection.posture === "booked" || input.projection.posture === "booked_pending_practice_ack"
+        ? "Booked verified details and continuity bundle"
         : reviewPosture
-          ? "Reviewing live tuple"
+          ? "Reviewing current details"
           : "Structured evidence only",
     grantRows: [
       { label: "Grant state", value: grantState.replaceAll("_", " ") },
@@ -306,14 +334,14 @@ function resolveHubArtifactState(input: {
       { label: "Return anchor", value: "Settlement receipt / current audit ledger" },
     ],
     placeholderRows: [
-      { label: "Current posture", value: input.projection.truthLabel },
+      { label: "Current status", value: input.projection.truthLabel },
       {
         label: "Why richer movement is held back",
         value: reviewPosture
-          ? "Review posture or drift blocks preview and external movement"
+          ? "Review status or drift blocks preview and external movement"
           : input.artifactModeState === "table_only"
             ? "This shell is table-backed, so the summary remains primary"
-            : "The current tuple has not widened richer movement yet",
+            : "The current details have not widened richer movement yet",
       },
       {
         label: "Practice-safe ceiling",
@@ -340,16 +368,16 @@ export function HubCommitSettlementReceipt(props: {
     >
       <div className="hub-commit-ledger__section-head">
         <div>
-          <p className="hub-eyebrow">HubCommitSettlementReceipt</p>
-          <h3>{props.truthLabel}</h3>
+          <p className="hub-eyebrow">Settlement receipt</p>
+          <h3>{publicCommitText(props.truthLabel)}</h3>
         </div>
         <span className="hub-commit-ledger__case-ref">{props.snapshot.currentCase.caseId}</span>
       </div>
       <dl className="hub-commit-ledger__receipt-list">
         {props.receiptRows.map((row) => (
           <div key={row.label}>
-            <dt>{row.label}</dt>
-            <dd>{row.value}</dd>
+            <dt>{publicCommitText(row.label)}</dt>
+            <dd>{publicCommitText(row.value)}</dd>
           </div>
         ))}
       </dl>
@@ -378,7 +406,7 @@ export function HubCommitAttemptTimeline(props: {
     >
       <div className="hub-commit-ledger__section-head">
         <div>
-          <p className="hub-eyebrow">HubCommitAttemptTimeline</p>
+          <p className="hub-eyebrow">Booking timeline</p>
           <h3>Commit attempt timeline</h3>
         </div>
         <span>Evidence and visibility stay on one ledger.</span>
@@ -393,10 +421,10 @@ export function HubCommitAttemptTimeline(props: {
           >
             <div className="hub-commit-ledger__timeline-marker" aria-hidden="true" />
             <div className="hub-commit-ledger__timeline-copy">
-              <strong>{row.label}</strong>
-              <p>{row.detail}</p>
+              <strong>{publicCommitText(row.label)}</strong>
+              <p>{publicCommitText(row.detail)}</p>
               <small>
-                {row.timeLabel} / {row.evidenceRef}
+                {publicCommitText(row.timeLabel)} / {publicCommitText(row.evidenceRef)}
               </small>
             </div>
           </li>
@@ -421,8 +449,8 @@ export function PracticeAcknowledgementIndicator(props: {
       data-testid="PracticeAcknowledgementIndicator"
       data-acknowledgement-state={props.acknowledgementState}
     >
-      <span className="hub-eyebrow">PracticeAcknowledgementIndicator</span>
-      <strong>{props.acknowledgementLabel}</strong>
+      <span className="hub-eyebrow">Practice acknowledgement</span>
+      <strong>{publicCommitText(props.acknowledgementLabel)}</strong>
     </div>
   );
 }
@@ -447,7 +475,7 @@ export function PracticeVisibilityPanel(props: {
     >
       <div className="hub-commit-ledger__section-head">
         <div>
-          <p className="hub-eyebrow">PracticeVisibilityPanel</p>
+          <p className="hub-eyebrow">Practice visibility</p>
           <h3>Origin practice visibility</h3>
         </div>
         <PracticeAcknowledgementIndicator
@@ -455,15 +483,15 @@ export function PracticeVisibilityPanel(props: {
           acknowledgementLabel={props.acknowledgementLabel}
         />
       </div>
-      <p className="hub-commit-ledger__section-summary">{props.summary}</p>
+      <p className="hub-commit-ledger__section-summary">{publicCommitText(props.summary)}</p>
       <div className="hub-commit-ledger__practice-grid">
         <div>
-          <h4>Minimum-necessary operational truth</h4>
+          <h4>Minimum-necessary operational verified details</h4>
           <dl className="hub-commit-ledger__fact-list">
             {props.minimumNecessaryRows.map((row) => (
               <div key={row.label}>
-                <dt>{row.label}</dt>
-                <dd>{row.value}</dd>
+                <dt>{publicCommitText(row.label)}</dt>
+                <dd>{publicCommitText(row.value)}</dd>
               </div>
             ))}
           </dl>
@@ -473,8 +501,8 @@ export function PracticeVisibilityPanel(props: {
           <dl className="hub-commit-ledger__fact-list">
             {props.patientFacingRows.map((row) => (
               <div key={row.label}>
-                <dt>{row.label}</dt>
-                <dd>{row.value}</dd>
+                <dt>{publicCommitText(row.label)}</dt>
+                <dd>{publicCommitText(row.value)}</dd>
               </div>
             ))}
           </dl>
@@ -505,8 +533,8 @@ export function ContinuityDeliveryEvidenceDrawer(props: {
     >
       <div className="hub-commit-ledger__section-head">
         <div>
-          <p className="hub-eyebrow">ContinuityDeliveryEvidenceDrawer</p>
-          <h3>{props.heading}</h3>
+          <p className="hub-eyebrow">Delivery evidence</p>
+          <h3>{publicCommitText(props.heading)}</h3>
         </div>
         <button
           type="button"
@@ -518,23 +546,23 @@ export function ContinuityDeliveryEvidenceDrawer(props: {
           {props.isOpen ? "Hide evidence" : "Show evidence"}
         </button>
       </div>
-      <p className="hub-commit-ledger__section-summary">{props.summary}</p>
+      <p className="hub-commit-ledger__section-summary">{publicCommitText(props.summary)}</p>
       <div id={contentId} hidden={!props.isOpen}>
         <div className="hub-commit-ledger__continuity-grid">
           <dl className="hub-commit-ledger__fact-list">
             {props.evidenceRows.map((row) => (
               <div key={row.label}>
-                <dt>{row.label}</dt>
-                <dd>{row.value}</dd>
+                <dt>{publicCommitText(row.label)}</dt>
+                <dd>{publicCommitText(row.value)}</dd>
               </div>
             ))}
           </dl>
           <PracticeNotificationArtifactSummary
-            title={props.notificationPreview.title}
+            title={publicCommitText(props.notificationPreview.title)}
             summary="Practice-facing preview remains summary-first and minimum-necessary."
             previewTitle="Notification wording"
-            previewBody={props.notificationPreview.body}
-            rows={props.notificationPreview.rows}
+            previewBody={publicCommitText(props.notificationPreview.body)}
+            rows={publicCommitRows(props.notificationPreview.rows)}
           />
         </div>
       </div>
@@ -556,23 +584,23 @@ export function ImportedConfirmationReviewPanel(props: {
     >
       <div className="hub-commit-ledger__section-head">
         <div>
-          <p className="hub-eyebrow">ImportedConfirmationReviewPanel</p>
-          <h3>{props.heading}</h3>
+          <p className="hub-eyebrow">Imported confirmation review</p>
+          <h3>{publicCommitText(props.heading)}</h3>
         </div>
         <span className="hub-commit-ledger__warning-chip">Booked calmness blocked</span>
       </div>
-      <p className="hub-commit-ledger__section-summary">{props.summary}</p>
+      <p className="hub-commit-ledger__section-summary">{publicCommitText(props.summary)}</p>
       <dl className="hub-commit-ledger__fact-list">
         {props.contradictionRows.map((row) => (
           <div key={row.label}>
-            <dt>{row.label}</dt>
-            <dd>{row.value}</dd>
+            <dt>{publicCommitText(row.label)}</dt>
+            <dd>{publicCommitText(row.value)}</dd>
           </div>
         ))}
       </dl>
       <ul className="hub-highlight-list">
         {props.resolutionActions.map((item) => (
-          <li key={item}>{item}</li>
+          <li key={item}>{publicCommitText(item)}</li>
         ))}
       </ul>
     </section>
@@ -591,13 +619,13 @@ export function HubSupplierDriftBanner(props: {
       data-supplier-drift="true"
     >
       <div>
-        <p className="hub-eyebrow">HubSupplierDriftBanner</p>
-        <h3>{props.heading}</h3>
-        <p>{props.summary}</p>
+        <p className="hub-eyebrow">Supplier review</p>
+        <h3>{publicCommitText(props.heading)}</h3>
+        <p>{publicCommitText(props.summary)}</p>
       </div>
       <ul>
         {props.blockedActions.map((item) => (
-          <li key={item}>{item}</li>
+          <li key={item}>{publicCommitText(item)}</li>
         ))}
       </ul>
     </section>
@@ -651,26 +679,26 @@ export function ManualNativeBookingProofModal(props: {
       >
         <header className="hub-commit-ledger__section-head">
           <div>
-            <p className="hub-eyebrow">ManualNativeBookingProofModal</p>
+            <p className="hub-eyebrow">Manual booking proof</p>
             <h3 id="hub-manual-proof-heading" ref={headingRef} tabIndex={-1}>
-              {props.heading}
+              {publicCommitText(props.heading)}
             </h3>
           </div>
           <button type="button" className="hub-link-button" onClick={props.onClose}>
             Close
           </button>
         </header>
-        <p className="hub-commit-ledger__section-summary">{props.summary}</p>
+        <p className="hub-commit-ledger__section-summary">{publicCommitText(props.summary)}</p>
         <ul className="hub-highlight-list">
           {props.checklist.map((item) => (
-            <li key={item}>{item}</li>
+            <li key={item}>{publicCommitText(item)}</li>
           ))}
         </ul>
         <dl className="hub-commit-ledger__fact-list">
           {props.rows.map((row) => (
             <div key={row.label}>
-              <dt>{row.label}</dt>
-              <dd>{row.value}</dd>
+              <dt>{publicCommitText(row.label)}</dt>
+              <dd>{publicCommitText(row.value)}</dd>
             </div>
           ))}
         </dl>
@@ -679,7 +707,7 @@ export function ManualNativeBookingProofModal(props: {
             Keep as review only
           </button>
           <button type="button" className="hub-primary-button" onClick={props.onSubmit}>
-            {props.submitLabel}
+            {publicCommitText(props.submitLabel)}
           </button>
         </div>
       </section>
@@ -740,7 +768,7 @@ export function HubCommitConfirmationPane(props: {
     if (action.disabled) {
       setArtifactReceipt({
         actionId: normalizedActionId,
-        title: `${action.label} stayed on the governed summary`,
+        title: `${action.label} stayed on the approved summary`,
         summary: action.detail,
         anchorLabel: "Settlement receipt",
         state: artifactState.grantState === "blocked" ? "blocked" : "guarded",
@@ -752,11 +780,11 @@ export function HubCommitConfirmationPane(props: {
       normalizedActionId === "preview"
         ? "Preview opened inside the same audit ledger."
         : normalizedActionId === "print"
-          ? "Print posture armed from the same audit ledger."
-          : normalizedActionId === "download"
+          ? "Print status armed from the same audit ledger."
+        : normalizedActionId === "download"
             ? "Proof bundle prepared without dropping the current receipt anchor."
             : normalizedActionId === "export"
-              ? "Practice summary export prepared with patient and practice truths still separated."
+              ? "Practice summary export prepared with patient and practice wording still separated."
               : "External handoff prepared with the same return anchor.";
     setArtifactReceipt({
       actionId: normalizedActionId,
@@ -781,12 +809,12 @@ export function HubCommitConfirmationPane(props: {
       >
         <div className="hub-commit-ledger__masthead" data-tone={toneClass(projection.tone)}>
           <div>
-            <p className="hub-eyebrow">Cross_Org_Confirmation_Ledger</p>
-            <h2>{projection.truthLabel}</h2>
-            <p>{projection.summary}</p>
+            <p className="hub-eyebrow">Cross-organisation confirmation</p>
+            <h2>{publicCommitText(projection.truthLabel)}</h2>
+            <p>{publicCommitText(projection.summary)}</p>
           </div>
           <span className="hub-commit-ledger__evidence-chip">
-            {projection.evidenceStrengthLabel}
+            {publicCommitText(projection.evidenceStrengthLabel)}
           </span>
         </div>
 
@@ -798,22 +826,22 @@ export function HubCommitConfirmationPane(props: {
           />
         ) : null}
 
-        <HubCommitSettlementReceipt
-          snapshot={props.snapshot}
-          receiptRows={projection.settlementReceiptRows}
-          truthLabel={projection.truthLabel}
-          tone={projection.tone}
-          sectionRef={receiptRef}
-        />
+          <HubCommitSettlementReceipt
+            snapshot={props.snapshot}
+            receiptRows={publicCommitRows(projection.settlementReceiptRows)}
+            truthLabel={publicCommitText(projection.truthLabel)}
+            tone={projection.tone}
+            sectionRef={receiptRef}
+          />
 
         <CrossOrgArtifactSurfaceFrame
           testId="hub-commit-artifact-frame"
           contextId="hub_commit"
           visualMode={CROSS_ORG_ARTIFACT_HANDOFF_VISUAL_MODE}
           tone={artifactState.tone}
-          eyebrow="Governed artifact stage"
+          eyebrow="Approved artifact stage"
           title="Cross-organisation proof and handoff stage"
-          summary="Audit proof, patient wording, practice wording, and secondary handoff actions stay inside one governed stage."
+          summary="Audit proof, patient wording, practice wording, and secondary handoff actions stay inside one approved stage."
           metadata={
             <>
               <span className="cross-org-artifact-chip">{artifactState.parityLabel}</span>
@@ -826,7 +854,7 @@ export function HubCommitConfirmationPane(props: {
             summary={
               artifactState.grantState === "active"
                 ? "The current audit route can keep preview, print, export, and handoff secondary and return-safe."
-                : "This audit route stays summary-first while the tuple is quiet, table-backed, or under review."
+                : "This audit route stays summary-first while the details are quiet, table-backed, or under review."
             }
             tone={artifactState.tone}
             parityLabel={artifactState.parityLabel}
@@ -834,20 +862,28 @@ export function HubCommitConfirmationPane(props: {
             stageMode={artifactState.stageMode}
           />
           <NetworkConfirmationArtifactStage
-            title="Booked summary and disclosure truth"
+            title="Booked summary and disclosure verified details"
             summary="The receipt remains primary while patient reassurance, practice informed, and practice acknowledged remain visibly distinct."
             stageMode={artifactState.stageMode}
-            identityRows={projection.settlementReceiptRows}
+            identityRows={publicCommitRows(projection.settlementReceiptRows)}
             truthRows={[
-              { label: "Patient wording", value: projection.patientView.patientFacingReference },
+              {
+                label: "Patient wording",
+                value: publicCommitText(projection.patientView.patientFacingReference),
+              },
               {
                 label: "Practice informed",
-                value: projection.practiceView.patientFacingRows[1]?.value ?? "Not yet widened",
+                value: publicCommitText(
+                  projection.practiceView.patientFacingRows[1]?.value ?? "Not yet widened",
+                ),
               },
-              { label: "Acknowledgement label", value: projection.practiceView.acknowledgementLabel },
+              {
+                label: "Acknowledgement label",
+                value: publicCommitText(projection.practiceView.acknowledgementLabel),
+              },
             ]}
             previewTitle="Current audit framing"
-            previewSummary={projection.summary}
+            previewSummary={publicCommitText(projection.summary)}
           />
           <GrantBoundPreviewState
             title="Preview and handoff scope"
@@ -855,29 +891,29 @@ export function HubCommitConfirmationPane(props: {
               artifactState.grantState === "active"
                 ? "Preview, print, download, export, and handoff remain secondary to the receipt and current queue anchor."
                 : artifactState.grantState === "blocked"
-                  ? "Recovery posture blocks richer movement and keeps the current audit receipt primary."
-                  : "The shell remains summary-first while the tuple stays quiet or table-backed."
+                  ? "Recovery status blocks richer movement and keeps the current audit receipt primary."
+                  : "The workspace remains summary-first while the details stay quiet or table-backed."
             }
             grantState={artifactState.grantState}
-            rows={artifactState.grantRows}
+            rows={publicCommitRows(artifactState.grantRows)}
           />
           {artifactState.grantState !== "active" ? (
             <GovernedPlaceholderSummary
               title="Why richer artifact detail is held back"
               summary="Hidden or detached detail does not disappear silently. The audit ledger explains the ceiling and keeps the same receipt anchor."
-              rows={artifactState.placeholderRows}
+              rows={publicCommitRows(artifactState.placeholderRows)}
               reasonLabel={
                 artifactState.grantState === "blocked"
-                  ? "recovery posture"
+                  ? "recovery status"
                   : props.snapshot.artifactModeState === "table_only"
                     ? "table-backed summary-only"
-                    : "awaiting wider truth"
+                    : "awaiting wider verified details"
               }
             />
           ) : null}
           <CrossOrgContentLegend
             title="Cross-organisation wording legend"
-            summary="Equivalent truths keep equivalent phrases across patient, hub, and practice surfaces."
+            summary="Equivalent confirmed details keep equivalent phrases across patient, hub, and practice surfaces."
             items={hubContentLegendItems()}
           />
           <ArtifactHandoffActionBar
@@ -920,8 +956,8 @@ export function HubCommitConfirmationPane(props: {
               <dl className="hub-commit-ledger__fact-list">
                 {projection.evidenceRows.map((row) => (
                   <div key={row.label}>
-                    <dt>{row.label}</dt>
-                    <dd>{row.value}</dd>
+                    <dt>{publicCommitText(row.label)}</dt>
+                    <dd>{publicCommitText(row.value)}</dd>
                   </div>
                 ))}
               </dl>
@@ -939,18 +975,22 @@ export function HubCommitConfirmationPane(props: {
 
           <div className="hub-commit-ledger__side">
             <PracticeVisibilityPanel
-              summary={projection.practiceView.summary}
-              minimumNecessaryRows={projection.practiceView.minimumNecessaryRows}
-              patientFacingRows={projection.practiceView.patientFacingRows}
+              summary={publicCommitText(projection.practiceView.summary)}
+              minimumNecessaryRows={publicCommitRows(projection.practiceView.minimumNecessaryRows)}
+              patientFacingRows={publicCommitRows(projection.practiceView.patientFacingRows)}
               acknowledgementState={projection.practiceView.acknowledgementState}
-              acknowledgementLabel={projection.practiceView.acknowledgementLabel}
+              acknowledgementLabel={publicCommitText(projection.practiceView.acknowledgementLabel)}
             />
             <ContinuityDeliveryEvidenceDrawer
               isOpen={continuityOpen}
-              heading={projection.continuityDrawer.heading}
-              summary={projection.continuityDrawer.summary}
-              evidenceRows={projection.continuityDrawer.evidenceRows}
-              notificationPreview={projection.continuityDrawer.notificationPreview}
+              heading={publicCommitText(projection.continuityDrawer.heading)}
+              summary={publicCommitText(projection.continuityDrawer.summary)}
+              evidenceRows={publicCommitRows(projection.continuityDrawer.evidenceRows)}
+              notificationPreview={{
+                title: publicCommitText(projection.continuityDrawer.notificationPreview.title),
+                body: publicCommitText(projection.continuityDrawer.notificationPreview.body),
+                rows: publicCommitRows(projection.continuityDrawer.notificationPreview.rows),
+              }}
               onToggle={() => props.onToggleContinuityDrawer(props.snapshot.currentCase.caseId)}
             />
           </div>

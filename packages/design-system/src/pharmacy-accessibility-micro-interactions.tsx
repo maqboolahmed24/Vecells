@@ -187,7 +187,7 @@ export function PharmacyFocusRouteMap(props: {
       </div>
       <dl className="pharmacy-a11y-focus-map__grid">
         <div>
-          <dt>Route family</dt>
+          <dt>Journey group</dt>
           <dd>{props.routeFamilyLabel}</dd>
         </div>
         <div>

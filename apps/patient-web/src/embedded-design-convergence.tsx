@@ -18,6 +18,13 @@ interface EmbeddedDesignBundleProviderProps {
   readonly children: ReactNode;
 }
 
+function diagnosticsEnabled(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  return new URLSearchParams(window.location.search).get("diagnostics") === "embedded-design";
+}
+
 function contractList(profile: EmbeddedDesignRouteProfile): string {
   return [
     "DesignContractPublicationBundle",
@@ -321,6 +328,7 @@ export function EmbeddedDesignBundleProvider({
 }: EmbeddedDesignBundleProviderProps) {
   const providerRef = useRef<HTMLDivElement | null>(null);
   const profile = useMemo(() => resolveEmbeddedDesignRouteProfile(routeFamily), [routeFamily]);
+  const showDiagnostics = diagnosticsEnabled();
 
   return (
     <div
@@ -338,18 +346,25 @@ export function EmbeddedDesignBundleProvider({
       data-semantic-label={profile.semanticLabel}
       data-fallback-count={profile.visualizationFallbacks.length}
     >
-      <EmbeddedStateCopyRegistry profile={profile} />
-      <EmbeddedAutomationAnchorRegistry profile={profile} />
-      <EmbeddedSemanticGrammarRegistry profile={profile} />
-      <EmbeddedIconographyRuleset profile={profile} />
-      <EmbeddedVisualizationFallbackAdapter profile={profile} />
-      <EmbeddedMicrocopyNormalizer profile={profile} />
+      {showDiagnostics ? (
+        <>
+          <EmbeddedStateCopyRegistry profile={profile} />
+          <EmbeddedAutomationAnchorRegistry profile={profile} />
+          <EmbeddedSemanticGrammarRegistry profile={profile} />
+          <EmbeddedIconographyRuleset profile={profile} />
+          <EmbeddedVisualizationFallbackAdapter profile={profile} />
+          <EmbeddedMicrocopyNormalizer profile={profile} />
+        </>
+      ) : null}
       {children}
-      <EmbeddedBundleAuditPanel profile={profile} />
-      <EmbeddedDesignConvergenceLinter profile={profile} providerRef={providerRef} />
+      {showDiagnostics ? (
+        <>
+          <EmbeddedBundleAuditPanel profile={profile} />
+          <EmbeddedDesignConvergenceLinter profile={profile} providerRef={providerRef} />
+        </>
+      ) : null}
     </div>
   );
 }
 
 export default EmbeddedDesignBundleProvider;
-

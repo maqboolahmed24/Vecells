@@ -29,8 +29,8 @@ export const meshExecutionPack = {
   ],
   "assumptions": [
     {
-      "assumption_id": "ASSUMPTION_VECELLS_WORKFLOW_IDS_ARE_CANDIDATE_REQUESTS_NOT_APPROVED_IDS",
-      "summary": "The public MESH pages publish the rules and current workbook location, but this task does not pull the private or rapidly changing workflow spreadsheet into repo. The IDs below are therefore internal Vecells candidate requests unless later mapped to an existing approved workflow.",
+      "assumption_id": "ASSUMPTION_SERVICE_WORKFLOW_IDS_ARE_CANDIDATE_REQUESTS_NOT_APPROVED_IDS",
+      "summary": "The public MESH pages publish the rules and current workbook location, but this task does not pull the private or rapidly changing workflow spreadsheet into repo. The IDs below are therefore internal Service candidate requests unless later mapped to an existing approved workflow.",
       "consequence": "The registry is operationally useful now without falsely claiming mailbox-ready production IDs."
     },
     {
@@ -40,7 +40,7 @@ export const meshExecutionPack = {
     },
     {
       "assumption_id": "ASSUMPTION_PATH_TO_LIVE_AND_LOCAL_SANDBOX_STAY_SEPARATE_DECISIONS",
-      "summary": "Official guidance says API testing can begin in Path to Live integration without a mailbox and also points to local MESH-sandbox options. Vecells therefore records local sandbox, Path to Live-like rehearsal, and real mailbox application as distinct stages.",
+      "summary": "Official guidance says API testing can begin in Path to Live integration without a mailbox and also points to local MESH-sandbox options. Service therefore records local sandbox, Path to Live-like rehearsal, and real mailbox application as distinct stages.",
       "consequence": "The mock and live-later strategy do not collapse 'test transport' into 'request mailbox now'."
     }
   ],
@@ -271,8 +271,8 @@ export const meshExecutionPack = {
     {
       "mailbox_key": "MBX_VEC_HUB",
       "mailbox_id": "mock-vec-hub-coord",
-      "display_name": "Vecells hub coordination",
-      "owner_organisation": "Vecells interoperability delivery",
+      "display_name": "Service hub coordination",
+      "owner_organisation": "Service interoperability delivery",
       "owner_ods": "VEC01",
       "organisation_type": "system_supplier",
       "manager_mode": "self_managed",
@@ -299,8 +299,8 @@ export const meshExecutionPack = {
     {
       "mailbox_key": "MBX_VEC_PHARMACY",
       "mailbox_id": "mock-vec-pharmacy-dispatch",
-      "display_name": "Vecells pharmacy dispatch",
-      "owner_organisation": "Vecells interoperability delivery",
+      "display_name": "Service pharmacy dispatch",
+      "owner_organisation": "Service interoperability delivery",
       "owner_ods": "VEC01",
       "organisation_type": "system_supplier",
       "manager_mode": "self_managed",
@@ -327,8 +327,8 @@ export const meshExecutionPack = {
     {
       "mailbox_key": "MBX_VEC_SUPPORT",
       "mailbox_id": "mock-vec-support-replay",
-      "display_name": "Vecells support replay desk",
-      "owner_organisation": "Vecells support operations",
+      "display_name": "Service support replay desk",
+      "owner_organisation": "Service support operations",
       "owner_ods": "VEC01",
       "organisation_type": "system_supplier",
       "manager_mode": "self_managed",
@@ -345,7 +345,7 @@ export const meshExecutionPack = {
       "workflow_id": "VEC_HUB_BOOKING_NOTICE",
       "message_family": "practice_visibility_notice",
       "bounded_context_ref": "hub_coordination",
-      "business_flow_summary": "Vecells hub sends booking or continuity notices to the origin practice after a hub-side commit attempt.",
+      "business_flow_summary": "Service hub sends booking or continuity notices to the origin practice after a hub-side commit attempt.",
       "proof_required_after_send": "Current-generation PracticeAcknowledgementRecord or a governed recovery path with explicit acknowledgement debt.",
       "acceptance_vs_authoritative_truth_note": "Transport acceptance or mailbox queueing does not clear practice acknowledgement debt or canonical booking truth.",
       "mailbox_direction": "outbound",
@@ -381,7 +381,7 @@ export const meshExecutionPack = {
       "workflow_id": "VEC_PF_REFERRAL_INIT",
       "message_family": "pharmacy_referral_dispatch",
       "bounded_context_ref": "pharmacy",
-      "business_flow_summary": "Vecells dispatches a frozen referral package to a pharmacy or agreed receiving mailbox.",
+      "business_flow_summary": "Service dispatches a frozen referral package to a pharmacy or agreed receiving mailbox.",
       "proof_required_after_send": "PharmacyDispatchAttempt under the active TransportAssuranceProfile and any required ExternalConfirmationGate.",
       "acceptance_vs_authoritative_truth_note": "Transport acceptance never settles referral completion, dispense outcome, or patient reassurance.",
       "mailbox_direction": "outbound",
@@ -417,7 +417,7 @@ export const meshExecutionPack = {
       "workflow_id": "VEC_PF_OUTCOME_RESP",
       "message_family": "pharmacy_outcome_return",
       "bounded_context_ref": "pharmacy",
-      "business_flow_summary": "Pharmacy sends consultation outcome, no-contact, or other outcome payload back to Vecells.",
+      "business_flow_summary": "Pharmacy sends consultation outcome, no-contact, or other outcome payload back to Service.",
       "proof_required_after_send": "Correlated PharmacyOutcomeRecord or PharmacyOutcomeReconciliationGate evidence against the current PharmacyCase.",
       "acceptance_vs_authoritative_truth_note": "Outcome payload arrival is still subject to matching and reconciliation before it can influence canonical closure.",
       "mailbox_direction": "inbound",
@@ -751,7 +751,7 @@ export const meshExecutionPack = {
         "label": "3rd party organisation name",
         "required_mode": "conditional_actual_provider_strategy_later",
         "value_shape": "string",
-        "value_examples": "Vecells interoperability delivery",
+        "value_examples": "Service interoperability delivery",
         "purpose": "Name the managing third party when mailbox management is delegated.",
         "notes": "Official mailbox form field."
       },
@@ -1005,7 +1005,7 @@ export const meshExecutionPack = {
         "required_mode": "mock_now_and_actual_later",
         "value_shape": "string_list",
         "value_examples": "rf_hub_queue; rf_pharmacy_console",
-        "purpose": "Bind the mailbox and workflow request to concrete Vecells route families.",
+        "purpose": "Bind the mailbox and workflow request to concrete Service route families.",
         "notes": "Derived governance field."
       },
       {
@@ -1164,7 +1164,7 @@ export const meshExecutionPack = {
       },
       {
         "section_id": "internal_gate",
-        "label": "Vecells live gate dossier",
+        "label": "Service live gate dossier",
         "field_ids": [
           "fld_route_trace_refs",
           "fld_bounded_context_owner",
@@ -1654,7 +1654,7 @@ export const meshExecutionPack = {
         "phase-6-the-pharmacy-loop.md",
         "blueprint-init.md#Bootstrap priorities",
         "phase-cards.md#Programme Summary-Layer Alignment",
-        "vecells-complete-end-to-end-flow.md#Vecells Complete End-to-End System Flow (Audited Baseline)",
+        "service-complete-end-to-end-flow.md#Service Complete End-to-End System Flow (Audited Baseline)",
         "phase-0-the-foundation-protocol.md#9.6 Closure evaluation algorithm",
         "forensic-audit-findings.md#Finding 31 - No ambiguous confirmation or reconciliation state for bookings",
         "platform-frontend-blueprint.md#5.6 Booking, waitlist, hub, and pharmacy continuity algorithm",
@@ -1946,12 +1946,12 @@ export const meshExecutionPack = {
       "risk_class": "resilience",
       "source_type": "derived_gap_closure",
       "source_refs": [
-        "vecells-complete-end-to-end-flow.md",
+        "service-complete-end-to-end-flow.md",
         "blueprint-init.md",
         "phase-6-the-pharmacy-loop.md",
         "blueprint-init.md#3. The canonical request model",
         "phase-cards.md#Card 7: Phase 6 - The Pharmacy Loop",
-        "vecells-complete-end-to-end-flow.md#Vecells Complete End-to-End System Flow (Audited Baseline)",
+        "service-complete-end-to-end-flow.md#Service Complete End-to-End System Flow (Audited Baseline)",
         "phase-0-the-foundation-protocol.md#3. Non-negotiable invariants",
         "forensic-audit-findings.md#Finding 77 - Phase 6 let pharmacy-domain logic write canonical request state directly on resolve and reopen paths",
         "platform-frontend-blueprint.md#1.1A AttentionBudget",
@@ -2319,7 +2319,7 @@ export const meshExecutionPack = {
         "phase-6-the-pharmacy-loop.md",
         "blueprint-init.md#3. The canonical request model",
         "phase-cards.md#Card 1: Phase 0 - The Foundation Protocol",
-        "vecells-complete-end-to-end-flow.md#Vecells Complete End-to-End System Flow (Audited Baseline)",
+        "service-complete-end-to-end-flow.md#Service Complete End-to-End System Flow (Audited Baseline)",
         "phase-0-the-foundation-protocol.md#0B. Canonical domain kernel and state machine",
         "forensic-audit-findings.md#Finding 74 - Phase 4 let booking-domain logic write canonical request state directly on success",
         "phase-3-the-human-checkpoint.md#Backend work",

@@ -4,6 +4,7 @@ import {
   buildProgressiveFlowView,
   confirmRequestTypeChange,
   createDefaultStructuredAnswers,
+  hasBoundedUrgentDiversionSignal,
   moveDetailsForward,
   selectRequestType,
   type ProgressiveFlowMemoryShape,
@@ -35,6 +36,41 @@ describe("patient intake progressive flow", () => {
     ).toBe(true);
   });
 
+  it("does not route routine general symptom answers to urgent diversion", () => {
+    const memory: ProgressiveFlowMemoryShape = {
+      requestType: "Symptoms" as const,
+      structuredAnswers: {
+        "symptoms.category": "general",
+        "symptoms.onsetPrecision": "approximate_window",
+        "symptoms.onsetWindow": "today",
+        "symptoms.worseningNow": false,
+        "symptoms.severityClues": ["none_of_these"],
+        "symptoms.narrative": "common cold",
+      },
+      reviewAffirmed: true,
+    };
+
+    expect(hasBoundedUrgentDiversionSignal(memory)).toBe(false);
+  });
+
+  it("routes bounded urgent symptom and medication answers to urgent diversion", () => {
+    const symptomMemory: ProgressiveFlowMemoryShape = {
+      requestType: "Symptoms" as const,
+      structuredAnswers: createDefaultStructuredAnswers(),
+      reviewAffirmed: true,
+    };
+    const medicationMemory: ProgressiveFlowMemoryShape = {
+      requestType: "Meds" as const,
+      structuredAnswers: {
+        "meds.urgency": "urgent_today",
+      },
+      reviewAffirmed: true,
+    };
+
+    expect(hasBoundedUrgentDiversionSignal(symptomMemory)).toBe(true);
+    expect(hasBoundedUrgentDiversionSignal(medicationMemory)).toBe(true);
+  });
+
   it("supersedes hidden branch answers and removes them from the active summary", () => {
     const withExactDate: ProgressiveFlowMemoryShape = {
       requestType: "Symptoms" as const,
@@ -47,7 +83,11 @@ describe("patient intake progressive flow", () => {
       reviewAffirmed: true,
     };
 
-    const changed = answerProgressiveQuestion(withExactDate, "symptoms.onsetPrecision", "approximate_window");
+    const changed = answerProgressiveQuestion(
+      withExactDate,
+      "symptoms.onsetPrecision",
+      "approximate_window",
+    );
     const withWindow = answerProgressiveQuestion(changed, "symptoms.onsetWindow", "last_2_days");
     const flow = buildProgressiveFlowView(withWindow);
 
@@ -56,7 +96,9 @@ describe("patient intake progressive flow", () => {
         (entry: ProgressiveSupersededAnswerRecord) => entry.questionKey === "symptoms.onsetDate",
       ),
     ).toBe(true);
-    expect(flow.activeSummaryChips.some((chip) => chip.questionKey === "symptoms.onsetDate")).toBe(false);
+    expect(flow.activeSummaryChips.some((chip) => chip.questionKey === "symptoms.onsetDate")).toBe(
+      false,
+    );
     expect(changed.deltaNotice?.kind).toBe("branch_superseded");
   });
 
@@ -66,7 +108,11 @@ describe("patient intake progressive flow", () => {
       structuredAnswers: createDefaultStructuredAnswers(),
       reviewAffirmed: true,
     };
-    const changedCategory = answerProgressiveQuestion(symptomsDraft, "symptoms.category", "general");
+    const changedCategory = answerProgressiveQuestion(
+      symptomsDraft,
+      "symptoms.category",
+      "general",
+    );
 
     expect(changedCategory.reviewAffirmed).toBe(false);
     expect(changedCategory.deltaNotice?.kind).toBe("safety_review_required");

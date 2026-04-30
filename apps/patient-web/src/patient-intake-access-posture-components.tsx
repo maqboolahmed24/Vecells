@@ -37,6 +37,14 @@ function AccessPostureSummary({
   );
 }
 
+function accessPostureStripSupportCopy(posture: PatientAccessSurfaceView): string {
+  if (posture.summaryVisibility === "hidden") {
+    return "Some details stay hidden until this check is complete.";
+  }
+
+  return "Private details stay masked until this request is safe to show.";
+}
+
 function AccessPostureCard({
   posture,
   onPrimaryAction,
@@ -56,7 +64,7 @@ function AccessPostureCard({
       style={{ maxWidth: `${posture.maxWidthPx}px` }}
     >
       <div className="patient-intake-mission-frame__access-posture-head">
-        <span>Same-shell recovery</span>
+        <span>Safe recovery</span>
         <h3
           data-testid="access-posture-title"
           tabIndex={posture.focusTarget === "title" ? -1 : undefined}
@@ -138,16 +146,21 @@ export function AccessPostureStrip({
           <span data-glyph={posture.tone === "blocked" ? "hold" : "bridge"} />
         </span>
         <div className="patient-intake-mission-frame__status-stack">
-          <span className="patient-intake-mission-frame__status-kicker">Access posture</span>
+          <span className="patient-intake-mission-frame__status-kicker">Access status</span>
           <strong>{posture.stripLabel}</strong>
         </div>
       </div>
       <div className="patient-intake-mission-frame__status-cluster patient-intake-mission-frame__status-cluster--center">
         <p>{posture.stripDetail}</p>
-        <span id={liveRegionId} aria-live="polite" aria-atomic="true">
+        <span
+          id={liveRegionId}
+          className="patient-intake-mission-frame__sr-status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           {announcement}
         </span>
-        <small>{posture.contentGapResolution}</small>
+        <small>{accessPostureStripSupportCopy(posture)}</small>
       </div>
       <div className="patient-intake-mission-frame__status-cluster patient-intake-mission-frame__status-cluster--right">
         <button

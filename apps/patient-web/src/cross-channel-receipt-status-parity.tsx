@@ -159,7 +159,7 @@ export function ReceiptOutcomeBridge({ projection }: { projection: ReceiptParity
           <dd>{projection.outcomeBridge.sourceStatusKey}</dd>
         </div>
         <div>
-          <dt>Recovery posture</dt>
+          <dt>Recovery status</dt>
           <dd>{projection.outcomeBridge.mappedRecoveryOutcome.replaceAll("_", " ")}</dd>
         </div>
       </dl>
@@ -180,7 +180,7 @@ function ChannelComparisonBoard({
     >
       <div className="parity-status__section-heading">
         <p className="parity-status__eyebrow">Channel comparison</p>
-        <h2 id="channel-parity-title">Same request truth across entry points</h2>
+        <h2 id="channel-parity-title">Same request verified details across entry points</h2>
       </div>
       <div className="parity-status__channel-grid">
         {surfaces.map((surface) => (
@@ -253,7 +253,7 @@ export default function CrossChannelReceiptStatusParityApp() {
       data-selected-channel={projection.selectedChannel}
       data-selected-status-state={projection.selectedSurface.grammar.statusState}
       data-semantic-status-key={projection.selectedSurface.semanticStatusKey}
-      data-supported-testids="receipt-hero request-status-strip request-status-summary-card provenance-context-chip-row receipt-outcome-bridge channel-parity-board parity-list-row-surface parity-detail-header-surface signed-out-minimal-status-surface"
+      data-supported-testids="receipt-hero request-status-strip request-status-summary-card history-context-chip-row receipt-outcome-bridge channel-parity-board parity-list-row-surface parity-detail-header-surface signed-out-minimal-status-surface"
     >
       <header className="parity-status__top-band" data-testid="parity-status-top-band">
         <div>

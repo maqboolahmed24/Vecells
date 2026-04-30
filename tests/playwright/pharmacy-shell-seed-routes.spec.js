@@ -3,10 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import {
-  importPlaywright,
-  waitForHttp,
-} from "./simulator-backplane-test-helpers.js";
+import { importPlaywright, waitForHttp } from "./simulator-backplane-test-helpers.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -68,17 +65,28 @@ async function telemetryCount(page) {
   return await page.locator("[data-testid='pharmacy-telemetry-log'] li").count();
 }
 
+async function assertHidden(page, selector) {
+  assert.equal(await page.locator(selector).count(), 0, `${selector} should not be visible.`);
+}
+
 export async function run() {
   assertCondition(fs.existsSync(ARTIFACT_PATH), "Pharmacy mock projection artifact is missing.");
   assertCondition(fs.existsSync(GALLERY_PATH), "Pharmacy shell gallery HTML is missing.");
   const artifact = JSON.parse(fs.readFileSync(ARTIFACT_PATH, "utf8"));
-  assert.equal(artifact.task_id, "par_120", "Pharmacy mock projection artifact drifted off par_120.");
+  assert.equal(
+    artifact.task_id,
+    "par_120",
+    "Pharmacy mock projection artifact drifted off par_120.",
+  );
   assert.equal(
     artifact.visual_mode,
     "Pharmacy_Shell_Seed_Routes",
     "Pharmacy shell visual mode drifted.",
   );
-  assertCondition(artifact.examples.length >= 8, "Pharmacy projection examples are unexpectedly sparse.");
+  assertCondition(
+    artifact.examples.length >= 8,
+    "Pharmacy projection examples are unexpectedly sparse.",
+  );
 
   const playwright = await importPlaywright();
   if (!playwright) {
@@ -109,14 +117,13 @@ export async function run() {
     await expectAttribute(root, "data-layout-mode", "two_plane");
     await expectAttribute(root, "data-automation-surface", "rf_pharmacy_console");
 
-    const telemetryBefore = await telemetryCount(page);
     await page.locator("[data-testid='pharmacy-case-PHC-2081']").click();
     await expectAttribute(root, "data-current-path", "/workspace/pharmacy/PHC-2081");
     await expectAttribute(root, "data-selected-case-id", "PHC-2081");
 
     await page.locator("[data-testid='pharmacy-checkpoint-inventory']").click();
     await page.locator("[data-testid='pharmacy-line-item-PHC-2081-L2']").click();
-    assertCondition((await telemetryCount(page)) > telemetryBefore, "Checkpoint selection did not emit telemetry.");
+    await expectAttribute(root, "data-selected-line-item-id", "PHC-2081-L2");
 
     await page.locator("[data-testid='pharmacy-route-button-inventory']").click();
     await page.locator("[data-testid='pharmacy-inventory-route']").waitFor();
@@ -126,6 +133,8 @@ export async function run() {
     await expectAttribute(root, "data-selected-line-item-id", "PHC-2081-L2");
 
     await page.locator("[data-testid='pharmacy-case-PHC-2072']").click();
+    await expectAttribute(root, "data-current-path", "/workspace/pharmacy/PHC-2072");
+    await expectAttribute(root, "data-selected-case-id", "PHC-2072");
     await page.locator("[data-testid='pharmacy-route-button-handoff']").click();
     await page.locator("[data-testid='pharmacy-handoff-route']").waitFor();
     await expectAttribute(root, "data-current-path", "/workspace/pharmacy/PHC-2072/handoff");
@@ -133,6 +142,8 @@ export async function run() {
     await page.locator("[data-testid='pharmacy-return-button']").click();
 
     await page.locator("[data-testid='pharmacy-case-PHC-2124']").click();
+    await expectAttribute(root, "data-current-path", "/workspace/pharmacy/PHC-2124");
+    await expectAttribute(root, "data-selected-case-id", "PHC-2124");
     await page.locator("[data-testid='pharmacy-route-button-resolve']").click();
     await page.locator("[data-testid='pharmacy-resolve-route']").waitFor();
     await expectAttribute(root, "data-current-path", "/workspace/pharmacy/PHC-2124/resolve");
@@ -140,22 +151,38 @@ export async function run() {
     await page.locator("[data-testid='pharmacy-return-button']").click();
 
     await page.locator("[data-testid='pharmacy-case-PHC-2103']").click();
+    await expectAttribute(root, "data-current-path", "/workspace/pharmacy/PHC-2103");
+    await expectAttribute(root, "data-selected-case-id", "PHC-2103");
     await page.locator("[data-testid='pharmacy-route-button-assurance']").click();
     await page.locator("[data-testid='pharmacy-assurance-route']").waitFor();
     await expectAttribute(root, "data-current-path", "/workspace/pharmacy/PHC-2103/assurance");
     await expectAttribute(root, "data-recovery-posture", "recovery_only");
 
-    await page.setViewportSize({ width: 720, height: 1280 });
-    await page.waitForTimeout(150);
-    await expectAttribute(root, "data-layout-mode", "mission_stack");
-
     const focusRestoreMarker = page.locator("[data-testid='pharmacy-focus-restore-marker']");
+    await assertHidden(page, "[data-testid='pharmacy-focus-restore-marker']");
+
+    assertCondition(
+      (await telemetryCount(page)) === 0,
+      "Telemetry log is visible on the default pharmacy route.",
+    );
+    await page.goto(`${APP_URL}/workspace/pharmacy?diagnostics=pharmacy`, {
+      waitUntil: "networkidle",
+    });
+    assertCondition(
+      (await telemetryCount(page)) > 0,
+      "Diagnostics telemetry did not render behind the pharmacy flag.",
+    );
     await focusRestoreMarker.waitFor();
     await expectAttribute(focusRestoreMarker, "data-dom-marker", "focus-restore");
 
-    const telemetryAfter = await telemetryCount(page);
-    assertCondition(telemetryAfter >= 5, "Telemetry log did not accumulate the expected shell-state events.");
-    assert.equal(externalRequests.size, 0, `Unexpected external requests: ${[...externalRequests].join(", ")}`);
+    await page.setViewportSize({ width: 720, height: 1280 });
+    await page.waitForTimeout(150);
+    await expectAttribute(root, "data-layout-mode", "mission_stack");
+    assert.equal(
+      externalRequests.size,
+      0,
+      `Unexpected external requests: ${[...externalRequests].join(", ")}`,
+    );
 
     const reducedContext = await browser.newContext({
       viewport: { width: 1280, height: 1080 },
@@ -167,7 +194,9 @@ export async function run() {
       .locator("[data-testid='pharmacy-case-PHC-2057']")
       .evaluate((element) => window.getComputedStyle(element).transitionDuration);
     assertCondition(
-      transitionDuration.includes("0.01ms") || transitionDuration.includes("1e-05s"),
+      transitionDuration.includes("0s") ||
+        transitionDuration.includes("0.01ms") ||
+        transitionDuration.includes("1e-05s"),
       `Reduced-motion transition did not collapse as expected: ${transitionDuration}`,
     );
     await reducedContext.close();

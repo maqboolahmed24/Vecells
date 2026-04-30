@@ -244,15 +244,15 @@ export function buildPatientAccessSurface(
         postureKind: "uplift_pending",
         source: "simulated_access_contract",
         tone: "continuity",
-        stripLabel: "Finish sign in in this shell",
+        stripLabel: "Finish sign in",
         stripDetail:
-          "We kept your place and selected anchor. Personal details stay hidden until the return check completes.",
+          "We kept your place. Personal details stay hidden until the return check completes.",
         stripAnnouncement:
-          "Continue sign in in the same shell. Personal details stay hidden until the return check completes.",
+          "Continue sign in. Personal details stay hidden until the return check completes.",
         stripActionLabel: "Review access change",
         title: "Keep this request open while you sign in",
         explanation:
-          "We are preserving this same request thread and will reopen it here before showing any personal detail that was not already safe.",
+          "We are keeping this request open and will return you here before showing any personal detail that was not already safe.",
         keptItems,
         summaryVisibility: "hidden",
         summaryChips: [],
@@ -272,7 +272,7 @@ export function buildPatientAccessSurface(
         maxWidthPx: 760,
         focusTarget: "primary_action",
         liveAnnouncement:
-          "Sign-in uplift started. This request stays open in the same shell while access is checked.",
+          "Sign-in started. This request stays open while access is checked.",
         testId: "access-uplift-pending-panel",
         allowUnderlyingSurface: false,
         suppressFooterTray: true,
@@ -288,13 +288,13 @@ export function buildPatientAccessSurface(
         tone: "neutral",
         stripLabel: "Editing is paused while access is narrowed",
         stripDetail:
-          "You are back in the same request. We restored the shell but are keeping this step read-only until writable access is lawful again.",
+          "You are back in the same request, but this step is read only until access is confirmed again.",
         stripAnnouncement:
-          "You are back in the same request. Editing is paused while access is narrowed.",
+          "You are back in the same request. Editing is paused while access is confirmed.",
         stripActionLabel: "Review access change",
         title: "You are back in the same request, but editing is paused",
         explanation:
-          "We reopened the same shell and preserved the last safe context. What you can see now is narrowed until the access and continuity checks agree again.",
+          "We reopened your last safe place. What you can see now is limited until access checks pass again.",
         keptItems,
         summaryVisibility: "masked",
         summaryChips: safeMaskedSummary,
@@ -314,7 +314,7 @@ export function buildPatientAccessSurface(
         maxWidthPx: 760,
         focusTarget: "title",
         liveAnnouncement:
-          "Editing is paused. This request is open in read-only mode while access is narrowed.",
+          "Editing is paused. This request is open in read-only mode while access is confirmed.",
         testId: "read-only-return-frame",
         allowUnderlyingSurface: false,
         suppressFooterTray: true,
@@ -332,11 +332,11 @@ export function buildPatientAccessSurface(
         stripDetail:
           "We kept the same request open, but claim confirmation is still pending so editable detail and personal summary stay withheld.",
         stripAnnouncement:
-          "Claim confirmation is still pending. Editable detail and personal summary stay withheld in this shell.",
+          "Claim confirmation is still pending. Editable detail and personal summary stay hidden.",
         stripActionLabel: "Review access change",
         title: "We kept your place, but the claim check is still pending",
         explanation:
-          "This request has not been thrown away. We are preserving the same shell while we wait for the narrower claim proof that lets us widen what you can safely see.",
+          "This request has not been thrown away. We are keeping your place while we wait for the claim check to finish.",
         keptItems,
         summaryVisibility: "hidden",
         summaryChips: [],
@@ -373,7 +373,7 @@ export function buildPatientAccessSurface(
         stripActionLabel: "Review access change",
         title: "Before editing, confirm that this request is still yours",
         explanation:
-          "We kept the shell, the draft lineage, and your last safe anchor. Personal detail stays hidden until the identity hold clears.",
+          "We kept your last safe place. Personal detail stays hidden until the identity check clears.",
         keptItems,
         summaryVisibility: "masked",
         summaryChips: safeMaskedSummary,
@@ -402,22 +402,22 @@ export function buildPatientAccessSurface(
         postureKind: "rebind_required",
         source: input.recoveryReason === "identity_rebind_required" ? "recovery_contract" : "simulated_access_contract",
         tone: "continuity",
-        stripLabel: "Rebind this request before editing",
+        stripLabel: "Confirm this request before editing",
         stripDetail:
-          "We preserved the same shell and last-safe context, but the editable lane cannot continue until this request is rebound to the current access proof.",
+          "We kept your last safe place, but editing cannot continue until this request is confirmed with current access.",
         stripAnnouncement:
-          "Rebind required. The same request is preserved, but editing cannot continue until the request is rebound.",
+          "Confirmation required. The same request is preserved, but editing cannot continue yet.",
         stripActionLabel: "Review access change",
-        title: "Rebind this request before editing continues",
+        title: "Confirm this request before editing continues",
         explanation:
-          "Nothing has been restarted. We kept the shell and anchor, but personal detail and writable controls stay gated until the rebind step succeeds.",
+          "Nothing has been restarted. Personal detail and editing controls stay hidden until confirmation succeeds.",
         keptItems,
         summaryVisibility: "masked",
         summaryChips: safeMaskedSummary,
-        maskedSummaryLabel: "Last-safe summary is masked until the rebind step succeeds.",
+        maskedSummaryLabel: "Last-safe summary is masked until confirmation succeeds.",
         primaryAction: {
           actionId: "rebind_identity",
-          label: "Rebind and continue",
+          label: "Confirm and continue",
           nextScenarioId: "none",
           targetPathname: input.currentPathname,
         },
@@ -425,7 +425,7 @@ export function buildPatientAccessSurface(
         maxWidthPx: 760,
         focusTarget: "primary_action",
         liveAnnouncement:
-          "Rebind required. Personal detail stays hidden until the same request is rebound.",
+          "Confirmation required. Personal detail stays hidden until the same request is confirmed.",
         testId: "rebind-required-bridge",
         allowUnderlyingSurface: false,
         suppressFooterTray: true,
@@ -444,13 +444,13 @@ export function buildPatientAccessSurface(
         tone: "continuity",
         stripLabel: "Refresh this secure view without losing your place",
         stripDetail:
-          "The secure or embedded channel drifted, so we are holding the same shell and last-safe context until the view is refreshed.",
+          "The secure view changed, so we are keeping your last safe place until the view is refreshed.",
         stripAnnouncement:
-          "Secure view refresh required. Your place is preserved in the same shell while the channel is refreshed.",
+          "Secure view refresh required. Your place is preserved while the view is refreshed.",
         stripActionLabel: "Review access change",
         title: "Refresh this secure view without starting over",
         explanation:
-          "The shell is still holding the same request thread. We are pausing detail rendering until the embedded or manifest fence matches again.",
+          "This request is still open. We are pausing detail display until the secure view refreshes.",
         keptItems,
         summaryVisibility: "masked",
         summaryChips: safeMaskedSummary,
@@ -465,7 +465,7 @@ export function buildPatientAccessSurface(
         maxWidthPx: 760,
         focusTarget: "primary_action",
         liveAnnouncement:
-          "Secure view refresh required. The shell preserved your place while the channel is refreshed.",
+          "Secure view refresh required. Your place is preserved while the view is refreshed.",
         testId: "embedded-drift-recovery-frame",
         allowUnderlyingSurface: false,
         suppressFooterTray: true,
@@ -483,17 +483,17 @@ export function buildPatientAccessSurface(
         tone: "neutral",
         stripLabel: "This draft is already a submitted request",
         stripDetail:
-          "We mapped the stale draft token to the authoritative request shell instead of reopening editable draft work.",
+          "This saved draft is already submitted, so we are opening the submitted request instead of editable draft work.",
         stripAnnouncement:
-          "This draft is already a submitted request. We mapped you to the authoritative request shell.",
+          "This draft is already a submitted request. Opening the submitted request.",
         stripActionLabel: "Review access change",
         title: "This draft is already a submitted request",
         explanation:
-          "We did not reopen mutable draft work. You are now in the authoritative request shell for this same lineage.",
+          "We did not reopen draft editing. You are now viewing the submitted request.",
         keptItems,
         summaryVisibility: "masked",
         summaryChips: safeMaskedSummary,
-        maskedSummaryLabel: "Last-safe summary is masked while we map to authoritative request truth.",
+        maskedSummaryLabel: "Last-safe summary is masked while we open the submitted request.",
         primaryAction: onStatusRoute
           ? {
               actionId: "dismiss_notice",
@@ -518,7 +518,7 @@ export function buildPatientAccessSurface(
         maxWidthPx: 760,
         focusTarget: "title",
         liveAnnouncement:
-          "This draft is already submitted. You are being kept in the authoritative request shell.",
+          "This draft is already submitted. You are viewing the submitted request.",
         testId: "stale-draft-notice",
         allowUnderlyingSurface: onReceiptRoute || onStatusRoute,
         suppressFooterTray: true,

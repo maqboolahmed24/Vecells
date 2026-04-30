@@ -17,7 +17,7 @@ export const ARTIFACT_SHELL_SOURCE_PRECEDENCE = [
   "blueprint/platform-frontend-blueprint.md#ArtifactFallbackDisposition",
   "blueprint/platform-frontend-blueprint.md#OutboundNavigationGrant",
   "blueprint/canonical-ui-contract-kernel.md#Canonical contracts / ArtifactModePresentationProfile",
-  "blueprint/platform-runtime-and-release-blueprint.md#Runbook bundles dashboard packs release handoff summaries and recovery activation guides are governed operator artifacts",
+  "blueprint/platform-runtime-and-release-blueprint.md#Runbook bundles dashboard packs release handoff summaries and recovery activation guides are approved operator artifacts",
   "blueprint/patient-portal-experience-architecture-blueprint.md#1A Calm route posture and artifact delivery",
   "blueprint/patient-account-and-communications-blueprint.md#Purpose",
   "blueprint/governance-admin-console-frontend-blueprint.md#Core shell responsibilities",
@@ -37,7 +37,7 @@ export const ARTIFACT_SHELL_GAP_RESOLUTIONS = [
     gapId: "GAP_RESOLUTION_ARTIFACT_COPY_EMBEDDED_SUMMARY_ONLY",
     title: "Embedded preview copy fails closed to summary-first language",
     resolution:
-      "When embedded preview capability is ambiguous, the shell must say that the summary remains governed while preview waits for a safer browser or secure-send-later path.",
+      "When embedded preview capability is ambiguous, the shell must say that the summary remains approved while preview waits for a safer browser or secure-send-later path.",
     source_refs: [
       "prompt/109.md#Gap_handling_you_must_perform_during_this_task",
       "blueprint/platform-frontend-blueprint.md#ArtifactFallbackDisposition",
@@ -55,9 +55,9 @@ export const ARTIFACT_SHELL_GAP_RESOLUTIONS = [
   },
   {
     gapId: "GAP_RESOLUTION_ARTIFACT_COPY_LARGE_PREVIEW_PLACEHOLDER",
-    title: "Large artifacts fall back to governed placeholder copy",
+    title: "Large artifacts fall back to approved summary copy",
     resolution:
-      "Large guarded artifacts must keep the verified summary and expose a placeholder sentence instead of pretending inline preview is loading forever.",
+      "Large guarded artifacts must keep the verified summary and expose a summary sentence instead of pretending inline preview is loading forever.",
     source_refs: [
       "prompt/109.md#Mission",
       "blueprint/platform-frontend-blueprint.md#ArtifactFallbackDisposition",
@@ -70,14 +70,14 @@ export const ARTIFACT_SHELL_FOLLOW_ON_DEPENDENCIES = [
     dependencyId: "FOLLOW_ON_DEPENDENCY_ARTIFACT_ROUTE_BINDINGS_PATIENT_RECORDS",
     ownerTaskRange: "par_115-par_120",
     description:
-      "Bind live patient and staff route families to the shared artifact shell once seed routes publish real SelectedAnchor and route-manifest tuples.",
+      "Bind live patient and staff route families to the shared artifact shell once seed routes publish real SelectedAnchor and route-release list tuples.",
     source_refs: ["prompt/109.md#Gap_handling_you_must_perform_during_this_task", "prompt/115.md"],
   },
   {
     dependencyId: "FOLLOW_ON_DEPENDENCY_ARTIFACT_RUNTIME_GRANTS",
     ownerTaskRange: "par_112-par_114",
     description:
-      "Swap mock navigation grants and telemetry hooks for runtime publication, route-guard, and automation-anchor bindings without changing the shell law.",
+      "Swap mock navigation grants and activity data hooks for runtime publication, route-guard, and automation-anchor bindings without changing the shell law.",
     source_refs: [
       "prompt/109.md#Actual_production_strategy_later",
       "prompt/112.md",
@@ -387,7 +387,7 @@ function authorityLabel(authorityState: ArtifactAuthorityState): string {
     case "source_only":
       return "Source authority only";
     case "recovery_only":
-      return "Recovery-only posture";
+      return "Recovery-only status";
   }
 }
 
@@ -400,7 +400,7 @@ export function validateArtifactTruthTuple(
     issues.push({
       code: "ARTIFACT_ROUTE_FAMILY_MISMATCH",
       severity: "error",
-      message: "ArtifactSurfaceBinding and ArtifactSurfaceContext must agree on route family.",
+      message: "ArtifactSurfaceBinding and ArtifactSurfaceContext must agree on journey group.",
     });
   }
 
@@ -423,7 +423,7 @@ export function validateArtifactTruthTuple(
       code: "ARTIFACT_GRANT_SCOPE_MISMATCH",
       severity: "error",
       message:
-        "Active OutboundNavigationGrant must stay scoped to the same route family, continuity key, anchor, and return target as the current artifact context.",
+        "Active OutboundNavigationGrant must stay scoped to the same journey group, continuity key, anchor, and return target as the current artifact context.",
     });
   }
 
@@ -435,7 +435,7 @@ export function validateArtifactTruthTuple(
       code: "ARTIFACT_VERIFIED_SUMMARY_REQUIRED",
       severity: "warning",
       message:
-        "This contract requires verified summary authority, but the current parity digest is provisional or source-only.",
+        "This rules requires verified summary authority, but the current parity digest is provisional or source-only.",
     });
   }
 
@@ -459,7 +459,7 @@ export function validateArtifactTruthTuple(
       code: "ARTIFACT_TRANSFER_ACK_DRIFT",
       severity: "warning",
       message:
-        "Local acknowledgement exists without a corresponding transfer state. Transfer posture must not overclaim readiness.",
+        "Local acknowledgement exists without a corresponding transfer state. Transfer status must not overclaim readiness.",
     });
   }
 
@@ -476,7 +476,6 @@ export function resolveArtifactModeTruth(
     binding,
     context,
     parityDigest,
-    fallbackDisposition,
     transferSettlement,
     grant,
   } = specimen;
@@ -511,7 +510,7 @@ export function resolveArtifactModeTruth(
   let canHandoff = baseHandoffAllowed;
 
   if (context.channelPosture === "embedded") {
-    reasonTrail.push("Embedded channel posture fails closed to same-shell summary.");
+    reasonTrail.push("Embedded channel status fails closed to same-shell summary.");
     canPreview = false;
     canPrint = false;
     canHandoff = false;
@@ -521,7 +520,7 @@ export function resolveArtifactModeTruth(
     context.channelPosture === "constrained_browser" &&
     context.artifactModeRequest !== "structured_summary"
   ) {
-    reasonTrail.push("Constrained browser posture suppresses detached preview and print surfaces.");
+    reasonTrail.push("Constrained browser status suppresses detached preview and print surfaces.");
     canPrint = false;
     if (
       context.artifactModeRequest === "governed_preview" &&
@@ -532,7 +531,7 @@ export function resolveArtifactModeTruth(
   }
 
   if (context.byteDeliveryPosture === "large_guarded") {
-    reasonTrail.push("Large guarded bytes downgrade preview to a governed placeholder.");
+    reasonTrail.push("Large guarded bytes downgrade preview to a approved summary.");
     canPreview = false;
     if (fallbackKind === "none") {
       fallbackKind = "placeholder_only";
@@ -542,7 +541,7 @@ export function resolveArtifactModeTruth(
     context.byteDeliveryPosture === "blocked" ||
     context.byteDeliveryPosture === "embedded_blocked"
   ) {
-    reasonTrail.push("Byte delivery posture blocks inline preview and download.");
+    reasonTrail.push("Byte delivery status blocks inline preview and download.");
     canPreview = false;
     canDownload = false;
     if (fallbackKind === "none") {
@@ -553,7 +552,7 @@ export function resolveArtifactModeTruth(
   }
 
   if (parityBlocked) {
-    reasonTrail.push("Parity is blocked, so the shell must downgrade to recovery posture.");
+    reasonTrail.push("Parity is blocked, so the shell must downgrade to recovery status.");
     tone = "critical";
     canPreview = false;
     canPrint = false;
@@ -679,7 +678,7 @@ export function resolveArtifactModeTruth(
 
   let returnTruthState: ArtifactReturnTruthState = "return_guarded";
   let returnSummary =
-    "The shell keeps the selected anchor and return target visible while transfer posture settles.";
+    "The shell keeps the selected anchor and return target visible while transfer status settles.";
   if (
     grant.state === "active" &&
     grant.continuityKey === context.shellContinuityKey &&
@@ -702,14 +701,14 @@ export function resolveArtifactModeTruth(
 
   const previewSummary =
     currentMode === "governed_preview"
-      ? "Governed inline preview stays inside the same shell."
+      ? "Approved inline preview stays inside the same shell."
       : currentMode === "print_preview"
-        ? "Print posture uses the same governed stage before any browser step."
+        ? "Print status uses the same approved stage before any browser step."
         : currentMode === "placeholder_only"
-          ? "A governed placeholder replaces preview while the verified summary remains primary."
+          ? "A approved summary replaces preview while the verified summary remains primary."
           : currentMode === "recovery_only"
-            ? "Recovery posture replaces preview while the last safe summary stays visible."
-            : "Structured summary remains the primary governed surface.";
+            ? "Recovery status replaces preview while the last safe summary stays visible."
+            : "Structured summary remains the primary approved surface.";
 
   return {
     requestedMode: context.artifactModeRequest,
@@ -762,14 +761,14 @@ export function ArtifactActionMatrix({
       "Download",
       projection.canDownload,
       projection.canDownload
-        ? "Governed byte delivery can remain secondary."
+        ? "Approved byte delivery can remain secondary."
         : "Byte delivery is unavailable for the current tuple.",
     ),
     actionAvailability(
       "Print",
       projection.canPrint,
       projection.canPrint
-        ? "Print preview is armed under the current contract and grant."
+        ? "Print preview is armed under the current rules and grant."
         : "Print stays secondary and unarmed because the current tuple cannot support it.",
     ),
     actionAvailability(
@@ -865,7 +864,7 @@ export function ArtifactTransferTimeline({
       detail: `${specimen.context.selectedAnchorLabel} stays visible through the artifact journey.`,
     },
     {
-      label: "Mode truth",
+      label: "Mode verified details",
       state:
         projection.currentMode === "recovery_only" || projection.currentMode === "placeholder_only"
           ? "guarded"
@@ -965,16 +964,16 @@ function ArtifactPreviewFrame({
         data-dom-marker="recovery-posture"
         data-recovery-posture={projection.fallbackKind}
       >
-        <span className="artifact-shell-kicker">Placeholder</span>
+        <span className="artifact-shell-kicker">Summary</span>
         <h3>Preview held back</h3>
         <p>{specimen.fallbackDisposition.summary}</p>
-        <strong>Use the verified summary while governed delivery catches up.</strong>
+        <strong>Use the verified summary while approved delivery catches up.</strong>
       </section>
     );
   }
 
   const previewHeading =
-    projection.currentMode === "print_preview" ? "Print-safe preview" : "Governed preview";
+    projection.currentMode === "print_preview" ? "Print-safe preview" : "Approved preview";
 
   return (
     <section
@@ -989,7 +988,7 @@ function ArtifactPreviewFrame({
       <div className="artifact-shell-preview__pages">
         {projection.currentMode === "structured_summary" ? (
           <article className="artifact-shell-preview__page artifact-shell-preview__page--summary">
-            <h4>Summary-first posture</h4>
+            <h4>Summary-first status</h4>
             <p>{projection.previewSummary}</p>
           </article>
         ) : (
@@ -1114,14 +1113,14 @@ export function ArtifactSurfaceFrame({ specimen }: { specimen: ArtifactShellSpec
           <ArtifactActionMatrix specimen={specimen} projection={projection} />
           <section className="artifact-shell-panel" data-testid="artifact-reason-trail">
             <div className="artifact-shell-panel__header">
-              <span className="artifact-shell-kicker">Truth trail</span>
+              <span className="artifact-shell-kicker">Confirmed information trail</span>
               <h3>Why this mode is live</h3>
             </div>
             <ul>
               {projection.reasonTrail.length > 0 ? (
                 projection.reasonTrail.map((reason) => <li key={reason}>{reason}</li>)
               ) : (
-                <li>The current tuple keeps governed preview available without fallback.</li>
+                <li>The current tuple keeps approved preview available without fallback.</li>
               )}
             </ul>
           </section>
@@ -1147,43 +1146,43 @@ function fallbackCopy(
       return {
         title: "Grant expired",
         summary: `The shell keeps the last safe ${artifactLabel.toLowerCase()} summary visible because the current grant expired before print or handoff could complete.`,
-        recoveryActionLabel: "Request a fresh scoped grant from the same route family.",
+        recoveryActionLabel: "Request a fresh scoped grant from the same journey group.",
       };
     case "grant_blocked":
       return {
         title: "Grant blocked",
-        summary: `${artifactLabel} cannot leave the shell because continuity, masking, or destination scope no longer match the active route tuple.`,
+        summary: `${artifactLabel} cannot leave the shell because continuity, masking, or destination scope no longer match the active route details.`,
         recoveryActionLabel: "Resolve the blocker, then retry from the same anchor.",
       };
     case "large_artifact":
       return {
         title: "Preview deferred",
-        summary: `${artifactLabel} is too large for quiet inline preview right now, so the governed summary remains the primary surface.`,
+        summary: `${artifactLabel} is too large for quiet inline preview right now, so the approved summary remains the primary surface.`,
         recoveryActionLabel: "Use download later or wait for secure-send-later settlement.",
       };
     case "parity_drift":
       return {
         title: "Parity drift detected",
-        summary: `${artifactLabel} dropped out of verified parity, so the shell must fall back to recovery-first posture before preview or transfer can continue.`,
-        recoveryActionLabel: "Refresh governed parity from the same shell.",
+        summary: `${artifactLabel} dropped out of verified parity, so the shell must fall back to recovery-first status before preview or transfer can continue.`,
+        recoveryActionLabel: "Refresh approved parity from the same shell.",
       };
     case "stale_publication":
       return {
         title: "Verified summary required",
-        summary: `This ${artifactLabel.toLowerCase()} contract requires verified summary authority before richer modes can arm.`,
+        summary: `This ${artifactLabel.toLowerCase()} rule requires verified summary authority before richer modes can arm.`,
         recoveryActionLabel: "Wait for verified publication parity or stay on the summary.",
       };
     case "preview_blocked":
     case "unsupported_type":
       return {
         title: "Preview unavailable",
-        summary: `${artifactLabel} keeps the structured summary in place because current preview posture is not lawful.`,
-        recoveryActionLabel: "Use the summary or request governed delivery later.",
+        summary: `${artifactLabel} keeps the structured summary in place because current preview status is not approved.`,
+        recoveryActionLabel: "Use the summary or request approved delivery later.",
       };
     case "none":
       return {
         title: "No fallback",
-        summary: "The current contract keeps governed preview available without fallback.",
+        summary: "The current rule keeps approved preview available without fallback.",
         recoveryActionLabel: "Continue in the same shell.",
       };
   }
@@ -1376,7 +1375,7 @@ export const artifactShellSpecimens = [
     id: "appointment_confirmation_preview",
     title: "Appointment confirmation",
     subtitle:
-      "A patient-safe confirmation stays summary-first while governed preview, download, print, and handoff remain secondary.",
+      "A patient-safe confirmation stays summary-first while approved preview, download, print, and handoff remain secondary.",
     artifactKind: "appointment_confirmation",
     artifactLabel: "Appointment confirmation",
     routeFamilyRef: "rf_patient_appointment_receipt",
@@ -1398,9 +1397,9 @@ export const artifactShellSpecimens = [
     driftReason: null,
     verifiedBy: "Booking publication bundle",
     grantState: "active",
-    destinationLabel: "Governed browser handoff",
+    destinationLabel: "Approved browser handoff",
     destinationType: "browser",
-    grantReason: "Scoped browser handoff remains active for the same booking route family.",
+    grantReason: "Scoped browser handoff remains active for the same booking journey group.",
     transferKind: "none",
     transferState: "not_started",
     localAckState: "none",
@@ -1539,13 +1538,13 @@ export const artifactShellSpecimens = [
     parityState: "summary_verified",
     authorityState: "summary_verified",
     parityStatement:
-      "The pack remains verified, but this embedded posture cannot safely present preview or print.",
+      "The pack remains verified, but this embedded status cannot safely present preview or print.",
     driftReason: null,
     verifiedBy: "Release publication bundle",
     grantState: "active",
-    destinationLabel: "Governed browser handoff",
+    destinationLabel: "Approved browser handoff",
     destinationType: "browser",
-    grantReason: "Grant exists, but the embedded host still fails closed to summary-first posture.",
+    grantReason: "Grant exists, but the embedded host still fails closed to summary-first status.",
     transferKind: "none",
     transferState: "not_started",
     localAckState: "none",
@@ -1578,7 +1577,7 @@ export const artifactShellSpecimens = [
         title: "Evidence index",
         lines: [
           "Release evidence pack",
-          "Preview suppressed in embedded posture",
+          "Preview suppressed in embedded status",
           "Summary-first continuity remains active",
         ],
       },
@@ -1613,7 +1612,7 @@ export const artifactShellSpecimens = [
     destinationLabel: "Cross-app release workspace",
     destinationType: "cross_app",
     grantReason:
-      "Short-lived handoff grant remains scoped to the same route family and return target.",
+      "Short-lived handoff grant remains scoped to the same journey group and return target.",
     transferKind: "handoff",
     transferState: "pending",
     localAckState: "clicked",
@@ -1657,7 +1656,7 @@ export const artifactShellSpecimens = [
     id: "recovery_report_print_expired_grant",
     title: "Recovery report",
     subtitle:
-      "Print posture degrades in place when the scoped grant expires, keeping the recovery summary and return target visible instead of launching a dead-end print route.",
+      "Print status degrades in place when the scoped grant expires, keeping the recovery summary and return target visible instead of launching a dead-end print route.",
     artifactKind: "recovery_report",
     artifactLabel: "Recovery report",
     routeFamilyRef: "rf_ops_recovery_reports",
@@ -1679,10 +1678,10 @@ export const artifactShellSpecimens = [
     driftReason: "Print grant expired before authoritative dialog settlement.",
     verifiedBy: "Recovery disposition ledger",
     grantState: "expired",
-    destinationLabel: "Governed print preview",
+    destinationLabel: "Approved print preview",
     destinationType: "print_service",
     grantReason:
-      "The print grant has expired, so the shell must fail closed to summary-first posture.",
+      "The print grant has expired, so the shell must fail closed to summary-first status.",
     transferKind: "print",
     transferState: "recovery_required",
     localAckState: "dialog_opened",
@@ -1716,7 +1715,7 @@ export const artifactShellSpecimens = [
         lines: [
           "Recovery report",
           "Incident: projection rebuild variance",
-          "Print posture blocked by expired grant",
+          "Print status blocked by expired grant",
         ],
       },
     ],
@@ -1725,7 +1724,7 @@ export const artifactShellSpecimens = [
     id: "attachment_large_placeholder",
     title: "Record attachment",
     subtitle:
-      "A large attachment keeps the verified summary in place and swaps preview for a quiet governed placeholder instead of a spinner-only takeover.",
+      "A large attachment keeps the verified summary in place and swaps preview for a quiet approved summary instead of a spinner-only takeover.",
     artifactKind: "record_attachment",
     artifactLabel: "Record attachment",
     routeFamilyRef: "rf_patient_record_attachment",
@@ -1749,12 +1748,12 @@ export const artifactShellSpecimens = [
     grantState: "active",
     destinationLabel: "Scoped download",
     destinationType: "download",
-    grantReason: "Download remains available as a secondary governed action.",
+    grantReason: "Download remains available as a secondary approved action.",
     transferKind: "download",
     transferState: "available",
     localAckState: "clicked",
     transferLabel:
-      "The shell can prepare governed download while preview remains placeholder-only.",
+      "The shell can prepare approved download while preview remains summary-only.",
     embeddedFallback: "summary_only",
     staleFallback: "summary_only",
     unsupportedFallback: "placeholder_only",
@@ -1767,22 +1766,22 @@ export const artifactShellSpecimens = [
       },
       {
         id: "preview_posture",
-        title: "Preview posture",
+        title: "Preview status",
         body: "Inline preview is deferred because large media would otherwise dominate the shell and overclaim readiness.",
       },
       {
         id: "secondary_actions",
         title: "Secondary actions",
-        body: "Governed download remains available, but the summary and return target stay primary.",
+        body: "Approved download remains available, but the summary and return target stay primary.",
       },
     ],
     previewPages: [
       {
         id: "page_1",
-        title: "Attachment placeholder",
+        title: "Attachment summary",
         lines: [
           "Preview deferred",
-          "Large attachment remains bound to governed summary",
+          "Large attachment remains bound to approved summary",
           "Use download if byte access is still needed",
         ],
       },

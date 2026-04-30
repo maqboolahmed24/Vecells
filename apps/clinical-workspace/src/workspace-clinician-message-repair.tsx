@@ -224,7 +224,7 @@ export function DeliveryTruthLadder({
     >
       <header className="staff-shell__task-stack-header">
         <span className="staff-shell__eyebrow">DeliveryTruthLadder</span>
-        <h3>Current delivery truth</h3>
+        <h3>Current delivery verified details</h3>
         <p>
           Transport and evidence stay separate. The ladder only reaches delivered when the
           current evidence bundle says it does.
@@ -366,7 +366,7 @@ export function DeliveryDisputeStage({
       ) : (
         <div className="staff-shell__message-alert" data-tone="caution">
           <strong>No contradictory bundle is currently active</strong>
-          <p>The thread remains here only when review needs to stay bounded before repair.</p>
+          <p>The thread remains here only when review needs to stay limited before repair.</p>
         </div>
       )}
       <div className="staff-shell__message-facts">
@@ -509,7 +509,7 @@ export function MessageRepairWorkbench({
           <span>{projection.routeSafetyLabel}</span>
         </div>
         <div>
-          <strong>Repair posture</strong>
+          <strong>Repair status</strong>
           <span>{repairKindLabel(projection.repairKind)}</span>
         </div>
       </div>

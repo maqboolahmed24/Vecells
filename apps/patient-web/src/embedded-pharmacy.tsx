@@ -163,7 +163,7 @@ function useEmbeddedPharmacyController() {
     secondaryAction,
     selectProvider(provider: PharmacyChoiceProviderCardSnapshot) {
       if (choiceBlocked) {
-        setAnnouncement("Provider change is paused until current pharmacy truth is safe again.");
+        setAnnouncement("Provider change is paused until current pharmacy verified details is safe again.");
         return;
       }
       setSelectedProviderId(provider.providerId);
@@ -332,7 +332,7 @@ export function EmbeddedPharmacyChooser({
       <div className="embedded-pharmacy__section-heading">
         <span className="embedded-pharmacy__eyebrow">Pharmacy choice</span>
         <h2 id="embedded-pharmacy-chooser-title">{context.choicePreview?.pageTitle ?? "Choose a pharmacy"}</h2>
-        <p>{context.choicePreview?.recommendedSummary ?? "Current options are shown in governed list order."}</p>
+        <p>{context.choicePreview?.recommendedSummary ?? "Current options are shown in approved list order."}</p>
       </div>
       <div role="list" className="embedded-pharmacy__choice-list">
         {providers.map((provider) => (

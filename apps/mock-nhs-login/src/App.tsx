@@ -221,7 +221,7 @@ function validationErrors(state: AppState): string[] {
     errors.push("Provide a nonce so callback replay and stale-session checks remain testable.");
   }
   if (!state.authFields.pkce.trim()) {
-    errors.push("Provide a PKCE verifier to keep the mock transport posture realistic.");
+    errors.push("Provide a PKCE verifier to keep the mock transport status realistic.");
   }
   if (
     routeBinding.route_binding_id === "rb_gp_im1_pairing" &&
@@ -310,7 +310,7 @@ function buildReturnCard(state: AppState): ReturnCard {
       returnState: "denied",
       reasonCode: scenario.reason_code,
       message:
-        "The user chose not to share the requested claims. Vecells must fall back to a bounded local state rather than treating this as a successful sign-in.",
+        "The user chose not to share the requested claims. The simulator falls back to a limited local state rather than treating this as a successful sign-in.",
       localSessionDecision: "consent_denied",
       callbackUri: redirectUri,
       state: state.authFields.state,
@@ -329,7 +329,7 @@ function buildReturnCard(state: AppState): ReturnCard {
       returnState: "recovery_required",
       reasonCode: scenario.reason_code,
       message:
-        "The token exchange sees an expired authorization code. The mock holds the current route family and points the user back into re-auth instead of inventing success.",
+        "The token exchange sees an expired authorization code. The mock holds the current journey group and points the user back into re-auth instead of inventing success.",
       localSessionDecision: "reauth_required",
       callbackUri: redirectUri,
       state: state.authFields.state,
@@ -374,7 +374,7 @@ function buildReturnCard(state: AppState): ReturnCard {
       nonce: state.authFields.nonce,
       pkce: state.authFields.pkce,
       authCode: "session-expired",
-      tokenPreview: "upstream session no longer satisfies the requested trust posture",
+      tokenPreview: "upstream session no longer satisfies the requested trust status",
       userinfoPreview: "{}",
     };
   }
@@ -405,7 +405,7 @@ function buildReturnCard(state: AppState): ReturnCard {
     reasonCode: scenario.reason_code,
     message:
       decision === "step_up_required"
-        ? "Identity proof succeeded, but the selected route still requires a higher local trust posture before it can widen."
+        ? "Identity proof succeeded, but the selected route still requires a higher local trust status before it can widen."
         : "The callback completed and the mock now shows the local session ceiling rather than pretending the route is automatically writable.",
     localSessionDecision: decision,
     callbackUri: redirectUri,
@@ -474,7 +474,7 @@ function validateNewRedirect(uri: string, environment: EnvironmentProfile): stri
   try {
     const parsed = new URL(uri);
     if (!parsed.pathname.startsWith("/auth/callback/")) {
-      return "Redirect URIs must use the governed /auth/callback/* family.";
+      return "Redirect URIs must use the approved /auth/callback/* family.";
     }
     if (!uri.startsWith(environment.base_url)) {
       return `Redirect URIs in ${environment.label} must start with ${environment.base_url}.`;
@@ -580,7 +580,7 @@ export default function App() {
           status: reason === "logout" ? "success" : "info",
           summary:
             reason === "logout"
-              ? "Local session terminated inside Vecells. Upstream NHS login state is not treated as the local session."
+              ? "Local session terminated inside the simulator. Upstream NHS login state is not treated as the local session."
               : "Recovery requested. A fresh AuthTransaction is required before the route can resume.",
         },
       ],
@@ -707,10 +707,10 @@ export default function App() {
             <div className="heading-row">
               <div>
                 <p className="eyebrow">Admin_Client_Registry</p>
-                <h1>vecell identity simulator</h1>
+                <h1>Identity simulator</h1>
               </div>
               <div className="status-stack">
-                <span className="tag">MOCK_NHS_LOGIN</span>
+                <span className="tag">nhs login test mode</span>
                 <span className="mono-tag">{environment.label}</span>
               </div>
             </div>
@@ -724,7 +724,7 @@ export default function App() {
             <div className="registry-header">
               <div>
                 <h2>Client registry</h2>
-                <p className="muted">Select a client to review redirects, scopes, and environment posture.</p>
+                <p className="muted">Select a client to review redirects, scopes, and environment status.</p>
               </div>
               <div className="subtle-summary" data-testid="redirect-limit-status">
                 {clientRedirects.length}/10 redirect URIs in {environment.label}
@@ -763,7 +763,7 @@ export default function App() {
             <div className="registry-header">
               <div>
                 <h2>Redirect URI cards</h2>
-                <p className="muted">All callbacks stay under the governed `/auth/callback/*` family.</p>
+                <p className="muted">All callbacks stay under the approved `/auth/callback/*` family.</p>
               </div>
             </div>
             <div className="redirect-list">
@@ -1105,8 +1105,8 @@ export default function App() {
           <div className="brand-row">
             <Wordmark />
             <div>
-              <div className="tag">MOCK_NHS_LOGIN</div>
-              <h2 className="brand-title">vecell identity simulator</h2>
+              <div className="tag">nhs login test mode</div>
+              <h2 className="brand-title">Identity simulator</h2>
             </div>
           </div>
           <div className="mode-toggle" data-testid="mode-toggle">
@@ -1353,7 +1353,7 @@ export default function App() {
                 Real provider mutation remains blocked until the live gates pass and `ALLOW_REAL_PROVIDER_MUTATION=true`.
               </p>
             ) : (
-              <p className="muted">Switch to Actual later to rehearse the placeholder intake path.</p>
+              <p className="muted">Switch to Actual later to rehearse the summary intake path.</p>
             )}
             <p className="redaction-notice" data-testid="redaction-notice">
               Redaction is mandatory. Only placeholder or redacted values are allowed in this simulator.

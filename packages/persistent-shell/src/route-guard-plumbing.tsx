@@ -290,7 +290,7 @@ const routeAuthoritySeeds: readonly RouteAuthoritySeed[] = [
     supportsLiveUpdates: false,
     supportsArtifactSummary: true,
     sourceRefs: [
-      "blueprint/patient-account-and-communications-blueprint.md#Request detail contract",
+      "blueprint/patient-account-and-communications-blueprint.md#Request detail rules",
     ],
   },
   {
@@ -789,7 +789,7 @@ function resolveCapabilityDefinitions(
       capabilityKind: "projection_query",
       exposure: "route",
       label: "Current summary view",
-      inspectorLabel: "Manifest-declared projection view",
+      inspectorLabel: "Release list-declared projection view",
       requiredPosture: "read_only",
       sourceRefs: profile.sourceRefs,
     },
@@ -800,7 +800,7 @@ function resolveCapabilityDefinitions(
       capabilityKind: "cache_reuse",
       exposure: "route",
       label: "Same-shell continuity cache",
-      inspectorLabel: "Manifest-declared cache reuse",
+      inspectorLabel: "Release list-declared cache reuse",
       requiredPosture: "read_only",
       sourceRefs: profile.sourceRefs,
     },
@@ -813,8 +813,8 @@ function resolveCapabilityDefinitions(
       manifestRef: manifest?.frontendContractManifestId ?? null,
       capabilityKind: "mutation_command",
       exposure: "action",
-      label: "Primary governed action",
-      inspectorLabel: "Manifest-declared mutation lane",
+      label: "Primary approved action",
+      inspectorLabel: "Release list-declared mutation lane",
       requiredPosture: "live",
       sourceRefs: profile.sourceRefs,
     });
@@ -828,7 +828,7 @@ function resolveCapabilityDefinitions(
       capabilityKind: "live_update_channel",
       exposure: "action",
       label: "Live watch updates",
-      inspectorLabel: "Manifest-declared live channel",
+      inspectorLabel: "Release list-declared live channel",
       requiredPosture: "live",
       sourceRefs: profile.sourceRefs,
     });
@@ -841,7 +841,7 @@ function resolveCapabilityDefinitions(
     capabilityKind: "recovery_action",
     exposure: "action",
     label: "Recovery action",
-    inspectorLabel: "Governed recovery action",
+    inspectorLabel: "Approved recovery action",
     requiredPosture: "recovery_only",
     sourceRefs: profile.sourceRefs,
   });
@@ -1282,7 +1282,7 @@ function continuityLabel(mode: ReleaseRecoveryMode): string {
     case "resume_return_contract":
       return "Resume same-shell return";
     case "browser_handoff":
-      return "Open governed handoff";
+      return "Open approved handoff";
     case "review_summary":
       return "Review last safe summary";
   }

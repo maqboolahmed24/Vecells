@@ -139,12 +139,12 @@ export function ChosenPharmacyAnchorCard(props: {
       ) : null}
       <dl className="pharmacy-dispatch-inline-meta">
         <div>
-          <dt>Request lineage</dt>
+          <dt>Request history</dt>
           <dd>{props.anchor.requestLineageLabel}</dd>
         </div>
         <div>
-          <dt>Continuity key</dt>
-          <dd>{props.anchor.continuityKey}</dd>
+          <dt>Care reference</dt>
+          <dd>Selected provider preserved</dd>
         </div>
       </dl>
       <div className="pharmacy-dispatch-chip-row">

@@ -261,6 +261,19 @@ async function textFor(page, testId) {
   return await page.locator(`[data-testid='${testId}']`).innerText();
 }
 
+async function waitForText(page, testId, predicate, message, timeoutMs = 5_000) {
+  const startedAt = Date.now();
+  let latestText = "";
+  while (Date.now() - startedAt < timeoutMs) {
+    latestText = await textFor(page, testId);
+    if (predicate(latestText)) {
+      return latestText;
+    }
+    await wait(100);
+  }
+  throw new Error(`${message} Last observed text: ${latestText}`);
+}
+
 async function runGalleryChecks(browser, galleryUrl) {
   const galleryPage = await browser.newPage({ viewport: { width: 1440, height: 1080 } });
   const galleryOrigin = new URL(galleryUrl).origin;
@@ -399,11 +412,22 @@ async function runRuntimeChecks(browser, baseUrl) {
   }
 
   await page.locator("[data-testid='contact-channel-card-email']").click();
+  await waitForText(
+    page,
+    "contact-masked-summary-card",
+    (text) => text.includes("Email") && text.includes("@") && !text.includes(seededEmail),
+    "Email route did not become the masked preferred route before editing.",
+  );
   await page
     .locator("[data-testid='contact-destination-input-email']")
     .fill("river.patient@example.test");
   await page.locator("[data-testid='contact-destination-input-email']").blur();
-  const emailSummaryText = await textFor(page, "contact-masked-summary-card");
+  const emailSummaryText = await waitForText(
+    page,
+    "contact-masked-summary-card",
+    (text) => text.includes("@") && !text.includes("river.patient@example.test"),
+    "Email summary did not stay masked after editing the preferred route.",
+  );
   assertCondition(
     emailSummaryText.includes("@") && !emailSummaryText.includes("river.patient@example.test"),
     "Email summary did not stay masked after editing the preferred route.",

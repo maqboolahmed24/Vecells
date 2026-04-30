@@ -367,7 +367,7 @@ function ParityTable({
           <tr>
             <td>Route families</td>
             <td>{contract.routeCount}</td>
-            <td>Route ownership remains visible in every shell placeholder.</td>
+            <td>Route ownership remains visible in every shell summary.</td>
           </tr>
           <tr>
             <td>Gateway surfaces</td>
@@ -408,7 +408,7 @@ function OwnershipStrip({
         </strong>
       </div>
       <div>
-        <span className="foundation-kicker">Telemetry</span>
+        <span className="foundation-kicker">Activity data</span>
         <strong>{telemetry.continuityPosture}</strong>
       </div>
       <div>
@@ -538,7 +538,7 @@ export const packageContract = {
   purpose:
     "Single legal shared home for tokens, automation markers, accessibility vocabulary, and shell-inheritance law.",
   versioningPosture:
-    "Workspace-private published contract boundary. Public exports are explicit and versionable.",
+    "Workspace-private published rules boundary. Public exports are explicit and versionable.",
   allowedDependencies: [],
   forbiddenDependencies: ["packages/domains/*", "services/*"],
   dependencyContractRefs: ["CBC_041_SHELLS_TO_DESIGN_SYSTEM"],
@@ -594,7 +594,7 @@ const legacyOwnedObjectFamilies = [
     boundedContext: "assistive",
     authoritativeOwner: "Assistive control plane",
     sourceRef:
-      "phase-8-the-assistive-layer.md#8A. Assistive capability contract, intended-use boundaries, and policy envelope / Backend work / AssistiveCompositionPolicy",
+      "phase-8-the-assistive-layer.md#8A. Assistive capability rules, intended-use boundaries, and policy envelope / Backend work / AssistiveCompositionPolicy",
   },
   {
     canonicalName: "AssistiveTextPolicy",
@@ -770,7 +770,7 @@ const legacyOwnedContractFamilies = [
     label: "Design tokens, accessibility vocabulary, and automation markers",
     description:
       "Single shared home for design inheritance, accessibility semantics, and stable shell markers.",
-    versioningPosture: "Published design contract family with controlled additive marker growth.",
+    versioningPosture: "Published design rules family with controlled additive marker growth.",
     consumerContractIds: ["CBC_041_SHELLS_TO_DESIGN_SYSTEM"],
     consumerOwnerCodes: [
       "governance_admin",
@@ -805,7 +805,7 @@ export const policyFamilies = [
     boundedContext: "assistive",
     authoritativeOwner: "Assistive control plane",
     sourceRef:
-      "phase-8-the-assistive-layer.md#8A. Assistive capability contract, intended-use boundaries, and policy envelope / Backend work / AssistiveCompositionPolicy",
+      "phase-8-the-assistive-layer.md#8A. Assistive capability rules, intended-use boundaries, and policy envelope / Backend work / AssistiveCompositionPolicy",
   },
   {
     canonicalName: "AssistiveTextPolicy",

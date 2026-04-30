@@ -179,11 +179,11 @@ function confirmationSummary(
   promiseState: ReceiptPromiseState,
 ): string {
   if (promiseState === "recovery_required") {
-    return "We kept the request in the same lineage, but the current promise now needs a bounded recovery posture instead of a calmer receipt assumption.";
+    return "We kept the request together, but the current timing estimate needs a safer next step before we can show a calm receipt.";
   }
   return summarySafetyState === "residual_risk_flagged"
     ? "We captured the request and marked it for closer review before the routine next step is chosen."
-    : "We captured the request in the routine review path and kept the same shell lineage intact.";
+    : "We captured the request and placed it in the routine review path.";
 }
 
 function currentStateHeading(macroState: ReceiptMacroState): string {
@@ -211,13 +211,13 @@ function currentStateBody(
         ? "We received the request and placed it into the review line with an added review-sensitive check."
         : "We received the request and placed it into the routine review line.";
     case "in_review":
-      return "A clinician or coordinator is now reviewing the request details in the same lineage.";
+      return "A clinician or coordinator is now reviewing the request details.";
     case "we_need_you":
       return "We need one more detail from you before routine review can continue.";
     case "completed":
       return "The routine review path for this request is complete.";
     case "urgent_action":
-      return "The request can no longer keep a calm routine receipt posture and now needs a faster, bounded follow-up.";
+      return "The request now needs faster follow-up instead of a routine receipt.";
   }
 }
 
@@ -242,21 +242,21 @@ function communicationBridgeNote(
 ): string {
   switch (communicationPosture) {
     case "queued":
-      return `A confirmation is queued for ${contactSummaryView.preferredRouteLabel.toLowerCase()} ${contactSummaryView.preferredDestinationMasked}; queued is not the same as delivered.`;
+      return `A confirmation is waiting to be sent to ${contactSummaryView.preferredRouteLabel.toLowerCase()} ${contactSummaryView.preferredDestinationMasked}; this does not mean it has been delivered.`;
     case "delivery_pending":
       return "The confirmation handoff was accepted by the delivery service, but delivery is not yet confirmed.";
     case "delivered":
-      return `Delivery evidence has been recorded for ${contactSummaryView.preferredRouteLabel.toLowerCase()} ${contactSummaryView.preferredDestinationMasked}.`;
+      return `Delivery has been confirmed for ${contactSummaryView.preferredRouteLabel.toLowerCase()} ${contactSummaryView.preferredDestinationMasked}.`;
     case "recovery_required":
-      return "The planned confirmation route now needs recovery. We are not claiming delivery right now.";
+      return "The planned confirmation method needs to be checked again. We are not claiming delivery right now.";
   }
 }
 
 function contactPlanNote(contactSummaryView: ContactSummaryView): string {
   const followUpBoundary =
     contactSummaryView.followUpPermissionState === "granted"
-      ? "Routine follow-up is allowed on the preferred route."
-      : "Routine follow-up is not currently allowed on the preferred route.";
+      ? "Routine follow-up is allowed with this preferred contact method."
+      : "Routine follow-up is not currently allowed with this preferred contact method.";
   return `${contactSummaryView.preferredRouteLabel} ${contactSummaryView.preferredDestinationMasked}. ${followUpBoundary}`;
 }
 
@@ -268,16 +268,16 @@ function promiseNoteBody(
   const bucketLabel = receiptBucketLabel(receiptBucket).toLowerCase();
   switch (promiseState) {
     case "on_track":
-      return `The current estimate still sits inside the ${bucketLabel} bucket.`;
+      return `The current estimate is still ${bucketLabel}.`;
     case "improved":
-      return `The estimate has improved, but we still show the safer ${bucketLabel} bucket rather than a more precise timestamp.`;
+      return `The estimate has improved, but we still show ${bucketLabel} rather than a more precise timestamp.`;
     case "at_risk":
-      return `The current signals narrow confidence, so the receipt keeps the conservative ${bucketLabel} bucket visible.`;
+      return `The current estimate is less certain, so the receipt keeps the conservative ${bucketLabel} window visible.`;
     case "revised_downward":
-      return `The expected wait widened, so the receipt now shows the more conservative ${bucketLabel} bucket.`;
+      return `The expected wait widened, so the receipt now shows the more conservative ${bucketLabel} window.`;
     case "recovery_required":
       return communicationPosture === "recovery_required"
-        ? "The receipt cannot keep a calm delivery or timing promise right now. Follow the bounded recovery guidance instead of assuming confirmation has arrived."
+        ? "The receipt cannot keep a calm delivery or timing promise right now. Follow the recovery guidance instead of assuming confirmation has arrived."
         : "The receipt cannot keep a calm timing promise right now, so the next safe step is shown conservatively.";
   }
 }
@@ -310,7 +310,7 @@ function buildTimeline(
     {
       key: "received",
       label: "Received",
-      description: "Your request was captured in the same request lineage.",
+      description: "Your request was received.",
       state: macroState === "received" ? "current" : "complete",
     },
     {
@@ -459,17 +459,17 @@ export function buildReceiptSurface(input: {
       {
         label: "Current state",
         value: macroStateLabel(simulationState.macroState),
-        caption: "The patient-safe macro state comes from the same consistency envelope as tracking.",
+        caption: "This is the current status we can safely show.",
         dataTestId: "receipt-state-fact",
       },
       {
-        label: "ETA bucket",
+        label: "Review window",
         value: receiptBucketLabel(simulationState.receiptBucket),
-        caption: "Phase 1 remains bucketized. Exact timestamps are not shown here.",
+        caption: "Exact timestamps are not shown here.",
         dataTestId: "receipt-eta-fact",
       },
     ],
-    promiseNoteTitle: `Promise state: ${promiseStateLabel(simulationState.promiseState)}`,
+    promiseNoteTitle: `Current estimate: ${promiseStateLabel(simulationState.promiseState)}`,
     promiseNoteBody: promiseNoteBody(
       simulationState.promiseState,
       simulationState.receiptBucket,

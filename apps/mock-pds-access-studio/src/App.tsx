@@ -401,7 +401,7 @@ function App() {
           <div className="panel-header">
             <div>
               <h2>Feature Flag Workbench</h2>
-              <p>Exercise optional-not-required posture, route binding, and sandbox trace behavior from the same control surface.</p>
+              <p>Exercise optional-not-required status, route binding, and sandbox trace behavior from the same control surface.</p>
             </div>
             <div className="mono-tag" data-testid="trace-proof-note">
               no direct Request.patientRef writes
@@ -525,7 +525,7 @@ function App() {
           <div className="panel-header">
             <div>
               <h2>Sandbox Trace</h2>
-              <p>Search and read the local mock sandbox using the same access-mode posture the route would later declare.</p>
+              <p>Search and read the local mock sandbox using the same access-mode status the route would later declare.</p>
             </div>
             <div className={`status-chip ${traceState.loading ? "review" : "neutral"}`}>
               {traceState.loading ? "loading" : `HTTP ${traceState.status ?? "idle"}`}
@@ -670,14 +670,14 @@ function App() {
           <div className="panel-header">
             <div>
               <h2>Authority Separation</h2>
-              <p>The route can gather supporting demographics, but durable binding remains a separate governed act.</p>
+              <p>The route can gather supporting demographics, but durable binding remains a separate approved act.</p>
             </div>
           </div>
           <div className="authority-stack">
             <article className="authority-card">
               <span className="status-chip success">allowed</span>
               <strong>search and read supporting demographics</strong>
-              <p>Bound to the exact route family, access mode, and legal basis.</p>
+              <p>Bound to the exact journey group, access mode, and legal basis.</p>
             </article>
             <article className="authority-card">
               <span className="status-chip blocked">forbidden</span>
@@ -777,7 +777,7 @@ function App() {
           <div className="panel-header">
             <div>
               <h2>Rollback And Kill Switches</h2>
-              <p>Real onboarding remains blocked, but the studio exposes the exact gate posture and rollback triggers now.</p>
+              <p>Real onboarding remains blocked, but the studio exposes the exact gate status and rollback triggers now.</p>
             </div>
             <div className={`status-chip ${submissionEnabled ? "success" : "blocked"}`}>
               submit {submissionEnabled ? "enabled" : "blocked"}
@@ -912,13 +912,13 @@ function App() {
 
   return (
     <main className="trace-shell" data-testid="pds-shell">
-      <header className="posture-banner panel" data-testid="posture-banner">
+      <header className="status-banner panel" data-testid="posture-banner">
         <div className="brand-panel">
           <div className="brand-row">
             <VecellLogoLockup aria-hidden="true" className="wordmark" />
             <div>
               <div className="ribbon-row">
-                <span className="mock-ribbon">MOCK_PDS_SANDBOX</span>
+                <span className="mock-ribbon">pds sandbox test mode</span>
                 <span className="mono-tag">{pdsAccessPack.visual_mode}</span>
               </div>
               <h1>Identity Trace Studio</h1>
@@ -966,7 +966,7 @@ function App() {
               <strong>{state.legalBasisDraft.trim().length > 32 ? "structured" : "needs detail"}</strong>
             </div>
             <div className="metric-card compact">
-              <span>Wrong-patient posture</span>
+              <span>Wrong-patient status</span>
               <strong>repair obligations remain active</strong>
             </div>
             <div className="metric-card compact" data-testid="reduced-motion-indicator">
@@ -982,7 +982,7 @@ function App() {
           <div className="panel-header">
             <div>
               <h2>Route Families</h2>
-              <p>Every use case stays tied to an exact route family and shell.</p>
+              <p>Every use case stays tied to an exact journey group and shell.</p>
             </div>
           </div>
           <div className="route-list">
@@ -1042,16 +1042,16 @@ function App() {
           {state.page === "Risk_Log_and_Hazard_Map" ? renderRiskPage() : null}
           {state.page === "Rollback_and_Kill_Switches" ? renderRollbackPage() : null}
 
-          <section className="panel lineage-strip" data-testid="lineage-strip">
-            <h2>Lineage Strip</h2>
+          <section className="panel history-strip" data-testid="lineage-strip">
+            <h2>History Strip</h2>
             <div className="lineage-flow">
-              <div className="lineage-node">local_match</div>
+              <div className="lineage-node">local match</div>
               <div className="lineage-arrow" />
-              <div className="lineage-node accent">optional_pds_enrichment</div>
+              <div className="history-node accent">optional PDS check</div>
               <div className="lineage-arrow" />
-              <div className="lineage-node review">identity_binding_review</div>
+              <div className="history-node review">identity review</div>
               <div className="lineage-arrow" />
-              <div className="lineage-node success">durable_binding</div>
+              <div className="history-node success">confirmed link</div>
             </div>
           </section>
         </section>

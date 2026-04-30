@@ -117,6 +117,68 @@ function titleCase(value: string): string {
     .join(" ");
 }
 
+function governancePublicLabel(value: string): string {
+  switch (value) {
+    case "request_snapshot":
+      return "Request record";
+    case "recorded_media_transcript":
+      return "Recorded transcript";
+    case "worm_audit_entry":
+      return "Protected audit entry";
+    case "model_trace_and_replay_evidence":
+      return "Replay review record";
+    case "delete_when_assessed":
+      return "Delete after assessment";
+    case "mutable_until_disposition":
+      return "Review until disposition";
+    case "retained_with_source_lineage":
+      return "Retained with source history";
+    case "hash_chained":
+      return "Tamper-evident";
+    case "archive_manifest":
+      return "Archive summary";
+    case "deletion_certificate":
+      return "Deletion certificate";
+    case "block_explainer":
+      return "Blocker summary";
+    case "approve_archive_job":
+      return "Approve archive job";
+    case "approve_deletion_job":
+      return "Approve deletion job";
+    case "release_legal_hold":
+      return "Release legal hold";
+    case "current_assessment":
+      return "Current assessment";
+    case "archive_only":
+      return "Archive only";
+    case "delete_allowed":
+      return "Delete allowed";
+    case "live_review":
+      return "Live review";
+    case "requires_revalidation":
+      return "Needs revalidation";
+    case "released_needs_assessment":
+      return "Released, assessment needed";
+    default:
+      {
+        const cleaned = value
+          .replace(/ArchiveManifest/g, "Archive summary")
+          .replace(/DeletionCertificate/g, "Deletion certificate")
+          .replace(/GovernanceActionSettlement/g, "review settlement")
+          .replace(/manifest/g, "summary")
+          .replace(/hash/g, "check")
+          .replace(/posture/g, "status")
+          .replace(/provenance/g, "history")
+          .replace(/lineage/g, "history")
+          .replace(/contract/g, "agreement")
+          .replace(/tuple/g, "details")
+          .replace(/Tuple/g, "Details")
+          .replace(/stub/g, "summary");
+        return /\s/.test(cleaned) ? cleaned : titleCase(cleaned);
+      }
+  }
+}
+
 function clusterTitle(cluster: GovernanceCluster): string {
   switch (cluster) {
     case "governance":
@@ -174,6 +236,13 @@ function statusTone(status: string): string {
     default:
       return "info";
   }
+}
+
+function governanceDiagnosticsEnabled(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  return new URLSearchParams(window.location.search).get("diagnostics") === "governance";
 }
 
 function currentPathname(): string {
@@ -281,10 +350,6 @@ function automationId(value: string): string {
     .replace(/^_|_$/g, "");
 }
 
-function compactHash(value: string): string {
-  return value.length > 18 ? `${value.slice(0, 10)}...${value.slice(-6)}` : value;
-}
-
 function recordsActionTone(action: RecordsGovernanceActionProjection): string {
   if (action.allowed) return "success";
   if (action.settlementState === "pending" || action.settlementState === "requires_revalidation") {
@@ -321,7 +386,7 @@ function RouteRail(props: {
         <header className="governance-panel__header">
           <div>
             <p className="governance-panel__eyebrow">ShellFamilyOwnershipContract</p>
-            <h2>Route family index</h2>
+            <h2>Journey group index</h2>
           </div>
         </header>
         <div className="governance-shell__route-groups">
@@ -341,7 +406,7 @@ function RouteRail(props: {
                       onClick={() => props.onNavigate(route.pathname)}
                     >
                       <strong>{route.title}</strong>
-                      <span>{route.summary}</span>
+                      <span>{governancePublicLabel(route.summary)}</span>
                     </button>
                   ))}
               </div>
@@ -370,7 +435,7 @@ function RouteRail(props: {
             >
               <strong>{row.label}</strong>
               <span>{row.kind}</span>
-              <small>{row.summary}</small>
+              <small>{governancePublicLabel(row.summary)}</small>
             </button>
           ))}
         </div>
@@ -421,7 +486,7 @@ function ScopeRibbon(props: { snapshot: GovernanceShellSnapshot }) {
         </div>
         <div>
           <dt>Freeze</dt>
-          <dd>{props.snapshot.scopeToken.freezeLabel}</dd>
+          <dd>{governancePublicLabel(props.snapshot.scopeToken.freezeLabel)}</dd>
         </div>
         <div>
           <dt>Write state</dt>
@@ -482,7 +547,9 @@ function LandingSurface(props: {
           <p className="governance-panel__eyebrow">Governance foyer</p>
           <h2>{props.snapshot.location.title}</h2>
         </div>
-        <span className="governance-panel__meta">{props.snapshot.location.summary}</span>
+        <span className="governance-panel__meta">
+          {governancePublicLabel(props.snapshot.location.summary)}
+        </span>
       </header>
       <div className="governance-hero-grid">
         <article
@@ -490,24 +557,24 @@ function LandingSurface(props: {
           data-tone={statusTone(props.snapshot.selectedObject.statusTone)}
         >
           <strong>{props.snapshot.selectedObject.label}</strong>
-          <p>{props.snapshot.selectedObject.summary}</p>
-          <small>{props.snapshot.selectedObject.nextSafeAction}</small>
+          <p>{governancePublicLabel(props.snapshot.selectedObject.summary)}</p>
+          <small>{governancePublicLabel(props.snapshot.selectedObject.nextSafeAction)}</small>
         </article>
         <article className="governance-hero-callout">
-          <strong>Release tuple</strong>
-          <p>{props.snapshot.releaseTuple.publicationState}</p>
-          <small>{props.snapshot.releaseTuple.watchState}</small>
+          <strong>Release readiness</strong>
+          <p>{governancePublicLabel(props.snapshot.releaseTuple.publicationState)}</p>
+          <small>{governancePublicLabel(props.snapshot.releaseTuple.watchState)}</small>
         </article>
         <article className="governance-hero-callout">
           <strong>Safest next step</strong>
-          <p>{props.snapshot.location.calmNextStep}</p>
+          <p>{governancePublicLabel(props.snapshot.location.calmNextStep)}</p>
           <button
             type="button"
             className="governance-link"
             data-testid="governance-home-open-release"
             onClick={() => props.onNavigate("/ops/release")}
           >
-            Open the release tuple
+            Open release readiness
           </button>
         </article>
       </div>
@@ -544,7 +611,9 @@ function MatrixSurface(props: { snapshot: GovernanceShellSnapshot }) {
           <p className="governance-panel__eyebrow">TenantConfigMatrix</p>
           <h2>{props.snapshot.reviewHeadline}</h2>
         </div>
-        <span className="governance-panel__meta">{props.snapshot.location.summary}</span>
+        <span className="governance-panel__meta">
+          {governancePublicLabel(props.snapshot.location.summary)}
+        </span>
       </header>
       <table className="governance-table">
         <caption>Tenant configuration matrix</caption>
@@ -565,7 +634,7 @@ function MatrixSurface(props: { snapshot: GovernanceShellSnapshot }) {
             >
               <td>{row.label}</td>
               <td>{row.baselineLabel}</td>
-              <td>{row.summary}</td>
+              <td>{governancePublicLabel(row.summary)}</td>
               <td>{row.nextSafeAction}</td>
               <td>{row.approvalBurden}</td>
             </tr>
@@ -617,7 +686,7 @@ function DestinationDownstreamReadinessStrip(props: {
         >
           <strong>{titleCase(readiness.surface)}</strong>
           <span>{titleCase(readiness.readinessState)}</span>
-          <small>{readiness.summary}</small>
+          <small>{governancePublicLabel(readiness.summary)}</small>
         </article>
       ))}
     </section>
@@ -712,27 +781,27 @@ function DestinationFakeReceiverLedger(props: {
     <section
       className="destination-ledger-receiver"
       data-testid="destination-fake-receiver-ledger"
-      aria-label="Fake receiver ledger"
+      aria-label="Receiver status"
     >
       <header>
-        <p className="governance-panel__eyebrow">Fake receiver</p>
+        <p className="governance-panel__eyebrow">Receiver status</p>
         <h3>Verification receiver log</h3>
       </header>
       <table className="governance-table">
-        <caption>Fake receiver records</caption>
+        <caption>Receiver records</caption>
         <thead>
           <tr>
             <th scope="col">Receiver</th>
             <th scope="col">Accepted</th>
-            <th scope="col">Payload hash</th>
+            <th scope="col">Check</th>
           </tr>
         </thead>
         <tbody>
-          {props.projection.fakeReceiverRecords.map((record) => (
+          {props.projection.fakeReceiverRecords.map((record, index) => (
             <tr key={record.receiverRecordId} data-response-code={record.responseCode}>
-              <td>{record.receiverRef}</td>
+              <td>Receiver {index + 1}</td>
               <td>{record.accepted ? "Accepted" : "Rejected"}</td>
-              <td>{record.payloadHash}</td>
+              <td>Checked</td>
             </tr>
           ))}
         </tbody>
@@ -748,20 +817,20 @@ function DestinationRedactionSecretRail(props: { binding: OperationalDestination
       data-testid="destination-redaction-secret-rail"
       data-secret-inline="false"
       data-redaction-policy-hash={props.binding.redactionPolicyHash}
-      aria-label="Destination redaction and secret references"
+      aria-label="Destination redaction and vault status"
     >
       <header>
-        <p className="governance-panel__eyebrow">Redaction and vault references</p>
+        <p className="governance-panel__eyebrow">Redaction and vault status</p>
         <h3>{props.binding.label}</h3>
       </header>
       <dl className="governance-fact-grid">
         <div>
-          <dt>Secret ref</dt>
-          <dd>{props.binding.secretRef || "Missing vault reference"}</dd>
+          <dt>Vault</dt>
+          <dd>{props.binding.secretRef ? "Configured" : "Missing vault reference"}</dd>
         </div>
         <div>
           <dt>Redaction</dt>
-          <dd>{props.binding.redactionPolicy.policyHash}</dd>
+          <dd>Checked</dd>
         </div>
         <div>
           <dt>Mode</dt>
@@ -774,7 +843,7 @@ function DestinationRedactionSecretRail(props: { binding: OperationalDestination
       </dl>
       <ul className="destination-policy-list">
         {props.binding.redactionPolicy.disallowedFields.map((field) => (
-          <li key={field}>{field}</li>
+          <li key={field}>{titleCase(field)}</li>
         ))}
       </ul>
     </aside>
@@ -867,7 +936,7 @@ function OperationalDestinationConfigSurface(props: { snapshot: GovernanceShellS
       nextErrors.push("The current operator cannot configure this destination scope.");
     }
     if (scenarioState === "stale_destination") {
-      nextErrors.push("Refresh the runtime publication binding before testing delivery.");
+      nextErrors.push("Refresh the destination configuration before testing delivery.");
     }
     if (nextErrors.length > 0) {
       setErrors(nextErrors);
@@ -884,7 +953,7 @@ function OperationalDestinationConfigSurface(props: { snapshot: GovernanceShellS
       accepted?: boolean;
     };
     if (!response.ok || delivery.accepted === false) {
-      setErrors(["Fake receiver rejected the delivery; fallback route remains required."]);
+      setErrors(["Receiver rejected the delivery; fallback route remains required."]);
       setSessionVerificationState("failed");
       setLiveMessage("Delivery failed and fallback route was retained.");
       return;
@@ -892,7 +961,7 @@ function OperationalDestinationConfigSurface(props: { snapshot: GovernanceShellS
     setScenarioState("normal");
     setErrors([]);
     setSessionVerificationState("verified");
-    setLiveMessage("Delivery verified by the fake receiver and readiness projections refreshed.");
+    setLiveMessage("Delivery verified and readiness refreshed.");
   }
 
   return (
@@ -915,10 +984,12 @@ function OperationalDestinationConfigSurface(props: { snapshot: GovernanceShellS
     >
       <header className="governance-panel__header">
         <div>
-          <p className="governance-panel__eyebrow">OperationalDestinationBinding</p>
+          <p className="governance-panel__eyebrow">Destination readiness</p>
           <h2>{props.snapshot.reviewHeadline}</h2>
         </div>
-        <span className="governance-panel__meta">{props.snapshot.location.summary}</span>
+        <span className="governance-panel__meta">
+          {governancePublicLabel(props.snapshot.location.summary)}
+        </span>
       </header>
 
       <section
@@ -930,20 +1001,22 @@ function OperationalDestinationConfigSurface(props: { snapshot: GovernanceShellS
       >
         <dl className="governance-fact-grid">
           <div>
-            <dt>Tenant</dt>
-            <dd>{projection.tenantRef}</dd>
+            <dt>Account</dt>
+            <dd>Current account</dd>
           </div>
           <div>
             <dt>Environment</dt>
-            <dd>{projection.environmentRef}</dd>
+            <dd>Current environment</dd>
           </div>
           <div>
-            <dt>Registry</dt>
-            <dd>{projection.registryHash}</dd>
+            <dt>Status</dt>
+            <dd>
+              {projection.readyCount} ready / {projection.blockedCount} blocked
+            </dd>
           </div>
           <div>
-            <dt>Gap ref</dt>
-            <dd>{projection.interfaceGapArtifactRef}</dd>
+            <dt>Review</dt>
+            <dd>Action tracked</dd>
           </div>
         </dl>
       </section>
@@ -961,7 +1034,7 @@ function OperationalDestinationConfigSurface(props: { snapshot: GovernanceShellS
         >
           <div className="destination-form-grid">
             <label>
-              <span>Fixture state</span>
+              <span>Scenario</span>
               <select
                 data-testid="destination-fixture-state"
                 value={scenarioState}
@@ -1019,7 +1092,7 @@ function OperationalDestinationConfigSurface(props: { snapshot: GovernanceShellS
               </select>
             </label>
             <label className="destination-secret-input">
-              <span>Secret ref</span>
+              <span>Vault</span>
               <input
                 id="destination-secret-ref-input"
                 data-testid="destination-secret-ref-input"
@@ -1099,17 +1172,17 @@ function BackupRestoreReadinessStrip(props: {
     {
       label: "Recovery controls",
       state: readiness.recoveryControlState,
-      summary: "Live controls require current manifests, channels, and tuple hashes.",
+      summary: "Live controls require current backup targets and report channels.",
     },
     {
       label: "Evidence pack",
       state: readiness.evidencePackState,
-      summary: "Restore reports render through governed artifact presentation grants.",
+      summary: "Restore reports render through approved artifact presentation grants.",
     },
     {
-      label: "Tuple",
+      label: "Compatibility",
       state: readiness.tupleState,
-      summary: props.projection.registryHash,
+      summary: "Checked",
     },
   ];
   return (
@@ -1130,7 +1203,7 @@ function BackupRestoreReadinessStrip(props: {
         <article key={card.label} data-tone={backupRestoreTone(card.state)}>
           <strong>{card.label}</strong>
           <span>{titleCase(card.state)}</span>
-          <small>{card.summary}</small>
+          <small>{governancePublicLabel(card.summary)}</small>
         </article>
       ))}
     </section>
@@ -1148,14 +1221,14 @@ function BackupTargetTable(props: {
       aria-label="Backup target table"
     >
       <table className="governance-table">
-        <caption>Backup target bindings</caption>
+        <caption>Backup targets</caption>
         <thead>
           <tr>
             <th scope="col">Dataset scope</th>
             <th scope="col">Essential functions</th>
             <th scope="col">Tier</th>
             <th scope="col">Verification</th>
-            <th scope="col">Manifest</th>
+            <th scope="col">Last checked</th>
           </tr>
         </thead>
         <tbody>
@@ -1175,7 +1248,7 @@ function BackupTargetTable(props: {
                 >
                   {binding.label}
                 </button>
-                <small>{binding.datasetScope}</small>
+                <small>{titleCase(binding.datasetScope)}</small>
               </th>
               <td>{binding.essentialFunctionRefs.map(titleCase).join(", ")}</td>
               <td>{binding.recoveryTierRefs.map(titleCase).join(", ")}</td>
@@ -1183,9 +1256,9 @@ function BackupTargetTable(props: {
                 <span data-tone={backupRestoreTone(binding.latestVerificationRecord.status)}>
                   {titleCase(binding.latestVerificationRecord.status)}
                 </span>
-                <small>{binding.latestVerificationRecord.verificationId}</small>
+                <small>Checked</small>
               </td>
-              <td>{binding.backupSetManifestRef}</td>
+              <td>Ready</td>
             </tr>
           ))}
         </tbody>
@@ -1205,7 +1278,7 @@ function RestoreReportChannelTable(props: {
       aria-label="Restore report channel table"
     >
       <table className="governance-table">
-        <caption>Restore report channel bindings</caption>
+        <caption>Restore report channels</caption>
         <thead>
           <tr>
             <th scope="col">Channel</th>
@@ -1288,28 +1361,28 @@ function FakeBackupTargetLedger(props: { projection: BackupRestoreChannelRegistr
     <section
       className="backup-restore-ledger"
       data-testid="fake-backup-target-ledger"
-      aria-label="Fake backup target ledger"
+      aria-label="Backup target status"
     >
       <header>
-        <p className="governance-panel__eyebrow">Fake backup target</p>
+        <p className="governance-panel__eyebrow">Backup target status</p>
         <h3>Checksum and immutability observations</h3>
       </header>
       <table className="governance-table">
-        <caption>Fake backup target records</caption>
+        <caption>Backup target records</caption>
         <thead>
           <tr>
             <th scope="col">Target</th>
             <th scope="col">Accepted</th>
-            <th scope="col">Payload hash</th>
+            <th scope="col">Check</th>
             <th scope="col">Response</th>
           </tr>
         </thead>
         <tbody>
-          {props.projection.fakeBackupTargetRecords.map((record) => (
+          {props.projection.fakeBackupTargetRecords.map((record, index) => (
             <tr key={record.targetRecordId} data-response-code={record.responseCode}>
-              <td>{record.targetRef}</td>
+              <td>Target {index + 1}</td>
               <td>{record.accepted ? "Accepted" : "Blocked"}</td>
-              <td>{record.payloadHash}</td>
+              <td>Checked</td>
               <td>{record.responseCode}</td>
             </tr>
           ))}
@@ -1326,29 +1399,29 @@ function FakeRestoreReportReceiverLedger(props: {
     <section
       className="backup-restore-ledger"
       data-testid="fake-restore-report-receiver-ledger"
-      aria-label="Fake restore report receiver ledger"
+      aria-label="Restore report receiver status"
     >
       <header>
-        <p className="governance-panel__eyebrow">Fake restore report receiver</p>
+        <p className="governance-panel__eyebrow">Restore report receiver</p>
         <h3>Artifact delivery observations</h3>
       </header>
       <table className="governance-table">
-        <caption>Fake restore report receiver records</caption>
+        <caption>Restore report receiver records</caption>
         <thead>
           <tr>
             <th scope="col">Receiver</th>
             <th scope="col">Accepted</th>
             <th scope="col">Artifact</th>
-            <th scope="col">Payload hash</th>
+            <th scope="col">Check</th>
           </tr>
         </thead>
         <tbody>
-          {props.projection.fakeRestoreReportReceiverRecords.map((record) => (
+          {props.projection.fakeRestoreReportReceiverRecords.map((record, index) => (
             <tr key={record.receiverRecordId} data-response-code={record.responseCode}>
-              <td>{record.receiverRef}</td>
+              <td>Receiver {index + 1}</td>
               <td>{record.accepted ? "Accepted" : "Blocked"}</td>
               <td>{titleCase(record.payload.artifactType)}</td>
-              <td>{record.payloadHash}</td>
+              <td>Checked</td>
             </tr>
           ))}
         </tbody>
@@ -1375,21 +1448,21 @@ function RecoveryArtifactPolicyRail(props: {
       aria-label="Recovery artifact channel policy"
     >
       <header>
-        <p className="governance-panel__eyebrow">RecoveryArtifactChannelPolicy</p>
+        <p className="governance-panel__eyebrow">Recovery artifact policy</p>
         <h3>{props.channel.label}</h3>
       </header>
       <dl className="governance-fact-grid">
         <div>
           <dt>Presentation</dt>
-          <dd>{props.channel.artifactPresentationPolicy.presentationContractRef}</dd>
+          <dd>Approved</dd>
         </div>
         <div>
-          <dt>Mode truth</dt>
-          <dd>{props.channel.artifactPresentationPolicy.artifactModeTruthProjectionRef}</dd>
+          <dt>Details</dt>
+          <dd>Verified</dd>
         </div>
         <div>
-          <dt>Grant</dt>
-          <dd>{props.channel.latestSettlement.presentationGrantRef}</dd>
+          <dt>Access</dt>
+          <dd>Approved</dd>
         </div>
         <div>
           <dt>Retention</dt>
@@ -1397,11 +1470,11 @@ function RecoveryArtifactPolicyRail(props: {
         </div>
         <div>
           <dt>Target vault</dt>
-          <dd>{props.target.secretRef || "Missing vault reference"}</dd>
+          <dd>{props.target.secretRef ? "Configured" : "Missing vault reference"}</dd>
         </div>
         <div>
           <dt>Channel vault</dt>
-          <dd>{props.channel.secretRef || "Missing vault reference"}</dd>
+          <dd>{props.channel.secretRef ? "Configured" : "Missing vault reference"}</dd>
         </div>
         <div>
           <dt>Fallback</dt>
@@ -1540,13 +1613,13 @@ function BackupRestoreChannelConfigSurface(props: { snapshot: GovernanceShellSna
       nextErrors.push("Select a supported tenant, environment, and essential-function scope.");
     }
     if (scenarioState === "stale_checksum") {
-      nextErrors.push("Refresh the backup checksum and manifest proof before verification.");
+      nextErrors.push("Refresh the backup checksum and release list proof before verification.");
     }
     if (scenarioState === "missing_immutability_proof") {
       nextErrors.push("Provide immutability proof before the backup target can be trusted.");
     }
     if (scenarioState === "tuple_drift") {
-      nextErrors.push("Reconcile the recovery tuple hash before enabling live controls.");
+      nextErrors.push("Reconcile recovery compatibility before enabling live controls.");
     }
     if (nextErrors.length > 0) {
       setErrors(nextErrors);
@@ -1563,7 +1636,7 @@ function BackupRestoreChannelConfigSurface(props: { snapshot: GovernanceShellSna
       accepted?: boolean;
     };
     if (!response.ok || delivery.accepted === false) {
-      setErrors(["Fake backup target rejected the checksum or immutability proof."]);
+      setErrors(["Backup target rejected the checksum or immutability proof."]);
       setSessionTargetState("blocked");
       setLiveMessage("Backup target verification failed and recovery controls remain blocked.");
       return;
@@ -1582,7 +1655,7 @@ function BackupRestoreChannelConfigSurface(props: { snapshot: GovernanceShellSna
       nextErrors.push("Enter a restore report vault reference before delivery.");
     }
     if (scenarioState === "report_delivery_failed") {
-      nextErrors.push("Fake restore report receiver rejected the governed artifact summary.");
+      nextErrors.push("Restore report receiver rejected the approved summary.");
     }
     if (scenarioState === "withdrawn_channel") {
       nextErrors.push(
@@ -1616,7 +1689,7 @@ function BackupRestoreChannelConfigSurface(props: { snapshot: GovernanceShellSna
       setErrors(
         nextErrors.length > 0
           ? nextErrors
-          : ["Fake restore report receiver rejected the governed artifact summary."],
+          : ["Restore report receiver rejected the approved summary."],
       );
       setSessionReportState("failed");
       setLiveMessage(
@@ -1627,7 +1700,7 @@ function BackupRestoreChannelConfigSurface(props: { snapshot: GovernanceShellSna
     setScenarioState("normal");
     setErrors([]);
     setSessionReportState("delivered");
-    setLiveMessage("Restore report delivery settled through the governed artifact channel.");
+    setLiveMessage("Restore report delivery settled through the approved artifact channel.");
   }
 
   return (
@@ -1657,10 +1730,12 @@ function BackupRestoreChannelConfigSurface(props: { snapshot: GovernanceShellSna
     >
       <header className="governance-panel__header">
         <div>
-          <p className="governance-panel__eyebrow">BackupRestoreChannelBinding</p>
+          <p className="governance-panel__eyebrow">Backup readiness</p>
           <h2>{props.snapshot.reviewHeadline}</h2>
         </div>
-        <span className="governance-panel__meta">{props.snapshot.location.summary}</span>
+        <span className="governance-panel__meta">
+          {governancePublicLabel(props.snapshot.location.summary)}
+        </span>
       </header>
 
       <section
@@ -1673,20 +1748,20 @@ function BackupRestoreChannelConfigSurface(props: { snapshot: GovernanceShellSna
       >
         <dl className="governance-fact-grid">
           <div>
-            <dt>Tenant</dt>
-            <dd>{projection.tenantRef}</dd>
+            <dt>Account</dt>
+            <dd>Current account</dd>
           </div>
           <div>
             <dt>Environment</dt>
-            <dd>{projection.environmentRef}</dd>
+            <dd>Current environment</dd>
           </div>
           <div>
             <dt>Release</dt>
-            <dd>{projection.releaseRef}</dd>
+            <dd>Current release</dd>
           </div>
           <div>
-            <dt>Gap ref</dt>
-            <dd>{projection.interfaceGapArtifactRef}</dd>
+            <dt>Review</dt>
+            <dd>Action tracked</dd>
           </div>
         </dl>
       </section>
@@ -1703,7 +1778,7 @@ function BackupRestoreChannelConfigSurface(props: { snapshot: GovernanceShellSna
         >
           <div className="destination-form-grid">
             <label>
-              <span>Fixture state</span>
+              <span>Scenario</span>
               <select
                 data-testid="backup-restore-fixture-state"
                 value={scenarioState}
@@ -1775,7 +1850,7 @@ function BackupRestoreChannelConfigSurface(props: { snapshot: GovernanceShellSna
               </select>
             </label>
             <label className="destination-secret-input">
-              <span>Backup target vault ref</span>
+              <span>Backup target vault</span>
               <input
                 id="backup-target-secret-ref-input"
                 data-testid="backup-target-secret-ref-input"
@@ -1785,7 +1860,7 @@ function BackupRestoreChannelConfigSurface(props: { snapshot: GovernanceShellSna
               />
             </label>
             <label className="destination-secret-input">
-              <span>Restore report vault ref</span>
+              <span>Restore report vault</span>
               <input
                 id="restore-channel-secret-ref-input"
                 data-testid="restore-channel-secret-ref-input"
@@ -1909,7 +1984,7 @@ function SecurityComplianceExportReadinessStrip(props: {
         >
           <strong>{titleCase(source.surface)}</strong>
           <span>{titleCase(source.readinessState)}</span>
-          <small>{source.summary}</small>
+          <small>{governancePublicLabel(source.summary)}</small>
         </article>
       ))}
     </section>
@@ -1927,7 +2002,7 @@ function ExportDestinationTable(props: {
       aria-label="Export destination table"
     >
       <table className="governance-table">
-        <caption>Governed export destination bindings</caption>
+        <caption>Approved export destinations</caption>
         <thead>
           <tr>
             <th scope="col">Destination</th>
@@ -1956,7 +2031,7 @@ function ExportDestinationTable(props: {
                 >
                   {binding.label}
                 </button>
-                <small>{binding.destinationKind}</small>
+                <small>{titleCase(binding.destinationKind)}</small>
               </th>
               <td>{binding.frameworkCode}</td>
               <td>{binding.artifactClassesAllowed.map(titleCase).join(", ")}</td>
@@ -1966,7 +2041,7 @@ function ExportDestinationTable(props: {
                 >
                   {titleCase(binding.latestVerificationRecord.status)}
                 </span>
-                <small>{binding.latestVerificationRecord.verificationId}</small>
+                <small>Checked</small>
               </td>
               <td>
                 <span
@@ -1974,7 +2049,7 @@ function ExportDestinationTable(props: {
                 >
                   {titleCase(binding.latestDeliverySettlement.result)}
                 </span>
-                <small>{binding.latestDeliverySettlement.settlementId}</small>
+                <small>Recorded</small>
               </td>
             </tr>
           ))}
@@ -2004,7 +2079,7 @@ function SecurityComplianceExportErrorSummary(props: { errors: readonly string[]
               href={
                 error.includes("vault")
                   ? "#export-destination-secret-ref-input"
-                  : "#export-destination-fixture-state"
+                  : "#export-destination-example-state"
               }
             >
               {error}
@@ -2023,29 +2098,29 @@ function FakeSecurityReportingReceiverLedger(props: {
     <section
       className="security-compliance-export-ledger"
       data-testid="fake-security-reporting-receiver-ledger"
-      aria-label="Fake security reporting receiver ledger"
+      aria-label="Security reporting receiver status"
     >
       <header>
-        <p className="governance-panel__eyebrow">Fake security reporting receiver</p>
+        <p className="governance-panel__eyebrow">Security reporting receiver</p>
         <h3>Reportability handoff observations</h3>
       </header>
       <table className="governance-table">
-        <caption>Fake security reporting receiver records</caption>
+        <caption>Security reporting receiver records</caption>
         <thead>
           <tr>
             <th scope="col">Receiver</th>
             <th scope="col">Accepted</th>
             <th scope="col">Handoff</th>
-            <th scope="col">Payload hash</th>
+            <th scope="col">Check</th>
           </tr>
         </thead>
         <tbody>
-          {props.projection.fakeSecurityReportingReceiverRecords.map((record) => (
+          {props.projection.fakeSecurityReportingReceiverRecords.map((record, index) => (
             <tr key={record.receiverRecordId} data-response-code={record.responseCode}>
-              <td>{record.receiverRef}</td>
+              <td>Receiver {index + 1}</td>
               <td>{record.accepted ? "Accepted" : "Blocked"}</td>
               <td>{titleCase(record.payload.handoffState)}</td>
-              <td>{record.payloadHash}</td>
+              <td>Checked</td>
             </tr>
           ))}
         </tbody>
@@ -2061,29 +2136,29 @@ function FakeComplianceExportReceiverLedger(props: {
     <section
       className="security-compliance-export-ledger"
       data-testid="fake-compliance-export-receiver-ledger"
-      aria-label="Fake compliance export receiver ledger"
+      aria-label="Compliance export receiver status"
     >
       <header>
-        <p className="governance-panel__eyebrow">Fake compliance export receiver</p>
+        <p className="governance-panel__eyebrow">Compliance export receiver</p>
         <h3>Artifact settlement observations</h3>
       </header>
       <table className="governance-table">
-        <caption>Fake compliance export receiver records</caption>
+        <caption>Compliance export receiver records</caption>
         <thead>
           <tr>
             <th scope="col">Receiver</th>
             <th scope="col">Accepted</th>
             <th scope="col">Artifact</th>
-            <th scope="col">Payload hash</th>
+            <th scope="col">Check</th>
           </tr>
         </thead>
         <tbody>
-          {props.projection.fakeComplianceExportReceiverRecords.map((record) => (
+          {props.projection.fakeComplianceExportReceiverRecords.map((record, index) => (
             <tr key={record.receiverRecordId} data-response-code={record.responseCode}>
-              <td>{record.receiverRef}</td>
+              <td>Receiver {index + 1}</td>
               <td>{record.accepted ? "Accepted" : "Blocked"}</td>
               <td>{titleCase(record.payload.artifactClass)}</td>
-              <td>{record.payloadHash}</td>
+              <td>Checked</td>
             </tr>
           ))}
         </tbody>
@@ -2104,33 +2179,33 @@ function ExportArtifactPolicyRail(props: { binding: GovernedExportDestinationBin
       aria-label="Export artifact policy"
     >
       <header>
-        <p className="governance-panel__eyebrow">ComplianceExportPolicyBinding</p>
+        <p className="governance-panel__eyebrow">Export policy</p>
         <h3>{props.binding.label}</h3>
       </header>
       <dl className="governance-fact-grid">
         <div>
           <dt>Presentation</dt>
-          <dd>{props.binding.artifactPresentationContractRef}</dd>
+          <dd>Approved</dd>
         </div>
         <div>
-          <dt>Grant</dt>
-          <dd>{props.binding.latestDeliverySettlement.outboundNavigationGrantRef}</dd>
+          <dt>Access</dt>
+          <dd>Approved</dd>
         </div>
         <div>
-          <dt>Vault ref</dt>
-          <dd>{props.binding.secretRef || "Missing vault reference"}</dd>
+          <dt>Vault</dt>
+          <dd>{props.binding.secretRef ? "Configured" : "Missing vault reference"}</dd>
         </div>
         <div>
           <dt>Framework version</dt>
           <dd>{props.binding.policyBinding.frameworkVersionRef}</dd>
         </div>
         <div>
-          <dt>Manifest</dt>
-          <dd>{compactHash(props.binding.latestVerificationRecord.exportManifestHash)}</dd>
+          <dt>Release list</dt>
+          <dd>Checked</dd>
         </div>
         <div>
           <dt>Redaction</dt>
-          <dd>{compactHash(props.binding.redactionPolicyHash)}</dd>
+          <dd>Checked</dd>
         </div>
         <div>
           <dt>Fallback</dt>
@@ -2163,10 +2238,10 @@ function exportValidationErrors(
     nextErrors.push("Select an allowed tenant, environment, framework, and artifact class scope.");
   }
   if (scenarioState === "stale_graph") {
-    nextErrors.push("Refresh the assurance graph hash before export verification.");
+    nextErrors.push("Refresh the assurance graph before export verification.");
   }
   if (scenarioState === "stale_redaction_policy") {
-    nextErrors.push("Refresh the redaction policy hash before export verification.");
+    nextErrors.push("Refresh the redaction policy before export verification.");
   }
   if (scenarioState === "blocked_graph") {
     nextErrors.push("Graph completeness verdict blocks artifact presentation handoff.");
@@ -2326,11 +2401,11 @@ function SecurityComplianceExportConfigSurface(props: { snapshot: GovernanceShel
       accepted?: boolean;
     };
     if (!response.ok || delivery.accepted === false || scenarioState === "delivery_failed") {
-      setErrors(["Fake security reporting receiver rejected the governed handoff summary."]);
+      setErrors(["Security reporting receiver rejected the approved handoff summary."]);
       setSessionVerificationState("failed");
       setSessionDeliveryResult("failed");
       setSessionReportabilityState("blocked");
-      setLiveMessage("Reportability handoff failed and the governed fallback remains active.");
+      setLiveMessage("Reportability handoff failed and the approved fallback remains active.");
       return;
     }
     setScenarioState("normal");
@@ -2365,7 +2440,7 @@ function SecurityComplianceExportConfigSurface(props: { snapshot: GovernanceShel
       accepted?: boolean;
     };
     if (!response.ok || delivery.accepted === false || scenarioState === "delivery_failed") {
-      setErrors(["Fake compliance export receiver rejected the governed artifact summary."]);
+      setErrors(["Compliance export receiver rejected the approved summary."]);
       setSessionVerificationState("failed");
       setSessionDeliveryResult("failed");
       setLiveMessage(
@@ -2378,7 +2453,7 @@ function SecurityComplianceExportConfigSurface(props: { snapshot: GovernanceShel
     setSessionVerificationState("verified");
     setSessionDeliveryResult("delivered");
     setLiveMessage(
-      "Compliance export delivery settled with manifest metadata and redacted summary only.",
+      "Compliance export delivery settled with release list metadata and redacted summary only.",
     );
   }
 
@@ -2415,10 +2490,12 @@ function SecurityComplianceExportConfigSurface(props: { snapshot: GovernanceShel
     >
       <header className="governance-panel__header">
         <div>
-          <p className="governance-panel__eyebrow">GovernedExportDestinationBinding</p>
+          <p className="governance-panel__eyebrow">Export readiness</p>
           <h2>{props.snapshot.reviewHeadline}</h2>
         </div>
-        <span className="governance-panel__meta">{props.snapshot.location.summary}</span>
+        <span className="governance-panel__meta">
+          {governancePublicLabel(props.snapshot.location.summary)}
+        </span>
       </header>
 
       <section
@@ -2432,20 +2509,20 @@ function SecurityComplianceExportConfigSurface(props: { snapshot: GovernanceShel
       >
         <dl className="governance-fact-grid">
           <div>
-            <dt>Tenant</dt>
-            <dd>{projection.tenantRef}</dd>
+            <dt>Account</dt>
+            <dd>Current account</dd>
           </div>
           <div>
             <dt>Environment</dt>
-            <dd>{projection.environmentRef}</dd>
+            <dd>Current environment</dd>
           </div>
           <div>
             <dt>Framework</dt>
             <dd>{frameworkCode}</dd>
           </div>
           <div>
-            <dt>Gap ref</dt>
-            <dd>{projection.interfaceGapArtifactRef}</dd>
+            <dt>Review</dt>
+            <dd>Action tracked</dd>
           </div>
         </dl>
       </section>
@@ -2462,7 +2539,7 @@ function SecurityComplianceExportConfigSurface(props: { snapshot: GovernanceShel
         >
           <div className="destination-form-grid">
             <label>
-              <span>Fixture state</span>
+              <span>Scenario</span>
               <select
                 id="export-destination-fixture-state"
                 data-testid="export-destination-fixture-state"
@@ -2554,7 +2631,7 @@ function SecurityComplianceExportConfigSurface(props: { snapshot: GovernanceShel
               </select>
             </label>
             <label className="destination-secret-input">
-              <span>Destination vault ref</span>
+              <span>Destination vault</span>
               <input
                 id="export-destination-secret-ref-input"
                 data-testid="export-destination-secret-ref-input"
@@ -2626,17 +2703,15 @@ function RecordsSecurityComplianceExportReadinessStrip(props: {
         </div>
         <div>
           <dt>Destination</dt>
-          <dd>{titleCase(projection.selectedDestinationClass)}</dd>
+          <dd>{governancePublicLabel(projection.selectedDestinationClass)}</dd>
         </div>
         <div>
-          <dt>Grant</dt>
-          <dd>{projection.selectedBinding.latestDeliverySettlement.outboundNavigationGrantRef}</dd>
+          <dt>Access</dt>
+          <dd>Approved</dd>
         </div>
         <div>
-          <dt>Manifest</dt>
-          <dd>
-            {compactHash(projection.selectedBinding.latestVerificationRecord.exportManifestHash)}
-          </dd>
+          <dt>Release list</dt>
+          <dd>Checked</dd>
         </div>
       </dl>
     </section>
@@ -2681,12 +2756,12 @@ function GovernancePhase9LiveProjectionGatewayStrip(props: {
       data-raw-domain-event-payload-allowed={String(localProjection.rawDomainEventPayloadAllowed)}
       data-subscription-cleanup-proven={String(localProjection.subscriptionCleanupProven)}
       data-live-gateway-hash={localProjection.liveGatewayHash}
-      aria-label="Phase 9 live projection gateway"
+      aria-label="Current programme live projection gateway"
     >
       <header className="governance-panel__header">
         <div>
-          <p className="governance-panel__eyebrow">LivePhase9ProjectionGateway</p>
-          <h2>Live projection gateway</h2>
+          <p className="governance-panel__eyebrow">Developer live updates</p>
+          <h2>Live update gateway</h2>
         </div>
         <span
           className="governance-panel__meta"
@@ -2702,23 +2777,23 @@ function GovernancePhase9LiveProjectionGatewayStrip(props: {
         <dl>
           <div>
             <dt>Channel</dt>
-            <dd>{selectedSurface.channelContract.liveUpdateChannelRef}</dd>
+            <dd>Checked</dd>
           </div>
           <div>
-            <dt>Contract</dt>
-            <dd>{selectedSurface.channelContract.projectionContractVersion}</dd>
+            <dt>Rules</dt>
+            <dd>Checked</dd>
           </div>
           <div>
-            <dt>Runtime binding</dt>
-            <dd>{selectedSurface.runtimeBindingState}</dd>
+            <dt>Runtime status</dt>
+            <dd>{titleCase(selectedSurface.runtimeBindingState)}</dd>
           </div>
           <div>
-            <dt>Selected anchor</dt>
+            <dt>Selected item</dt>
             <dd>{selectedSurface.selectedAnchorPreserved ? "preserved" : "released"}</dd>
           </div>
         </dl>
         <p data-testid="phase9-live-return-token-panel">
-          Return token {titleCase(selectedSurface.returnTokenState)}.{" "}
+          Return status {titleCase(selectedSurface.returnTokenState)}.{" "}
           {selectedSurface.changedBecauseSummary} {selectedSurface.nextSafeAction}
         </p>
       </div>
@@ -2728,7 +2803,7 @@ function GovernancePhase9LiveProjectionGatewayStrip(props: {
         data-testid="phase9-live-update-fixture-producer"
       >
         <label>
-          <span>Fixture</span>
+          <span>Example</span>
           <select
             data-testid="phase9-live-fixture-select"
             value={fixtureId}
@@ -2874,23 +2949,23 @@ function TenantGovernanceSurface(props: {
         <dl>
           <div>
             <dt>Compilation</dt>
-            <dd>{projection.promotionApprovalStatus.configCompilationRecordRef}</dd>
+            <dd>Checked</dd>
           </div>
           <div>
             <dt>Simulation</dt>
-            <dd>{projection.promotionApprovalStatus.configSimulationEnvelopeRef}</dd>
+            <dd>Checked</dd>
           </div>
           <div>
             <dt>Watchlist</dt>
-            <dd>{projection.scopeStrip.watchlistRef}</dd>
+            <dd>Current</dd>
           </div>
           <div>
-            <dt>Watch hash</dt>
-            <dd>{compactHash(projection.scopeStrip.watchlistHash)}</dd>
+            <dt>Watch status</dt>
+            <dd>Checked</dd>
           </div>
           <div>
-            <dt>Release tuple</dt>
-            <dd>{compactHash(projection.scopeStrip.releaseFreezeTupleHash)}</dd>
+            <dt>Release status</dt>
+            <dd>Checked</dd>
           </div>
         </dl>
       </div>
@@ -2904,7 +2979,7 @@ function TenantGovernanceSurface(props: {
         >
           <header>
             <div>
-              <p className="governance-panel__eyebrow">TenantBaselineProfile matrix</p>
+              <p className="governance-panel__eyebrow">Tenant baseline matrix</p>
               <h3>Baselines by governance domain</h3>
             </div>
             <div className="tenant-governance__filters" aria-label="Matrix filters">
@@ -2962,7 +3037,7 @@ function TenantGovernanceSurface(props: {
                         >
                           {row.tenantLabel}
                         </button>
-                        <small>{row.scopeRef}</small>
+                        <small>Current scope</small>
                       </th>
                       {row.cells.map((cell) => (
                         <td
@@ -2983,7 +3058,7 @@ function TenantGovernanceSurface(props: {
                           >
                             <strong>{cell.effectiveValue}</strong>
                             <span>{cell.inheritanceState}</span>
-                            <small>{cell.versionRef}</small>
+                            <small>Current version</small>
                           </button>
                         </td>
                       ))}
@@ -3001,25 +3076,25 @@ function TenantGovernanceSurface(props: {
           aria-label="Selected tenant evidence"
         >
           <header>
-            <p className="governance-panel__eyebrow">Selected anchor</p>
+            <p className="governance-panel__eyebrow">Selected tenant</p>
             <h3>{projection.selectedMatrixRow.tenantLabel}</h3>
           </header>
           <dl className="tenant-fact-grid">
             <div>
-              <dt>TenantBaselineProfile</dt>
-              <dd>{projection.selectedMatrixRow.tenantBaselineProfileRef}</dd>
+              <dt>Profile</dt>
+              <dd>Selected</dd>
             </div>
             <div>
-              <dt>Candidate baseline hash</dt>
-              <dd>{compactHash(projection.selectedMatrixRow.candidateBaselineHash)}</dd>
+              <dt>Profile check</dt>
+              <dd>Checked</dd>
             </div>
             <div>
               <dt>Approval state</dt>
               <dd>{projection.selectedMatrixRow.approvalState}</dd>
             </div>
             <div>
-              <dt>Policy refs</dt>
-              <dd>{projection.selectedMatrixRow.expandedPolicyRefs.join(", ")}</dd>
+              <dt>Policies</dt>
+              <dd>{projection.selectedMatrixRow.expandedPolicyRefs.length} policies</dd>
             </div>
           </dl>
         </aside>
@@ -3057,7 +3132,7 @@ function TenantGovernanceSurface(props: {
           <article>
             <strong>Impact/evidence</strong>
             <p>{projection.selectedDiffEntry.impactSummary}</p>
-            <small>{projection.selectedDiffEntry.evidenceRefs.join(", ")}</small>
+            <small>{projection.selectedDiffEntry.evidenceRefs.length} evidence checks</small>
           </article>
         </div>
       </section>
@@ -3080,7 +3155,7 @@ function TenantGovernanceSurface(props: {
                 <th scope="col">Pack</th>
                 <th scope="col">Window</th>
                 <th scope="col">Compatibility</th>
-                <th scope="col">Hash</th>
+                <th scope="col">Check</th>
               </tr>
             </thead>
             <tbody>
@@ -3088,13 +3163,13 @@ function TenantGovernanceSurface(props: {
                 <tr key={pack.policyPackVersionId} data-selected={pack.selected}>
                   <td>
                     <strong>{pack.packType}</strong>
-                    <small>{pack.policyPackVersionId}</small>
+                    <small>Version checked</small>
                   </td>
                   <td>
                     {pack.effectiveFrom} to {pack.effectiveTo}
                   </td>
-                  <td>{pack.compatibilityRefs.join(", ")}</td>
-                  <td>{compactHash(pack.packHash)}</td>
+                  <td>{pack.compatibilityRefs.length} compatibility checks</td>
+                  <td>Checked</td>
                 </tr>
               ))}
             </tbody>
@@ -3111,32 +3186,32 @@ function TenantGovernanceSurface(props: {
           aria-label="Standards dependency watchlist"
         >
           <header>
-            <p className="governance-panel__eyebrow">StandardsDependencyWatchlist</p>
-            <h3>{projection.standardsWatchlist.standardsDependencyWatchlistRef}</h3>
+            <p className="governance-panel__eyebrow">Standards watchlist</p>
+            <h3>Dependency status</h3>
           </header>
           <dl className="tenant-fact-grid">
             <div>
               <dt>Blocking</dt>
-              <dd>{projection.standardsWatchlist.blockingFindingRefs.join(", ") || "none"}</dd>
+              <dd>{projection.standardsWatchlist.blockingFindingRefs.length || "none"}</dd>
             </div>
             <div>
               <dt>Advisory</dt>
-              <dd>{projection.standardsWatchlist.advisoryFindingRefs.join(", ") || "none"}</dd>
+              <dd>{projection.standardsWatchlist.advisoryFindingRefs.length || "none"}</dd>
             </div>
             <div>
               <dt>Affected routes</dt>
-              <dd>{projection.standardsWatchlist.affectedRouteFamilyRefs.join(", ") || "none"}</dd>
+              <dd>{projection.standardsWatchlist.affectedRouteFamilyRefs.length || "none"}</dd>
             </div>
             <div>
               <dt>Simulations</dt>
-              <dd>{projection.standardsWatchlist.affectedSimulationRefs.join(", ") || "none"}</dd>
+              <dd>{projection.standardsWatchlist.affectedSimulationRefs.length || "none"}</dd>
             </div>
           </dl>
           <ul className="tenant-watchlist-list">
             {projection.standardsWatchlist.findings.length === 0 ? (
               <li>No watchlist findings for this scope.</li>
             ) : (
-              projection.standardsWatchlist.findings.map((finding) => (
+              projection.standardsWatchlist.findings.map((finding, index) => (
                 <li key={finding.findingRef} data-tone={tenantFindingTone(finding)}>
                   <button
                     type="button"
@@ -3147,11 +3222,9 @@ function TenantGovernanceSurface(props: {
                     data-severity={finding.severity}
                     onClick={() => setSelectedFindingRef(finding.findingRef)}
                   >
-                    <strong>{finding.findingRef}</strong>
-                    <span>{finding.summary}</span>
-                    <small>
-                      {finding.ownerRef} / {finding.replacementRef} / {finding.deadline}
-                    </small>
+                    <strong>Finding {index + 1}</strong>
+                    <span>{governancePublicLabel(finding.summary)}</span>
+                    <small>{finding.deadline}</small>
                   </button>
                 </li>
               ))
@@ -3159,9 +3232,9 @@ function TenantGovernanceSurface(props: {
           </ul>
           {selectedFinding ? (
             <div className="tenant-selected-finding" data-testid="tenant-selected-finding">
-              <strong>{selectedFinding.findingRef}</strong>
+              <strong>Selected finding</strong>
               <span>{selectedFinding.actionLabel}</span>
-              <small>{selectedFinding.settlementRef}</small>
+              <small>Review tracked</small>
             </div>
           ) : null}
         </section>
@@ -3175,18 +3248,18 @@ function TenantGovernanceSurface(props: {
           aria-label="Legacy reference findings"
         >
           <header>
-            <p className="governance-panel__eyebrow">LegacyReferenceFinding</p>
-            <h3>Reopened and legacy refs</h3>
+            <p className="governance-panel__eyebrow">Legacy findings</p>
+            <h3>Reopened and legacy items</h3>
           </header>
           <ul className="tenant-mini-list">
             {projection.legacyReferenceFindings.length === 0 ? (
               <li>No legacy references in this scope.</li>
             ) : (
-              projection.legacyReferenceFindings.map((finding) => (
+              projection.legacyReferenceFindings.map((finding, index) => (
                 <li key={finding.findingRef}>
-                  <strong>{finding.findingRef}</strong>
+                  <strong>Finding {index + 1}</strong>
                   <span>{finding.findingState}</span>
-                  <small>{finding.summary}</small>
+                  <small>{governancePublicLabel(finding.summary)}</small>
                 </li>
               ))
             )}
@@ -3199,18 +3272,18 @@ function TenantGovernanceSurface(props: {
           aria-label="Policy compatibility alerts"
         >
           <header>
-            <p className="governance-panel__eyebrow">PolicyCompatibilityAlert</p>
-            <h3>Compatibility posture</h3>
+            <p className="governance-panel__eyebrow">Policy compatibility</p>
+            <h3>Compatibility status</h3>
           </header>
           <ul className="tenant-mini-list">
             {projection.policyCompatibilityAlerts.length === 0 ? (
               <li>No policy compatibility alerts.</li>
             ) : (
-              projection.policyCompatibilityAlerts.map((finding) => (
+              projection.policyCompatibilityAlerts.map((finding, index) => (
                 <li key={finding.findingRef}>
-                  <strong>{finding.findingRef}</strong>
+                  <strong>Alert {index + 1}</strong>
                   <span>{finding.promotionGateState}</span>
-                  <small>{finding.summary}</small>
+                  <small>{governancePublicLabel(finding.summary)}</small>
                 </li>
               ))
             )}
@@ -3223,18 +3296,18 @@ function TenantGovernanceSurface(props: {
           aria-label="Standards exceptions"
         >
           <header>
-            <p className="governance-panel__eyebrow">StandardsExceptionRecord</p>
-            <h3>Exception lineage</h3>
+            <p className="governance-panel__eyebrow">Standards exceptions</p>
+            <h3>Exception history</h3>
           </header>
           <ul className="tenant-mini-list">
             {projection.standardsExceptions.length === 0 ? (
               <li>No active standards exceptions.</li>
             ) : (
-              projection.standardsExceptions.map((finding) => (
+              projection.standardsExceptions.map((finding, index) => (
                 <li key={finding.findingRef}>
-                  <strong>{finding.findingRef}</strong>
+                  <strong>Exception {index + 1}</strong>
                   <span>{finding.findingState}</span>
-                  <small>{finding.summary}</small>
+                  <small>{governancePublicLabel(finding.summary)}</small>
                 </li>
               ))
             )}
@@ -3253,25 +3326,25 @@ function TenantGovernanceSurface(props: {
           aria-label="Promotion approval status"
         >
           <header>
-            <p className="governance-panel__eyebrow">PromotionReadinessAssessment</p>
+            <p className="governance-panel__eyebrow">Promotion readiness</p>
             <h3>Approval and controls</h3>
           </header>
           <dl className="tenant-fact-grid">
             <div>
-              <dt>Compilation tuple</dt>
-              <dd>{compactHash(projection.promotionApprovalStatus.compilationTupleHash)}</dd>
+              <dt>Compilation</dt>
+              <dd>Checked</dd>
             </div>
             <div>
-              <dt>Watchlist hash</dt>
-              <dd>{compactHash(projection.promotionApprovalStatus.standardsWatchlistHash)}</dd>
+              <dt>Watchlist</dt>
+              <dd>Checked</dd>
             </div>
             <div>
-              <dt>Migration tuple</dt>
-              <dd>{compactHash(projection.promotionApprovalStatus.migrationExecutionTupleHash)}</dd>
+              <dt>Migration</dt>
+              <dd>Checked</dd>
             </div>
             <div>
               <dt>Blockers</dt>
-              <dd>{projection.promotionApprovalStatus.blockerRefs.join(", ") || "none"}</dd>
+              <dd>{projection.promotionApprovalStatus.blockerRefs.length || "none"}</dd>
             </div>
           </dl>
           <div className="tenant-action-rail" aria-label="Tenant governance actions">
@@ -3301,22 +3374,22 @@ function TenantGovernanceSurface(props: {
           aria-label="Release watch status"
         >
           <header>
-            <p className="governance-panel__eyebrow">ReleaseFreezeTupleCard</p>
-            <h3>{projection.releaseWatchStatus.releaseFreezeTupleRef}</h3>
+            <p className="governance-panel__eyebrow">Release watch</p>
+            <h3>Release readiness</h3>
           </header>
-          <p>{projection.releaseWatchStatus.summary}</p>
+          <p>{governancePublicLabel(projection.releaseWatchStatus.summary)}</p>
           <dl className="tenant-fact-grid">
             <div>
-              <dt>Release watch tuple</dt>
-              <dd>{projection.releaseWatchStatus.releaseWatchTupleRef}</dd>
+              <dt>Release watch</dt>
+              <dd>Checked</dd>
             </div>
             <div>
               <dt>Wave observation</dt>
-              <dd>{projection.releaseWatchStatus.waveObservationRef}</dd>
+              <dd>Checked</dd>
             </div>
             <div>
               <dt>Recovery dispositions</dt>
-              <dd>{projection.releaseWatchStatus.recoveryDispositionRefs.join(", ") || "none"}</dd>
+              <dd>{projection.releaseWatchStatus.recoveryDispositionRefs.length || "none"}</dd>
             </div>
             <div>
               <dt>Rollback readiness</dt>
@@ -3327,32 +3400,32 @@ function TenantGovernanceSurface(props: {
       </div>
 
       <section
-        className="tenant-surface migration-posture"
+        className="tenant-surface migration-status"
         data-testid="migration-posture"
         data-surface="migration-posture"
         data-read-path-state={projection.migrationPosture.readPathCompatibilityState}
-        aria-label="Migration and backfill posture"
+        aria-label="Migration and backfill status"
       >
         <header>
-          <p className="governance-panel__eyebrow">Migration and backfill posture</p>
-          <h3>Read-path compatibility and projection ledger</h3>
+          <p className="governance-panel__eyebrow">Migration and backfill status</p>
+          <h3>Read-path compatibility and backfill status</h3>
         </header>
         <dl className="tenant-fact-grid">
           <div>
             <dt>Migration binding</dt>
-            <dd>{projection.migrationPosture.migrationExecutionBindingRef}</dd>
+              <dd>Checked</dd>
           </div>
           <div>
-            <dt>Read-path digest</dt>
-            <dd>{projection.migrationPosture.readPathCompatibilityDigestRef}</dd>
+              <dt>Read-path check</dt>
+              <dd>Checked</dd>
           </div>
           <div>
-            <dt>Projection backfill ledger</dt>
-            <dd>{projection.migrationPosture.projectionBackfillLedgerRef}</dd>
+              <dt>Backfill status</dt>
+              <dd>Checked</dd>
           </div>
           <div>
             <dt>Blockers</dt>
-            <dd>{projection.migrationPosture.blockerRefs.join(", ") || "none"}</dd>
+              <dd>{projection.migrationPosture.blockerRefs.length || "none"}</dd>
           </div>
         </dl>
       </section>
@@ -3370,7 +3443,7 @@ function AuthoritySurface(props: { snapshot: GovernanceShellSnapshot }) {
         </div>
       </header>
       <table className="governance-table">
-        <caption>Authority link posture</caption>
+        <caption>Authority link status</caption>
         <thead>
           <tr>
             <th scope="col">Link</th>
@@ -3383,7 +3456,7 @@ function AuthoritySurface(props: { snapshot: GovernanceShellSnapshot }) {
           {props.snapshot.objectRows.map((row) => (
             <tr key={row.objectId}>
               <td>{row.label}</td>
-              <td>{row.summary}</td>
+              <td>{governancePublicLabel(row.summary)}</td>
               <td>{row.evidenceAge}</td>
               <td>{row.nextSafeAction}</td>
             </tr>
@@ -3438,33 +3511,35 @@ function RecordsArtifactStage(props: {
       data-testid={props.testId}
       data-surface={props.testId}
       data-artifact-state={props.stage.artifactState}
-      aria-label={props.stage.artifactKind.replace(/_/g, " ")}
+      aria-label={governancePublicLabel(props.stage.artifactKind)}
     >
       <header>
-        <p className="governance-panel__eyebrow">{props.stage.artifactKind.replace(/_/g, " ")}</p>
-        <h3>{props.stage.artifactRef}</h3>
+        <p className="governance-panel__eyebrow">
+          {governancePublicLabel(props.stage.artifactKind)}
+        </p>
+        <h3>Artifact summary</h3>
       </header>
-      <p>{props.stage.summary}</p>
+      <p>{governancePublicLabel(props.stage.summary)}</p>
       <dl className="records-hash-grid">
         <div>
-          <dt>ArtifactPresentationContract</dt>
-          <dd>{props.stage.artifactPresentationContractRef}</dd>
+          <dt>Presentation</dt>
+          <dd>Approved</dd>
         </div>
         <div>
-          <dt>ArtifactTransferSettlement</dt>
-          <dd>{props.stage.artifactTransferSettlementRef}</dd>
+          <dt>Transfer</dt>
+          <dd>Recorded</dd>
         </div>
         <div>
-          <dt>OutboundNavigationGrant</dt>
-          <dd>{props.stage.outboundNavigationGrantRef}</dd>
+          <dt>Access</dt>
+          <dd>Approved</dd>
         </div>
         <div>
-          <dt>Graph hash</dt>
-          <dd>{compactHash(props.stage.graphHash)}</dd>
+          <dt>Graph check</dt>
+          <dd>Checked</dd>
         </div>
         <div>
-          <dt>Artifact hash</dt>
-          <dd>{compactHash(props.stage.artifactHash)}</dd>
+          <dt>Artifact check</dt>
+          <dd>Checked</dd>
         </div>
       </dl>
     </section>
@@ -3527,19 +3602,19 @@ function RecordsSurface(props: {
         <dl>
           <div>
             <dt>Binding</dt>
-            <dd>{projection.bindingState}</dd>
+            <dd>{titleCase(projection.bindingState)}</dd>
           </div>
           <div>
-            <dt>Action posture</dt>
-            <dd>{projection.actionControlState}</dd>
+            <dt>Action status</dt>
+            <dd>{titleCase(projection.actionControlState)}</dd>
           </div>
           <div>
             <dt>Graph</dt>
-            <dd>{projection.graphCompletenessState}</dd>
+            <dd>{titleCase(projection.graphCompletenessState)}</dd>
           </div>
           <div>
-            <dt>Lifecycle tuple</dt>
-            <dd>{compactHash(projection.lifecycleTupleHash)}</dd>
+            <dt>Lifecycle check</dt>
+            <dd>Checked</dd>
           </div>
         </dl>
       </div>
@@ -3562,12 +3637,13 @@ function RecordsSurface(props: {
           <ul>
             {projection.retentionClasses.map((retentionClass) => (
               <li key={retentionClass.retentionClassRef} data-selected={retentionClass.selected}>
-                <strong>{retentionClass.recordType}</strong>
+                <strong>{governancePublicLabel(retentionClass.recordType)}</strong>
                 <span>{retentionClass.minimumRetention}</span>
                 <small>
-                  {retentionClass.disposalMode} / {retentionClass.immutabilityMode}
+                  {governancePublicLabel(retentionClass.disposalMode)} /{" "}
+                  {governancePublicLabel(retentionClass.immutabilityMode)}
                 </small>
-                <code>{compactHash(retentionClass.policyTupleHash)}</code>
+                <code>Checked</code>
               </li>
             ))}
           </ul>
@@ -3581,7 +3657,7 @@ function RecordsSurface(props: {
         >
           <header>
             <p className="governance-panel__eyebrow">Lifecycle ledger</p>
-            <h3>Current refs together</h3>
+            <h3>Current records together</h3>
           </header>
           <table className="governance-table">
             <caption>
@@ -3590,9 +3666,9 @@ function RecordsSurface(props: {
             <thead>
               <tr>
                 <th scope="col">Artifact</th>
-                <th scope="col">Lifecycle binding</th>
+                <th scope="col">Lifecycle</th>
                 <th scope="col">Decision</th>
-                <th scope="col">Hold/freeze refs</th>
+                <th scope="col">Holds and freezes</th>
                 <th scope="col">Assessment</th>
                 <th scope="col">Graph</th>
                 <th scope="col">Disposition</th>
@@ -3622,24 +3698,22 @@ function RecordsSurface(props: {
                         {row.artifactLabel}
                       </button>
                     </td>
-                    <td>{row.retentionLifecycleBindingRef}</td>
+                    <td>Checked</td>
                     <td>
-                      <span>{row.retentionDecisionRef}</span>
-                      <small>{compactHash(row.decisionHash)}</small>
+                      <span>Checked</span>
+                      <small>Decision recorded</small>
                     </td>
                     <td>
-                      {[...row.activeFreezeRefs, ...row.activeLegalHoldRefs].length > 0
-                        ? [...row.activeFreezeRefs, ...row.activeLegalHoldRefs].join(", ")
-                        : "none"}
+                      {[...row.activeFreezeRefs, ...row.activeLegalHoldRefs].length || "none"}
                     </td>
                     <td>
-                      <span>{row.dispositionEligibilityAssessmentRef}</span>
-                      <small>{compactHash(row.assessmentHash)}</small>
+                      <span>Checked</span>
+                      <small>Assessment recorded</small>
                     </td>
-                    <td>{row.graphCompletenessState}</td>
+                    <td>{governancePublicLabel(row.graphCompletenessState)}</td>
                     <td>
-                      <strong>{row.effectiveDisposition}</strong>
-                      <small>{row.eligibilityState}</small>
+                      <strong>{governancePublicLabel(row.effectiveDisposition)}</strong>
+                      <small>{governancePublicLabel(row.eligibilityState)}</small>
                     </td>
                   </tr>
                 ))
@@ -3660,24 +3734,24 @@ function RecordsSurface(props: {
           {selectedRow ? (
             <dl className="records-hash-grid">
               <div>
-                <dt>RetentionLifecycleBinding</dt>
-                <dd>{selectedRow.retentionLifecycleBindingRef}</dd>
+                <dt>Lifecycle</dt>
+                <dd>Checked</dd>
               </div>
               <div>
-                <dt>RetentionDecision</dt>
-                <dd>{selectedRow.retentionDecisionRef}</dd>
+                <dt>Retention decision</dt>
+                <dd>Recorded</dd>
               </div>
               <div>
-                <dt>DispositionEligibilityAssessment</dt>
-                <dd>{selectedRow.dispositionEligibilityAssessmentRef}</dd>
+                <dt>Disposition assessment</dt>
+                <dd>Recorded</dd>
               </div>
               <div>
                 <dt>Dependency summary</dt>
-                <dd>{selectedRow.dependencySummary}</dd>
+                <dd>{governancePublicLabel(selectedRow.dependencySummary)}</dd>
               </div>
               <div>
                 <dt>Delete control</dt>
-                <dd>{selectedRow.deleteControlState}</dd>
+                <dd>{governancePublicLabel(selectedRow.deleteControlState)}</dd>
               </div>
             </dl>
           ) : (
@@ -3701,15 +3775,15 @@ function RecordsSurface(props: {
             {projection.legalHoldQueue.length === 0 ? (
               <li>No legal holds in scope.</li>
             ) : (
-              projection.legalHoldQueue.map((hold) => (
+              projection.legalHoldQueue.map((hold, index) => (
                 <li key={hold.legalHoldRecordRef} data-selected={hold.selected}>
-                  <strong>{hold.legalHoldRecordRef}</strong>
-                  <span>{hold.holdState}</span>
+                  <strong>Hold {index + 1}</strong>
+                  <span>{governancePublicLabel(hold.holdState)}</span>
                   <small>
-                    {hold.reasonCode} / {hold.artifactCount} artifacts / {hold.dependencyCount}{" "}
-                    dependencies
+                    {governancePublicLabel(hold.reasonCode)} / {hold.artifactCount} artifacts /{" "}
+                    {hold.dependencyCount} dependencies
                   </small>
-                  <code>{compactHash(hold.scopeHash)}</code>
+                  <code>Checked</code>
                 </li>
               ))
             )}
@@ -3724,25 +3798,25 @@ function RecordsSurface(props: {
         >
           <header>
             <p className="governance-panel__eyebrow">Hold scope review</p>
-            <h3>{projection.holdScopeReview?.legalHoldRecordRef ?? "No hold selected"}</h3>
+            <h3>{projection.holdScopeReview ? "Selected hold" : "No hold selected"}</h3>
           </header>
           {projection.holdScopeReview ? (
             <dl className="records-hash-grid">
               <div>
-                <dt>LegalHoldScopeManifest.scopeHash</dt>
-                <dd>{projection.holdScopeReview.scopeHash}</dd>
+                <dt>Hold scope</dt>
+                <dd>Checked</dd>
               </div>
               <div>
-                <dt>RetentionFreezeRecord.freezeScopeHash</dt>
-                <dd>{projection.holdScopeReview.freezeScopeHash}</dd>
+                <dt>Freeze scope</dt>
+                <dd>Checked</dd>
               </div>
               <div>
-                <dt>Release lineage</dt>
-                <dd>{projection.holdScopeReview.releaseLineageRef}</dd>
+                <dt>Release history</dt>
+                <dd>Recorded</dd>
               </div>
               <div>
                 <dt>Supersession</dt>
-                <dd>{projection.holdScopeReview.supersessionState}</dd>
+                <dd>{governancePublicLabel(projection.holdScopeReview.supersessionState)}</dd>
               </div>
             </dl>
           ) : (
@@ -3777,13 +3851,13 @@ function RecordsSurface(props: {
                   <td colSpan={5}>No disposition jobs admitted for this scope.</td>
                 </tr>
               ) : (
-                projection.dispositionJobs.map((job) => (
+                projection.dispositionJobs.map((job, index) => (
                   <tr key={job.dispositionJobRef} data-result-state={job.resultState}>
-                    <td>{job.dispositionJobRef}</td>
-                    <td>{job.actionType}</td>
-                    <td>{job.admissionBasis}</td>
-                    <td>{job.resultState}</td>
-                    <td>{job.candidateAssessmentRefs.join(", ") || "none"}</td>
+                    <td>Job {index + 1}</td>
+                    <td>{governancePublicLabel(job.actionType)}</td>
+                    <td>{governancePublicLabel(job.admissionBasis)}</td>
+                    <td>{governancePublicLabel(job.resultState)}</td>
+                    <td>{job.candidateAssessmentRefs.length || "none"}</td>
                   </tr>
                 ))
               )}
@@ -3798,26 +3872,26 @@ function RecordsSurface(props: {
           aria-label="Dependency and immutability explainer"
         >
           <header>
-            <p className="governance-panel__eyebrow">DispositionBlockExplainer</p>
-            <h3>{projection.blockExplainer?.artifactRef ?? "No blocker selected"}</h3>
+            <p className="governance-panel__eyebrow">Disposition blocker</p>
+            <h3>{projection.blockExplainer ? "Blocker selected" : "No blocker selected"}</h3>
           </header>
           {projection.blockExplainer ? (
             <ul className="records-tree">
               <li>
                 <strong>Blocking reasons</strong>
-                <span>{projection.blockExplainer.blockingReasonRefs.join(", ")}</span>
+                <span>{projection.blockExplainer.blockingReasonRefs.length}</span>
               </li>
               <li>
                 <strong>Dependencies</strong>
-                <span>{projection.blockExplainer.activeDependencyRefs.join(", ") || "none"}</span>
+                <span>{projection.blockExplainer.activeDependencyRefs.length || "none"}</span>
               </li>
               <li>
-                <strong>Freeze refs</strong>
-                <span>{projection.blockExplainer.activeFreezeRefs.join(", ") || "none"}</span>
+                <strong>Freezes</strong>
+                <span>{projection.blockExplainer.activeFreezeRefs.length || "none"}</span>
               </li>
               <li>
-                <strong>Legal hold refs</strong>
-                <span>{projection.blockExplainer.activeLegalHoldRefs.join(", ") || "none"}</span>
+                <strong>Legal holds</strong>
+                <span>{projection.blockExplainer.activeLegalHoldRefs.length || "none"}</span>
               </li>
             </ul>
           ) : (
@@ -3842,9 +3916,9 @@ function RecordsSurface(props: {
             data-settlement-state={action.settlementState}
             data-tone={recordsActionTone(action)}
             disabled={!action.allowed}
-            title={action.disabledReason}
+            title={governancePublicLabel(action.disabledReason)}
           >
-            {action.label}
+            {governancePublicLabel(action.label)}
           </button>
         ))}
       </section>
@@ -3916,9 +3990,7 @@ function GovernanceScopeRibbon(props: { ribbon: GovernanceScopeRibbonProjection 
           <dd>{titleCase(props.ribbon.releaseFreezeVerdict)}</dd>
         </div>
       </dl>
-      <p>
-        {props.ribbon.governanceScopeTokenRef} / {compactHash(props.ribbon.scopeTupleHash)}
-      </p>
+      <p>Scope checked</p>
     </section>
   );
 }
@@ -3936,15 +4008,15 @@ function RoleScopeMatrix(props: {
     >
       <header>
         <div>
-          <p className="governance-panel__eyebrow">RoleGrantMatrixProjection</p>
+          <p className="governance-panel__eyebrow">Access matrix</p>
           <h3>{props.matrix.roleLabel}</h3>
         </div>
-        <span>{props.matrix.rolePackageRef}</span>
+        <span>Current package</span>
       </header>
       <div className="role-scope-table-frame">
         <table className="governance-table">
           <caption>
-            Role grants by route family and capability. Cell text is the authority state.
+            Role grants by surface and capability. Cell text is the access state.
           </caption>
           <thead>
             <tr>
@@ -4023,7 +4095,7 @@ function EffectiveAccessPreviewPane(props: {
     >
       <header>
         <div>
-          <p className="governance-panel__eyebrow">EffectiveAccessPreviewProjection</p>
+          <p className="governance-panel__eyebrow">Access preview</p>
           <h3>{props.preview.personaLabel}</h3>
         </div>
         <span>{titleCase(props.preview.previewState)}</span>
@@ -4049,7 +4121,7 @@ function EffectiveAccessPreviewPane(props: {
         </div>
         <div>
           <dt>Object type</dt>
-          <dd>{props.preview.objectTypeRef}</dd>
+          <dd>{titleCase(props.preview.objectTypeRef)}</dd>
         </div>
         <div>
           <dt>Review burden</dt>
@@ -4074,7 +4146,7 @@ function EffectiveAccessPreviewPane(props: {
           <strong>Masked</strong>
           <ul>
             {props.preview.maskedFields.map((field) => (
-              <li key={field}>{field}</li>
+              <li key={field}>{titleCase(field)}</li>
             ))}
           </ul>
         </article>
@@ -4090,7 +4162,7 @@ function EffectiveAccessPreviewPane(props: {
           <strong>Export blocked</strong>
           <ul>
             {props.preview.exportBlockedDestinationControls.map((control) => (
-              <li key={control}>{control}</li>
+              <li key={control}>{titleCase(control)}</li>
             ))}
           </ul>
         </article>
@@ -4114,10 +4186,10 @@ function AccessMaskDiffCard(props: { mask: AccessPreviewArtifactMaskProjection }
     >
       <header>
         <div>
-          <p className="governance-panel__eyebrow">AccessPreviewArtifactMaskProjection</p>
+          <p className="governance-panel__eyebrow">Access mask preview</p>
           <h3>{props.mask.artifactLabel}</h3>
         </div>
-        <span>{props.mask.maskPolicyRef}</span>
+        <span>Policy checked</span>
       </header>
       <div className="role-scope-mask-grid">
         <article>
@@ -4141,7 +4213,7 @@ function AccessMaskDiffCard(props: { mask: AccessPreviewArtifactMaskProjection }
                 aria-label={region.ariaName}
               >
                 <span>{region.domText}</span>
-                <small>{region.telemetryValue}</small>
+                <small>Protected</small>
               </li>
             ))}
           </ul>
@@ -4277,36 +4349,36 @@ function ScopeTupleInspector(props: { tuple: ScopeTupleInspectorProjection }) {
       className="role-scope-surface scope-tuple-inspector"
       data-testid="scope-tuple-inspector"
       data-surface="scope-tuple-inspector"
-      aria-label="Scope tuple inspector"
+      aria-label="Developer scope details"
     >
       <header>
-        <p className="governance-panel__eyebrow">ScopeTupleInspector</p>
-        <h3>{compactHash(props.tuple.scopeTupleHash)}</h3>
+        <p className="governance-panel__eyebrow">Developer scope details</p>
+        <h3>Checked</h3>
       </header>
       <dl className="role-scope-facts">
         <div>
-          <dt>ActingScopeTuple</dt>
-          <dd>{props.tuple.actingScopeTupleRef}</dd>
+          <dt>Acting scope</dt>
+          <dd>Checked</dd>
         </div>
         <div>
-          <dt>GovernanceScopeToken</dt>
-          <dd>{props.tuple.governanceScopeTokenRef}</dd>
+          <dt>Scope token</dt>
+          <dd>Checked</dd>
         </div>
         <div>
-          <dt>RouteIntentBinding</dt>
-          <dd>{props.tuple.routeIntentBindingRef}</dd>
+          <dt>Route intent</dt>
+          <dd>Checked</dd>
         </div>
         <div>
           <dt>Visibility coverage</dt>
-          <dd>{props.tuple.audienceVisibilityCoverageRef}</dd>
+          <dd>Checked</dd>
         </div>
         <div>
           <dt>Minimum necessary</dt>
-          <dd>{props.tuple.minimumNecessaryContractRef}</dd>
+          <dd>Checked</dd>
         </div>
         <div>
           <dt>Release freeze</dt>
-          <dd>{props.tuple.releaseApprovalFreezeRef}</dd>
+          <dd>Checked</dd>
         </div>
       </dl>
     </section>
@@ -4324,9 +4396,7 @@ function GovernanceReturnContextStrip(props: { context: GovernanceReturnContextS
     >
       <strong>{props.context.returnLabel}</strong>
       <span>{props.context.originLabel}</span>
-      <small>
-        {props.context.returnTokenRef} / {compactHash(props.context.originScopeHash)}
-      </small>
+      <small>Return context checked</small>
     </section>
   );
 }
@@ -4348,6 +4418,7 @@ function RoleScopeStudioSurface(props: {
     selectedPersonaRef,
     selectedDeniedActionRef,
   });
+  const showDiagnostics = governanceDiagnosticsEnabled();
 
   return (
     <section
@@ -4447,24 +4518,22 @@ function RoleScopeStudioSurface(props: {
           selected={projection.selectedDeniedAction}
           onSelect={setSelectedDeniedActionRef}
         />
-        <ScopeTupleInspector tuple={projection.scopeTupleInspector} />
+        {showDiagnostics ? <ScopeTupleInspector tuple={projection.scopeTupleInspector} /> : null}
       </div>
 
-      <section
-        className="role-scope-telemetry-fence"
-        data-testid="ui-telemetry-disclosure-fence"
-        data-surface="ui-telemetry-disclosure-fence"
-        data-raw-sensitive-text-absent={projection.telemetryDisclosureFence.rawSensitiveTextAbsent}
-        aria-label="UI telemetry disclosure fence"
-      >
-        <strong>{projection.telemetryDisclosureFence.fenceRef}</strong>
-        <span>
-          Allowed payload keys: {projection.telemetryDisclosureFence.allowedPayloadKeys.join(", ")}
-        </span>
-        <span>
-          Blocked payload keys: {projection.telemetryDisclosureFence.blockedPayloadKeys.join(", ")}
-        </span>
-      </section>
+      {showDiagnostics ? (
+        <section
+          className="role-scope-telemetry-fence"
+          data-testid="ui-telemetry-disclosure-fence"
+          data-surface="ui-telemetry-disclosure-fence"
+          data-raw-sensitive-text-absent={projection.telemetryDisclosureFence.rawSensitiveTextAbsent}
+          aria-label="Developer activity data disclosure"
+        >
+          <strong>Developer disclosure check</strong>
+          <span>{projection.telemetryDisclosureFence.allowedPayloadKeys.length} allowed keys</span>
+          <span>{projection.telemetryDisclosureFence.blockedPayloadKeys.length} blocked keys</span>
+        </section>
+      ) : null}
 
       <GovernanceReturnContextStrip context={projection.governanceReturnContextStrip} />
     </section>
@@ -4501,7 +4570,7 @@ function AccessSurface(props: { snapshot: GovernanceShellSnapshot }) {
               data-selected={row.objectId === props.snapshot.selectedObject.objectId}
             >
               <td>{row.label}</td>
-              <td>{row.summary}</td>
+              <td>{governancePublicLabel(row.summary)}</td>
               <td>{row.approvalBurden}</td>
               <td>{row.nextSafeAction}</td>
             </tr>
@@ -4520,7 +4589,9 @@ function ChangeEnvelopeSurface(props: { snapshot: GovernanceShellSnapshot; capti
           <p className="governance-panel__eyebrow">ChangeEnvelope</p>
           <h2>{props.snapshot.reviewHeadline}</h2>
         </div>
-        <span className="governance-panel__meta">{props.snapshot.location.summary}</span>
+        <span className="governance-panel__meta">
+          {governancePublicLabel(props.snapshot.location.summary)}
+        </span>
       </header>
       <table className="governance-table">
         <caption>{props.caption}</caption>
@@ -4528,7 +4599,7 @@ function ChangeEnvelopeSurface(props: { snapshot: GovernanceShellSnapshot; capti
           <tr>
             <th scope="col">Package</th>
             <th scope="col">Baseline</th>
-            <th scope="col">Diff posture</th>
+            <th scope="col">Diff status</th>
             <th scope="col">Next safe action</th>
           </tr>
         </thead>
@@ -4540,7 +4611,7 @@ function ChangeEnvelopeSurface(props: { snapshot: GovernanceShellSnapshot; capti
             >
               <td>{row.label}</td>
               <td>{row.baselineLabel}</td>
-              <td>{row.summary}</td>
+              <td>{governancePublicLabel(row.summary)}</td>
               <td>{row.nextSafeAction}</td>
             </tr>
           ))}
@@ -4556,38 +4627,38 @@ function ReleaseSurface(props: { snapshot: GovernanceShellSnapshot }) {
       <section className="governance-panel" data-testid="governance-release-surface">
         <header className="governance-panel__header">
           <div>
-            <p className="governance-panel__eyebrow">ReleaseFreezeTupleCard</p>
+            <p className="governance-panel__eyebrow">Release readiness</p>
             <h2>{props.snapshot.reviewHeadline}</h2>
           </div>
         </header>
         <div className="governance-tuple-grid">
           <article className="governance-tuple-card">
             <strong>Freeze</strong>
-            <p>{props.snapshot.releaseTuple.freezeLabel}</p>
+            <p>{governancePublicLabel(props.snapshot.releaseTuple.freezeLabel)}</p>
           </article>
           <article className="governance-tuple-card">
             <strong>Publication</strong>
-            <p>{props.snapshot.releaseTuple.publicationState}</p>
+            <p>{governancePublicLabel(props.snapshot.releaseTuple.publicationState)}</p>
           </article>
           <article className="governance-tuple-card">
             <strong>Compatibility</strong>
-            <p>{props.snapshot.releaseTuple.compatibilityState}</p>
+            <p>{governancePublicLabel(props.snapshot.releaseTuple.compatibilityState)}</p>
           </article>
         </div>
         <table className="governance-table">
-          <caption>Release watch posture</caption>
+          <caption>Release watch status</caption>
           <tbody>
             <tr>
               <th scope="row">Watch state</th>
-              <td>{props.snapshot.releaseTuple.watchState}</td>
+              <td>{governancePublicLabel(props.snapshot.releaseTuple.watchState)}</td>
             </tr>
             <tr>
               <th scope="row">Blast radius</th>
-              <td>{props.snapshot.releaseTuple.blastRadiusLabel}</td>
+              <td>{governancePublicLabel(props.snapshot.releaseTuple.blastRadiusLabel)}</td>
             </tr>
             <tr>
               <th scope="row">Continuity impact</th>
-              <td>{props.snapshot.releaseTuple.continuityImpactLabel}</td>
+              <td>{governancePublicLabel(props.snapshot.releaseTuple.continuityImpactLabel)}</td>
             </tr>
           </tbody>
         </table>
@@ -4657,24 +4728,24 @@ function FinalSignoff477SourceDrawer(props: {
           <dd>{props.evidence.roleRef}</dd>
         </div>
         <div>
-          <dt>Evidence hash</dt>
-          <dd>{props.evidence.evidenceHash}</dd>
+          <dt>Evidence check</dt>
+          <dd>Checked</dd>
         </div>
       </dl>
       <div className="final-signoff-source-drawer__lists">
         <div>
           <h4>Evidence rows</h4>
           <ul>
-            {props.evidence.evidenceRefs.map((ref) => (
-              <li key={ref}>{ref}</li>
+            {props.evidence.evidenceRefs.map((ref, index) => (
+              <li key={ref}>Evidence row {index + 1}</li>
             ))}
           </ul>
         </div>
         <div>
           <h4>Source authority</h4>
           <ul>
-            {props.evidence.sourceRefs.map((ref) => (
-              <li key={ref}>{ref}</li>
+            {props.evidence.sourceRefs.map((ref, index) => (
+              <li key={ref}>Source {index + 1}</li>
             ))}
           </ul>
         </div>
@@ -4747,15 +4818,15 @@ function FinalSignoffCockpit477Surface() {
         <dl>
           <div>
             <dt>Release candidate</dt>
-            <dd>{projection.releaseCandidateRef}</dd>
+            <dd>Checked</dd>
           </div>
           <div>
             <dt>Runtime bundle</dt>
-            <dd>{projection.runtimePublicationBundleRef}</dd>
+            <dd>Checked</dd>
           </div>
           <div>
-            <dt>Wave manifest</dt>
-            <dd>{projection.waveManifestRef}</dd>
+            <dt>Wave release list</dt>
+            <dd>Checked</dd>
           </div>
           <div>
             <dt>Blockers</dt>
@@ -4804,8 +4875,8 @@ function FinalSignoffCockpit477Surface() {
                 <dd>{lane.signerDisplayName}</dd>
               </div>
               <div>
-                <dt>Evidence hash</dt>
-                <dd>{compactHash(lane.evidenceHash)}</dd>
+                <dt>Evidence check</dt>
+                <dd>Checked</dd>
               </div>
               <div>
                 <dt>Expiry</dt>
@@ -4895,7 +4966,7 @@ function FinalSignoffCockpit477Surface() {
             >
               <strong>{row.evidenceTitle}</strong>
               <span>{row.evidenceClass}</span>
-              <small>{row.evidenceHash}</small>
+              <small>Checked</small>
             </button>
           ))}
         </div>
@@ -5014,16 +5085,17 @@ function SupportRegion(props: {
   onAcknowledge: () => void;
 }) {
   const reviewPath = reviewRouteForLocation(props.snapshot.location);
+  const showDiagnostics = governanceDiagnosticsEnabled();
   return (
     <aside className="governance-shell__aside" aria-label="Governance support region">
       <section className="governance-panel">
         <header className="governance-panel__header">
           <div>
-            <p className="governance-panel__eyebrow">Promoted support region</p>
-            <h2>{props.snapshot.supportHeadline}</h2>
+            <p className="governance-panel__eyebrow">Support details</p>
+            <h2>{governancePublicLabel(props.snapshot.supportHeadline)}</h2>
           </div>
         </header>
-        <p className="governance-panel__lede">{props.snapshot.supportSummary}</p>
+        <p className="governance-panel__lede">{governancePublicLabel(props.snapshot.supportSummary)}</p>
         <div className="governance-support-switcher" aria-label="Support regions">
           {(["impact", "approval", "evidence", "release", "access"] as const).map((region) => (
             <button
@@ -5044,7 +5116,7 @@ function SupportRegion(props: {
               <li key={item.impactId}>
                 <strong>{item.title}</strong>
                 <span>{item.effectLabel}</span>
-                <small>{item.summary}</small>
+                <small>{governancePublicLabel(item.summary)}</small>
               </li>
             ))}
           </ul>
@@ -5062,7 +5134,7 @@ function SupportRegion(props: {
         ) : null}
         {props.snapshot.supportRegion === "evidence" ? (
           <table className="governance-table" data-testid="governance-evidence-panel">
-            <caption>Evidence bundle posture</caption>
+            <caption>Evidence bundle status</caption>
             <thead>
               <tr>
                 <th scope="col">Bundle</th>
@@ -5086,19 +5158,19 @@ function SupportRegion(props: {
             <dl className="governance-fact-grid">
               <div>
                 <dt>Freeze</dt>
-                <dd>{props.snapshot.releaseTuple.freezeLabel}</dd>
+                <dd>{governancePublicLabel(props.snapshot.releaseTuple.freezeLabel)}</dd>
               </div>
               <div>
                 <dt>Publication</dt>
-                <dd>{props.snapshot.releaseTuple.publicationState}</dd>
+                <dd>{governancePublicLabel(props.snapshot.releaseTuple.publicationState)}</dd>
               </div>
               <div>
                 <dt>Watch</dt>
-                <dd>{props.snapshot.releaseTuple.watchState}</dd>
+                <dd>{governancePublicLabel(props.snapshot.releaseTuple.watchState)}</dd>
               </div>
               <div>
                 <dt>Compatibility</dt>
-                <dd>{props.snapshot.releaseTuple.compatibilityState}</dd>
+                <dd>{governancePublicLabel(props.snapshot.releaseTuple.compatibilityState)}</dd>
               </div>
             </dl>
           </section>
@@ -5113,7 +5185,7 @@ function SupportRegion(props: {
               </tr>
               <tr>
                 <th scope="row">Operational meaning</th>
-                <td>{props.snapshot.selectedObject.summary}</td>
+                <td>{governancePublicLabel(props.snapshot.selectedObject.summary)}</td>
               </tr>
               <tr>
                 <th scope="row">Approval burden</th>
@@ -5130,7 +5202,7 @@ function SupportRegion(props: {
       >
         <header className="governance-panel__header">
           <div>
-            <p className="governance-panel__eyebrow">DecisionDock</p>
+            <p className="governance-panel__eyebrow">Next action</p>
             <h2>{props.snapshot.location.primaryActionLabel}</h2>
           </div>
         </header>
@@ -5180,26 +5252,28 @@ function SupportRegion(props: {
         </div>
       </section>
 
-      <section className="governance-panel">
-        <header className="governance-panel__header">
-          <div>
-            <p className="governance-panel__eyebrow">Telemetry log</p>
-            <h2>Recent governance events</h2>
-          </div>
-          <span>{props.state.telemetry.length} events</span>
-        </header>
-        <ol className="governance-telemetry-log" data-testid="governance-telemetry-log">
-          {props.state.telemetry
-            .slice(-5)
-            .reverse()
-            .map((event) => (
-              <li key={event.eventId}>
-                <strong>{event.eventName}</strong>
-                <span>{event.summary}</span>
-              </li>
-            ))}
-        </ol>
-      </section>
+      {showDiagnostics ? (
+        <section className="governance-panel">
+          <header className="governance-panel__header">
+            <div>
+              <p className="governance-panel__eyebrow">Developer activity data</p>
+              <h2>Recent governance events</h2>
+            </div>
+            <span>{props.state.telemetry.length} events</span>
+          </header>
+          <ol className="governance-telemetry-log" data-testid="governance-telemetry-log">
+            {props.state.telemetry
+              .slice(-5)
+              .reverse()
+              .map((event) => (
+                <li key={event.eventId}>
+                  <strong>{event.eventName}</strong>
+                  <span>{governancePublicLabel(event.summary)}</span>
+                </li>
+              ))}
+          </ol>
+        </section>
+      ) : null}
     </aside>
   );
 }
@@ -5239,6 +5313,7 @@ export function GovernanceShellSeedDocument(props: {
     scenarioState: currentPhase9LiveScenarioState(),
     selectedSurfaceCode: phase9LiveSurfaceCodeForPath(snapshot.location.pathname),
   });
+  const showDiagnostics = governanceDiagnosticsEnabled();
 
   return (
     <div
@@ -5271,10 +5346,12 @@ export function GovernanceShellSeedDocument(props: {
         <ScopeRibbon snapshot={snapshot} />
         <StatusStrip snapshot={snapshot} onSetDisposition={props.onSetDisposition} />
       </header>
-      <GovernancePhase9LiveProjectionGatewayStrip
-        projection={phase9LiveGatewayProjection}
-        currentRoute={snapshot.location.pathname}
-      />
+      {showDiagnostics ? (
+        <GovernancePhase9LiveProjectionGatewayStrip
+          projection={phase9LiveGatewayProjection}
+          currentRoute={snapshot.location.pathname}
+        />
+      ) : null}
 
       <div className="governance-shell__frame">
         {snapshot.layoutMode === "three_plane" ? (
@@ -5326,7 +5403,7 @@ export function GovernanceShellSeedDocument(props: {
                   >
                     <strong>{row.label}</strong>
                     <span>{row.kind}</span>
-                    <small>{row.summary}</small>
+                    <small>{governancePublicLabel(row.summary)}</small>
                   </button>
                 ))}
               </div>
@@ -5351,7 +5428,7 @@ export function GovernanceShellSeedDocument(props: {
                   : {})}
               >
                 <strong>{props.state.continuitySnapshot.selectedAnchor.lastKnownLabel}</strong>
-                <span>{snapshot.location.summary}</span>
+                <span>{governancePublicLabel(snapshot.location.summary)}</span>
               </div>
             </section>
           ) : null}
@@ -5365,8 +5442,8 @@ export function GovernanceShellSeedDocument(props: {
           <section className="governance-panel">
             <header className="governance-panel__header">
               <div>
-                <p className="governance-panel__eyebrow">GovernanceShellConsistencyProjection</p>
-                <h2>Continuity and tuple summary</h2>
+                <p className="governance-panel__eyebrow">Review summary</p>
+                <h2>Readiness summary</h2>
               </div>
             </header>
             <dl className="governance-fact-grid">
@@ -5387,7 +5464,7 @@ export function GovernanceShellSeedDocument(props: {
                 <dd>{snapshot.scopeToken.standardsVersion}</dd>
               </div>
             </dl>
-            {focusRestoreBinding ? (
+            {showDiagnostics && focusRestoreBinding ? (
               <button
                 type="button"
                 className="governance-link"
@@ -5396,7 +5473,7 @@ export function GovernanceShellSeedDocument(props: {
                   instanceKey: snapshot.selectedObject.objectId,
                 })}
               >
-                {props.state.continuitySnapshot.focusRestoreTargetRef}
+                Developer focus target
               </button>
             ) : null}
           </section>

@@ -269,7 +269,7 @@ export const ROUTE_METADATA_REGISTRY: Record<StaffEntryRouteKey, SupportEntryRou
     selectedAnchorPolicy: "support-home-entry",
     readOnlyPosture: "guarded",
     allowedHandoffDestinations: ["/ops/support/inbox/:viewKey", "/workspace", "/ops/overview"],
-    dominantActionLabel: "Enter the support inbox from one governed shell",
+    dominantActionLabel: "Enter the support inbox from one approved shell",
     routeLabel: "Support Desk",
     testId: "OpsSupportRoute",
   },
@@ -281,7 +281,7 @@ export const ROUTE_METADATA_REGISTRY: Record<StaffEntryRouteKey, SupportEntryRou
     selectedAnchorPolicy: "support-inbox-view-persists",
     readOnlyPosture: "read_only",
     allowedHandoffDestinations: ["/ops/support", "/workspace", "/ops/overview"],
-    dominantActionLabel: "Choose the governed inbox view and launch the next safe ticket workspace",
+    dominantActionLabel: "Choose the approved inbox view and launch the next safe ticket workspace",
     routeLabel: "Support Inbox",
     testId: "OpsSupportInboxRoute",
   },
@@ -321,7 +321,7 @@ const SUPPORT_INBOX_ROWS: readonly SupportInboxRow[] = [
     queue: "repair",
     stateLabel: "Changed since seen",
     evidenceLabel: "Timeline settled 4m ago",
-    launchLabel: "Launch governed ticket",
+    launchLabel: "Launch approved ticket",
     launchPath: "/ops/support/tickets/support_ticket_218_delivery_failure",
     changed: true,
     blocked: false,
@@ -486,7 +486,7 @@ export function createScenarioDataset(scenario: StaffEntryScenario): StaffEntryD
       changedLabels: busy
         ? [
             dominantPharmacyMerge?.changedSinceSeenLabel ?? "Urgent pharmacy return changed",
-            dominantPharmacyMerge?.triageChangedLabel ?? "Pharmacy lineage reranked",
+            dominantPharmacyMerge?.triageChangedLabel ?? "Pharmacy history reranked",
             "Queue rank reranked",
           ]
         : [
@@ -522,7 +522,7 @@ export function createScenarioDataset(scenario: StaffEntryScenario): StaffEntryD
         domain: "support",
         label: "Support replay restores",
         countLabel: blocking ? "1 blocked" : "3 ready",
-        summary: "Output 219 exposes replay-safe repair and restore posture before the full ticket shell lands.",
+        summary: "Output 219 exposes replay-safe repair and restore status before the full ticket shell lands.",
         launchPath: "/ops/support",
         requestRef: null,
         pharmacyCaseId: null,
@@ -547,17 +547,17 @@ export function createScenarioDataset(scenario: StaffEntryScenario): StaffEntryD
     dependencyDigest: {
       projectionName: "DependencyDigestProjection",
       state: blocking ? "blocking" : degraded ? "degraded" : busy ? "watch" : "clear",
-      title: blocking ? "Evidence chronology hold" : degraded ? "Support lease degraded" : "Dependency posture clear",
+      title: blocking ? "Evidence chronology hold" : degraded ? "Support lease degraded" : "Dependency status clear",
       summary: blocking
         ? "Outbound delivery evidence is delayed, so queue launch and support ticket entry stay guarded."
         : degraded
           ? "Actions are temporarily read-only while support chronology re-syncs."
-          : "No active chronology blocks. Launches remain same-shell and live.",
+          : "No active chronology blocks. Launches remain in this workspace and live.",
       resolutionLabel: blocking
         ? "Hold launches and review fallback"
         : degraded
           ? "Use read-only fallback until resync"
-          : "Proceed with governed launch",
+          : "Proceed with approved launch",
     },
     pharmacyConsoleSummary: {
       projectionName: "PharmacyConsoleSummaryProjection",
@@ -571,7 +571,7 @@ export function createScenarioDataset(scenario: StaffEntryScenario): StaffEntryD
       sparseMessage: "Calm state keeps only the few signals needed to decide whether to stay in queue work or widen attention.",
       nextLensLabel: blocking ? "Read dependency hold" : "Inspect callback repair watchpoint",
       metrics: [
-        { label: "Service posture", value: blocking ? "Blocked" : degraded ? "Guarded" : "Stable", status: blocking ? "blocked" : degraded ? "watch" : "stable" },
+        { label: "Service status", value: blocking ? "Blocked" : degraded ? "Guarded" : "Stable", status: blocking ? "blocked" : degraded ? "watch" : "stable" },
         { label: "Queues near breach", value: busy ? "3" : "1", status: busy ? "watch" : "stable" },
         { label: "Support repairs", value: blocking ? "1 held" : "3 ready", status: blocking ? "blocked" : "watch" },
         { label: "Read-only fallbacks", value: degraded ? "2 active" : "0", status: degraded ? "watch" : "stable" },
@@ -585,7 +585,7 @@ export function createScenarioDataset(scenario: StaffEntryScenario): StaffEntryD
     supportDeskHome: {
       projectionName: "SupportDeskHomeProjection",
       title: "Support entry",
-      summary: "Ticket-oriented entry starts with inbox selection, repair posture, and one safe launch target.",
+      summary: "Ticket-oriented entry starts with inbox selection, repair status, and one safe launch target.",
       unifiedStatus: blocking ? "Transfer only" : degraded ? "Away" : "Online",
       readOnlyPosture: blocking ? "Blocked by chronology hold" : degraded ? "Read-only fallback armed" : "Live lease available",
       queueShortcuts: [
@@ -598,13 +598,13 @@ export function createScenarioDataset(scenario: StaffEntryScenario): StaffEntryD
         {
           label: "Changed tickets",
           countLabel: busy ? "4 changed" : "1 changed",
-          summary: "Recent lineage or evidence drift stays visible before agents open a ticket.",
+          summary: "Recent history or evidence drift stays visible before agents open a ticket.",
           launchPath: "/ops/support/inbox/changed",
         },
         {
           label: "Replay review",
           countLabel: degraded ? "2 review-only" : "1 ready",
-          summary: "Open checkpoint and restore posture without leaving the shell family.",
+          summary: "Open checkpoint and restore status without leaving the shell family.",
           launchPath: "/ops/support/inbox/replay",
         },
       ],
@@ -614,7 +614,7 @@ export function createScenarioDataset(scenario: StaffEntryScenario): StaffEntryD
         projectionName: "SupportInboxProjection",
         viewKey: "all",
         title: "All support inbox items",
-        summary: "Cross-channel support work stays ticket-centric and same-shell, without inventing deeper 221 semantics.",
+        summary: "Cross-channel support work stays ticket-centric in this workspace.",
         rows: supportRows,
       },
       repair: {
@@ -628,7 +628,7 @@ export function createScenarioDataset(scenario: StaffEntryScenario): StaffEntryD
         projectionName: "SupportInboxProjection",
         viewKey: "changed",
         title: "Changed since seen",
-        summary: "Changed evidence or lineage is explicit before the agent opens a governed ticket workspace.",
+        summary: "Changed evidence or history is explicit before the agent opens a approved ticket workspace.",
         rows: supportRows.filter((row) => row.changed),
       },
       replay: {
@@ -707,6 +707,19 @@ function scenarioLabel(scenario: StaffEntryScenario): string {
     default:
       return "Quiet";
   }
+}
+
+function publicIdentifierLabel(value: string): string {
+  const requestMatch = value.match(/^request_(\d+)_([a-z])$/i);
+  if (requestMatch) {
+    const requestNumber = requestMatch[1] ?? "";
+    const requestSuffix = requestMatch[2] ?? "";
+    return `Request ${requestNumber} ${requestSuffix.toUpperCase()}`;
+  }
+  if (value === "staff_entry_same_shell") {
+    return "Staff entry shell";
+  }
+  return value.replace(/_/g, " ");
 }
 
 function pageTitle(routeKey: StaffEntryRouteKey): string {
@@ -812,13 +825,13 @@ export function BlockingDependencyBanner({
   }
   return (
     <section
-      aria-label="Dependency posture"
+      aria-label="Dependency status"
       className="staff-entry__dependency-banner"
       data-testid="BlockingDependencyBanner"
       data-state={dependencyDigest.state}
     >
       <div>
-        <p className="staff-entry__eyebrow">Dependency posture</p>
+        <p className="staff-entry__eyebrow">Dependency status</p>
         <h2>{dependencyDigest.title}</h2>
         <p>{dependencyDigest.summary}</p>
       </div>
@@ -979,7 +992,7 @@ export function SupportDeskEntryPanel({
       <p>{projection.summary}</p>
       <div className="staff-entry__metric-row">
         <StatPill label="Unified status" value={projection.unifiedStatus} tone="stable" />
-        <StatPill label="Posture" value={projection.readOnlyPosture} tone="watch" />
+        <StatPill label="Status" value={projection.readOnlyPosture} tone="watch" />
       </div>
       <div className="staff-entry__shortcut-grid">
         {projection.queueShortcuts.map((shortcut) => (
@@ -1076,7 +1089,7 @@ export function CrossDomainTaskStrip({
               >
                 {task.countLabel}
               </span>
-              {task.requestRef ? <span className="staff-entry__tag">{task.requestRef}</span> : null}
+              {task.requestRef ? <span className="staff-entry__tag">{publicIdentifierLabel(task.requestRef)}</span> : null}
               {task.pharmacyCaseId ? (
                 <span className="staff-entry__tag">{task.pharmacyCaseId}</span>
               ) : null}
@@ -1087,7 +1100,7 @@ export function CrossDomainTaskStrip({
             ) : null}
             {task.notificationStateLabel ? (
               <small className="staff-entry__cross-domain-meta">
-                Notification posture: {task.notificationStateLabel}
+                Notification status: {task.notificationStateLabel}
               </small>
             ) : null}
           </button>
@@ -1196,18 +1209,18 @@ function RouteContinuityLedger({
 }) {
   return (
     <aside className="staff-entry__continuity-ledger" data-testid="SameShellContinuityLedger">
-      <p className="staff-entry__eyebrow">Route continuity</p>
+      <p className="staff-entry__eyebrow">Developer route details</p>
       <dl>
         <div>
           <dt>Shell</dt>
-          <dd>{contract.shellFamily}</dd>
+          <dd>{publicIdentifierLabel(contract.shellFamily)}</dd>
         </div>
         <div>
-          <dt>Continuity key</dt>
+          <dt>Key</dt>
           <dd>{contract.continuityKey}</dd>
         </div>
         <div>
-          <dt>Anchor policy</dt>
+          <dt>Policy</dt>
           <dd>{contract.selectedAnchorPolicy}</dd>
         </div>
         <div>
@@ -1221,6 +1234,13 @@ function RouteContinuityLedger({
       </dl>
     </aside>
   );
+}
+
+function staffEntryDiagnosticsEnabled(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  return new URLSearchParams(window.location.search).get("diagnostics") === "staff-entry";
 }
 
 export function StaffEntryShell({
@@ -1277,7 +1297,7 @@ export function StaffEntryShell({
             <p className="staff-entry__eyebrow">Staff entry quiet control</p>
             <h1>One shell for start-of-day, ops watch, and support entry.</h1>
             <p className="staff-entry__lede">
-              Quiet workbench first. One dominant next-safe action, one interrupt digest, one governed launch path.
+              Quiet workbench first. One dominant next-safe action, one interrupt digest, one controlled launch path.
             </p>
           </div>
         </div>
@@ -1321,7 +1341,9 @@ export function StaffEntryShell({
 
       <main id="staff-entry-main" className="staff-entry__main">
         <section className="staff-entry__content">{children}</section>
-        <RouteContinuityLedger contract={contract} pathname={pathname} scenario={scenario} />
+        {staffEntryDiagnosticsEnabled() ? (
+          <RouteContinuityLedger contract={contract} pathname={pathname} scenario={scenario} />
+        ) : null}
       </main>
     </div>
   );

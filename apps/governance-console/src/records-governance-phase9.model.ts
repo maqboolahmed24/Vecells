@@ -314,7 +314,7 @@ const baseLifecycleRows = [
     graphCriticality: "worm",
     effectiveDisposition: "archive_only",
     eligibilityState: "archive_only",
-    dependencySummary: "WORM immutability excludes deletion; archive manifest remains admissible.",
+    dependencySummary: "Protected immutability excludes deletion; archive summary remains admissible.",
     dependencyRefs: ["dep_443_archive_manifest_chain"],
     currentAssessmentOnly: true,
     rawBatchCandidate: false,
@@ -494,7 +494,7 @@ function scenarioBlockers(scenarioState: RecordsGovernanceScenarioState): readon
     case "stale":
       return ["graph:stale", "redaction-policy:requires-revalidation"];
     case "degraded":
-      return ["dependency-posture:partial", "senior-review:required"];
+      return ["dependency-status:partial", "senior-review:required"];
     case "settlement_pending":
       return ["governance-action-settlement:pending"];
     case "blocked":
@@ -566,9 +566,9 @@ function surfaceSummaryForScenario(
     case "degraded":
       return `${selectedLabel} is review-only because dependency proof is partial and requires senior review.`;
     case "blocked":
-      return `${selectedLabel} is blocked by graph or immutability posture; destructive controls stay unavailable.`;
+      return `${selectedLabel} is blocked by graph or immutability status; destructive controls stay unavailable.`;
     case "permission_denied":
-      return "The selected records scope is denied for this purpose-of-use; summary-only posture is retained.";
+      return "The selected records scope is denied for this purpose-of-use; summary-only status is retained.";
     case "settlement_pending":
       return `${selectedLabel} is waiting for GovernanceActionSettlement and may not imply delete authority.`;
     case "normal":
@@ -708,8 +708,8 @@ export function createRecordsGovernanceProjection(
     artifactHash: syntheticHash(`archive-manifest-${scenarioState}`),
     summary:
       artifactState === "external_handoff_ready"
-        ? "ArchiveManifest is summary-first, graph-pinned, and transfer-ready through a scoped outbound grant."
-        : "ArchiveManifest remains summary-first until graph, scope, and transfer posture settle.",
+        ? "Archive summary is summary-first, graph-pinned, and transfer-ready through a scoped outbound grant."
+        : "Archive summary remains summary-first until graph, scope, and transfer status settle.",
     blockerRefs: blockers,
   };
   const deletionCertificateStage: RecordsGovernanceArtifactStageProjection = {
@@ -730,8 +730,8 @@ export function createRecordsGovernanceProjection(
     artifactHash: syntheticHash(`deletion-certificate-${scenarioState}`),
     summary:
       selectedRow.eligibilityState === "delete_allowed"
-        ? "DeletionCertificate preview is bound to the current assessment, graph verdict, and certificate hash."
-        : "DeletionCertificate lookup is summary-first and cannot arm deletion for preserved or archive-only artifacts.",
+        ? "Deletion certificate preview is bound to the current assessment, graph verdict, and certificate check."
+        : "Deletion certificate lookup is summary-first and cannot arm deletion for preserved or archive-only artifacts.",
     blockerRefs: selectedRow.blockerRefs,
   };
   const canApproveArchive =
@@ -791,7 +791,7 @@ export function createRecordsGovernanceProjection(
             : "blocked",
         disabledReason: canApproveArchive
           ? "GovernanceActionSettlement is ready for the current archive assessment."
-          : "Archive approval requires a current assessment, graph proof, hold posture, and artifact contract.",
+          : "Archive approval requires a current assessment, graph proof, hold status, and artifact agreement.",
       },
       {
         actionType: "approve_deletion_job",
@@ -806,7 +806,7 @@ export function createRecordsGovernanceProjection(
             : "blocked",
         disabledReason: canApproveDelete
           ? "Delete approval is available only for the current delete-allowed assessment."
-          : "Deletion remains unavailable until the current assessment, graph proof, active hold/freeze posture, WORM/hash-chained/replay-critical exclusion checks, and next review settlement are satisfied.",
+          : "Deletion remains unavailable until the current assessment, graph proof, active hold or freeze status, protected-record exclusion checks, and next review settlement are satisfied.",
       },
       {
         actionType: "release_legal_hold",
@@ -820,8 +820,8 @@ export function createRecordsGovernanceProjection(
             ? "pending"
             : "requires_revalidation",
         disabledReason: canReleaseHold
-          ? "Hold release can be requested, but delete posture waits for a superseding assessment."
-          : "Hold release does not restore delete-ready posture until a superseding assessment exists.",
+          ? "Hold release can be requested, but delete status waits for a superseding assessment."
+          : "Hold release does not restore delete-ready status until a superseding assessment exists.",
       },
     ],
     automationAnchors: recordsGovernanceAutomationAnchors,

@@ -1,5 +1,6 @@
 import "@vecells/design-system/foundation.css";
 import "@vecells/persistent-shell/persistent-shell.css";
+import { useEffect } from "react";
 import "./nhs-app-channel-workbench.css";
 import "./nhs-app-readiness-cockpit.css";
 import "./go-live-smoke-board-481.css";
@@ -9,7 +10,6 @@ import "./nhs-app-channel-activation-486.css";
 import "./bau-handover-board-487.css";
 import "./wave-observation-tower-483.css";
 import "./wave1-promotion-console-482.css";
-import "./operations-shell-seed.css";
 import { CanaryRolloutConsole484 } from "./canary-rollout-console-484";
 import { AssistiveVisibleOps485 } from "./assistive-visible-ops-485";
 import { BAUHandoverBoard487, isBAUHandover487Path } from "./bau-handover-board-487";
@@ -20,9 +20,23 @@ import {
   NHSAppChannelActivation486,
 } from "./nhs-app-channel-activation-486";
 import { NHSAppReadinessCockpit } from "./nhs-app-readiness-cockpit";
-import { OperationsShellSeedApp } from "./operations-shell-seed";
 import { WaveObservationTower483 } from "./wave-observation-tower-483";
 import { Wave1PromotionConsole482 } from "./wave1-promotion-console-482";
+
+const OPS_CANONICAL_NEW_PATH = "/ops/release/nhs-app";
+
+function CanonicalOpsConsoleSurface() {
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (window.location.pathname !== OPS_CANONICAL_NEW_PATH) {
+      window.history.replaceState({}, "", OPS_CANONICAL_NEW_PATH);
+    }
+  }, []);
+
+  return <NHSAppReadinessCockpit />;
+}
 
 export default function App() {
   if (
@@ -82,5 +96,5 @@ export default function App() {
     return <AssistiveVisibleOps485 />;
   }
 
-  return <OperationsShellSeedApp />;
+  return <CanonicalOpsConsoleSurface />;
 }

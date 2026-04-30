@@ -1,10 +1,14 @@
-import { startTransition, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { VecellLogoWordmark } from "@vecells/design-system";
-import { resolvePortalSupportPhase2Context } from "../../../packages/domain-kernel/src/patient-support-phase2-integration";
 import {
-  PATIENT_BOOKING_ENTRY_IDS,
-  bookingEntryPath,
-} from "./patient-booking-entry.paths";
+  startTransition,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
+import { resolvePortalSupportPhase2Context } from "../../../packages/domain-kernel/src/patient-support-phase2-integration";
+import { PATIENT_BOOKING_ENTRY_IDS, bookingEntryPath } from "./patient-booking-entry.paths";
 import {
   PATIENT_RECORDS_COMMUNICATIONS_TASK_ID,
   PATIENT_RECORDS_COMMUNICATIONS_VISUAL_MODE,
@@ -25,6 +29,7 @@ import {
   type VisualizationTableContract,
 } from "./patient-records-communications.model";
 import { PatientSupportPhase2Bridge } from "./patient-support-phase2-bridge";
+import { PatientPortalTopBar } from "./patient-portal-top-bar";
 
 export { isRecordsCommunicationsPath };
 
@@ -111,7 +116,7 @@ function CorrespondenceShell({
   onNavigate,
 }: {
   entry: RecordsCommunicationsEntryProjection;
-  headingRef: React.RefObject<HTMLHeadingElement | null>;
+  headingRef: RefObject<HTMLHeadingElement | null>;
   announcement: string;
   children: ReactNode;
   onNavigate: (pathname: string) => void;
@@ -134,45 +139,15 @@ function CorrespondenceShell({
       data-cause-class={phase2Context.causeClass}
       data-recovery-class={phase2Context.recoveryClass}
       data-canonical-status-label={phase2Context.canonicalStatusLabel}
-      data-supported-testids="record-overview-section result-interpretation-hero trend-parity-switcher record-artifact-panel record-visibility-placeholder conversation-cluster-list conversation-braid message-preview-card receipt-state-chip delivery-dispute-notice"
+      data-supported-testids="record-overview-section result-interpretation-hero trend-parity-switcher record-artifact-panel record-visibility-summary conversation-cluster-list conversation-braid message-preview-card receipt-state-chip delivery-dispute-notice"
     >
-      <header className="patient-correspondence__top-band" data-testid="records-messages-top-band">
-        <button
-          type="button"
-          className="patient-correspondence__brand"
-          onClick={() => onNavigate("/home")}
-        >
-          <span>
-            <VecellLogoWordmark
-              aria-hidden="true"
-              className="patient-correspondence__brand-wordmark"
-            />
-            <small>{entry.maskedPatientRef}</small>
-          </span>
-        </button>
-        <nav aria-label="Records and messages navigation" className="patient-correspondence__nav">
-          <button
-            type="button"
-            data-current={entry.activeSection === "records"}
-            onClick={() => onNavigate("/records")}
-          >
-            <Icon name="record" />
-            <span>Records</span>
-          </button>
-          <button
-            type="button"
-            data-current={entry.activeSection === "messages"}
-            onClick={() => onNavigate("/messages")}
-          >
-            <Icon name="message" />
-            <span>Messages</span>
-          </button>
-          <button type="button" onClick={() => onNavigate("/requests/request_211_a")}>
-            <Icon name="return" />
-            <span>Request</span>
-          </button>
-        </nav>
-      </header>
+      <PatientPortalTopBar
+        current={entry.activeSection === "records" ? "records" : "messages"}
+        patientRef={entry.maskedPatientRef}
+        testId="records-messages-top-band"
+        ariaLabel="Records and messages navigation"
+        onNavigate={onNavigate}
+      />
       <PatientSupportPhase2Bridge context={phase2Context} />
       <main className="patient-correspondence__main">
         <h1 ref={headingRef} tabIndex={-1} className="patient-correspondence__route-title">
@@ -259,7 +234,7 @@ export function RecordOverviewSection({
                     className={`patient-correspondence__chip patient-correspondence__chip--${item.releaseState}`}
                   >
                     {item.placeholderVisible
-                      ? "Placeholder visible"
+                      ? "Summary visible"
                       : item.sourceAuthorityState.replaceAll("_", " ")}
                   </span>
                   <em>{item.updatedLabel}</em>
@@ -549,7 +524,7 @@ export function RecordVisibilityPlaceholder({
       <span className="patient-correspondence__kicker">
         {entry.parityWitness.recordGateState.replaceAll("_", " ")}
       </span>
-      <h2 id="record-placeholder-title">This record is visible as a governed placeholder</h2>
+      <h2 id="record-placeholder-title">This record is visible as a approved summary</h2>
       <p>
         The item exists and the selected anchor is preserved. Detail, chart, preview, and download
         controls stay limited until the release, step-up, or visibility posture permits them.
@@ -590,7 +565,7 @@ function RecordContextRail({
       <h2>Record context</h2>
       <dl>
         <div>
-          <dt>Surface tuple</dt>
+          <dt>View reference</dt>
           <dd>{entry.recordSurfaceContext.surfaceTupleHash}</dd>
         </div>
         <div>
@@ -631,7 +606,7 @@ export function ConversationClusterList({
     <div className="patient-correspondence__messages" data-testid="conversation-cluster-list">
       <SectionHeader
         title="Messages"
-        copy="Conversation clusters are grouped by request or care episode, with placeholders and delivery truth kept in the row."
+        copy="Conversation clusters are grouped by request or care episode, with placeholders and delivery verified details kept in the row."
         projection={timeline.projectionName}
       />
       <div className="patient-correspondence__cluster-list">
@@ -744,10 +719,9 @@ export function ConversationBraid({
 }) {
   const cluster = entry.activeCluster;
   const repairRequired = entry.composerLease.leaseState === "blocked";
-  const requestConversationPath =
-    cluster.governingObjectRef.startsWith("request_")
-      ? `/requests/${cluster.governingObjectRef}?origin=messages`
-      : null;
+  const requestConversationPath = cluster.governingObjectRef.startsWith("request_")
+    ? `/requests/${cluster.governingObjectRef}?origin=messages`
+    : null;
   return (
     <section
       className="patient-correspondence__braid"

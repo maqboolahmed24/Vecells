@@ -76,15 +76,69 @@ import {
   type PharmacyShellSnapshot,
   type PharmacyShellState,
 } from "./pharmacy-shell-seed.model";
-import {
-  resolvePharmacyWorkbenchViewModels,
-} from "./pharmacy-workbench.model";
+import { resolvePharmacyWorkbenchViewModels } from "./pharmacy-workbench.model";
 
 function titleCase(value: string): string {
   return value
     .split(/[_-]/g)
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(" ");
+}
+
+function pharmacyPublicStatusLabel(value: string): string {
+  switch (value) {
+    case "ready":
+    case "live":
+    case "shell_live":
+      return "Ready";
+    case "guarded":
+      return "Guarded review";
+    case "read_only":
+    case "shell_read_only":
+      return "Read only";
+    case "reopen_for_safety":
+    case "recovery_only":
+    case "shell_recovery":
+      return "Safety review";
+    case "chart_plus_table":
+      return "Chart and table";
+    case "table_only":
+      return "Table view";
+    case "summary_only":
+      return "Summary only";
+    default:
+      return titleCase(value);
+  }
+}
+
+function pharmacyPublicText(value: string): string {
+  return value
+    .replace(/\bsame[- ]shell\b/gi, "same workspace")
+    .replace(/\bshell\b/gi, "workspace")
+    .replace(/\bposture\b/gi, "status")
+    .replace(/\btruth\b/gi, "confirmed information")
+    .replace(/\btuple\b/gi, "details")
+    .replace(/\bcontract\b/gi, "agreement")
+    .replace(/\bReopen-for-safety\b/g, "Safety review")
+    .replace(/\breopen-for-safety\b/g, "safety review")
+    .replace(/\brf_pharmacy_console\b/g, "pharmacy console")
+    .replace(/\bawaiting external\b/gi, "awaiting update")
+    .replace(/\bauthoritative_proof_pending\b/g, "Proof pending")
+    .replace(/\b[a-z]+(?:_[a-z0-9]+)+\b/g, (token) =>
+      titleCase(
+        token
+          .replace(/truth/g, "confirmed information")
+          .replace(/posture/g, "status")
+          .replace(/proof/g, "proof"),
+      ),
+    );
+}
+
+function pharmacyDiagnosticsEnabled(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  return new URLSearchParams(window.location.search).get("diagnostics") === "pharmacy";
 }
 
 function routeLabel(routeKey: PharmacyRouteKey): string {
@@ -228,9 +282,9 @@ function routeSummaryEyebrow(routeKey: PharmacyRouteKey): string {
     case "validate":
       return "Checkpoint review";
     case "inventory":
-      return "Inventory truth";
+      return "Inventory verified details";
     case "resolve":
-      return "Outcome truth";
+      return "Outcome verified details";
     case "handoff":
       return "Dispatch proof";
     case "assurance":
@@ -294,13 +348,13 @@ function supportRegionLabelForKey(
     case "operations_queue":
       return "Operations queue";
     case "inventory_truth":
-      return "Inventory truth";
+      return "Inventory verified details";
     case "eligibility_evidence":
       return "Eligibility evidence";
     case "inventory_comparison":
       return "Inventory comparison";
     case "outcome_truth":
-      return "Outcome truth";
+      return "Outcome verified details";
     case "handoff_readiness":
       return "Handoff readiness";
     case "outcome_assurance":
@@ -365,10 +419,7 @@ function writePersistedShellState(state: PharmacyPersistedShellState): void {
   if (typeof window === "undefined") {
     return;
   }
-  window.sessionStorage.setItem(
-    PHARMACY_CONTINUITY_STORAGE_KEY,
-    JSON.stringify(state),
-  );
+  window.sessionStorage.setItem(PHARMACY_CONTINUITY_STORAGE_KEY, JSON.stringify(state));
 }
 
 function persistPathState(nextState: PharmacyShellState, scrollY: number): void {
@@ -423,7 +474,7 @@ function PharmacyDispatchRouteSurface(props: {
           data-testid="pharmacy-return-button"
           onClick={props.onReturn}
         >
-          Return via proof anchor
+          Return to case
         </button>
       </header>
       <p className="pharmacy-support-card__summary">{props.preview.drawerSummary}</p>
@@ -491,7 +542,7 @@ function PharmacyAssuranceRouteSurface(props: {
           data-testid="pharmacy-return-button"
           onClick={props.onReturn}
         >
-          Return via same case anchor
+          Return to case
         </button>
       </header>
       <PharmacyOutcomeAssurancePanel preview={props.preview} />
@@ -524,7 +575,7 @@ function PharmacyRecoveryRouteSurface(props: {
           data-testid="pharmacy-return-button"
           onClick={props.onReturn}
         >
-          Return via same case anchor
+          Return to case
         </button>
       </header>
       <PharmacyRecoveryControlPanel
@@ -550,10 +601,7 @@ function ChildRoutePanel(props: {
   const dispatchPreview = resolvePharmacyDispatchPreview(currentCase.pharmacyCaseId);
   const workbenchView = resolvePharmacyWorkbenchViewModels(snapshot);
 
-  if (
-    props.eligibilityPreview &&
-    snapshot.location.routeKey === "validate"
-  ) {
+  if (props.eligibilityPreview && snapshot.location.routeKey === "validate") {
     return (
       <EligibilityEvidenceDrawer
         preview={props.eligibilityPreview}
@@ -566,16 +614,14 @@ function ChildRoutePanel(props: {
     return (
       <section data-testid="pharmacy-inventory-route" aria-label="Inventory review">
         <InventoryTruthPanel panel={workbenchView.inventoryTruthPanel} />
-        <InventoryComparisonWorkspace
-          workspace={workbenchView.inventoryComparisonWorkspace}
-        />
+        <InventoryComparisonWorkspace workspace={workbenchView.inventoryComparisonWorkspace} />
         <button
           type="button"
           className="pharmacy-link"
           data-testid="pharmacy-return-button"
           onClick={props.onReturn}
         >
-          Return via {returnToken?.returnTokenId ?? "PRT"}
+          Return to case
         </button>
       </section>
     );
@@ -583,7 +629,11 @@ function ChildRoutePanel(props: {
 
   if (snapshot.location.routeKey === "validate") {
     return (
-      <section className="pharmacy-support-card" data-testid="pharmacy-validate-route" aria-label="Checkpoint review">
+      <section
+        className="pharmacy-support-card"
+        data-testid="pharmacy-validate-route"
+        aria-label="Checkpoint review"
+      >
         <header className="pharmacy-support-card__header">
           <div>
             <p className="pharmacy-shell__eyebrow">Checkpoint review</p>
@@ -595,14 +645,14 @@ function ChildRoutePanel(props: {
             data-testid="pharmacy-return-button"
             onClick={props.onReturn}
           >
-            Return via {returnToken?.returnTokenId ?? "PRT"}
+            Return to case
           </button>
         </header>
-        <p className="pharmacy-support-card__summary">{currentCase.checkpointQuestion}</p>
+        <p className="pharmacy-support-card__summary">{pharmacyPublicText(currentCase.checkpointQuestion)}</p>
         <dl className="pharmacy-definition-list">
           <div>
             <dt>Evidence basis</dt>
-            <dd>{snapshot.activeCheckpoint.evidenceLabel}</dd>
+            <dd>{pharmacyPublicText(snapshot.activeCheckpoint.evidenceLabel)}</dd>
           </div>
           <div>
             <dt>Current state</dt>
@@ -610,11 +660,11 @@ function ChildRoutePanel(props: {
           </div>
           <div>
             <dt>Watch window</dt>
-            <dd>{currentCase.watchWindowSummary}</dd>
+            <dd>{pharmacyPublicText(currentCase.watchWindowSummary)}</dd>
           </div>
           <div>
             <dt>Support region</dt>
-            <dd>{currentCase.supportSummary}</dd>
+            <dd>{pharmacyPublicText(currentCase.supportSummary)}</dd>
           </div>
         </dl>
       </section>
@@ -623,11 +673,15 @@ function ChildRoutePanel(props: {
 
   if (snapshot.location.routeKey === "resolve") {
     return (
-      <section className="pharmacy-support-card" data-testid="pharmacy-resolve-route" aria-label="Outcome resolution">
+      <section
+        className="pharmacy-support-card"
+        data-testid="pharmacy-resolve-route"
+        aria-label="Outcome resolution"
+      >
         <header className="pharmacy-support-card__header">
           <div>
-            <p className="pharmacy-shell__eyebrow">Outcome truth</p>
-            <h3>{currentCase.outcomeTruth.summary}</h3>
+            <p className="pharmacy-shell__eyebrow">Outcome verified details</p>
+            <h3>{pharmacyPublicText(currentCase.outcomeTruth.summary)}</h3>
           </div>
           <button
             type="button"
@@ -635,24 +689,27 @@ function ChildRoutePanel(props: {
             data-testid="pharmacy-return-button"
             onClick={props.onReturn}
           >
-            Return via {returnToken?.returnTokenId ?? "PRT"}
+            Return to case
           </button>
         </header>
         <div className="pharmacy-signal-grid">
           <article className="pharmacy-signal-card" data-tone="review">
-            <span>Outcome truth</span>
+            <span>Outcome verified details</span>
             <strong>{titleCase(currentCase.outcomeTruth.outcomeTruthState)}</strong>
-            <p>{currentCase.outcomeTruth.summary}</p>
+            <p>{pharmacyPublicText(currentCase.outcomeTruth.summary)}</p>
           </article>
           <article className="pharmacy-signal-card" data-tone="guarded">
             <span>Confidence</span>
             <strong>{currentCase.outcomeTruth.matchConfidenceLabel}</strong>
-            <p>Weak match and manual-review debt stay explicit instead of tinting the shell as quietly resolved.</p>
+            <p>
+              Weak match and manual-review debt stay explicit instead of marking the case as
+              quietly resolved.
+            </p>
           </article>
           <article className="pharmacy-signal-card" data-tone="review">
             <span>Manual review</span>
             <strong>{titleCase(currentCase.outcomeTruth.manualReviewState)}</strong>
-            <p>{currentCase.reopenSummary}</p>
+            <p>{pharmacyPublicText(currentCase.reopenSummary)}</p>
           </article>
         </div>
       </section>
@@ -669,32 +726,42 @@ function ChildRoutePanel(props: {
         />
       );
     }
-    return <HandoffReadinessBoard board={workbenchView.handoffReadinessBoard} />;
+    return (
+      <section data-testid="pharmacy-handoff-route" aria-label="Handoff readiness">
+        <HandoffReadinessBoard board={workbenchView.handoffReadinessBoard} />
+        <button
+          type="button"
+          className="pharmacy-link"
+          data-testid="pharmacy-return-button"
+          onClick={props.onReturn}
+        >
+          Return to case
+        </button>
+      </section>
+    );
   }
 
   if (snapshot.location.routeKey === "assurance") {
     if (props.recoveryPreview) {
       return (
-        <PharmacyRecoveryRouteSurface
-          preview={props.recoveryPreview}
-          onReturn={props.onReturn}
-        />
+        <PharmacyRecoveryRouteSurface preview={props.recoveryPreview} onReturn={props.onReturn} />
       );
     }
     if (props.assurancePreview) {
       return (
-        <PharmacyAssuranceRouteSurface
-          preview={props.assurancePreview}
-          onReturn={props.onReturn}
-        />
+        <PharmacyAssuranceRouteSurface preview={props.assurancePreview} onReturn={props.onReturn} />
       );
     }
     return (
-      <section className="pharmacy-support-card" data-testid="pharmacy-assurance-route" aria-label="Assurance and reopen">
+      <section
+        className="pharmacy-support-card"
+        data-testid="pharmacy-assurance-route"
+        aria-label="Assurance and reopen"
+      >
         <header className="pharmacy-support-card__header">
           <div>
             <p className="pharmacy-shell__eyebrow">Reopen and assurance</p>
-            <h3>{currentCase.reopenSummary}</h3>
+            <h3>{pharmacyPublicText(currentCase.reopenSummary)}</h3>
           </div>
           <button
             type="button"
@@ -702,24 +769,27 @@ function ChildRoutePanel(props: {
             data-testid="pharmacy-return-button"
             onClick={props.onReturn}
           >
-            Return via {returnToken?.returnTokenId ?? "PRT"}
+            Return to case
           </button>
         </header>
         <div className="pharmacy-assurance-grid">
           <article className="pharmacy-signal-card" data-tone="blocked">
             <span>Watch window</span>
-            <strong>{currentCase.watchWindowSummary}</strong>
-            <p>Late handoff or return signals reopen the same shell rather than creating an unbound follow-up page.</p>
+            <strong>{pharmacyPublicText(currentCase.watchWindowSummary)}</strong>
+            <p>
+              Late handoff or return signals reopen the same case rather than creating a detached
+              follow-up page.
+            </p>
           </article>
           <article className="pharmacy-signal-card" data-tone="review">
-            <span>Outcome posture</span>
+            <span>Outcome status</span>
             <strong>{titleCase(currentCase.outcomeTruth.outcomeTruthState)}</strong>
-            <p>{currentCase.outcomeTruth.summary}</p>
+            <p>{pharmacyPublicText(currentCase.outcomeTruth.summary)}</p>
           </article>
           <article className="pharmacy-signal-card" data-tone="review">
             <span>Recovery consequence</span>
-            <strong>{titleCase(currentCase.workbenchPosture)}</strong>
-            <p>{currentCase.supportSummary}</p>
+            <strong>{pharmacyPublicStatusLabel(currentCase.workbenchPosture)}</strong>
+            <p>{pharmacyPublicText(currentCase.supportSummary)}</p>
           </article>
         </div>
       </section>
@@ -763,13 +833,13 @@ export function PharmacyRouteRecoveryFrame({
           tone,
           title:
             snapshot.routeShellPosture === "shell_recovery"
-              ? "Recovery-only posture is active"
-              : "Read-only truth fence is active",
+              ? "Recovery-only status is active"
+              : "Read-only status is active",
           summary:
             snapshot.routeShellPosture === "shell_recovery"
-              ? snapshot.currentCase.reopenSummary
-              : snapshot.currentCase.queueSummary,
-          postureLabel: titleCase(snapshot.recoveryPosture),
+              ? pharmacyPublicText(snapshot.currentCase.reopenSummary)
+              : pharmacyPublicText(snapshot.currentCase.queueSummary),
+          postureLabel: pharmacyPublicStatusLabel(snapshot.recoveryPosture),
           recoveryOwnerLabel,
           primaryActionLabel:
             snapshot.location.routeKey === "assurance"
@@ -787,11 +857,7 @@ export function PharmacyRouteRecoveryFrame({
   );
 }
 
-export function PharmacyCasePulseHost({
-  snapshot,
-}: {
-  snapshot: PharmacyShellSnapshot;
-}) {
+export function PharmacyCasePulseHost({ snapshot }: { snapshot: PharmacyShellSnapshot }) {
   return (
     <section data-testid="PharmacyCasePulseHost">
       <CasePulse pulse={snapshot.casePulse} />
@@ -799,11 +865,7 @@ export function PharmacyCasePulseHost({
   );
 }
 
-export function PharmacyChosenProviderAnchor({
-  snapshot,
-}: {
-  snapshot: PharmacyShellSnapshot;
-}) {
+export function PharmacyChosenProviderAnchor({ snapshot }: { snapshot: PharmacyShellSnapshot }) {
   return (
     <section
       className="pharmacy-panel pharmacy-panel--anchor"
@@ -815,11 +877,14 @@ export function PharmacyChosenProviderAnchor({
           <p className="pharmacy-shell__eyebrow">Chosen provider anchor</p>
           <h3>{snapshot.currentCase.providerLabel}</h3>
         </div>
-        <span className="pharmacy-pill" data-tone={queueToneLabel(snapshot.currentCase.queueTone).toLowerCase()}>
+        <span
+          className="pharmacy-pill"
+          data-tone={queueToneLabel(snapshot.currentCase.queueTone).toLowerCase()}
+        >
           {snapshot.currentCase.queueLane}
         </span>
       </header>
-      <p>{snapshot.currentCase.supportSummary}</p>
+      <p>{pharmacyPublicText(snapshot.currentCase.supportSummary)}</p>
       <div className="pharmacy-chip-row">
         <span className="pharmacy-chip">{snapshot.currentCase.pathwayLabel}</span>
         <span className="pharmacy-chip">{snapshot.currentCase.dueLabel}</span>
@@ -832,7 +897,9 @@ export function PharmacyQueueSpineHost(props: {
   snapshot: PharmacyShellSnapshot;
   onNavigate: (path: string) => void;
   onOpenCase: (pharmacyCaseId: string) => void;
-  selectedAnchorBinding?: ReturnType<typeof resolveAutomationAnchorProfile>["markerBindings"][number];
+  selectedAnchorBinding?: ReturnType<
+    typeof resolveAutomationAnchorProfile
+  >["markerBindings"][number];
 }) {
   const { snapshot } = props;
   const workbenchView = resolvePharmacyWorkbenchViewModels(snapshot);
@@ -896,9 +963,9 @@ export function PharmacyCheckpointRail(props: {
             >
               <div>
                 <strong>{checkpoint.label}</strong>
-                <p>{checkpoint.summary}</p>
+                <p>{pharmacyPublicText(checkpoint.summary)}</p>
               </div>
-              <span>{checkpoint.evidenceLabel}</span>
+              <span>{pharmacyPublicText(checkpoint.evidenceLabel)}</span>
             </button>
           </li>
         ))}
@@ -970,9 +1037,11 @@ export function PharmacyValidationBoardHost(props: {
     >
       <section className="pharmacy-board-hero" aria-label="Validation board">
         <div className="pharmacy-board-hero__copy">
-          <p className="pharmacy-shell__eyebrow">{routeSummaryEyebrow(snapshot.location.routeKey)}</p>
-          <h2>{snapshot.currentCase.caseSummary}</h2>
-          <p>{snapshot.summarySentence}</p>
+          <p className="pharmacy-shell__eyebrow">
+            {routeSummaryEyebrow(snapshot.location.routeKey)}
+          </p>
+          <h2>{pharmacyPublicText(snapshot.currentCase.caseSummary)}</h2>
+          <p>{pharmacyPublicText(snapshot.summarySentence)}</p>
         </div>
         <div className="pharmacy-chip-row pharmacy-chip-row--meta">
           <PharmacyAccessibleStatusBadge
@@ -997,7 +1066,7 @@ export function PharmacyValidationBoardHost(props: {
             className="pharmacy-chip"
           />
         </div>
-        <nav className="pharmacy-route-nav" aria-label="Pharmacy route posture toggles">
+        <nav className="pharmacy-route-nav" aria-label="Pharmacy route status toggles">
           <PharmacyTargetSizeGuard minSizePx={44}>
             <button
               type="button"
@@ -1010,28 +1079,27 @@ export function PharmacyValidationBoardHost(props: {
               Workbench
             </button>
           </PharmacyTargetSizeGuard>
-          {(["validate", "inventory", "resolve", "handoff", "assurance"] as const).map((routeKey) => (
-            <PharmacyTargetSizeGuard key={routeKey} minSizePx={44}>
-              <button
-                type="button"
-                className="pharmacy-route-nav__button"
-                data-active={snapshot.location.routeKey === routeKey}
-                data-testid={`pharmacy-route-button-${routeKey}`}
-                aria-pressed={snapshot.location.routeKey === routeKey}
-                onClick={() => props.onOpenChildRoute(routeKey)}
-              >
-                {routeLabel(routeKey)}
-              </button>
-            </PharmacyTargetSizeGuard>
-          ))}
+          {(["validate", "inventory", "resolve", "handoff", "assurance"] as const).map(
+            (routeKey) => (
+              <PharmacyTargetSizeGuard key={routeKey} minSizePx={44}>
+                <button
+                  type="button"
+                  className="pharmacy-route-nav__button"
+                  data-active={snapshot.location.routeKey === routeKey}
+                  data-testid={`pharmacy-route-button-${routeKey}`}
+                  aria-pressed={snapshot.location.routeKey === routeKey}
+                  onClick={() => props.onOpenChildRoute(routeKey)}
+                >
+                  {routeLabel(routeKey)}
+                </button>
+              </PharmacyTargetSizeGuard>
+            ),
+          )}
         </nav>
       </section>
 
       <section className="pharmacy-board-grid">
-        <PharmacyCheckpointRail
-          snapshot={snapshot}
-          onSelectCheckpoint={props.onSelectCheckpoint}
-        />
+        <PharmacyCheckpointRail snapshot={snapshot} onSelectCheckpoint={props.onSelectCheckpoint} />
 
         <section className="pharmacy-line-stage" aria-label="Workbench stage">
           <PharmacyCaseWorkbench
@@ -1105,7 +1173,9 @@ export function PharmacyDecisionDockHost(props: {
   recoveryPreview: PharmacyBounceBackRecoveryPreviewSnapshot | null;
   assurancePreview: PharmacyOutcomeAssurancePreviewSnapshot | null;
   onOpenChildRoute: (routeKey: PharmacyChildRouteKey) => void;
-  dominantActionBinding?: ReturnType<typeof resolveAutomationAnchorProfile>["markerBindings"][number];
+  dominantActionBinding?: ReturnType<
+    typeof resolveAutomationAnchorProfile
+  >["markerBindings"][number];
 }) {
   const { snapshot } = props;
   const workbenchView = resolvePharmacyWorkbenchViewModels(snapshot);
@@ -1180,9 +1250,7 @@ export function PharmacyShellFrame(props: {
   onReturn: () => void;
 }) {
   const snapshot = resolvePharmacyShellSnapshot(props.state, props.viewportWidth);
-  const eligibilityPreview = resolvePharmacyEligibilityPreview(
-    snapshot.currentCase.pharmacyCaseId,
-  );
+  const eligibilityPreview = resolvePharmacyEligibilityPreview(snapshot.currentCase.pharmacyCaseId);
   const recoveryPreview = resolvePharmacyBounceBackRecoveryPreview(
     snapshot.currentCase.pharmacyCaseId,
   );
@@ -1193,12 +1261,9 @@ export function PharmacyShellFrame(props: {
   const workbenchView = resolvePharmacyWorkbenchViewModels(snapshot);
   const promotedSupportRegion = promotedSupportRegionForRoute({
     routeKey: snapshot.location.routeKey,
-    hasEligibilityPreview:
-      snapshot.location.routeKey === "validate" && Boolean(eligibilityPreview),
-    hasRecoveryPreview:
-      snapshot.location.routeKey === "assurance" && Boolean(recoveryPreview),
-    hasAssurancePreview:
-      snapshot.location.routeKey === "assurance" && Boolean(assurancePreview),
+    hasEligibilityPreview: snapshot.location.routeKey === "validate" && Boolean(eligibilityPreview),
+    hasRecoveryPreview: snapshot.location.routeKey === "assurance" && Boolean(recoveryPreview),
+    hasAssurancePreview: snapshot.location.routeKey === "assurance" && Boolean(assurancePreview),
   });
   const automationProfile = resolveAutomationAnchorProfile(props.state.location.routeFamilyRef);
   const selectedAnchorBinding = automationProfile.markerBindings.find(
@@ -1210,6 +1275,7 @@ export function PharmacyShellFrame(props: {
   const focusRestoreBinding = automationProfile.markerBindings.find(
     (binding) => binding.markerClass === "focus_restore",
   );
+  const showDiagnostics = pharmacyDiagnosticsEnabled();
   const rootAutomationAttributes = buildAutomationSurfaceAttributes(automationProfile, {
     selectedAnchorRef: props.state.continuitySnapshot.selectedAnchor.anchorId,
     focusRestoreRef: props.state.activeLineItemId,
@@ -1220,7 +1286,11 @@ export function PharmacyShellFrame(props: {
     routeShellPosture: snapshot.routeShellPosture,
   });
   const breakpointClass =
-    props.viewportWidth < 720 ? "compact" : snapshot.layoutMode === "mission_stack" ? "narrow" : "wide";
+    props.viewportWidth < 720
+      ? "compact"
+      : snapshot.layoutMode === "mission_stack"
+        ? "narrow"
+        : "wide";
   const isMissionStack = snapshot.layoutMode === "mission_stack";
   const childRouteActive =
     snapshot.location.routeKey !== "lane" && snapshot.location.routeKey !== "case";
@@ -1270,35 +1340,34 @@ export function PharmacyShellFrame(props: {
     }
     supportRegionRef.current?.scrollIntoView({
       block: "start",
-      behavior:
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
     });
   }, [isMissionStack, missionStackSupportExpanded]);
 
   let recoveryTitle = "Recovery watch is active";
-  let recoverySummary = snapshot.currentCase.watchWindowSummary;
+  let recoverySummary = pharmacyPublicText(snapshot.currentCase.watchWindowSummary);
   if (snapshot.routeShellPosture === "shell_recovery") {
-    recoveryTitle = "Recovery-only posture is active";
-    recoverySummary = snapshot.currentCase.reopenSummary;
+    recoveryTitle = "Recovery-only status is active";
+    recoverySummary = pharmacyPublicText(snapshot.currentCase.reopenSummary);
   } else if (workbenchView.providerHealthState === "outage") {
     recoveryTitle = "Provider outage is holding this case";
-    recoverySummary = snapshot.currentCase.queueSummary;
+    recoverySummary = pharmacyPublicText(snapshot.currentCase.queueSummary);
   } else if (proofRiskState === "likely_failed") {
     recoveryTitle = "Dispatch proof drift is blocking release";
-    recoverySummary = snapshot.currentCase.proofSummary;
+    recoverySummary = pharmacyPublicText(snapshot.currentCase.proofSummary);
   } else if (snapshot.routeShellPosture === "shell_read_only") {
-    recoveryTitle = "Read-only truth fence is active";
-    recoverySummary = snapshot.currentCase.queueSummary;
+    recoveryTitle = "Read-only status is active";
+    recoverySummary = pharmacyPublicText(snapshot.currentCase.queueSummary);
   } else if (workbenchView.watchWindowState === "blocked") {
     recoveryTitle = "Watch window re-entry is required";
-    recoverySummary = snapshot.currentCase.watchWindowSummary;
+    recoverySummary = pharmacyPublicText(snapshot.currentCase.watchWindowSummary);
   } else if (
     workbenchView.providerHealthState === "degraded" ||
     workbenchView.watchWindowState === "watch" ||
     proofRiskState === "at_risk"
   ) {
     recoveryTitle = "Recovery watch is active";
-    recoverySummary = snapshot.currentCase.watchWindowSummary;
+    recoverySummary = pharmacyPublicText(snapshot.currentCase.watchWindowSummary);
   }
 
   const missionStackSupportRegion = (
@@ -1369,9 +1438,7 @@ export function PharmacyShellFrame(props: {
       data-dispatch-warning-kind={dispatchPreview?.continuityWarning?.kind ?? "none"}
       data-recovery-visual-mode={recoveryPreview?.visualMode ?? "none"}
       data-recovery-surface-state={recoveryPreview?.surfaceState ?? "none"}
-      data-recovery-bounce-back-type={
-        recoveryPreview?.bounceBackBinding.bounceBackType ?? "none"
-      }
+      data-recovery-bounce-back-type={recoveryPreview?.bounceBackBinding.bounceBackType ?? "none"}
       data-recovery-reopened-case-status={
         recoveryPreview?.truthBinding.reopenedCaseStatus ?? "none"
       }
@@ -1388,15 +1455,13 @@ export function PharmacyShellFrame(props: {
                   : "low"
           : "none"
       }
-      data-recovery-priority-band={
-        recoveryPreview?.truthBinding.reopenPriorityBand ?? "none"
-      }
+      data-recovery-priority-band={recoveryPreview?.truthBinding.reopenPriorityBand ?? "none"}
       data-recovery-notification-state={
         recoveryPreview?.truthBinding.patientNotificationState ?? "none"
       }
       data-recovery-urgent-mode={
         recoveryPreview
-          ? recoveryPreview.urgentRouteBinding?.routeClass ?? "routine_or_escalated"
+          ? (recoveryPreview.urgentRouteBinding?.routeClass ?? "routine_or_escalated")
           : "none"
       }
       data-assurance-visual-mode={assurancePreview?.visualMode ?? "none"}
@@ -1411,9 +1476,7 @@ export function PharmacyShellFrame(props: {
       data-assurance-close-eligibility-state={
         assurancePreview?.truthBinding.closeEligibilityState ?? "none"
       }
-      data-assurance-confidence-band={
-        assurancePreview?.truthBinding.matchConfidenceBand ?? "none"
-      }
+      data-assurance-confidence-band={assurancePreview?.truthBinding.matchConfidenceBand ?? "none"}
       data-selected-case-anchor={props.state.continuitySnapshot.selectedAnchor.anchorId}
       data-selected-checkpoint-id={snapshot.activeCheckpoint.checkpointId}
       data-selected-line-item-id={snapshot.activeLineItem.lineItemId}
@@ -1439,356 +1502,372 @@ export function PharmacyShellFrame(props: {
       {...rootAutomationAttributes}
     >
       <PharmacyReducedMotionBridge testId="pharmacy-shell-reduced-motion-bridge">
-      <header className="pharmacy-shell__masthead" role="banner">
-        <div className="pharmacy-shell__brand">
-          <VecellLogoLockup
-            aria-hidden="true"
-            className="pharmacy-insignia"
-            style={{ width: 166, height: "auto" }}
-          />
-          <div>
-            <p className="pharmacy-shell__eyebrow">Phase 6 pharmacy mission frame</p>
-            <h1>Quiet pharmacy shell with one dominant action</h1>
-            <p>
-              One case, one checkpoint, one dominant action, one promoted support region.
-              Same-shell validation, inventory, handoff, and reopen posture stay causally honest.
-            </p>
+        <header className="pharmacy-shell__masthead" role="banner">
+          <div className="pharmacy-shell__brand">
+            <VecellLogoLockup
+              aria-hidden="true"
+              className="pharmacy-insignia"
+              style={{ width: 166, height: "auto" }}
+            />
+            <div>
+              <p className="pharmacy-shell__eyebrow">Current pharmacy workspace</p>
+              <h1>Quiet pharmacy shell with one dominant action</h1>
+              <p>
+                One case, one checkpoint, one dominant action, and one support area stay visible
+                while validation, inventory, handoff, and reopen status update.
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="pharmacy-shell__masthead-meta">
-          <PharmacyAccessibleStatusBadge
-            label={snapshot.currentCase.queueLane}
-            tone={queueToneBadge(snapshot.currentCase.queueTone)}
-            contextLabel="Queue lane"
-            compact
-            className="pharmacy-pill"
-          />
-          <PharmacyAccessibleStatusBadge
-            label={titleCase(snapshot.currentCase.workbenchPosture)}
-            tone={workbenchTone(snapshot.currentCase.workbenchPosture)}
-            contextLabel="Workbench posture"
-            compact
-            className="pharmacy-pill"
-          />
-          <PharmacyAccessibleStatusBadge
-            label={titleCase(snapshot.visualizationMode)}
-            tone={snapshot.visualizationMode === "chart_plus_table" ? "ready" : snapshot.visualizationMode === "table_only" ? "guarded" : "blocked"}
-            contextLabel="Visualization mode"
-            compact
-            className="pharmacy-pill"
-          />
-        </div>
-      </header>
+          <div className="pharmacy-shell__masthead-meta">
+            <PharmacyAccessibleStatusBadge
+              label={snapshot.currentCase.queueLane}
+              tone={queueToneBadge(snapshot.currentCase.queueTone)}
+              contextLabel="Queue lane"
+              compact
+              className="pharmacy-pill"
+            />
+            <PharmacyAccessibleStatusBadge
+              label={pharmacyPublicStatusLabel(snapshot.currentCase.workbenchPosture)}
+              tone={workbenchTone(snapshot.currentCase.workbenchPosture)}
+              contextLabel="Workbench status"
+              compact
+              className="pharmacy-pill"
+            />
+            <PharmacyAccessibleStatusBadge
+              label={pharmacyPublicStatusLabel(snapshot.visualizationMode)}
+              tone={
+                snapshot.visualizationMode === "chart_plus_table"
+                  ? "ready"
+                  : snapshot.visualizationMode === "table_only"
+                    ? "guarded"
+                    : "blocked"
+              }
+              contextLabel="Visualization mode"
+              compact
+              className="pharmacy-pill"
+            />
+          </div>
+        </header>
 
-      <SharedStatusStrip input={snapshot.statusInput} />
-      <PharmacyA11yAnnouncementHub
-        scopeLabel="Pharmacy console shell"
-        politeAnnouncement={pharmacyAnnouncementState.politeAnnouncement}
-        assertiveAnnouncement={pharmacyAnnouncementState.assertiveAnnouncement}
-        testId="PharmacyShellAnnouncementHub"
-      />
-      <PharmacyFocusRouteMap
-        title="Pharmacy console continuity"
-        routeFamilyLabel={snapshot.location.routeFamilyRef}
-        currentRouteLabel={routeLabel(snapshot.location.routeKey)}
-        selectedAnchorLabel={props.state.continuitySnapshot.selectedAnchor.lastKnownLabel}
-        focusReturnLabel={`Pharmacy route ${routeLabel(snapshot.location.routeKey)}`}
-        supportRegionLabel={supportRegionLabel}
-        compact
-        testId="PharmacyShellFocusRouteMap"
-      />
-      {shouldShowRecoveryStrip ? (
-        <PharmacyRouteRecoveryFrame
-          snapshot={snapshot}
-          tone={recoveryTone}
-          recoveryOwnerLabel={recoveryOwnerLabel}
-          forceVisible={shouldShowRecoveryStrip}
-          onPrimaryAction={() => {
-            if (snapshot.location.routeKey === "assurance") {
-              setQueuePeekOpen(false);
-              setSupportResumeOpen(true);
-              props.onReturn();
-              return;
-            }
-            setQueuePeekOpen(false);
-            setSupportResumeOpen(true);
-            props.onOpenChildRoute("assurance");
-          }}
-          onSecondaryAction={() => {
-            setQueuePeekOpen(false);
-            props.onOpenCase(snapshot.currentCase.pharmacyCaseId);
-          }}
+        <SharedStatusStrip input={snapshot.statusInput} />
+        <PharmacyA11yAnnouncementHub
+          scopeLabel="Pharmacy console shell"
+          politeAnnouncement={pharmacyAnnouncementState.politeAnnouncement}
+          assertiveAnnouncement={pharmacyAnnouncementState.assertiveAnnouncement}
+          testId="PharmacyShellAnnouncementHub"
         />
-      ) : null}
-      <PharmacyCasePulseHost snapshot={snapshot} />
-      {isMissionStack ? (
-        <PharmacyMissionStackController
-          controller={{
-            title: "Folded pharmacy mission stack",
-            summary:
-              "Queue, case, checkpoint, line, and promoted support region stay in one shell while the layout narrows.",
-            caseLabel: snapshot.currentCase.patientLabel,
-            routeLabel: routeLabel(snapshot.location.routeKey),
-            checkpointLabel: snapshot.activeCheckpoint.label,
-            lineItemLabel: snapshot.activeLineItem.medicationLabel,
-            queueCountLabel: `${snapshot.queueCases.length} active cases`,
-            supportRegionLabel,
-            selectedAnchorLabel: props.state.continuitySnapshot.selectedAnchor.lastKnownLabel,
-            queueActionLabel: queuePeekOpen ? "Hide queue peek" : "Open queue peek",
-            supportActionLabel:
-              missionStackSupportExpanded ? "Support region is open" : "Resume support region",
-          }}
-          onToggleQueue={() => setQueuePeekOpen((current) => !current)}
-          onOpenSupport={() => setSupportResumeOpen(true)}
+        <PharmacyFocusRouteMap
+          title="Pharmacy console continuity"
+          routeFamilyLabel="Pharmacy console"
+          currentRouteLabel={routeLabel(snapshot.location.routeKey)}
+          selectedAnchorLabel={props.state.continuitySnapshot.selectedAnchor.lastKnownLabel}
+          focusReturnLabel={`Pharmacy route ${routeLabel(snapshot.location.routeKey)}`}
+          supportRegionLabel={supportRegionLabel}
+          compact
+          testId="PharmacyShellFocusRouteMap"
         />
-      ) : null}
-      {isMissionStack ? (
-        <PharmacyCaseResumeStub
-          stub={{
-            patientLabel: snapshot.currentCase.patientLabel,
-            summary: snapshot.currentCase.caseSummary,
-            routeLabel: routeLabel(snapshot.location.routeKey),
-            checkpointLabel: snapshot.activeCheckpoint.label,
-            lineItemLabel: snapshot.activeLineItem.medicationLabel,
-            supportRegionLabel,
-            recoveryLabel: titleCase(snapshot.recoveryPosture),
-          }}
-        />
-      ) : null}
-      {showWatchWindowReentry ? (
-        <PharmacyWatchWindowReentryBanner
-          banner={{
-            tone:
-              workbenchView.watchWindowState === "blocked"
-                ? "blocked"
-                : workbenchView.watchWindowState === "watch"
-                  ? "watch"
-                  : "ready",
-            title: "Watch window re-entry stays in this shell",
-            summary: snapshot.currentCase.watchWindowSummary,
-            windowLabel: snapshot.currentCase.queueLane,
-            ownerLabel: recoveryOwnerLabel,
-            actionLabel: "Open recovery region",
-          }}
-          onAction={() => {
-            setQueuePeekOpen(false);
-            setSupportResumeOpen(true);
-            props.onOpenChildRoute("assurance");
-          }}
-        />
-      ) : null}
-      {isMissionStack ? (
-        <PharmacyQueuePeekDrawer
-          drawer={{
-            title: "Queue context",
-            summary:
-              "The queue remains reachable as a bounded same-shell drawer instead of disappearing on narrow screens.",
-            queueCountLabel: `${snapshot.queueCases.length} active cases`,
-            selectedCaseLabel: `Selected ${snapshot.currentCase.pharmacyCaseId}`,
-            selectedLaneLabel: snapshot.currentCase.queueLane,
-            closeActionLabel: "Close queue peek",
-            open: queuePeekOpen,
-          }}
-          onClose={() => setQueuePeekOpen(false)}
-        >
-          <PharmacyOperationsPanel
-            panel={workbenchView.operationsPanel}
-            onOpenCase={(pharmacyCaseId) => {
-              setQueuePeekOpen(false);
-              props.onOpenCase(pharmacyCaseId);
-            }}
-          />
-          <button
-            type="button"
-            className="pharmacy-link"
-            data-testid="pharmacy-queue-peek-root-button"
-            onClick={() => {
-              setQueuePeekOpen(false);
-              props.onNavigate(PHARMACY_DEFAULT_PATH);
-            }}
-            {...(selectedAnchorBinding
-              ? buildAutomationAnchorElementAttributes(selectedAnchorBinding, {
-                  instanceKey: snapshot.currentCase.pharmacyCaseId,
-                })
-              : {})}
-          >
-            Keep queue root pinned
-          </button>
-        </PharmacyQueuePeekDrawer>
-      ) : null}
-
-      <section className="pharmacy-shell__layout">
-        {!isMissionStack ? (
-          <PharmacyQueueSpineHost
+        {shouldShowRecoveryStrip ? (
+          <PharmacyRouteRecoveryFrame
             snapshot={snapshot}
-            onNavigate={props.onNavigate}
-            onOpenCase={props.onOpenCase}
-            selectedAnchorBinding={selectedAnchorBinding}
-          />
-        ) : null}
-        <div className="pharmacy-shell__mission-stage">
-          <PharmacyValidationBoardHost
-            snapshot={snapshot}
-            state={props.state}
-            eligibilityPreview={eligibilityPreview}
-            recoveryPreview={recoveryPreview}
-            assurancePreview={assurancePreview}
-            onOpenCase={(pharmacyCaseId) => {
-              setQueuePeekOpen(false);
-              props.onOpenCase(pharmacyCaseId);
-            }}
-            onSelectCheckpoint={props.onSelectCheckpoint}
-            onSelectLineItem={props.onSelectLineItem}
-            onOpenChildRoute={(routeKey) => {
-              setQueuePeekOpen(false);
-              setSupportResumeOpen(true);
-              props.onOpenChildRoute(routeKey);
-            }}
-            onReturn={() => {
-              setQueuePeekOpen(false);
-              setSupportResumeOpen(true);
-              props.onReturn();
-            }}
-            supportRegionContent={isMissionStack ? missionStackSupportRegion : undefined}
-          />
-          {showFrozenOverlay ? (
-            <PharmacyContinuityFrozenOverlay
-              overlay={{
-                tone: recoveryTone,
-                title: "The current route is frozen until truth catches up",
-                summary:
-                  "The shell is preserving the selected case, checkpoint, and line item, but release actions remain fenced until recovery or revalidation clears.",
-                postureLabel: titleCase(snapshot.routeShellPosture),
-                actionLabel: "Open recovery region",
-              }}
-              onAction={() => {
+            tone={recoveryTone}
+            recoveryOwnerLabel={recoveryOwnerLabel}
+            forceVisible={shouldShowRecoveryStrip}
+            onPrimaryAction={() => {
+              if (snapshot.location.routeKey === "assurance") {
                 setQueuePeekOpen(false);
                 setSupportResumeOpen(true);
-                props.onOpenChildRoute("assurance");
+                props.onReturn();
+                return;
+              }
+              setQueuePeekOpen(false);
+              setSupportResumeOpen(true);
+              props.onOpenChildRoute("assurance");
+            }}
+            onSecondaryAction={() => {
+              setQueuePeekOpen(false);
+              props.onOpenCase(snapshot.currentCase.pharmacyCaseId);
+            }}
+          />
+        ) : null}
+        <PharmacyCasePulseHost snapshot={snapshot} />
+        {isMissionStack ? (
+          <PharmacyMissionStackController
+            controller={{
+              title: "Folded pharmacy mission stack",
+              summary:
+                "Queue, case, checkpoint, line, and promoted support region stay in one shell while the layout narrows.",
+              caseLabel: snapshot.currentCase.patientLabel,
+              routeLabel: routeLabel(snapshot.location.routeKey),
+              checkpointLabel: snapshot.activeCheckpoint.label,
+              lineItemLabel: snapshot.activeLineItem.medicationLabel,
+              queueCountLabel: `${snapshot.queueCases.length} active cases`,
+              supportRegionLabel,
+              selectedAnchorLabel: props.state.continuitySnapshot.selectedAnchor.lastKnownLabel,
+              queueActionLabel: queuePeekOpen ? "Hide queue peek" : "Open queue peek",
+              supportActionLabel: missionStackSupportExpanded
+                ? "Support region is open"
+                : "Resume support region",
+            }}
+            onToggleQueue={() => setQueuePeekOpen((current) => !current)}
+            onOpenSupport={() => setSupportResumeOpen(true)}
+          />
+        ) : null}
+        {isMissionStack ? (
+          <PharmacyCaseResumeStub
+            stub={{
+              patientLabel: snapshot.currentCase.patientLabel,
+              summary: pharmacyPublicText(snapshot.currentCase.caseSummary),
+              routeLabel: routeLabel(snapshot.location.routeKey),
+              checkpointLabel: snapshot.activeCheckpoint.label,
+              lineItemLabel: snapshot.activeLineItem.medicationLabel,
+              supportRegionLabel,
+              recoveryLabel: titleCase(snapshot.recoveryPosture),
+            }}
+          />
+        ) : null}
+        {showWatchWindowReentry ? (
+          <PharmacyWatchWindowReentryBanner
+            banner={{
+              tone:
+                workbenchView.watchWindowState === "blocked"
+                  ? "blocked"
+                  : workbenchView.watchWindowState === "watch"
+                    ? "watch"
+                    : "ready",
+              title: "Watch window re-entry stays in this shell",
+              summary: pharmacyPublicText(snapshot.currentCase.watchWindowSummary),
+              windowLabel: snapshot.currentCase.queueLane,
+              ownerLabel: recoveryOwnerLabel,
+              actionLabel: "Open recovery region",
+            }}
+            onAction={() => {
+              setQueuePeekOpen(false);
+              setSupportResumeOpen(true);
+              props.onOpenChildRoute("assurance");
+            }}
+          />
+        ) : null}
+        {isMissionStack ? (
+          <PharmacyQueuePeekDrawer
+            drawer={{
+              title: "Queue context",
+              summary:
+                "The queue remains reachable as a limited same-shell drawer instead of disappearing on narrow screens.",
+              queueCountLabel: `${snapshot.queueCases.length} active cases`,
+              selectedCaseLabel: `Selected ${snapshot.currentCase.pharmacyCaseId}`,
+              selectedLaneLabel: snapshot.currentCase.queueLane,
+              closeActionLabel: "Close queue peek",
+              open: queuePeekOpen,
+            }}
+            onClose={() => setQueuePeekOpen(false)}
+          >
+            <PharmacyOperationsPanel
+              panel={workbenchView.operationsPanel}
+              onOpenCase={(pharmacyCaseId) => {
+                setQueuePeekOpen(false);
+                props.onOpenCase(pharmacyCaseId);
               }}
             />
-          ) : null}
-        </div>
+            <button
+              type="button"
+              className="pharmacy-link"
+              data-testid="pharmacy-queue-peek-root-button"
+              onClick={() => {
+                setQueuePeekOpen(false);
+                props.onNavigate(PHARMACY_DEFAULT_PATH);
+              }}
+              {...(selectedAnchorBinding
+                ? buildAutomationAnchorElementAttributes(selectedAnchorBinding, {
+                    instanceKey: snapshot.currentCase.pharmacyCaseId,
+                  })
+                : {})}
+            >
+              Keep queue root pinned
+            </button>
+          </PharmacyQueuePeekDrawer>
+        ) : null}
 
-        {!isMissionStack ? (
-          <aside className="pharmacy-shell__decision" aria-label="Decision dock">
-            <PharmacyChosenProviderAnchor snapshot={snapshot} />
+        <section className="pharmacy-shell__layout">
+          {!isMissionStack ? (
+            <PharmacyQueueSpineHost
+              snapshot={snapshot}
+              onNavigate={props.onNavigate}
+              onOpenCase={props.onOpenCase}
+              selectedAnchorBinding={selectedAnchorBinding}
+            />
+          ) : null}
+          <div className="pharmacy-shell__mission-stage">
+            <PharmacyValidationBoardHost
+              snapshot={snapshot}
+              state={props.state}
+              eligibilityPreview={eligibilityPreview}
+              recoveryPreview={recoveryPreview}
+              assurancePreview={assurancePreview}
+              onOpenCase={(pharmacyCaseId) => {
+                setQueuePeekOpen(false);
+                props.onOpenCase(pharmacyCaseId);
+              }}
+              onSelectCheckpoint={props.onSelectCheckpoint}
+              onSelectLineItem={props.onSelectLineItem}
+              onOpenChildRoute={(routeKey) => {
+                setQueuePeekOpen(false);
+                setSupportResumeOpen(true);
+                props.onOpenChildRoute(routeKey);
+              }}
+              onReturn={() => {
+                setQueuePeekOpen(false);
+                setSupportResumeOpen(true);
+                props.onReturn();
+              }}
+              supportRegionContent={isMissionStack ? missionStackSupportRegion : undefined}
+            />
+            {showFrozenOverlay ? (
+              <PharmacyContinuityFrozenOverlay
+                overlay={{
+                  tone: recoveryTone,
+                  title: "The current route is frozen until details catch up",
+                  summary:
+                    "The shell is preserving the selected case, checkpoint, and line item, but release actions remain fenced until recovery or revalidation clears.",
+                  postureLabel: pharmacyPublicStatusLabel(snapshot.routeShellPosture),
+                  actionLabel: "Open recovery region",
+                }}
+                onAction={() => {
+                  setQueuePeekOpen(false);
+                  setSupportResumeOpen(true);
+                  props.onOpenChildRoute("assurance");
+                }}
+              />
+            ) : null}
+          </div>
+
+          {!isMissionStack ? (
+            <aside className="pharmacy-shell__decision" aria-label="Decision dock">
+              <PharmacyChosenProviderAnchor snapshot={snapshot} />
+              <PharmacyDecisionDockHost
+                snapshot={snapshot}
+                recoveryPreview={recoveryPreview}
+                assurancePreview={assurancePreview}
+                onOpenChildRoute={props.onOpenChildRoute}
+                dominantActionBinding={dominantActionBinding}
+              />
+
+              {showDiagnostics ? (
+                <section className="pharmacy-panel">
+                  <header className="pharmacy-panel__header">
+                    <div>
+                      <p className="pharmacy-shell__eyebrow">Developer activity data</p>
+                      <h3>Recent shell status events</h3>
+                    </div>
+                    <span>{props.state.telemetry.length} envelopes</span>
+                  </header>
+                  <ol className="pharmacy-telemetry-log" data-testid="pharmacy-telemetry-log">
+                    {props.state.telemetry
+                      .slice(-5)
+                      .reverse()
+                      .map((envelope) => (
+                        <li key={envelope.envelopeId}>
+                          <strong>{envelope.eventName}</strong>
+                          <span>
+                            {String(
+                              envelope.payload.pathname ??
+                                envelope.payload.proofState ??
+                                envelope.payload.checkpointId ??
+                                envelope.eventCode,
+                            )}
+                          </span>
+                        </li>
+                      ))}
+                  </ol>
+                  {focusRestoreBinding ? (
+                    <button
+                      type="button"
+                      className="pharmacy-link"
+                      data-testid="pharmacy-focus-restore-marker"
+                      {...buildAutomationAnchorElementAttributes(focusRestoreBinding, {
+                        instanceKey: snapshot.activeLineItem.lineItemId,
+                      })}
+                    >
+                      Developer focus target
+                    </button>
+                  ) : null}
+                </section>
+              ) : null}
+
+              {showDiagnostics ? (
+                <section className="pharmacy-panel">
+                  <header className="pharmacy-panel__header">
+                    <div>
+                      <p className="pharmacy-shell__eyebrow">Confirmed information matrix</p>
+                      <h3>Checkpoint, proof, and outcome status</h3>
+                    </div>
+                  </header>
+                  <table className="pharmacy-table">
+                    <caption>Checkpoint and proof matrix</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Case</th>
+                        <th scope="col">Consent</th>
+                        <th scope="col">Proof</th>
+                        <th scope="col">Outcome</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pharmacyCheckpointAndProofMatrixRows.map((row) => (
+                        <tr
+                          key={row.pharmacyCaseId}
+                          data-selected={row.pharmacyCaseId === snapshot.currentCase.pharmacyCaseId}
+                        >
+                          <td>{row.pharmacyCaseId}</td>
+                          <td>{titleCase(row.consentState)}</td>
+                          <td>{titleCase(row.proofState)}</td>
+                          <td>{titleCase(row.outcomeTruthState)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </section>
+              ) : null}
+
+              {showDiagnostics ? (
+                <section className="pharmacy-panel">
+                  <header className="pharmacy-panel__header">
+                    <div>
+                      <p className="pharmacy-shell__eyebrow">Developer route details</p>
+                      <h3>Developer route rules</h3>
+                    </div>
+                  </header>
+                  <ul className="pharmacy-route-contract-list">
+                    {pharmacyRouteContractSeedRows.map((row) => (
+                      <li key={row.path}>
+                        <strong>{row.path}</strong>
+                        <span>{row.summary}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
+            </aside>
+          ) : null}
+        </section>
+        {isMissionStack ? (
+          <div
+            className="pharmacy-shell__mission-dock"
+            data-testid="PharmacyMissionStackDock"
+            data-visual-mode={PHARMACY_MISSION_STACK_RECOVERY_VISUAL_MODE}
+          >
             <PharmacyDecisionDockHost
               snapshot={snapshot}
               recoveryPreview={recoveryPreview}
               assurancePreview={assurancePreview}
-              onOpenChildRoute={props.onOpenChildRoute}
+              onOpenChildRoute={(routeKey) => {
+                setQueuePeekOpen(false);
+                setSupportResumeOpen(true);
+                props.onOpenChildRoute(routeKey);
+              }}
               dominantActionBinding={dominantActionBinding}
             />
-
-            <section className="pharmacy-panel">
-              <header className="pharmacy-panel__header">
-                <div>
-                  <p className="pharmacy-shell__eyebrow">Telemetry log</p>
-                  <h3>Recent shell-truth events</h3>
-                </div>
-                <span>{props.state.telemetry.length} envelopes</span>
-              </header>
-              <ol className="pharmacy-telemetry-log" data-testid="pharmacy-telemetry-log">
-                {props.state.telemetry.slice(-5).reverse().map((envelope) => (
-                  <li key={envelope.envelopeId}>
-                    <strong>{envelope.eventName}</strong>
-                    <span>
-                      {String(
-                        envelope.payload.pathname ??
-                          envelope.payload.proofState ??
-                          envelope.payload.checkpointId ??
-                          envelope.eventCode,
-                      )}
-                    </span>
-                  </li>
-                ))}
-              </ol>
-              {focusRestoreBinding ? (
-                <button
-                  type="button"
-                  className="pharmacy-link"
-                  data-testid="pharmacy-focus-restore-marker"
-                  {...buildAutomationAnchorElementAttributes(focusRestoreBinding, {
-                    instanceKey: snapshot.activeLineItem.lineItemId,
-                  })}
-                >
-                  {props.state.continuitySnapshot.focusRestoreTargetRef}
-                </button>
-              ) : null}
-            </section>
-
-            <section className="pharmacy-panel">
-              <header className="pharmacy-panel__header">
-                <div>
-                  <p className="pharmacy-shell__eyebrow">Truth matrix</p>
-                  <h3>Checkpoint, proof, and outcome posture</h3>
-                </div>
-              </header>
-              <table className="pharmacy-table">
-                <caption>Checkpoint and proof matrix</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Case</th>
-                    <th scope="col">Consent</th>
-                    <th scope="col">Proof</th>
-                    <th scope="col">Outcome</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pharmacyCheckpointAndProofMatrixRows.map((row) => (
-                    <tr
-                      key={row.pharmacyCaseId}
-                      data-selected={row.pharmacyCaseId === snapshot.currentCase.pharmacyCaseId}
-                    >
-                      <td>{row.pharmacyCaseId}</td>
-                      <td>{titleCase(row.consentState)}</td>
-                      <td>{titleCase(row.proofState)}</td>
-                      <td>{titleCase(row.outcomeTruthState)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </section>
-
-            <section className="pharmacy-panel">
-              <header className="pharmacy-panel__header">
-                <div>
-                  <p className="pharmacy-shell__eyebrow">Route contract</p>
-                  <h3>Same-shell route law</h3>
-                </div>
-              </header>
-              <ul className="pharmacy-route-contract-list">
-                {pharmacyRouteContractSeedRows.map((row) => (
-                  <li key={row.path}>
-                    <strong>{row.path}</strong>
-                    <span>{row.summary}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          </aside>
+          </div>
         ) : null}
-      </section>
-      {isMissionStack ? (
-        <div
-          className="pharmacy-shell__mission-dock"
-          data-testid="PharmacyMissionStackDock"
-          data-visual-mode={PHARMACY_MISSION_STACK_RECOVERY_VISUAL_MODE}
-        >
-          <PharmacyDecisionDockHost
-            snapshot={snapshot}
-            recoveryPreview={recoveryPreview}
-            assurancePreview={assurancePreview}
-            onOpenChildRoute={(routeKey) => {
-              setQueuePeekOpen(false);
-              setSupportResumeOpen(true);
-              props.onOpenChildRoute(routeKey);
-            }}
-            dominantActionBinding={dominantActionBinding}
-          />
-        </div>
-      ) : null}
       </PharmacyReducedMotionBridge>
     </div>
   );

@@ -98,7 +98,6 @@ import {
   createDependencyReadiness478Projection,
   normalizeDependencyReadiness478DependencyId,
   normalizeDependencyReadiness478ScenarioState,
-  type DependencyReadiness478DependencyCard,
   type DependencyReadiness478Projection,
   type DependencyReadiness478ScenarioState,
 } from "./dependency-readiness-board-478.model";
@@ -117,11 +116,76 @@ import {
 } from "./operations-incidents-phase9.model";
 import { normalizeOpsOverviewScenarioState } from "./operations-overview-phase9.model";
 
+type ReleaseWaveGuardrailRuleRow = {
+  readonly ruleId: string;
+  readonly ruleKind: string;
+  readonly interval: string;
+  readonly comparator: string;
+  readonly threshold: string | number;
+  readonly unit: string;
+  readonly metricRef: string;
+};
+
+type ReleaseWaveObservationCriterionRow = {
+  readonly criterionId: string;
+  readonly metricRef: string;
+  readonly comparator: string;
+  readonly threshold: string | number;
+  readonly observationWindow: string;
+};
+
 function titleCase(value: string): string {
   return value
     .split(/[_-]/g)
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(" ");
+}
+
+function opsPublicStateLabel(value: string): string {
+  switch (value) {
+    case "safe_apply":
+      return "Ready to apply";
+    case "live_review":
+      return "Ready for review";
+    case "table_only":
+      return "Table view";
+    case "chart_plus_table":
+      return "Chart and table";
+    case "summary_only":
+      return "Summary only";
+    default:
+      return titleCase(value);
+  }
+}
+
+function opsPublicText(value: string): string {
+  return value
+    .replace(/\bNorth star band\b/gi, "Operational summary")
+    .replace(/\bServiceHealthGrid\b/g, "Service health")
+    .replace(/\bCohortImpactMatrix\b/g, "Cohort impact")
+    .replace(/\bOpsDeltaGate\b/g, "Change gate")
+    .replace(/\bauthoritative\b/gi, "confirmed")
+    .replace(/\bdelta\b/gi, "change")
+    .replace(/\bPhase 9 exercises\b/gi, "current exercises")
+    .replace(/\bposture\b/gi, "status")
+    .replace(/\btruth\b/gi, "confirmed information")
+    .replace(/\bmanifest\b/gi, "configuration")
+    .replace(/\bhash\b/gi, "check")
+    .replace(/\bfixture\b/gi, "sample")
+    .replace(/\bprovenance\b/gi, "history")
+    .replace(/\bcontract\b/gi, "agreement")
+    .replace(/\btuple\b/gi, "details")
+    .replace(/\bsafe_apply\b/gi, "ready to apply")
+    .replace(/\b[a-z][a-z0-9]+_[a-z0-9_]+\b/g, (token) => titleCase(token))
+    .replace(/\b[A-Z]{2,}_[A-Z0-9_:-]+\b/g, "current evidence check")
+    .replace(/\b(?:sha256:)?[a-f0-9]{12,}\b/gi, "current check");
+}
+
+function opsDiagnosticsEnabled(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  return new URLSearchParams(window.location.search).get("diagnostics") === "ops";
 }
 
 function lensLabel(lens: OpsLens): string {
@@ -498,22 +562,22 @@ function VisualizationPanel(props: {
       data-testid={props.dataTestId}
       data-surface={props.dataSurface}
       data-parity-mode={props.visualizationMode}
-      aria-label={props.title}
+      aria-label={opsPublicText(props.title)}
     >
       <header className="ops-panel__header">
         <div>
-          <p className="ops-panel__eyebrow">{props.title}</p>
-          <h3>{props.title}</h3>
+          <p className="ops-panel__eyebrow">{opsPublicText(props.title)}</p>
+          <h3>{opsPublicText(props.title)}</h3>
         </div>
         <div className="ops-panel__meta">
-          <span>{props.trustLabel}</span>
-          <span>{props.freshnessLabel}</span>
+          <span>{opsPublicText(props.trustLabel)}</span>
+          <span>{opsPublicText(props.freshnessLabel)}</span>
         </div>
       </header>
-      <p className="ops-panel__summary">{props.summary}</p>
+      <p className="ops-panel__summary">{opsPublicText(props.summary)}</p>
       {props.visualizationMode === "summary_only" ? (
         <div className="ops-panel__placeholder" data-testid={`${props.dataTestId}-summary-only`}>
-          <strong>Summary-only posture</strong>
+          <strong>Summary-only status</strong>
           <span>The shell keeps the explanation visible while richer visuals stay frozen.</span>
         </div>
       ) : props.visualizationMode === "table_only" ? null : (
@@ -671,7 +735,7 @@ function InvestigationDrawerPanel(props: {
     >
       <header className="ops-child__header">
         <div>
-          <p className="ops-panel__eyebrow">InvestigationDrawer</p>
+            <p className="ops-panel__eyebrow">Investigation detail</p>
           <h2 data-testid="investigation-question" data-surface="investigation-question">
             {investigation.investigationQuestion}
           </h2>
@@ -683,14 +747,14 @@ function InvestigationDrawerPanel(props: {
           data-testid="ops-return-button"
           data-surface="safe-return-anchor"
         >
-          Return via {props.snapshot.returnToken?.returnTokenId ?? "OpsReturnToken"}
+          Return to board
         </button>
       </header>
       <div className="ops-investigation-ribbon">
         <span>{investigation.scopeEnvelope.purposeOfUse}</span>
-        <span>{investigation.scopeEnvelope.maskingPolicyRef}</span>
-        <span>{investigation.scopeEnvelope.investigationQuestionHash}</span>
-        <span>{investigation.evidenceGraph.completenessVerdictRef}</span>
+        <span>Protected details</span>
+        <span>Question checked</span>
+        <span>Evidence checked</span>
       </div>
       <section
         className="ops-investigation-surface"
@@ -859,7 +923,7 @@ function AuditExplorerPanel(props: { snapshot: OpsBoardStateSnapshot }) {
               <span>{titleCase(investigation.supportReplayBoundary.replayDeterminismState)}</span>
             </header>
             <p>{investigation.supportReplayBoundary.boundarySummary}</p>
-            <small>{investigation.supportReplayBoundary.replayCheckpointHash}</small>
+            <small>Replay point checked</small>
           </section>
           <section
             className="ops-investigation-surface"
@@ -873,10 +937,10 @@ function AuditExplorerPanel(props: { snapshot: OpsBoardStateSnapshot }) {
                 <p className="ops-panel__eyebrow">Bundle preview</p>
                 <h3>{titleCase(investigation.bundleExport.exportState)}</h3>
               </div>
-              <span>{investigation.bundleExport.outboundNavigationGrantRef}</span>
+              <span>Ready for review</span>
             </header>
             <p>{investigation.bundleExport.summaryFirstPreview}</p>
-            <small>{investigation.bundleExport.manifestHash}</small>
+            <small>Export summary ready</small>
           </section>
         </aside>
       </div>
@@ -1084,7 +1148,7 @@ function ResilienceBoardPanel(props: {
         >
           <header className="ops-resilience-surface__header">
             <div>
-              <p className="ops-panel__eyebrow">OperationalReadinessSnapshot</p>
+              <p className="ops-panel__eyebrow">Operational readiness</p>
               <h3>{titleCase(resilience.readinessSnapshot.readinessState)}</h3>
             </div>
             <span data-tone={resilienceTone(resilience.readinessSnapshot.readinessState)}>
@@ -1094,8 +1158,10 @@ function ResilienceBoardPanel(props: {
           <p>{resilience.readinessSnapshot.summary}</p>
           <dl className="ops-keyfacts">
             <div>
-              <dt>Tuple</dt>
-              <dd>{resilience.readinessSnapshot.resilienceTupleHash}</dd>
+              <dt>Readiness</dt>
+              <dd data-resilience-tuple-hash={resilience.readinessSnapshot.resilienceTupleHash}>
+                Current check
+              </dd>
             </div>
             <div>
               <dt>Freshness</dt>
@@ -1174,10 +1240,10 @@ function ResilienceBoardPanel(props: {
                 <p className="ops-panel__eyebrow">Backup freshness</p>
                 <h3>{titleCase(resilience.backupFreshness.manifestState)}</h3>
               </div>
-              <span>{resilience.backupFreshness.backupSetManifestRef}</span>
+              <span>Last checked</span>
             </header>
             <p>{resilience.backupFreshness.summary}</p>
-            <small>{resilience.backupFreshness.checksumBundleRef}</small>
+            <small>Compatibility checked</small>
           </section>
 
           <section
@@ -1189,10 +1255,10 @@ function ResilienceBoardPanel(props: {
           >
             <header className="ops-resilience-surface__header">
               <div>
-                <p className="ops-panel__eyebrow">RunbookBindingRecord</p>
+                <p className="ops-panel__eyebrow">Runbook readiness</p>
                 <h3>{titleCase(resilience.runbookBindings[0]?.bindingState ?? "missing")}</h3>
               </div>
-              <span>{resilience.runbookBindings[0]?.runbookBindingRef ?? "missing"}</span>
+              <span>Last checked</span>
             </header>
             <p>{resilience.runbookBindings[0]?.summary ?? "No runbook binding is available."}</p>
             <small>{resilience.runbookBindings[0]?.bindingHash ?? "binding hash missing"}</small>
@@ -1476,10 +1542,12 @@ function DestinationReadinessSurfaceStrip(props: {
     >
       <header className="ops-panel__header">
         <div>
-          <p className="ops-panel__eyebrow">OperationalDestinationBinding</p>
+          <p className="ops-panel__eyebrow">Destination readiness</p>
           <h2>Destination readiness</h2>
         </div>
-        <span className="ops-panel__headline">{props.projection.registryHash}</span>
+        <span className="ops-panel__headline">
+          {props.projection.readyCount} ready / {props.projection.blockedCount} blocked
+        </span>
       </header>
       <div className="ops-destination-readiness__grid">
         {props.projection.downstreamReadiness.map((readiness) => (
@@ -1492,7 +1560,7 @@ function DestinationReadinessSurfaceStrip(props: {
           >
             <strong>{titleCase(readiness.surface)}</strong>
             <span>{titleCase(readiness.readinessState)}</span>
-            <small>{readiness.summary}</small>
+            <small>{opsPublicText(readiness.summary)}</small>
           </article>
         ))}
       </div>
@@ -1525,10 +1593,13 @@ function BackupRestoreReadinessSurfaceStrip(props: {
     >
       <header className="ops-panel__header">
         <div>
-          <p className="ops-panel__eyebrow">BackupRestoreChannelBinding</p>
+          <p className="ops-panel__eyebrow">Backup readiness</p>
           <h2>Resilience backup readiness</h2>
         </div>
-        <span className="ops-panel__headline">{props.projection.registryHash}</span>
+        <span className="ops-panel__headline">
+          {readiness.targetReadyCount + readiness.channelReadyCount} ready /{" "}
+          {readiness.targetBlockedCount + readiness.channelBlockedCount} blocked
+        </span>
       </header>
       <div className="ops-backup-restore-readiness__grid">
         {[
@@ -1551,7 +1622,7 @@ function BackupRestoreReadinessSurfaceStrip(props: {
             readiness.evidencePackState,
           ],
           [
-            "tuple",
+            "compatibility",
             readiness.tupleState,
             readiness.blockedChannelRefs.length,
             readiness.tupleState,
@@ -1564,9 +1635,9 @@ function BackupRestoreReadinessSurfaceStrip(props: {
             data-ready-count={String(ready)}
             data-blocked-count={String(blocked)}
           >
-            <strong>{titleCase(String(label))}</strong>
-            <span>{titleCase(String(state))}</span>
-            <small>{readiness.summary}</small>
+            <strong>{opsPublicText(titleCase(String(label)))}</strong>
+            <span>{opsPublicText(titleCase(String(state)))}</span>
+            <small>{opsPublicText(readiness.summary)}</small>
           </article>
         ))}
       </div>
@@ -1615,10 +1686,12 @@ function SecurityComplianceExportReadinessSurfaceStrip(props: {
     >
       <header className="ops-panel__header">
         <div>
-          <p className="ops-panel__eyebrow">GovernedExportDestinationBinding</p>
+          <p className="ops-panel__eyebrow">Export readiness</p>
           <h2>Security export readiness</h2>
         </div>
-        <span className="ops-panel__headline">{props.projection.registryHash}</span>
+        <span className="ops-panel__headline">
+          {props.projection.readyCount} ready / {props.projection.blockedCount} blocked
+        </span>
       </header>
       <div className="ops-security-compliance-export-readiness__grid">
         {props.projection.sourceReadiness.map((readiness) => (
@@ -1656,6 +1729,7 @@ function Phase9LiveProjectionGatewayStrip(props: {
   const selectedFixture =
     localProjection.testEventProducerFixtures.find((fixture) => fixture.fixtureId === fixtureId) ??
     localProjection.testEventProducerFixtures[0];
+  const showDiagnostics = opsDiagnosticsEnabled();
 
   return (
     <section
@@ -1677,12 +1751,12 @@ function Phase9LiveProjectionGatewayStrip(props: {
       data-raw-domain-event-payload-allowed={String(localProjection.rawDomainEventPayloadAllowed)}
       data-subscription-cleanup-proven={String(localProjection.subscriptionCleanupProven)}
       data-live-gateway-hash={localProjection.liveGatewayHash}
-      aria-label="Phase 9 live projection gateway"
+      aria-label="Current programme live projection gateway"
     >
       <header className="ops-panel__header">
         <div>
-          <p className="ops-panel__eyebrow">LivePhase9ProjectionGateway</p>
-          <h2>Live projection gateway</h2>
+          <p className="ops-panel__eyebrow">Developer live updates</p>
+          <h2>Live update gateway</h2>
         </div>
         <span
           className="ops-panel__headline"
@@ -1698,59 +1772,61 @@ function Phase9LiveProjectionGatewayStrip(props: {
         <dl>
           <div>
             <dt>Channel</dt>
-            <dd>{selectedSurface.channelContract.liveUpdateChannelRef}</dd>
+            <dd>Checked</dd>
           </div>
           <div>
-            <dt>Contract</dt>
-            <dd>{selectedSurface.channelContract.projectionContractVersion}</dd>
+            <dt>Rules</dt>
+            <dd>Checked</dd>
           </div>
           <div>
-            <dt>Runtime binding</dt>
-            <dd>{selectedSurface.runtimeBindingState}</dd>
+            <dt>Runtime status</dt>
+            <dd>{titleCase(selectedSurface.runtimeBindingState)}</dd>
           </div>
           <div>
-            <dt>Selected anchor</dt>
+            <dt>Selected item</dt>
             <dd>{selectedSurface.selectedAnchorPreserved ? "preserved" : "released"}</dd>
           </div>
         </dl>
         <p data-testid="phase9-live-return-token-panel">
-          Return token {titleCase(selectedSurface.returnTokenState)}.{" "}
+          Return status {titleCase(selectedSurface.returnTokenState)}.{" "}
           {selectedSurface.changedBecauseSummary} {selectedSurface.nextSafeAction}
         </p>
       </div>
 
-      <div
-        className="phase9-live-projection-gateway__producer"
-        data-testid="phase9-live-update-fixture-producer"
-      >
-        <label>
-          <span>Fixture</span>
-          <select
-            data-testid="phase9-live-fixture-select"
-            value={fixtureId}
-            onChange={(event) => setFixtureId(event.currentTarget.value)}
-          >
-            {localProjection.testEventProducerFixtures.map((fixture) => (
-              <option key={fixture.fixtureId} value={fixture.fixtureId}>
-                {titleCase(fixture.patchKind)} / {titleCase(fixture.targetSurface)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          className="ops-button"
-          data-testid="phase9-live-apply-fixture-action"
-          onClick={() =>
-            setLocalProjection(applyPhase9LiveProjectionFixture(localProjection, fixtureId))
-          }
+      {showDiagnostics ? (
+        <div
+          className="phase9-live-projection-gateway__producer"
+          data-testid="phase9-live-update-fixture-producer"
         >
-          Apply live patch
-        </button>
-        <span data-testid="phase9-live-queued-delta-digest">
-          {selectedFixture?.changedBecauseSummary ?? selectedSurface.changedBecauseSummary}
-        </span>
-      </div>
+          <label>
+            <span>Example</span>
+            <select
+              data-testid="phase9-live-fixture-select"
+              value={fixtureId}
+              onChange={(event) => setFixtureId(event.currentTarget.value)}
+            >
+              {localProjection.testEventProducerFixtures.map((fixture) => (
+                <option key={fixture.fixtureId} value={fixture.fixtureId}>
+                  {titleCase(fixture.patchKind)} / {titleCase(fixture.targetSurface)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="ops-button"
+            data-testid="phase9-live-apply-fixture-action"
+            onClick={() =>
+              setLocalProjection(applyPhase9LiveProjectionFixture(localProjection, fixtureId))
+            }
+          >
+            Apply live patch
+          </button>
+          <span data-testid="phase9-live-queued-delta-digest">
+            {selectedFixture?.changedBecauseSummary ?? selectedSurface.changedBecauseSummary}
+          </span>
+        </div>
+      ) : null}
 
       <table className="ops-table ops-table--compact" data-testid="phase9-live-source-slice-table">
         <caption>Live projection source slice readiness</caption>
@@ -2134,7 +2210,7 @@ function EvidenceGapResolutionDrawer(props: { projection: ComplianceLedgerProjec
           <dd>{preview.targetRoute}</dd>
         </div>
         <div>
-          <dt>Artifact contract</dt>
+          <dt>Artifact rules</dt>
           <dd>{preview.requiresArtifactPresentationContractRef}</dd>
         </div>
         <div>
@@ -2277,12 +2353,12 @@ function ScorecardHashCard(props: { projection: CrossPhaseConformanceScorecardPr
       data-surface="scorecard-hash-card"
       data-scorecard-state={hash.scorecardState}
       data-graph-verdict={hash.graphVerdictState}
-      aria-label="Scorecard hash card"
+      aria-label="Scorecard status card"
     >
       <header className="ops-assurance-surface__header">
         <div>
-          <p className="ops-panel__eyebrow">Scorecard hash</p>
-          <h3>{hash.hashPrefix}</h3>
+          <p className="ops-panel__eyebrow">Scorecard status</p>
+          <h3>Checked</h3>
         </div>
         <span data-tone={assuranceTone(hash.scorecardState)}>{titleCase(hash.scorecardState)}</span>
       </header>
@@ -2359,7 +2435,7 @@ function GovernanceOpsProofRail(props: { projection: CrossPhaseConformanceScorec
       <header className="ops-assurance-surface__header">
         <div>
           <p className="ops-panel__eyebrow">Gov / ops proof</p>
-          <h3>{titleCase(rail.recoveryPostureState)} recovery posture</h3>
+          <h3>{titleCase(rail.recoveryPostureState)} recovery status</h3>
         </div>
         <span data-tone={assuranceTone(rail.operationsProofState)}>
           {titleCase(rail.operationsProofState)}
@@ -2501,7 +2577,7 @@ function PhaseRowProofTable(props: {
             <tr>
               <th scope="col">Phase / family</th>
               <th scope="col">Summary</th>
-              <th scope="col">Contract</th>
+              <th scope="col">Rules</th>
               <th scope="col">Verification</th>
               <th scope="col">Ops</th>
               <th scope="col">Governance</th>
@@ -2723,19 +2799,19 @@ function ConformanceSourceTraceDrawer(props: {
               <li key={step.stepKey} data-state={step.state}>
                 <strong>{step.label}</strong>
                 <ConformanceStatePill state={step.state} />
-                <small>{step.sourceRefs.join(" / ")}</small>
+                <small>{step.sourceRefs.length} checks</small>
                 <span>{step.consequence}</span>
               </li>
             ))}
           </ol>
           <dl className="ops-keyfacts">
             <div>
-              <dt>Return token</dt>
-              <dd>{trace.returnTokenRef}</dd>
+              <dt>Return status</dt>
+              <dd>Preserved</dd>
             </div>
             <div>
               <dt>Selected row</dt>
-              <dd>{trace.selectedRowRef}</dd>
+              <dd>Selected</dd>
             </div>
           </dl>
         </>
@@ -2750,7 +2826,7 @@ function ConformanceHandoffStrip(props: { projection: CrossPhaseConformanceScore
       className="ops-compliance-link-strip"
       data-testid="conformance-handoff-strip"
       data-surface="conformance-handoff-strip"
-      aria-label="Conformance same-shell handoffs"
+      aria-label="Conformance handoffs"
     >
       {props.projection.safeHandoffLinks.map((handoff) => (
         <button
@@ -2763,7 +2839,7 @@ function ConformanceHandoffStrip(props: { projection: CrossPhaseConformanceScore
           data-raw-artifact-url-suppressed={handoff.rawArtifactUrlSuppressed}
         >
           <span>{handoff.label}</span>
-          <small>{handoff.selectedRowRef}</small>
+          <small>Ready</small>
         </button>
       ))}
     </section>
@@ -2936,11 +3012,11 @@ function Phase9ExitGateStatusSurface(props: { projection: Phase9ExitGateStatusPr
       data-release-to-bau-guard-state={props.projection.releaseToBAURecordGuardState}
       data-completion-evidence-bundle-hash={props.projection.completionEvidenceBundleHash}
       data-no-raw-artifact-urls={props.projection.noRawArtifactUrls}
-      aria-label="Phase 9 exit gate status"
+      aria-label="Current programme exit gate status"
     >
       <header className="ops-assurance-surface__header">
         <div>
-          <p className="ops-panel__eyebrow">Phase 9 exit gate</p>
+          <p className="ops-panel__eyebrow">Current programme exit gate</p>
           <h3>{props.projection.statusHeadline}</h3>
         </div>
         <ConformanceStatePill state={props.projection.decisionState} />
@@ -2969,12 +3045,12 @@ function Phase9ExitGateStatusSurface(props: { projection: Phase9ExitGateStatusPr
         disabled={!approvalEnabled}
         aria-describedby="phase9-exit-gate-approval-reason"
       >
-        {approvalEnabled ? "Approve Phase 9 exit gate" : "Exit gate approval blocked"}
+        {approvalEnabled ? "Approve Current programme exit gate" : "Exit gate approval blocked"}
       </button>
       <p id="phase9-exit-gate-approval-reason">{props.projection.approvalDisabledReason}</p>
       <div className="ops-panel__table">
         <table className="ops-table ops-table--compact">
-          <caption>Phase 9 exit gate proof rows</caption>
+          <caption>Current programme exit gate proof rows</caption>
           <thead>
             <tr>
               <th scope="col">Proof row</th>
@@ -3011,7 +3087,7 @@ function Phase9ExitGateStatusSurface(props: { projection: Phase9ExitGateStatusPr
         className="ops-conformance-blockers"
         data-testid="phase9-exit-gate-blockers"
         data-blocker-count={props.projection.blockerCount}
-        aria-label="Phase 9 exit gate blockers"
+        aria-label="Current programme exit gate blockers"
       >
         <h4>Blockers</h4>
         {props.projection.blockers.length > 0 ? (
@@ -3034,7 +3110,7 @@ function Phase9ExitGateStatusSurface(props: { projection: Phase9ExitGateStatusPr
       <section
         className="ops-compliance-link-strip"
         data-testid="phase9-exit-gate-handoffs"
-        aria-label="Phase 9 exit gate artifact handoffs"
+        aria-label="Current programme exit gate artifact handoffs"
       >
         {props.projection.artifactHandoffs.map((handoff) => (
           <button
@@ -3113,8 +3189,8 @@ function ProgrammeConformance472Surface(props: {
         data-scorecard-state={props.projection.scorecardState}
       >
         <span>
-          <strong>{props.projection.scorecardHashPrefix}</strong>
-          <small>Scorecard hash prefix</small>
+          <strong>Checked</strong>
+          <small>Scorecard status</small>
         </span>
         <span>
           <strong>
@@ -3187,11 +3263,11 @@ function ProgrammeConformance472Surface(props: {
         data-testid="programme-472-deferred-scope"
         data-deferred-scope-state={props.projection.deferredScopeState}
         data-deferred-phase-row-id={props.projection.deferredScope.deferredPhaseRowId}
-        aria-label="Programme 472 Phase 7 deferred scope"
+        aria-label="Programme 472 Current programme deferred scope"
       >
         <header className="ops-assurance-surface__header">
           <div>
-            <p className="ops-panel__eyebrow">Phase 7 boundary</p>
+            <p className="ops-panel__eyebrow">Current programme boundary</p>
             <h4>{titleCase(props.projection.deferredScope.phase7LiveNhsAppLaunchState)}</h4>
           </div>
           <ConformanceStatePill state={props.projection.deferredScopeState} />
@@ -3222,7 +3298,7 @@ function ProgrammeConformance472Surface(props: {
             >
               <strong>{correction.staleOrFlattenedClaim}</strong>
               <span>{correction.requiredCorrection}</span>
-              <small>{correction.affectedRows.join(", ")}</small>
+              <small>{correction.affectedRows.length} affected rows</small>
             </li>
           ))}
         </ul>
@@ -3234,24 +3310,20 @@ function ProgrammeConformance472Surface(props: {
         data-drawer-state="open"
         open
       >
-        <summary>Source trace for {props.projection.selectedRow.label}</summary>
+        <summary>Source summary for {props.projection.selectedRow.label}</summary>
         <p data-testid="programme-472-selected-row-details">
           {props.projection.selectedRow.consequence}
         </p>
-        <ol className="ops-conformance-trace">
-          {props.projection.sourceTraceRefs.map((sourceRef) => (
-            <li key={sourceRef}>{sourceRef}</li>
-          ))}
-          {props.projection.selectedRow.requiredProofRefs.map((proofRef) => (
-            <li key={proofRef}>{proofRef}</li>
-          ))}
-        </ol>
+        <ul className="ops-conformance-trace">
+          <li>{props.projection.sourceTraceRefs.length} source checks reviewed</li>
+          <li>{props.projection.selectedRow.requiredProofRefs.length} required checks present</li>
+        </ul>
       </details>
 
       <section
         className="ops-compliance-link-strip"
         data-testid="programme-472-handoffs"
-        aria-label="Programme 472 same-shell handoffs"
+        aria-label="Programme handoffs"
       >
         {props.projection.handoffs.map((handoff) => (
           <button
@@ -3267,7 +3339,7 @@ function ProgrammeConformance472Surface(props: {
             data-raw-artifact-url-suppressed={handoff.rawArtifactUrlSuppressed}
           >
             <span>{handoff.label}</span>
-            <small>{handoff.safeReturnToken}</small>
+            <small>Return preserved</small>
           </button>
         ))}
       </section>
@@ -3303,16 +3375,16 @@ function Phase7ChannelReconciliation473Surface(props: {
       data-selected-route-family={props.projection.selectedRouteFamily}
       data-no-raw-artifact-urls={props.projection.noRawArtifactUrls}
       data-responsive-contract={props.projection.responsiveContract}
-      aria-label="Phase 7 NHS App channel reconciliation"
+      aria-label="Current programme NHS App channel reconciliation"
     >
       <header className="ops-assurance-surface__header">
         <div>
-          <p className="ops-panel__eyebrow">Phase 7 channel reconciliation</p>
+          <p className="ops-panel__eyebrow">Current programme channel reconciliation</p>
           <h3>NHS App deferred-channel bridge</h3>
         </div>
         <ConformanceStatePill state={props.projection.readinessState} />
       </header>
-      <section className="ops-conformance-filters" aria-label="Phase 7 channel scenario controls">
+      <section className="ops-conformance-filters" aria-label="Current programme channel scenario controls">
         {scenarioOptions.map((scenarioState) => (
           <button
             key={scenarioState}
@@ -3336,12 +3408,12 @@ function Phase7ChannelReconciliation473Surface(props: {
             data-after-scorecard-hash={props.projection.afterScorecardHash}
           >
             <span>
-              <strong>{props.projection.rowHashPrefix}</strong>
-              <small>Phase 7 row hash</small>
+              <strong>Checked</strong>
+              <small>Current programme row</small>
             </span>
             <span>
               <strong>{props.projection.manifestVersionRef}</strong>
-              <small>Manifest</small>
+              <small>Release list</small>
             </span>
             <span>
               <strong>{props.projection.reconcileActionState}</strong>
@@ -3352,10 +3424,10 @@ function Phase7ChannelReconciliation473Surface(props: {
           <section
             className="ops-panel__table"
             data-testid="phase7-channel-matrix"
-            aria-label="Phase 7 conformance control matrix"
+            aria-label="Current programme conformance control matrix"
           >
             <table className="ops-table ops-table--compact">
-              <caption>Phase 7 conformance control matrix</caption>
+              <caption>Current programme conformance control matrix</caption>
               <thead>
                 <tr>
                   <th scope="col">Dimension</th>
@@ -3373,7 +3445,7 @@ function Phase7ChannelReconciliation473Surface(props: {
                   {
                     dimension: "contractAdoptionState",
                     state: props.projection.readinessState,
-                    authority: "Manifest/runtime tuple",
+                    authority: "Release list/runtime tuple",
                   },
                   {
                     dimension: "verificationCoverageState",
@@ -3406,13 +3478,13 @@ function Phase7ChannelReconciliation473Surface(props: {
           <section
             className="ops-panel__table"
             data-testid="phase7-embedded-route-matrix"
-            aria-label="Phase 7 embedded route matrix"
+            aria-label="Current programme embedded route matrix"
           >
             <table className="ops-table ops-table--compact">
               <caption>Embedded route coverage</caption>
               <thead>
                 <tr>
-                  <th scope="col">Route family</th>
+                  <th scope="col">Journey group</th>
                   <th scope="col">Coverage</th>
                   <th scope="col">Journey paths</th>
                   <th scope="col">Hash</th>
@@ -3463,7 +3535,7 @@ function Phase7ChannelReconciliation473Surface(props: {
         <aside
           className="ops-conformance-side"
           data-testid="phase7-channel-readiness-rail"
-          aria-label="Phase 7 channel readiness rail"
+          aria-label="Current programme channel readiness rail"
         >
           <section className="ops-conformance-blockers" data-testid="phase7-channel-blockers">
             <h4>Channel blockers</h4>
@@ -3486,8 +3558,8 @@ function Phase7ChannelReconciliation473Surface(props: {
             )}
           </section>
 
-          <section className="ops-conformance-rail" aria-label="Manifest and release tuple">
-            <h4>Manifest tuple</h4>
+          <section className="ops-conformance-rail" aria-label="Release list and release tuple">
+            <h4>Release list tuple</h4>
             <ul className="ops-inline-list">
               <li>{props.projection.releaseRef}</li>
               {props.projection.environmentProfileRefs.map((profileRef) => (
@@ -3523,7 +3595,7 @@ function Phase7ChannelReconciliation473Surface(props: {
             aria-disabled={!reconcileEnabled}
             disabled={!reconcileEnabled}
           >
-            {reconcileEnabled ? "Reconcile Phase 7 as complete" : "Reconcile blocked"}
+            {reconcileEnabled ? "Reconcile Current programme as complete" : "Reconcile blocked"}
           </button>
         </aside>
       </div>
@@ -3586,7 +3658,7 @@ function MigrationCutover474Surface(props: {
       <header className="ops-assurance-surface__header">
         <div>
           <p className="ops-panel__eyebrow">Migration cutover 474</p>
-          <h3>Dry-run cutover contract</h3>
+          <h3>Dry-run cutover rules</h3>
         </div>
         <ConformanceStatePill state={props.projection.cutoverDecision} />
       </header>
@@ -3765,10 +3837,10 @@ function MigrationCutover474Surface(props: {
             data-testid="migration-474-reference-manifest"
             data-no-phi={props.projection.referenceManifest.noPhi}
             data-no-pii={props.projection.referenceManifest.noPii}
-            aria-label="Task 474 reference dataset manifest"
+            aria-label="Task 474 reference dataset release list"
           >
             <table className="ops-table ops-table--compact">
-              <caption>Reference dataset manifest</caption>
+              <caption>Reference dataset release list</caption>
               <thead>
                 <tr>
                   <th scope="col">Record class</th>
@@ -3989,8 +4061,8 @@ function TrainingRunbookCentre475Surface(props: {
         aria-label="Task 475 readiness strip"
       >
         <span>
-          <small>Business as usual model hash</small>
-          <strong>{props.projection.bauModelHashPrefix}</strong>
+          <small>Business as usual model</small>
+          <strong>Checked</strong>
         </span>
         <span>
           <small>Training completion state</small>
@@ -4149,7 +4221,7 @@ function TrainingRunbookCentre475Surface(props: {
           aria-label="Task 475 operational support rail"
         >
           <section className="ops-conformance-rail">
-            <h4>Today&apos;s operational posture</h4>
+            <h4>Today&apos;s operational status</h4>
             <p>{props.projection.supportRail.todaysOperationalPosture}</p>
             <p>{props.projection.assistiveResponsibilityMessage}</p>
             <p>
@@ -4354,8 +4426,8 @@ function ReleaseWavePlanner476Surface(props: {
           <strong>{props.projection.runtimePublicationBundleRef}</strong>
         </span>
         <span>
-          <small>Wave manifest hash</small>
-          <strong>{props.projection.waveManifestHashPrefix}</strong>
+          <small>Wave release list</small>
+          <strong>Checked</strong>
         </span>
         <span>
           <small>Next safe action</small>
@@ -4475,8 +4547,11 @@ function ReleaseWavePlanner476Surface(props: {
                     </tr>
                   </thead>
                   <tbody>
-                    {(props.projection.selectedGuardrailSnapshot?.guardrailRules ?? []).map(
-                      (rule: any) => (
+                    {(
+                      (props.projection.selectedGuardrailSnapshot?.guardrailRules ??
+                        []) as readonly ReleaseWaveGuardrailRuleRow[]
+                    ).map(
+                      (rule) => (
                         <tr
                           key={rule.ruleId}
                           data-row-state={props.projection.selectedGuardrailSnapshot?.state}
@@ -4510,8 +4585,11 @@ function ReleaseWavePlanner476Surface(props: {
                     </tr>
                   </thead>
                   <tbody>
-                    {(props.projection.selectedObservationPolicy?.exitCriteria ?? []).map(
-                      (criterion: any) => (
+                    {(
+                      (props.projection.selectedObservationPolicy?.exitCriteria ??
+                        []) as readonly ReleaseWaveObservationCriterionRow[]
+                    ).map(
+                      (criterion) => (
                         <tr key={criterion.criterionId} data-row-state="exit">
                           <td>Exit</td>
                           <td>{criterion.metricRef}</td>
@@ -4522,8 +4600,11 @@ function ReleaseWavePlanner476Surface(props: {
                         </tr>
                       ),
                     )}
-                    {(props.projection.selectedObservationPolicy?.pauseCriteria ?? []).map(
-                      (criterion: any) => (
+                    {(
+                      (props.projection.selectedObservationPolicy?.pauseCriteria ??
+                        []) as readonly ReleaseWaveObservationCriterionRow[]
+                    ).map(
+                      (criterion) => (
                         <tr key={criterion.criterionId} data-row-state="pause">
                           <td>Pause</td>
                           <td>{criterion.metricRef}</td>
@@ -4792,8 +4873,8 @@ function DependencyReadinessBoard478Surface(props: {
           <strong>{props.projection.runtimePublicationBundleRef}</strong>
         </span>
         <span>
-          <small>Matrix hash</small>
-          <strong>{props.projection.matrixHashPrefix}</strong>
+          <small>Matrix status</small>
+          <strong>Checked</strong>
         </span>
         <span>
           <small>Launch critical dependencies</small>
@@ -4962,10 +5043,10 @@ function DependencyReadinessBoard478Surface(props: {
 
               <section className="dependency-478-drawer__split">
                 <div>
-                  <h4>Affected route families</h4>
+                  <h4>Affected routes</h4>
                   <ul className="ops-inline-list">
                     {props.projection.selectedDependency.routeFamilies.map((routeFamily) => (
-                      <li key={routeFamily}>{routeFamily}</li>
+                      <li key={routeFamily}>{opsPublicText(routeFamily)}</li>
                     ))}
                   </ul>
                 </div>
@@ -5022,8 +5103,9 @@ function DependencyReadinessBoard478Surface(props: {
                 </ol>
                 <p>
                   Exit criteria:{" "}
-                  {(selectedRunbook?.exitCriterionRefs ?? []).join(", ") ||
-                    "Current evidence required"}
+                  {selectedRunbook?.exitCriterionRefs?.length
+                    ? `${selectedRunbook.exitCriterionRefs.length} readiness checks`
+                    : "Current evidence required"}
                 </p>
               </section>
 
@@ -5087,10 +5169,10 @@ function DependencyReadinessBoard478Surface(props: {
           <section>
             <h3>Rehearsal gaps</h3>
             <ul className="ops-conformance-trace">
-              {props.projection.rail.rehearsalGaps.slice(0, 6).map((gap) => (
+              {props.projection.rail.rehearsalGaps.slice(0, 6).map((gap, index) => (
                 <li key={`${gap.rehearsalEvidenceId}-${gap.gapRef}`} data-state="deferred">
-                  <strong>{gap.dependencyRef}</strong>
-                  <span>{gap.gapRef}</span>
+                  <strong>{`Dependency ${index + 1}`}</strong>
+                  <span>Review gap</span>
                 </li>
               ))}
             </ul>
@@ -5099,9 +5181,9 @@ function DependencyReadinessBoard478Surface(props: {
           <section>
             <h3>Supplier comms</h3>
             <ul className="ops-conformance-trace">
-              {props.projection.rail.supplierCommsPlans.map((plan) => (
+              {props.projection.rail.supplierCommsPlans.map((plan, index) => (
                 <li key={plan.commsPlanId} data-state="complete">
-                  <strong>{plan.dependencyRef}</strong>
+                  <strong>{`Supplier ${index + 1}`}</strong>
                   <span>{plan.templates?.length ?? 0} templates</span>
                 </li>
               ))}
@@ -5512,12 +5594,12 @@ function AssuranceCenterPanel(props: { snapshot: OpsBoardStateSnapshot }) {
             aria-label="Pack proof summary"
           >
             <div>
-              <span>{assurance.packPreview.packVersionHash}</span>
-              <small>Pack version hash</small>
+              <span>Checked</span>
+              <small>Pack version</small>
             </div>
             <div>
-              <span>{assurance.packPreview.graphHash}</span>
-              <small>Graph hash</small>
+              <span>Checked</span>
+              <small>Graph status</small>
             </div>
             <div data-tone={assuranceTone(assurance.completenessSummary.trustState)}>
               <span>{titleCase(assurance.completenessSummary.trustState)}</span>
@@ -5904,7 +5986,7 @@ function AssuranceCenterPanel(props: { snapshot: OpsBoardStateSnapshot }) {
       >
         <header className="ops-assurance-surface__header">
           <div>
-            <p className="ops-panel__eyebrow">Export manifest</p>
+            <p className="ops-panel__eyebrow">Export release list</p>
             <h3>{titleCase(assurance.artifactStage.artifactState)}</h3>
           </div>
           <span data-tone={assuranceTone(assurance.artifactStage.artifactState)}>
@@ -6363,13 +6445,9 @@ function IncidentDeskPanel(props: { snapshot: OpsBoardStateSnapshot }) {
               >
                 <strong>{activeEvidenceLink.label}</strong>
                 <p>
-                  Same-shell drawer preserves {activeEvidenceLink.safeReturnTokenRef} and returns to{" "}
-                  {incidents.selectedIncidentRef}.
+                  The evidence drawer keeps your place and returns to the selected incident.
                 </p>
-                <small>
-                  {activeEvidenceLink.timelineRef} / {activeEvidenceLink.graphRef} /{" "}
-                  {activeEvidenceLink.artifactPresentationContractRef}
-                </small>
+                <small>Evidence summary ready</small>
               </section>
             ) : null}
           </section>
@@ -6379,26 +6457,24 @@ function IncidentDeskPanel(props: { snapshot: OpsBoardStateSnapshot }) {
             data-testid="incident-telemetry-redaction"
             data-surface="incident-telemetry-redaction"
             data-payload-class={incidents.telemetryRedaction.permittedPayloadClass}
-            aria-label="Incident telemetry redaction"
+            aria-label="Incident activity data redaction"
           >
             <header className="ops-incident-surface__header">
               <div>
-                <p className="ops-panel__eyebrow">UI telemetry</p>
-                <h3>Redaction fence</h3>
+                <p className="ops-panel__eyebrow">Activity protection</p>
+                <h3>Protected details</h3>
               </div>
-              <span>{incidents.telemetryRedaction.permittedPayloadClass}</span>
+              <span>Ready</span>
             </header>
             <p>{incidents.telemetryRedaction.telemetryCopy}</p>
             <ul className="ops-inline-list">
-              <li>UIEventEnvelope {incidents.telemetryRedaction.uiEventEnvelopeRef}</li>
-              <li>
-                UITransitionSettlementRecord {incidents.telemetryRedaction.transitionSettlementRef}
-              </li>
-              <li>UITelemetryDisclosureFence {incidents.telemetryRedaction.disclosureFenceRef}</li>
+              <li>Personal details redacted</li>
+              <li>Incident actions summarized</li>
+              <li>Disclosure checks applied</li>
             </ul>
             <ul className="ops-incident-redacted-fields">
               {incidents.telemetryRedaction.redactedFields.map((field) => (
-                <li key={field}>{field}</li>
+                <li key={field}>{titleCase(field)}</li>
               ))}
             </ul>
           </section>
@@ -6432,7 +6508,7 @@ function ChildRoutePanel(props: {
   onNavigate: (path: string) => void;
   onOpenGovernance: () => void;
 }) {
-  const { routeIntent, selectedAnomaly, location, returnToken } = props.snapshot;
+  const { routeIntent, selectedAnomaly, location } = props.snapshot;
   if (!routeIntent || !location.childRouteKind) {
     return null;
   }
@@ -6447,7 +6523,7 @@ function ChildRoutePanel(props: {
       >
         <header className="ops-child__header">
           <div>
-            <p className="ops-panel__eyebrow">Compare posture</p>
+            <p className="ops-panel__eyebrow">Compare status</p>
             <h2>{selectedAnomaly.title}</h2>
           </div>
           <button
@@ -6457,7 +6533,7 @@ function ChildRoutePanel(props: {
             data-testid="ops-return-button"
             data-surface="ops-return-token-target"
           >
-            Return via {returnToken?.returnTokenId ?? "OpsReturnToken"}
+            Return to board
           </button>
         </header>
         <div className="ops-compare-grid">
@@ -6467,17 +6543,17 @@ function ChildRoutePanel(props: {
           </article>
           <article className="ops-compare-card">
             <h3>Current delta</h3>
-            <p>{props.snapshot.allocationProjection.scenarioCompare.queuedDriftSummary}</p>
+            <p>{opsPublicText(props.snapshot.allocationProjection.scenarioCompare.queuedDriftSummary)}</p>
           </article>
           <article className="ops-compare-card ops-compare-card--sidecar">
             <h3>Guardrail</h3>
-            <p>{props.snapshot.allocationProjection.scenarioCompare.frozenReason}</p>
+            <p>{opsPublicText(props.snapshot.allocationProjection.scenarioCompare.frozenReason)}</p>
             <button
               type="button"
               className="ops-button ops-button--ghost"
               onClick={props.onOpenGovernance}
             >
-              Governance handoff stub
+              Open governance handoff
             </button>
           </article>
         </div>
@@ -6500,7 +6576,7 @@ function ChildRoutePanel(props: {
             data-testid="ops-return-button"
             data-surface="ops-return-token-target"
           >
-            Return via {returnToken?.returnTokenId ?? "OpsReturnToken"}
+            Return to board
           </button>
         </header>
         <table className="ops-table">
@@ -6547,7 +6623,7 @@ function ChildRoutePanel(props: {
             data-testid="ops-return-button"
             data-surface="ops-return-token-target"
           >
-            Return via {returnToken?.returnTokenId ?? "OpsReturnToken"}
+            Return to board
           </button>
         </header>
         <div className="ops-investigation-card">
@@ -6634,6 +6710,7 @@ function OperationsShellSeedDocument(props: {
     scenarioState: phase9LiveScenarioFromLocation("normal"),
     selectedSurfaceCode: phase9LiveSurfaceCodeForPath(snapshot.location.pathname),
   });
+  const showDiagnostics = opsDiagnosticsEnabled();
 
   return (
     <div
@@ -6790,8 +6867,8 @@ function OperationsShellSeedDocument(props: {
           className="ops-status-strip__tone"
           data-tone={deltaGateTone(snapshot.deltaGate.gateState)}
         >
-          <strong>{snapshot.freshnessStrip.label}</strong>
-          <span>{snapshot.deltaGate.summary}</span>
+          <strong>{opsPublicText(snapshot.freshnessStrip.label)}</strong>
+          <span>{opsPublicText(snapshot.deltaGate.summary)}</span>
         </div>
         <div className="ops-status-strip__facts" role="status" aria-live="polite">
           <span>Freshness {titleCase(snapshot.freshnessStrip.freshnessState)}</span>
@@ -6827,27 +6904,29 @@ function OperationsShellSeedDocument(props: {
         projection={securityComplianceExportRegistry}
         currentRoute={snapshot.location.pathname}
       />
-      <Phase9LiveProjectionGatewayStrip
-        projection={phase9LiveGatewayProjection}
-        currentRoute={snapshot.location.pathname}
-      />
+      {showDiagnostics ? (
+        <Phase9LiveProjectionGatewayStrip
+          projection={phase9LiveGatewayProjection}
+          currentRoute={snapshot.location.pathname}
+        />
+      ) : null}
 
       <div className="ops-shell__frame">
         <main className="ops-shell__main" role="main">
           <section
             className="ops-panel ops-panel--north-star"
-            aria-label="North star band"
+            aria-label="Operational summary"
             data-testid="north-star-band"
             data-surface="north-star-band"
           >
             <header className="ops-panel__header">
               <div>
-                <p className="ops-panel__eyebrow">NorthStarBand</p>
+                <p className="ops-panel__eyebrow">Operational summary</p>
                 <h2>Operational vitals</h2>
               </div>
-              <span className="ops-panel__headline">{snapshot.summarySentence}</span>
+              <span className="ops-panel__headline">{opsPublicText(snapshot.summarySentence)}</span>
             </header>
-            <p className="ops-panel__summary">{snapshot.overviewProjection.surfaceSummary}</p>
+            <p className="ops-panel__summary">{opsPublicText(snapshot.overviewProjection.surfaceSummary)}</p>
             <div className="ops-north-star-grid">
               {snapshot.northStarBand.map((metric) => (
                 <button
@@ -6864,15 +6943,15 @@ function OperationsShellSeedDocument(props: {
                   <Sparkline values={metric.trend} label={`${metric.label} trend`} />
                   <p>{metric.changeLabel}</p>
                   <span className="ops-state-label">{titleCase(metric.stateLabel)}</span>
-                  <small>{metric.interpretation}</small>
+                  <small>{opsPublicText(metric.interpretation)}</small>
                   <em>
-                    {metric.freshnessLabel} / {metric.confidenceLabel}
+                    {opsPublicText(`${metric.freshnessLabel} / ${metric.confidenceLabel}`)}
                   </em>
                 </button>
               ))}
             </div>
             <table className="ops-table ops-table--compact" data-testid="north-star-band-fallback">
-              <caption>North star band fallback</caption>
+              <caption>Operational summary fallback</caption>
               <thead>
                 <tr>
                   <th scope="col">Vital</th>
@@ -7000,7 +7079,7 @@ function OperationsShellSeedDocument(props: {
                       {row.blockerCount} blocker{row.blockerCount === 1 ? "" : "s"}
                     </small>
                     <Sparkline values={row.trend} label={`${row.serviceLabel} trend`} />
-                    <em>{row.latestMarker}</em>
+                    <em>{opsPublicText(row.latestMarker)}</em>
                   </button>
                 ))}
               </div>
@@ -7029,7 +7108,7 @@ function OperationsShellSeedDocument(props: {
                       <td>{titleCase(row.requiredTrustState)}</td>
                       <td>{row.freshnessAge}</td>
                       <td>{row.blockerCount}</td>
-                      <td>{row.latestMarker}</td>
+                      <td>{opsPublicText(row.latestMarker)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -7038,7 +7117,7 @@ function OperationsShellSeedDocument(props: {
           />
 
           <VisualizationPanel
-            title="BottleneckRadar"
+              title="Bottleneck review"
             summary={allocation.surfaceSummary}
             trustLabel={`Trust ${allocation.bottleneckLadder.find((row) => row.selected)?.freshnessTrust ?? snapshot.selectedAnomaly.trustSummary}`}
             freshnessLabel={`Lease ${allocation.candidateLease.eligibilityState}`}
@@ -7079,7 +7158,7 @@ function OperationsShellSeedDocument(props: {
                       <span className="ops-ladder__body">
                         <strong>{row.anomalyName}</strong>
                         <span>{row.affectedScope}</span>
-                        <small>{row.reason}</small>
+                        <small>{opsPublicText(row.reason)}</small>
                       </span>
                       <span
                         className="ops-ladder__metrics"
@@ -7142,7 +7221,7 @@ function OperationsShellSeedDocument(props: {
                       <td>{row.freshnessTrust}</td>
                       <td>{row.guardrailDrag}</td>
                       <td>{titleCase(row.actionEligibilityState)}</td>
-                      <td>{row.reason}</td>
+                      <td>{opsPublicText(row.reason)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -7152,10 +7231,10 @@ function OperationsShellSeedDocument(props: {
 
           <div className="ops-shell__secondary-grid">
             <VisualizationPanel
-              title="CapacityAllocator"
-              summary="Current capacity, proposed delta, breach impact, constraints, and calibration stay on the same metric basis."
-              trustLabel={`Eligibility ${titleCase(allocation.actionEligibilityFence.eligibilityState)}`}
-              freshnessLabel={`Compare ${allocation.scenarioCompare.deltaGateState}`}
+              title="Capacity allocation"
+              summary="Current capacity, proposed change, breach impact, constraints, and calibration stay on the same metric basis."
+              trustLabel={`Eligibility ${opsPublicStateLabel(allocation.actionEligibilityFence.eligibilityState)}`}
+              freshnessLabel={`Compare ${opsPublicStateLabel(allocation.scenarioCompare.deltaGateState)}`}
               visualizationMode={snapshot.visualizationMode}
               dataTestId="ops-capacity-allocator"
               dataSurface="capacity-allocator"
@@ -7179,7 +7258,7 @@ function OperationsShellSeedDocument(props: {
                         <span style={{ width: scoreWidth(row.resultingCapacity * 4) }} />
                       </div>
                       <p>{row.breachRiskDelta}</p>
-                      <small>{row.dependencyConstraint}</small>
+                      <small>{opsPublicText(row.dependencyConstraint)}</small>
                       <em>
                         {row.confidenceInterval} / {row.calibrationAge}
                       </em>
@@ -7194,7 +7273,7 @@ function OperationsShellSeedDocument(props: {
                     <tr>
                       <th scope="col">Lane</th>
                       <th scope="col">Current</th>
-                      <th scope="col">Proposed delta</th>
+                      <th scope="col">Proposed change</th>
                       <th scope="col">Resulting</th>
                       <th scope="col">Breach impact</th>
                       <th scope="col">Constraint</th>
@@ -7210,7 +7289,7 @@ function OperationsShellSeedDocument(props: {
                         <td>{row.proposedDelta}</td>
                         <td>{row.resultingCapacity}</td>
                         <td>{row.breachRiskDelta}</td>
-                        <td>{row.dependencyConstraint}</td>
+                        <td>{opsPublicText(row.dependencyConstraint)}</td>
                         <td>
                           {row.confidenceInterval} / {row.calibrationAge}
                         </td>
@@ -7258,7 +7337,7 @@ function OperationsShellSeedDocument(props: {
                           <dd>{row.proposedEffect}</dd>
                         </div>
                       </dl>
-                      <small>{row.safeSummary}</small>
+                      <small>{opsPublicText(row.safeSummary)}</small>
                     </article>
                   ))}
                 </div>
@@ -7315,7 +7394,7 @@ function OperationsShellSeedDocument(props: {
             >
               <header className="ops-child__header">
                 <div>
-                  <p className="ops-panel__eyebrow">Governance stub</p>
+                  <p className="ops-panel__eyebrow">Governance summary</p>
                   <h2>{snapshot.governanceHandoff.title}</h2>
                 </div>
                 <button
@@ -7355,18 +7434,18 @@ function OperationsShellSeedDocument(props: {
           >
             <header className="ops-workbench__header">
               <div>
-                <p className="ops-panel__eyebrow">InterventionWorkbench</p>
+                <p className="ops-panel__eyebrow">Intervention workbench</p>
                 <h2>{snapshot.selectedAnomaly.title}</h2>
               </div>
               <span className="ops-workbench__state">
-                {titleCase(allocation.actionEligibilityFence.eligibilityState)}
+                {opsPublicStateLabel(allocation.actionEligibilityFence.eligibilityState)}
               </span>
             </header>
             <p className="ops-workbench__summary">{snapshot.selectedAnomaly.recommendedAction}</p>
             <ul className="ops-inline-list">
-              <li>{allocation.selectedIntervention.expectedBenefit}</li>
-              <li>Selection lease {snapshot.selectionLease.leaseState}</li>
-              <li>Candidate lease {allocation.candidateLease.candidateLeaseId}</li>
+              <li>{opsPublicText(allocation.selectedIntervention.expectedBenefit)}</li>
+              <li>Selection status {opsPublicStateLabel(snapshot.selectionLease.leaseState)}</li>
+              <li>Candidate selected</li>
               <li>Settlement {titleCase(allocation.candidateLease.settlementStatus)}</li>
             </ul>
             <section
@@ -7394,11 +7473,11 @@ function OperationsShellSeedDocument(props: {
                     <strong>{candidate.title}</strong>
                     <span>{titleCase(candidate.readinessState)}</span>
                   </header>
-                  <p>{candidate.expectedBenefit}</p>
+                  <p>{opsPublicText(candidate.expectedBenefit)}</p>
                   <dl className="ops-candidate__facts">
                     <div>
                       <dt>Uncertainty</dt>
-                      <dd>{candidate.uncertainty}</dd>
+                      <dd>{opsPublicText(candidate.uncertainty)}</dd>
                     </div>
                     <div>
                       <dt>Lag</dt>
@@ -7418,7 +7497,7 @@ function OperationsShellSeedDocument(props: {
                 <dd>{snapshot.selectedHealthCell.summary}</dd>
               </div>
               <div>
-                <dt>Health posture</dt>
+                <dt>Health status</dt>
                 <dd>
                   {titleCase(snapshot.selectedHealthCell.state)} /{" "}
                   {titleCase(snapshot.selectedHealthCell.mitigationAuthorityState)}
@@ -7429,7 +7508,7 @@ function OperationsShellSeedDocument(props: {
                 <dd>
                   {snapshot.selectedHealthCell.blockerCount} blocker
                   {snapshot.selectedHealthCell.blockerCount === 1 ? "" : "s"} /{" "}
-                  {snapshot.selectedHealthCell.latestMarker}
+                  {opsPublicText(snapshot.selectedHealthCell.latestMarker)}
                 </dd>
               </div>
               <div>
@@ -7441,18 +7520,14 @@ function OperationsShellSeedDocument(props: {
                 <dd>{snapshot.selectedAnomaly.evidenceBasis}</dd>
               </div>
               <div>
-                <dt>Action eligibility fence</dt>
+                <dt>Action readiness</dt>
                 <dd>
-                  {titleCase(allocation.actionEligibilityFence.eligibilityState)} /{" "}
-                  {allocation.actionEligibilityFence.actionEligibilityFenceRef}
+                  {opsPublicStateLabel(allocation.actionEligibilityFence.eligibilityState)}
                 </dd>
               </div>
               <div>
-                <dt>Idempotency and settlement</dt>
-                <dd>
-                  {allocation.candidateLease.idempotencyKey} /{" "}
-                  {titleCase(allocation.candidateLease.settlementStatus)}
-                </dd>
+                <dt>Settlement</dt>
+                <dd>{titleCase(allocation.candidateLease.settlementStatus)}</dd>
               </div>
             </dl>
             <section
@@ -7462,8 +7537,8 @@ function OperationsShellSeedDocument(props: {
               data-rank-order-stable={allocation.scenarioCompare.rankOrderStable}
             >
               <strong>Scenario compare</strong>
-              <p>{allocation.scenarioCompare.frozenReason}</p>
-              <small>{allocation.scenarioCompare.queuedDriftSummary}</small>
+              <p>{opsPublicText(allocation.scenarioCompare.frozenReason)}</p>
+              <small>{opsPublicText(allocation.scenarioCompare.queuedDriftSummary)}</small>
               <button
                 type="button"
                 className="ops-link"
@@ -7506,7 +7581,7 @@ function OperationsShellSeedDocument(props: {
                   )
                 }
               >
-                Drill with {snapshot.returnToken?.returnTokenId ?? "OpsReturnToken"}
+                Open health detail
               </button>
               <button
                 type="button"
@@ -7519,46 +7594,48 @@ function OperationsShellSeedDocument(props: {
             </div>
           </section>
 
-          <section className="ops-panel" aria-label="Telemetry log">
-            <header className="ops-panel__header">
-              <div>
-                <p className="ops-panel__eyebrow">DOM markers and telemetry</p>
-                <h3>Recent board-state events</h3>
-              </div>
-              <span>{props.state.telemetry.length} envelopes</span>
-            </header>
-            <ol className="ops-telemetry-log" data-testid="ops-telemetry-log">
-              {props.state.telemetry
-                .slice(-5)
-                .reverse()
-                .map((envelope) => (
-                  <li key={envelope.envelopeId}>
-                    <strong>{envelope.eventName}</strong>
-                    <span>
-                      {String(
-                        envelope.payload.stateSummary ??
-                          envelope.payload.deltaGateState ??
-                          envelope.eventCode,
-                      )}
-                    </span>
-                  </li>
-                ))}
-            </ol>
-            {focusRestoreBinding ? (
-              <button
-                type="button"
-                className="ops-link"
-                data-testid="ops-focus-restore-marker"
-                data-surface="safe-return-focus-restore"
-                data-entity-ref={snapshot.selectedAnomaly.anomalyId}
-                {...buildAutomationAnchorElementAttributes(focusRestoreBinding, {
-                  instanceKey: snapshot.selectedAnomaly.anomalyId,
-                })}
-              >
-                {props.state.continuitySnapshot.focusRestoreTargetRef}
-              </button>
-            ) : null}
-          </section>
+          {showDiagnostics ? (
+            <section className="ops-panel" aria-label="Developer event list">
+              <header className="ops-panel__header">
+                <div>
+                  <p className="ops-panel__eyebrow">Developer activity data</p>
+                  <h3>Recent board-state events</h3>
+                </div>
+                <span>{props.state.telemetry.length} envelopes</span>
+              </header>
+              <ol className="ops-telemetry-log" data-testid="ops-telemetry-log">
+                {props.state.telemetry
+                  .slice(-5)
+                  .reverse()
+                  .map((envelope) => (
+                    <li key={envelope.envelopeId}>
+                      <strong>{envelope.eventName}</strong>
+                      <span>
+                        {String(
+                          envelope.payload.stateSummary ??
+                            envelope.payload.deltaGateState ??
+                            envelope.eventCode,
+                        )}
+                      </span>
+                    </li>
+                  ))}
+              </ol>
+              {focusRestoreBinding ? (
+                <button
+                  type="button"
+                  className="ops-link"
+                  data-testid="ops-focus-restore-marker"
+                  data-surface="safe-return-focus-restore"
+                  data-entity-ref={snapshot.selectedAnomaly.anomalyId}
+                  {...buildAutomationAnchorElementAttributes(focusRestoreBinding, {
+                    instanceKey: snapshot.selectedAnomaly.anomalyId,
+                  })}
+                >
+                  Developer focus target
+                </button>
+              ) : null}
+            </section>
+          ) : null}
 
           <section className="ops-panel" aria-label="Anomaly matrix">
             <header className="ops-panel__header">

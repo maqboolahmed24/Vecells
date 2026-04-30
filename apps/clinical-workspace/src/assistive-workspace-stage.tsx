@@ -233,7 +233,7 @@ export function AssistiveWorkspaceStageStateAdapter({
   const breakpoint = isFolded ? "narrow" : stageWidthPx === 360 ? "tablet" : "desktop_wide";
   const primarySummary =
     fixture === "downgraded"
-      ? "Assistive context is preserved in observe-only posture because the current capability trust envelope degraded."
+      ? "Assistive context is preserved in observe-only status because the current capability trust envelope degraded."
       : fixture === "folded"
         ? "Assistive support is folded into the same shell without covering the task canvas or DecisionDock."
         : "Assistive support can expand beside the task canvas while the clinical review remains dominant.";
@@ -255,7 +255,7 @@ export function AssistiveWorkspaceStageStateAdapter({
           : "Assistive workspace stage",
     summaryHeading:
       fixture === "summary-stub"
-        ? "Summary stub, not promoted"
+        ? "Summary summary, not promoted"
         : fixture === "pinned"
           ? "Pinned assistive stage"
           : fixture === "folded"
@@ -265,7 +265,7 @@ export function AssistiveWorkspaceStageStateAdapter({
               : "Promoted assistive stage",
     summaryLine: primarySummary,
     rationaleLine:
-      "Promotion depends on AttentionBudget, WorkspaceTrustEnvelope, AssistiveCapabilityTrustEnvelope, route family, publication posture, and the selected anchor tuple.",
+      "Promotion depends on AttentionBudget, WorkspaceTrustEnvelope, AssistiveCapabilityTrustEnvelope, journey group, publication status, and the selected anchor tuple.",
     trustState,
     actionabilityState,
     confidenceLabel:
@@ -290,7 +290,7 @@ export function AssistiveWorkspaceStageStateAdapter({
       stageWidthPx,
       blockerLabel:
         fixture === "downgraded"
-          ? "Trust posture blocks pinning and fresh insert affordances."
+          ? "Trust status blocks pinning and fresh insert affordances."
           : "No support-region conflict; primary canvas remains dominant.",
       promotedSupportRegionConflict: "none",
     },
@@ -308,14 +308,14 @@ export function AssistiveWorkspaceStageStateAdapter({
           : "desktop_stage",
       foldLabel: isFolded
         ? "Folded into a same-shell tab panel below the split threshold."
-        : "Rendered as the bounded fourth support region.",
+        : "Rendered as the limited fourth support region.",
     },
     contentRows: [
       {
         label: "Artifact",
         value: "Preserved draft awareness",
         detail:
-          "Draft, provenance, override, and stale-recovery language are reused from tasks 419 to 423.",
+          "Draft, history, override, and stale-recovery language are reused from tasks 419 to 423.",
       },
       {
         label: "Queue context",
@@ -422,7 +422,7 @@ export function AssistiveSummaryStubCluster({
         <h3 id={headingId}>{state.summaryHeading}</h3>
         <p id={summaryId}>{state.summaryLine}</p>
       </div>
-      <div className="assistive-stage-stub__facts" aria-label="Assistive summary posture">
+      <div className="assistive-stage-stub__facts" aria-label="Assistive summary status">
         <span>{state.confidenceLabel}</span>
         <span>{state.provenanceLine}</span>
       </div>
@@ -538,9 +538,9 @@ export function AssistiveDecisionDockCoexistenceFrame({
       data-testid="AssistiveDecisionDockCoexistenceFrame"
       data-decision-dock-coexistence="dominant_action_preserved"
     >
-      <span className="assistive-stage__section-label">DecisionDock coexistence</span>
+      <span className="assistive-stage__section-label">Next action coexistence</span>
       <p>
-        The stage remains subordinate to the current DecisionDock focus lease and returns insert or
+        The stage remains subordinate to the current next-action focus lease and returns insert or
         recovery intent to the existing dock lane.
       </p>
       <dl>

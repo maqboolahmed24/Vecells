@@ -151,7 +151,7 @@ export function PreferenceLedgerCard({
         </div>
       </dl>
       <button type="button" data-testid="preference-review-action" onClick={onReview}>
-        Review Vecells preference
+        Review communication preference
       </button>
       {reviewOpen ? (
         <section
@@ -159,7 +159,7 @@ export function PreferenceLedgerCard({
           data-testid="preference-review-panel"
           role="status"
         >
-          <strong>Vecells communication behavior only</strong>
+          <strong>Local communication behavior only</strong>
           <p>
             This review does not update NHS login claims, PDS demographic rows, or GP demographic
             rows.
@@ -203,7 +203,7 @@ export function DemographicSourceCard({ source }: { source: DemographicSourcePro
         <p className="contact-truth__empty">Unavailable here. No value is inferred.</p>
       )}
       <p className="contact-truth__boundary">
-        Vecells preference edits do not update this external demographic source.
+        Preference edits do not update this external demographic source.
       </p>
     </article>
   );
@@ -313,7 +313,7 @@ function useContactTruthController() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [repairStarted, setRepairStarted] = useState(false);
   const [returned, setReturned] = useState(false);
-  const [announcement, setAnnouncement] = useState("Contact truth ledger loaded.");
+  const [announcement, setAnnouncement] = useState("Contact details loaded.");
   const titleRef = useRef<HTMLHeadingElement>(null);
   const returnRef = useRef<HTMLButtonElement>(null);
 
@@ -358,7 +358,7 @@ function useContactTruthController() {
   function reviewPreference(): void {
     setReviewOpen(true);
     setAnnouncement(
-      "Vecells preference review opened. This does not update NHS login, PDS, or GP rows.",
+      "Communication preference review opened. This does not update NHS login, PDS, or GP rows.",
     );
   }
 
@@ -419,14 +419,14 @@ export default function ContactTruthPreferenceApp() {
       data-workspace-mode={projection.mode}
       data-blocks-active-path={String(projection.reachabilitySummary.blocksActivePath)}
       data-same-shell-return={String(returned)}
-      data-supported-testids="account-details-header provenance-badge-row-nhs-login provenance-badge-row-vecells-preferences provenance-badge-row-pds provenance-badge-row-gp-system source-truth-card-nhs-login preference-ledger-card demographic-source-card-pds demographic-source-card-gp reachability-risk-panel contact-repair-entry-card contact-repair-action contact-return-action preference-review-action"
+      data-supported-testids="account-details-header history-badge-row-nhs-login history-badge-row-vecells-preferences history-badge-row-pds history-badge-row-gp-system source-truth-card-nhs-login preference-ledger-card demographic-source-card-pds demographic-source-card-gp reachability-risk-panel contact-repair-entry-card contact-repair-action contact-return-action preference-review-action"
     >
       <header className="contact-truth__top-band" data-testid="contact-truth-top-band">
         <div>
           <VecellLogoWordmark aria-hidden="true" className="contact-truth__wordmark" />
-          <span>Contact truth and communication preferences</span>
+          <span>Contact details and communication preferences</span>
         </div>
-        <nav aria-label="Contact truth modes">
+        <nav aria-label="Contact detail views">
           <button type="button" onClick={() => navigate("/portal/account/contact")}>
             Ledger
           </button>

@@ -40,7 +40,7 @@ function TopStrip({ projection }: { readonly projection: EvidenceVault488Project
         <strong>{projection.legalHoldCount}</strong>
       </div>
       <div>
-        <span>Export posture</span>
+        <span>Export status</span>
         <strong>{titleCase(projection.exportPosture)}</strong>
       </div>
     </section>
@@ -266,7 +266,7 @@ function ExportDialog({
           <dd>{titleCase(projection.role)}</dd>
         </div>
         <div>
-          <dt>Posture</dt>
+          <dt>Status</dt>
           <dd>{titleCase(projection.exportPosture)}</dd>
         </div>
         <div>

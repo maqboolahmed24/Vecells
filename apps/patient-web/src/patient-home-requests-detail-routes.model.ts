@@ -410,7 +410,7 @@ export const patientRequestSummaries215: readonly PatientRequestSummaryProjectio
     surfaceState: "ready",
     linkedPharmacyCaseId: "PHC-2057",
     linkedPharmacyStatusLabel: "Referral proof pending",
-    changedSinceSeenLabel: "Referral handoff still awaiting authoritative proof",
+    changedSinceSeenLabel: "Pharmacy confirmation is still pending",
     reasonCodes: ["pharmacy_child_visible", "practice_awaited", "quiet_secondary_row"],
   },
   {
@@ -422,8 +422,7 @@ export const patientRequestSummaries215: readonly PatientRequestSummaryProjectio
     statusText: "Urgent review",
     statusTone: "blocked",
     bucket: "in_progress",
-    patientSummary:
-      "The pharmacy route reopened this request for urgent review and kept the original request anchor visible.",
+    patientSummary: "The pharmacy has sent this request back for urgent review.",
     latestMeaningfulUpdateAt: "2026-04-15T16:10:00.000Z",
     updatedLabel: "Updated yesterday, 16:10",
     nextSafeActionRef: "review_urgent_return",
@@ -435,7 +434,7 @@ export const patientRequestSummaries215: readonly PatientRequestSummaryProjectio
     surfaceState: "ready",
     linkedPharmacyCaseId: "PHC-2103",
     linkedPharmacyStatusLabel: "Urgent return reopened",
-    changedSinceSeenLabel: "Urgent return reopened the original request context",
+    changedSinceSeenLabel: "Urgent pharmacy update added yesterday",
     reasonCodes: ["pharmacy_reopened", "bounce_back_preserved", "urgent_return_visible"],
   },
   {
@@ -447,8 +446,7 @@ export const patientRequestSummaries215: readonly PatientRequestSummaryProjectio
     statusText: "Outcome recorded",
     statusTone: "success",
     bucket: "complete",
-    patientSummary:
-      "The completed pharmacy outcome remains available through the same request-led record.",
+    patientSummary: "The pharmacy outcome is available to review.",
     latestMeaningfulUpdateAt: "2026-04-14T15:20:00.000Z",
     updatedLabel: "Closed 14 Apr, 15:20",
     nextSafeActionRef: "review_pharmacy_outcome",
@@ -460,7 +458,7 @@ export const patientRequestSummaries215: readonly PatientRequestSummaryProjectio
     surfaceState: "ready",
     linkedPharmacyCaseId: "PHC-2196",
     linkedPharmacyStatusLabel: "Outcome recorded",
-    changedSinceSeenLabel: "Pharmacy outcome settled and archived into the request record",
+    changedSinceSeenLabel: "Pharmacy outcome recorded",
     reasonCodes: ["settled_read_only", "pharmacy_outcome_visible", "not_promoted_on_home"],
   },
 ];
@@ -646,7 +644,7 @@ function compactPanels(): readonly PatientHomeCompactPanel[] {
       panelRef: "home_panel_active_requests",
       kind: "active_requests",
       label: "Active requests",
-      summary: "Four request summaries are available; one has a patient-owned action.",
+      summary: "Four requests are available; one needs your reply.",
       stateLabel: "1 reply needed",
       path: "/requests",
       tone: "attention",
@@ -657,8 +655,7 @@ function compactPanels(): readonly PatientHomeCompactPanel[] {
       panelRef: "home_panel_appointments",
       kind: "appointments",
       label: "Appointments",
-      summary:
-        "Start booking from the home account with the return path and home anchor preserved before the booking workspace becomes interactive.",
+      summary: "Start or change an appointment from this account.",
       stateLabel: "Book or rebook",
       path: bookingEntryPath(PATIENT_BOOKING_ENTRY_IDS.homeReady),
       tone: "info",
@@ -673,9 +670,8 @@ function compactPanels(): readonly PatientHomeCompactPanel[] {
       panelRef: "home_panel_record_updates",
       kind: "record_updates",
       label: "Record updates",
-      summary:
-        "Record-follow-up context is acknowledged but waits for the health-record projection.",
-      stateLabel: "Future surface",
+      summary: "Health record updates will appear here when they are ready.",
+      stateLabel: "Coming soon",
       path: "#records-placeholder",
       tone: "info",
       governedPlaceholder: true,
@@ -685,9 +681,8 @@ function compactPanels(): readonly PatientHomeCompactPanel[] {
       panelRef: "home_panel_unread_messages",
       kind: "unread_messages",
       label: "Unread messages",
-      summary:
-        "Message previews are represented as a placeholder until communications visibility is live.",
-      stateLabel: "Future surface",
+      summary: "Message previews will appear here when available.",
+      stateLabel: "Coming soon",
       path: "#communications-placeholder",
       tone: "quiet",
       governedPlaceholder: true,
@@ -744,9 +739,7 @@ function homeProjectionFor(
   };
 }
 
-function groupedRequests(
-  selectedFilterRef: PatientRequestBucket | "all",
-): PatientRequestsIndexProjection["groups"] {
+function groupedRequests(): PatientRequestsIndexProjection["groups"] {
   const specs: readonly {
     readonly bucket: PatientRequestBucket;
     readonly label: string;
@@ -755,26 +748,22 @@ function groupedRequests(
     {
       bucket: "needs_attention",
       label: "Needs attention",
-      description: "Patient-owned actions appear first and remain one-at-a-time.",
+      description: "Requests that need something from you appear first.",
     },
     {
       bucket: "in_progress",
       label: "In progress",
-      description: "Current practice-owned or placeholder states without promotion.",
+      description: "Requests the practice is still working on.",
     },
     {
       bucket: "complete",
       label: "Complete",
-      description: "Settled summaries stay readable but are not home actions.",
+      description: "Finished requests stay available for review.",
     },
   ];
   return specs.map((spec) => ({
     ...spec,
-    requests: patientRequestSummaries215.filter(
-      (request) =>
-        request.bucket === spec.bucket &&
-        (selectedFilterRef === "all" || request.bucket === selectedFilterRef),
-    ),
+    requests: patientRequestSummaries215.filter((request) => request.bucket === spec.bucket),
   }));
 }
 
@@ -801,7 +790,7 @@ function requestsIndexFor(
     requestSummaryRefs: patientRequestSummaries215.map((request) => request.summaryProjectionRef),
     requestLineageRefs: patientRequestSummaries215.map((request) => request.requestLineageRef),
     surfaceState: "ready",
-    groups: groupedRequests(selectedFilterRef),
+    groups: groupedRequests(),
   };
 }
 
@@ -865,8 +854,7 @@ function downstreamFor(
         childRef: "booking_entry_300_requests_ready",
         patientLabelRef: "booking_follow_up",
         label: "Booking follow-up",
-        summary:
-          "Booking entry keeps this request lineage, selected anchor, and safe return visible before scheduling opens.",
+        summary: "Booking follow-up is available before scheduling opens.",
         authoritativeState: "available",
         awaitingParty: "none",
         visibilityTier: "full",
@@ -890,7 +878,7 @@ function downstreamFor(
         childRef: "record_211_a",
         patientLabelRef: "results_update",
         label: "Record follow-up",
-        summary: "Health record context is partial until the record projection is present.",
+        summary: "A health record update will appear here when it is ready.",
         authoritativeState: "available",
         awaitingParty: "none",
         visibilityTier: "placeholder_only",
@@ -910,8 +898,7 @@ function downstreamFor(
         childRef: "message_214_a",
         patientLabelRef: "communications_thread",
         label: "Communications thread",
-        summary:
-          "Message chronology is acknowledged from task 214 but not launched from this route.",
+        summary: "Message updates will appear here when they are ready.",
         authoritativeState: "preview_available",
         awaitingParty: "patient",
         visibilityTier: "placeholder_only",
@@ -976,8 +963,7 @@ function downstreamFor(
       childRef: `${request.requestRef}_summary_placeholder`,
       patientLabelRef: "summary_placeholder",
       label: "Related updates",
-      summary:
-        "No child route is live for this request, so the route keeps a governed placeholder.",
+      summary: "Related updates will appear here when they are ready.",
       authoritativeState: request.bucket === "complete" ? "settled" : "in_progress",
       awaitingParty: request.bucket === "complete" ? "none" : "practice",
       visibilityTier: "placeholder_only",
@@ -1119,8 +1105,8 @@ function detailFor(
         pharmacyMerge
           ? pharmacyMerge.authoritativeStateLabel
           : request.bucket === "complete"
-          ? "Authoritative outcome settled"
-          : "Same request context preserved",
+          ? "Outcome recorded"
+          : "Request details kept together",
       latestMeaningfulUpdateLabel: request.latestMeaningfulUpdateAt,
       sourceProjectionRefs: [
         "PatientActionSettlementProjection",
@@ -1129,13 +1115,13 @@ function detailFor(
       ],
     },
     trustSummaries: [
-      "The route uses one request-led projection family for rows, detail, lineage, action routing, and return bundles.",
+      "This page keeps the request, next step, and related updates together.",
       pharmacyMerge
-        ? `Pharmacy child ${pharmacyMerge.pharmacyCaseId} stays visible here, in notifications, and in operations without creating a second local status copy.`
-        : "Future child surfaces render as governed placeholders rather than empty gaps.",
+        ? `Pharmacy update ${pharmacyMerge.pharmacyCaseId} stays visible with this request.`
+        : "Related updates appear here when they are ready.",
       pharmacyMerge
-        ? pharmacyMerge.supportReplaySummary
-        : "The selected anchor and filter survive soft navigation, refresh replay, and browser back.",
+        ? pharmacyMerge.patientNotification.stateLabel
+        : "Returning to the request list keeps your place.",
     ],
     sourceProjectionRefs: [
       "PatientRequestDetailProjection",
@@ -1194,8 +1180,9 @@ export function resolvePatientHomeRequestsDetailEntry(input: {
   const detailMatch = pathname.match(/^\/requests\/([^/]+)$/);
   const selectedRequestRef =
     detailMatch?.[1] ??
-    input.restoredBundle?.requestRef ??
-    (routeKey === "requests_index" ? null : "request_211_a");
+    (routeKey === "requests_index"
+      ? null
+      : (input.restoredBundle?.requestRef ?? "request_211_a"));
   const activeRouteRef =
     routeKey === "request_detail" && selectedRequestRef
       ? (`/requests/${selectedRequestRef}` as const)

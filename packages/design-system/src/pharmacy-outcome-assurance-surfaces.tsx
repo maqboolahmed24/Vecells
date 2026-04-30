@@ -135,10 +135,6 @@ export interface PharmacyOutcomeAssurancePanelModel {
   evidenceDrawer: OutcomeEvidenceDrawerModel;
 }
 
-function joinClasses(...classes: Array<string | null | false | undefined>): string {
-  return classes.filter(Boolean).join(" ");
-}
-
 function titleCase(value: string): string {
   return value
     .split(/[_-]/g)
@@ -222,7 +218,7 @@ export function OutcomeMatchSummary(props: {
           <dd>{props.summary.runnerUpCaseLabel ?? "No viable runner-up"}</dd>
         </div>
         <div>
-          <dt>Match posture</dt>
+          <dt>Match status</dt>
           <dd>{props.summary.matchStateLabel}</dd>
         </div>
         <div>
@@ -447,7 +443,7 @@ export function OutcomeDecisionDock(props: {
     >
       <header className="pharmacy-outcome-assurance-card__header">
         <div>
-          <p className="pharmacy-outcome-assurance-kicker">DecisionDock</p>
+          <p className="pharmacy-outcome-assurance-kicker">Next action</p>
           <h3>{props.dock.title}</h3>
         </div>
         <span className="pharmacy-outcome-assurance-pill" data-tone={props.dock.tone}>

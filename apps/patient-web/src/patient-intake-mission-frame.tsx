@@ -13,7 +13,6 @@ import {
   writePersistedContinuitySnapshot,
   type BreakpointClass,
 } from "@vecells/persistent-shell";
-import { VecellLogoLockup } from "@vecells/design-system";
 import {
   createInitialMissionFrameSnapshot,
   defaultIntakeMissionFrameMemory,
@@ -30,7 +29,6 @@ import {
   requestPublicIdForDraft,
   resolveMissionFrameView,
   routeStepDescriptors,
-  selectedAnchorForRoute,
   synchronizeMissionFrameSnapshot,
   type IntakeMissionFrameLocation,
   type IntakeMissionFrameMemory,
@@ -43,6 +41,7 @@ import {
   cancelRequestTypeChange,
   confirmRequestTypeChange,
   ensureProgressiveState,
+  hasBoundedUrgentDiversionSignal,
   isSafetyReviewPending,
   moveDetailsBackward,
   moveDetailsForward,
@@ -61,7 +60,6 @@ import {
   ReviewDeltaNotice,
 } from "./patient-intake-question-primitives";
 import {
-  AmbientStateRibbon,
   ContinueYourRequestCard,
   MergeReviewSheet,
   RecoveryBridgePanel,
@@ -70,6 +68,7 @@ import {
   AccessPostureCanvas,
   AccessPostureStrip,
 } from "./patient-intake-access-posture-components";
+import { PatientPortalTopBar } from "./patient-portal-top-bar";
 import {
   ChannelPreferenceStack,
   CommunicationNeedsPanel,
@@ -273,6 +272,20 @@ function shellPostureLabel(routeKey: IntakeMissionFrameRouteKey): string {
   }
 }
 
+function withCompletedStep(
+  memory: IntakeMissionFrameMemory,
+  routeKey: IntakeMissionFrameRouteKey,
+): IntakeMissionFrameMemory {
+  const stepKey = routeStepDescriptors.find((step) => step.routeKey === routeKey)?.stepKey;
+  if (!stepKey || stepKey === "landing" || memory.completedStepKeys.includes(stepKey)) {
+    return memory;
+  }
+  return {
+    ...memory,
+    completedStepKeys: [...memory.completedStepKeys, stepKey],
+  };
+}
+
 interface PatientIntakeMissionFrameAppProps {
   initialPathname?: string;
   initialMemoryOverride?: Partial<IntakeMissionFrameMemory>;
@@ -301,9 +314,7 @@ function useMissionFrameController(props: PatientIntakeMissionFrameAppProps = {}
     ),
   );
   const [location, setLocation] = useState(initialLocationRef.current);
-  const [memory, setMemory] = useState<IntakeMissionFrameMemory>(() =>
-    seededMemoryRef.current,
-  );
+  const [memory, setMemory] = useState<IntakeMissionFrameMemory>(() => seededMemoryRef.current);
   const [validationIssue, setValidationIssue] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState(() =>
     createInitialMissionFrameSnapshot(initialLocationRef.current),
@@ -403,19 +414,6 @@ function useMissionFrameController(props: PatientIntakeMissionFrameAppProps = {}
   const attachmentLane = usePatientIntakeAttachments({
     memory,
     commitMemory: commitLocalMemory,
-  });
-
-  const ensureCompleted = useEffectEvent((routeKey: IntakeMissionFrameRouteKey) => {
-    const stepKey = routeStepDescriptors.find((step) => step.routeKey === routeKey)?.stepKey;
-    if (!stepKey || stepKey === "landing") {
-      return;
-    }
-    setMemory((current) => ({
-      ...current,
-      completedStepKeys: current.completedStepKeys.includes(stepKey)
-        ? current.completedStepKeys
-        : [...current.completedStepKeys, stepKey],
-    }));
   });
 
   const beginDraft = useEffectEvent(async () => {
@@ -519,11 +517,11 @@ function useMissionFrameController(props: PatientIntakeMissionFrameAppProps = {}
       return;
     }
     setValidationIssue(null);
-    ensureCompleted(location.routeKey);
     switch (location.routeKey) {
       case "request_type":
         commitLocation(
           parsePatientIntakeMissionLocation(`/start-request/${memory.draftPublicId}/details`),
+          withCompletedStep(memory, "request_type"),
         );
         return;
       case "details": {
@@ -541,12 +539,14 @@ function useMissionFrameController(props: PatientIntakeMissionFrameAppProps = {}
         }
         commitLocation(
           parsePatientIntakeMissionLocation(`/start-request/${memory.draftPublicId}/files`),
+          withCompletedStep(result.nextMemory, "details"),
         );
         return;
       }
       case "supporting_files":
         commitLocation(
           parsePatientIntakeMissionLocation(`/start-request/${memory.draftPublicId}/contact`),
+          withCompletedStep(memory, "supporting_files"),
         );
         return;
       case "contact_preferences": {
@@ -561,6 +561,7 @@ function useMissionFrameController(props: PatientIntakeMissionFrameAppProps = {}
         }
         commitLocation(
           parsePatientIntakeMissionLocation(`/start-request/${memory.draftPublicId}/review`),
+          withCompletedStep(memory, "contact_preferences"),
         );
         return;
       }
@@ -578,7 +579,10 @@ function useMissionFrameController(props: PatientIntakeMissionFrameAppProps = {}
         if (memory.phase1Integration?.enabled) {
           const settled = await submitIntegratedJourney(memory, location).catch(() => null);
           if (settled) {
-            const nextMemory = applyIntegratedSubmitResult(memory, settled);
+            const nextMemory = withCompletedStep(
+              applyIntegratedSubmitResult(memory, settled),
+              "review_submit",
+            );
             const requestPublicId =
               settled.requestPublicId ?? nextMemory.phase1Integration?.requestPublicId;
             commitLocation(
@@ -596,15 +600,16 @@ function useMissionFrameController(props: PatientIntakeMissionFrameAppProps = {}
         }
         commitLocation(
           parsePatientIntakeMissionLocation(
-            memory.requestType === "Symptoms"
+            hasBoundedUrgentDiversionSignal(memory)
               ? `/start-request/${memory.draftPublicId}/urgent-guidance`
               : `/start-request/${memory.draftPublicId}/receipt`,
           ),
+          withCompletedStep(memory, "review_submit"),
         );
         return;
       case "resume_recovery":
         if (memory.bundleCompatibilityMode === "blocked") {
-          setValidationIssue("This draft needs governed recovery before it can resume.");
+          setValidationIssue("This draft needs approved recovery before it can resume.");
           return;
         }
         commitLocation(
@@ -709,6 +714,14 @@ function useMissionFrameController(props: PatientIntakeMissionFrameAppProps = {}
     );
   });
 
+  const openUrgentHelp = useEffectEvent(() => {
+    const urgentPath =
+      location.aliasSource === "seq_139_contract" && location.requestPublicId
+        ? `/intake/requests/${location.requestPublicId}/urgent-guidance`
+        : `/start-request/${memory.draftPublicId}/urgent-guidance`;
+    commitLocation(parsePatientIntakeMissionLocation(urgentPath));
+  });
+
   const openStatusPath = useEffectEvent((targetPathname: string) => {
     if (!targetPathname) {
       return;
@@ -744,9 +757,7 @@ function useMissionFrameController(props: PatientIntakeMissionFrameAppProps = {}
       const nextMemory = {
         ...memory,
         accessSimulation:
-          scenarioId === "none"
-            ? createDefaultPatientAccessSimulation()
-            : { scenarioId },
+          scenarioId === "none" ? createDefaultPatientAccessSimulation() : { scenarioId },
       };
       if (pathname) {
         commitLocation(parsePatientIntakeMissionLocation(pathname), nextMemory, historyMode);
@@ -796,34 +807,6 @@ function useMissionFrameController(props: PatientIntakeMissionFrameAppProps = {}
   const cancelPendingRequestTypeChange = useEffectEvent(() => {
     setValidationIssue(null);
     commitLocalMemory(cancelRequestTypeChange(memory) as IntakeMissionFrameMemory, "immediate");
-  });
-
-  const focusStatusSurface = useEffectEvent(() => {
-    const owner = safeWindow();
-    if (!owner) {
-      return;
-    }
-    const selector =
-      draftSave.truth.state === "review changes"
-        ? "[data-testid='patient-intake-merge-sheet']"
-        : draftSave.truth.state === "resume safely"
-          ? "[data-testid='patient-intake-recovery-bridge']"
-          : null;
-    if (!selector) {
-      return;
-    }
-    const target = owner.document.querySelector<HTMLElement>(selector);
-    if (!target) {
-      return;
-    }
-    const focusTarget = () => {
-      target.focus({ preventScroll: true });
-      target.scrollIntoView({ block: "center", inline: "nearest" });
-    };
-    focusTarget();
-    owner.requestAnimationFrame(() => {
-      focusTarget();
-    });
   });
 
   const confirmMergeResolution = useEffectEvent(() => {
@@ -968,6 +951,7 @@ function useMissionFrameController(props: PatientIntakeMissionFrameAppProps = {}
     advanceReceiptPatch,
     refreshRequestStatus,
     openTrackRequest,
+    openUrgentHelp,
     openStatusPath,
     registerFocusedField,
     toggleQuestionHelp,
@@ -975,7 +959,6 @@ function useMissionFrameController(props: PatientIntakeMissionFrameAppProps = {}
     confirmPendingRequestTypeChange,
     cancelPendingRequestTypeChange,
     openStep,
-    focusStatusSurface,
     confirmMergeResolution,
     resolveRecoveryBridge,
     startAgainFromLanding,
@@ -984,7 +967,73 @@ function useMissionFrameController(props: PatientIntakeMissionFrameAppProps = {}
   };
 }
 
-function OrbitalNode({ active, complete }: { active: boolean; complete: boolean }) {
+function ProgressStepGlyph({ routeKey }: { routeKey: IntakeMissionFrameRouteKey }) {
+  if (routeKey === "landing") {
+    return (
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <path d="M22 50V14" />
+        <path d="M22 14h24l-5 9 5 9H22" />
+      </svg>
+    );
+  }
+  if (routeKey === "request_type") {
+    return (
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <circle cx="18" cy="20" r="5" />
+        <circle cx="46" cy="18" r="5" />
+        <circle cx="46" cy="46" r="5" />
+        <path d="M23 20h9c8 0 9-2 14-2" />
+        <path d="M23 20h7c9 0 10 26 16 26" />
+      </svg>
+    );
+  }
+  if (routeKey === "details") {
+    return (
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <path d="m18 46 4-13 23-23 9 9-23 23-13 4Z" />
+        <path d="m39 16 9 9" />
+      </svg>
+    );
+  }
+  if (routeKey === "supporting_files") {
+    return (
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <path d="M20 12h17l9 9v31H20Z" />
+        <path d="M37 12v10h9" />
+        <path d="M27 34h18" />
+        <path d="M27 43h12" />
+      </svg>
+    );
+  }
+  if (routeKey === "contact_preferences") {
+    return (
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <path d="M16 18h32a6 6 0 0 1 6 6v15a6 6 0 0 1-6 6H29l-12 8v-8h-1a6 6 0 0 1-6-6V24a6 6 0 0 1 6-6Z" />
+        <path d="M24 30h16" />
+        <path d="M24 38h10" />
+      </svg>
+    );
+  }
+  if (routeKey === "review_submit") {
+    return (
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <path d="M24 14h16l3 6h5v34H16V20h5Z" />
+        <path d="M25 38l6 6 12-16" />
+      </svg>
+    );
+  }
+  return null;
+}
+
+function OrbitalNode({
+  active,
+  complete,
+  routeKey,
+}: {
+  active: boolean;
+  complete: boolean;
+  routeKey: IntakeMissionFrameRouteKey;
+}) {
   return (
     <span
       className="patient-intake-mission-frame__orbital-node"
@@ -992,7 +1041,7 @@ function OrbitalNode({ active, complete }: { active: boolean; complete: boolean 
       data-complete={complete ? "true" : "false"}
       aria-hidden="true"
     >
-      <span />
+      <ProgressStepGlyph routeKey={routeKey} />
     </span>
   );
 }
@@ -1006,7 +1055,8 @@ function ProgressConstellationRail({
   completedStepKeys: readonly string[];
   onSelectStep: (routeKey: IntakeMissionFrameRouteKey) => void;
 }) {
-  const activeIndex = routeStepDescriptors.findIndex((step) => step.routeKey === activeRouteKey);
+  const journeySteps = routeStepDescriptors.slice(0, 6);
+  const activeIndex = journeySteps.findIndex((step) => step.routeKey === activeRouteKey);
   return (
     <aside
       className="patient-intake-mission-frame__progress-rail"
@@ -1014,11 +1064,13 @@ function ProgressConstellationRail({
       data-testid="patient-intake-progress-rail"
     >
       <div className="patient-intake-mission-frame__rail-heading">
-        <span>Constellation</span>
-        <strong>{formatStepCount(Math.max(activeIndex, 0), 6)}</strong>
+        <span>Progress</span>
+        <strong>
+          {activeIndex >= 0 ? formatStepCount(activeIndex, journeySteps.length) : "Outcome"}
+        </strong>
       </div>
       <ol className="patient-intake-mission-frame__rail-list">
-        {routeStepDescriptors.slice(0, 6).map((step) => {
+        {journeySteps.map((step) => {
           const complete = completedStepKeys.includes(step.stepKey);
           const active = step.routeKey === activeRouteKey;
           const reachable = complete || active || step.routeKey === "request_type";
@@ -1032,7 +1084,7 @@ function ProgressConstellationRail({
                 onClick={() => onSelectStep(step.routeKey)}
                 data-testid={`progress-node-${step.routeKey}`}
               >
-                <OrbitalNode active={active} complete={complete} />
+                <OrbitalNode active={active} complete={complete} routeKey={step.routeKey} />
                 <span>{step.railLabel}</span>
               </button>
             </li>
@@ -1074,16 +1126,18 @@ function SummaryPeekPanel({
 }) {
   return (
     <aside
+      id="patient-intake-summary-panel"
       className="patient-intake-mission-frame__summary-panel"
       data-summary-mode={summaryMode}
       data-open={visible ? "true" : "false"}
       data-testid="patient-intake-summary-panel"
-      aria-label="Summary peek"
+      aria-label="Request summary"
+      tabIndex={-1}
     >
       <div className="patient-intake-mission-frame__summary-head">
         <div>
-          <span>Summary peek</span>
-          <h3>Current request thread</h3>
+          <span>Request summary</span>
+          <h3>What you have told us</h3>
         </div>
         {summaryMode === "panel" ? null : (
           <button
@@ -1107,7 +1161,7 @@ function SummaryPeekPanel({
         ))}
       </div>
       <div className="patient-intake-mission-frame__provenance-note">
-        <span>Provenance</span>
+        <span>History</span>
         <p>{provenanceNote}</p>
       </div>
     </aside>
@@ -1255,8 +1309,8 @@ function StepCanvas({
             </p>
             <ul className="patient-intake-mission-frame__expectation-list">
               <li>One question at a time with a quiet status strip.</li>
-              <li>The same shell through urgent advice, receipt, and resume recovery.</li>
-              <li>One dominant action per step so the next move is never ambiguous.</li>
+              <li>Your answers stay together through urgent advice, receipt, and resume.</li>
+              <li>One clear action per step so the next move is easy to find.</li>
             </ul>
           </div>
           {continueEntry ? (
@@ -1304,6 +1358,16 @@ function StepCanvas({
             onConfirmChange={onConfirmRequestTypeChange}
             onCancelChange={onCancelRequestTypeChange}
           />
+          {validationIssue ? (
+            <p
+              className="patient-intake-mission-frame__validation-note"
+              data-testid="patient-intake-request-type-validation"
+              role="alert"
+              aria-live="polite"
+            >
+              {validationIssue}
+            </p>
+          ) : null}
         </>
       ) : null}
 
@@ -1349,6 +1413,8 @@ function StepCanvas({
             <p
               className="patient-intake-mission-frame__validation-note"
               data-testid="patient-intake-local-validation"
+              role="alert"
+              aria-live="polite"
             >
               {validationIssue}
             </p>
@@ -1442,6 +1508,8 @@ function StepCanvas({
             <p
               className="patient-intake-mission-frame__validation-note"
               data-testid="patient-intake-contact-validation"
+              role="alert"
+              aria-live="polite"
             >
               {validationIssue}
             </p>
@@ -1482,16 +1550,16 @@ function StepCanvas({
               <strong>Submission consequence</strong>
               <p>
                 {memory.requestType === "Symptoms"
-                  ? "Symptoms can morph into the urgent pathway frame without leaving the shell or implying urgent issuance before settlement exists."
-                  : "Other request types morph into the calm receipt surface and keep the same continuity key."}
+                  ? "If your answers suggest urgent help, we will show urgent guidance before sending a routine request."
+                  : "After you send this request, you will see a receipt and a tracking link."}
               </p>
             </section>
             <section className="patient-intake-mission-frame__review-card">
               <strong>Contact recap</strong>
               <p>
-                Preferred route: {view.contactSummaryView.preferredRouteLabel} at{" "}
+                Preferred contact: {view.contactSummaryView.preferredRouteLabel} at{" "}
                 {view.contactSummaryView.preferredDestinationMasked}. This remains a masked
-                preference summary, not route verification or delivery evidence.
+                preference summary, not delivery confirmation.
               </p>
               {view.contactSummaryView.reviewCue ? (
                 <p
@@ -1528,7 +1596,7 @@ function StepCanvas({
               <BundleCompatibilitySheet sheet={flow.bundleCompatibilitySheet} />
               {recoveryRecord ? null : (
                 <div className="patient-intake-mission-frame__helper-card">
-                  <strong>Same-shell resolution</strong>
+                  <strong>Resume details</strong>
                   <p>{view.routeResolution?.targetIntent.replaceAll("_", " ")}</p>
                 </div>
               )}
@@ -1626,8 +1694,9 @@ export function PatientIntakeMissionFrameApp(props: PatientIntakeMissionFrameApp
         ? true
         : controller.memory.summaryPeekOpen;
   const summaryChips = view.accessPosture?.summaryVisibility === "hidden" ? [] : view.summaryChips;
+  const journeyStepCount = 6;
   const currentStepIndex = routeStepDescriptors
-    .slice(0, 6)
+    .slice(0, journeyStepCount)
     .findIndex((step) => step.routeKey === view.location.routeKey);
   const footerPrimaryLabel =
     view.location.routeKey === "review_submit" && !controller.memory.reviewAffirmed
@@ -1657,12 +1726,18 @@ export function PatientIntakeMissionFrameApp(props: PatientIntakeMissionFrameApp
     ownerWindow.document.body.dataset.motion = prefersReducedMotion ? "reduced" : "full";
   }, [prefersReducedMotion]);
 
+  const restoredPathnameRef = useRef<string | null>(null);
+
   useEffect(() => {
     const ownerWindow = safeWindow();
     if (!ownerWindow) {
       return;
     }
-    if (controller.draftSave.savedScrollTop > 0) {
+    if (
+      restoredPathnameRef.current !== view.location.pathname &&
+      controller.draftSave.savedScrollTop > 0
+    ) {
+      restoredPathnameRef.current = view.location.pathname;
       ownerWindow.requestAnimationFrame(() => {
         ownerWindow.scrollTo({ top: controller.draftSave.savedScrollTop, behavior: "auto" });
       });
@@ -1680,7 +1755,7 @@ export function PatientIntakeMissionFrameApp(props: PatientIntakeMissionFrameApp
         `[data-focus-field="${fieldKey}"] input, [data-focus-field="${fieldKey}"] textarea, [data-focus-field="${fieldKey}"] button`,
       );
       if (fieldInput) {
-        fieldInput.focus();
+        fieldInput.focus({ preventScroll: true });
         return;
       }
     }
@@ -1688,21 +1763,21 @@ export function PatientIntakeMissionFrameApp(props: PatientIntakeMissionFrameApp
       "[data-outcome-autofocus='true']",
     );
     if (outcomeFocus) {
-      outcomeFocus.focus();
+      outcomeFocus.focus({ preventScroll: true });
       return;
     }
     const accessPostureFocus = ownerWindow.document.querySelector<HTMLElement>(
       "[data-access-posture-autofocus='true']",
     );
     if (accessPostureFocus) {
-      accessPostureFocus.focus();
+      accessPostureFocus.focus({ preventScroll: true });
       return;
     }
     const focusTarget = routeFocusTarget(view.location.routeKey);
     const element = ownerWindow.document.querySelector<HTMLElement>(
       `[data-focus-target="${focusTarget}"]`,
     );
-    element?.focus();
+    element?.focus({ preventScroll: true });
   }, [
     controller.draftSave.focusedFieldKey,
     view.location.routeKey,
@@ -1728,9 +1803,12 @@ export function PatientIntakeMissionFrameApp(props: PatientIntakeMissionFrameApp
       }
       const focusField =
         target.closest<HTMLElement>("[data-focus-field]")?.dataset.focusField ?? null;
+      if (!focusField) {
+        return;
+      }
       controller.registerFocusedField(focusField);
       ownerWindow.requestAnimationFrame(() => {
-        target.scrollIntoView({ block: "center", inline: "nearest" });
+        target.scrollIntoView({ block: "nearest", inline: "nearest" });
       });
     };
     ownerWindow.document.addEventListener("focusin", onFocus);
@@ -1787,51 +1865,27 @@ export function PatientIntakeMissionFrameApp(props: PatientIntakeMissionFrameApp
         } as CSSProperties
       }
     >
+      <PatientPortalTopBar current="requests" testId="patient-intake-top-band" />
       <header
         className="patient-intake-mission-frame__masthead"
         data-testid="patient-intake-masthead"
       >
-        <div className="patient-intake-mission-frame__brand">
-          <VecellLogoLockup
-            aria-hidden="true"
-            className="patient-intake-mission-frame__brand-lockup"
-            style={{ width: 180, height: "auto" }}
-          />
-          <div className="patient-intake-mission-frame__brand-copy">
-            <span className="patient-intake-mission-frame__eyebrow">vecell intake</span>
-            <h1
-              data-focus-target="landing-heading"
-              tabIndex={view.location.routeKey === "landing" ? -1 : undefined}
-            >
-              Quiet clarity mission frame
-            </h1>
-            <p>
-              One premium same-shell intake surface for request type, detail capture, files, contact
-              preferences, review, urgent guidance, receipt, and resume recovery.
-            </p>
-          </div>
+        <div
+          className="patient-intake-mission-frame__emergency-copy"
+          data-testid="patient-intake-emergency-notice"
+        >
+          <span>If this is an emergency</span>
+          <strong>Call 999 now</strong>
+          <p>Use 999 for immediate danger, severe chest pain, or breathing problems.</p>
         </div>
-        <div className="patient-intake-mission-frame__masthead-meta">
-          <span>{profile.topology.replaceAll("_", " ")}</span>
-          <span>
-            {view.location.aliasSource === "start_request_alias"
-              ? "/start-request alias"
-              : "/intake contract"}
-          </span>
-          <span>{saveTruth.state}</span>
-          <button
-            type="button"
-            className="patient-intake-mission-frame__summary-toggle"
-            onClick={controller.toggleSummaryPeek}
-            aria-expanded={summaryVisible}
-            data-testid="patient-intake-summary-toggle"
-          >
-            Summary peek
-          </button>
-          <button type="button" className="patient-intake-mission-frame__urgent-escape">
-            {view.urgentEscapeLabel}
-          </button>
-        </div>
+        <button
+          type="button"
+          className="patient-intake-mission-frame__masthead-control patient-intake-mission-frame__urgent-escape"
+          onClick={controller.openUrgentHelp}
+          data-testid="patient-intake-urgent-escape"
+        >
+          {view.urgentEscapeLabel}
+        </button>
       </header>
 
       {view.accessPosture ? (
@@ -1840,9 +1894,7 @@ export function PatientIntakeMissionFrameApp(props: PatientIntakeMissionFrameApp
           posture={view.accessPosture}
           onAction={controller.focusAccessPostureSurface}
         />
-      ) : (
-        <AmbientStateRibbon truth={saveTruth} onAction={controller.focusStatusSurface} />
-      )}
+      ) : null}
 
       <section className="patient-intake-mission-frame__body" data-testid="patient-intake-body">
         <ProgressConstellationRail
@@ -1852,9 +1904,48 @@ export function PatientIntakeMissionFrameApp(props: PatientIntakeMissionFrameApp
         />
 
         <section className="patient-intake-mission-frame__center-column">
-          <div className="patient-intake-mission-frame__center-meta">
-            <span>{currentStepIndex >= 0 ? formatStepCount(currentStepIndex, 6) : "Outcome"}</span>
-            <strong>{selectedAnchorForRoute(view.location.routeKey).replaceAll("-", " ")}</strong>
+          <div
+            className="patient-intake-mission-frame__center-meta"
+            data-testid="patient-intake-step-header"
+          >
+            <div className="patient-intake-mission-frame__step-copy">
+              <span className="patient-intake-mission-frame__step-eyebrow">Patient request</span>
+              <h1
+                data-focus-target="landing-heading"
+                tabIndex={view.location.routeKey === "landing" ? -1 : undefined}
+              >
+                Start a request
+              </h1>
+              <p>Answer a few questions, add files if useful, then review before sending.</p>
+            </div>
+            <div className="patient-intake-mission-frame__step-status" aria-label="Request status">
+              <span className="patient-intake-mission-frame__step-count">
+                <span>
+                  {currentStepIndex >= 0
+                    ? formatStepCount(currentStepIndex, journeyStepCount)
+                    : "Outcome"}
+                </span>
+                <strong>{view.routeStep.railLabel}</strong>
+              </span>
+              <span
+                className="patient-intake-mission-frame__masthead-chip"
+                data-tone={saveTruth.stateMarkTone}
+              >
+                {saveTruth.label}
+              </span>
+              {summaryMode === "drawer" ? (
+                <button
+                  type="button"
+                  className="patient-intake-mission-frame__masthead-control patient-intake-mission-frame__summary-toggle"
+                  onClick={controller.toggleSummaryPeek}
+                  aria-controls="patient-intake-summary-panel"
+                  aria-expanded={summaryVisible}
+                  data-testid="patient-intake-summary-toggle"
+                >
+                  Request summary
+                </button>
+              ) : null}
+            </div>
           </div>
           <StepCanvas
             view={view}
@@ -1914,7 +2005,9 @@ export function PatientIntakeMissionFrameApp(props: PatientIntakeMissionFrameApp
           primaryLabel={footerPrimaryLabel}
           secondaryLabel={footerSecondaryLabel}
           onPrimary={controller.continueForward}
-          onSecondary={controller.goBack}
+          onSecondary={
+            view.location.routeKey === "landing" ? controller.openUrgentHelp : controller.goBack
+          }
         />
       )}
     </main>

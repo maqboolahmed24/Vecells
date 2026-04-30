@@ -153,7 +153,7 @@ export function EligibilitySupersessionNotice(props: {
       aria-live="polite"
     >
       <div>
-        <p className="pharmacy-eligibility-kicker">Explanation posture</p>
+        <p className="pharmacy-eligibility-kicker">Explanation status</p>
         <h3>{props.notice.title}</h3>
         <p>{props.notice.summary}</p>
       </div>
@@ -294,13 +294,13 @@ export function EligibilityEvidenceDrawer(props: {
         </dl>
         <div className="pharmacy-eligibility-meta-pair">
           <article className="pharmacy-eligibility-fact-card">
-            <span>Decision tuple</span>
-            <strong>{props.preview.decisionTupleHash}</strong>
+            <span>Decision status</span>
+            <strong>Checked</strong>
             <p>Stable selector for patient and staff parity checks.</p>
           </article>
           <article className="pharmacy-eligibility-fact-card">
-            <span>Evidence hash</span>
-            <strong>{props.preview.sharedEvidenceHash}</strong>
+            <span>Evidence check</span>
+            <strong>Checked</strong>
             <p>Frozen evidence anchor for replay and audit.</p>
           </article>
         </div>

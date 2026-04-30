@@ -487,12 +487,12 @@ function mutationStateForScenario(runtimeScenario: RuntimeScenario): CallbackSur
 function freezeReasonForScenario(runtimeScenario: RuntimeScenario): string | null {
   switch (runtimeScenario) {
     case "stale_review":
-      return "A fresher callback tuple is required before any new attempt or terminal outcome can be recorded.";
+      return "Fresher callback details are required before any new attempt or terminal outcome can be recorded.";
     case "read_only":
     case "recovery_only":
-      return "The callback shell preserves the last safe attempt and promise context, but mutation remains frozen under recovery posture.";
+      return "The callback workspace preserves the last safe attempt and promise context, but mutation remains frozen under recovery status.";
     case "blocked":
-      return "Release truth is blocked. The callback workbench stays visible without writable attempt or resolution controls.";
+      return "Release status is blocked. The callback workbench stays visible without writable attempt or resolution controls.";
     case "live":
     default:
       return null;
@@ -797,7 +797,7 @@ export function buildCallbackWorkbenchProjection(input: {
     routeId: "callback_workbench_route",
     visualMode: "Callback_Operations_Deck",
     queueHealthSummary:
-      `${callbackCaseSeeds.length} callback cases remain in one same-shell operations deck with expectation, attempt, and repair truth aligned.`,
+      `${callbackCaseSeeds.length} callback cases remain in one same-case operations deck with expectation, attempt, and repair status aligned.`,
     dueNowSummary:
       `${dueNowCount} cases need immediate evidence or route action. ${repairCount} case ${repairCount === 1 ? "is" : "are"} repair-dominant.`,
     rowCount: callbackCaseSeeds.length,

@@ -6,7 +6,7 @@ import {
   useState,
   type RefObject,
 } from "react";
-import { VecellLogoWordmark } from "@vecells/design-system";
+import { PatientPortalTopBar } from "./patient-portal-top-bar";
 import {
   SIGNED_IN_REQUEST_START_TASK_ID,
   SignedInRequestEntryResolver,
@@ -43,6 +43,10 @@ function readStoredRestoreSummary(): string | null {
   } catch {
     return null;
   }
+}
+
+function displaySavedKey(value: string): string {
+  return value.replaceAll("_", " ").replaceAll("-", " ");
 }
 
 function useSignedInRequestController() {
@@ -154,16 +158,16 @@ export function SavedContextCard({
       </div>
       <dl>
         <div>
-          <dt>Last meaningful update</dt>
+          <dt>Saved update</dt>
           <dd>{card.lastMeaningfulUpdate}</dd>
         </div>
         <div>
-          <dt>Current safe destination</dt>
-          <dd>{card.currentSafeDestination}</dd>
+          <dt>Next step</dt>
+          <dd>{card.dominantActionLabel}</dd>
         </div>
         <div>
-          <dt>Selected anchor</dt>
-          <dd>{card.selectedAnchorKey}</dd>
+          <dt>Current section</dt>
+          <dd>{displaySavedKey(card.selectedAnchorKey)}</dd>
         </div>
       </dl>
       <button
@@ -189,19 +193,19 @@ export function DraftContinuitySummary({
       data-testid="draft-continuity-summary"
       aria-labelledby="draft-continuity-title"
     >
-      <h2 id="draft-continuity-title">Continuity tuple</h2>
+      <h2 id="draft-continuity-title">Saved request details</h2>
       <dl>
         <div>
-          <dt>Draft</dt>
-          <dd>{bundle.draftPublicId}</dd>
+          <dt>Reference</dt>
+          <dd>Saved request</dd>
         </div>
         <div>
           <dt>Step</dt>
-          <dd>{bundle.selectedStepKey.replaceAll("_", " ")}</dd>
+          <dd>{displaySavedKey(bundle.selectedStepKey)}</dd>
         </div>
         <div>
-          <dt>Anchor</dt>
-          <dd>{bundle.selectedAnchorKey}</dd>
+          <dt>Place</dt>
+          <dd>{displaySavedKey(bundle.selectedAnchorKey)}</dd>
         </div>
         <div>
           <dt>Summary</dt>
@@ -226,12 +230,11 @@ export function RestoreDecisionNotice({
       data-reason-code={resolution.reasonCode}
       aria-labelledby="restore-decision-title"
     >
-      <p className="signed-in-start__eyebrow">Restore decision</p>
-      <h2 id="restore-decision-title">{resolution.reasonCode.replaceAll("_", " ")}</h2>
-      <p>
-        Restore uses authoritative draft continuity and promotion truth. It never relies on local
-        cache alone.
-      </p>
+      <p className="signed-in-start__eyebrow">Saved request</p>
+      <h2 id="restore-decision-title">
+        {resolution.opensDraftForEditing ? "Ready to continue" : "View current status"}
+      </h2>
+      <p>Your saved request details are checked before we send you to the next safe step.</p>
     </section>
   );
 }
@@ -319,20 +322,14 @@ export function SignedInMissionFrame({
         </section>
         {screen.screenKey === "PromotedDraftMappedOutcome" ? (
           <section className="signed-in-start__mapped" data-testid="promoted-draft-mapped-outcome">
-            <h2>Mapped to request truth</h2>
-            <p>
-              This saved draft is already promoted. Editing remains closed; status and receipt truth
-              now live in the authoritative request shell.
-            </p>
+            <h2>Request already sent</h2>
+            <p>This saved draft is now a live request, so changes are closed here.</p>
           </section>
         ) : null}
         {screen.screenKey === "NarrowedWritePostureEntry" ? (
           <section className="signed-in-start__mapped" data-testid="narrowed-write-posture-entry">
-            <h2>Write authority narrowed</h2>
-            <p>
-              The next action is delegated to the `par_197` claim and identity-hold posture family
-              instead of silently re-enabling editing.
-            </p>
+            <h2>Access check needed</h2>
+            <p>Complete the safety check before editing this request again.</p>
           </section>
         ) : null}
         <RestoreDecisionNotice projection={projection} />
@@ -388,13 +385,12 @@ export default function SignedInRequestStartRestoreApp() {
       data-maps-to-request-truth={String(projection.savedContextResolution.mapsToRequestTruth)}
       data-supported-testids="signed-in-start-request-action continue-draft-entry-action restore-saved-context-action promoted-draft-mapped-action narrowed-write-posture-action"
     >
-      <header className="signed-in-start__top-band" data-testid="signed-in-mission-top-band">
-        <div>
-          <VecellLogoWordmark aria-hidden="true" className="signed-in-start__wordmark" />
-          <span>Signed-in mission frame</span>
-        </div>
-        <a href="/portal/home">Back to home</a>
-      </header>
+      <PatientPortalTopBar
+        current="requests"
+        patientRef={projection.patientPortalEntryProjection.maskedPatientRef}
+        testId="signed-in-mission-top-band"
+        onNavigate={navigate}
+      />
       <SignedInMissionFrame
         projection={projection}
         titleRef={titleRef}

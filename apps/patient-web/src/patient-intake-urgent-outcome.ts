@@ -138,7 +138,7 @@ function urgentGuidanceGrant(requestPublicId: string): UrgentOutcomeNavigationGr
     grantId: `ONG_142_PATIENT_URGENT_HANDOFF_${requestPublicId.toUpperCase()}_V1`,
     governedBy: "OutboundNavigationGrant",
     destinationType: "external_browser",
-    href: `https://urgent.vecells.local/request/${requestPublicId}/guidance`,
+    href: `https://urgent.service.local/request/${requestPublicId}/guidance`,
     destinationLabel: "Urgent guidance package",
     audienceSurfaceRuntimeBindingRef: "ASRB_050_PATIENT_PUBLIC_ENTRY_V1",
     surfacePublicationRef: "ASPR_050_PATIENT_PUBLIC_ENTRY_V1",
@@ -218,13 +218,12 @@ export function buildUrgentOutcomeSurface(
       focusTarget: "primary_action",
       supportSummaryTitle: "What stays available",
       supportSummaryLines: [
-        "The same shell keeps your last safe request summary in view.",
+        "Your last safe request summary stays in view.",
         "Nothing here implies the request was received or placed in review.",
       ],
       continuityNote:
-        "The request lineage stays in the same shell, but writable continuation is bounded until a person decides the next safe step.",
-      handoffNote:
-        "Calling the practice uses the governed handoff contract. It is not the same as an online confirmation or queue receipt.",
+        "Editing is paused until a person decides the next safe step.",
+      handoffNote: "Calling the practice is not the same as an online confirmation or receipt.",
       summaryContextTitle: "What you told us",
       summaryContextLines,
       quietSecondaryAllowed: true,
@@ -254,11 +253,11 @@ export function buildUrgentOutcomeSurface(
       summary: "We have switched this request to the urgent pathway and recorded that change.",
       urgencySentences: [
         "Use the urgent guidance now. Do not wait for a routine reply.",
-        "The urgent pathway stays attached to the same request lineage for continuity and audit.",
+        "The urgent guidance stays attached to this request.",
       ],
       rationaleHeading: "Why we changed the path",
       rationaleBody:
-        "The urgent settlement is now issued for this request. The routine queue no longer owns the next step, even though the shell continuity and request lineage stay visible.",
+        "This request now needs urgent guidance. Routine review is no longer the next step.",
       rationaleDisclosureLabel: "See why we changed the path",
       liveRegionMessage: "Urgent guidance has been issued for this request.",
       statusLabel: "Urgent guidance issued",
@@ -280,13 +279,11 @@ export function buildUrgentOutcomeSurface(
       focusTarget: "primary_action",
       supportSummaryTitle: "What stays attached to this request",
       supportSummaryLines: [
-        "The request lineage, selected anchor, and last safe summary stay in the same shell.",
+        "Your last safe summary stays attached to this request.",
         "Urgent guidance is now the dominant next step; routine completion is no longer available here.",
       ],
-      continuityNote:
-        "The shell remains the same, but the center canvas has moved into the urgent pathway frame.",
-      handoffNote:
-        "The dominant action uses a governed OutboundNavigationGrant. The browser handoff is explicit and bound to this request lineage.",
+      continuityNote: "This request is now showing urgent guidance.",
+      handoffNote: "The urgent guidance link is explicit so you know when you are leaving this page.",
       summaryContextTitle: "What you told us",
       summaryContextLines,
       quietSecondaryAllowed: true,
@@ -317,9 +314,9 @@ export function buildUrgentOutcomeSurface(
       "Call 999 now if the person is in immediate danger, has severe chest pain, or is struggling to breathe.",
       "If you cannot call yourself, ask someone nearby to help you now.",
     ],
-    rationaleHeading: "Why the shell changed before urgent guidance was issued",
+    rationaleHeading: "Why this changed before sending",
     rationaleBody:
-      "The safety decision says urgent help is required now. The shell keeps the same request lineage visible while the urgent handoff is still pending settlement.",
+      "Your answers suggest urgent help is required now. We keep your request summary visible while showing the safest next step.",
     rationaleDisclosureLabel: "Read the urgent guidance",
     liveRegionMessage:
       "Urgent help is needed now. This request cannot stay in the routine queue.",
@@ -342,13 +339,11 @@ export function buildUrgentOutcomeSurface(
     focusTarget: "primary_action",
     supportSummaryTitle: "What stays visible",
     supportSummaryLines: [
-      "The shell keeps the same selected anchor and request lineage while urgent issuance is still pending.",
+      "Your request summary stays visible while urgent guidance is shown.",
       "Nothing here means urgent guidance has already been issued or recorded.",
     ],
-    continuityNote:
-      "Urgent required is visible now, but urgent diverted is still blocked until the urgent settlement is issued.",
-    handoffNote:
-      "The urgent CTA is governed by an OutboundNavigationGrant. The urgent-diverted posture may not appear until settlement is issued.",
+    continuityNote: "Urgent help is needed now, before routine submission continues.",
+    handoffNote: "Use the urgent action shown here instead of waiting for a routine response.",
     summaryContextTitle: "What you told us",
     summaryContextLines,
     quietSecondaryAllowed: true,

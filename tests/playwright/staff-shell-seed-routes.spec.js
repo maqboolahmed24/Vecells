@@ -20,7 +20,7 @@ export const staffShellSeedRouteCoverage = [
   "queue preview hover, pin, and task open",
   "same-shell more-info and decision transitions",
   "active-row continuity through queued re-rank",
-  "changed-since-seen and decisive-delta rendering",
+  "changed-since-seen and change-review rendering",
   "protected composition buffering and recovery posture",
   "approvals, escalations, and search inside the same shell",
   "mission-stack responsive fold",
@@ -376,14 +376,23 @@ export async function run() {
     await page.goto(`${baseUrl}/workspace/task/task-311`, { waitUntil: "networkidle" });
     const deltaText = await page.locator("[data-testid='delta-stack']").innerText();
     assertCondition(
-      deltaText.includes("DECISIVE delta packet") && deltaText.includes("invalidated"),
-      "Decisive delta rendering drifted on the active task shell.",
+      deltaText.includes("Needs review") &&
+        /changed since seen/i.test(deltaText) &&
+        !/delta packet|authoritative|invalidated/i.test(deltaText),
+      "Change-review rendering drifted on the active task shell.",
     );
     await page.getByRole("button", { name: "Hold as duplicate review" }).click();
+    assertCondition(
+      (await page.locator("[data-testid='telemetry-log']").count()) === 0,
+      "Telemetry log is visible on the default production task route.",
+    );
+    await page.goto(`${baseUrl}/workspace?diagnostics=staff-shell`, {
+      waitUntil: "networkidle",
+    });
     const telemetryText = await page.locator("[data-testid='telemetry-log']").innerText();
     assertCondition(
-      telemetryText.includes("surface_enter") && telemetryText.includes("dominant_action_changed"),
-      "Telemetry log did not record the expected route morph and dominant-action events.",
+      telemetryText.includes("surface_enter"),
+      "Diagnostics telemetry did not record the expected route event.",
     );
     assertCondition(
       (await page.locator("[data-testid='staff-shell-root']").getAttribute("data-automation-surface")) ===

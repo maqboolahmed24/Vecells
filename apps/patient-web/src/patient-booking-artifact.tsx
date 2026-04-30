@@ -85,7 +85,7 @@ export function AppointmentReceiptSummary({
       <p className="patient-booking__artifact-copy">{summaryLead}</p>
       <RowList rows={rows} prefix="artifact-receipt" />
       <div className="patient-booking__artifact-subsection">
-        <span className="patient-booking__eyebrow">Reminder posture</span>
+        <span className="patient-booking__eyebrow">Reminder status</span>
         <RowList rows={reminderRows} prefix="artifact-reminder" />
       </div>
     </section>
@@ -209,7 +209,7 @@ export function BookingArtifactParityView({
       <section className="patient-booking__artifact-card">
         <div className="patient-booking__section-head">
           <span className="patient-booking__eyebrow">Artifact metadata</span>
-          <h3>Contract and grant evidence</h3>
+          <h3>Rules and grant evidence</h3>
         </div>
         <RowList rows={metadataRows} prefix="artifact-metadata" />
       </section>
@@ -358,7 +358,7 @@ export function PatientBookingArtifactFrame({
             <p>{projection.primaryAttendanceInstruction}</p>
           </section>
         }
-        railTitle="Parity and contract evidence"
+        railTitle="Parity and rules evidence"
         railToggleLabel="View artifact parity"
         rail={
           <BookingArtifactParityView

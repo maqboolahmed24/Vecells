@@ -189,7 +189,7 @@ function buildBaseFactors(): AssistiveConfidenceFactor[] {
       kind: "uncertainty",
       label: "Uncertainty",
       valueLabel: "Residual",
-      detail: "The surface stays bounded to rationale and provenance rather than final clinical truth.",
+      detail: "The surface stays limited to rationale and history rather than the final clinical record.",
     },
   ];
 }
@@ -260,7 +260,7 @@ function confidenceStateForScenario(
         suppressionReason: {
           code: "continuity_not_current",
           label: "Continuity not current",
-          detail: "The workspace scenario is not live, so visible confidence narrows to read-only provenance.",
+          detail: "The workspace scenario is not live, so visible confidence narrows to read-only history.",
         },
       };
     case "blocked":
@@ -317,7 +317,7 @@ export function AssistiveConfidenceStateAdapter({
     rationaleDigest: routeRationale(routeKind),
     rationaleExplainerHeading: "Why this draft aid appears",
     rationalePolicyNote:
-      "This explainer is bounded by the artifact presentation contract and does not expose raw model math.",
+      "This explainer is limited by the artifact presentation rules and does not expose raw model math.",
     factors: buildBaseFactors(),
     evidenceCoverage: buildBaseCoverage(),
     freshness: {
@@ -348,18 +348,18 @@ export function AssistiveConfidenceStateAdapter({
       },
       suppressionReason: {
         code: "trust_degraded",
-        label: "Trust posture degraded",
+        label: "Trust status degraded",
         detail:
-          "The trust projection permits provenance and rationale summary only, so visible confidence is suppressed.",
+          "The trust projection permits history and rationale summary only, so visible confidence is suppressed.",
       },
       factors: [
         ...buildBaseFactors(),
         {
           id: "factor-trust",
           kind: "trust",
-          label: "Trust posture",
+          label: "Trust status",
           valueLabel: "Degraded",
-          detail: "The trust envelope allows read-only awareness and source lineage, not confidence-bearing action.",
+          detail: "The trust envelope allows read-only awareness and source history, not confidence-bearing action.",
         },
       ],
     };
@@ -375,12 +375,12 @@ export function AssistiveConfidenceStateAdapter({
       secondaryPostureLabel: "Abstention advised",
       presentationContractDepth: "bounded_explainer",
       rationaleDigest:
-        "The evidence map is incomplete for a confident draft aid, so the surface shows why it abstains and keeps provenance visible.",
+        "The evidence map is incomplete for a confident draft aid, so the surface shows why it abstains and keeps history visible.",
       factors: [
         {
           id: "factor-abstention",
           kind: "abstention",
-          label: "Abstention posture",
+          label: "Abstention status",
           valueLabel: "Review only",
           detail: "Missing external context prevents stronger summary support.",
         },
@@ -425,7 +425,7 @@ export function AssistiveConfidenceStateAdapter({
       ...baseState,
       secondaryPostureLabel: "Folded summary",
       rationaleDigest:
-        "Compact folded state keeps confidence, freshness, and source lineage in one scan path.",
+        "Compact folded state keeps confidence, freshness, and source history in one scan path.",
     };
   }
 
@@ -625,7 +625,7 @@ export function AssistiveProvenanceFooter({
     <footer
       className="assistive-confidence__provenance-footer"
       data-testid="AssistiveProvenanceFooter"
-      aria-label="Assistive provenance footer"
+      aria-label="Assistive history footer"
     >
       <dl>
         <div>
@@ -649,7 +649,7 @@ export function AssistiveProvenanceFooter({
         aria-controls={controlsId}
         onClick={onToggle}
       >
-        {expanded ? "Hide source lineage" : "Show source lineage"}
+        {expanded ? "Hide source history" : "Show source history"}
       </button>
     </footer>
   );
@@ -668,19 +668,19 @@ export function AssistiveProvenanceDrawer({
 }) {
   const headingId = useId();
   const rows = [
-    ["Provenance envelope", state.provenance.provenanceEnvelopeId],
-    ["Artifact", state.provenance.artifactRef],
-    ["Capability", state.provenance.capabilityCode],
-    ["Capture bundle", state.provenance.inputCaptureBundleRef],
-    ["Evidence map", state.provenance.evidenceMapSetRef],
-    ["Model version", state.provenance.modelVersionRef],
-    ["Prompt surface", state.provenance.promptSurfaceRef],
-    ["Schema", state.provenance.outputSchemaVersionRef],
-    ["Calibration", state.provenance.calibrationBundleRef],
-    ["Policy", state.provenance.policyBundleRef],
-    ["Publication", state.provenance.surfacePublicationRef],
-    ["Runtime", state.provenance.runtimePublicationBundleRef],
-    ["Masking", state.provenance.maskingPolicyRef],
+    ["History summary", "Checked"],
+    ["Artifact", "Available"],
+    ["Capability", "Documentation support"],
+    ["Capture", "Complete"],
+    ["Evidence map", "Checked"],
+    ["Model version", "Current"],
+    ["Prompt surface", "Checked"],
+    ["Schema", "Current"],
+    ["Calibration", "Checked"],
+    ["Policy", "Applied"],
+    ["Publication", "Current"],
+    ["Runtime", "Current"],
+    ["Masking", "Applied"],
   ] as const;
 
   return (
@@ -693,7 +693,7 @@ export function AssistiveProvenanceDrawer({
       hidden={!expanded}
     >
       <header>
-        <h4 id={headingId}>Source lineage</h4>
+        <h4 id={headingId}>Source history</h4>
         <button type="button" className="assistive-confidence__icon-button" onClick={onClose}>
           Close
         </button>
@@ -702,7 +702,14 @@ export function AssistiveProvenanceDrawer({
         {rows.map(([label, value]) => (
           <div key={label}>
             <dt>{label}</dt>
-            <dd>{value}</dd>
+            <dd
+              data-provenance-envelope-id={label === "History summary" ? state.provenance.provenanceEnvelopeId : undefined}
+              data-artifact-ref={label === "Artifact" ? state.provenance.artifactRef : undefined}
+              data-surface-publication-ref={label === "Publication" ? state.provenance.surfacePublicationRef : undefined}
+              data-runtime-publication-bundle-ref={label === "Runtime" ? state.provenance.runtimePublicationBundleRef : undefined}
+            >
+              {value}
+            </dd>
           </div>
         ))}
       </dl>
@@ -774,8 +781,8 @@ export function AssistiveConfidenceBandCluster({
       />
       <header className="assistive-confidence__header">
         <div>
-          <span className="assistive-confidence__eyebrow">Confidence and provenance</span>
-          <h3 id={headingId}>Bounded assistive confidence</h3>
+          <span className="assistive-confidence__eyebrow">Confidence and history</span>
+          <h3 id={headingId}>Limited assistive confidence</h3>
         </div>
         <div className="assistive-confidence__chip-cluster">
           <AssistiveConfidenceBand state={state} />

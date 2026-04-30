@@ -119,7 +119,7 @@ const REASON_CODE_DEFINITIONS: AssistiveOverrideReasonCodeDefinition[] = [
   {
     code: "evidence_mismatch",
     label: "Evidence mismatch",
-    detail: "Assistive text did not match the bounded evidence snapshot.",
+    detail: "Assistive text did not match the limited evidence snapshot.",
   },
   {
     code: "patient_context",
@@ -129,7 +129,7 @@ const REASON_CODE_DEFINITIONS: AssistiveOverrideReasonCodeDefinition[] = [
   {
     code: "policy_exception",
     label: "Policy exception",
-    detail: "Policy posture requires an explicit override reason.",
+    detail: "Policy status requires an explicit override reason.",
   },
   {
     code: "low_confidence_acceptance",
@@ -272,7 +272,7 @@ function baseTrailEvents(
       label: "Final human artifact linked",
       actorLabel,
       timestampLabel,
-      postureLabel: "Settlement posture visible",
+      postureLabel: "Settlement status visible",
     },
   ];
 }
@@ -367,7 +367,7 @@ export function AssistiveOverrideStateAdapter(
       selectedReasonCodes: [],
       approvalBurdenLabel: "No reason required",
       approvalBurdenDetail:
-        "The final artifact matches the bounded assistive source and no policy exception is present.",
+        "The final artifact matches the limited assistive source and no policy exception is present.",
       diffLines: unchangedDiffLines(),
       finalArtifact: finalArtifactFor(state.taskRef, state.actorLabel, state.timestampLabel, {
         finalText:
@@ -412,7 +412,7 @@ export function AssistiveOverrideStateAdapter(
       selectedReasonCodes: ["trust_recovery"],
       approvalBurdenLabel: "Reason required for abstention",
       approvalBurdenDetail:
-        "Human abstention keeps the assistive source visible but blocks it from becoming final truth.",
+        "Human abstention keeps the assistive source visible but blocks it from becoming the final record.",
       finalArtifact: finalArtifactFor(state.taskRef, state.actorLabel, state.timestampLabel, {
         title: "Final human disposition",
         finalText: "No assistive artifact was used. The clinician continued with manual review.",
@@ -451,7 +451,7 @@ export function AssistiveOverrideStateAdapter(
       selectedReasonCodes: ["policy_exception", "low_confidence_acceptance"],
       approvalBurdenLabel: "Mandatory reason and approval burden",
       approvalBurdenDetail:
-        "Policy exception plus low-confidence acceptance requires reason capture and a visible approval posture.",
+        "Policy exception plus low-confidence acceptance requires reason capture and a visible approval status.",
       dualReviewRequired: true,
       finalArtifact: finalArtifactFor(state.taskRef, state.actorLabel, state.timestampLabel, {
         settlementPosture: "dual_review_required",
@@ -467,7 +467,7 @@ export function AssistiveOverrideStateAdapter(
       selectedReasonCodes: ["clinical_safety", "patient_context"],
       approvalBurdenLabel: "Reason captured",
       approvalBurdenDetail:
-        "Coded reason capture is complete. Free-text notes are disclosure-fenced and excluded from routine telemetry.",
+        "Coded reason capture is complete. Free-text notes are disclosure-fenced and excluded from routine activity data.",
       trailEvents: [
         ...state.trailEvents,
         {
@@ -475,7 +475,7 @@ export function AssistiveOverrideStateAdapter(
           label: "Override reason captured",
           actorLabel: state.actorLabel,
           timestampLabel: "Today 09:27",
-          postureLabel: "Reason codes only in telemetry",
+          postureLabel: "Reason codes only in activity data",
         },
       ],
     };
@@ -1009,7 +1009,7 @@ export function AssistiveEditedByClinicianTrail({ state }: { state: AssistiveOve
                 label: "Override reason captured",
                 actorLabel: state.actorLabel,
                 timestampLabel: "Just now",
-                postureLabel: "Reason codes only in telemetry",
+                postureLabel: "Reason codes only in activity data",
               }}
             />
           )}
@@ -1031,7 +1031,7 @@ export function AssistiveEditedByClinicianTrail({ state }: { state: AssistiveOve
             <dd>{state.confidenceDigestRef}</dd>
           </div>
           <div>
-            <dt>Provenance envelope</dt>
+            <dt>History envelope</dt>
             <dd>{state.provenanceEnvelopeRef}</dd>
           </div>
         </dl>

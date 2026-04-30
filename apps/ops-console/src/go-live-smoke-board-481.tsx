@@ -209,9 +209,9 @@ export function GoLiveSmokeBoard481() {
       >
         {[
           ["Release candidate", projection.releaseCandidateRef],
-          ["Wave manifest", projection.waveManifestRef],
+          ["Wave release list", projection.waveManifestRef],
           ["Restore point age", `${projection.restorePointAgeMinutes} minutes`],
-          ["Recovery posture", titleCase(projection.recoveryPosture)],
+          ["Recovery status", titleCase(projection.recoveryPosture)],
           ["Smoke verdict", titleCase(projection.smokeVerdict)],
         ].map(([label, value]) => (
           <span key={label}>

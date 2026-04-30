@@ -242,7 +242,7 @@ export const staffCases: readonly StaffQueueCase[] = [
       {
         label: "Duplicate watch",
         value: "open",
-        detail: "Lineage cluster 7 still needs reviewer acknowledgement before closure.",
+        detail: "History group 7 still needs reviewer acknowledgement before closure.",
       },
       {
         label: "Patient reply",
@@ -257,7 +257,7 @@ export const staffCases: readonly StaffQueueCase[] = [
       },
       {
         title: "Support boundary",
-        detail: "If the attachment provenance fails, hand off through the bounded support stub only.",
+        detail: "If the attachment check fails, hand off through support review only.",
       },
     ],
     references: [
@@ -277,9 +277,9 @@ export const staffCases: readonly StaffQueueCase[] = [
     ],
     quickCapture: {
       endpoints: ["Clinician callback", "Pharmacy clarification", "Duplicate review lane"],
-      questionSets: ["Inhaler confirmation", "Pharmacy callback", "Duplicate lineage check"],
+      questionSets: ["Inhaler confirmation", "Pharmacy callback", "Duplicate history check"],
       reasonChips: ["Returned evidence", "Contradiction", "Patient safety"],
-      macros: ["Hold commit and reopen delta review", "Late reply acknowledged", "Pharmacy note pending"],
+      macros: ["Hold commit and reopen change review", "Late reply acknowledged", "Pharmacy note pending"],
       duePicks: ["Today 14:30", "Today 16:00", "Tomorrow 09:00"],
     },
     nextQueueRank: 2,
@@ -367,9 +367,9 @@ export const staffCases: readonly StaffQueueCase[] = [
     secondaryMeta:
       "Blocked contact route · callback-intent seed · dependency caution · reviewer Tariq Noor",
     previewSummary:
-      "Outbound callback attempts are failing against the current contact route assessment, so the case moved into urgent escalation posture.",
+      "Outbound callback attempts are failing against the current contact route assessment, so the case moved into urgent escalation status.",
     previewTrustNote:
-      "Preview reports the escalation truth only; contact-route repair stays bounded to the task shell.",
+      "Preview reports the escalation status only; contact-route repair stays limited to the task workspace.",
     summaryPoints: [
       "Two callback attempts failed against a stale mobile number.",
       "The current reachability assessment disputes the preferred contact route.",
@@ -407,17 +407,17 @@ export const staffCases: readonly StaffQueueCase[] = [
     decisionOptions: [
       "Escalate to urgent callback review",
       "Freeze contact-route mutation",
-      "Handoff to support stub",
+      "Send to support review",
     ],
     moreInfoPrompts: [
       "Ask for a safe alternate callback number.",
       "Confirm if voicemail or text follow-up is acceptable.",
     ],
     quickCapture: {
-      endpoints: ["Urgent callback lane", "Support handoff stub", "Reachability repair"],
+      endpoints: ["Urgent callback lane", "Support review", "Reachability repair"],
       questionSets: ["Alternate number", "Urgency confirmation"],
       reasonChips: ["Urgent escalation", "Contact route disputed", "Callback follow-up"],
-      macros: ["Escalation promoted", "Reachability repair frozen", "Support stub prepared"],
+      macros: ["Escalation promoted", "Reachability repair frozen", "Support review prepared"],
       duePicks: ["In 30 minutes", "Today 13:45", "Today 16:30"],
     },
     nextQueueRank: 1,
@@ -1494,7 +1494,7 @@ export function buildWorkspaceStatus(
           : "Quiet next step";
   pulse.confirmationPosture =
     runtimeScenario === "live"
-      ? "Writable posture available"
+      ? "Writable status available"
       : runtimeScenario === "recovery_only"
         ? "Recovery posture"
         : runtimeScenario === "blocked"
@@ -1521,7 +1521,7 @@ export function buildWorkspaceStatus(
                 : runtimeScenario === "blocked"
                   ? "Recovery required"
                   : "Review required",
-      detail: "The workspace keeps one current shell while the route family changes.",
+      detail: "The workspace keeps one current view while the route changes.",
     },
     {
       key: "ownership",

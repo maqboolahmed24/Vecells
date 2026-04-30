@@ -56,7 +56,7 @@ function ProvenanceDrawer(props: {
     >
       <div>
         <header>
-          <p className="assistive-485-eyebrow">Provenance</p>
+          <p className="assistive-485-eyebrow">History</p>
           <h2 id="assistive-485-drawer-title">Current trust envelope</h2>
         </header>
         <dl>
@@ -73,7 +73,7 @@ function ProvenanceDrawer(props: {
             <dd>{props.projection.rolloutVerdictRef}</dd>
           </div>
           <div>
-            <dt>Route family</dt>
+            <dt>Journey group</dt>
             <dd>{props.projection.routeFamilyRef}</dd>
           </div>
           <div>
@@ -164,7 +164,7 @@ export function AssistiveVisibleMode485Workspace() {
             <span />
           </div>
           <div>
-            <p className="assistive-485-eyebrow">Provenance-bound assistive stage</p>
+            <p className="assistive-485-eyebrow">History-bound assistive stage</p>
             <h2>Draft support for current review</h2>
           </div>
           <strong className="assistive-485-chip" data-mode-chip={projection.mode}>
@@ -260,7 +260,7 @@ export function AssistiveVisibleMode485Workspace() {
         </section>
 
         <table className="assistive-485-table" data-testid="assistive-485-table-fallback">
-          <caption>Assistive posture fallback</caption>
+          <caption>Assistive status fallback</caption>
           <tbody>
             <tr>
               <th scope="row">Visible staff</th>

@@ -317,11 +317,11 @@ function selectionTruthText(
 ): string {
   switch (selectionState) {
     case "selected":
-      return "Selected state stays separate from reservation truth.";
+      return "Selected state stays separate from reservation status.";
     case "checking":
       return "This slot is selected, but confirmation is still checking.";
     case "unavailable":
-      return "This slot stays visible as provenance, but it can no longer be confirmed.";
+      return "This slot stays visible as history, but it can no longer be confirmed.";
     case "frozen":
       return "Selection is paused until this snapshot is refreshed.";
     case "support_only":
@@ -1348,7 +1348,7 @@ export function OfferSelectionStage({
             stageName="OfferSelectionStage"
             testId="offer-selection-responsive-stage"
             railToggleLabel="View selected slot summary"
-            railTitle="Selected slot and reservation truth"
+            railTitle="Selected slot and reservation verified details"
             foldedPinned={
               <SelectedSlotPin
                 slot={selectedSlot}

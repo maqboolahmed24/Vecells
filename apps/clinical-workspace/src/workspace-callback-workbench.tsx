@@ -23,6 +23,20 @@ function labelFromToken(value: string): string {
   return value.replaceAll("_", " ");
 }
 
+function publicCallbackText(value: string): string {
+  return value
+    .replace(/\brequest_215_callback\b/g, "callback request")
+    .replace(/\bcluster_214_callback\b/g, "callback conversation")
+    .replace(/\bposture\b/gi, "status")
+    .replace(/\btruth\b/gi, "confirmed information")
+    .replace(/\btuple\b/gi, "details")
+    .replace(/\blineage\b/gi, "history")
+    .replace(/\bstub\b/gi, "summary")
+    .replace(/\b[a-z]+(?:_[a-z0-9]+)+\b/g, (token) =>
+      token.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase()),
+    );
+}
+
 function evidenceTone(value: CallbackEvidenceState): "critical" | "caution" | "accent" {
   switch (value) {
     case "durable":
@@ -87,16 +101,16 @@ function CallbackWorklistRow({
           <span>{row.urgencyLabel}</span>
           <span>{row.currentOwnerLabel}</span>
         </div>
-        <p>{row.summary}</p>
+        <p>{publicCallbackText(row.summary)}</p>
         <div className="staff-shell__callback-row-foot">
           <span>{row.dueLabel}</span>
           <span>{row.nextAllowedActionLabel}</span>
         </div>
       </button>
       <div className="staff-shell__callback-row-guards">
-        <span className="staff-shell__callback-badge">{labelFromToken(row.callbackState)}</span>
-        <span className="staff-shell__callback-badge">{labelFromToken(row.intentLeaseState)}</span>
-        <span className="staff-shell__callback-badge">{labelFromToken(row.resolutionGateState)}</span>
+        <span className="staff-shell__callback-badge">{publicCallbackText(labelFromToken(row.callbackState))}</span>
+        <span className="staff-shell__callback-badge">{publicCallbackText(labelFromToken(row.intentLeaseState))}</span>
+        <span className="staff-shell__callback-badge">{publicCallbackText(labelFromToken(row.resolutionGateState))}</span>
         <button
           type="button"
           className="staff-shell__utility-button"
@@ -121,35 +135,35 @@ export function CallbackExpectationCard({
       data-callback-state={projection.patientVisibleState}
     >
       <header className="staff-shell__task-stack-header">
-        <span className="staff-shell__eyebrow">CallbackExpectationEnvelope</span>
+        <span className="staff-shell__eyebrow">Callback expectation</span>
         <h3>Current patient promise</h3>
-        <p>{projection.patientWordingPreview}</p>
+        <p>{publicCallbackText(projection.patientWordingPreview)}</p>
       </header>
       <div className="staff-shell__callback-facts">
         <div>
           <strong>Envelope</strong>
-          <span>{projection.expectationEnvelopeRef}</span>
+          <span>Current expectation</span>
         </div>
         <div>
           <strong>Visible state</strong>
-          <span>{labelFromToken(projection.patientVisibleState)}</span>
+          <span>{publicCallbackText(labelFromToken(projection.patientVisibleState))}</span>
         </div>
         <div>
           <strong>Promised window</strong>
-          <span>{projection.promiseWindowLabel}</span>
+          <span>{publicCallbackText(projection.promiseWindowLabel)}</span>
         </div>
         <div>
           <strong>Preferred route</strong>
-          <span>{projection.preferredRouteLabel}</span>
+          <span>{publicCallbackText(projection.preferredRouteLabel)}</span>
         </div>
       </div>
       {projection.stalePromiseWarning && (
         <div className="staff-shell__callback-alert" data-tone="critical">
           <strong>Promise warning</strong>
-          <p>{projection.stalePromiseWarning}</p>
+          <p>{publicCallbackText(projection.stalePromiseWarning)}</p>
         </div>
       )}
-      <p className="staff-shell__callback-fallback">{projection.fallbackGuidance}</p>
+      <p className="staff-shell__callback-fallback">{publicCallbackText(projection.fallbackGuidance)}</p>
     </section>
   );
 }
@@ -179,7 +193,7 @@ export function CallbackAttemptTimeline({
       {entries.length === 0 && !liveAttemptAnchorRef ? (
         <div className="staff-shell__callback-empty">
           <strong>No callback attempts yet</strong>
-          <p>The first governed attempt will appear here with its attempt fence and provider correlation.</p>
+          <p>The first approved attempt will appear here with its attempt fence and provider correlation.</p>
         </div>
       ) : (
         <ol className="staff-shell__callback-timeline">
@@ -356,7 +370,7 @@ export function CallbackOutcomeCapture({
           <span>{projection.selectedAttemptRef ?? "No attempt selected"}</span>
         </div>
         <div>
-          <strong>Gate posture</strong>
+          <strong>Gate status</strong>
           <span>{labelFromToken(projection.resolutionGateState)}</span>
         </div>
       </div>
@@ -475,22 +489,22 @@ export function CallbackDetailSurface({
     >
       <header className="staff-shell__callback-detail-head">
         <div>
-          <span className="staff-shell__eyebrow">CallbackDetailSurface</span>
+          <span className="staff-shell__eyebrow">Callback detail</span>
           <h2>{projection.headline}</h2>
-          <p>{projection.summary}</p>
+          <p>{publicCallbackText(projection.summary)}</p>
         </div>
         <div className="staff-shell__callback-facts">
           <div>
             <strong>Decision epoch</strong>
-            <span>{projection.decisionEpochRef}</span>
+            <span>Current decision</span>
           </div>
           <div>
             <strong>Intent lease</strong>
-            <span>{projection.intentLeaseState}</span>
+            <span>{publicCallbackText(labelFromToken(projection.intentLeaseState))}</span>
           </div>
           <div>
             <strong>Resolution gate</strong>
-            <span>{projection.resolutionGateState}</span>
+            <span>{publicCallbackText(labelFromToken(projection.resolutionGateState))}</span>
           </div>
           <div>
             <strong>Selected stage</strong>
@@ -501,10 +515,10 @@ export function CallbackDetailSurface({
 
       <section className="staff-shell__callback-detail-summary">
         <div className="staff-shell__callback-detail-strip">
-          <span>{projection.ownerLabel}</span>
-          <strong>{projection.promiseWindowLabel}</strong>
-          <span>{projection.preferredRouteLabel}</span>
-          <span>{projection.urgencyLabel}</span>
+          <span>{publicCallbackText(projection.ownerLabel)}</span>
+          <strong>{publicCallbackText(projection.promiseWindowLabel)}</strong>
+          <span>{publicCallbackText(projection.preferredRouteLabel)}</span>
+          <span>{publicCallbackText(projection.urgencyLabel)}</span>
         </div>
         <div className="staff-shell__callback-control-bar">
           {projection.controls.map((control) => (
@@ -533,7 +547,7 @@ export function CallbackDetailSurface({
                 }
               }}
             >
-              {control.label}
+                {publicCallbackText(control.label)}
             </button>
           ))}
         </div>
@@ -561,7 +575,7 @@ export function CallbackDetailSurface({
           </header>
           <ul className="staff-shell__callback-context-list">
             {projection.sourceSummaryPoints.map((item) => (
-              <li key={item}>{item}</li>
+              <li key={item}>{publicCallbackText(item)}</li>
             ))}
           </ul>
         </section>
@@ -747,8 +761,8 @@ export function CallbackWorklistRoute({
       <div className="staff-shell__callback-workbench-grid">
         <aside className="staff-shell__callback-lane">
           <header className="staff-shell__task-stack-header">
-            <span className="staff-shell__eyebrow">CallbackWorklistRoute</span>
-            <h3>Governed callback list</h3>
+            <span className="staff-shell__eyebrow">Callback list</span>
+            <h3>Approved callback list</h3>
             <p>Promise window, route health, and next legal action stay readable at scan speed.</p>
           </header>
           <div className="staff-shell__callback-lane-list">
@@ -779,8 +793,8 @@ export function CallbackWorklistRoute({
       </div>
 
       <div className="staff-shell__callback-footnote">
-        <span>Selected anchor: {selectedAnchorRef}</span>
-        <span>Duplicate dial posture: {labelFromToken(dedupeState)}</span>
+        <span data-selected-anchor-ref={selectedAnchorRef}>Selected callback remains open</span>
+        <span>Duplicate dial status: {publicCallbackText(labelFromToken(dedupeState))}</span>
       </div>
     </section>
   );

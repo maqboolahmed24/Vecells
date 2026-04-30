@@ -311,18 +311,18 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
     capacityGap: 10,
     summary:
       pharmacyUrgentReturnOpsMerge?.ops.summary ??
-      "PHC-2103 has reopened request_215_callback with one authoritative urgent-return lineage across triage, patient messaging, and pharmacy recovery.",
+      "PHC-2103 has reopened the urgent-return request with one confirmed history across triage, patient messaging, and pharmacy recovery.",
     trustSummary:
-      "The same urgent-return lineage now feeds ops, request detail, patient messages, and pharmacy recovery without a second local status copy.",
+      "The same urgent-return history now feeds ops, request detail, patient messages, and pharmacy recovery without a second local status copy.",
     evidenceBasis:
       pharmacyUrgentReturnOpsMerge?.supportReplaySummary ??
-      "Bounce-back truth, request-anchor preservation, and pharmacy recovery all point at one reopened lineage chain.",
+      "Bounce-back status, request-anchor preservation, and pharmacy recovery all point at one reopened history chain.",
     continuityQuestion:
       "Which team should resume the reopened request first without dropping the urgent-return proof, patient-safe messaging, or pharmacy recovery context?",
     promotedSurfaceRef: "BottleneckRadar",
     recommendedAction:
-      "Resume request_215_callback from the preserved anchor, keep PHC-2103 visible in operations, and route urgent review through the same recovery law.",
-    confidenceLabel: "0.86 confidence / urgent-return lineage bound",
+      "Resume the urgent-return request from the preserved anchor, keep PHC-2103 visible in operations, and route urgent review through the same recovery process.",
+    confidenceLabel: "0.86 confidence / urgent-return history bound",
     blockerSummary:
       "Do not calm, archive, or silently reroute the request while urgent-return review, pharmacy recovery, and GP-action evidence remain open.",
     eligibilityFenceState: "live",
@@ -331,7 +331,7 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
       "Compare the reopened request anchor against the bounce-back evidence chain before any closure or reassignment decision.",
     healthSummary:
       pharmacyUrgentReturnOpsMerge?.patientNotification.body ??
-      "Urgent-return posture remains visibly non-calm across patient and staff surfaces until the reopened work is resolved.",
+      "Urgent-return status remains visibly non-calm across patient and staff surfaces until the reopened work is resolved.",
     ownerLabel: "Pharmacy loop operations",
     cohortFocus: "Urgent return / reopened request cohort",
     timeHorizon: "Now",
@@ -348,7 +348,7 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
     summary:
       "Referral confirmation wait time is climbing faster than staffed review lanes can drain it.",
     trustSummary:
-      "Authoritative queue tuple is current, but the next relief action is gated by live staffing confirmation.",
+      "Authoritative queue details are current, but the next relief action is gated by live staffing confirmation.",
     evidenceBasis:
       "Queue pressure, confirmation dwell, and replay-safe continuity evidence agree on one blocked lane.",
     continuityQuestion:
@@ -358,7 +358,7 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
       "Shift two confirmation reviewers into the priority repair lane for the next 90 minutes.",
     confidenceLabel: "0.82 confidence / guardrails green",
     blockerSummary:
-      "Requires staffing tuple to stay live and release freeze to remain scoped away from queue rebalancing.",
+      "Requires staffing details to stay live and release freeze to remain scoped away from queue rebalancing.",
     eligibilityFenceState: "live",
     compareSummary:
       "Compare queue growth against the preserved 06:00 baseline and the latest delta digest.",
@@ -380,9 +380,9 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
     summary:
       "Delivery acknowledgements from the outbound supplier are intermittently late, expanding the retry lane.",
     trustSummary:
-      "Dependency watch tuple is buffered; summary stays truthful but the action plane is guarded until the parity lane settles.",
+      "Dependency watch details are buffered; summary stays confirmed but the action plane is guarded until the parity lane settles.",
     evidenceBasis:
-      "Supplier watch, outbound cache lag, and intervention guardrail tuples still agree on the degradation boundary.",
+      "Supplier watch, outbound cache lag, and intervention guardrail details still agree on the degradation boundary.",
     continuityQuestion:
       "Can the team reduce user-facing lag without overclaiming a recovered supplier state?",
     promotedSurfaceRef: "ServiceHealthGrid",
@@ -395,7 +395,7 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
     compareSummary:
       "Compare supplier latency drift against the last fully published runtime publication bundle.",
     healthSummary:
-      "Notification delivery function is degraded and must present table-first posture if parity drops further.",
+      "Notification delivery function is degraded and must present table-first status if parity drops further.",
     ownerLabel: "Runtime dependency watch",
     cohortFocus: "Outbound notification cohort",
     timeHorizon: "2h",
@@ -410,11 +410,11 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
     queuePressure: 62,
     capacityGap: 5,
     summary:
-      "The replay chain can still show preserved proof, but the newest continuity slice no longer joins cleanly to the active watch tuple.",
+      "The replay chain can still show preserved proof, but the newest continuity slice no longer joins cleanly to the active watch details.",
     trustSummary:
-      "Current board symptoms are visible, yet the preserved proof basis is older and must be named before any action posture upgrades.",
+      "Current board symptoms are visible, yet the preserved proof basis is older and must be named before any action status upgrades.",
     evidenceBasis:
-      "Continuity evidence slice, replay lineage, and audit tuple disagree on the newest checkpoint only.",
+      "Continuity evidence slice, replay history, and audit details disagree on the newest checkpoint only.",
     continuityQuestion:
       "What changed after the preserved proof basis, and does the action plane stay diagnostic-only until that drift is explained?",
     promotedSurfaceRef: "BottleneckRadar",
@@ -422,12 +422,12 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
       "Freeze promoted action state, open investigation mode, and preserve the current proof basis for compare.",
     confidenceLabel: "0.91 confidence / action fence frozen",
     blockerSummary:
-      "Intervention is blocked until replay lineage and continuity evidence settle on the same checkpoint hash.",
+      "Intervention is blocked until replay history and continuity evidence settle on the same checkpoint.",
     eligibilityFenceState: "frozen",
     compareSummary:
       "Side-by-side preserved proof vs live delta is required; silent rebasing is forbidden.",
     healthSummary:
-      "Continuity control envelope is blocked for calm posture, but evidence remains readable.",
+      "Continuity control envelope is blocked for calm status, but evidence remains readable.",
     ownerLabel: "Continuity evidence control",
     cohortFocus: "Cross-surface continuity ledger",
     timeHorizon: "4h",
@@ -451,10 +451,10 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
       "Which surface needs rebinding so the operator can trust one settled explanation again?",
     promotedSurfaceRef: "CohortImpactMatrix",
     recommendedAction:
-      "Re-publish the assurance-backed summary bundle and keep intervention posture observe-only meanwhile.",
+      "Re-publish the assurance-backed summary bundle and keep intervention status observe-only meanwhile.",
     confidenceLabel: "0.69 confidence / assurance rebinding pending",
     blockerSummary:
-      "Summary calmness is suppressed until the board explanation and slice tuple realign.",
+      "Summary calmness is suppressed until the board explanation and slice details realign.",
     eligibilityFenceState: "observe_only",
     compareSummary:
       "Compare assurance-backed and board-local narratives instead of the underlying outcome.",
@@ -477,7 +477,7 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
     trustSummary:
       "Runtime freeze verdict is authoritative; the workbench must look intentionally frozen, not secretly commit-ready.",
     evidenceBasis:
-      "Release watch tuple, runtime freeze verdict, and affected service-health rows agree on the freeze boundary.",
+      "Release watch details, runtime freeze verdict, and affected service-health rows agree on the freeze boundary.",
     continuityQuestion: "What relief options remain lawful while the freeze stays active?",
     promotedSurfaceRef: "CapacityAllocator",
     recommendedAction:
@@ -487,13 +487,13 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
       "All automated relief remains blocked until freeze verdict clears or governance opens an exception lane.",
     eligibilityFenceState: "frozen",
     compareSummary:
-      "Compare frozen release posture against the last pre-freeze admissible action set.",
+      "Compare frozen release status against the last pre-freeze admissible action set.",
     healthSummary:
       "Affected essential functions are guarded, not healthy, even where customer impact is currently low.",
     ownerLabel: "Release watch coordinator",
     cohortFocus: "Freeze-affected service cluster",
     timeHorizon: "12h",
-    governanceHandoffLabel: "Launch release-freeze exception stub",
+    governanceHandoffLabel: "Open release-freeze review",
     gapRefs: ["GAP_BOUNDARY_OPS_GOV_HANDOFF_RELEASE_EXCEPTION_V1"],
   },
   {
@@ -506,25 +506,25 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
     summary:
       "Restore readiness is still serviceable, but rehearsal debt is now wider than the preferred confidence band.",
     trustSummary:
-      "Operational readiness tuples are current, yet the board must keep mitigation authority modest until coverage improves.",
+      "Operational readiness details are current, yet the board must keep mitigation authority modest until coverage improves.",
     evidenceBasis:
       "Restore rehearsal outcomes, backup-set manifests, and readiness snapshots agree on the debt window.",
     continuityQuestion:
       "Which recovery tier needs rehearsal before the shell can show more confidence?",
     promotedSurfaceRef: "ServiceHealthGrid",
     recommendedAction:
-      "Schedule the next bounded restore rehearsal and keep workbench posture observe-only until it settles.",
+      "Schedule the next limited restore rehearsal and keep workbench status observe-only until it settles.",
     confidenceLabel: "0.63 confidence / rehearsal debt open",
     blockerSummary:
-      "Recovery control posture suppresses stronger action authority until rehearsal coverage rises.",
+      "Recovery control status suppresses stronger action authority until rehearsal coverage rises.",
     eligibilityFenceState: "observe_only",
     compareSummary:
       "Compare current readiness against the last green rehearsal tier, not against ideal target state alone.",
-    healthSummary: "Recovery posture is guarded but not blocked.",
+    healthSummary: "Recovery status is guarded but not blocked.",
     ownerLabel: "Resilience baseline steward",
     cohortFocus: "Tier-2 recovery map",
     timeHorizon: "24h",
-    governanceHandoffLabel: "Launch resilience debt stub",
+    governanceHandoffLabel: "Open resilience debt review",
     gapRefs: ["GAP_FUTURE_OPS_CHILD_ROUTE_RESILIENCE_PACK_V1"],
   },
   {
@@ -535,9 +535,9 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
     queuePressure: 24,
     capacityGap: 3,
     summary:
-      "Partner-origin acknowledgements are inconsistent enough to merit watch posture but not promotion above active blockers.",
+      "Partner-origin acknowledgements are inconsistent enough to merit watch status but not promotion above active blockers.",
     trustSummary:
-      "The watch tuple is current and quiet; this stays in low-noise posture until it crosses the promotion fence.",
+      "The watch details are current and quiet; this stays in low-noise status until it crosses the promotion fence.",
     evidenceBasis:
       "Partner acknowledgement audit rows and outbound retry summaries both show ambiguity without current breach-risk.",
     continuityQuestion:
@@ -545,12 +545,12 @@ export const opsAnomalies: readonly OpsAnomaly[] = [
     promotedSurfaceRef: "CohortImpactMatrix",
     recommendedAction:
       "Keep the watch visible, expand the compare slice only if variance persists through the next observation window.",
-    confidenceLabel: "0.58 confidence / watch posture only",
+    confidenceLabel: "0.58 confidence / watch status only",
     blockerSummary:
       "No manual intervention yet; the lane remains observe-only until variance persists.",
     eligibilityFenceState: "observe_only",
     compareSummary:
-      "Compare the partner watchpoint only against the current observation band, not against hard-failure tuples.",
+      "Compare the partner watchpoint only against the current observation band, not against hard-failure details.",
     healthSummary:
       "Supplier cohort remains watch-level and should not dominate the board by default.",
     ownerLabel: "Partner dependency watch",
@@ -758,7 +758,7 @@ export function createOpsDeltaGate(deltaGateState: OpsDeltaGateState): OpsDeltaG
         deltaGateId: "ODG_TABLE_ONLY",
         gateState: "table_only",
         summary:
-          "Visualization parity has degraded, so every evidence panel falls back to table-first posture.",
+          "Visualization parity has degraded, so every evidence panel falls back to table-first status.",
         freshnessState: "buffered",
         visualizationMode: "table_only",
         trustState: "guarded",
@@ -848,9 +848,9 @@ export function createOpsGovernanceHandoff(
 ): OpsGovernanceHandoff {
   return {
     handoffId: `OGH_${anomaly.anomalyId.toUpperCase()}`,
-    title: "Governance handoff remains a bounded side-path",
+    title: "Governance handoff ready for review",
     summary:
-      "This launch stub records the current anomaly, delta gate, and return token without taking over the operations shell.",
+      "This handoff keeps the current anomaly context available while governance reviews the next action.",
     launchLabel: anomaly.governanceHandoffLabel,
     returnToken,
     gapRefs: ["GAP_BOUNDARY_OPS_GOV_HANDOFF_REVIEW_STUB_V1", ...anomaly.gapRefs],
@@ -1473,7 +1473,7 @@ export const opsMockProjectionExamples: readonly OpsMockProjectionExample[] = [
     path: "/ops/dependencies",
     deltaGateState: "table_only",
     summary:
-      "Dependency lens downgrades visualization parity to table-only posture while preserving the same shell.",
+      "Dependency lens downgrades visualization parity to table-only status while preserving the same workspace.",
     selectedAnomalyId: "ops-route-04",
     childRouteKind: null,
   },
@@ -1482,7 +1482,7 @@ export const opsMockProjectionExamples: readonly OpsMockProjectionExample[] = [
     path: "/ops/audit/investigations/ops-route-12",
     deltaGateState: "stale",
     summary:
-      "Audit investigation keeps preserved proof basis visible and action posture frozen under stale continuity truth.",
+      "Audit investigation keeps preserved proof basis visible and action status frozen under stale continuity information.",
     selectedAnomalyId: "ops-route-12",
     childRouteKind: "investigations",
   },
@@ -1491,7 +1491,7 @@ export const opsMockProjectionExamples: readonly OpsMockProjectionExample[] = [
     path: "/ops/incidents/compare/ops-route-15",
     deltaGateState: "buffered",
     summary:
-      "Incident compare route opens the only allowed three-plane posture and preserves the same anomaly selection.",
+      "Incident compare route opens the only allowed three-plane status and preserves the same anomaly selection.",
     selectedAnomalyId: "ops-route-15",
     childRouteKind: "compare",
   },

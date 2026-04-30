@@ -9,13 +9,17 @@ describe("patient intake mission frame", () => {
     );
 
     expect(html).toContain('data-testid="patient-intake-mission-frame-root"');
+    expect(html).toContain('data-testid="patient-intake-top-band"');
     expect(html).toContain('data-testid="patient-intake-masthead"');
-    expect(html).toContain('data-testid="patient-intake-status-strip"');
+    expect(html).toContain('data-testid="patient-intake-emergency-notice"');
+    expect(html).toContain('data-testid="patient-intake-step-header"');
+    expect(html).toContain('href="/home"');
+    expect(html).not.toContain('data-testid="patient-intake-status-strip"');
     expect(html).toContain('data-testid="patient-intake-progress-rail"');
     expect(html).toContain('data-testid="patient-intake-question-canvas"');
     expect(html).toContain('data-testid="patient-intake-summary-panel"');
     expect(html).toContain('data-testid="patient-intake-action-tray"');
-    expect(html).toContain("Quiet clarity mission frame");
+    expect(html).toContain("Start a request");
   });
 
   it("renders request-type selection without generic wizard chrome", () => {
@@ -29,7 +33,7 @@ describe("patient intake mission frame", () => {
     expect(html).not.toContain("wizard");
   });
 
-  it("renders the same-shell urgent frame inside the mission shell instead of a placeholder page", () => {
+  it("renders the urgent frame inside the intake shell instead of a placeholder page", () => {
     const urgentHtml = renderToStaticMarkup(
       <PatientIntakeMissionFrameApp initialPathname="/start-request/dft_7k49m2v8pq41/urgent-guidance" />,
     );
@@ -43,7 +47,7 @@ describe("patient intake mission frame", () => {
     expect(urgentHtml).not.toContain("Urgent diversion placeholder");
   });
 
-  it("renders the same-shell receipt frame instead of a detached success placeholder", () => {
+  it("renders the receipt frame instead of a detached success placeholder", () => {
     const receiptHtml = renderToStaticMarkup(
       <PatientIntakeMissionFrameApp initialPathname="/start-request/dft_7k49m2v8pq41/receipt" />,
     );
@@ -82,7 +86,41 @@ describe("patient intake mission frame", () => {
     expect(html).toContain("What kind of symptom is the main concern?");
   });
 
-  it("renders the governed evidence lane without falling back to a generic widget", () => {
+  it("exposes answer pills as stateful radio controls", () => {
+    const html = renderToStaticMarkup(
+      <PatientIntakeMissionFrameApp initialPathname="/start-request/dft_7k49m2v8pq41/details" />,
+    );
+
+    expect(html).toContain('role="radiogroup"');
+    expect(html).toContain('role="radio"');
+    expect(html).toContain('aria-checked="true"');
+  });
+
+  it("preserves typed answer casing in review summaries", () => {
+    const html = renderToStaticMarkup(
+      <PatientIntakeMissionFrameApp
+        initialPathname="/start-request/dft_7k49m2v8pq41/review"
+        initialMemoryOverride={{
+          requestType: "Meds",
+          structuredAnswers: {
+            "meds.queryType": "repeat_supply",
+            "meds.nameKnown": "known",
+            "meds.medicineName": "Atorvastatin",
+            "meds.issueDescription": "Repeat supply has run out earlier than expected.",
+            "meds.urgency": "routine",
+          },
+          detailsCursorQuestionKey: "meds.urgency",
+          reviewAffirmed: true,
+        }}
+      />,
+    );
+
+    expect(html).toContain("Medicine name known");
+    expect(html).toContain("Repeat supply has run out earlier than expected.");
+    expect(html).not.toContain("Repeat Supply Has Run Out Earlier Than Expected.");
+  });
+
+  it("renders the evidence lane without falling back to a generic widget", () => {
     const html = renderToStaticMarkup(
       <PatientIntakeMissionFrameApp initialPathname="/start-request/dft_7k49m2v8pq41/files" />,
     );
@@ -106,10 +144,10 @@ describe("patient intake mission frame", () => {
     expect(html).toContain('data-testid="contact-confirmation-copy-preview"');
     expect(html).toContain('data-testid="contact-trust-boundary-note"');
     expect(html).toContain("masked");
-    expect(html).toContain("not whether the route is verified");
+    expect(html).toContain("not whether the contact method is verified");
   });
 
-  it("renders the same-shell read-only return frame instead of exposing editable detail on narrowed auth return", () => {
+  it("renders the read-only return frame instead of exposing editable detail on narrowed auth return", () => {
     const html = renderToStaticMarkup(
       <PatientIntakeMissionFrameApp
         initialPathname="/start-request/dft_7k49m2v8pq41/details"
@@ -126,7 +164,7 @@ describe("patient intake mission frame", () => {
     expect(html).not.toContain('data-testid="question-field-symptoms.category"');
   });
 
-  it("renders the stale draft mapping notice inside the authoritative receipt shell", () => {
+  it("renders the stale draft mapping notice inside the receipt shell", () => {
     const html = renderToStaticMarkup(
       <PatientIntakeMissionFrameApp
         initialPathname="/start-request/dft_7k49m2v8pq41/receipt"
@@ -138,6 +176,6 @@ describe("patient intake mission frame", () => {
 
     expect(html).toContain('data-testid="stale-draft-notice"');
     expect(html).toContain('data-testid="receipt-outcome-canvas"');
-    expect(html).toContain("authoritative request shell");
+    expect(html).toContain("submitted request");
   });
 });

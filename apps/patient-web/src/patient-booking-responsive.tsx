@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import "./patient-booking-responsive.css";
+import "./patient-portal-unified-system.css";
 import {
   PATIENT_BOOKING_RESPONSIVE_TASK_ID,
   PATIENT_BOOKING_RESPONSIVE_VISUAL_MODE,

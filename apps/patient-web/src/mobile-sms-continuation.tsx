@@ -309,7 +309,7 @@ export function UploadTrayMobile({
       <div>
         <p className="mobile-continuation__eyebrow">Canonical evidence lane</p>
         <h2 id="upload-tray-title">Upload stays part of the same request</h2>
-        <p>Photos and documents follow the same Phase 1 evidence semantics as the web route.</p>
+        <p>Photos and documents follow the same Current programme evidence semantics as the web route.</p>
       </div>
       <label className="mobile-continuation__upload-label" htmlFor="continuation-file-input">
         Choose photo or document
@@ -594,7 +594,7 @@ export default function MobileSmsContinuationApp() {
           className="mobile-continuation__return-contract"
           data-testid="return-contract-panel"
         >
-          <h2>Return contract</h2>
+          <h2>Return rules</h2>
           <p>
             {route.context.patientRequestReturnBundle.canonicalPhase1Semantics.replaceAll("_", " ")}
           </p>

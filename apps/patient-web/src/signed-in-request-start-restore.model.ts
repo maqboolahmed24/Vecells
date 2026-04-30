@@ -96,7 +96,7 @@ export interface PatientPortalEntryProjection {
 export interface PatientHomeProjection {
   projectionName: "PatientHomeProjection";
   entryCardPlacement: "quiet_home_primary_action" | "saved_context_card";
-  homeActionLabel: "Start a request" | "Continue draft";
+  homeActionLabel: "Start new request" | "Continue draft";
   quietHomeDashboardForbidden: true;
 }
 
@@ -250,7 +250,7 @@ function screenForMode(mode: SignedInRequestEntryMode): SignedInRequestScreenPro
         mode,
         title: "Continue your saved request",
         eyebrow: "Saved progress",
-        body: "We found an authoritative saved context for this account. Continue in the same Phase 1 intake shell.",
+        body: "We found saved answers for this account. Continue from the same place.",
         dominantActionLabel: "Continue draft",
         dominantActionPath: canonicalDetailsPath,
         secondaryActionLabel: "Start a different request",
@@ -263,9 +263,9 @@ function screenForMode(mode: SignedInRequestEntryMode): SignedInRequestScreenPro
         projectionName: "SignedInRequestScreenProjection",
         screenKey: "SavedContextRestoreEntry",
         mode,
-        title: "Restore the same step and anchor",
-        eyebrow: "Restore decision",
-        body: "The saved-context decision restores the current step, selected anchor, and summary posture from authoritative continuity evidence.",
+        title: "Return to your saved step",
+        eyebrow: "Saved progress",
+        body: "We can reopen the step you were working on with your saved summary kept in place.",
         dominantActionLabel: "Restore saved step",
         dominantActionPath: canonicalFilesPath,
         secondaryActionLabel: "Review request type",
@@ -279,8 +279,8 @@ function screenForMode(mode: SignedInRequestEntryMode): SignedInRequestScreenPro
         screenKey: "SavedContextRestoreEntry",
         mode,
         title: "You are back in the same request",
-        eyebrow: "Post-auth return",
-        body: "Sign-in returned to the same saved context instead of opening another draft.",
+        eyebrow: "Signed in",
+        body: "Sign-in brought you back to the request you were already working on.",
         dominantActionLabel: "Continue restored step",
         dominantActionPath: canonicalFilesPath,
         secondaryActionLabel: "View saved summary",
@@ -294,8 +294,8 @@ function screenForMode(mode: SignedInRequestEntryMode): SignedInRequestScreenPro
         screenKey: "PromotedDraftMappedOutcome",
         mode,
         title: "This draft is now a request",
-        eyebrow: "Mapped forward",
-        body: "A promoted draft cannot be reopened for editing. We map you to the authoritative request shell and status truth.",
+        eyebrow: "Request created",
+        body: "This saved draft has already been sent. You can view the current request status.",
         dominantActionLabel: "View current request",
         dominantActionPath: promotedRequestPath,
         secondaryActionLabel: "Back to saved work",
@@ -309,8 +309,8 @@ function screenForMode(mode: SignedInRequestEntryMode): SignedInRequestScreenPro
         screenKey: "NarrowedWritePostureEntry",
         mode,
         title: "Editing is paused for safety",
-        eyebrow: "Claim posture",
-        body: "The current grant or claim posture narrows write authority, so this route defers to the task 197 same-shell posture family.",
+        eyebrow: "Safety check",
+        body: "We need to confirm access before more changes can be made.",
         dominantActionLabel: "Continue safety check",
         dominantActionPath: claimPosturePath,
         secondaryActionLabel: "Return to saved context",
@@ -324,10 +324,10 @@ function screenForMode(mode: SignedInRequestEntryMode): SignedInRequestScreenPro
         projectionName: "SignedInRequestScreenProjection",
         screenKey: "SignedInStartRequestEntry",
         mode: "start_new",
-        title: "Start a request from your account",
+        title: "Start new request",
         eyebrow: "Signed-in request",
-        body: "This starts the existing Phase 1 mission-frame intake with your account context carried quietly in the shell.",
-        dominantActionLabel: "Start a request",
+        body: "Start from your signed-in account. We will keep the request linked to this patient portal.",
+        dominantActionLabel: "Start new request",
         dominantActionPath: canonicalStartPath,
         secondaryActionLabel: "Continue saved draft",
         secondaryActionPath: `${SIGNED_IN_REQUEST_START_ENTRY}/continue`,
@@ -380,7 +380,7 @@ function continuityForMode(mode: SignedInRequestEntryMode): DraftContinuityEvide
       ...baseContinuity,
       currentStepKey: "request_type",
       selectedAnchorKey: "request-start",
-      lastSafeSummary: "No saved answer is required to start a new canonical request.",
+      lastSafeSummary: "No saved answer is required to start a new request.",
       lastMeaningfulUpdate: "New signed-in start",
       promotionState: "not_promoted",
     };
@@ -554,12 +554,12 @@ export function SignedInRequestEntryResolver(pathname: string): SignedInRequestE
       portalRouteFamily: "authenticated_patient_portal",
       entryPath: SIGNED_IN_REQUEST_START_ENTRY,
       patientLabel: "Signed-in patient",
-      maskedPatientRef: "NHS login verified account",
+      maskedPatientRef: "NHS 943 *** 7812",
     },
     patientHomeProjection: {
       projectionName: "PatientHomeProjection",
       entryCardPlacement: mode === "start_new" ? "quiet_home_primary_action" : "saved_context_card",
-      homeActionLabel: mode === "start_new" ? "Start a request" : "Continue draft",
+      homeActionLabel: mode === "start_new" ? "Start new request" : "Continue draft",
       quietHomeDashboardForbidden: true,
     },
     patientNavReturnContract: {
@@ -608,8 +608,8 @@ export function SignedInRequestEntryResolver(pathname: string): SignedInRequestE
     },
     accountDisclosure: {
       label: "Account context",
-      summary: "Signed in with NHS login. Account details stay secondary to the request task.",
-      maskedPatientRef: "Verified account, masked NHS reference",
+      summary: "Signed in with NHS login. Account details stay separate from request answers.",
+      maskedPatientRef: "NHS 943 *** 7812",
       collapsible: true,
       dominance: "secondary",
     },

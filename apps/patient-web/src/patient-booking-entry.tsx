@@ -1,7 +1,7 @@
-import { startTransition, useEffect, useMemo, useRef, useState } from "react";
-import { VecellLogoWordmark } from "@vecells/design-system";
+import { startTransition, useEffect, useRef, useState, type RefObject } from "react";
 import { resolvePortalSupportPhase2Context } from "../../../packages/domain-kernel/src/patient-support-phase2-integration";
 import { PatientSupportPhase2Bridge } from "./patient-support-phase2-bridge";
+import { PatientPortalTopBar } from "./patient-portal-top-bar";
 import {
   PATIENT_BOOKING_ENTRY_TASK_ID,
   PATIENT_BOOKING_ENTRY_VISUAL_MODE,
@@ -84,8 +84,12 @@ function BookingEntryReturnBinder({
       data-continuity-tuple-hash={restoreBundle.continuityTupleHash}
       data-nav-return-contract-ref={projection.adapter.navReturnContractRef ?? "not_applicable"}
       data-request-return-bundle-ref={projection.adapter.requestReturnBundleRef ?? "not_applicable"}
-      data-record-origin-continuation-ref={projection.adapter.recordOriginContinuationRef ?? "not_applicable"}
-      data-recovery-continuation-token-ref={projection.adapter.recoveryContinuationTokenRef ?? "not_applicable"}
+      data-record-origin-continuation-ref={
+        projection.adapter.recordOriginContinuationRef ?? "not_applicable"
+      }
+      data-recovery-continuation-token-ref={
+        projection.adapter.recoveryContinuationTokenRef ?? "not_applicable"
+      }
     />
   );
 }
@@ -95,7 +99,7 @@ function BookingEntryContextRibbon({
   ribbonRef,
 }: {
   projection: PatientBookingEntryProjection;
-  ribbonRef: React.RefObject<HTMLElement | null>;
+  ribbonRef: RefObject<HTMLElement | null>;
 }) {
   return (
     <section
@@ -123,11 +127,7 @@ function BookingEntryContextRibbon({
   );
 }
 
-function BookingSourceBadge({
-  projection,
-}: {
-  projection: PatientBookingEntryProjection;
-}) {
+function BookingSourceBadge({ projection }: { projection: PatientBookingEntryProjection }) {
   return (
     <section
       className="patient-booking-entry__card patient-booking-entry__card--badge"
@@ -148,11 +148,7 @@ function BookingSourceBadge({
   );
 }
 
-function BookingLaunchSummaryCard({
-  projection,
-}: {
-  projection: PatientBookingEntryProjection;
-}) {
+function BookingLaunchSummaryCard({ projection }: { projection: PatientBookingEntryProjection }) {
   return (
     <section
       className="patient-booking-entry__card patient-booking-entry__card--summary"
@@ -257,7 +253,7 @@ function BookingQuietReturnStub({
     >
       <div className="patient-booking-entry__section-head">
         <div>
-          <span className="patient-booking-entry__eyebrow">BookingQuietReturnStub</span>
+          <span className="patient-booking-entry__eyebrow">Return</span>
           <h3 id="booking-entry-return-heading">{projection.quietReturnStub.heading}</h3>
         </div>
       </div>
@@ -280,7 +276,7 @@ function RecordOriginBookingEntrySurface({
   onAction,
 }: {
   projection: PatientBookingEntryProjection;
-  ribbonRef: React.RefObject<HTMLElement | null>;
+  ribbonRef: RefObject<HTMLElement | null>;
   onAction: (action: BookingEntryAction) => void;
 }) {
   const recoveryVisible =
@@ -342,9 +338,7 @@ function usePatientBookingEntryController() {
       restoredBy: restoredBundleRef.current ? "refresh_replay" : "query",
     }),
   );
-  const [announcement, setAnnouncement] = useState(
-    "Booking entry route loaded.",
-  );
+  const [announcement, setAnnouncement] = useState("Booking entry route loaded.");
   const ribbonRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -417,9 +411,7 @@ function usePatientBookingEntryController() {
             restoredBy: "soft_navigation",
           });
           setEntry(nextEntry);
-          setAnnouncement(
-            `${nextEntry.contextRibbon.statusLabel} after continuity recheck.`,
-          );
+          setAnnouncement(`${nextEntry.contextRibbon.statusLabel} after continuity recheck.`);
         });
         return;
     }
@@ -461,26 +453,15 @@ export default function PatientBookingEntryApp() {
       data-recovery-class={phase2Context.recoveryClass}
       data-canonical-status-label={phase2Context.canonicalStatusLabel}
     >
-      <header className="patient-booking-entry__top-band" data-testid="patient-booking-entry-top-band">
-        <a className="patient-booking-entry__brand" href="/home">
-          <span>
-            <VecellLogoWordmark aria-hidden="true" className="patient-booking-entry__brand-wordmark" />
-            <small>Signed-in patient shell</small>
-          </span>
-        </a>
-        <nav aria-label="Patient booking entry navigation" className="patient-booking-entry__nav">
-          <a href="/home">Home</a>
-          <a href="/requests">Requests</a>
-          <a href="/appointments">Appointments</a>
-          <a href="/records">Records</a>
-        </nav>
-      </header>
+      <PatientPortalTopBar
+        current="appointments"
+        testId="patient-booking-entry-top-band"
+        ariaLabel="Patient booking entry navigation"
+      />
       <PatientSupportPhase2Bridge context={phase2Context} />
       <BookingEntryReturnBinder restoreBundle={projection.restoreBundle} projection={projection} />
       <main className="patient-booking-entry__main">
-        <h1 className="patient-booking-entry__route-title">
-          Booking entry
-        </h1>
+        <h1 className="patient-booking-entry__route-title">Booking entry</h1>
         <RecordOriginBookingEntrySurface
           projection={projection}
           ribbonRef={controller.ribbonRef}

@@ -138,7 +138,7 @@ export function NHSAppChannelContextRibbon(props: { readonly selectedCase: NHSAp
       data-cohort-ref={selectedCase.cohortRef}
     >
       <div>
-        <span>Route family</span>
+        <span>Journey group</span>
         <strong>{titleCase(selectedCase.routeFamily)}</strong>
         <small>{selectedCase.journeyPathId}</small>
       </div>
@@ -158,7 +158,7 @@ export function NHSAppChannelContextRibbon(props: { readonly selectedCase: NHSAp
         <small>{selectedCase.releaseEvidenceRef}</small>
       </div>
       <div>
-        <span>Freeze posture</span>
+        <span>Freeze status</span>
         <strong data-tone={freezeTone(selectedCase.freezePosture)}>
           {titleCase(selectedCase.freezePosture)}
         </strong>
@@ -181,7 +181,7 @@ export function NHSAppChannelEventTimeline(props: {
     >
       <header>
         <div>
-          <span>Event lineage</span>
+          <span>Event history</span>
           <h2>Patient-visible channel trace</h2>
         </div>
         <NHSAppJumpOffRouteChip selectedCase={props.selectedCase} />
@@ -250,7 +250,7 @@ export function NHSAppRouteFreezeInspector(props: { readonly selectedCase: NHSAp
       data-freeze-record={props.selectedCase.routeFreezeRecordRef ?? "none"}
     >
       <header>
-        <span>Release posture</span>
+        <span>Release status</span>
         <h2>Route freeze inspector</h2>
       </header>
       <dl>
@@ -279,11 +279,11 @@ export function NHSAppArtifactPostureCard(props: { readonly selectedCase: NHSApp
   return (
     <section
       className="nhs-channel-panel nhs-channel-artifact"
-      aria-label="NHS App artifact posture"
+      aria-label="NHS App artifact status"
       data-testid="NHSAppArtifactPostureCard"
       data-artifact-posture={props.selectedCase.artifactPosture}
     >
-      <span>Artifact posture</span>
+      <span>Artifact status</span>
       <strong>{titleCase(props.selectedCase.artifactPosture)}</strong>
       <p>
         {props.selectedCase.artifactPosture === "download_blocked"
@@ -326,7 +326,7 @@ export function NHSAppSupportRecoveryActionBar(props: {
       data-recovery-kind={props.selectedCase.recoveryKind}
     >
       <div>
-        <span>Bounded recovery</span>
+        <span>Limited recovery</span>
         <strong>{props.selectedCase.recoverySummary}</strong>
       </div>
       <button
@@ -337,7 +337,7 @@ export function NHSAppSupportRecoveryActionBar(props: {
       >
         Copy channel summary
       </button>
-      <a href={props.selectedCase.recoveryPath}>Open governed recovery</a>
+      <a href={props.selectedCase.recoveryPath}>Open approved recovery</a>
     </section>
   );
 }
@@ -390,7 +390,7 @@ function CaseRail(props: {
 
 function SummaryStrip(props: { readonly selectedCase: NHSAppChannelCase }) {
   return (
-    <section className="nhs-channel-summary" aria-label="Channel truth summary">
+    <section className="nhs-channel-summary" aria-label="Channel verified details summary">
       <p>
         <span>Patient</span>
         {props.selectedCase.patientVisibleSummary}
@@ -414,7 +414,7 @@ function AuditTable(props: { readonly selectedCase: NHSAppChannelCase }) {
       aria-label="Disclosure-safe audit table"
     >
       <header>
-        <span>Audit and telemetry</span>
+        <span>Audit and activity data</span>
         <h2>Disclosure-safe fields</h2>
       </header>
       <table>
@@ -428,7 +428,7 @@ function AuditTable(props: { readonly selectedCase: NHSAppChannelCase }) {
         <tbody>
           {[
             ["Audit event", props.selectedCase.auditEventRef, "Audit"],
-            ["Telemetry", props.selectedCase.telemetryRef, "Telemetry"],
+            ["Activity data", props.selectedCase.telemetryRef, "Activity data"],
             ["Evidence", props.selectedCase.releaseEvidenceRef, "Evidence"],
             ["Disposition", props.selectedCase.routeFreezeDispositionRef, "Release"],
           ].map(([label, value, link]) => (
@@ -497,7 +497,7 @@ export function NHSAppChannelControlWorkbench() {
       </a>
       <header className="nhs-channel-masthead">
         <div>
-          <span>Phase 7 channel control</span>
+          <span>Current programme channel control</span>
           <h1>NHS App support and governance workbench</h1>
           <p>
             Reconstruct entry, SSO, route, freeze, artifact, and recovery truth from the same
